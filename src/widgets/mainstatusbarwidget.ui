@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainStatusBarWidget</class>
+ <widget class="QWidget" name="MainStatusBarWidget">
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <property name="spacing">
+    <number>12</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QLabel" name="connectionLabel">
+     <property name="text">
+      <string>Connected: opc.tcp://localhost:4840</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line1">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="securityLabel">
+     <property name="text">
+      <string>Security: None</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="sessionLabel">
+     <property name="text">
+      <string>Session: 0000023A</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line3">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="serverTimeLabel">
+     <property name="text">
+      <string>Server Time: 12:15:23</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line4">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="localTimeLabel">
+     <property name="text">
+      <string>Local Time: 12:15:23</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="horizontalSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QLabel" name="publishingIntervalLabel">
+     <property name="text">
+      <string>Publishing Interval: 1000 ms</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line5">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="modeLabel">
+     <property name="text">
+      <string>Mode: Client</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

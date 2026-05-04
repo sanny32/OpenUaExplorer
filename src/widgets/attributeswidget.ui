@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AttributesWidget</class>
+ <widget class="QWidget" name="AttributesWidget">
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>8</number>
+   </property>
+   <property name="leftMargin">
+    <number>8</number>
+   </property>
+   <property name="topMargin">
+    <number>8</number>
+   </property>
+   <property name="rightMargin">
+    <number>8</number>
+   </property>
+   <property name="bottomMargin">
+    <number>8</number>
+   </property>
+   <item>
+    <widget class="QTableWidget" name="attributesTable">
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="writeValueGroup">
+     <property name="title">
+      <string>Write Value</string>
+     </property>
+     <layout class="QHBoxLayout" name="writeLayout">
+      <item>
+       <widget class="QLabel" name="valueLabel">
+        <property name="text">
+         <string>Value:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="valueEdit">
+        <property name="text">
+         <string>23.45</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="typeCombo">
+        <item>
+         <property name="text">
+          <string>Double</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Boolean</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>UInt32</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="writeButton">
+        <property name="text">
+         <string>Write</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
