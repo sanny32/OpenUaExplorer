@@ -1,13 +1,13 @@
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
-#include "widgets/mainstatusbarwidget.h"
-
 #include <QApplication>
 #include <QColor>
 #include <QDockWidget>
 #include <QEvent>
 #include <QList>
 #include <QPalette>
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+#include "widgets/mainstatusbarwidget.h"
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)

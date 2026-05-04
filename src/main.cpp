@@ -1,15 +1,20 @@
+#include <QApplication>
 #include "mainwindow.h"
 
-#include <QApplication>
-
+///
+/// \brief main
+/// \param argc
+/// \param argv
+/// \return
+///
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
-    QApplication::setApplicationName("OpenUaExplorer");
-    QApplication::setOrganizationName("OpenUaExplorer");
+    QApplication a(argc, argv);
+    a.setApplicationName(APP_NAME);
+    a.setApplicationVersion(APP_VERSION);
 
     MainWindow window;
     window.show();
 
-    return app.exec();
+    return a.exec();
 }
