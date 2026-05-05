@@ -1,9 +1,8 @@
 #include <QHeaderView>
-#include <QPair>
 #include <QTableWidgetItem>
-#include <QVector>
 
 #include "attributeswidget.h"
+#include "testdata.h"
 #include "ui_attributeswidget.h"
 
 ///
@@ -31,23 +30,7 @@ AttributesWidget::~AttributesWidget()
 ///
 void AttributesWidget::populateAttributes()
 {
-    const QVector<QPair<QString, QString>> rows = {
-        {"NodeId", "ns=2;s=Device1.Measurements.Temperature"},
-        {"NamespaceIndex", "2"},
-        {"IdentifierType", "String"},
-        {"Identifier", "Device1.Measurements.Temperature"},
-        {"NodeClass", "Variable"},
-        {"BrowseName", "2, \"Temperature\""},
-        {"DisplayName", "\"Temperature\""},
-        {"Description", "\"Temperature of device 1\""},
-        {"WriteMask", "0"},
-        {"UserWriteMask", "0"},
-        {"DataType", "Double"},
-        {"ValueRank", "-1 (Scalar)"},
-        {"ArrayDimensions", ""},
-        {"AccessLevel", "Read | Write"},
-        {"UserAccessLevel", "Read | Write"}
-    };
+    const auto rows = TestData::attributeItems();
 
     ui->attributesTable->setRowCount(rows.size());
     ui->attributesTable->setColumnCount(2);

@@ -2,9 +2,13 @@
 
 #include <QWidget>
 
+#include "logitem.h"
+
 namespace Ui {
 class LogWidget;
 }
+
+class LogModel;
 
 class LogWidget : public QWidget
 {
@@ -14,8 +18,11 @@ public:
     explicit LogWidget(QWidget *parent = nullptr);
     ~LogWidget() override;
 
+    void addItem(const LogItem &item);
+
 private:
-    void populateLog();
+    void setupLogView();
 
     Ui::LogWidget *ui;
+    LogModel      *_model;
 };

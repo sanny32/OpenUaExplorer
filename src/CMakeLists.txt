@@ -133,6 +133,7 @@ set(SOURCES
     widgets/endpointselectorwidget.cpp
     widgets/fixedgap.cpp
     widgets/headerview.cpp
+    widgets/logmodel.cpp
     widgets/logwidget.cpp
     widgets/mainstatusbarwidget.cpp
     widgets/maintoolbar.cpp
@@ -145,6 +146,7 @@ set(SOURCES
 set(HEADERS
     appstyle.h
     mainwindow.h
+    testdata.h
     widgets/addressspacewidget.h
     widgets/attributeswidget.h
     widgets/connectionstatuswidget.h
@@ -155,6 +157,8 @@ set(HEADERS
     widgets/endpointselectorwidget.h
     widgets/fixedgap.h
     widgets/headerview.h
+    widgets/logitem.h
+    widgets/logmodel.h
     widgets/logwidget.h
     widgets/mainstatusbarwidget.h
     widgets/maintoolbar.h

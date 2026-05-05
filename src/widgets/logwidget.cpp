@@ -1,11 +1,7 @@
-#include <QBrush>
-#include <QColor>
-#include <QHeaderView>
-#include <QStringList>
-#include <QTableWidgetItem>
-#include <QVector>
-
+#include "headerview.h"
+#include "logmodel.h"
 #include "logwidget.h"
+#include "testdata.h"
 #include "ui_logwidget.h"
 
 ///
@@ -15,9 +11,24 @@
 LogWidget::LogWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::LogWidget)
+    , _model(new LogModel(this))
 {
     ui->setupUi(this);
-    populateLog();
+    setupLogView();
+
+    for (const LogItem &item : TestData::logItems())
+        _model->addItem(item);
+
+    connect(ui->clearButton, &QPushButton::clicked, _model, &LogModel::clear);
+
+    connect(ui->levelCombo, &QComboBox::currentIndexChanged, this, [this](int index) {
+        switch (index) {
+        case 0: _model->clearFilterLevel();                        break;
+        case 1: _model->setFilterLevel(LogItem::Level::Info);     break;
+        case 2: _model->setFilterLevel(LogItem::Level::Warning);  break;
+        case 3: _model->setFilterLevel(LogItem::Level::Error);    break;
+        }
+    });
 }
 
 ///
@@ -29,38 +40,39 @@ LogWidget::~LogWidget()
 }
 
 ///
-/// \brief LogWidget::populateLog
+/// \brief LogWidget::addItem
+/// \param item
 ///
-void LogWidget::populateLog()
+void LogWidget::addItem(const LogItem &item)
 {
-    const QVector<QStringList> rows = {
-        {"12:14:58.123", "INFO", "Client", "Connected to opc.tcp://localhost:4840"},
-        {"12:14:58.456", "INFO", "Client", "Browse completed in 120 ms"},
-        {"12:15:01.789", "INFO", "Client", "Subscription created"},
-        {"12:15:02.001", "INFO", "Client", "Monitored items: 6"},
-        {"12:15:10.234", "INFO", "Client", "Write succeeded: ns=2;s=Device1.Commands.Start = true"},
-        {"12:15:10.235", "INFO", "Client", "Write succeeded: ns=2;s=Device1.Commands.Start = false"},
-        {"12:15:23.250", "INFO", "Client", "Data change: Temperature = 23.45"}
-    };
+    _model->addItem(item);
+}
 
-    ui->logTable->setRowCount(rows.size());
-    ui->logTable->setColumnCount(4);
-    ui->logTable->setHorizontalHeaderLabels({
-        "Time",
-        "Level",
-        "Source",
-        "Message"
-    });
-    ui->logTable->horizontalHeader()->setStretchLastSection(true);
+///
+/// \brief LogWidget::setupLogView
+///
+void LogWidget::setupLogView()
+{
+    auto header = new HeaderView(Qt::Horizontal, ui->logTable);
+    connect(header, &HeaderView::sectionAlignmentChanged, this,
+            [this](int logicalIndex, Qt::Alignment alignment) {
+                _model->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
+            });
+
+    ui->logTable->setModel(_model);
+    ui->logTable->setHorizontalHeader(header);
     ui->logTable->verticalHeader()->hide();
 
-    for (int row = 0; row < rows.size(); ++row) {
-        for (int column = 0; column < rows.at(row).size(); ++column) {
-            QTableWidgetItem *item = new QTableWidgetItem(rows.at(row).at(column));
-            if (column == 1) {
-                item->setForeground(QBrush(QColor(0, 150, 64)));
-            }
-            ui->logTable->setItem(row, column, item);
-        }
-    }
+    header->setStretchLastSection(false);
+    header->setSectionResizeMode(LogModel::ColTimestamp, QHeaderView::Fixed);
+    header->setSectionResizeMode(LogModel::ColLevel,     QHeaderView::Fixed);
+    header->setSectionResizeMode(LogModel::ColSource,    QHeaderView::Fixed);
+    header->setSectionResizeMode(LogModel::ColMessage,   QHeaderView::Stretch);
+
+    header->setSectionAlignment(LogModel::ColLevel,  Qt::AlignCenter);
+    header->setSectionAlignment(LogModel::ColSource, Qt::AlignCenter);
+
+    ui->logTable->setColumnWidth(LogModel::ColTimestamp, 95);
+    ui->logTable->setColumnWidth(LogModel::ColLevel,     80);
+    ui->logTable->setColumnWidth(LogModel::ColSource,    60);
 }

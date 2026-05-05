@@ -4,6 +4,7 @@
 #include <QPalette>
 
 #include "dataaccessmodel.h"
+#include "testdata.h"
 
 ///
 /// \brief DataAccessModel::DataAccessModel
@@ -12,16 +13,8 @@
 DataAccessModel::DataAccessModel(QObject *parent)
     : QAbstractTableModel(parent)
 {
-    _subscriptionNames = {"Default", "Fast"};
-
-    _items = {
-        {"ns=2;s=Device1.Measurements.Temperature", "Temperature", "23.45",  "Double",  "12:15:23.250", "Good", "Default"},
-        {"ns=2;s=Device1.Measurements.Pressure",    "Pressure",    "1.013",  "Double",  "12:15:23.250", "Good", "Default"},
-        {"ns=2;s=Device1.Measurements.Humidity",    "Humidity",    "45.2",   "Double",  "12:15:23.250", "Good", "Fast"},
-        {"ns=2;s=Device1.Measurements.FlowRate",    "FlowRate",    "12.4",   "Double",  "12:15:23.250", "Good", ""},
-        {"ns=2;s=Device1.Status.Running",           "Running",     "true",   "Boolean", "12:15:23.250", "Good", ""},
-        {"ns=2;s=Device1.Status.ErrorCode",         "ErrorCode",   "0",      "UInt32",  "12:15:23.250", "Good", ""}
-    };
+    _subscriptionNames = TestData::subscriptionNames();
+    _items = TestData::dataAccessItems();
 }
 
 ///
