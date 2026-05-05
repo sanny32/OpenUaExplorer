@@ -59,7 +59,6 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option,
     if (element == CE_ToolButtonLabel) {
         if (const auto *toolButton = qstyleoption_cast<const QStyleOptionToolButton *>(option)) {
             const QColor windowColor = toolButton->palette.color(QPalette::Window);
-            if (windowColor.lightness() < 128) {
                 QStyleOptionToolButton adjustedOption(*toolButton);
                 const QColor textColor = adjustedOption.palette.color(QPalette::ButtonText);
                 adjustedOption.palette.setColor(QPalette::ButtonText, textColor);
@@ -69,19 +68,16 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option,
                 }
                 QProxyStyle::drawControl(element, &adjustedOption, painter, widget);
                 return;
-            }
         }
     } else if (element == CE_PushButtonLabel) {
         if (const auto *button = qstyleoption_cast<const QStyleOptionButton *>(option)) {
             const QColor windowColor = button->palette.color(QPalette::Window);
-            if (windowColor.lightness() < 128) {
                 QStyleOptionButton adjustedOption(*button);
                 const QColor textColor = adjustedOption.palette.color(QPalette::ButtonText);
                 adjustedOption.palette.setColor(QPalette::ButtonText, textColor);
                 adjustedOption.palette.setBrush(QPalette::Current, QPalette::ButtonText, textColor);
                 QProxyStyle::drawControl(element, &adjustedOption, painter, widget);
                 return;
-            }
         }
     }
 
@@ -98,8 +94,7 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option,
 void AppStyle::drawComplexControl(ComplexControl control, const QStyleOptionComplex *option,
                                   QPainter *painter, const QWidget *widget) const
 {
-    if (control == CC_ToolButton && widget && widget->inherits("QDockWidgetTitleButton")
-        && option->palette.color(QPalette::Window).lightness() < 128) {
+    if (control == CC_ToolButton && widget && widget->inherits("QDockWidgetTitleButton") && option) {
         const bool closeButton = widget->objectName() == "qt_dockwidget_closebutton";
         const bool floatButton = widget->objectName() == "qt_dockwidget_floatbutton";
         if (closeButton || floatButton) {
@@ -126,8 +121,7 @@ void AppStyle::drawComplexControl(ComplexControl control, const QStyleOptionComp
 void AppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option,
                              QPainter *painter, const QWidget *widget) const
 {
-    if (element == PE_PanelItemViewItem
-        && option->palette.color(QPalette::Window).lightness() < 128
+    if (element == PE_PanelItemViewItem && option
         && (option->state & State_Selected)) {
         painter->fillRect(option->rect, option->palette.color(QPalette::Highlight));
         return;
@@ -169,8 +163,7 @@ QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option,
 int AppStyle::styleHint(StyleHint hint, const QStyleOption *option,
                         const QWidget *widget, QStyleHintReturn *returnData) const
 {
-    if (hint == SH_Table_GridLineColor &&
-        option->palette.color(QPalette::Window).lightness() < 128) {
+    if (hint == SH_Table_GridLineColor && option) {
         return int(option->palette.color(QPalette::Mid).rgba());
     }
 
@@ -187,7 +180,7 @@ int AppStyle::styleHint(StyleHint hint, const QStyleOption *option,
 QIcon AppStyle::standardIcon(StandardPixmap standardIcon, const QStyleOption *option,
                              const QWidget *widget) const
 {
-    if (option && option->palette.color(QPalette::Window).lightness() < 128) {
+    if (option) {
         const bool closeIcon = standardIcon == SP_TitleBarCloseButton
             || standardIcon == SP_DockWidgetCloseButton;
         const bool floatIcon = standardIcon == SP_TitleBarNormalButton;
