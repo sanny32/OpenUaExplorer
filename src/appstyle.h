@@ -21,6 +21,10 @@ public:
     QRect subElementRect(SubElement element, const QStyleOption *option,
                          const QWidget *widget = nullptr) const override;
 
+    int styleHint(StyleHint hint, const QStyleOption *option = nullptr,
+                  const QWidget *widget = nullptr,
+                  QStyleHintReturn *returnData = nullptr) const override;
+
     QIcon standardIcon(StandardPixmap standardIcon, const QStyleOption *option = nullptr,
                        const QWidget *widget = nullptr) const override;
 

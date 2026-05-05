@@ -159,6 +159,25 @@ QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option,
 }
 
 ///
+/// \brief AppStyle::styleHint
+/// \param hint
+/// \param option
+/// \param widget
+/// \param returnData
+/// \return
+///
+int AppStyle::styleHint(StyleHint hint, const QStyleOption *option,
+                        const QWidget *widget, QStyleHintReturn *returnData) const
+{
+    if (hint == SH_Table_GridLineColor &&
+        option->palette.color(QPalette::Window).lightness() < 128) {
+        return int(option->palette.color(QPalette::Mid).rgba());
+    }
+
+    return QProxyStyle::styleHint(hint, option, widget, returnData);
+}
+
+///
 /// \brief AppStyle::standardIcon
 /// \param standardIcon
 /// \param option

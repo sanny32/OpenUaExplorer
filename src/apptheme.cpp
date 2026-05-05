@@ -50,7 +50,7 @@ QPalette AppTheme::darkPalette()
     palette.setColor(QPalette::ToolTipText,     QColor(0xe2, 0xe8, 0xf0));
     palette.setColor(QPalette::Link,            QColor(0x58, 0xa6, 0xff));
     palette.setColor(QPalette::Midlight,        QColor(0x44, 0x44, 0x44));
-    palette.setColor(QPalette::Mid,             QColor(0x38, 0x38, 0x38));
+    palette.setColor(QPalette::Mid,             QColor(0x46, 0x46, 0x46));
     palette.setColor(QPalette::Dark,            QColor(0x25, 0x25, 0x25));
     return palette;
 }
