@@ -55,7 +55,7 @@ void MainWindow::setupDockOptions()
 
 void MainWindow::applyThemeIcons()
 {
-    setWindowIcon(themedIcon("app"));
+    setWindowIcon(QIcon(":/app.ico"));
 
     ui->actionConnect->setIcon(themedIcon("connect"));
     ui->actionDisconnect->setIcon(themedIcon("disconnect"));

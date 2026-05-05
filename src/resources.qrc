@@ -1,7 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file alias="icons/light/add.svg">res/icons/light/add.svg</file>
-        <file alias="icons/light/app.svg">res/icons/light/app.svg</file>
         <file alias="icons/light/browse.svg">res/icons/light/browse.svg</file>
         <file alias="icons/light/connect.svg">res/icons/light/connect.svg</file>
         <file alias="icons/light/connected.svg">res/icons/light/connected.svg</file>
@@ -19,10 +18,7 @@
         <file alias="icons/light/unsubscribe.svg">res/icons/light/unsubscribe.svg</file>
         <file alias="icons/light/variable.svg">res/icons/light/variable.svg</file>
         <file alias="icons/light/write.svg">res/icons/light/write.svg</file>
-    </qresource>
-    <qresource prefix="/">
         <file alias="icons/dark/add.svg">res/icons/dark/add.svg</file>
-        <file alias="icons/dark/app.svg">res/icons/dark/app.svg</file>
         <file alias="icons/dark/browse.svg">res/icons/dark/browse.svg</file>
         <file alias="icons/dark/connect.svg">res/icons/dark/connect.svg</file>
         <file alias="icons/dark/connected.svg">res/icons/dark/connected.svg</file>
@@ -40,5 +36,6 @@
         <file alias="icons/dark/unsubscribe.svg">res/icons/dark/unsubscribe.svg</file>
         <file alias="icons/dark/variable.svg">res/icons/dark/variable.svg</file>
         <file alias="icons/dark/write.svg">res/icons/dark/write.svg</file>
+        <file alias="app.ico">res/icons/app.ico</file>
     </qresource>
 </RCC>
