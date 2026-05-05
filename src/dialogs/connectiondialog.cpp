@@ -12,11 +12,21 @@
 #include "ui_connectiondialog.h"
 #include "widgets/coloredpushbutton.h"
 
+///
+/// \brief isDarkTheme
+/// \return
+///
 static bool isDarkTheme()
 {
     return qApp->palette().color(QPalette::Window).lightness() < 128;
 }
 
+///
+/// \brief svgToPixmap
+/// \param resource
+/// \param size
+/// \return
+///
 static QPixmap svgToPixmap(const QString &resource, int size)
 {
     QSvgRenderer renderer(resource);
@@ -27,6 +37,12 @@ static QPixmap svgToPixmap(const QString &resource, int size)
     return pixmap;
 }
 
+///
+/// \brief themedIcon
+/// \param name
+/// \param size
+/// \return
+///
 static QPixmap themedIcon(const QString &name, int size)
 {
     const QString theme = isDarkTheme() ? "dark" : "light";

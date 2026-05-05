@@ -3,6 +3,7 @@
 #include <QIcon>
 #include <QMainWindow>
 #include <QString>
+#include <optional>
 
 namespace Ui {
 class MainWindow;
@@ -30,9 +31,12 @@ private:
     void openConnectionDialog();
     void setupDockOptions();
     void applyThemeIcons();
+    void toggleTheme();
+    void applyForcedTheme(IconTheme theme);
     IconTheme currentIconTheme() const;
     QIcon themedIcon(const QString &name) const;
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_mainStatusBarWidget;
+    std::optional<IconTheme> _forcedTheme;
 };

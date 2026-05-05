@@ -43,5 +43,7 @@
         <file alias="icons/dark/info.svg">res/icons/dark/info.svg</file>
         <file alias="icons/light/lock.svg">res/icons/light/lock.svg</file>
         <file alias="icons/dark/lock.svg">res/icons/dark/lock.svg</file>
+        <file alias="icons/light/theme.svg">res/icons/light/theme.svg</file>
+        <file alias="icons/dark/theme.svg">res/icons/dark/theme.svg</file>
     </qresource>
 </RCC>

@@ -1,11 +1,11 @@
 #include <QApplication>
 #include <QAction>
-#include <QColor>
 #include <QDockWidget>
 #include <QEvent>
 #include <QList>
 #include <QPalette>
 
+#include "apptheme.h"
 #include "dialogs/connectiondialog.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -29,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
     applyThemeIcons();
 
     connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::openConnectionDialog);
+    connect(ui->actionTheme, &QAction::triggered, this, &MainWindow::toggleTheme);
 
     ui->centralSplitter->setSizes({360, 310});
     resizeDocks({ui->addressSpaceDock, ui->attributesDock}, {300, 390}, Qt::Horizontal);
@@ -82,6 +83,30 @@ void MainWindow::setupDockOptions()
 }
 
 ///
+/// \brief MainWindow::toggleTheme
+///
+void MainWindow::toggleTheme()
+{
+    const IconTheme next = currentIconTheme() == IconTheme::Light ? IconTheme::Dark : IconTheme::Light;
+    applyForcedTheme(next);
+}
+
+///
+/// \brief MainWindow::applyForcedTheme
+/// \param theme
+///
+void MainWindow::applyForcedTheme(IconTheme theme)
+{
+    _forcedTheme = theme;
+
+    const QPalette palette = theme == IconTheme::Dark
+        ? AppTheme::darkPalette()
+        : AppTheme::lightPalette();
+
+    qApp->setPalette(palette);
+}
+
+///
 /// \brief MainWindow::applyThemeIcons
 ///
 void MainWindow::applyThemeIcons()
@@ -97,6 +122,7 @@ void MainWindow::applyThemeIcons()
     ui->actionSubscribe->setIcon(themedIcon("subscribe"));
     ui->actionUnsubscribe->setIcon(themedIcon("unsubscribe"));
     ui->actionSettings->setIcon(themedIcon("settings"));
+    ui->actionTheme->setIcon(themedIcon("theme"));
 
     _mainStatusBarWidget->setConnectionIcon(themedIcon("connected"));
 }
@@ -107,6 +133,9 @@ void MainWindow::applyThemeIcons()
 ///
 MainWindow::IconTheme MainWindow::currentIconTheme() const
 {
+    if (_forcedTheme.has_value()) {
+        return _forcedTheme.value();
+    }
     const QColor windowColor = qApp->palette().color(QPalette::Window);
     return windowColor.lightness() < 128 ? IconTheme::Dark : IconTheme::Light;
 }

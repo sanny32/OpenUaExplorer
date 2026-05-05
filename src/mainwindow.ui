@@ -113,6 +113,8 @@
    <addaction name="actionUnsubscribe"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
+   <addaction name="separator"/>
+   <addaction name="actionTheme"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="addressSpaceDock">
@@ -212,6 +214,11 @@
   <action name="actionSettings">
    <property name="text">
     <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionTheme">
+   <property name="text">
+    <string>Theme</string>
    </property>
   </action>
  </widget>
