@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QCheckBox>
+#include <QEvent>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QSpinBox>
@@ -42,11 +43,7 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->connectButton->setColors({
-        QColor(0x0a74d1),
-        QColor(0x1682df),
-        QColor(0x075ca7),
-    });
+    updateTheme();
 
     for (QSpinBox *sb : {
              ui->sessionTimeoutSpinBox,
@@ -58,10 +55,6 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
          }) {
         sb->setFixedWidth(100);
     }
-
-    ui->clientCertificateHintIcon->setPixmap(themedIcon("info", 24));
-    ui->serverCertificateIconLabel->setPixmap(themedIcon("lock", 48));
-    ui->statusIconLabel->setPixmap(themedIcon("disconnected", 16));
 
     connect(ui->cancelButton, &QPushButton::clicked, this, &QDialog::reject);
     connect(ui->connectButton, &QPushButton::clicked, this, &QDialog::accept);
@@ -76,4 +69,35 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
 ConnectionDialog::~ConnectionDialog()
 {
     delete ui;
+}
+
+void ConnectionDialog::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::ApplicationPaletteChange)
+        updateTheme();
+    QDialog::changeEvent(event);
+}
+
+///
+/// \brief ConnectionDialog::updateTheme
+///
+void ConnectionDialog::updateTheme()
+{
+    if (isDarkTheme()) {
+        ui->connectButton->setColors({
+            QColor(0x1a8fe8),
+            QColor(0x2b9df5),
+            QColor(0x0d72c4),
+        });
+    } else {
+        ui->connectButton->setColors({
+            QColor(0x0a74d1),
+            QColor(0x1682df),
+            QColor(0x075ca7),
+        });
+    }
+
+    ui->clientCertificateHintIcon->setPixmap(themedIcon("info", 24));
+    ui->serverCertificateIconLabel->setPixmap(themedIcon("lock", 48));
+    ui->statusIconLabel->setPixmap(themedIcon("disconnected", 16));
 }

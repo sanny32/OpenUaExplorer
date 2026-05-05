@@ -14,6 +14,11 @@ public:
     explicit ConnectionDialog(QWidget *parent = nullptr);
     ~ConnectionDialog() override;
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
+    void updateTheme();
+
     Ui::ConnectionDialog *ui;
 };
