@@ -64,6 +64,9 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option,
                 const QColor textColor = adjustedOption.palette.color(QPalette::ButtonText);
                 adjustedOption.palette.setColor(QPalette::ButtonText, textColor);
                 adjustedOption.palette.setBrush(QPalette::Current, QPalette::ButtonText, textColor);
+                if (!adjustedOption.icon.isNull()) {
+                    adjustedOption.icon = tintedIcon(adjustedOption.icon, adjustedOption.iconSize, textColor);
+                }
                 QProxyStyle::drawControl(element, &adjustedOption, painter, widget);
                 return;
             }
