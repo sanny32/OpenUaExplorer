@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QEvent>
+#include <QIcon>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QSpinBox>
@@ -99,6 +100,9 @@ void ConnectionDialog::changeEvent(QEvent *event)
 ///
 void ConnectionDialog::updateTheme()
 {
+    const QString theme = isDarkTheme() ? "dark" : "light";
+    setWindowIcon(QIcon(QString(":/icons/%1/app.ico").arg(theme)));
+
     if (isDarkTheme()) {
         ui->connectButton->setColors({
             QColor(0x1a8fe8),

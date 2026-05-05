@@ -36,7 +36,9 @@
         <file alias="icons/dark/unsubscribe.svg">res/icons/dark/unsubscribe.svg</file>
         <file alias="icons/dark/variable.svg">res/icons/dark/variable.svg</file>
         <file alias="icons/dark/write.svg">res/icons/dark/write.svg</file>
-        <file alias="app.ico">res/icons/app.ico</file>
+        <file alias="app.ico">res/icons/light/app.ico</file>
+        <file alias="icons/light/app.ico">res/icons/light/app.ico</file>
+        <file alias="icons/dark/app.ico">res/icons/dark/app.ico</file>
         <file alias="icons/light/disconnected.svg">res/icons/light/disconnected.svg</file>
         <file alias="icons/dark/disconnected.svg">res/icons/dark/disconnected.svg</file>
         <file alias="icons/light/info.svg">res/icons/light/info.svg</file>

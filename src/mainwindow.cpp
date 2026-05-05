@@ -11,7 +11,6 @@
 #include "ui_mainwindow.h"
 #include "widgets/mainstatusbarwidget.h"
 
-
 ///
 /// \brief MainWindow::MainWindow
 /// \param parent
@@ -111,7 +110,11 @@ void MainWindow::applyForcedTheme(IconTheme theme)
 ///
 void MainWindow::applyThemeIcons()
 {
-    setWindowIcon(QIcon(":/app.ico"));
+    const QString themeName = currentIconTheme() == IconTheme::Dark
+        ? "dark"
+        : "light";
+
+    setWindowIcon(QIcon(QString(":/icons/%1/app.ico").arg(themeName)));
 
     ui->actionConnect->setIcon(themedIcon("connect"));
     ui->actionDisconnect->setIcon(themedIcon("disconnect"));
