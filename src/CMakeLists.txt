@@ -131,6 +131,7 @@ set(SOURCES
     widgets/subscriptiondelegate.cpp
     widgets/endpointselectorwidget.cpp
     widgets/fixedgap.cpp
+    widgets/headerview.cpp
     widgets/logwidget.cpp
     widgets/mainstatusbarwidget.cpp
     widgets/maintoolbar.cpp
@@ -151,6 +152,7 @@ set(HEADERS
     widgets/subscriptiondelegate.h
     widgets/endpointselectorwidget.h
     widgets/fixedgap.h
+    widgets/headerview.h
     widgets/logwidget.h
     widgets/mainstatusbarwidget.h
     widgets/maintoolbar.h

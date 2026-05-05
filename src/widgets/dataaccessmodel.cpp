@@ -132,6 +132,9 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
         }
     }
 
+    if (role == Qt::TextAlignmentRole)
+        return QVariant(columnAlignment(col));
+
     if (role == Qt::EditRole && col == ColSubscription)
         return item.subscriptionName;
 
@@ -157,4 +160,25 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
 QStringList DataAccessModel::subscriptionNames() const
 {
     return _subscriptionNames;
+}
+
+///
+/// \brief DataAccessModel::columnAlignment
+/// \param column
+/// \return
+///
+Qt::Alignment DataAccessModel::columnAlignment(int column) const
+{
+    return _columnAlignments.value(column, Qt::AlignLeft | Qt::AlignVCenter);
+}
+
+///
+/// \brief DataAccessModel::setColumnAlignment
+/// \param column
+/// \param alignment
+///
+void DataAccessModel::setColumnAlignment(int column, Qt::Alignment alignment)
+{
+    _columnAlignments[column] = alignment;
+    emit dataChanged(index(0, column), index(rowCount() - 1, column), {Qt::TextAlignmentRole});
 }

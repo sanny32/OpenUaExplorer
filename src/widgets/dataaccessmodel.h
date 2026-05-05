@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractTableModel>
+#include <QHash>
 #include <QStringList>
 #include <QVector>
 
@@ -23,6 +24,9 @@ public:
 
     QStringList subscriptionNames() const;
 
+    Qt::Alignment columnAlignment(int column) const;
+    void setColumnAlignment(int column, Qt::Alignment alignment);
+
     enum Column {
         ColNumber       = 0,
         ColNodeId       = 1,
@@ -38,4 +42,5 @@ public:
 private:
     QVector<DataAccessItem> _items;
     QStringList _subscriptionNames;
+    QHash<int, Qt::Alignment> _columnAlignments;
 };

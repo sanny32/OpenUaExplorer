@@ -7,6 +7,7 @@
 #include <QPalette>
 #include <QTableView>
 
+#include "headerview.h"
 #include "dataaccessmodel.h"
 #include "dataaccesswidget.h"
 #include "subscriptiondelegate.h"
@@ -45,27 +46,40 @@ void DataAccessWidget::setupDataView()
     ui->dataView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
     ui->dataView->verticalHeader()->hide();
 
-    auto *delegate = new SubscriptionDelegate(_model->subscriptionNames(), ui->dataView);
+    auto delegate = new SubscriptionDelegate(_model->subscriptionNames(), ui->dataView);
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, delegate);
 
-    QHeaderView *header = ui->dataView->horizontalHeader();
-    header->setStretchLastSection(false);
-    header->setSectionResizeMode(0, QHeaderView::Fixed);
-    header->setSectionResizeMode(1, QHeaderView::Stretch);
-    header->setSectionResizeMode(2, QHeaderView::Fixed);
-    header->setSectionResizeMode(3, QHeaderView::Fixed);
-    header->setSectionResizeMode(4, QHeaderView::Fixed);
-    header->setSectionResizeMode(5, QHeaderView::Fixed);
-    header->setSectionResizeMode(6, QHeaderView::Fixed);
-    header->setSectionResizeMode(7, QHeaderView::Fixed);
+    auto header = new HeaderView(Qt::Horizontal, ui->dataView);
+    connect(header, &HeaderView::sectionAlignmentChanged, this,
+            [this](int logicalIndex, Qt::Alignment alignment) {
+                _model->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
+            });
 
-    ui->dataView->setColumnWidth(0, 36);
-    ui->dataView->setColumnWidth(2, 120);
-    ui->dataView->setColumnWidth(3, 70);
-    ui->dataView->setColumnWidth(4, 82);
-    ui->dataView->setColumnWidth(5, 150);
-    ui->dataView->setColumnWidth(6, 86);
-    ui->dataView->setColumnWidth(7, 100);
+    ui->dataView->setHorizontalHeader(header);
+
+    header->setStretchLastSection(false);
+    header->setSectionResizeMode(DataAccessModel::ColNumber,       QHeaderView::Fixed);
+    header->setSectionResizeMode(DataAccessModel::ColNodeId,       QHeaderView::Stretch);
+    header->setSectionResizeMode(DataAccessModel::ColDisplayName,  QHeaderView::Fixed);
+    header->setSectionResizeMode(DataAccessModel::ColValue,        QHeaderView::Fixed);
+    header->setSectionResizeMode(DataAccessModel::ColDataType,     QHeaderView::Fixed);
+    header->setSectionResizeMode(DataAccessModel::ColTimestamp,    QHeaderView::Fixed);
+    header->setSectionResizeMode(DataAccessModel::ColStatus,       QHeaderView::Fixed);
+    header->setSectionResizeMode(DataAccessModel::ColSubscription, QHeaderView::Fixed);
+
+    header->setSectionAlignment(DataAccessModel::ColNumber,     Qt::AlignCenter);
+    header->setSectionAlignment(DataAccessModel::ColValue,      Qt::AlignCenter);
+    header->setSectionAlignment(DataAccessModel::ColDataType,   Qt::AlignCenter);
+    header->setSectionAlignment(DataAccessModel::ColTimestamp,  Qt::AlignCenter);
+    header->setSectionAlignment(DataAccessModel::ColStatus,     Qt::AlignCenter);
+
+    ui->dataView->setColumnWidth(DataAccessModel::ColNumber,        36  );
+    ui->dataView->setColumnWidth(DataAccessModel::ColDisplayName,   120 );
+    ui->dataView->setColumnWidth(DataAccessModel::ColValue,         70  );
+    ui->dataView->setColumnWidth(DataAccessModel::ColDataType,      82  );
+    ui->dataView->setColumnWidth(DataAccessModel::ColTimestamp,     150 );
+    ui->dataView->setColumnWidth(DataAccessModel::ColStatus,        86  );
+    ui->dataView->setColumnWidth(DataAccessModel::ColSubscription,  100 );
 
     connect(ui->dataView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, [this] {
