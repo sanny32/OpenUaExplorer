@@ -8,6 +8,7 @@
 #include "widgets/dataaccessitem.h"
 #include "widgets/logitem.h"
 #include "widgets/nodeitem.h"
+#include "widgets/subscriptionitem.h"
 
 namespace TestData {
 
@@ -148,6 +149,45 @@ inline QVector<ReferenceItem> referenceItems()
         {"HasComponent",      "ns=2;s=Device1.Measurements"},
         {"HasProperty",       "ns=2;s=Device1.Measurements.Temperature.EURange"},
         {"HasProperty",       "ns=2;s=Device1.Measurements.Temperature.EngineeringUnits"}
+    };
+}
+
+///
+/// \brief Returns sample OPC UA subscription entries for use in SubscriptionsModel.
+/// \return List of SubscriptionItem entries.
+///
+inline QVector<SubscriptionItem> subscriptionItems()
+{
+    return {
+        {"Default", "500 ms"},
+        {"Fast",    "100 ms"}
+    };
+}
+
+///
+/// \brief Returns sample OPC UA event entries for use in EventsModel.
+/// \return List of EventItem entries.
+///
+inline QVector<EventItem> eventItems()
+{
+    return {
+        {"12:15:01.100", "SystemStatusChangeEventType: Server started"},
+        {"12:15:03.450", "GeneralModelChangeEventType: Node ns=2;s=Device1 modified"},
+        {"12:15:08.900", "AuditWriteUpdateEventType: ns=2;s=Device1.Commands.Start = true"},
+        {"12:15:21.300", "AlarmConditionType: Temperature exceeded threshold (23.45 > 23.0)"}
+    };
+}
+
+///
+/// \brief Returns sample OPC UA history read entries for use in HistoryModel.
+/// \return List of HistoryItem entries.
+///
+inline QVector<HistoryItem> historyItems()
+{
+    return {
+        {"ns=2;s=Device1.Measurements.Temperature", "12:10:00 — 12:15:00"},
+        {"ns=2;s=Device1.Measurements.Pressure",    "12:10:00 — 12:15:00"},
+        {"ns=2;s=Device1.Measurements.Humidity",    "12:10:00 — 12:15:00"}
     };
 }
 

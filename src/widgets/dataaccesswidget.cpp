@@ -7,10 +7,14 @@
 #include <QPalette>
 #include <QTableView>
 
-#include "headerview.h"
 #include "dataaccessmodel.h"
 #include "dataaccesswidget.h"
+#include "eventsmodel.h"
+#include "headerview.h"
+#include "historymodel.h"
 #include "subscriptiondelegate.h"
+#include "subscriptionsmodel.h"
+#include "testdata.h"
 #include "ui_dataaccesswidget.h"
 
 ///
@@ -21,11 +25,21 @@ DataAccessWidget::DataAccessWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::DataAccessWidget)
     , _model(new DataAccessModel(this))
+    , _subscriptionsModel(new SubscriptionsModel(this))
+    , _eventsModel(new EventsModel(this))
+    , _historyModel(new HistoryModel(this))
 {
     ui->setupUi(this);
     configureToolbar();
     setupDataView();
+    setupSubscriptionsView();
+    setupEventsView();
+    setupHistoryView();
     ui->dataView->setMinimumHeight(190);
+
+    _subscriptionsModel->setItems(TestData::subscriptionItems());
+    _eventsModel->setItems(TestData::eventItems());
+    _historyModel->setItems(TestData::historyItems());
 }
 
 ///
@@ -73,19 +87,73 @@ void DataAccessWidget::setupDataView()
     header->setSectionAlignment(DataAccessModel::ColTimestamp,  Qt::AlignCenter);
     header->setSectionAlignment(DataAccessModel::ColStatus,     Qt::AlignCenter);
 
-    ui->dataView->setColumnWidth(DataAccessModel::ColNumber,        36  );
-    ui->dataView->setColumnWidth(DataAccessModel::ColDisplayName,   120 );
-    ui->dataView->setColumnWidth(DataAccessModel::ColValue,         70  );
-    ui->dataView->setColumnWidth(DataAccessModel::ColDataType,      82  );
-    ui->dataView->setColumnWidth(DataAccessModel::ColTimestamp,     150 );
-    ui->dataView->setColumnWidth(DataAccessModel::ColStatus,        86  );
-    ui->dataView->setColumnWidth(DataAccessModel::ColSubscription,  100 );
+    ui->dataView->setColumnWidth(DataAccessModel::ColNumber,       36 );
+    ui->dataView->setColumnWidth(DataAccessModel::ColDisplayName,  120);
+    ui->dataView->setColumnWidth(DataAccessModel::ColValue,        70 );
+    ui->dataView->setColumnWidth(DataAccessModel::ColDataType,     82 );
+    ui->dataView->setColumnWidth(DataAccessModel::ColTimestamp,    150);
+    ui->dataView->setColumnWidth(DataAccessModel::ColStatus,       86 );
+    ui->dataView->setColumnWidth(DataAccessModel::ColSubscription, 100);
 
     connect(ui->dataView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, [this] {
         ui->subscribeButton->setEnabled(
             !ui->dataView->selectionModel()->selectedRows().isEmpty());
     });
+}
+
+///
+/// \brief DataAccessWidget::setupSubscriptionsView
+///
+void DataAccessWidget::setupSubscriptionsView()
+{
+    auto *subsHeader = new HeaderView(Qt::Horizontal, ui->subscriptionsTable);
+    connect(subsHeader, &HeaderView::sectionAlignmentChanged, this,
+            [this](int logicalIndex, Qt::Alignment alignment) {
+                _subscriptionsModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
+            });
+    ui->subscriptionsTable->setModel(_subscriptionsModel);
+    ui->subscriptionsTable->setHorizontalHeader(subsHeader);
+    ui->subscriptionsTable->verticalHeader()->hide();
+    subsHeader->setSectionResizeMode(SubscriptionsModel::ColName,               QHeaderView::Fixed);
+    subsHeader->setSectionResizeMode(SubscriptionsModel::ColPublishingInterval, QHeaderView::Stretch);
+    ui->subscriptionsTable->setColumnWidth(SubscriptionsModel::ColName, 120);
+}
+
+///
+/// \brief DataAccessWidget::setupEventsView
+///
+void DataAccessWidget::setupEventsView()
+{
+    auto *eventsHeader = new HeaderView(Qt::Horizontal, ui->eventsTable);
+    connect(eventsHeader, &HeaderView::sectionAlignmentChanged, this,
+            [this](int logicalIndex, Qt::Alignment alignment) {
+                _eventsModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
+            });
+    ui->eventsTable->setModel(_eventsModel);
+    ui->eventsTable->setHorizontalHeader(eventsHeader);
+    ui->eventsTable->verticalHeader()->hide();
+    eventsHeader->setSectionResizeMode(EventsModel::ColTime,    QHeaderView::Fixed);
+    eventsHeader->setSectionResizeMode(EventsModel::ColMessage, QHeaderView::Stretch);
+    ui->eventsTable->setColumnWidth(EventsModel::ColTime, 95);
+}
+
+///
+/// \brief DataAccessWidget::setupHistoryView
+///
+void DataAccessWidget::setupHistoryView()
+{
+    auto *historyHeader = new HeaderView(Qt::Horizontal, ui->historyTable);
+    connect(historyHeader, &HeaderView::sectionAlignmentChanged, this,
+            [this](int logicalIndex, Qt::Alignment alignment) {
+                _historyModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
+            });
+    ui->historyTable->setModel(_historyModel);
+    ui->historyTable->setHorizontalHeader(historyHeader);
+    ui->historyTable->verticalHeader()->hide();
+    historyHeader->setSectionResizeMode(HistoryModel::ColNode,  QHeaderView::Fixed);
+    historyHeader->setSectionResizeMode(HistoryModel::ColRange, QHeaderView::Stretch);
+    ui->historyTable->setColumnWidth(HistoryModel::ColNode, 260);
 }
 
 ///

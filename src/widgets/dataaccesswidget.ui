@@ -116,18 +116,7 @@
       </attribute>
       <layout class="QVBoxLayout" name="subscriptionsLayout">
        <item>
-        <widget class="QTableWidget" name="subscriptionsTable">
-         <column>
-          <property name="text">
-           <string>Name</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Publishing Interval</string>
-          </property>
-         </column>
-        </widget>
+        <widget class="QTableView" name="subscriptionsTable"/>
        </item>
       </layout>
      </widget>
@@ -137,18 +126,7 @@
       </attribute>
       <layout class="QVBoxLayout" name="eventsLayout">
        <item>
-        <widget class="QTableWidget" name="eventsTable">
-         <column>
-          <property name="text">
-           <string>Time</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Message</string>
-          </property>
-         </column>
-        </widget>
+        <widget class="QTableView" name="eventsTable"/>
        </item>
       </layout>
      </widget>
@@ -158,18 +136,7 @@
       </attribute>
       <layout class="QVBoxLayout" name="historyLayout">
        <item>
-        <widget class="QTableWidget" name="historyTable">
-         <column>
-          <property name="text">
-           <string>Node</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Range</string>
-          </property>
-         </column>
-        </widget>
+        <widget class="QTableView" name="historyTable"/>
        </item>
       </layout>
      </widget>

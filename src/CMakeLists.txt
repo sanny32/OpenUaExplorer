@@ -133,7 +133,10 @@ set(SOURCES
     widgets/connectionstatuswidget.cpp
     widgets/dataaccesswidget.cpp
     widgets/dataaccessmodel.cpp
+    widgets/eventsmodel.cpp
+    widgets/historymodel.cpp
     widgets/subscriptiondelegate.cpp
+    widgets/subscriptionsmodel.cpp
     widgets/endpointselectorwidget.cpp
     widgets/fixedgap.cpp
     widgets/headerview.cpp
@@ -163,7 +166,11 @@ set(HEADERS
     widgets/dataaccesswidget.h
     widgets/dataaccessitem.h
     widgets/dataaccessmodel.h
+    widgets/eventsmodel.h
+    widgets/historymodel.h
     widgets/subscriptiondelegate.h
+    widgets/subscriptionitem.h
+    widgets/subscriptionsmodel.h
     widgets/endpointselectorwidget.h
     widgets/fixedgap.h
     widgets/headerview.h
