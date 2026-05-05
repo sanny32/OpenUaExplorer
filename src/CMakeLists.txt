@@ -123,6 +123,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 set(SOURCES
     main.cpp
     appstyle.cpp
+    dialogs/connectiondialog.cpp
     mainwindow.cpp
     widgets/addressspacemodel.cpp
     widgets/addressspacewidget.cpp
@@ -130,6 +131,7 @@ set(SOURCES
     widgets/referencesmodel.cpp
     widgets/attributesmodel.cpp
     widgets/attributeswidget.cpp
+    widgets/coloredpushbutton.cpp
     widgets/connectionstatuswidget.cpp
     widgets/dataaccesswidget.cpp
     widgets/dataaccessmodel.cpp
@@ -152,6 +154,7 @@ set(SOURCES
 
 set(HEADERS
     appstyle.h
+    dialogs/connectiondialog.h
     mainwindow.h
     testdata.h
     widgets/addressspaceitem.h
@@ -162,6 +165,7 @@ set(HEADERS
     widgets/referencesmodel.h
     widgets/attributesmodel.h
     widgets/attributeswidget.h
+    widgets/coloredpushbutton.h
     widgets/connectionstatuswidget.h
     widgets/dataaccesswidget.h
     widgets/dataaccessitem.h
@@ -191,6 +195,7 @@ set(UI_FILES
     widgets/attributeswidget.ui
     widgets/connectionstatuswidget.ui
     widgets/dataaccesswidget.ui
+    dialogs/connectiondialog.ui
     widgets/endpointselectorwidget.ui
     widgets/logwidget.ui
     widgets/mainstatusbarwidget.ui

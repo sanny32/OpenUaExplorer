@@ -1,0 +1,79 @@
+#include <QApplication>
+#include <QCheckBox>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QSpinBox>
+#include <QSvgRenderer>
+#include <QPainter>
+#include <QPixmap>
+
+#include "connectiondialog.h"
+#include "ui_connectiondialog.h"
+#include "widgets/coloredpushbutton.h"
+
+static bool isDarkTheme()
+{
+    return qApp->palette().color(QPalette::Window).lightness() < 128;
+}
+
+static QPixmap svgToPixmap(const QString &resource, int size)
+{
+    QSvgRenderer renderer(resource);
+    QPixmap pixmap(size, size);
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    renderer.render(&painter);
+    return pixmap;
+}
+
+static QPixmap themedIcon(const QString &name, int size)
+{
+    const QString theme = isDarkTheme() ? "dark" : "light";
+    return svgToPixmap(QString(":/icons/%1/%2.svg").arg(theme, name), size);
+}
+
+///
+/// \brief ConnectionDialog::ConnectionDialog
+/// \param parent
+///
+ConnectionDialog::ConnectionDialog(QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::ConnectionDialog)
+{
+    ui->setupUi(this);
+
+    ui->connectButton->setColors({
+        QColor(0x0a74d1),
+        QColor(0x1682df),
+        QColor(0x075ca7),
+    });
+
+    for (QSpinBox *sb : {
+             ui->sessionTimeoutSpinBox,
+             ui->endpointTimeoutSpinBox,
+             ui->connectTimeoutSpinBox,
+             ui->requestTimeoutSpinBox,
+             ui->secureChannelLifetimeSpinBox,
+             ui->maxMessageSizeSpinBox
+         }) {
+        sb->setFixedWidth(100);
+    }
+
+    ui->clientCertificateHintIcon->setPixmap(themedIcon("info", 24));
+    ui->serverCertificateIconLabel->setPixmap(themedIcon("lock", 48));
+    ui->statusIconLabel->setPixmap(themedIcon("disconnected", 16));
+
+    connect(ui->cancelButton, &QPushButton::clicked, this, &QDialog::reject);
+    connect(ui->connectButton, &QPushButton::clicked, this, &QDialog::accept);
+    connect(ui->showPasswordCheckBox, &QCheckBox::toggled, ui->passwordEdit, [this](bool checked) {
+        ui->passwordEdit->setEchoMode(checked ? QLineEdit::Normal : QLineEdit::Password);
+    });
+}
+
+///
+/// \brief ConnectionDialog::~ConnectionDialog
+///
+ConnectionDialog::~ConnectionDialog()
+{
+    delete ui;
+}

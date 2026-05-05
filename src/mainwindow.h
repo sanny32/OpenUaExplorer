@@ -27,6 +27,7 @@ private:
         Dark
     };
 
+    void openConnectionDialog();
     void setupDockOptions();
     void applyThemeIcons();
     IconTheme currentIconTheme() const;

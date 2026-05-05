@@ -1,9 +1,12 @@
 #include <QApplication>
+#include <QAction>
 #include <QColor>
 #include <QDockWidget>
 #include <QEvent>
 #include <QList>
 #include <QPalette>
+
+#include "dialogs/connectiondialog.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "widgets/mainstatusbarwidget.h"
@@ -24,6 +27,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->statusbar->addWidget(_mainStatusBarWidget, 1);
     setupDockOptions();
     applyThemeIcons();
+
+    connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::openConnectionDialog);
 
     ui->centralSplitter->setSizes({360, 310});
     resizeDocks({ui->addressSpaceDock, ui->attributesDock}, {300, 390}, Qt::Horizontal);
@@ -49,6 +54,15 @@ void MainWindow::changeEvent(QEvent *event)
     if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
         applyThemeIcons();
     }
+}
+
+///
+/// \brief MainWindow::openConnectionDialog
+///
+void MainWindow::openConnectionDialog()
+{
+    ConnectionDialog dialog(this);
+    dialog.exec();
 }
 
 ///
