@@ -55,6 +55,7 @@ compile_commands.json
 
 *_qmlcache.qrc
 
+.skills
 .claude
 .codex_tmp
 .vscode

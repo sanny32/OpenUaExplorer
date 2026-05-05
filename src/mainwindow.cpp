@@ -16,7 +16,6 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->actionDisconnect->setEnabled(false);
     ui->mainToolBar->setupFromDesignerActions();
     ui->statusbar->addWidget(_mainStatusBarWidget, 1);
     setupDockOptions();

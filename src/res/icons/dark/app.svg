@@ -1,1 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="#8ab4ff" stroke-width="1.8"/><text x="6" y="15.5" font-family="Arial" font-size="8" font-weight="700" fill="#cfe1ff">UA</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1e3a8a"/>
+    </linearGradient>
+  </defs>
+  <!-- Flat-top hexagon filling full viewport -->
+  <path d="M24 12 18 22.4H6L0 12 6 1.6h12L24 12Z" fill="url(#bg)"/>
+  <!-- E -->
+  <rect x="8" y="6" width="3" height="12" fill="white"/>
+  <rect x="8" y="6" width="9" height="2" fill="white"/>
+  <rect x="8" y="11" width="7" height="2" fill="white"/>
+  <rect x="8" y="16" width="9" height="2" fill="white"/>
+</svg>
