@@ -1,7 +1,7 @@
+#include <QIcon>
+
 #include "mainstatusbarwidget.h"
 #include "ui_mainstatusbarwidget.h"
-
-#include <QIcon>
 
 MainStatusBarWidget::MainStatusBarWidget(QWidget *parent)
     : QWidget(parent)

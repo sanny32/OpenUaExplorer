@@ -1,12 +1,12 @@
-#include "logwidget.h"
-#include "ui_logwidget.h"
-
 #include <QBrush>
 #include <QColor>
 #include <QHeaderView>
 #include <QStringList>
 #include <QTableWidgetItem>
 #include <QVector>
+
+#include "logwidget.h"
+#include "ui_logwidget.h"
 
 LogWidget::LogWidget(QWidget *parent)
     : QWidget(parent)

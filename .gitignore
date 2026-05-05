@@ -60,3 +60,4 @@ compile_commands.json
 .codex_tmp
 .vscode
 AGENTS.md
+build_with_vs.cmd

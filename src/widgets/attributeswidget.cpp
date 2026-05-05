@@ -1,10 +1,10 @@
-#include "attributeswidget.h"
-#include "ui_attributeswidget.h"
-
 #include <QHeaderView>
 #include <QPair>
 #include <QTableWidgetItem>
 #include <QVector>
+
+#include "attributeswidget.h"
+#include "ui_attributeswidget.h"
 
 AttributesWidget::AttributesWidget(QWidget *parent)
     : QWidget(parent)

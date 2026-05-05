@@ -128,6 +128,7 @@ set(SOURCES
     widgets/connectionstatuswidget.cpp
     widgets/dataaccesswidget.cpp
     widgets/endpointselectorwidget.cpp
+    widgets/fixedgap.cpp
     widgets/logwidget.cpp
     widgets/mainstatusbarwidget.cpp
     widgets/maintoolbar.cpp
@@ -144,6 +145,7 @@ set(HEADERS
     widgets/connectionstatuswidget.h
     widgets/dataaccesswidget.h
     widgets/endpointselectorwidget.h
+    widgets/fixedgap.h
     widgets/logwidget.h
     widgets/mainstatusbarwidget.h
     widgets/maintoolbar.h

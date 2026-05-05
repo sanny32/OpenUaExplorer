@@ -18,7 +18,6 @@ public:
 
 private:
     MainToolButton *addMainButton(QAction *action);
-    QWidget *fixedGap(int width);
 
     EndpointSelectorWidget *_endpointSelectorWidget;
     SecuritySelectorWidget *_securitySelectorWidget;

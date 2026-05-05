@@ -1,6 +1,3 @@
-#include "addressspacewidget.h"
-#include "ui_addressspacewidget.h"
-
 #include <QApplication>
 #include <QHeaderView>
 #include <QIcon>
@@ -9,6 +6,9 @@
 #include <QTableWidgetItem>
 #include <QTreeWidgetItem>
 #include <QVector>
+
+#include "addressspacewidget.h"
+#include "ui_addressspacewidget.h"
 
 AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     : QWidget(parent)

@@ -1,6 +1,6 @@
-#include "maintoolbutton.h"
-
 #include <QAction>
+
+#include "maintoolbutton.h"
 
 namespace {
 constexpr int mainToolButtonWidth = 78;

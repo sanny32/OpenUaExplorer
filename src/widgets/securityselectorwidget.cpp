@@ -1,7 +1,7 @@
+#include <QString>
+
 #include "securityselectorwidget.h"
 #include "ui_securityselectorwidget.h"
-
-#include <QString>
 
 SecuritySelectorWidget::SecuritySelectorWidget(QWidget *parent)
     : QWidget(parent)

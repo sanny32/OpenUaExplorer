@@ -1,6 +1,3 @@
-#include "dataaccesswidget.h"
-#include "ui_dataaccesswidget.h"
-
 #include <QApplication>
 #include <QBrush>
 #include <QColor>
@@ -10,6 +7,9 @@
 #include <QStringList>
 #include <QTableWidgetItem>
 #include <QVector>
+
+#include "dataaccesswidget.h"
+#include "ui_dataaccesswidget.h"
 
 DataAccessWidget::DataAccessWidget(QWidget *parent)
     : QWidget(parent)

@@ -1,10 +1,10 @@
-#include "trendpanelwidget.h"
-#include "ui_trendpanelwidget.h"
-
 #include <QApplication>
 #include <QColor>
 #include <QIcon>
 #include <QPalette>
+
+#include "trendpanelwidget.h"
+#include "ui_trendpanelwidget.h"
 
 TrendPanelWidget::TrendPanelWidget(QWidget *parent)
     : QWidget(parent)

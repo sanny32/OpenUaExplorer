@@ -1,7 +1,7 @@
+#include <QString>
+
 #include "endpointselectorwidget.h"
 #include "ui_endpointselectorwidget.h"
-
-#include <QString>
 
 EndpointSelectorWidget::EndpointSelectorWidget(QWidget *parent)
     : QWidget(parent)

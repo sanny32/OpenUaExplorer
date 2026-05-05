@@ -1,8 +1,8 @@
-#include "connectionstatuswidget.h"
-#include "ui_connectionstatuswidget.h"
-
 #include <QIcon>
 #include <QString>
+
+#include "connectionstatuswidget.h"
+#include "ui_connectionstatuswidget.h"
 
 ConnectionStatusWidget::ConnectionStatusWidget(QWidget *parent)
     : QWidget(parent)

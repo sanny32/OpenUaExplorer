@@ -1,5 +1,3 @@
-#include "trendgraphwidget.h"
-
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPalette>
@@ -7,6 +5,8 @@
 #include <QSizePolicy>
 #include <QtGlobal>
 #include <QVector>
+
+#include "trendgraphwidget.h"
 
 TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     : QWidget(parent)
