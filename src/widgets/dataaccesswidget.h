@@ -8,6 +8,8 @@ namespace Ui {
 class DataAccessWidget;
 }
 
+class DataAccessModel;
+
 class DataAccessWidget : public QWidget
 {
     Q_OBJECT
@@ -17,9 +19,10 @@ public:
     ~DataAccessWidget() override;
 
 private:
-    void populateDataTable();
+    void setupDataView();
     void configureToolbar();
     QIcon themedIcon(const QString &name) const;
 
     Ui::DataAccessWidget *ui;
+    DataAccessModel *_model;
 };

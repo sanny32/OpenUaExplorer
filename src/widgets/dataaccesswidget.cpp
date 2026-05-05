@@ -1,14 +1,13 @@
 #include <QApplication>
-#include <QBrush>
 #include <QColor>
 #include <QHeaderView>
 #include <QIcon>
 #include <QPalette>
-#include <QStringList>
-#include <QTableWidgetItem>
-#include <QVector>
+#include <QTableView>
 
+#include "dataaccessmodel.h"
 #include "dataaccesswidget.h"
+#include "subscriptiondelegate.h"
 #include "ui_dataaccesswidget.h"
 
 ///
@@ -18,11 +17,12 @@
 DataAccessWidget::DataAccessWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::DataAccessWidget)
+    , _model(new DataAccessModel(this))
 {
     ui->setupUi(this);
     configureToolbar();
-    populateDataTable();
-    ui->dataTable->setMinimumHeight(190);
+    setupDataView();
+    ui->dataView->setMinimumHeight(190);
 }
 
 ///
@@ -31,6 +31,39 @@ DataAccessWidget::DataAccessWidget(QWidget *parent)
 DataAccessWidget::~DataAccessWidget()
 {
     delete ui;
+}
+
+///
+/// \brief DataAccessWidget::setupDataView
+///
+void DataAccessWidget::setupDataView()
+{
+    ui->dataView->setModel(_model);
+    ui->dataView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->dataView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
+    ui->dataView->verticalHeader()->hide();
+
+    auto *delegate = new SubscriptionDelegate(_model->subscriptionNames(), ui->dataView);
+    ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, delegate);
+
+    QHeaderView *header = ui->dataView->horizontalHeader();
+    header->setStretchLastSection(false);
+    header->setSectionResizeMode(0, QHeaderView::Fixed);
+    header->setSectionResizeMode(1, QHeaderView::Stretch);
+    header->setSectionResizeMode(2, QHeaderView::Fixed);
+    header->setSectionResizeMode(3, QHeaderView::Fixed);
+    header->setSectionResizeMode(4, QHeaderView::Fixed);
+    header->setSectionResizeMode(5, QHeaderView::Fixed);
+    header->setSectionResizeMode(6, QHeaderView::Fixed);
+    header->setSectionResizeMode(7, QHeaderView::Fixed);
+
+    ui->dataView->setColumnWidth(0, 36);
+    ui->dataView->setColumnWidth(2, 120);
+    ui->dataView->setColumnWidth(3, 70);
+    ui->dataView->setColumnWidth(4, 82);
+    ui->dataView->setColumnWidth(5, 150);
+    ui->dataView->setColumnWidth(6, 86);
+    ui->dataView->setColumnWidth(7, 100);
 }
 
 ///
@@ -43,58 +76,6 @@ void DataAccessWidget::configureToolbar()
     ui->readButton->setIcon(themedIcon("read"));
     ui->writeButton->setIcon(themedIcon("write"));
     ui->subscribeButton->setIcon(themedIcon("subscribe"));
-}
-
-///
-/// \brief DataAccessWidget::populateDataTable
-///
-void DataAccessWidget::populateDataTable()
-{
-    const QVector<QStringList> rows = {
-        {"1", "ns=2;s=Device1.Measurements.Temperature", "Temperature", "23.45", "Double", "12:15:23.250", "Good"},
-        {"2", "ns=2;s=Device1.Measurements.Pressure", "Pressure", "1.013", "Double", "12:15:23.250", "Good"},
-        {"3", "ns=2;s=Device1.Measurements.Humidity", "Humidity", "45.2", "Double", "12:15:23.250", "Good"},
-        {"4", "ns=2;s=Device1.Measurements.FlowRate", "FlowRate", "12.4", "Double", "12:15:23.250", "Good"},
-        {"5", "ns=2;s=Device1.Status.Running", "Running", "true", "Boolean", "12:15:23.250", "Good"},
-        {"6", "ns=2;s=Device1.Status.ErrorCode", "ErrorCode", "0", "UInt32", "12:15:23.250", "Good"}
-    };
-
-    ui->dataTable->setRowCount(rows.size());
-    ui->dataTable->setColumnCount(7);
-    ui->dataTable->setHorizontalHeaderLabels({
-        "#",
-        "Node Id",
-        "Display Name",
-        "Value",
-        "Data Type",
-        "Source Timestamp",
-        "Status"
-    });
-    ui->dataTable->verticalHeader()->hide();
-    ui->dataTable->horizontalHeader()->setStretchLastSection(false);
-    ui->dataTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
-    ui->dataTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    ui->dataTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);
-    ui->dataTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Fixed);
-    ui->dataTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Fixed);
-    ui->dataTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Fixed);
-    ui->dataTable->horizontalHeader()->setSectionResizeMode(6, QHeaderView::Fixed);
-    ui->dataTable->setColumnWidth(0, 36);
-    ui->dataTable->setColumnWidth(2, 120);
-    ui->dataTable->setColumnWidth(3, 70);
-    ui->dataTable->setColumnWidth(4, 82);
-    ui->dataTable->setColumnWidth(5, 150);
-    ui->dataTable->setColumnWidth(6, 86);
-
-    for (int row = 0; row < rows.size(); ++row) {
-        for (int column = 0; column < rows.at(row).size(); ++column) {
-            QTableWidgetItem *item = new QTableWidgetItem(rows.at(row).at(column));
-            if (column == 3 || column == 6) {
-                item->setForeground(QBrush(QColor(0, 150, 64)));
-            }
-            ui->dataTable->setItem(row, column, item);
-        }
-    }
 }
 
 ///

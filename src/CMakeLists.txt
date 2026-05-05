@@ -127,6 +127,8 @@ set(SOURCES
     widgets/attributeswidget.cpp
     widgets/connectionstatuswidget.cpp
     widgets/dataaccesswidget.cpp
+    widgets/dataaccessmodel.cpp
+    widgets/subscriptiondelegate.cpp
     widgets/endpointselectorwidget.cpp
     widgets/fixedgap.cpp
     widgets/logwidget.cpp
@@ -144,6 +146,9 @@ set(HEADERS
     widgets/attributeswidget.h
     widgets/connectionstatuswidget.h
     widgets/dataaccesswidget.h
+    widgets/dataaccessitem.h
+    widgets/dataaccessmodel.h
+    widgets/subscriptiondelegate.h
     widgets/endpointselectorwidget.h
     widgets/fixedgap.h
     widgets/logwidget.h
