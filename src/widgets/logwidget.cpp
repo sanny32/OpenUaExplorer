@@ -8,6 +8,10 @@
 #include "logwidget.h"
 #include "ui_logwidget.h"
 
+///
+/// \brief LogWidget::LogWidget
+/// \param parent
+///
 LogWidget::LogWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::LogWidget)
@@ -16,11 +20,17 @@ LogWidget::LogWidget(QWidget *parent)
     populateLog();
 }
 
+///
+/// \brief LogWidget::~LogWidget
+///
 LogWidget::~LogWidget()
 {
     delete ui;
 }
 
+///
+/// \brief LogWidget::populateLog
+///
 void LogWidget::populateLog()
 {
     const QVector<QStringList> rows = {

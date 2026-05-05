@@ -6,6 +6,11 @@ namespace {
 constexpr int mainToolButtonWidth = 78;
 }
 
+///
+/// \brief MainToolButton::MainToolButton
+/// \param action
+/// \param parent
+///
 MainToolButton::MainToolButton(QAction *action, QWidget *parent)
     : QToolButton(parent)
 {

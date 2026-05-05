@@ -6,6 +6,10 @@
 #include "attributeswidget.h"
 #include "ui_attributeswidget.h"
 
+///
+/// \brief AttributesWidget::AttributesWidget
+/// \param parent
+///
 AttributesWidget::AttributesWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::AttributesWidget)
@@ -14,11 +18,17 @@ AttributesWidget::AttributesWidget(QWidget *parent)
     populateAttributes();
 }
 
+///
+/// \brief AttributesWidget::~AttributesWidget
+///
 AttributesWidget::~AttributesWidget()
 {
     delete ui;
 }
 
+///
+/// \brief AttributesWidget::populateAttributes
+///
 void AttributesWidget::populateAttributes()
 {
     const QVector<QPair<QString, QString>> rows = {

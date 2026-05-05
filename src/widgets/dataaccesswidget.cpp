@@ -11,6 +11,10 @@
 #include "dataaccesswidget.h"
 #include "ui_dataaccesswidget.h"
 
+///
+/// \brief DataAccessWidget::DataAccessWidget
+/// \param parent
+///
 DataAccessWidget::DataAccessWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::DataAccessWidget)
@@ -21,11 +25,17 @@ DataAccessWidget::DataAccessWidget(QWidget *parent)
     ui->dataTable->setMinimumHeight(190);
 }
 
+///
+/// \brief DataAccessWidget::~DataAccessWidget
+///
 DataAccessWidget::~DataAccessWidget()
 {
     delete ui;
 }
 
+///
+/// \brief DataAccessWidget::configureToolbar
+///
 void DataAccessWidget::configureToolbar()
 {
     ui->addNodeButton->setIcon(themedIcon("add"));
@@ -35,6 +45,9 @@ void DataAccessWidget::configureToolbar()
     ui->subscribeButton->setIcon(themedIcon("subscribe"));
 }
 
+///
+/// \brief DataAccessWidget::populateDataTable
+///
 void DataAccessWidget::populateDataTable()
 {
     const QVector<QStringList> rows = {
@@ -84,6 +97,11 @@ void DataAccessWidget::populateDataTable()
     }
 }
 
+///
+/// \brief DataAccessWidget::themedIcon
+/// \param name
+/// \return
+///
 QIcon DataAccessWidget::themedIcon(const QString &name) const
 {
     const QColor windowColor = qApp->palette().color(QPalette::Window);

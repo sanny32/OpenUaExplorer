@@ -9,6 +9,10 @@
 #include "widgets/mainstatusbarwidget.h"
 
 
+///
+/// \brief MainWindow::MainWindow
+/// \param parent
+///
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -26,11 +30,18 @@ MainWindow::MainWindow(QWidget *parent)
     resizeDocks({ui->logDock}, {245}, Qt::Vertical);
 }
 
+///
+/// \brief MainWindow::~MainWindow
+///
 MainWindow::~MainWindow()
 {
     delete ui;
 }
 
+///
+/// \brief MainWindow::changeEvent
+/// \param event
+///
 void MainWindow::changeEvent(QEvent *event)
 {
     QMainWindow::changeEvent(event);
@@ -40,6 +51,9 @@ void MainWindow::changeEvent(QEvent *event)
     }
 }
 
+///
+/// \brief MainWindow::setupDockOptions
+///
 void MainWindow::setupDockOptions()
 {
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
@@ -53,6 +67,9 @@ void MainWindow::setupDockOptions()
     ui->logDock->setMaximumHeight(245);
 }
 
+///
+/// \brief MainWindow::applyThemeIcons
+///
 void MainWindow::applyThemeIcons()
 {
     setWindowIcon(QIcon(":/app.ico"));
@@ -70,12 +87,21 @@ void MainWindow::applyThemeIcons()
     _mainStatusBarWidget->setConnectionIcon(themedIcon("connected"));
 }
 
+///
+/// \brief MainWindow::currentIconTheme
+/// \return
+///
 MainWindow::IconTheme MainWindow::currentIconTheme() const
 {
     const QColor windowColor = qApp->palette().color(QPalette::Window);
     return windowColor.lightness() < 128 ? IconTheme::Dark : IconTheme::Light;
 }
 
+///
+/// \brief MainWindow::themedIcon
+/// \param name
+/// \return
+///
 QIcon MainWindow::themedIcon(const QString &name) const
 {
     const QString themeName = currentIconTheme() == IconTheme::Dark

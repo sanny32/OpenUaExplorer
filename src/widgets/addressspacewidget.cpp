@@ -10,6 +10,10 @@
 #include "addressspacewidget.h"
 #include "ui_addressspacewidget.h"
 
+///
+/// \brief AddressSpaceWidget::AddressSpaceWidget
+/// \param parent
+///
 AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::AddressSpaceWidget)
@@ -25,11 +29,17 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     ui->splitter->setSizes({455, 255});
 }
 
+///
+/// \brief AddressSpaceWidget::~AddressSpaceWidget
+///
 AddressSpaceWidget::~AddressSpaceWidget()
 {
     delete ui;
 }
 
+///
+/// \brief AddressSpaceWidget::populateAddressTree
+///
 void AddressSpaceWidget::populateAddressTree()
 {
     ui->addressTree->setHeaderHidden(true);
@@ -67,6 +77,9 @@ void AddressSpaceWidget::populateAddressTree()
     }
 }
 
+///
+/// \brief AddressSpaceWidget::populateNodeInfo
+///
 void AddressSpaceWidget::populateNodeInfo()
 {
     const QVector<QPair<QString, QString>> rows = {
@@ -93,6 +106,13 @@ void AddressSpaceWidget::populateNodeInfo()
     }
 }
 
+///
+/// \brief AddressSpaceWidget::addItem
+/// \param parent
+/// \param text
+/// \param iconName
+/// \return
+///
 QTreeWidgetItem *AddressSpaceWidget::addItem(QTreeWidgetItem *parent, const QString &text, const QString &iconName)
 {
     QTreeWidgetItem *item = parent ? new QTreeWidgetItem(parent) : new QTreeWidgetItem(ui->addressTree);
@@ -101,6 +121,11 @@ QTreeWidgetItem *AddressSpaceWidget::addItem(QTreeWidgetItem *parent, const QStr
     return item;
 }
 
+///
+/// \brief AddressSpaceWidget::themedIcon
+/// \param name
+/// \return
+///
 QIcon AddressSpaceWidget::themedIcon(const QString &name) const
 {
     const QColor windowColor = qApp->palette().color(QPalette::Window);

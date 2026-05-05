@@ -8,6 +8,10 @@
 
 #include "trendgraphwidget.h"
 
+///
+/// \brief TrendGraphWidget::TrendGraphWidget
+/// \param parent
+///
 TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     : QWidget(parent)
 {
@@ -15,6 +19,10 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
 
+///
+/// \brief TrendGraphWidget::paintEvent
+/// \param event
+///
 void TrendGraphWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event)
@@ -61,6 +69,11 @@ void TrendGraphWidget::paintEvent(QPaintEvent *event)
     painter.drawLine(QPointF(plotRect.right() - 116, plotRect.top() + 8), QPointF(plotRect.right() - 98, plotRect.top() + 8));
 }
 
+///
+/// \brief TrendGraphWidget::trendPoints
+/// \param plotRect
+/// \return
+///
 QVector<QPointF> TrendGraphWidget::trendPoints(const QRectF &plotRect) const
 {
     const QVector<qreal> values = {
