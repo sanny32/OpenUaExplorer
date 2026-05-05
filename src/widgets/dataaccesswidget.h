@@ -21,6 +21,7 @@ public:
 private:
     void setupDataView();
     void configureToolbar();
+    void applySubscriptionToSelection(const QString &subscriptionName);
     QIcon themedIcon(const QString &name) const;
 
     Ui::DataAccessWidget *ui;

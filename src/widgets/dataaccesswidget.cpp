@@ -2,6 +2,8 @@
 #include <QColor>
 #include <QHeaderView>
 #include <QIcon>
+#include <QItemSelectionModel>
+#include <QMenu>
 #include <QPalette>
 #include <QTableView>
 
@@ -64,6 +66,12 @@ void DataAccessWidget::setupDataView()
     ui->dataView->setColumnWidth(5, 150);
     ui->dataView->setColumnWidth(6, 86);
     ui->dataView->setColumnWidth(7, 100);
+
+    connect(ui->dataView->selectionModel(), &QItemSelectionModel::selectionChanged,
+            this, [this] {
+        ui->subscribeButton->setEnabled(
+            !ui->dataView->selectionModel()->selectedRows().isEmpty());
+    });
 }
 
 ///
@@ -76,6 +84,33 @@ void DataAccessWidget::configureToolbar()
     ui->readButton->setIcon(themedIcon("read"));
     ui->writeButton->setIcon(themedIcon("write"));
     ui->subscribeButton->setIcon(themedIcon("subscribe"));
+    ui->subscribeButton->setPopupMode(QToolButton::InstantPopup);
+    ui->subscribeButton->setEnabled(false);
+
+    QMenu *menu = new QMenu(ui->subscribeButton);
+    for (const QString &name : _model->subscriptionNames()) {
+        menu->addAction(name, this, [this, name] {
+            applySubscriptionToSelection(name);
+        });
+    }
+    menu->addSeparator();
+    menu->addAction(tr("Unsubscribe"), this, [this] {
+        applySubscriptionToSelection(QString());
+    });
+    ui->subscribeButton->setMenu(menu);
+}
+
+///
+/// \brief DataAccessWidget::applySubscriptionToSelection
+/// \param subscriptionName
+///
+void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionName)
+{
+    const QModelIndexList rows = ui->dataView->selectionModel()->selectedRows();
+    for (const QModelIndex &idx : rows) {
+        _model->setData(_model->index(idx.row(), DataAccessModel::ColSubscription),
+                        subscriptionName, Qt::EditRole);
+    }
 }
 
 ///
