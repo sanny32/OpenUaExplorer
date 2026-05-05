@@ -40,8 +40,10 @@ QPalette AppTheme::darkPalette()
     palette.setColor(QPalette::Base,            QColor(0x1e, 0x1e, 0x1e));
     palette.setColor(QPalette::AlternateBase,   QColor(0x31, 0x31, 0x31));
     palette.setColor(QPalette::Text,            QColor(0xe2, 0xe8, 0xf0));
+    palette.setColor(QPalette::PlaceholderText, QColor(0x8f, 0x98, 0xa3));
     palette.setColor(QPalette::Button,          QColor(0x3c, 0x3c, 0x3c));
     palette.setColor(QPalette::ButtonText,      QColor(0xe2, 0xe8, 0xf0));
+    palette.setColor(QPalette::BrightText,      QColor(0xff, 0xff, 0xff));
     palette.setColor(QPalette::Highlight,       QColor(0x26, 0x4f, 0x78));
     palette.setColor(QPalette::HighlightedText, QColor(0xff, 0xff, 0xff));
     palette.setColor(QPalette::ToolTipBase,     QColor(0x3c, 0x3c, 0x3c));

@@ -9,6 +9,9 @@ class AppStyle : public QProxyStyle
 public:
     explicit AppStyle(QStyle *style = nullptr);
 
+    void drawControl(ControlElement element, const QStyleOption *option,
+                     QPainter *painter, const QWidget *widget = nullptr) const override;
+
     QRect subElementRect(SubElement element, const QStyleOption *option,
                          const QWidget *widget = nullptr) const override;
 
