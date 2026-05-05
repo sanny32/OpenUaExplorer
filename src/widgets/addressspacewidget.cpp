@@ -1,13 +1,12 @@
 #include <QApplication>
 #include <QHeaderView>
-#include <QIcon>
 #include <QPalette>
-#include <QPair>
-#include <QTableWidgetItem>
-#include <QTreeWidgetItem>
-#include <QVector>
 
+#include "addressspacemodel.h"
 #include "addressspacewidget.h"
+#include "nodeinfomodel.h"
+#include "referencesmodel.h"
+#include "testdata.h"
 #include "ui_addressspacewidget.h"
 
 ///
@@ -17,10 +16,35 @@
 AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::AddressSpaceWidget)
+    , _treeModel(new AddressSpaceModel(this))
+    , _nodeInfoModel(new NodeInfoModel(this))
+    , _referencesModel(new ReferencesModel(this))
 {
     ui->setupUi(this);
-    populateAddressTree();
-    populateNodeInfo();
+
+    setupTreeView();
+    setupNodeInfoView();
+    setupReferencesView();
+
+    _treeModel->setIconProvider([this](AddressSpaceItem::NodeType type) {
+        switch (type) {
+        case AddressSpaceItem::NodeType::Folder:   return themedIcon("folder");
+        case AddressSpaceItem::NodeType::Node:     return themedIcon("node");
+        case AddressSpaceItem::NodeType::Variable: return themedIcon("variable");
+        case AddressSpaceItem::NodeType::Method:   return themedIcon("method");
+        }
+        return QIcon();
+    });
+
+    _treeModel->setItems(TestData::addressSpaceItems());
+    _nodeInfoModel->setItems(TestData::nodeInfoItems());
+    _referencesModel->setItems(TestData::referenceItems());
+
+    ui->addressTree->expandAll();
+
+    const QModelIndex found = _treeModel->findFirst("Temperature");
+    if (found.isValid())
+        ui->addressTree->setCurrentIndex(found);
 
     ui->refreshButton->setIcon(themedIcon("refresh"));
     ui->refreshButton->setToolTip("Refresh");
@@ -38,87 +62,36 @@ AddressSpaceWidget::~AddressSpaceWidget()
 }
 
 ///
-/// \brief AddressSpaceWidget::populateAddressTree
+/// \brief AddressSpaceWidget::setupTreeView
 ///
-void AddressSpaceWidget::populateAddressTree()
+void AddressSpaceWidget::setupTreeView()
 {
+    ui->addressTree->setModel(_treeModel);
     ui->addressTree->setHeaderHidden(true);
     ui->addressTree->setUniformRowHeights(true);
-
-    QTreeWidgetItem *root = addItem(nullptr, "Root", "folder");
-    QTreeWidgetItem *objects = addItem(root, "Objects", "folder");
-    QTreeWidgetItem *deviceSet = addItem(objects, "DeviceSet", "node");
-    QTreeWidgetItem *device1 = addItem(deviceSet, "Device1", "node");
-    QTreeWidgetItem *status = addItem(device1, "Status", "folder");
-    addItem(status, "Running", "variable");
-    addItem(status, "ErrorCode", "variable");
-
-    QTreeWidgetItem *measurements = addItem(device1, "Measurements", "folder");
-    addItem(measurements, "Temperature", "variable");
-    addItem(measurements, "Pressure", "variable");
-    addItem(measurements, "Humidity", "variable");
-    addItem(measurements, "FlowRate", "variable");
-
-    QTreeWidgetItem *commands = addItem(device1, "Commands", "folder");
-    addItem(commands, "Start", "method");
-    addItem(commands, "Stop", "method");
-    addItem(commands, "Reset", "method");
-
-    addItem(deviceSet, "Device2", "node");
-    addItem(deviceSet, "Device3", "node");
-    addItem(root, "Types", "folder");
-    addItem(root, "Views", "folder");
-
-    ui->addressTree->expandAll();
-
-    const QList<QTreeWidgetItem *> matches = ui->addressTree->findItems("Temperature", Qt::MatchRecursive);
-    if (!matches.isEmpty()) {
-        ui->addressTree->setCurrentItem(matches.first());
-    }
 }
 
 ///
-/// \brief AddressSpaceWidget::populateNodeInfo
+/// \brief AddressSpaceWidget::setupNodeInfoView
 ///
-void AddressSpaceWidget::populateNodeInfo()
+void AddressSpaceWidget::setupNodeInfoView()
 {
-    const QVector<QPair<QString, QString>> rows = {
-        {"NodeId:", "ns=2;s=Device1.Measurements.Temperature"},
-        {"Namespace:", "2"},
-        {"Identifier Type:", "String"},
-        {"Data Type:", "Double"},
-        {"Value Rank:", "-1 (Scalar)"},
-        {"Access Level:", "Read | Write"},
-        {"User Access Level:", "Read | Write"},
-        {"Description:", "Temperature of device 1"}
-    };
-
-    ui->nodeInfoTable->setRowCount(rows.size());
-    ui->nodeInfoTable->setColumnCount(2);
+    ui->nodeInfoTable->setModel(_nodeInfoModel);
     ui->nodeInfoTable->horizontalHeader()->hide();
     ui->nodeInfoTable->verticalHeader()->hide();
     ui->nodeInfoTable->horizontalHeader()->setStretchLastSection(true);
-    ui->nodeInfoTable->setColumnWidth(0, 105);
-
-    for (int row = 0; row < rows.size(); ++row) {
-        ui->nodeInfoTable->setItem(row, 0, new QTableWidgetItem(rows.at(row).first));
-        ui->nodeInfoTable->setItem(row, 1, new QTableWidgetItem(rows.at(row).second));
-    }
+    ui->nodeInfoTable->setColumnWidth(NodeInfoModel::ColLabel, 105);
 }
 
 ///
-/// \brief AddressSpaceWidget::addItem
-/// \param parent
-/// \param text
-/// \param iconName
-/// \return
+/// \brief AddressSpaceWidget::setupReferencesView
 ///
-QTreeWidgetItem *AddressSpaceWidget::addItem(QTreeWidgetItem *parent, const QString &text, const QString &iconName)
+void AddressSpaceWidget::setupReferencesView()
 {
-    QTreeWidgetItem *item = parent ? new QTreeWidgetItem(parent) : new QTreeWidgetItem(ui->addressTree);
-    item->setText(0, text);
-    item->setIcon(0, themedIcon(iconName));
-    return item;
+    ui->referencesTable->setModel(_referencesModel);
+    ui->referencesTable->verticalHeader()->hide();
+    ui->referencesTable->horizontalHeader()->setStretchLastSection(true);
+    ui->referencesTable->setColumnWidth(ReferencesModel::ColReference, 150);
 }
 
 ///

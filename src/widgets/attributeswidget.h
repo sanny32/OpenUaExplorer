@@ -6,6 +6,8 @@ namespace Ui {
 class AttributesWidget;
 }
 
+class AttributesModel;
+
 class AttributesWidget : public QWidget
 {
     Q_OBJECT
@@ -15,7 +17,8 @@ public:
     ~AttributesWidget() override;
 
 private:
-    void populateAttributes();
+    void setupAttributesView();
 
     Ui::AttributesWidget *ui;
+    AttributesModel      *_model;
 };

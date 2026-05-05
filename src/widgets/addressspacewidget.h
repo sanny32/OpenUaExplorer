@@ -1,12 +1,17 @@
 #pragma once
 
+#include <QIcon>
 #include <QWidget>
+
+#include "addressspaceitem.h"
 
 namespace Ui {
 class AddressSpaceWidget;
 }
 
-class QTreeWidgetItem;
+class AddressSpaceModel;
+class NodeInfoModel;
+class ReferencesModel;
 
 class AddressSpaceWidget : public QWidget
 {
@@ -17,10 +22,14 @@ public:
     ~AddressSpaceWidget() override;
 
 private:
-    void populateAddressTree();
-    void populateNodeInfo();
-    QTreeWidgetItem *addItem(QTreeWidgetItem *parent, const QString &text, const QString &iconName);
+    void setupTreeView();
+    void setupNodeInfoView();
+    void setupReferencesView();
+
     QIcon themedIcon(const QString &name) const;
 
     Ui::AddressSpaceWidget *ui;
+    AddressSpaceModel      *_treeModel;
+    NodeInfoModel          *_nodeInfoModel;
+    ReferencesModel        *_referencesModel;
 };

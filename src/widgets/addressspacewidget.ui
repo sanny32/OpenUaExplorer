@@ -49,15 +49,10 @@
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
-     <widget class="QTreeWidget" name="addressTree">
+     <widget class="QTreeView" name="addressTree">
       <property name="alternatingRowColors">
        <bool>false</bool>
       </property>
-      <column>
-       <property name="text">
-        <string>Address Space</string>
-       </property>
-      </column>
      </widget>
      <widget class="QWidget" name="nodeInfoPanel">
       <layout class="QVBoxLayout" name="nodeInfoPanelLayout">
@@ -90,7 +85,7 @@
           </attribute>
           <layout class="QVBoxLayout" name="nodeInfoLayout">
            <item>
-            <widget class="QTableWidget" name="nodeInfoTable">
+            <widget class="QTableView" name="nodeInfoTable">
              <property name="editTriggers">
               <set>QAbstractItemView::NoEditTriggers</set>
              </property>
@@ -107,20 +102,10 @@
           </attribute>
           <layout class="QVBoxLayout" name="referencesLayout">
            <item>
-            <widget class="QTableWidget" name="referencesTable">
+            <widget class="QTableView" name="referencesTable">
              <property name="editTriggers">
               <set>QAbstractItemView::NoEditTriggers</set>
              </property>
-             <column>
-              <property name="text">
-               <string>Reference</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Target</string>
-              </property>
-             </column>
             </widget>
            </item>
           </layout>

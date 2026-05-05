@@ -1,7 +1,6 @@
-#include <QHeaderView>
-#include <QTableWidgetItem>
-
+#include "attributesmodel.h"
 #include "attributeswidget.h"
+#include "headerview.h"
 #include "testdata.h"
 #include "ui_attributeswidget.h"
 
@@ -12,9 +11,12 @@
 AttributesWidget::AttributesWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::AttributesWidget)
+    , _model(new AttributesModel(this))
 {
     ui->setupUi(this);
-    populateAttributes();
+    setupAttributesView();
+
+    _model->setItems(TestData::attributeItems());
 }
 
 ///
@@ -26,21 +28,23 @@ AttributesWidget::~AttributesWidget()
 }
 
 ///
-/// \brief AttributesWidget::populateAttributes
+/// \brief AttributesWidget::setupAttributesView
 ///
-void AttributesWidget::populateAttributes()
+void AttributesWidget::setupAttributesView()
 {
-    const auto rows = TestData::attributeItems();
+    auto header = new HeaderView(Qt::Horizontal, ui->attributesTable);
+    connect(header, &HeaderView::sectionAlignmentChanged, this,
+            [this](int logicalIndex, Qt::Alignment alignment) {
+                _model->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
+            });
 
-    ui->attributesTable->setRowCount(rows.size());
-    ui->attributesTable->setColumnCount(2);
-    ui->attributesTable->setHorizontalHeaderLabels({"Attribute", "Value"});
-    ui->attributesTable->horizontalHeader()->setStretchLastSection(true);
+    ui->attributesTable->setModel(_model);
+    ui->attributesTable->setHorizontalHeader(header);
     ui->attributesTable->verticalHeader()->hide();
-    ui->attributesTable->setColumnWidth(0, 125);
 
-    for (int row = 0; row < rows.size(); ++row) {
-        ui->attributesTable->setItem(row, 0, new QTableWidgetItem(rows.at(row).first));
-        ui->attributesTable->setItem(row, 1, new QTableWidgetItem(rows.at(row).second));
-    }
+    header->setStretchLastSection(false);
+    header->setSectionResizeMode(AttributesModel::ColAttribute, QHeaderView::Fixed);
+    header->setSectionResizeMode(AttributesModel::ColValue,     QHeaderView::Stretch);
+
+    ui->attributesTable->setColumnWidth(AttributesModel::ColAttribute, 125);
 }

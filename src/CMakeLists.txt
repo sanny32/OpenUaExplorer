@@ -124,7 +124,11 @@ set(SOURCES
     main.cpp
     appstyle.cpp
     mainwindow.cpp
+    widgets/addressspacemodel.cpp
     widgets/addressspacewidget.cpp
+    widgets/nodeinfomodel.cpp
+    widgets/referencesmodel.cpp
+    widgets/attributesmodel.cpp
     widgets/attributeswidget.cpp
     widgets/connectionstatuswidget.cpp
     widgets/dataaccesswidget.cpp
@@ -147,7 +151,13 @@ set(HEADERS
     appstyle.h
     mainwindow.h
     testdata.h
+    widgets/addressspaceitem.h
+    widgets/addressspacemodel.h
     widgets/addressspacewidget.h
+    widgets/nodeitem.h
+    widgets/nodeinfomodel.h
+    widgets/referencesmodel.h
+    widgets/attributesmodel.h
     widgets/attributeswidget.h
     widgets/connectionstatuswidget.h
     widgets/dataaccesswidget.h
