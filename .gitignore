@@ -54,3 +54,8 @@ compile_commands.json
 *creator.user*
 
 *_qmlcache.qrc
+
+.claude
+.codex_tmp
+.vscode
+AGENTS.md
