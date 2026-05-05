@@ -15,6 +15,9 @@ public:
     void drawComplexControl(ComplexControl control, const QStyleOptionComplex *option,
                             QPainter *painter, const QWidget *widget = nullptr) const override;
 
+    void drawPrimitive(PrimitiveElement element, const QStyleOption *option,
+                       QPainter *painter, const QWidget *widget = nullptr) const override;
+
     QRect subElementRect(SubElement element, const QStyleOption *option,
                          const QWidget *widget = nullptr) const override;
 

@@ -117,6 +117,26 @@ void AppStyle::drawComplexControl(ComplexControl control, const QStyleOptionComp
 }
 
 ///
+/// \brief AppStyle::drawPrimitive
+/// \param element
+/// \param option
+/// \param painter
+/// \param widget
+///
+void AppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option,
+                             QPainter *painter, const QWidget *widget) const
+{
+    if (element == PE_PanelItemViewItem
+        && option->palette.color(QPalette::Window).lightness() < 128
+        && (option->state & State_Selected)) {
+        painter->fillRect(option->rect, option->palette.color(QPalette::Highlight));
+        return;
+    }
+
+    QProxyStyle::drawPrimitive(element, option, painter, widget);
+}
+
+///
 /// \brief AppStyle::subElementRect
 /// \param element
 /// \param option
