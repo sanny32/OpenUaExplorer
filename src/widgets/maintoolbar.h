@@ -3,9 +3,7 @@
 #include <QToolBar>
 
 class QAction;
-class ConnectionStatusWidget;
 class EndpointSelectorWidget;
-class QIcon;
 class MainToolButton;
 class SecuritySelectorWidget;
 
@@ -17,7 +15,6 @@ public:
     explicit MainToolBar(QWidget *parent = nullptr);
 
     void setupFromDesignerActions();
-    void setConnectionIcon(const QIcon &icon);
 
 private:
     MainToolButton *addMainButton(QAction *action);
@@ -25,5 +22,4 @@ private:
 
     EndpointSelectorWidget *_endpointSelectorWidget;
     SecuritySelectorWidget *_securitySelectorWidget;
-    ConnectionStatusWidget *_connectionStatusWidget;
 };

@@ -1,11 +1,9 @@
 #include "maintoolbar.h"
-#include "connectionstatuswidget.h"
 #include "endpointselectorwidget.h"
 #include "maintoolbutton.h"
 #include "securityselectorwidget.h"
 
 #include <QAction>
-#include <QIcon>
 #include <QSize>
 #include <QSizePolicy>
 #include <QWidget>
@@ -14,7 +12,6 @@ MainToolBar::MainToolBar(QWidget *parent)
     : QToolBar(parent)
     , _endpointSelectorWidget(new EndpointSelectorWidget(this))
     , _securitySelectorWidget(new SecuritySelectorWidget(this))
-    , _connectionStatusWidget(new ConnectionStatusWidget(this))
 {
     setMovable(false);
     setIconSize(QSize(24, 24));
@@ -41,15 +38,7 @@ void MainToolBar::setupFromDesignerActions()
     addWidget(_endpointSelectorWidget);
     addWidget(fixedGap(18));
     addWidget(_securitySelectorWidget);
-    addWidget(fixedGap(24));
-    addSeparator();
-    addWidget(fixedGap(18));
-    addWidget(_connectionStatusWidget);
-}
-
-void MainToolBar::setConnectionIcon(const QIcon &icon)
-{
-    _connectionStatusWidget->setIcon(icon);
+    addWidget(fixedGap(8));
 }
 
 MainToolButton *MainToolBar::addMainButton(QAction *action)

@@ -67,7 +67,7 @@ void MainWindow::applyThemeIcons()
     ui->actionUnsubscribe->setIcon(themedIcon("unsubscribe"));
     ui->actionSettings->setIcon(themedIcon("settings"));
 
-    ui->mainToolBar->setConnectionIcon(themedIcon("connected"));
+    _mainStatusBarWidget->setConnectionIcon(themedIcon("connected"));
 }
 
 MainWindow::IconTheme MainWindow::currentIconTheme() const
