@@ -122,6 +122,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 set(SOURCES
     main.cpp
+    appstyle.cpp
     mainwindow.cpp
     widgets/addressspacewidget.cpp
     widgets/attributeswidget.cpp
@@ -142,6 +143,7 @@ set(SOURCES
 )
 
 set(HEADERS
+    appstyle.h
     mainwindow.h
     widgets/addressspacewidget.h
     widgets/attributeswidget.h

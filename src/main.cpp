@@ -1,4 +1,5 @@
 #include <QApplication>
+#include "appstyle.h"
 #include "mainwindow.h"
 
 ///
@@ -12,6 +13,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     a.setApplicationName(APP_NAME);
     a.setApplicationVersion(APP_VERSION);
+    a.setStyle(new AppStyle);
 
     MainWindow window;
     window.show();

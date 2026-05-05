@@ -122,9 +122,7 @@ void HeaderView::paintSection(QPainter *painter, const QRect &rect, int logicalI
     if (text.isEmpty())
         return;
 
-    const QRect textRect = style()
-        ->subElementRect(QStyle::SE_HeaderLabel, &option, this)
-        .adjusted(4, 1, -4, -1);
+    const QRect textRect = style()->subElementRect(QStyle::SE_HeaderLabel, &option, this);
 
     QFont boldFont = font();
     boldFont.setBold(true);
