@@ -162,15 +162,15 @@
          </item>
          <item>
           <widget class="ThemedToolButton" name="exportButton">
-           <property name="text">
-            <string>Export</string>
+           <property name="squareIconOnly" stdset="0">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
          <item>
           <widget class="ThemedToolButton" name="settingsButton">
-           <property name="text">
-            <string>Settings</string>
+           <property name="squareIconOnly" stdset="0">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
