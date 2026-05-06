@@ -12,6 +12,7 @@
 #include <QLoggingCategory>
 #include <QWidget>
 
+#include "itestdatapopulatable.h"
 #include "logitem.h"
 
 Q_DECLARE_LOGGING_CATEGORY(lcApp)
@@ -27,7 +28,7 @@ class LogModel;
 ///
 /// \brief Widget that displays, filters and searches application activity log messages.
 ///
-class LogWidget : public QWidget
+class LogWidget : public QWidget, public ITestDataPopulatable
 {
     Q_OBJECT
 
@@ -36,6 +37,7 @@ public:
     ~LogWidget() override;
 
     void addItem(const LogItem &item);
+    void populateWithTestData() override;
 
 protected:
     void changeEvent(QEvent *event) override;

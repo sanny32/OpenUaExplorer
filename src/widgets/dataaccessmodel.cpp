@@ -12,7 +12,6 @@
 #include <QPalette>
 
 #include "dataaccessmodel.h"
-#include "testdata.h"
 
 ///
 /// \brief DataAccessModel::DataAccessModel
@@ -21,9 +20,19 @@
 DataAccessModel::DataAccessModel(QObject *parent)
     : QAbstractTableModel(parent)
 {
-    _subscriptionNames = TestData::subscriptionNames();
-    _items = TestData::dataAccessItems();
 }
+
+///
+/// \brief DataAccessModel::setItems
+/// \param items
+///
+void DataAccessModel::setItems(const QVector<DataAccessItem> &items)
+{
+    beginResetModel();
+    _items = items;
+    endResetModel();
+}
+
 
 ///
 /// \brief DataAccessModel::rowCount
@@ -152,15 +161,6 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     }
 
     return QVariant();
-}
-
-///
-/// \brief DataAccessModel::subscriptionNames
-/// \return
-///
-QStringList DataAccessModel::subscriptionNames() const
-{
-    return _subscriptionNames;
 }
 
 ///

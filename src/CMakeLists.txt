@@ -162,6 +162,7 @@ set(HEADERS
     appstyle.h
     dialogs/appbasedialog.h
     dialogs/connectiondialog.h
+    itestdatapopulatable.h
     mainwindow.h
     testdata.h
     widgets/addressspaceitem.h

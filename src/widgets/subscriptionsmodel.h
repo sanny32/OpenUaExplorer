@@ -33,6 +33,8 @@ public:
     void setItems(const QVector<SubscriptionItem> &items);
     void clear();
 
+    QStringList names() const;
+
     void setColumnAlignment(int column, Qt::Alignment alignment);
 
     enum Column {

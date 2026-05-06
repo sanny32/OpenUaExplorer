@@ -83,16 +83,6 @@ LogWidget::LogWidget(QWidget *parent)
     s_instance = this;
     s_prevHandler = qInstallMessageHandler(appMessageHandler);
 
-    for (const TestData::LogEntry &e : TestData::logItems()) {
-        const QByteArray cat = QByteArrayLiteral("ouaexp.") + e.source;
-        QMessageLogger logger(nullptr, 0, nullptr, cat.constData());
-        switch (e.level) {
-        case LogItem::Level::Warning: logger.warning()  << e.message; break;
-        case LogItem::Level::Error:   logger.critical() << e.message; break;
-        default:                      logger.debug()    << e.message; break;
-        }
-    }
-
     connect(ui->clearButton, &QPushButton::clicked, this, [this]() {
         s_logEpoch.fetch_add(1, std::memory_order_relaxed);
         _model->clear();
@@ -203,4 +193,20 @@ void LogWidget::refreshIcons()
 void LogWidget::scrollToBottom()
 {
     ui->logTable->scrollToBottom();
+}
+
+///
+/// \brief LogWidget::populateWithTestData
+///
+void LogWidget::populateWithTestData()
+{
+    for (const TestData::LogEntry &e : TestData::logItems()) {
+        const QByteArray cat = QByteArrayLiteral("ouaexp.") + e.source;
+        QMessageLogger logger(nullptr, 0, nullptr, cat.constData());
+        switch (e.level) {
+        case LogItem::Level::Warning: logger.warning()  << e.message; break;
+        case LogItem::Level::Error:   logger.critical() << e.message; break;
+        default:                      logger.debug()    << e.message; break;
+        }
+    }
 }

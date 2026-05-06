@@ -44,15 +44,7 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
         return QIcon();
     });
 
-    _treeModel->setItems(TestData::addressSpaceItems());
-    _nodeInfoModel->setItems(TestData::nodeInfoItems());
-    _referencesModel->setItems(TestData::referenceItems());
-
     ui->addressTree->expandAll();
-
-    const QModelIndex found = _treeModel->findFirst("Temperature");
-    if (found.isValid())
-        ui->addressTree->setCurrentIndex(found);
 
     ui->refreshButton->setIcon("refresh.svg");
     ui->refreshButton->setToolTip("Refresh");
@@ -66,6 +58,22 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
 AddressSpaceWidget::~AddressSpaceWidget()
 {
     delete ui;
+}
+
+///
+/// \brief AddressSpaceWidget::populateWithTestData
+///
+void AddressSpaceWidget::populateWithTestData()
+{
+    _treeModel->setItems(TestData::addressSpaceItems());
+    _nodeInfoModel->setItems(TestData::nodeInfoItems());
+    _referencesModel->setItems(TestData::referenceItems());
+
+    ui->addressTree->expandAll();
+
+    const QModelIndex found = _treeModel->findFirst("Temperature");
+    if (found.isValid())
+        ui->addressTree->setCurrentIndex(found);
 }
 
 ///

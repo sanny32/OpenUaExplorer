@@ -25,6 +25,8 @@ class DataAccessModel : public QAbstractTableModel
 public:
     explicit DataAccessModel(QObject *parent = nullptr);
 
+    void setItems(const QVector<DataAccessItem> &items);
+
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -32,8 +34,6 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation,
                         int role = Qt::DisplayRole) const override;
     Qt::ItemFlags flags(const QModelIndex &index) const override;
-
-    QStringList subscriptionNames() const;
 
     Qt::Alignment columnAlignment(int column) const;
     void setColumnAlignment(int column, Qt::Alignment alignment);
@@ -52,6 +52,5 @@ public:
 
 private:
     QVector<DataAccessItem> _items;
-    QStringList _subscriptionNames;
     QHash<int, Qt::Alignment> _columnAlignments;
 };

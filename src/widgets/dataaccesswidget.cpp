@@ -28,7 +28,7 @@
 DataAccessWidget::DataAccessWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::DataAccessWidget)
-    , _model(new DataAccessModel(this))
+    , _dataModel(new DataAccessModel(this))
     , _subscriptionsModel(new SubscriptionsModel(this))
     , _eventsModel(new EventsModel(this))
     , _historyModel(new HistoryModel(this))
@@ -41,9 +41,10 @@ DataAccessWidget::DataAccessWidget(QWidget *parent)
     setupHistoryView();
     ui->dataView->setMinimumHeight(190);
 
-    _subscriptionsModel->setItems(TestData::subscriptionItems());
-    _eventsModel->setItems(TestData::eventItems());
-    _historyModel->setItems(TestData::historyItems());
+    connect(_subscriptionsModel, &QAbstractItemModel::rowsInserted,
+            this, &DataAccessWidget::rebuildSubscribeMenu);
+    connect(_subscriptionsModel, &QAbstractItemModel::rowsRemoved,
+            this, &DataAccessWidget::rebuildSubscribeMenu);
 }
 
 ///
@@ -55,22 +56,31 @@ DataAccessWidget::~DataAccessWidget()
 }
 
 ///
+/// \brief DataAccessWidget::populateWithTestData
+///
+void DataAccessWidget::populateWithTestData()
+{
+    _dataModel->setItems(TestData::dataAccessItems());
+    _subscriptionsModel->setItems(TestData::subscriptionItems());
+    _eventsModel->setItems(TestData::eventItems());
+    _historyModel->setItems(TestData::historyItems());
+}
+
+///
 /// \brief DataAccessWidget::setupDataView
 ///
 void DataAccessWidget::setupDataView()
 {
-    ui->dataView->setModel(_model);
+    ui->dataView->setModel(_dataModel);
     ui->dataView->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->dataView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
     ui->dataView->verticalHeader()->hide();
 
-    auto delegate = new SubscriptionDelegate(_model->subscriptionNames(), ui->dataView);
-    ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, delegate);
 
     auto *header = ui->dataView->headerView();
     connect(header, &HeaderView::sectionAlignmentChanged, this,
             [this](int logicalIndex, Qt::Alignment alignment) {
-                _model->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
+                _dataModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
             });
 
     header->setStretchLastSection(false);
@@ -171,9 +181,20 @@ void DataAccessWidget::configureToolbar()
 
     ui->subscribeButton->setPopupMode(QToolButton::InstantPopup);
     ui->subscribeButton->setEnabled(false);
+}
+
+///
+/// \brief DataAccessWidget::rebuildSubscribeMenu
+///
+void DataAccessWidget::rebuildSubscribeMenu()
+{
+    const QStringList names = _subscriptionsModel->names();
+
+    auto delegate = new SubscriptionDelegate(names, ui->dataView);
+    ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, delegate);
 
     QMenu *menu = new QMenu(ui->subscribeButton);
-    for (const QString &name : _model->subscriptionNames()) {
+    for (const QString &name : names) {
         menu->addAction(name, this, [this, name] {
             applySubscriptionToSelection(name);
         });
@@ -193,7 +214,7 @@ void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionN
 {
     const QModelIndexList rows = ui->dataView->selectionModel()->selectedRows();
     for (const QModelIndex &idx : rows) {
-        _model->setData(_model->index(idx.row(), DataAccessModel::ColSubscription),
+        _dataModel->setData(_dataModel->index(idx.row(), DataAccessModel::ColSubscription),
                         subscriptionName, Qt::EditRole);
     }
 }

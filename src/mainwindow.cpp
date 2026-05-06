@@ -18,8 +18,13 @@
 
 #include "appicons.h"
 #include "dialogs/connectiondialog.h"
+#include "itestdatapopulatable.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "widgets/addressspacewidget.h"
+#include "widgets/attributeswidget.h"
+#include "widgets/dataaccesswidget.h"
+#include "widgets/logwidget.h"
 #include "widgets/mainstatusbarwidget.h"
 
 namespace {
@@ -63,6 +68,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->centralSplitter->setSizes({360, 310});
     resizeDocks({ui->addressSpaceDock, ui->attributesDock}, {300, 390}, Qt::Horizontal);
     resizeDocks({ui->logDock}, {245}, Qt::Vertical);
+
+    populateWithTestData();
 }
 
 ///
@@ -117,6 +124,21 @@ void MainWindow::toggleTheme()
     auto *hints = QGuiApplication::styleHints();
     hints->setColorScheme(AppIcons::isDarkTheme() ? Qt::ColorScheme::Light : Qt::ColorScheme::Dark);
 #endif
+}
+
+///
+/// \brief MainWindow::populateWithTestData
+///
+void MainWindow::populateWithTestData()
+{
+    const QList<ITestDataPopulatable *> targets = {
+        ui->addressSpaceWidget,
+        ui->attributesWidget,
+        ui->dataAccessWidget,
+        ui->logWidget,
+    };
+    for (ITestDataPopulatable *t : targets)
+        t->populateWithTestData();
 }
 
 ///

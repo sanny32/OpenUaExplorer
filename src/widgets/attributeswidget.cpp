@@ -24,8 +24,6 @@ AttributesWidget::AttributesWidget(QWidget *parent)
 {
     ui->setupUi(this);
     setupAttributesView();
-
-    _model->setItems(TestData::attributeItems());
 }
 
 ///
@@ -34,6 +32,14 @@ AttributesWidget::AttributesWidget(QWidget *parent)
 AttributesWidget::~AttributesWidget()
 {
     delete ui;
+}
+
+///
+/// \brief AttributesWidget::populateWithTestData
+///
+void AttributesWidget::populateWithTestData()
+{
+    _model->setItems(TestData::attributeItems());
 }
 
 ///

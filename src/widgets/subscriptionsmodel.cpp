@@ -90,9 +90,29 @@ QVariant SubscriptionsModel::data(const QModelIndex &index, int role) const
 ///
 void SubscriptionsModel::setItems(const QVector<SubscriptionItem> &items)
 {
-    beginResetModel();
-    _items = items;
-    endResetModel();
+    if (!_items.isEmpty()) {
+        beginRemoveRows(QModelIndex(), 0, _items.size() - 1);
+        _items.clear();
+        endRemoveRows();
+    }
+    if (!items.isEmpty()) {
+        beginInsertRows(QModelIndex(), 0, items.size() - 1);
+        _items = items;
+        endInsertRows();
+    }
+}
+
+///
+/// \brief SubscriptionsModel::names
+/// \return
+///
+QStringList SubscriptionsModel::names() const
+{
+    QStringList result;
+    result.reserve(_items.size());
+    for (const SubscriptionItem &item : _items)
+        result.append(item.name);
+    return result;
 }
 
 ///
@@ -100,9 +120,10 @@ void SubscriptionsModel::setItems(const QVector<SubscriptionItem> &items)
 ///
 void SubscriptionsModel::clear()
 {
-    beginResetModel();
+    if (_items.isEmpty()) return;
+    beginRemoveRows(QModelIndex(), 0, _items.size() - 1);
     _items.clear();
-    endResetModel();
+    endRemoveRows();
 }
 
 ///

@@ -10,6 +10,8 @@
 
 #include <QWidget>
 
+#include "itestdatapopulatable.h"
+
 namespace Ui {
 class AttributesWidget;
 }
@@ -19,13 +21,15 @@ class AttributesModel;
 ///
 /// \brief Widget that displays attributes for the selected OPC UA node.
 ///
-class AttributesWidget : public QWidget
+class AttributesWidget : public QWidget, public ITestDataPopulatable
 {
     Q_OBJECT
 
 public:
     explicit AttributesWidget(QWidget *parent = nullptr);
     ~AttributesWidget() override;
+
+    void populateWithTestData() override;
 
 private:
     void setupAttributesView();

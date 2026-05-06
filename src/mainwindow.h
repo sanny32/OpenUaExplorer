@@ -35,6 +35,7 @@ private:
     void setupDockOptions();
     void bindIcons();
     void toggleTheme();
+    void populateWithTestData();
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_mainStatusBarWidget;
