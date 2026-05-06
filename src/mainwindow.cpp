@@ -2,10 +2,10 @@
 #include <QAction>
 #include <QDockWidget>
 #include <QEvent>
+#include <QGuiApplication>
 #include <QList>
-#include <QPalette>
+#include <QStyleHints>
 
-#include "apptheme.h"
 #include "dialogs/connectiondialog.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -83,23 +83,8 @@ void MainWindow::setupDockOptions()
 ///
 void MainWindow::toggleTheme()
 {
-    const IconTheme next = currentIconTheme() == IconTheme::Light ? IconTheme::Dark : IconTheme::Light;
-    applyForcedTheme(next);
-}
-
-///
-/// \brief MainWindow::applyForcedTheme
-/// \param theme
-///
-void MainWindow::applyForcedTheme(IconTheme theme)
-{
-    _forcedTheme = theme;
-
-    const QPalette palette = theme == IconTheme::Dark
-        ? AppTheme::darkPalette()
-        : AppTheme::lightPalette();
-
-    qApp->setPalette(palette);
+    auto *hints = QGuiApplication::styleHints();
+    hints->setColorScheme(isDarkTheme() ? Qt::ColorScheme::Light : Qt::ColorScheme::Dark);
 }
 
 ///
@@ -107,9 +92,7 @@ void MainWindow::applyForcedTheme(IconTheme theme)
 ///
 void MainWindow::applyThemeIcons()
 {
-    const QString themeName = currentIconTheme() == IconTheme::Dark
-        ? "dark"
-        : "light";
+    const QString themeName = isDarkTheme() ? "dark" : "light";
 
     setWindowIcon(QIcon(QString(":/icons/%1/app.ico").arg(themeName)));
 
@@ -128,16 +111,12 @@ void MainWindow::applyThemeIcons()
 }
 
 ///
-/// \brief MainWindow::currentIconTheme
+/// \brief MainWindow::isDarkTheme
 /// \return
 ///
-MainWindow::IconTheme MainWindow::currentIconTheme() const
+bool MainWindow::isDarkTheme() const
 {
-    if (_forcedTheme.has_value()) {
-        return _forcedTheme.value();
-    }
-    const QColor windowColor = qApp->palette().color(QPalette::Window);
-    return windowColor.lightness() < 128 ? IconTheme::Dark : IconTheme::Light;
+    return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
 }
 
 ///
@@ -147,8 +126,6 @@ MainWindow::IconTheme MainWindow::currentIconTheme() const
 ///
 QIcon MainWindow::themedIcon(const QString &name) const
 {
-    const QString themeName = currentIconTheme() == IconTheme::Dark
-        ? "dark"
-        : "light";
+    const QString themeName = isDarkTheme() ? "dark" : "light";
     return QIcon(QString(":/icons/%1/%2.svg").arg(themeName, name));
 }

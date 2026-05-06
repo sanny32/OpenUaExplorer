@@ -3,7 +3,6 @@
 #include <QIcon>
 #include <QMainWindow>
 #include <QString>
-#include <optional>
 
 namespace Ui {
 class MainWindow;
@@ -23,20 +22,13 @@ protected:
     void changeEvent(QEvent *event) override;
 
 private:
-    enum class IconTheme {
-        Light,
-        Dark
-    };
-
     void openConnectionDialog();
     void setupDockOptions();
     void applyThemeIcons();
     void toggleTheme();
-    void applyForcedTheme(IconTheme theme);
-    IconTheme currentIconTheme() const;
+    bool isDarkTheme() const;
     QIcon themedIcon(const QString &name) const;
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_mainStatusBarWidget;
-    std::optional<IconTheme> _forcedTheme;
 };
