@@ -23,7 +23,6 @@
 TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     : QWidget(parent)
 {
-    setMinimumHeight(170);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
 

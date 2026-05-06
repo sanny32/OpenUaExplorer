@@ -39,8 +39,6 @@ DataAccessWidget::DataAccessWidget(QWidget *parent)
     setupSubscriptionsView();
     setupEventsView();
     setupHistoryView();
-    ui->dataView->setMinimumHeight(190);
-
     connect(_subscriptionsModel, &QAbstractItemModel::rowsInserted,
             this, &DataAccessWidget::rebuildSubscribeMenu);
     connect(_subscriptionsModel, &QAbstractItemModel::rowsRemoved,
@@ -218,4 +216,3 @@ void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionN
                         subscriptionName, Qt::EditRole);
     }
 }
-

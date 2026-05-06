@@ -138,7 +138,7 @@
   <widget class="QDockWidget" name="attributesDock">
    <property name="minimumSize">
     <size>
-     <width>360</width>
+     <width>390</width>
      <height>220</height>
     </size>
    </property>

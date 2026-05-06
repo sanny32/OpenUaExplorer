@@ -177,8 +177,15 @@
         </layout>
        </item>
        <item>
-        <widget class="TrendGraphWidget" name="trendGraphWidget" native="true"/>
-       </item>
+         <widget class="TrendGraphWidget" name="trendGraphWidget" native="true">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>170</height>
+           </size>
+          </property>
+         </widget>
+        </item>
       </layout>
      </widget>
      <widget class="QWidget" name="newTrendTab">

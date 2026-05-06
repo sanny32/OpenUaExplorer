@@ -110,9 +110,6 @@ void MainWindow::setupDockOptions()
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
     setCorner(Qt::TopLeftCorner, Qt::LeftDockWidgetArea);
 
-    ui->addressSpaceDock->setMinimumWidth(300);
-    ui->attributesDock->setMinimumWidth(390);
-    ui->logDock->setMinimumHeight(245);
 }
 
 ///
