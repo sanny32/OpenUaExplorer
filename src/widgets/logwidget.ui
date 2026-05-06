@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>LogWidget</class>
  <widget class="QWidget" name="LogWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>502</width>
+    <height>240</height>
+   </rect>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
     <number>8</number>
@@ -18,24 +26,11 @@
    <item>
     <layout class="QHBoxLayout" name="headerLayout">
      <item>
-      <widget class="QLabel" name="titleLabel">
+      <widget class="QLabel" name="levelLabel">
        <property name="text">
-        <string>Log</string>
+        <string>Level:</string>
        </property>
       </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
      </item>
      <item>
       <widget class="QComboBox" name="levelCombo">
@@ -62,11 +57,54 @@
       </widget>
      </item>
      <item>
+      <widget class="QLineEdit" name="searchEdit">
+       <property name="placeholderText">
+        <string>Search in messages...</string>
+       </property>
+       <property name="clearButtonEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="autoScrollCheck">
+       <property name="text">
+        <string>Auto-scroll</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="ThemedPushButton" name="pauseButton">
+       <property name="text">
+        <string>Pause</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="ThemedPushButton" name="clearButton">
        <property name="text">
         <string>Clear</string>
        </property>
       </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
      </item>
     </layout>
    </item>

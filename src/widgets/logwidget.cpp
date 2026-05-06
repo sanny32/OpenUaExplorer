@@ -3,9 +3,12 @@
 
 ///
 /// \file logwidget.cpp
-/// \brief Implements the application log widget.
+/// \brief Implements the activity log widget.
 ///
 
+#include <QEvent>
+
+#include "appicons.h"
 #include "headerview.h"
 #include "logmodel.h"
 #include "logwidget.h"
@@ -24,10 +27,19 @@ LogWidget::LogWidget(QWidget *parent)
     ui->setupUi(this);
     setupLogView();
 
+    _searchIconAction = ui->searchEdit->addAction(QIcon(), QLineEdit::LeadingPosition);
+    refreshIcons();
+
     for (const LogItem &item : TestData::logItems())
         _model->addItem(item);
 
     connect(ui->clearButton, &QPushButton::clicked, _model, &LogModel::clear);
+
+    connect(ui->pauseButton, &QPushButton::toggled, this, [this](bool checked) {
+        _paused = checked;
+        ui->pauseButton->setIcon(checked ? QStringLiteral("resume.svg") : QStringLiteral("pause.svg"));
+        ui->pauseButton->setText(checked ? tr("Resume") : tr("Pause"));
+    });
 
     connect(ui->levelCombo, &QComboBox::currentIndexChanged, this, [this](int index) {
         switch (index) {
@@ -36,6 +48,15 @@ LogWidget::LogWidget(QWidget *parent)
         case 2: _model->setFilterLevel(LogItem::Level::Warning);  break;
         case 3: _model->setFilterLevel(LogItem::Level::Error);    break;
         }
+    });
+
+    connect(ui->searchEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
+        _model->setSearchFilter(text);
+    });
+
+    connect(_model, &LogModel::rowsInserted, this, [this]() {
+        if (ui->autoScrollCheck->isChecked())
+            scrollToBottom();
     });
 }
 
@@ -53,7 +74,22 @@ LogWidget::~LogWidget()
 ///
 void LogWidget::addItem(const LogItem &item)
 {
-    _model->addItem(item);
+    if (!_paused)
+        _model->addItem(item);
+}
+
+///
+/// \brief LogWidget::changeEvent
+/// \param event
+///
+void LogWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+
+    if (event->type() == QEvent::PaletteChange
+        || event->type() == QEvent::ApplicationPaletteChange) {
+        refreshIcons();
+    }
 }
 
 ///
@@ -83,4 +119,23 @@ void LogWidget::setupLogView()
     ui->logTable->setColumnWidth(LogModel::ColTimestamp, 95);
     ui->logTable->setColumnWidth(LogModel::ColLevel,     80);
     ui->logTable->setColumnWidth(LogModel::ColSource,    60);
+}
+
+///
+/// \brief LogWidget::refreshIcons
+///
+void LogWidget::refreshIcons()
+{
+    const bool paused = ui->pauseButton->isChecked();
+    _searchIconAction->setIcon(AppIcons::themed("search.svg"));
+    ui->pauseButton->setIcon(paused ? QStringLiteral("resume.svg") : QStringLiteral("pause.svg"));
+    ui->clearButton->setIcon(QStringLiteral("trash.svg"));
+}
+
+///
+/// \brief LogWidget::scrollToBottom
+///
+void LogWidget::scrollToBottom()
+{
+    ui->logTable->scrollToBottom();
 }

@@ -137,9 +137,11 @@ QVariant LogModel::data(const QModelIndex &index, int role) const
 ///
 void LogModel::addItem(const LogItem &item)
 {
-    const bool visible = !_filtered || item.level == _filterLevel;
+    const bool levelOk  = !_filtered || item.level == _filterLevel;
+    const bool searchOk = _searchText.isEmpty()
+                          || item.message.contains(_searchText, Qt::CaseInsensitive);
     _items.append(item);
-    if (visible) {
+    if (levelOk && searchOk) {
         const int row = visibleItems().size() - 1;
         beginInsertRows(QModelIndex(), row, row);
         endInsertRows();
@@ -188,6 +190,17 @@ void LogModel::clearFilterLevel()
 }
 
 ///
+/// \brief LogModel::setSearchFilter
+/// \param text
+///
+void LogModel::setSearchFilter(const QString &text)
+{
+    beginResetModel();
+    _searchText = text;
+    endResetModel();
+}
+
+///
 /// \brief LogModel::setColumnAlignment
 /// \param column
 /// \param alignment
@@ -204,12 +217,13 @@ void LogModel::setColumnAlignment(int column, Qt::Alignment alignment)
 ///
 QVector<LogItem> LogModel::visibleItems() const
 {
-    if (!_filtered)
-        return _items;
-
     QVector<LogItem> result;
-    for (const LogItem &item : _items)
-        if (item.level == _filterLevel)
-            result.append(item);
+    for (const LogItem &item : _items) {
+        if (_filtered && item.level != _filterLevel)
+            continue;
+        if (!_searchText.isEmpty() && !item.message.contains(_searchText, Qt::CaseInsensitive))
+            continue;
+        result.append(item);
+    }
     return result;
 }

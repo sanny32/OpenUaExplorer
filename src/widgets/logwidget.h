@@ -3,11 +3,12 @@
 
 ///
 /// \file logwidget.h
-/// \brief Declares the application log widget.
+/// \brief Declares the activity log widget.
 ///
 
 #pragma once
 
+#include <QAction>
 #include <QWidget>
 
 #include "logitem.h"
@@ -19,7 +20,7 @@ class LogWidget;
 class LogModel;
 
 ///
-/// \brief Widget that displays and filters application log messages.
+/// \brief Widget that displays, filters and searches application activity log messages.
 ///
 class LogWidget : public QWidget
 {
@@ -31,9 +32,16 @@ public:
 
     void addItem(const LogItem &item);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     void setupLogView();
+    void refreshIcons();
+    void scrollToBottom();
 
     Ui::LogWidget *ui;
     LogModel      *_model;
+    QAction       *_searchIconAction = nullptr;
+    bool           _paused = false;
 };

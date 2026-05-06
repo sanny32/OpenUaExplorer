@@ -37,6 +37,8 @@ public:
     void setFilterLevel(LogItem::Level level);
     void clearFilterLevel();
 
+    void setSearchFilter(const QString &text);
+
     void setColumnAlignment(int column, Qt::Alignment alignment);
 
     enum Column {
@@ -50,8 +52,9 @@ public:
 private:
     QVector<LogItem> visibleItems() const;
 
-    QVector<LogItem>      _items;
-    LogItem::Level        _filterLevel;
-    bool                  _filtered = false;
+    QVector<LogItem>          _items;
+    LogItem::Level            _filterLevel;
+    bool                      _filtered = false;
+    QString                   _searchText;
     QHash<int, Qt::Alignment> _columnAlignments;
 };
