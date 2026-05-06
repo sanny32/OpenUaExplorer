@@ -4,12 +4,32 @@
 #include <QEvent>
 #include <QGuiApplication>
 #include <QList>
+#include <QPalette>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QStyleHints>
+#endif
 
 #include "dialogs/connectiondialog.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "widgets/mainstatusbarwidget.h"
+
+namespace {
+
+///
+/// \brief isThemeSwitchingSupported
+/// \return
+///
+bool isThemeSwitchingSupported()
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    return QGuiApplication::styleHints()->colorScheme() != Qt::ColorScheme::Unknown;
+#else
+    return false;
+#endif
+}
+
+}
 
 ///
 /// \brief MainWindow::MainWindow
@@ -22,8 +42,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    ui->actionTheme->setVisible(isThemeSwitchingSupported());
+
     ui->mainToolBar->setupFromDesignerActions();
     ui->statusbar->addWidget(_mainStatusBarWidget, 1);
+
     setupDockOptions();
     applyThemeIcons();
 
@@ -83,8 +106,10 @@ void MainWindow::setupDockOptions()
 ///
 void MainWindow::toggleTheme()
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     auto *hints = QGuiApplication::styleHints();
     hints->setColorScheme(isDarkTheme() ? Qt::ColorScheme::Light : Qt::ColorScheme::Dark);
+#endif
 }
 
 ///
@@ -114,7 +139,11 @@ void MainWindow::applyThemeIcons()
 ///
 bool MainWindow::isDarkTheme() const
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
+#else
+    return false;
+#endif
 }
 
 ///
@@ -123,7 +152,7 @@ bool MainWindow::isDarkTheme() const
 /// \param ext
 /// \return
 ///
-QIcon MainWindow::themedIcon(const QString &name,  const QString& ext) const
+QIcon MainWindow::themedIcon(const QString &name, const QString &ext) const
 {
     const QString themeName = isDarkTheme() ? "dark" : "light";
     return QIcon(QString(":/icons/%1/%2%3").arg(themeName, name, ext));

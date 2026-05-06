@@ -34,7 +34,7 @@ void MainToolBar::setupFromDesignerActions()
     for (QAction *action : designerActions) {
         if (action->isSeparator()) {
             addSeparator();
-        } else {
+        } else if (action->isVisible()) {
             addMainButton(action);
         }
     }
