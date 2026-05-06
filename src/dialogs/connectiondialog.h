@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <QDialog>
+#include "dialogs/appbasedialog.h"
 
 namespace Ui {
 class ConnectionDialog;
@@ -17,7 +17,7 @@ class ConnectionDialog;
 ///
 /// \brief Dialog for configuring and opening an OPC UA connection.
 ///
-class ConnectionDialog : public QDialog
+class ConnectionDialog : public AppBaseDialog
 {
     Q_OBJECT
 

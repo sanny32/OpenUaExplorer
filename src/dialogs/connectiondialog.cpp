@@ -6,14 +6,10 @@
 /// \brief Implements the OPC UA connection dialog.
 ///
 
-#include <QApplication>
 #include <QCheckBox>
-#include <QEvent>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QSpinBox>
 
-#include "appicons.h"
 #include "connectiondialog.h"
 #include "ui_connectiondialog.h"
 #include "widgets/coloredpushbutton.h"
@@ -23,11 +19,10 @@
 /// \param parent
 ///
 ConnectionDialog::ConnectionDialog(QWidget *parent)
-    : QDialog(parent)
+    : AppBaseDialog(parent)
     , ui(new Ui::ConnectionDialog)
 {
     ui->setupUi(this);
-    setWindowIcon(AppIcons::themed("app.ico"));
 
     ui->clientCertificateHintIcon->setIcon("info", 24);
     ui->serverCertificateIconLabel->setIcon("lock", 48);

@@ -123,6 +123,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 set(SOURCES
     main.cpp
     appstyle.cpp
+    dialogs/appbasedialog.cpp
     dialogs/connectiondialog.cpp
     mainwindow.cpp
     widgets/addressspacemodel.cpp
@@ -159,6 +160,7 @@ set(SOURCES
 set(HEADERS
     appicons.h
     appstyle.h
+    dialogs/appbasedialog.h
     dialogs/connectiondialog.h
     mainwindow.h
     testdata.h
