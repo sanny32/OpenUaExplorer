@@ -6,6 +6,9 @@ namespace Ui {
 class MainStatusBarWidget;
 }
 
+///
+/// \brief Status bar widget that displays connection state.
+///
 class MainStatusBarWidget : public QWidget
 {
     Q_OBJECT

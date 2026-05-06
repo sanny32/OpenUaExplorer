@@ -5,6 +5,9 @@
 
 #include "nodeitem.h"
 
+///
+/// \brief Table model for selected OPC UA node information.
+///
 class NodeInfoModel : public QAbstractTableModel
 {
     Q_OBJECT

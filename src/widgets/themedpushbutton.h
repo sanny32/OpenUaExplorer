@@ -2,6 +2,9 @@
 
 #include <QPushButton>
 
+///
+/// \brief Push button that refreshes its icon for the active application theme.
+///
 class ThemedPushButton : public QPushButton
 {
     Q_OBJECT

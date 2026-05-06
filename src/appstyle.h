@@ -3,7 +3,7 @@
 #include <QProxyStyle>
 
 ///
-/// \brief The AppStyle class
+/// \brief Application proxy style that adjusts item and header text margins.
 ///
 class AppStyle : public QProxyStyle
 {

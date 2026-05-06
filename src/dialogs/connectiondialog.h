@@ -6,6 +6,9 @@ namespace Ui {
 class ConnectionDialog;
 }
 
+///
+/// \brief Dialog for configuring and opening an OPC UA connection.
+///
 class ConnectionDialog : public QDialog
 {
     Q_OBJECT

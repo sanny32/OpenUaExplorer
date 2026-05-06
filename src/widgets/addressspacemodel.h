@@ -7,6 +7,9 @@
 
 #include "addressspaceitem.h"
 
+///
+/// \brief Tree node used internally by AddressSpaceModel.
+///
 class AddressSpaceNode
 {
 public:
@@ -32,6 +35,9 @@ private:
     QVector<AddressSpaceNode *> _children;
 };
 
+///
+/// \brief Tree model for the OPC UA address space browser.
+///
 class AddressSpaceModel : public QAbstractItemModel
 {
     Q_OBJECT

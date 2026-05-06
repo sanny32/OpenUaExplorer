@@ -6,6 +6,9 @@ namespace Ui {
 class TrendPanelWidget;
 }
 
+///
+/// \brief Hosts trend graph controls and actions.
+///
 class TrendPanelWidget : public QWidget
 {
     Q_OBJECT

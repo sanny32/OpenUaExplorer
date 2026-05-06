@@ -4,6 +4,9 @@
 
 class QAction;
 
+///
+/// \brief Fixed-width themed toolbar button for main actions.
+///
 class MainToolButton : public ThemedToolButton
 {
     Q_OBJECT

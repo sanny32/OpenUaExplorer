@@ -11,6 +11,9 @@ class SubscriptionsModel;
 class EventsModel;
 class HistoryModel;
 
+///
+/// \brief Widget for browsing data access items, subscriptions, events and history.
+///
 class DataAccessWidget : public QWidget
 {
     Q_OBJECT

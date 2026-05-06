@@ -8,6 +8,9 @@ class EndpointSelectorWidget;
 
 class QString;
 
+///
+/// \brief Widget for selecting the OPC UA endpoint URL.
+///
 class EndpointSelectorWidget : public QWidget
 {
     Q_OBJECT

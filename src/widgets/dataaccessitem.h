@@ -2,6 +2,9 @@
 
 #include <QString>
 
+///
+/// \brief Describes one OPC UA data access item row.
+///
 struct DataAccessItem
 {
     QString nodeId;

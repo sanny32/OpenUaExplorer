@@ -7,6 +7,9 @@
 
 #include "dataaccessitem.h"
 
+///
+/// \brief Table model for OPC UA data access monitored items.
+///
 class DataAccessModel : public QAbstractTableModel
 {
     Q_OBJECT

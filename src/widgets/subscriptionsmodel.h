@@ -6,6 +6,9 @@
 
 #include "subscriptionitem.h"
 
+///
+/// \brief Table model for configured OPC UA subscriptions.
+///
 class SubscriptionsModel : public QAbstractTableModel
 {
     Q_OBJECT

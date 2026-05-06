@@ -8,6 +8,9 @@ class MainWindow;
 
 class MainStatusBarWidget;
 
+///
+/// \brief Main application window that coordinates docks, toolbar and theme actions.
+///
 class MainWindow : public QMainWindow
 {
     Q_OBJECT

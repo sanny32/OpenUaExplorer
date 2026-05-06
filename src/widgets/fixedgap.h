@@ -2,6 +2,9 @@
 
 #include <QWidget>
 
+///
+/// \brief Fixed-width spacer widget.
+///
 class FixedGap : public QWidget
 {
     Q_OBJECT

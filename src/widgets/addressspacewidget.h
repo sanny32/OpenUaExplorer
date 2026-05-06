@@ -12,6 +12,9 @@ class AddressSpaceModel;
 class NodeInfoModel;
 class ReferencesModel;
 
+///
+/// \brief Widget for browsing the OPC UA address space and selected node details.
+///
 class AddressSpaceWidget : public QWidget
 {
     Q_OBJECT

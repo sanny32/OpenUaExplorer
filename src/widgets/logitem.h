@@ -2,6 +2,9 @@
 
 #include <QString>
 
+///
+/// \brief Describes one application log message.
+///
 struct LogItem
 {
     enum class Level { Info, Warning, Error };

@@ -4,6 +4,10 @@
 #include <QRectF>
 #include <QVector>
 #include <QWidget>
+
+///
+/// \brief Renders a compact sample trend graph.
+///
 class TrendGraphWidget : public QWidget
 {
     Q_OBJECT

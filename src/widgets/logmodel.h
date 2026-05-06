@@ -6,6 +6,9 @@
 
 #include "logitem.h"
 
+///
+/// \brief Table model for application log messages.
+///
 class LogModel : public QAbstractTableModel
 {
     Q_OBJECT

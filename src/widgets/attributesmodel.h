@@ -6,6 +6,9 @@
 #include <QString>
 #include <QVector>
 
+///
+/// \brief Table model for selected OPC UA node attributes.
+///
 class AttributesModel : public QAbstractTableModel
 {
     Q_OBJECT

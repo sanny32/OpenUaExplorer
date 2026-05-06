@@ -6,6 +6,9 @@
 
 #include "subscriptionitem.h"
 
+///
+/// \brief Table model for OPC UA history read entries.
+///
 class HistoryModel : public QAbstractTableModel
 {
     Q_OBJECT

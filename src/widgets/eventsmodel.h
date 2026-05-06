@@ -6,6 +6,9 @@
 
 #include "subscriptionitem.h"
 
+///
+/// \brief Table model for OPC UA event entries.
+///
 class EventsModel : public QAbstractTableModel
 {
     Q_OBJECT

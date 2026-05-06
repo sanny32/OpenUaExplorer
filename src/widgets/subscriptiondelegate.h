@@ -3,6 +3,9 @@
 #include <QStyledItemDelegate>
 #include <QStringList>
 
+///
+/// \brief Combo-box delegate used to assign subscriptions to monitored items.
+///
 class SubscriptionDelegate : public QStyledItemDelegate
 {
     Q_OBJECT

@@ -2,6 +2,9 @@
 
 #include <QToolButton>
 
+///
+/// \brief Tool button that refreshes its icon for the active application theme.
+///
 class ThemedToolButton : public QToolButton
 {
     Q_OBJECT

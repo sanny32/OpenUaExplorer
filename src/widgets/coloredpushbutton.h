@@ -3,11 +3,17 @@
 #include <QColor>
 #include <QPushButton>
 
+///
+/// \brief Push button that can render explicit colors without stylesheets.
+///
 class ColoredPushButton : public QPushButton
 {
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Color set used to paint button states.
+    ///
     struct Colors {
         QColor base;
         QColor hover;

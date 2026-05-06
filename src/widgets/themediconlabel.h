@@ -2,6 +2,9 @@
 
 #include <QLabel>
 
+///
+/// \brief Label that displays a theme-aware icon pixmap.
+///
 class ThemedIconLabel : public QLabel
 {
     Q_OBJECT

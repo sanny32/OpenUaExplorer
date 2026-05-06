@@ -3,6 +3,9 @@
 #include <QHash>
 #include <QHeaderView>
 
+///
+/// \brief Header view with wrapped labels and per-section alignment.
+///
 class HeaderView : public QHeaderView
 {
     Q_OBJECT

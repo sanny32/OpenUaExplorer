@@ -8,6 +8,9 @@ class ConnectionStatusWidget;
 
 class QIcon;
 
+///
+/// \brief Widget that shows connection status text and icon.
+///
 class ConnectionStatusWidget : public QWidget
 {
     Q_OBJECT

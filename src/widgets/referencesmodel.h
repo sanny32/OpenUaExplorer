@@ -5,6 +5,9 @@
 
 #include "nodeitem.h"
 
+///
+/// \brief Table model for references of the selected OPC UA node.
+///
 class ReferencesModel : public QAbstractTableModel
 {
     Q_OBJECT

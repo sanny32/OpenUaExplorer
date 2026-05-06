@@ -8,6 +8,9 @@ class AttributesWidget;
 
 class AttributesModel;
 
+///
+/// \brief Widget that displays attributes for the selected OPC UA node.
+///
 class AttributesWidget : public QWidget
 {
     Q_OBJECT

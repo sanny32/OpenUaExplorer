@@ -10,6 +10,9 @@ class LogWidget;
 
 class LogModel;
 
+///
+/// \brief Widget that displays and filters application log messages.
+///
 class LogWidget : public QWidget
 {
     Q_OBJECT
