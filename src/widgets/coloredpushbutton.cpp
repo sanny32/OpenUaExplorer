@@ -13,6 +13,7 @@
 #include <QPainterPath>
 #include <QProxyStyle>
 #include <QStyleOption>
+#include <qdrawutil.h>
 
 #include "appicons.h"
 #include "coloredpushbutton.h"
@@ -20,11 +21,21 @@
 namespace {
 
 ///
-/// \brief Checks whether a widget is rendered through the Fusion style.
+/// \brief Style-specific button drawing path.
+///
+enum class ButtonStyle {
+    Fusion,
+    Windows11,
+    Windows,
+    Generic,
+};
+
+///
+/// \brief Returns the unwrapped application style for a widget.
 /// \param widget
 /// \return
 ///
-bool isFusionStyle(const QWidget *widget)
+const QStyle *baseStyle(const QWidget *widget)
 {
     const QStyle *currentStyle = widget != nullptr ? widget->style() : QApplication::style();
 
@@ -36,6 +47,17 @@ bool isFusionStyle(const QWidget *widget)
         currentStyle = baseStyle;
     }
 
+    return currentStyle;
+}
+
+///
+/// \brief Checks whether a widget is rendered through the Fusion style.
+/// \param widget
+/// \return
+///
+bool isFusionStyle(const QWidget *widget)
+{
+    const QStyle *currentStyle = baseStyle(widget);
     return currentStyle != nullptr
            && currentStyle->objectName().compare("fusion", Qt::CaseInsensitive) == 0;
 }
@@ -47,18 +69,234 @@ bool isFusionStyle(const QWidget *widget)
 ///
 bool isWindowsStyle(const QWidget *widget)
 {
-    const QStyle *currentStyle = widget != nullptr ? widget->style() : QApplication::style();
-
-    while (const auto *proxyStyle = qobject_cast<const QProxyStyle *>(currentStyle)) {
-        const QStyle *baseStyle = proxyStyle->baseStyle();
-        if (baseStyle == nullptr || baseStyle == currentStyle)
-            break;
-
-        currentStyle = baseStyle;
-    }
-
+    const QStyle *currentStyle = baseStyle(widget);
     return currentStyle != nullptr
            && currentStyle->objectName().contains("windows", Qt::CaseInsensitive);
+}
+
+///
+/// \brief Checks whether a widget is rendered through the Windows 11 style.
+/// \param widget
+/// \return
+///
+bool isWindows11Style(const QWidget *widget)
+{
+    const QStyle *currentStyle = baseStyle(widget);
+    return currentStyle != nullptr
+           && currentStyle->objectName().compare("windows11", Qt::CaseInsensitive) == 0;
+}
+
+///
+/// \brief Resolves the style-specific drawing path for a widget.
+/// \param widget
+/// \return
+///
+ButtonStyle buttonStyle(const QWidget *widget)
+{
+    if (isFusionStyle(widget))
+        return ButtonStyle::Fusion;
+    if (isWindows11Style(widget))
+        return ButtonStyle::Windows11;
+    if (isWindowsStyle(widget))
+        return ButtonStyle::Windows;
+
+    return ButtonStyle::Generic;
+}
+
+namespace Fusion {
+
+///
+/// \brief Blends two colors using the same weighting convention as Qt styles.
+/// \param colorA
+/// \param colorB
+/// \param factor
+/// \return
+///
+QColor mergedColors(const QColor &colorA, const QColor &colorB, int factor)
+{
+    constexpr int maxFactor = 100;
+    QColor color = colorA;
+    color.setRed((colorA.red() * factor) / maxFactor
+                 + (colorB.red() * (maxFactor - factor)) / maxFactor);
+    color.setGreen((colorA.green() * factor) / maxFactor
+                   + (colorB.green() * (maxFactor - factor)) / maxFactor);
+    color.setBlue((colorA.blue() * factor) / maxFactor
+                  + (colorB.blue() * (maxFactor - factor)) / maxFactor);
+    return color;
+}
+
+///
+/// \brief Creates a Fusion-style vertical gradient from a base color.
+/// \param rect
+/// \param baseColor
+/// \return
+///
+QLinearGradient fusionGradient(const QRectF &rect, const QColor &baseColor)
+{
+    QLinearGradient gradient(rect.center().x(), rect.top(), rect.center().x(), rect.bottom());
+    gradient.setColorAt(0.0, baseColor.lighter(124));
+    gradient.setColorAt(1.0, baseColor.lighter(102));
+    return gradient;
+}
+
+///
+/// \brief Returns the Fusion-style highlighted outline color.
+/// \param palette
+/// \return
+///
+QColor fusionHighlightedOutline(const QPalette &palette)
+{
+    QColor outline = palette.color(QPalette::Highlight).darker(125);
+    if (outline.value() > 160)
+        outline.setHsl(outline.hue(), outline.saturation(), 160);
+
+    return outline;
+}
+
+///
+/// \brief Draws a colored push button using Fusion button geometry.
+/// \param painter
+/// \param button
+/// \param option
+/// \param bg
+/// \param enabled
+/// \param down
+/// \param hovered
+///
+void drawButton(QPainter *painter, const QPushButton *button, const QStyleOption &option,
+                const QColor &bg, bool enabled, bool down, bool hovered)
+{
+    const bool defaultButton = button->isDefault() && enabled;
+    const bool focusOutline = button->hasFocus()
+                              && (option.state & QStyle::State_KeyboardFocusChange);
+    const QRectF fusionRect = QRectF(button->rect().adjusted(0, 1, -1, 0));
+    QColor buttonColor = bg;
+    const QColor highlightedOutline = fusionHighlightedOutline(button->palette());
+    const QColor outline = focusOutline || defaultButton
+                               ? highlightedOutline
+                               : button->palette().color(QPalette::Window).darker(140);
+
+    if (defaultButton)
+        buttonColor = mergedColors(buttonColor, highlightedOutline.lighter(130), 90);
+
+    painter->save();
+    painter->translate(0.5, -0.5);
+    painter->setPen(Qt::transparent);
+    painter->setBrush(down ? QBrush(buttonColor.darker(110))
+                           : QBrush(fusionGradient(fusionRect, hovered ? buttonColor
+                                                                       : buttonColor.darker(104))));
+    painter->drawRoundedRect(fusionRect, 2.0, 2.0);
+
+    painter->setBrush(Qt::NoBrush);
+    painter->setPen(enabled ? QPen(outline) : QPen(outline.lighter(115)));
+    painter->drawRoundedRect(fusionRect, 2.0, 2.0);
+
+    painter->setPen(QColor(255, 255, 255, 30));
+    painter->drawRoundedRect(fusionRect.adjusted(1, 1, -1, -1), 2.0, 2.0);
+    painter->restore();
+}
+
+}
+
+///
+/// \brief Selects the background color for the current button state.
+/// \param colors
+/// \param palette
+/// \param enabled
+/// \param down
+/// \param hovered
+/// \param style
+/// \return
+///
+QColor stateBackgroundColor(const ColoredPushButton::Colors &colors, const QPalette &palette,
+                            bool enabled, bool down, bool hovered, ButtonStyle style)
+{
+    QColor bg = colors.base;
+    if (down)
+        bg = colors.pressed;
+    else if (hovered)
+        bg = colors.hover;
+    else if (!enabled && style == ButtonStyle::Fusion)
+        bg = palette.color(QPalette::Disabled, QPalette::Button);
+
+    return bg;
+}
+
+namespace Generic {
+
+///
+/// \brief Draws a colored push button using the generic flat fill.
+/// \param painter
+/// \param button
+/// \param bg
+///
+void drawButton(QPainter *painter, const QPushButton *button, const QColor &bg)
+{
+    const QRectF buttonRect = button->rect().adjusted(1, 1, -1, -1);
+    QPainterPath path;
+    path.addRoundedRect(buttonRect, 4, 4);
+
+    painter->fillPath(path, bg);
+
+    if (button->hasFocus()) {
+        painter->setPen(QPen(bg.lighter(160), 1.5));
+        painter->drawPath(path);
+    }
+}
+
+}
+
+namespace Windows {
+
+///
+/// \brief Draws a colored push button using Qt's Windows button frame helper.
+/// \param painter
+/// \param button
+/// \param bg
+/// \param down
+///
+void drawButton(QPainter *painter, const QPushButton *button, const QColor &bg, bool down)
+{
+    const QBrush fill(bg);
+    qDrawWinButton(painter, button->rect(), button->palette(), down, &fill);
+}
+
+}
+
+namespace Windows11 {
+
+///
+/// \brief Draws a colored push button using Windows 11 button geometry.
+/// \param painter
+/// \param button
+/// \param bg
+/// \param enabled
+/// \param down
+/// \param hovered
+///
+void drawButton(QPainter *painter, const QPushButton *button, const QColor &bg,
+                bool enabled, bool down, bool hovered)
+{
+    constexpr int radius = 4;
+    const QRectF fillRect = QRectF(button->rect().marginsRemoved(QMargins(2, 2, 2, 2)));
+    QColor fillColor = bg;
+    if (down)
+        fillColor = bg.darker(108);
+    else if (hovered)
+        fillColor = bg.lighter(108);
+
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(fillColor);
+    painter->drawRoundedRect(fillRect, radius, radius);
+
+    QRectF borderRect = fillRect.adjusted(0.5, 0.5, -0.5, -0.5);
+    const QColor borderColor = enabled ? bg.darker(125)
+                                       : button->palette().color(QPalette::Disabled, QPalette::Mid);
+    painter->setBrush(Qt::NoBrush);
+    painter->setPen(borderColor);
+    painter->drawRoundedRect(borderRect, radius, radius);
+}
+
 }
 
 }
@@ -127,59 +365,31 @@ void ColoredPushButton::paintEvent(QPaintEvent *event)
     const bool enabled = opt.state & QStyle::State_Enabled;
     const bool down = enabled && (isDown() || isChecked());
     const bool hovered = enabled && (opt.state & QStyle::State_MouseOver);
-    const bool fusionStyle = isFusionStyle(this);
-    const bool compactPaintRect = isWindowsStyle(this);
+    const ButtonStyle style = buttonStyle(this);
 
-    QColor bg = _colors.base;
-    if (down)
-        bg = _colors.pressed;
-    else if (hovered)
-        bg = _colors.hover;
-    else if (!enabled && fusionStyle)
-        bg = palette().color(QPalette::Disabled, QPalette::Button);
+    const QColor bg = stateBackgroundColor(_colors, palette(), enabled, down, hovered, style);
 
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
 
-    const QRectF buttonRect = compactPaintRect
-                                  ? rect().adjusted(1, 2, -1, -2)
-                                  : rect().adjusted(1, 1, -1, -1);
-    QPainterPath path;
-    path.addRoundedRect(buttonRect, 4, 4);
-
-    if (fusionStyle) {
-        QLinearGradient gradient(buttonRect.topLeft(), buttonRect.bottomLeft());
-        if (down) {
-            gradient.setColorAt(0.0, bg.darker(112));
-            gradient.setColorAt(1.0, bg.lighter(112));
-        } else {
-            gradient.setColorAt(0.0, bg.lighter(enabled ? 128 : 108));
-            gradient.setColorAt(0.45, bg.lighter(enabled ? 112 : 104));
-            gradient.setColorAt(1.0, bg.darker(enabled ? 108 : 100));
-        }
-
-        const QColor border = enabled ? bg.darker(135) : palette().color(QPalette::Disabled, QPalette::Mid);
-
-        p.fillPath(path, gradient);
-        p.setPen(QPen(border, 1));
-        p.drawPath(path);
-    } else {
-        p.fillPath(path, bg);
+    switch (style) {
+    case ButtonStyle::Fusion:
+        Fusion::drawButton(&p, this, opt, bg, enabled, down, hovered);
+        break;
+    case ButtonStyle::Windows11:
+        Windows11::drawButton(&p, this, bg, enabled, down, hovered);
+        break;
+    case ButtonStyle::Windows:
+        Windows::drawButton(&p, this, bg, down);
+        break;
+    case ButtonStyle::Generic:
+        Generic::drawButton(&p, this, bg);
+        break;
     }
 
-    if (hasFocus()) {
-        if (fusionStyle) {
-            QPainterPath focusPath;
-            focusPath.addRoundedRect(buttonRect.adjusted(2, 2, -2, -2), 3, 3);
-            p.setPen(QPen(bg.lighter(170), 1));
-            p.drawPath(focusPath);
-        } else {
-            p.setPen(QPen(bg.lighter(160), 1.5));
-            p.drawPath(path);
-        }
-    }
-
-    p.setPen(enabled || !fusionStyle ? _colors.text : palette().color(QPalette::Disabled, QPalette::ButtonText));
+    p.setPen(enabled || style != ButtonStyle::Fusion
+                 ? _colors.text
+                 : palette().color(QPalette::Disabled, QPalette::ButtonText));
     p.drawText(rect(), Qt::AlignCenter, text());
 }
 
