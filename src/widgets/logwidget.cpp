@@ -12,6 +12,7 @@
 #include "headerview.h"
 #include "logmodel.h"
 #include "logwidget.h"
+#include "tableview.h"
 #include "testdata.h"
 #include "ui_logwidget.h"
 
@@ -97,15 +98,14 @@ void LogWidget::changeEvent(QEvent *event)
 ///
 void LogWidget::setupLogView()
 {
-    auto header = new HeaderView(Qt::Horizontal, ui->logTable);
+    ui->logTable->setModel(_model);
+    ui->logTable->verticalHeader()->hide();
+
+    auto *header = ui->logTable->headerView();
     connect(header, &HeaderView::sectionAlignmentChanged, this,
             [this](int logicalIndex, Qt::Alignment alignment) {
                 _model->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
             });
-
-    ui->logTable->setModel(_model);
-    ui->logTable->setHorizontalHeader(header);
-    ui->logTable->verticalHeader()->hide();
 
     header->setStretchLastSection(false);
     header->setSectionResizeMode(LogModel::ColTimestamp, QHeaderView::Fixed);

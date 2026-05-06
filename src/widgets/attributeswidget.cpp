@@ -9,6 +9,7 @@
 #include "attributesmodel.h"
 #include "attributeswidget.h"
 #include "headerview.h"
+#include "tableview.h"
 #include "testdata.h"
 #include "ui_attributeswidget.h"
 
@@ -40,15 +41,14 @@ AttributesWidget::~AttributesWidget()
 ///
 void AttributesWidget::setupAttributesView()
 {
-    auto header = new HeaderView(Qt::Horizontal, ui->attributesTable);
+    ui->attributesTable->setModel(_model);
+    ui->attributesTable->verticalHeader()->hide();
+
+    auto *header = ui->attributesTable->headerView();
     connect(header, &HeaderView::sectionAlignmentChanged, this,
             [this](int logicalIndex, Qt::Alignment alignment) {
                 _model->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
             });
-
-    ui->attributesTable->setModel(_model);
-    ui->attributesTable->setHorizontalHeader(header);
-    ui->attributesTable->verticalHeader()->hide();
 
     header->setStretchLastSection(false);
     header->setSectionResizeMode(AttributesModel::ColAttribute, QHeaderView::Fixed);

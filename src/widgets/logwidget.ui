@@ -109,7 +109,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QTableView" name="logTable">
+    <widget class="TableView" name="logTable">
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>
@@ -125,6 +125,11 @@
    <class>ThemedPushButton</class>
    <extends>QPushButton</extends>
    <header>widgets/themedpushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>TableView</class>
+   <extends>QTableView</extends>
+   <header>widgets/tableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

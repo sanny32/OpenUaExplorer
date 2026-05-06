@@ -13,6 +13,7 @@
 #include "appicons.h"
 #include "nodeinfomodel.h"
 #include "referencesmodel.h"
+#include "tableview.h"
 #include "testdata.h"
 #include "ui_addressspacewidget.h"
 

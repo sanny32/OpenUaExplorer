@@ -9,7 +9,6 @@
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QMenu>
-#include <QTableView>
 
 #include "dataaccessmodel.h"
 #include "dataaccesswidget.h"
@@ -18,6 +17,7 @@
 #include "historymodel.h"
 #include "subscriptiondelegate.h"
 #include "subscriptionsmodel.h"
+#include "tableview.h"
 #include "testdata.h"
 #include "ui_dataaccesswidget.h"
 
@@ -67,13 +67,11 @@ void DataAccessWidget::setupDataView()
     auto delegate = new SubscriptionDelegate(_model->subscriptionNames(), ui->dataView);
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, delegate);
 
-    auto header = new HeaderView(Qt::Horizontal, ui->dataView);
+    auto *header = ui->dataView->headerView();
     connect(header, &HeaderView::sectionAlignmentChanged, this,
             [this](int logicalIndex, Qt::Alignment alignment) {
                 _model->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
             });
-
-    ui->dataView->setHorizontalHeader(header);
 
     header->setStretchLastSection(false);
     header->setSectionResizeMode(DataAccessModel::ColNumber,       QHeaderView::Fixed);
@@ -111,14 +109,14 @@ void DataAccessWidget::setupDataView()
 ///
 void DataAccessWidget::setupSubscriptionsView()
 {
-    auto *subsHeader = new HeaderView(Qt::Horizontal, ui->subscriptionsTable);
+    ui->subscriptionsTable->setModel(_subscriptionsModel);
+    ui->subscriptionsTable->verticalHeader()->hide();
+
+    auto *subsHeader = ui->subscriptionsTable->headerView();
     connect(subsHeader, &HeaderView::sectionAlignmentChanged, this,
             [this](int logicalIndex, Qt::Alignment alignment) {
                 _subscriptionsModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
             });
-    ui->subscriptionsTable->setModel(_subscriptionsModel);
-    ui->subscriptionsTable->setHorizontalHeader(subsHeader);
-    ui->subscriptionsTable->verticalHeader()->hide();
     subsHeader->setSectionResizeMode(SubscriptionsModel::ColName,               QHeaderView::Fixed);
     subsHeader->setSectionResizeMode(SubscriptionsModel::ColPublishingInterval, QHeaderView::Stretch);
     ui->subscriptionsTable->setColumnWidth(SubscriptionsModel::ColName, 120);
@@ -129,14 +127,14 @@ void DataAccessWidget::setupSubscriptionsView()
 ///
 void DataAccessWidget::setupEventsView()
 {
-    auto *eventsHeader = new HeaderView(Qt::Horizontal, ui->eventsTable);
+    ui->eventsTable->setModel(_eventsModel);
+    ui->eventsTable->verticalHeader()->hide();
+
+    auto *eventsHeader = ui->eventsTable->headerView();
     connect(eventsHeader, &HeaderView::sectionAlignmentChanged, this,
             [this](int logicalIndex, Qt::Alignment alignment) {
                 _eventsModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
             });
-    ui->eventsTable->setModel(_eventsModel);
-    ui->eventsTable->setHorizontalHeader(eventsHeader);
-    ui->eventsTable->verticalHeader()->hide();
     eventsHeader->setSectionResizeMode(EventsModel::ColTime,    QHeaderView::Fixed);
     eventsHeader->setSectionResizeMode(EventsModel::ColMessage, QHeaderView::Stretch);
     ui->eventsTable->setColumnWidth(EventsModel::ColTime, 95);
@@ -147,14 +145,14 @@ void DataAccessWidget::setupEventsView()
 ///
 void DataAccessWidget::setupHistoryView()
 {
-    auto *historyHeader = new HeaderView(Qt::Horizontal, ui->historyTable);
+    ui->historyTable->setModel(_historyModel);
+    ui->historyTable->verticalHeader()->hide();
+
+    auto *historyHeader = ui->historyTable->headerView();
     connect(historyHeader, &HeaderView::sectionAlignmentChanged, this,
             [this](int logicalIndex, Qt::Alignment alignment) {
                 _historyModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
             });
-    ui->historyTable->setModel(_historyModel);
-    ui->historyTable->setHorizontalHeader(historyHeader);
-    ui->historyTable->verticalHeader()->hide();
     historyHeader->setSectionResizeMode(HistoryModel::ColNode,  QHeaderView::Fixed);
     historyHeader->setSectionResizeMode(HistoryModel::ColRange, QHeaderView::Stretch);
     ui->historyTable->setColumnWidth(HistoryModel::ColNode, 260);

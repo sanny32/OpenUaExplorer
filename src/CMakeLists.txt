@@ -142,6 +142,7 @@ set(SOURCES
     widgets/endpointselectorwidget.cpp
     widgets/fixedgap.cpp
     widgets/headerview.cpp
+    widgets/tableview.cpp
     widgets/logmodel.cpp
     widgets/logwidget.cpp
     widgets/mainstatusbarwidget.cpp
@@ -182,6 +183,7 @@ set(HEADERS
     widgets/endpointselectorwidget.h
     widgets/fixedgap.h
     widgets/headerview.h
+    widgets/tableview.h
     widgets/logitem.h
     widgets/logmodel.h
     widgets/logwidget.h
