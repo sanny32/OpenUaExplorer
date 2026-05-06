@@ -109,7 +109,6 @@ void MainWindow::setupDockOptions()
 {
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
     setCorner(Qt::TopLeftCorner, Qt::LeftDockWidgetArea);
-
 }
 
 ///
