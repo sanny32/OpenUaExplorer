@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>TrendPanelWidget</class>
  <widget class="QWidget" name="TrendPanelWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>481</width>
+    <height>240</height>
+   </rect>
+  </property>
   <property name="minimumSize">
    <size>
     <width>0</width>
@@ -34,7 +42,13 @@
        <item>
         <layout class="QHBoxLayout" name="toolbarLayout">
          <item>
-          <widget class="ThemedPushButton" name="liveButton">
+          <widget class="ThemedToolButton" name="liveButton">
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>0</height>
+            </size>
+           </property>
            <property name="text">
             <string>Live</string>
            </property>
@@ -44,33 +58,72 @@
            <property name="checked">
             <bool>true</bool>
            </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
+           </property>
           </widget>
          </item>
          <item>
-          <widget class="ThemedPushButton" name="oneMinuteButton">
+          <widget class="ThemedToolButton" name="oneMinuteButton">
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>0</height>
+            </size>
+           </property>
            <property name="text">
             <string>1m</string>
            </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
+           </property>
           </widget>
          </item>
          <item>
-          <widget class="ThemedPushButton" name="tenMinutesButton">
+          <widget class="ThemedToolButton" name="tenMinutesButton">
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>0</height>
+            </size>
+           </property>
            <property name="text">
             <string>10m</string>
            </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="ThemedPushButton" name="oneHourButton">
-           <property name="text">
-            <string>1h</string>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="ThemedPushButton" name="oneDayButton">
+          <widget class="ThemedToolButton" name="oneHourButton">
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>1h</string>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="ThemedToolButton" name="oneDayButton">
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>0</height>
+            </size>
+           </property>
            <property name="text">
             <string>1d</string>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
            </property>
           </widget>
          </item>
@@ -88,9 +141,12 @@
           </spacer>
          </item>
          <item>
-          <widget class="ThemedPushButton" name="autoScaleButton">
+          <widget class="ThemedToolButton" name="autoScaleButton">
            <property name="text">
             <string>Auto Scale</string>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
            </property>
           </widget>
          </item>
@@ -100,7 +156,7 @@
             <string>Fit</string>
            </property>
            <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
+            <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
            </property>
           </widget>
          </item>
@@ -121,7 +177,7 @@
         </layout>
        </item>
        <item>
-        <widget class="TrendGraphWidget" name="trendGraphWidget"/>
+        <widget class="TrendGraphWidget" name="trendGraphWidget" native="true"/>
        </item>
       </layout>
      </widget>
@@ -145,11 +201,6 @@
    <class>ThemedToolButton</class>
    <extends>QToolButton</extends>
    <header>widgets/themedtoolbutton.h</header>
-  </customwidget>
-  <customwidget>
-   <class>ThemedPushButton</class>
-   <extends>QPushButton</extends>
-   <header>widgets/themedpushbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

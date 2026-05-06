@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QProxyStyle>
+#include <QSize>
 
 ///
 /// \brief Application proxy style that adjusts item and header text margins.
@@ -22,7 +23,11 @@ public:
 
     QRect subElementRect(SubElement element, const QStyleOption *option,
                          const QWidget *widget = nullptr) const override;
+    QSize sizeFromContents(ContentsType type, const QStyleOption *option,
+                           const QSize &contentsSize,
+                           const QWidget *widget = nullptr) const override;
 
+    static constexpr int controlMinHeight = 30;
     static constexpr int textHMargin = 6;
     static constexpr int textVMargin = 1;
 };
