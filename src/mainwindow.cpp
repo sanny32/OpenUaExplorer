@@ -92,9 +92,7 @@ void MainWindow::toggleTheme()
 ///
 void MainWindow::applyThemeIcons()
 {
-    const QString themeName = isDarkTheme() ? "dark" : "light";
-
-    setWindowIcon(QIcon(QString(":/icons/%1/app.ico").arg(themeName)));
+    setWindowIcon(themedIcon("app", ".ico"));
 
     ui->actionConnect->setIcon(themedIcon("connect"));
     ui->actionDisconnect->setIcon(themedIcon("disconnect"));
@@ -122,10 +120,11 @@ bool MainWindow::isDarkTheme() const
 ///
 /// \brief MainWindow::themedIcon
 /// \param name
+/// \param ext
 /// \return
 ///
-QIcon MainWindow::themedIcon(const QString &name) const
+QIcon MainWindow::themedIcon(const QString &name,  const QString& ext) const
 {
     const QString themeName = isDarkTheme() ? "dark" : "light";
-    return QIcon(QString(":/icons/%1/%2.svg").arg(themeName, name));
+    return QIcon(QString(":/icons/%1/%2%3").arg(themeName, name, ext));
 }

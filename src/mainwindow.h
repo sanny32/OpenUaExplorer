@@ -27,7 +27,7 @@ private:
     void applyThemeIcons();
     void toggleTheme();
     bool isDarkTheme() const;
-    QIcon themedIcon(const QString &name) const;
+    QIcon themedIcon(const QString &name, const QString& ext = ".svg") const;
 
     Ui::MainWindow *ui;
     MainStatusBarWidget *_mainStatusBarWidget;
