@@ -1,7 +1,5 @@
 #pragma once
 
-#include <QIcon>
-#include <QString>
 #include <QWidget>
 
 namespace Ui {
@@ -16,9 +14,12 @@ public:
     explicit TrendPanelWidget(QWidget *parent = nullptr);
     ~TrendPanelWidget() override;
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     void configureToolbar();
-    QIcon themedIcon(const QString &name) const;
+    void applyThemeIcons();
 
     Ui::TrendPanelWidget *ui;
 };

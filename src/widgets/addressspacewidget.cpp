@@ -1,9 +1,8 @@
-#include <QApplication>
 #include <QHeaderView>
-#include <QPalette>
 
 #include "addressspacemodel.h"
 #include "addressspacewidget.h"
+#include "appicons.h"
 #include "nodeinfomodel.h"
 #include "referencesmodel.h"
 #include "testdata.h"
@@ -28,10 +27,10 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
 
     _treeModel->setIconProvider([this](AddressSpaceItem::NodeType type) {
         switch (type) {
-        case AddressSpaceItem::NodeType::Folder:   return themedIcon("folder");
-        case AddressSpaceItem::NodeType::Node:     return themedIcon("node");
-        case AddressSpaceItem::NodeType::Variable: return themedIcon("variable");
-        case AddressSpaceItem::NodeType::Method:   return themedIcon("method");
+        case AddressSpaceItem::NodeType::Folder:   return AppIcons::themed("folder");
+        case AddressSpaceItem::NodeType::Node:     return AppIcons::themed("node");
+        case AddressSpaceItem::NodeType::Variable: return AppIcons::themed("variable");
+        case AddressSpaceItem::NodeType::Method:   return AppIcons::themed("method");
         }
         return QIcon();
     });
@@ -46,7 +45,7 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     if (found.isValid())
         ui->addressTree->setCurrentIndex(found);
 
-    ui->refreshButton->setIcon(themedIcon("refresh"));
+    ui->refreshButton->setIcon(AppIcons::themed("refresh"));
     ui->refreshButton->setToolTip("Refresh");
     ui->refreshButton->setText("");
     ui->refreshButton->setMaximumWidth(34);
@@ -94,14 +93,3 @@ void AddressSpaceWidget::setupReferencesView()
     ui->referencesTable->setColumnWidth(ReferencesModel::ColReference, 150);
 }
 
-///
-/// \brief AddressSpaceWidget::themedIcon
-/// \param name
-/// \return
-///
-QIcon AddressSpaceWidget::themedIcon(const QString &name) const
-{
-    const QColor windowColor = qApp->palette().color(QPalette::Window);
-    const QString themeName = windowColor.lightness() < 128 ? "dark" : "light";
-    return QIcon(QString(":/icons/%1/%2.svg").arg(themeName, name));
-}

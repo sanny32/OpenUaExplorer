@@ -4,11 +4,11 @@
 #include <QEvent>
 #include <QGuiApplication>
 #include <QList>
-#include <QPalette>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QStyleHints>
 #endif
 
+#include "appicons.h"
 #include "dialogs/connectiondialog.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -41,7 +41,6 @@ MainWindow::MainWindow(QWidget *parent)
     , _mainStatusBarWidget(new MainStatusBarWidget(this))
 {
     ui->setupUi(this);
-
     ui->actionTheme->setVisible(isThemeSwitchingSupported());
 
     ui->mainToolBar->setupFromDesignerActions();
@@ -108,7 +107,7 @@ void MainWindow::toggleTheme()
 {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     auto *hints = QGuiApplication::styleHints();
-    hints->setColorScheme(isDarkTheme() ? Qt::ColorScheme::Light : Qt::ColorScheme::Dark);
+    hints->setColorScheme(AppIcons::isDarkTheme() ? Qt::ColorScheme::Light : Qt::ColorScheme::Dark);
 #endif
 }
 
@@ -117,43 +116,19 @@ void MainWindow::toggleTheme()
 ///
 void MainWindow::applyThemeIcons()
 {
-    setWindowIcon(themedIcon("app", ".ico"));
+    setWindowIcon(AppIcons::themed("app", ".ico"));
 
-    ui->actionConnect->setIcon(themedIcon("connect"));
-    ui->actionDisconnect->setIcon(themedIcon("disconnect"));
-    ui->actionBrowse->setIcon(themedIcon("browse"));
-    ui->actionRefresh->setIcon(themedIcon("refresh"));
-    ui->actionRead->setIcon(themedIcon("read"));
-    ui->actionWrite->setIcon(themedIcon("write"));
-    ui->actionSubscribe->setIcon(themedIcon("subscribe"));
-    ui->actionUnsubscribe->setIcon(themedIcon("unsubscribe"));
-    ui->actionSettings->setIcon(themedIcon("settings"));
-    ui->actionTheme->setIcon(themedIcon("theme"));
+    ui->actionConnect->setIcon(AppIcons::themed("connect"));
+    ui->actionDisconnect->setIcon(AppIcons::themed("disconnect"));
+    ui->actionBrowse->setIcon(AppIcons::themed("browse"));
+    ui->actionRefresh->setIcon(AppIcons::themed("refresh"));
+    ui->actionRead->setIcon(AppIcons::themed("read"));
+    ui->actionWrite->setIcon(AppIcons::themed("write"));
+    ui->actionSubscribe->setIcon(AppIcons::themed("subscribe"));
+    ui->actionUnsubscribe->setIcon(AppIcons::themed("unsubscribe"));
+    ui->actionSettings->setIcon(AppIcons::themed("settings"));
+    ui->actionTheme->setIcon(AppIcons::themed("theme"));
 
-    _mainStatusBarWidget->setConnectionIcon(themedIcon("connected"));
+    _mainStatusBarWidget->setConnectionIcon(AppIcons::themed("connected"));
 }
 
-///
-/// \brief MainWindow::isDarkTheme
-/// \return
-///
-bool MainWindow::isDarkTheme() const
-{
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-    return QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
-#else
-    return false;
-#endif
-}
-
-///
-/// \brief MainWindow::themedIcon
-/// \param name
-/// \param ext
-/// \return
-///
-QIcon MainWindow::themedIcon(const QString &name, const QString &ext) const
-{
-    const QString themeName = isDarkTheme() ? "dark" : "light";
-    return QIcon(QString(":/icons/%1/%2%3").arg(themeName, name, ext));
-}

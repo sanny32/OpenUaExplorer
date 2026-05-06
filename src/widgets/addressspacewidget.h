@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QIcon>
 #include <QWidget>
 
 #include "addressspaceitem.h"
@@ -25,8 +24,6 @@ private:
     void setupTreeView();
     void setupNodeInfoView();
     void setupReferencesView();
-
-    QIcon themedIcon(const QString &name) const;
 
     Ui::AddressSpaceWidget *ui;
     AddressSpaceModel      *_treeModel;

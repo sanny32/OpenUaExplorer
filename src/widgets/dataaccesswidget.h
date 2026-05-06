@@ -1,7 +1,5 @@
 #pragma once
 
-#include <QIcon>
-#include <QString>
 #include <QWidget>
 
 namespace Ui {
@@ -21,14 +19,17 @@ public:
     explicit DataAccessWidget(QWidget *parent = nullptr);
     ~DataAccessWidget() override;
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     void setupDataView();
     void setupSubscriptionsView();
     void setupEventsView();
     void setupHistoryView();
     void configureToolbar();
+    void applyThemeIcons();
     void applySubscriptionToSelection(const QString &subscriptionName);
-    QIcon themedIcon(const QString &name) const;
 
     Ui::DataAccessWidget *ui;
     DataAccessModel      *_model;

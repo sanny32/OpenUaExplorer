@@ -153,6 +153,7 @@ set(SOURCES
 )
 
 set(HEADERS
+    appicons.h
     appstyle.h
     dialogs/connectiondialog.h
     mainwindow.h

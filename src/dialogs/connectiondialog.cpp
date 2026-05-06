@@ -9,18 +9,10 @@
 #include <QPainter>
 #include <QPixmap>
 
+#include "appicons.h"
 #include "connectiondialog.h"
 #include "ui_connectiondialog.h"
 #include "widgets/coloredpushbutton.h"
-
-///
-/// \brief isDarkTheme
-/// \return
-///
-static bool isDarkTheme()
-{
-    return qApp->palette().color(QPalette::Window).lightness() < 128;
-}
 
 ///
 /// \brief svgToPixmap
@@ -46,8 +38,7 @@ static QPixmap svgToPixmap(const QString &resource, int size)
 ///
 static QPixmap themedIcon(const QString &name, int size)
 {
-    const QString theme = isDarkTheme() ? "dark" : "light";
-    return svgToPixmap(QString(":/icons/%1/%2.svg").arg(theme, name), size);
+    return svgToPixmap(QString(":/icons/%1/%2.svg").arg(AppIcons::isDarkTheme() ? "dark" : "light", name), size);
 }
 
 ///
@@ -100,10 +91,9 @@ void ConnectionDialog::changeEvent(QEvent *event)
 ///
 void ConnectionDialog::updateTheme()
 {
-    const QString theme = isDarkTheme() ? "dark" : "light";
-    setWindowIcon(QIcon(QString(":/icons/%1/app.ico").arg(theme)));
+    setWindowIcon(AppIcons::themed("app", ".ico"));
 
-    if (isDarkTheme()) {
+    if (AppIcons::isDarkTheme()) {
         ui->connectButton->setColors({
             QColor(0x1a8fe8),
             QColor(0x2b9df5),

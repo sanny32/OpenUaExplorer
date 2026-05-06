@@ -1,8 +1,7 @@
-#include <QApplication>
-#include <QColor>
+#include <QEvent>
 #include <QIcon>
-#include <QPalette>
 
+#include "appicons.h"
 #include "trendpanelwidget.h"
 #include "ui_trendpanelwidget.h"
 
@@ -27,23 +26,32 @@ TrendPanelWidget::~TrendPanelWidget()
 }
 
 ///
+/// \brief TrendPanelWidget::changeEvent
+/// \param event
+///
+void TrendPanelWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+
+    if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
+        applyThemeIcons();
+    }
+}
+
+///
 /// \brief TrendPanelWidget::configureToolbar
 ///
 void TrendPanelWidget::configureToolbar()
 {
-    ui->fitButton->setIcon(themedIcon("fit"));
-    ui->exportButton->setIcon(themedIcon("export"));
-    ui->settingsButton->setIcon(themedIcon("settings"));
+    applyThemeIcons();
 }
 
 ///
-/// \brief TrendPanelWidget::themedIcon
-/// \param name
-/// \return
+/// \brief TrendPanelWidget::applyThemeIcons
 ///
-QIcon TrendPanelWidget::themedIcon(const QString &name) const
+void TrendPanelWidget::applyThemeIcons()
 {
-    const QColor windowColor = qApp->palette().color(QPalette::Window);
-    const QString themeName = windowColor.lightness() < 128 ? "dark" : "light";
-    return QIcon(QString(":/icons/%1/%2.svg").arg(themeName, name));
+    ui->fitButton->setIcon(AppIcons::themed("fit"));
+    ui->exportButton->setIcon(AppIcons::themed("export"));
+    ui->settingsButton->setIcon(AppIcons::themed("settings"));
 }
