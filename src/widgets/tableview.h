@@ -23,4 +23,7 @@ public:
     explicit TableView(QWidget *parent = nullptr);
 
     HeaderView *headerView() const;
+
+protected:
+    bool viewportEvent(QEvent *event) override;
 };
