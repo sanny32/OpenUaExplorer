@@ -6,7 +6,11 @@
 /// \brief Implements the activity log widget.
 ///
 
+#include <atomic>
+#include <QDateTime>
 #include <QEvent>
+#include <QMetaObject>
+#include <QPointer>
 
 #include "appicons.h"
 #include "headerview.h"
@@ -15,6 +19,51 @@
 #include "tableview.h"
 #include "testdata.h"
 #include "ui_logwidget.h"
+
+Q_LOGGING_CATEGORY(lcApp,     "ouaexp.App")
+Q_LOGGING_CATEGORY(lcClient,  "ouaexp.Client")
+Q_LOGGING_CATEGORY(lcSession, "ouaexp.Session")
+
+namespace {
+static LogWidget*       s_instance    = nullptr;
+static QtMessageHandler s_prevHandler = nullptr;
+static std::atomic<quint64> s_logEpoch { 0 };
+
+static void appMessageHandler(QtMsgType type, const QMessageLogContext &ctx, const QString &msg)
+{
+    if (s_prevHandler) s_prevHandler(type, ctx, msg);
+    const QLatin1String prefix("ouaexp.");
+    const QLatin1String category(ctx.category ? ctx.category : "");
+    if (!s_instance || !category.startsWith(prefix)) return;
+
+    LogItem::Level level;
+    switch (type) {
+    case QtWarningMsg:  level = LogItem::Level::Warning; break;
+    case QtCriticalMsg:
+    case QtFatalMsg:    level = LogItem::Level::Error;   break;
+    default:            level = LogItem::Level::Info;    break;
+    }
+
+    QString text = msg;
+    if (text.length() >= 2 && text.startsWith('"') && text.endsWith('"'))
+        text = text.mid(1, text.length() - 2);
+
+    const QString source = QString(category).mid(prefix.size());
+
+    LogItem item;
+    item.timestamp = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss.zzz"));
+    item.level     = level;
+    item.source    = source;
+    item.message   = text;
+
+    const quint64 epoch = s_logEpoch.load(std::memory_order_relaxed);
+    QPointer<LogWidget> guard(s_instance);
+    QMetaObject::invokeMethod(s_instance, [guard, item, epoch]() {
+        if (guard && s_logEpoch.load(std::memory_order_relaxed) == epoch)
+            guard->addItem(item);
+    }, Qt::QueuedConnection);
+}
+} // namespace
 
 ///
 /// \brief LogWidget::LogWidget
@@ -31,10 +80,23 @@ LogWidget::LogWidget(QWidget *parent)
     _searchIconAction = ui->searchEdit->addAction(QIcon(), QLineEdit::LeadingPosition);
     refreshIcons();
 
-    for (const LogItem &item : TestData::logItems())
-        _model->addItem(item);
+    s_instance = this;
+    s_prevHandler = qInstallMessageHandler(appMessageHandler);
 
-    connect(ui->clearButton, &QPushButton::clicked, _model, &LogModel::clear);
+    for (const TestData::LogEntry &e : TestData::logItems()) {
+        const QByteArray cat = QByteArrayLiteral("ouaexp.") + e.source;
+        QMessageLogger logger(nullptr, 0, nullptr, cat.constData());
+        switch (e.level) {
+        case LogItem::Level::Warning: logger.warning()  << e.message; break;
+        case LogItem::Level::Error:   logger.critical() << e.message; break;
+        default:                      logger.debug()    << e.message; break;
+        }
+    }
+
+    connect(ui->clearButton, &QPushButton::clicked, this, [this]() {
+        s_logEpoch.fetch_add(1, std::memory_order_relaxed);
+        _model->clear();
+    });
 
     connect(ui->pauseButton, &QPushButton::toggled, this, [this](bool checked) {
         _paused = checked;
@@ -66,6 +128,9 @@ LogWidget::LogWidget(QWidget *parent)
 ///
 LogWidget::~LogWidget()
 {
+    qInstallMessageHandler(s_prevHandler);
+    s_instance    = nullptr;
+    s_prevHandler = nullptr;
     delete ui;
 }
 

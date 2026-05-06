@@ -21,6 +21,37 @@
 namespace TestData {
 
 ///
+/// \brief Log entry for test data — level, source and message without timestamp.
+///
+struct LogEntry {
+    LogItem::Level level;
+    const char    *source;
+    const char    *message;
+};
+
+///
+/// \brief Returns a set of sample log entries covering Info, Warning and Error levels.
+/// \return List of LogEntry entries.
+///
+inline QVector<LogEntry> logItems()
+{
+    using L = LogItem::Level;
+    return {
+        {L::Info,    "App",     "Application started"},
+        {L::Info,    "Client",  "Connected to opc.tcp://localhost:4840"},
+        {L::Info,    "Client",  "Browse completed in 120 ms"},
+        {L::Info,    "Session", "Subscription created"},
+        {L::Info,    "Session", "Monitored items: 6"},
+        {L::Warning, "Client",  "Response timeout on ns=2;s=Device1.Sensors.Pressure"},
+        {L::Error,   "Client",  "Read failed: ns=2;s=Device1.Sensors.Flow — BadNodeIdUnknown"},
+        {L::Info,    "Session", "Write succeeded: ns=2;s=Device1.Commands.Start = true"},
+        {L::Info,    "Session", "Write succeeded: ns=2;s=Device1.Commands.Start = false"},
+        {L::Info,    "Client",  "Data change: Temperature = 23.45"},
+        {L::Warning, "App",     "Configuration file not found, using defaults"},
+    };
+}
+
+///
 /// \brief Returns the list of available subscription names for use in DataAccessModel.
 /// \return List of subscription names.
 ///
@@ -67,26 +98,6 @@ inline QVector<QPair<QString, QString>> attributeItems()
         {"ArrayDimensions",  ""},
         {"AccessLevel",      "Read | Write"},
         {"UserAccessLevel",  "Read | Write"}
-    };
-}
-
-///
-/// \brief Returns a set of sample log entries covering Info, Warning and Error levels.
-/// \return List of LogItem entries.
-///
-inline QVector<LogItem> logItems()
-{
-    using L = LogItem::Level;
-    return {
-        {"12:14:58.123", L::Info,    "Client", "Connected to opc.tcp://localhost:4840"},
-        {"12:14:58.456", L::Info,    "Client", "Browse completed in 120 ms"},
-        {"12:15:01.789", L::Info,    "Client", "Subscription created"},
-        {"12:15:02.001", L::Info,    "Client", "Monitored items: 6"},
-        {"12:15:05.512", L::Warning, "Client", "Response timeout on ns=2;s=Device1.Sensors.Pressure"},
-        {"12:15:08.900", L::Error,   "Client", "Read failed: ns=2;s=Device1.Sensors.Flow — BadNodeIdUnknown"},
-        {"12:15:10.234", L::Info,    "Client", "Write succeeded: ns=2;s=Device1.Commands.Start = true"},
-        {"12:15:10.235", L::Info,    "Client", "Write succeeded: ns=2;s=Device1.Commands.Start = false"},
-        {"12:15:23.250", L::Info,    "Client", "Data change: Temperature = 23.45"}
     };
 }
 

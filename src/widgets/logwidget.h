@@ -9,9 +9,14 @@
 #pragma once
 
 #include <QAction>
+#include <QLoggingCategory>
 #include <QWidget>
 
 #include "logitem.h"
+
+Q_DECLARE_LOGGING_CATEGORY(lcApp)
+Q_DECLARE_LOGGING_CATEGORY(lcClient)
+Q_DECLARE_LOGGING_CATEGORY(lcSession)
 
 namespace Ui {
 class LogWidget;
