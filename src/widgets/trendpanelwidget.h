@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file trendpanelwidget.h
+/// \brief Declares the trend panel widget.
+///
+
 #pragma once
 
 #include <QWidget>

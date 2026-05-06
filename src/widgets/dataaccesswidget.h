@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file dataaccesswidget.h
+/// \brief Declares the OPC UA data access widget.
+///
+
 #pragma once
 
 #include <QWidget>

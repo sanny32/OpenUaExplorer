@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file subscriptiondelegate.h
+/// \brief Declares the subscription selection item delegate.
+///
+
 #pragma once
 
 #include <QStyledItemDelegate>

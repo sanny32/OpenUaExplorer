@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file attributeswidget.cpp
+/// \brief Implements the selected node attributes widget.
+///
+
 #include "attributesmodel.h"
 #include "attributeswidget.h"
 #include "headerview.h"

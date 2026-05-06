@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file addressspacewidget.cpp
+/// \brief Implements the OPC UA address space browser widget.
+///
+
 #include <QHeaderView>
 
 #include "addressspacemodel.h"

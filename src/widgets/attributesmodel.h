@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file attributesmodel.h
+/// \brief Declares the selected node attributes model.
+///
+
 #pragma once
 
 #include <QAbstractTableModel>

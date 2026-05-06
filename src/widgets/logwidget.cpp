@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file logwidget.cpp
+/// \brief Implements the application log widget.
+///
+
 #include "headerview.h"
 #include "logmodel.h"
 #include "logwidget.h"

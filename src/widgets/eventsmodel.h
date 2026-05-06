@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file eventsmodel.h
+/// \brief Declares the OPC UA events table model.
+///
+
 #pragma once
 
 #include <QAbstractTableModel>

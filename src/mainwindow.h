@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file mainwindow.h
+/// \brief Declares the main application window.
+///
+
 #pragma once
 
 #include <QMainWindow>

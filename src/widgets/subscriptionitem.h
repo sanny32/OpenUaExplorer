@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file subscriptionitem.h
+/// \brief Declares subscription, event and history data types.
+///
+
 #pragma once
 
 #include <QString>

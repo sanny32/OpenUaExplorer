@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file addressspacemodel.h
+/// \brief Declares the OPC UA address space tree model.
+///
+
 #pragma once
 
 #include <QAbstractItemModel>

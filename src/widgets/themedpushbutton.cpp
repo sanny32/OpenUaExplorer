@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file themedpushbutton.cpp
+/// \brief Implements a theme-aware push button.
+///
+
 #include <QEvent>
 
 #include "appicons.h"

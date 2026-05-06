@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file maintoolbutton.cpp
+/// \brief Implements the main toolbar action button.
+///
+
 #include <QAction>
 
 #include "maintoolbutton.h"

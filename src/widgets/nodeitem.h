@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file nodeitem.h
+/// \brief Declares node information and reference data types.
+///
+
 #pragma once
 
 #include <QPair>

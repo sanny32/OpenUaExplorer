@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file logmodel.h
+/// \brief Declares the application log table model.
+///
+
 #pragma once
 
 #include <QAbstractTableModel>

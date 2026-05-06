@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file headerview.cpp
+/// \brief Implements the custom wrapped header view.
+///
+
 #include <QPainter>
 #include <QRegularExpression>
 #include <QStyle>

@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file testdata.h
+/// \brief Provides sample data for the application UI.
+///
+
 #pragma once
 
 #include <QPair>

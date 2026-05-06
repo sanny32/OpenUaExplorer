@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file referencesmodel.h
+/// \brief Declares the selected node references model.
+///
+
 #pragma once
 
 #include <QAbstractTableModel>

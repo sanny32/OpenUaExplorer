@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file fixedgap.h
+/// \brief Declares a fixed-width spacer widget.
+///
+
 #pragma once
 
 #include <QWidget>

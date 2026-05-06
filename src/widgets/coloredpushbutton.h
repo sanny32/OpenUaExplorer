@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file coloredpushbutton.h
+/// \brief Declares a color-configurable push button.
+///
+
 #pragma once
 
 #include <QColor>

@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file headerview.h
+/// \brief Declares the custom wrapped header view.
+///
+
 #pragma once
 
 #include <QHash>

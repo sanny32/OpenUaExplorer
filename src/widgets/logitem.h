@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file logitem.h
+/// \brief Declares log item data types.
+///
+
 #pragma once
 
 #include <QString>

@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file connectiondialog.h
+/// \brief Declares the OPC UA connection dialog.
+///
+
 #pragma once
 
 #include <QDialog>

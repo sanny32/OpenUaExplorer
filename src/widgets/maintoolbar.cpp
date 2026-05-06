@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file maintoolbar.cpp
+/// \brief Implements the main application toolbar.
+///
+
 #include <QAction>
 #include <QSize>
 #include <QSizePolicy>

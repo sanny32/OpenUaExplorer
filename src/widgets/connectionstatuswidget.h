@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file connectionstatuswidget.h
+/// \brief Declares the connection status widget.
+///
+
 #pragma once
 
 #include <QWidget>

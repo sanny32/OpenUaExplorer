@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file maintoolbutton.h
+/// \brief Declares the main toolbar action button.
+///
+
 #pragma once
 
 #include "themedtoolbutton.h"

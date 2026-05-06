@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file appstyle.cpp
+/// \brief Implements the application proxy style.
+///
+
 #include <QPalette>
 #include <QStyleOptionButton>
 

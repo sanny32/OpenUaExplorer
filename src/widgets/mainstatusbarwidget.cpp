@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file mainstatusbarwidget.cpp
+/// \brief Implements the main status bar widget.
+///
+
 #include "mainstatusbarwidget.h"
 #include "ui_mainstatusbarwidget.h"
 

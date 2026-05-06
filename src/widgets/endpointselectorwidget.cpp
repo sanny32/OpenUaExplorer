@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file endpointselectorwidget.cpp
+/// \brief Implements the endpoint selector widget.
+///
+
 #include <QString>
 
 #include "endpointselectorwidget.h"

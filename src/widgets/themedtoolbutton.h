@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file themedtoolbutton.h
+/// \brief Declares a theme-aware tool button.
+///
+
 #pragma once
 
 #include <QToolButton>

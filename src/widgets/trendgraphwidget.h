@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file trendgraphwidget.h
+/// \brief Declares the trend graph widget.
+///
+
 #pragma once
 
 #include <QPointF>

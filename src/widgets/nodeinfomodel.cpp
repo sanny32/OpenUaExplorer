@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file nodeinfomodel.cpp
+/// \brief Implements the selected node information model.
+///
+
 #include "nodeinfomodel.h"
 
 ///

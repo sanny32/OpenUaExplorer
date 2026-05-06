@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file attributeswidget.h
+/// \brief Declares the selected node attributes widget.
+///
+
 #pragma once
 
 #include <QWidget>

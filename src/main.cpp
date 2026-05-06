@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file main.cpp
+/// \brief Defines the application entry point.
+///
+
 #include <QApplication>
 #include "appstyle.h"
 #include "mainwindow.h"

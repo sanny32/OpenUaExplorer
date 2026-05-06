@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file nodeinfomodel.h
+/// \brief Declares the selected node information model.
+///
+
 #pragma once
 
 #include <QAbstractTableModel>

@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file logmodel.cpp
+/// \brief Implements the application log table model.
+///
+
 #include <QColor>
 
 #include "logmodel.h"

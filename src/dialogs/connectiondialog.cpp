@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file connectiondialog.cpp
+/// \brief Implements the OPC UA connection dialog.
+///
+
 #include <QApplication>
 #include <QCheckBox>
 #include <QEvent>

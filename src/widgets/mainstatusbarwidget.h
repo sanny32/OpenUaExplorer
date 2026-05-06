@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file mainstatusbarwidget.h
+/// \brief Declares the main status bar widget.
+///
+
 #pragma once
 
 #include <QWidget>

@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file themedpushbutton.h
+/// \brief Declares a theme-aware push button.
+///
+
 #pragma once
 
 #include <QPushButton>

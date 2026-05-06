@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file trendgraphwidget.cpp
+/// \brief Implements the trend graph widget.
+///
+
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPalette>

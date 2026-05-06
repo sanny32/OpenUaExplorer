@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file addressspaceitem.h
+/// \brief Declares address space item data types.
+///
+
 #pragma once
 
 #include <QIcon>

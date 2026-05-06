@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file historymodel.cpp
+/// \brief Implements the OPC UA history table model.
+///
+
 #include "historymodel.h"
 
 ///

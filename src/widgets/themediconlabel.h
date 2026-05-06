@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file themediconlabel.h
+/// \brief Declares a theme-aware icon label.
+///
+
 #pragma once
 
 #include <QLabel>

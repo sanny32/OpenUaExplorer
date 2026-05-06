@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file securityselectorwidget.cpp
+/// \brief Implements the security policy selector widget.
+///
+
 #include <QString>
 
 #include "securityselectorwidget.h"

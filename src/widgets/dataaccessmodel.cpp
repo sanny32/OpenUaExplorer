@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file dataaccessmodel.cpp
+/// \brief Implements the OPC UA data access table model.
+///
+
 #include <QApplication>
 #include <QBrush>
 #include <QColor>

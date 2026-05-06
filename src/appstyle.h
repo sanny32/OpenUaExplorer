@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file appstyle.h
+/// \brief Declares the application proxy style.
+///
+
 #pragma once
 
 #include <QProxyStyle>

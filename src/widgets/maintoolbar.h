@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file maintoolbar.h
+/// \brief Declares the main application toolbar.
+///
+
 #pragma once
 
 #include <QToolBar>

@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file mainwindow.cpp
+/// \brief Implements the main application window.
+///
+
 #include <QApplication>
 #include <QAction>
 #include <QDockWidget>

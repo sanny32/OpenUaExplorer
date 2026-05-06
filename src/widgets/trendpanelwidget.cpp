@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file trendpanelwidget.cpp
+/// \brief Implements the trend panel widget.
+///
+
 #include "trendpanelwidget.h"
 #include "ui_trendpanelwidget.h"
 

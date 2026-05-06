@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file subscriptiondelegate.cpp
+/// \brief Implements the subscription selection item delegate.
+///
+
 #include <QComboBox>
 
 #include "subscriptiondelegate.h"

@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file dataaccessmodel.h
+/// \brief Declares the OPC UA data access table model.
+///
+
 #pragma once
 
 #include <QAbstractTableModel>

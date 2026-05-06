@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file logwidget.h
+/// \brief Declares the application log widget.
+///
+
 #pragma once
 
 #include <QWidget>

@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file subscriptionsmodel.cpp
+/// \brief Implements the subscriptions table model.
+///
+
 #include "subscriptionsmodel.h"
 
 ///

@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file subscriptionsmodel.h
+/// \brief Declares the subscriptions table model.
+///
+
 #pragma once
 
 #include <QAbstractTableModel>

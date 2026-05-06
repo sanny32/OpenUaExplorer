@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file referencesmodel.cpp
+/// \brief Implements the selected node references model.
+///
+
 #include "referencesmodel.h"
 
 ///

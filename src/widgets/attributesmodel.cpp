@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file attributesmodel.cpp
+/// \brief Implements the selected node attributes model.
+///
+
 #include "attributesmodel.h"
 
 ///

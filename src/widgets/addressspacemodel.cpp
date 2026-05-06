@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file addressspacemodel.cpp
+/// \brief Implements the OPC UA address space tree model.
+///
+
 #include "addressspacemodel.h"
 
 // ── AddressSpaceNode ──────────────────────────────────────────────────────────

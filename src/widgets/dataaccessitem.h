@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file dataaccessitem.h
+/// \brief Declares data access item data types.
+///
+
 #pragma once
 
 #include <QString>

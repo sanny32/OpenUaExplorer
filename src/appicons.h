@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file appicons.h
+/// \brief Provides theme-aware application icon helpers.
+///
+
 #pragma once
 
 #include <QAction>
