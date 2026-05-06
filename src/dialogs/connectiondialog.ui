@@ -601,7 +601,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
             <number>12</number>
            </property>
            <item>
-            <widget class="QLabel" name="clientCertificateHintIcon">
+            <widget class="ThemedIconLabel" name="clientCertificateHintIcon">
              <property name="text">
               <string/>
              </property>
@@ -688,7 +688,7 @@ a suitable certificate.</string>
           </property>
           <layout class="QVBoxLayout" name="serverCertificateFrameLayout">
            <item>
-            <widget class="QLabel" name="serverCertificateIconLabel">
+            <widget class="ThemedIconLabel" name="serverCertificateIconLabel">
              <property name="text">
               <string/>
              </property>
@@ -804,7 +804,7 @@ after connection.</string>
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="statusIconLabel">
+      <widget class="ThemedIconLabel" name="statusIconLabel">
        <property name="minimumSize">
         <size>
          <width>16</width>
@@ -909,6 +909,11 @@ after connection.</string>
    <class>ThemedPushButton</class>
    <extends>QPushButton</extends>
    <header>widgets/themedpushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ThemedIconLabel</class>
+   <extends>QLabel</extends>
+   <header>widgets/themediconlabel.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>

@@ -9,45 +9,14 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QEvent>
-#include <QIcon>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QSpinBox>
-#include <QSvgRenderer>
-#include <QPainter>
-#include <QPixmap>
 
 #include "appicons.h"
 #include "connectiondialog.h"
 #include "ui_connectiondialog.h"
 #include "widgets/coloredpushbutton.h"
-
-///
-/// \brief svgToPixmap
-/// \param resource
-/// \param size
-/// \return
-///
-static QPixmap svgToPixmap(const QString &resource, int size)
-{
-    QSvgRenderer renderer(resource);
-    QPixmap pixmap(size, size);
-    pixmap.fill(Qt::transparent);
-    QPainter painter(&pixmap);
-    renderer.render(&painter);
-    return pixmap;
-}
-
-///
-/// \brief themedIcon
-/// \param name
-/// \param size
-/// \return
-///
-static QPixmap themedIcon(const QString &name, int size)
-{
-    return svgToPixmap(QString(":/icons/%1/%2.svg").arg(AppIcons::isDarkTheme() ? "dark" : "light", name), size);
-}
 
 ///
 /// \brief ConnectionDialog::ConnectionDialog
@@ -58,19 +27,12 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     , ui(new Ui::ConnectionDialog)
 {
     ui->setupUi(this);
+    setWindowIcon(AppIcons::themed("app.ico"));
 
-    updateTheme();
-
-    for (QSpinBox *sb : {
-             ui->sessionTimeoutSpinBox,
-             ui->endpointTimeoutSpinBox,
-             ui->connectTimeoutSpinBox,
-             ui->requestTimeoutSpinBox,
-             ui->secureChannelLifetimeSpinBox,
-             ui->maxMessageSizeSpinBox
-         }) {
-        sb->setFixedWidth(100);
-    }
+    ui->clientCertificateHintIcon->setIcon("info", 24);
+    ui->serverCertificateIconLabel->setIcon("lock", 48);
+    ui->statusIconLabel->setIcon("disconnected", 16);
+    ui->connectButton->setColors({ QColor(0x0a74d1), QColor(0x1682df), QColor(0x075ca7) });
 
     connect(ui->cancelButton, &QPushButton::clicked, this, &QDialog::reject);
     connect(ui->connectButton, &QPushButton::clicked, this, &QDialog::accept);
@@ -85,41 +47,4 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
 ConnectionDialog::~ConnectionDialog()
 {
     delete ui;
-}
-
-///
-/// \brief ConnectionDialog::changeEvent
-/// \param event
-///
-void ConnectionDialog::changeEvent(QEvent *event)
-{
-    if (event->type() == QEvent::ApplicationPaletteChange)
-        updateTheme();
-    QDialog::changeEvent(event);
-}
-
-///
-/// \brief ConnectionDialog::updateTheme
-///
-void ConnectionDialog::updateTheme()
-{
-    setWindowIcon(AppIcons::themed("app.ico"));
-
-    if (AppIcons::isDarkTheme()) {
-        ui->connectButton->setColors({
-            QColor(0x1a8fe8),
-            QColor(0x2b9df5),
-            QColor(0x0d72c4),
-        });
-    } else {
-        ui->connectButton->setColors({
-            QColor(0x0a74d1),
-            QColor(0x1682df),
-            QColor(0x075ca7),
-        });
-    }
-
-    ui->clientCertificateHintIcon->setPixmap(themedIcon("info", 24));
-    ui->serverCertificateIconLabel->setPixmap(themedIcon("lock", 48));
-    ui->statusIconLabel->setPixmap(themedIcon("disconnected", 16));
 }

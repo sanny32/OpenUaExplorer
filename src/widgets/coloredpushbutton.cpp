@@ -6,12 +6,14 @@
 /// \brief Implements a color-configurable push button.
 ///
 
-#include "coloredpushbutton.h"
-
 #include <QApplication>
+#include <QEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QStyleOption>
+
+#include "appicons.h"
+#include "coloredpushbutton.h"
 
 ///
 /// \brief ColoredPushButton::ColoredPushButton
@@ -28,15 +30,11 @@ ColoredPushButton::ColoredPushButton(QWidget *parent)
 ///
 void ColoredPushButton::setColors(const Colors &colors)
 {
-    m_colors = colors;
-    m_colored = true;
+    _lightColors = colors;
+    _darkColors  = darkColorsFromLight(colors);
+    _colored     = true;
 
-    QPalette pal = palette();
-    pal.setColor(QPalette::Button, colors.base);
-    pal.setColor(QPalette::ButtonText, colors.text);
-    setPalette(pal);
-
-    update();
+    refreshColors();
 }
 
 ///
@@ -44,9 +42,24 @@ void ColoredPushButton::setColors(const Colors &colors)
 ///
 void ColoredPushButton::clearColors()
 {
-    m_colored = false;
+    _colored = false;
     setPalette(QApplication::palette());
     update();
+}
+
+///
+/// \brief ColoredPushButton::changeEvent
+/// \param event
+///
+void ColoredPushButton::changeEvent(QEvent *event)
+{
+    QPushButton::changeEvent(event);
+
+    if (_colored
+        && (event->type() == QEvent::PaletteChange
+            || event->type() == QEvent::ApplicationPaletteChange)) {
+        refreshColors();
+    }
 }
 
 ///
@@ -55,7 +68,7 @@ void ColoredPushButton::clearColors()
 ///
 void ColoredPushButton::paintEvent(QPaintEvent *event)
 {
-    if (!m_colored) {
+    if (!_colored) {
         QPushButton::paintEvent(event);
         return;
     }
@@ -66,11 +79,11 @@ void ColoredPushButton::paintEvent(QPaintEvent *event)
     const bool down = isDown() || isChecked();
     const bool hovered = opt.state & QStyle::State_MouseOver;
 
-    QColor bg = m_colors.base;
+    QColor bg = _colors.base;
     if (down)
-        bg = m_colors.pressed;
+        bg = _colors.pressed;
     else if (hovered)
-        bg = m_colors.hover;
+        bg = _colors.hover;
 
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
@@ -85,6 +98,46 @@ void ColoredPushButton::paintEvent(QPaintEvent *event)
         p.drawPath(path);
     }
 
-    p.setPen(m_colors.text);
+    p.setPen(_colors.text);
     p.drawText(rect(), Qt::AlignCenter, text());
+}
+
+///
+/// \brief ColoredPushButton::darkColorsFromLight
+/// \param lightColors
+/// \return
+///
+ColoredPushButton::Colors ColoredPushButton::darkColorsFromLight(const Colors &lightColors)
+{
+    return {
+        lightColors.base.lighter(125),
+        lightColors.hover.lighter(120),
+        lightColors.pressed.lighter(125),
+        lightColors.text,
+    };
+}
+
+///
+/// \brief ColoredPushButton::applyColors
+/// \param colors
+///
+void ColoredPushButton::applyColors(const Colors &colors)
+{
+    _colors = colors;
+    _colored = true;
+
+    QPalette pal = palette();
+    pal.setColor(QPalette::Button, colors.base);
+    pal.setColor(QPalette::ButtonText, colors.text);
+    setPalette(pal);
+
+    update();
+}
+
+///
+/// \brief ColoredPushButton::refreshColors
+///
+void ColoredPushButton::refreshColors()
+{
+    applyColors(AppIcons::isDarkTheme() ? _darkColors : _lightColors);
 }

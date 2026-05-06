@@ -35,9 +35,17 @@ public:
     void clearColors();
 
 protected:
+    void changeEvent(QEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
 
 private:
-    Colors m_colors;
-    bool m_colored = false;
+    static Colors darkColorsFromLight(const Colors &lightColors);
+
+    void applyColors(const Colors &colors);
+    void refreshColors();
+
+    Colors _colors;
+    Colors _lightColors;
+    Colors _darkColors;
+    bool _colored = false;
 };
