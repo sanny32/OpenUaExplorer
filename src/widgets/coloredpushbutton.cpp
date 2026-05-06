@@ -8,12 +8,60 @@
 
 #include <QApplication>
 #include <QEvent>
+#include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
+#include <QProxyStyle>
 #include <QStyleOption>
 
 #include "appicons.h"
 #include "coloredpushbutton.h"
+
+namespace {
+
+///
+/// \brief Checks whether a widget is rendered through the Fusion style.
+/// \param widget
+/// \return
+///
+bool isFusionStyle(const QWidget *widget)
+{
+    const QStyle *currentStyle = widget != nullptr ? widget->style() : QApplication::style();
+
+    while (const auto *proxyStyle = qobject_cast<const QProxyStyle *>(currentStyle)) {
+        const QStyle *baseStyle = proxyStyle->baseStyle();
+        if (baseStyle == nullptr || baseStyle == currentStyle)
+            break;
+
+        currentStyle = baseStyle;
+    }
+
+    return currentStyle != nullptr
+           && currentStyle->objectName().compare("fusion", Qt::CaseInsensitive) == 0;
+}
+
+///
+/// \brief Checks whether a widget is rendered through a Windows style.
+/// \param widget
+/// \return
+///
+bool isWindowsStyle(const QWidget *widget)
+{
+    const QStyle *currentStyle = widget != nullptr ? widget->style() : QApplication::style();
+
+    while (const auto *proxyStyle = qobject_cast<const QProxyStyle *>(currentStyle)) {
+        const QStyle *baseStyle = proxyStyle->baseStyle();
+        if (baseStyle == nullptr || baseStyle == currentStyle)
+            break;
+
+        currentStyle = baseStyle;
+    }
+
+    return currentStyle != nullptr
+           && currentStyle->objectName().contains("windows", Qt::CaseInsensitive);
+}
+
+}
 
 ///
 /// \brief ColoredPushButton::ColoredPushButton
@@ -76,29 +124,62 @@ void ColoredPushButton::paintEvent(QPaintEvent *event)
     QStyleOption opt;
     opt.initFrom(this);
 
-    const bool down = isDown() || isChecked();
-    const bool hovered = opt.state & QStyle::State_MouseOver;
+    const bool enabled = opt.state & QStyle::State_Enabled;
+    const bool down = enabled && (isDown() || isChecked());
+    const bool hovered = enabled && (opt.state & QStyle::State_MouseOver);
+    const bool fusionStyle = isFusionStyle(this);
+    const bool compactPaintRect = isWindowsStyle(this);
 
     QColor bg = _colors.base;
     if (down)
         bg = _colors.pressed;
     else if (hovered)
         bg = _colors.hover;
+    else if (!enabled && fusionStyle)
+        bg = palette().color(QPalette::Disabled, QPalette::Button);
 
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
 
+    const QRectF buttonRect = compactPaintRect
+                                  ? rect().adjusted(1, 2, -1, -2)
+                                  : rect().adjusted(1, 1, -1, -1);
     QPainterPath path;
-    path.addRoundedRect(rect().adjusted(1, 1, -1, -1), 4, 4);
+    path.addRoundedRect(buttonRect, 4, 4);
 
-    p.fillPath(path, bg);
+    if (fusionStyle) {
+        QLinearGradient gradient(buttonRect.topLeft(), buttonRect.bottomLeft());
+        if (down) {
+            gradient.setColorAt(0.0, bg.darker(112));
+            gradient.setColorAt(1.0, bg.lighter(112));
+        } else {
+            gradient.setColorAt(0.0, bg.lighter(enabled ? 128 : 108));
+            gradient.setColorAt(0.45, bg.lighter(enabled ? 112 : 104));
+            gradient.setColorAt(1.0, bg.darker(enabled ? 108 : 100));
+        }
 
-    if (hasFocus()) {
-        p.setPen(QPen(bg.lighter(160), 1.5));
+        const QColor border = enabled ? bg.darker(135) : palette().color(QPalette::Disabled, QPalette::Mid);
+
+        p.fillPath(path, gradient);
+        p.setPen(QPen(border, 1));
         p.drawPath(path);
+    } else {
+        p.fillPath(path, bg);
     }
 
-    p.setPen(_colors.text);
+    if (hasFocus()) {
+        if (fusionStyle) {
+            QPainterPath focusPath;
+            focusPath.addRoundedRect(buttonRect.adjusted(2, 2, -2, -2), 3, 3);
+            p.setPen(QPen(bg.lighter(170), 1));
+            p.drawPath(focusPath);
+        } else {
+            p.setPen(QPen(bg.lighter(160), 1.5));
+            p.drawPath(path);
+        }
+    }
+
+    p.setPen(enabled || !fusionStyle ? _colors.text : palette().color(QPalette::Disabled, QPalette::ButtonText));
     p.drawText(rect(), Qt::AlignCenter, text());
 }
 
