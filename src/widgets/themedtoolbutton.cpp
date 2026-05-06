@@ -21,6 +21,47 @@ ThemedToolButton::ThemedToolButton(QWidget *parent)
 }
 
 ///
+/// \brief ThemedToolButton::minimumSizeHint
+/// \return
+///
+QSize ThemedToolButton::minimumSizeHint() const
+{
+    return squareSize(QToolButton::minimumSizeHint());
+}
+
+///
+/// \brief ThemedToolButton::sizeHint
+/// \return
+///
+QSize ThemedToolButton::sizeHint() const
+{
+    return squareSize(QToolButton::sizeHint());
+}
+
+///
+/// \brief ThemedToolButton::squareIconOnly
+/// \return
+///
+bool ThemedToolButton::squareIconOnly() const
+{
+    return _squareIconOnly;
+}
+
+///
+/// \brief ThemedToolButton::setSquareIconOnly
+/// \param enabled
+///
+void ThemedToolButton::setSquareIconOnly(bool enabled)
+{
+    if (_squareIconOnly == enabled) {
+        return;
+    }
+
+    _squareIconOnly = enabled;
+    updateGeometry();
+}
+
+///
 /// \brief ThemedToolButton::setIcon
 /// \param name
 ///
@@ -51,4 +92,19 @@ void ThemedToolButton::changeEvent(QEvent *event)
 void ThemedToolButton::refreshIcon()
 {
     QToolButton::setIcon(AppIcons::themed(_iconName));
+}
+
+///
+/// \brief ThemedToolButton::squareSize
+/// \param size
+/// \return
+///
+QSize ThemedToolButton::squareSize(const QSize &size) const
+{
+    if (!_squareIconOnly || !text().isEmpty()) {
+        return size;
+    }
+
+    const int side = qMax(size.width(), size.height());
+    return QSize(side, side);
 }

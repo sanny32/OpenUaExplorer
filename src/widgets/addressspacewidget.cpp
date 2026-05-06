@@ -56,7 +56,6 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     ui->refreshButton->setIcon("refresh.svg");
     ui->refreshButton->setToolTip("Refresh");
     ui->refreshButton->setText("");
-    ui->refreshButton->setMaximumWidth(34);
     ui->splitter->setSizes({455, 255});
 }
 
@@ -100,4 +99,3 @@ void AddressSpaceWidget::setupReferencesView()
     ui->referencesTable->horizontalHeader()->setStretchLastSection(true);
     ui->referencesTable->setColumnWidth(ReferencesModel::ColReference, 150);
 }
-
