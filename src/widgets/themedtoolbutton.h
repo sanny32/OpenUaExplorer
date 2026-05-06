@@ -9,7 +9,7 @@ class ThemedToolButton : public QToolButton
 public:
     explicit ThemedToolButton(QWidget *parent = nullptr);
 
-    void setThemedIcon(const QString &name);
+    void setIcon(const QString &name);
 
 protected:
     void changeEvent(QEvent *event) override;

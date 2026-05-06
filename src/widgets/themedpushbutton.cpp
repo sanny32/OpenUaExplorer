@@ -3,17 +3,29 @@
 #include "appicons.h"
 #include "themedpushbutton.h"
 
+///
+/// \brief ThemedPushButton::ThemedPushButton
+/// \param parent
+///
 ThemedPushButton::ThemedPushButton(QWidget *parent)
     : QPushButton(parent)
 {
 }
 
-void ThemedPushButton::setThemedIcon(const QString &name)
+///
+/// \brief ThemedPushButton::setIcon
+/// \param name
+///
+void ThemedPushButton::setIcon(const QString &name)
 {
     _iconName = name;
     refreshIcon();
 }
 
+///
+/// \brief ThemedPushButton::changeEvent
+/// \param event
+///
 void ThemedPushButton::changeEvent(QEvent *event)
 {
     QPushButton::changeEvent(event);
@@ -25,7 +37,10 @@ void ThemedPushButton::changeEvent(QEvent *event)
     }
 }
 
+///
+/// \brief ThemedPushButton::refreshIcon
+///
 void ThemedPushButton::refreshIcon()
 {
-    setIcon(AppIcons::themed(_iconName));
+    QPushButton::setIcon(AppIcons::themed(_iconName));
 }

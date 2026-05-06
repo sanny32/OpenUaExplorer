@@ -79,6 +79,10 @@ ConnectionDialog::~ConnectionDialog()
     delete ui;
 }
 
+///
+/// \brief ConnectionDialog::changeEvent
+/// \param event
+///
 void ConnectionDialog::changeEvent(QEvent *event)
 {
     if (event->type() == QEvent::ApplicationPaletteChange)

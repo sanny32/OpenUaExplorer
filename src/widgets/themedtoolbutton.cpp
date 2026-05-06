@@ -3,17 +3,29 @@
 #include "appicons.h"
 #include "themedtoolbutton.h"
 
+///
+/// \brief ThemedToolButton::ThemedToolButton
+/// \param parent
+///
 ThemedToolButton::ThemedToolButton(QWidget *parent)
     : QToolButton(parent)
 {
 }
 
-void ThemedToolButton::setThemedIcon(const QString &name)
+///
+/// \brief ThemedToolButton::setIcon
+/// \param name
+///
+void ThemedToolButton::setIcon(const QString &name)
 {
     _iconName = name;
     refreshIcon();
 }
 
+///
+/// \brief ThemedToolButton::changeEvent
+/// \param event
+///
 void ThemedToolButton::changeEvent(QEvent *event)
 {
     QToolButton::changeEvent(event);
@@ -25,7 +37,10 @@ void ThemedToolButton::changeEvent(QEvent *event)
     }
 }
 
+///
+/// \brief ThemedToolButton::refreshIcon
+///
 void ThemedToolButton::refreshIcon()
 {
-    setIcon(AppIcons::themed(_iconName));
+    QToolButton::setIcon(AppIcons::themed(_iconName));
 }

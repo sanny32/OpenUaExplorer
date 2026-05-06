@@ -157,11 +157,11 @@ void DataAccessWidget::setupHistoryView()
 ///
 void DataAccessWidget::configureToolbar()
 {
-    ui->addNodeButton->setThemedIcon("add.svg");
-    ui->removeButton->setThemedIcon("remove.svg");
-    ui->readButton->setThemedIcon("read.svg");
-    ui->writeButton->setThemedIcon("write.svg");
-    ui->subscribeButton->setThemedIcon("subscribe.svg");
+    ui->addNodeButton->setIcon("add.svg");
+    ui->removeButton->setIcon("remove.svg");
+    ui->readButton->setIcon("read.svg");
+    ui->writeButton->setIcon("write.svg");
+    ui->subscribeButton->setIcon("subscribe.svg");
 
     ui->subscribeButton->setPopupMode(QToolButton::InstantPopup);
     ui->subscribeButton->setEnabled(false);

@@ -5,11 +5,19 @@
 #include <QPainterPath>
 #include <QStyleOption>
 
+///
+/// \brief ColoredPushButton::ColoredPushButton
+/// \param parent
+///
 ColoredPushButton::ColoredPushButton(QWidget *parent)
     : QPushButton(parent)
 {
 }
 
+///
+/// \brief ColoredPushButton::setColors
+/// \param colors
+///
 void ColoredPushButton::setColors(const Colors &colors)
 {
     m_colors = colors;
@@ -23,6 +31,9 @@ void ColoredPushButton::setColors(const Colors &colors)
     update();
 }
 
+///
+/// \brief ColoredPushButton::clearColors
+///
 void ColoredPushButton::clearColors()
 {
     m_colored = false;
@@ -30,6 +41,10 @@ void ColoredPushButton::clearColors()
     update();
 }
 
+///
+/// \brief ColoredPushButton::paintEvent
+/// \param event
+///
 void ColoredPushButton::paintEvent(QPaintEvent *event)
 {
     if (!m_colored) {

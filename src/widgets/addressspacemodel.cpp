@@ -2,6 +2,12 @@
 
 // ── AddressSpaceNode ──────────────────────────────────────────────────────────
 
+///
+/// \brief AddressSpaceNode::AddressSpaceNode
+/// \param displayName
+/// \param nodeType
+/// \param parent
+///
 AddressSpaceNode::AddressSpaceNode(const QString &displayName,
                                    AddressSpaceItem::NodeType nodeType,
                                    AddressSpaceNode *parent)
@@ -11,26 +17,46 @@ AddressSpaceNode::AddressSpaceNode(const QString &displayName,
 {
 }
 
+///
+/// \brief AddressSpaceNode::~AddressSpaceNode
+///
 AddressSpaceNode::~AddressSpaceNode()
 {
     qDeleteAll(_children);
 }
 
+///
+/// \brief AddressSpaceNode::appendChild
+/// \param child
+///
 void AddressSpaceNode::appendChild(AddressSpaceNode *child)
 {
     _children.append(child);
 }
 
+///
+/// \brief AddressSpaceNode::child
+/// \param row
+/// \return
+///
 AddressSpaceNode *AddressSpaceNode::child(int row) const
 {
     return _children.value(row, nullptr);
 }
 
+///
+/// \brief AddressSpaceNode::childCount
+/// \return
+///
 int AddressSpaceNode::childCount() const
 {
     return _children.size();
 }
 
+///
+/// \brief AddressSpaceNode::row
+/// \return
+///
 int AddressSpaceNode::row() const
 {
     if (_parent)
@@ -38,16 +64,28 @@ int AddressSpaceNode::row() const
     return 0;
 }
 
+///
+/// \brief AddressSpaceNode::parent
+/// \return
+///
 AddressSpaceNode *AddressSpaceNode::parent() const
 {
     return _parent;
 }
 
+///
+/// \brief AddressSpaceNode::displayName
+/// \return
+///
 QString AddressSpaceNode::displayName() const
 {
     return _displayName;
 }
 
+///
+/// \brief AddressSpaceNode::nodeType
+/// \return
+///
 AddressSpaceItem::NodeType AddressSpaceNode::nodeType() const
 {
     return _nodeType;
@@ -203,6 +241,11 @@ void AddressSpaceModel::setIconProvider(std::function<QIcon(AddressSpaceItem::No
     _iconProvider = std::move(provider);
 }
 
+///
+/// \brief AddressSpaceModel::buildNode
+/// \param parent
+/// \param items
+///
 void AddressSpaceModel::buildNode(AddressSpaceNode *parent, const QVector<AddressSpaceItem> &items)
 {
     for (const AddressSpaceItem &item : items) {
@@ -213,6 +256,12 @@ void AddressSpaceModel::buildNode(AddressSpaceNode *parent, const QVector<Addres
     }
 }
 
+///
+/// \brief AddressSpaceModel::findFirstRecursive
+/// \param node
+/// \param displayName
+/// \return
+///
 QModelIndex AddressSpaceModel::findFirstRecursive(AddressSpaceNode *node, const QString &displayName) const
 {
     for (int i = 0; i < node->childCount(); ++i) {
