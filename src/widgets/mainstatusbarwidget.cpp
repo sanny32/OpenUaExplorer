@@ -1,5 +1,3 @@
-#include <QIcon>
-
 #include "mainstatusbarwidget.h"
 #include "ui_mainstatusbarwidget.h"
 
@@ -12,6 +10,7 @@ MainStatusBarWidget::MainStatusBarWidget(QWidget *parent)
     , ui(new Ui::MainStatusBarWidget)
 {
     ui->setupUi(this);
+    ui->statusIconLabel->setIcon("connected.svg", 12);
 }
 
 ///
@@ -20,13 +19,4 @@ MainStatusBarWidget::MainStatusBarWidget(QWidget *parent)
 MainStatusBarWidget::~MainStatusBarWidget()
 {
     delete ui;
-}
-
-///
-/// \brief MainStatusBarWidget::setConnectionIcon
-/// \param icon
-///
-void MainStatusBarWidget::setConnectionIcon(const QIcon &icon)
-{
-    ui->statusIconLabel->setPixmap(icon.pixmap(12, 12));
 }

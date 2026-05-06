@@ -147,6 +147,7 @@ set(SOURCES
     widgets/mainstatusbarwidget.cpp
     widgets/maintoolbar.cpp
     widgets/maintoolbutton.cpp
+    widgets/themediconlabel.cpp
     widgets/themedpushbutton.cpp
     widgets/themedtoolbutton.cpp
     widgets/securityselectorwidget.cpp
@@ -187,6 +188,7 @@ set(HEADERS
     widgets/mainstatusbarwidget.h
     widgets/maintoolbar.h
     widgets/maintoolbutton.h
+    widgets/themediconlabel.h
     widgets/themedpushbutton.h
     widgets/themedtoolbutton.h
     widgets/securityselectorwidget.h

@@ -6,8 +6,6 @@ namespace Ui {
 class MainStatusBarWidget;
 }
 
-class QIcon;
-
 class MainStatusBarWidget : public QWidget
 {
     Q_OBJECT
@@ -15,8 +13,6 @@ class MainStatusBarWidget : public QWidget
 public:
     explicit MainStatusBarWidget(QWidget *parent = nullptr);
     ~MainStatusBarWidget() override;
-
-    void setConnectionIcon(const QIcon &icon);
 
 private:
     Ui::MainStatusBarWidget *ui;

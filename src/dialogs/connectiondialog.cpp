@@ -91,7 +91,7 @@ void ConnectionDialog::changeEvent(QEvent *event)
 ///
 void ConnectionDialog::updateTheme()
 {
-    setWindowIcon(AppIcons::themed("app", ".ico"));
+    setWindowIcon(AppIcons::themed("app.ico"));
 
     if (AppIcons::isDarkTheme()) {
         ui->connectButton->setColors({

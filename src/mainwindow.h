@@ -22,7 +22,7 @@ protected:
 private:
     void openConnectionDialog();
     void setupDockOptions();
-    void applyThemeIcons();
+    void bindIcons();
     void toggleTheme();
 
     Ui::MainWindow *ui;

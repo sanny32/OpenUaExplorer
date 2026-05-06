@@ -47,7 +47,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->statusbar->addWidget(_mainStatusBarWidget, 1);
 
     setupDockOptions();
-    applyThemeIcons();
+    bindIcons();
 
     connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::openConnectionDialog);
     connect(ui->actionTheme, &QAction::triggered, this, &MainWindow::toggleTheme);
@@ -74,7 +74,7 @@ void MainWindow::changeEvent(QEvent *event)
     QMainWindow::changeEvent(event);
 
     if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
-        applyThemeIcons();
+        setWindowIcon(AppIcons::themed("app.ico"));
     }
 }
 
@@ -112,23 +112,19 @@ void MainWindow::toggleTheme()
 }
 
 ///
-/// \brief MainWindow::applyThemeIcons
+/// \brief MainWindow::bindIcons
 ///
-void MainWindow::applyThemeIcons()
+void MainWindow::bindIcons()
 {
-    setWindowIcon(AppIcons::themed("app", ".ico"));
-
-    ui->actionConnect->setIcon(AppIcons::themed("connect"));
-    ui->actionDisconnect->setIcon(AppIcons::themed("disconnect"));
-    ui->actionBrowse->setIcon(AppIcons::themed("browse"));
-    ui->actionRefresh->setIcon(AppIcons::themed("refresh"));
-    ui->actionRead->setIcon(AppIcons::themed("read"));
-    ui->actionWrite->setIcon(AppIcons::themed("write"));
-    ui->actionSubscribe->setIcon(AppIcons::themed("subscribe"));
-    ui->actionUnsubscribe->setIcon(AppIcons::themed("unsubscribe"));
-    ui->actionSettings->setIcon(AppIcons::themed("settings"));
-    ui->actionTheme->setIcon(AppIcons::themed("theme"));
-
-    _mainStatusBarWidget->setConnectionIcon(AppIcons::themed("connected"));
+    setWindowIcon(AppIcons::themed("app.ico"));
+    AppIcons::bindIcon(ui->actionConnect,     "connect.svg");
+    AppIcons::bindIcon(ui->actionDisconnect,  "disconnect.svg");
+    AppIcons::bindIcon(ui->actionBrowse,      "browse.svg");
+    AppIcons::bindIcon(ui->actionRefresh,     "refresh.svg");
+    AppIcons::bindIcon(ui->actionRead,        "read.svg");
+    AppIcons::bindIcon(ui->actionWrite,       "write.svg");
+    AppIcons::bindIcon(ui->actionSubscribe,   "subscribe.svg");
+    AppIcons::bindIcon(ui->actionUnsubscribe, "unsubscribe.svg");
+    AppIcons::bindIcon(ui->actionSettings,    "settings.svg");
+    AppIcons::bindIcon(ui->actionTheme,       "theme.svg");
 }
-

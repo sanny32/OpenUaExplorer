@@ -27,10 +27,10 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
 
     _treeModel->setIconProvider([this](AddressSpaceItem::NodeType type) {
         switch (type) {
-        case AddressSpaceItem::NodeType::Folder:   return AppIcons::themed("folder");
-        case AddressSpaceItem::NodeType::Node:     return AppIcons::themed("node");
-        case AddressSpaceItem::NodeType::Variable: return AppIcons::themed("variable");
-        case AddressSpaceItem::NodeType::Method:   return AppIcons::themed("method");
+        case AddressSpaceItem::NodeType::Folder:   return AppIcons::themed("folder.svg");
+        case AddressSpaceItem::NodeType::Node:     return AppIcons::themed("node.svg");
+        case AddressSpaceItem::NodeType::Variable: return AppIcons::themed("variable.svg");
+        case AddressSpaceItem::NodeType::Method:   return AppIcons::themed("method.svg");
         }
         return QIcon();
     });
@@ -45,7 +45,7 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     if (found.isValid())
         ui->addressTree->setCurrentIndex(found);
 
-    ui->refreshButton->setThemedIcon("refresh");
+    ui->refreshButton->setThemedIcon("refresh.svg");
     ui->refreshButton->setToolTip("Refresh");
     ui->refreshButton->setText("");
     ui->refreshButton->setMaximumWidth(34);
