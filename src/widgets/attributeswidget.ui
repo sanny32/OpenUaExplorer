@@ -68,7 +68,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="writeButton">
+       <widget class="ThemedPushButton" name="writeButton">
         <property name="text">
          <string>Write</string>
         </property>
@@ -79,6 +79,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ThemedPushButton</class>
+   <extends>QPushButton</extends>
+   <header>widgets/themedpushbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

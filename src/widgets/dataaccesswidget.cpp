@@ -1,11 +1,8 @@
-#include <QEvent>
 #include <QHeaderView>
-#include <QIcon>
 #include <QItemSelectionModel>
 #include <QMenu>
 #include <QTableView>
 
-#include "appicons.h"
 #include "dataaccessmodel.h"
 #include "dataaccesswidget.h"
 #include "eventsmodel.h"
@@ -47,19 +44,6 @@ DataAccessWidget::DataAccessWidget(QWidget *parent)
 DataAccessWidget::~DataAccessWidget()
 {
     delete ui;
-}
-
-///
-/// \brief DataAccessWidget::changeEvent
-/// \param event
-///
-void DataAccessWidget::changeEvent(QEvent *event)
-{
-    QWidget::changeEvent(event);
-
-    if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
-        applyThemeIcons();
-    }
 }
 
 ///
@@ -173,7 +157,11 @@ void DataAccessWidget::setupHistoryView()
 ///
 void DataAccessWidget::configureToolbar()
 {
-    applyThemeIcons();
+    ui->addNodeButton->setThemedIcon("add");
+    ui->removeButton->setThemedIcon("remove");
+    ui->readButton->setThemedIcon("read");
+    ui->writeButton->setThemedIcon("write");
+    ui->subscribeButton->setThemedIcon("subscribe");
 
     ui->subscribeButton->setPopupMode(QToolButton::InstantPopup);
     ui->subscribeButton->setEnabled(false);
@@ -189,18 +177,6 @@ void DataAccessWidget::configureToolbar()
         applySubscriptionToSelection(QString());
     });
     ui->subscribeButton->setMenu(menu);
-}
-
-///
-/// \brief DataAccessWidget::applyThemeIcons
-///
-void DataAccessWidget::applyThemeIcons()
-{
-    ui->addNodeButton->setIcon(AppIcons::themed("add"));
-    ui->removeButton->setIcon(AppIcons::themed("remove"));
-    ui->readButton->setIcon(AppIcons::themed("read"));
-    ui->writeButton->setIcon(AppIcons::themed("write"));
-    ui->subscribeButton->setIcon(AppIcons::themed("subscribe"));
 }
 
 ///

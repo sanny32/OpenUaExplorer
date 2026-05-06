@@ -19,16 +19,12 @@ public:
     explicit DataAccessWidget(QWidget *parent = nullptr);
     ~DataAccessWidget() override;
 
-protected:
-    void changeEvent(QEvent *event) override;
-
 private:
     void setupDataView();
     void setupSubscriptionsView();
     void setupEventsView();
     void setupHistoryView();
     void configureToolbar();
-    void applyThemeIcons();
     void applySubscriptionToSelection(const QString &subscriptionName);
 
     Ui::DataAccessWidget *ui;

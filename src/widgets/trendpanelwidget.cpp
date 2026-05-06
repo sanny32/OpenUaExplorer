@@ -1,7 +1,3 @@
-#include <QEvent>
-#include <QIcon>
-
-#include "appicons.h"
 #include "trendpanelwidget.h"
 #include "ui_trendpanelwidget.h"
 
@@ -14,7 +10,10 @@ TrendPanelWidget::TrendPanelWidget(QWidget *parent)
     , ui(new Ui::TrendPanelWidget)
 {
     ui->setupUi(this);
-    configureToolbar();
+
+    ui->fitButton->setThemedIcon("fit");
+    ui->exportButton->setThemedIcon("export");
+    ui->settingsButton->setThemedIcon("settings");
 }
 
 ///
@@ -23,35 +22,4 @@ TrendPanelWidget::TrendPanelWidget(QWidget *parent)
 TrendPanelWidget::~TrendPanelWidget()
 {
     delete ui;
-}
-
-///
-/// \brief TrendPanelWidget::changeEvent
-/// \param event
-///
-void TrendPanelWidget::changeEvent(QEvent *event)
-{
-    QWidget::changeEvent(event);
-
-    if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
-        applyThemeIcons();
-    }
-}
-
-///
-/// \brief TrendPanelWidget::configureToolbar
-///
-void TrendPanelWidget::configureToolbar()
-{
-    applyThemeIcons();
-}
-
-///
-/// \brief TrendPanelWidget::applyThemeIcons
-///
-void TrendPanelWidget::applyThemeIcons()
-{
-    ui->fitButton->setIcon(AppIcons::themed("fit"));
-    ui->exportButton->setIcon(AppIcons::themed("export"));
-    ui->settingsButton->setIcon(AppIcons::themed("settings"));
 }

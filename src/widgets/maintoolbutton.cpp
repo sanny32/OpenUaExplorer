@@ -12,7 +12,7 @@ constexpr int mainToolButtonWidth = 78;
 /// \param parent
 ///
 MainToolButton::MainToolButton(QAction *action, QWidget *parent)
-    : QToolButton(parent)
+    : ThemedToolButton(parent)
 {
     setDefaultAction(action);
     setToolButtonStyle(Qt::ToolButtonTextUnderIcon);

@@ -34,7 +34,7 @@
        <item>
         <layout class="QHBoxLayout" name="toolbarLayout">
          <item>
-          <widget class="QPushButton" name="liveButton">
+          <widget class="ThemedPushButton" name="liveButton">
            <property name="text">
             <string>Live</string>
            </property>
@@ -47,28 +47,28 @@
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="oneMinuteButton">
+          <widget class="ThemedPushButton" name="oneMinuteButton">
            <property name="text">
             <string>1m</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="tenMinutesButton">
+          <widget class="ThemedPushButton" name="tenMinutesButton">
            <property name="text">
             <string>10m</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="oneHourButton">
+          <widget class="ThemedPushButton" name="oneHourButton">
            <property name="text">
             <string>1h</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="oneDayButton">
+          <widget class="ThemedPushButton" name="oneDayButton">
            <property name="text">
             <string>1d</string>
            </property>
@@ -88,14 +88,14 @@
           </spacer>
          </item>
          <item>
-          <widget class="QPushButton" name="autoScaleButton">
+          <widget class="ThemedPushButton" name="autoScaleButton">
            <property name="text">
             <string>Auto Scale</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QToolButton" name="fitButton">
+          <widget class="ThemedToolButton" name="fitButton">
            <property name="text">
             <string>Fit</string>
            </property>
@@ -105,14 +105,14 @@
           </widget>
          </item>
          <item>
-          <widget class="QToolButton" name="exportButton">
+          <widget class="ThemedToolButton" name="exportButton">
            <property name="text">
             <string>Export</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QToolButton" name="settingsButton">
+          <widget class="ThemedToolButton" name="settingsButton">
            <property name="text">
             <string>Settings</string>
            </property>
@@ -140,6 +140,16 @@
    <extends>QWidget</extends>
    <header>widgets/trendgraphwidget.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ThemedToolButton</class>
+   <extends>QToolButton</extends>
+   <header>widgets/themedtoolbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ThemedPushButton</class>
+   <extends>QPushButton</extends>
+   <header>widgets/themedpushbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

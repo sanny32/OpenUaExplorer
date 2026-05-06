@@ -45,7 +45,7 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     if (found.isValid())
         ui->addressTree->setCurrentIndex(found);
 
-    ui->refreshButton->setIcon(AppIcons::themed("refresh"));
+    ui->refreshButton->setThemedIcon("refresh");
     ui->refreshButton->setToolTip("Refresh");
     ui->refreshButton->setText("");
     ui->refreshButton->setMaximumWidth(34);

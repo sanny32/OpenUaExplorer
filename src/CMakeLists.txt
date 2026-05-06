@@ -147,6 +147,8 @@ set(SOURCES
     widgets/mainstatusbarwidget.cpp
     widgets/maintoolbar.cpp
     widgets/maintoolbutton.cpp
+    widgets/themedpushbutton.cpp
+    widgets/themedtoolbutton.cpp
     widgets/securityselectorwidget.cpp
     widgets/trendpanelwidget.cpp
     widgets/trendgraphwidget.cpp
@@ -185,6 +187,8 @@ set(HEADERS
     widgets/mainstatusbarwidget.h
     widgets/maintoolbar.h
     widgets/maintoolbutton.h
+    widgets/themedpushbutton.h
+    widgets/themedtoolbutton.h
     widgets/securityselectorwidget.h
     widgets/trendpanelwidget.h
     widgets/trendgraphwidget.h

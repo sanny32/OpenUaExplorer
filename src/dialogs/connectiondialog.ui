@@ -83,7 +83,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="browseServersButton">
+             <widget class="ThemedPushButton" name="browseServersButton">
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -616,7 +616,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="clientCertificateViewButton">
+           <widget class="ThemedPushButton" name="clientCertificateViewButton">
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -712,7 +712,7 @@ a suitable certificate.</string>
            </spacer>
           </item>
           <item>
-           <widget class="QPushButton" name="serverCertificateViewButton">
+           <widget class="ThemedPushButton" name="serverCertificateViewButton">
             <property name="enabled">
              <bool>false</bool>
             </property>
@@ -816,7 +816,7 @@ after connection.</string>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="trustListManageButton">
+           <widget class="ThemedPushButton" name="trustListManageButton">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -939,7 +939,7 @@ after connection.</string>
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="cancelButton">
+      <widget class="ThemedPushButton" name="cancelButton">
        <property name="minimumSize">
         <size>
          <width>0</width>
@@ -976,6 +976,11 @@ after connection.</string>
    <class>ColoredPushButton</class>
    <extends>QPushButton</extends>
    <header>widgets/coloredpushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ThemedPushButton</class>
+   <extends>QPushButton</extends>
+   <header>widgets/themedpushbutton.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>

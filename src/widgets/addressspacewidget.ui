@@ -36,7 +36,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="refreshButton">
+      <widget class="ThemedToolButton" name="refreshButton">
        <property name="text">
         <string>Refresh</string>
        </property>
@@ -118,6 +118,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ThemedToolButton</class>
+   <extends>QToolButton</extends>
+   <header>widgets/themedtoolbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

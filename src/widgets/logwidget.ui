@@ -62,7 +62,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="clearButton">
+      <widget class="ThemedPushButton" name="clearButton">
        <property name="text">
         <string>Clear</string>
        </property>
@@ -82,6 +82,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ThemedPushButton</class>
+   <extends>QPushButton</extends>
+   <header>widgets/themedpushbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

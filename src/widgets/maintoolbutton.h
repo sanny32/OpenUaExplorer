@@ -1,10 +1,10 @@
 #pragma once
 
-#include <QToolButton>
+#include "themedtoolbutton.h"
 
 class QAction;
 
-class MainToolButton : public QToolButton
+class MainToolButton : public ThemedToolButton
 {
     Q_OBJECT
 

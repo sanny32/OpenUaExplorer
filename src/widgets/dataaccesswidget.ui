@@ -28,7 +28,7 @@
        <item>
         <layout class="QHBoxLayout" name="toolbarLayout">
          <item>
-          <widget class="QToolButton" name="addNodeButton">
+          <widget class="ThemedToolButton" name="addNodeButton">
            <property name="text">
             <string>Add Node</string>
            </property>
@@ -38,7 +38,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QToolButton" name="removeButton">
+          <widget class="ThemedToolButton" name="removeButton">
            <property name="text">
             <string>Remove</string>
            </property>
@@ -48,7 +48,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QToolButton" name="readButton">
+          <widget class="ThemedToolButton" name="readButton">
            <property name="text">
             <string>Read</string>
            </property>
@@ -58,7 +58,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QToolButton" name="writeButton">
+          <widget class="ThemedToolButton" name="writeButton">
            <property name="text">
             <string>Write</string>
            </property>
@@ -68,7 +68,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QToolButton" name="subscribeButton">
+          <widget class="ThemedToolButton" name="subscribeButton">
            <property name="text">
             <string>Subscribe</string>
            </property>
@@ -144,6 +144,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ThemedToolButton</class>
+   <extends>QToolButton</extends>
+   <header>widgets/themedtoolbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
