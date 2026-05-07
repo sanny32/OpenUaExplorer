@@ -6,6 +6,7 @@
 /// \brief Implements the application theme manager.
 ///
 
+#include <QStyle>
 #include <QApplication>
 #include <QGuiApplication>
 #include <QPalette>
