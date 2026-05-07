@@ -116,7 +116,7 @@
    <addaction name="separator"/>
    <addaction name="actionTheme"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="MainStatusBarWidget" name="statusbar"/>
   <widget class="QDockWidget" name="addressSpaceDock">
    <property name="minimumSize">
     <size>
@@ -257,6 +257,12 @@
    <class>MainToolBar</class>
    <extends>QToolBar</extends>
    <header>widgets/maintoolbar.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>MainStatusBarWidget</class>
+   <extends>QStatusBar</extends>
+   <header>widgets/mainstatusbarwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

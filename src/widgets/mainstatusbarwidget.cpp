@@ -6,6 +6,8 @@
 /// \brief Implements the main status bar widget.
 ///
 
+#include <QWidget>
+
 #include "mainstatusbarwidget.h"
 #include "ui_mainstatusbarwidget.h"
 
@@ -14,11 +16,13 @@
 /// \param parent
 ///
 MainStatusBarWidget::MainStatusBarWidget(QWidget *parent)
-    : QWidget(parent)
+    : QStatusBar(parent)
     , ui(new Ui::MainStatusBarWidget)
+    , _contentWidget(new QWidget(this))
 {
-    ui->setupUi(this);
+    ui->setupUi(_contentWidget);
     ui->statusIconLabel->setIcon(QStringLiteral("connected.svg"), 12);
+    addWidget(_contentWidget, 1);
 }
 
 ///

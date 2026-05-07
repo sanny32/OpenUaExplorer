@@ -15,7 +15,6 @@
 #include "application.h"
 #include "dialogs/connectiondialog.h"
 #include "itestdatapopulatable.h"
-#include "widgets/mainstatusbarwidget.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
@@ -27,13 +26,11 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , _mainStatusBarWidget(new MainStatusBarWidget(this))
 {
     ui->setupUi(this);
     ui->actionTheme->setVisible(theApp()->theme().isManualToggleSupported());
 
     ui->mainToolBar->setupFromDesignerActions();
-    ui->statusbar->addWidget(_mainStatusBarWidget, 1);
 
     setupDockOptions();
     bindIcons();

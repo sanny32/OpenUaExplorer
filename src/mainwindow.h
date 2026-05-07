@@ -14,8 +14,6 @@ namespace Ui {
 class MainWindow;
 }
 
-class MainStatusBarWidget;
-
 ///
 /// \brief Main application window that coordinates docks, toolbar and theme actions.
 ///
@@ -38,5 +36,4 @@ private:
     void populateWithTestData();
 
     Ui::MainWindow *ui;
-    MainStatusBarWidget *_mainStatusBarWidget;
 };

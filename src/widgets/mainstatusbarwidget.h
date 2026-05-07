@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <QWidget>
+#include <QStatusBar>
 
 namespace Ui {
 class MainStatusBarWidget;
@@ -17,7 +17,7 @@ class MainStatusBarWidget;
 ///
 /// \brief Status bar widget that displays connection state.
 ///
-class MainStatusBarWidget : public QWidget
+class MainStatusBarWidget : public QStatusBar
 {
     Q_OBJECT
 
@@ -27,4 +27,5 @@ public:
 
 private:
     Ui::MainStatusBarWidget *ui;
+    QWidget *_contentWidget;
 };
