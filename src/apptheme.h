@@ -1,6 +1,11 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+///
+/// \file apptheme.h
+/// \brief Declares the application theme manager.
+///
+
 #pragma once
 
 #include <QObject>

@@ -1,6 +1,11 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+///
+/// \file apptheme.cpp
+/// \brief Implements the application theme manager.
+///
+
 #include <QApplication>
 #include <QGuiApplication>
 #include <QPalette>
@@ -58,6 +63,10 @@ static QPalette fusionPalette(bool darkAppearance)
     return p;
 }
 
+///
+/// \brief AppTheme::AppTheme
+/// \param parent
+///
 AppTheme::AppTheme(QObject *parent)
     : QObject(parent)
 {
@@ -70,7 +79,6 @@ AppTheme::AppTheme(QObject *parent)
         this,
         SLOT(onPortalSettingChanged(QString, QString, QDBusVariant)));
 
-    // read initial color scheme
     QDBusMessage msg = QDBusMessage::createMethodCall(
         QStringLiteral("org.freedesktop.portal.Desktop"),
         QStringLiteral("/org/freedesktop/portal/desktop"),
@@ -94,11 +102,19 @@ AppTheme::AppTheme(QObject *parent)
 #endif
 }
 
+///
+/// \brief AppTheme::isDark
+/// \return True if the current color scheme is dark.
+///
 bool AppTheme::isDark() const
 {
     return _dark;
 }
 
+///
+/// \brief AppTheme::applyColorScheme
+/// \param dark True to apply the dark palette, false for light.
+///
 void AppTheme::applyColorScheme(bool dark)
 {
     _dark = dark;
@@ -107,6 +123,12 @@ void AppTheme::applyColorScheme(bool dark)
 }
 
 #ifdef HAS_QTDBUS
+///
+/// \brief AppTheme::onPortalSettingChanged
+/// \param group  D-Bus settings namespace.
+/// \param key    Setting key name.
+/// \param value  New setting value.
+///
 void AppTheme::onPortalSettingChanged(const QString &group, const QString &key,
                                       const QDBusVariant &value)
 {

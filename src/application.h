@@ -1,6 +1,11 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+///
+/// \file application.h
+/// \brief Declares the application class.
+///
+
 #pragma once
 
 #include <QApplication>
