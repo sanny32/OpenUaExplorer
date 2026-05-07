@@ -7,19 +7,47 @@
 ///
 
 #include <QStyleOptionButton>
+#ifdef HAS_QTDBUS
+#include <QDBusConnection>
+#include <QDBusVariant>
+#include <QGuiApplication>
+#include <QStyleHints>
+#endif
 
 #include "appstyle.h"
 #include "widgets/themedpushbutton.h"
 #include "widgets/themedtoolbutton.h"
 
-///
-/// \brief AppStyle::AppStyle
-/// \param style
-///
 AppStyle::AppStyle(QStyle *style)
     : QProxyStyle(style)
 {
+#ifdef HAS_QTDBUS
+    QDBusConnection::sessionBus().connect(
+        QString(),
+        QStringLiteral("/org/freedesktop/portal/desktop"),
+        QStringLiteral("org.freedesktop.portal.Settings"),
+        QStringLiteral("SettingChanged"),
+        this,
+        SLOT(onPortalSettingChanged(QString, QString, QDBusVariant)));
+#endif
 }
+
+#ifdef HAS_QTDBUS
+void AppStyle::onPortalSettingChanged(const QString &group, const QString &key,
+                                      const QDBusVariant &value)
+{
+    if (group != QLatin1String("org.freedesktop.appearance")
+        || key != QLatin1String("color-scheme")) {
+        return;
+    }
+
+    // 1 = dark, 2 = light, 0 = no preference
+    const uint scheme = value.variant().toUInt();
+    const Qt::ColorScheme colorScheme = (scheme == 1) ? Qt::ColorScheme::Dark
+                                                      : Qt::ColorScheme::Light;
+    QGuiApplication::styleHints()->setColorScheme(colorScheme);
+}
+#endif
 
 ///
 /// \brief AppStyle::subElementRect
