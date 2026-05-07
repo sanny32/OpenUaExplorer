@@ -53,6 +53,10 @@
         <file alias="icons/dark/theme.svg">res/icons/dark/theme.svg</file>
         <file alias="icons/light/search.svg">res/icons/light/search.svg</file>
         <file alias="icons/dark/search.svg">res/icons/dark/search.svg</file>
+        <file alias="icons/light/website.svg">res/icons/light/website.svg</file>
+        <file alias="icons/dark/website.svg">res/icons/dark/website.svg</file>
+        <file alias="icons/light/github.svg">res/icons/light/github.svg</file>
+        <file alias="icons/dark/github.svg">res/icons/dark/github.svg</file>
         <file alias="icons/light/pause.svg">res/icons/light/pause.svg</file>
         <file alias="icons/dark/pause.svg">res/icons/dark/pause.svg</file>
         <file alias="icons/light/resume.svg">res/icons/light/resume.svg</file>

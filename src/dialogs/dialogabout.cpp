@@ -57,13 +57,18 @@ void DialogAbout::setupContent()
 
     ui->copyrightLabel->setText(tr("Copyright 2026 Alexandr Ananev"));
 
-    ui->linksLabel->setText(QStringLiteral(
-        "<a href=\"https://ananev.org\">Website</a>"
-        "&nbsp;&nbsp;|&nbsp;&nbsp;"
-        "<a href=\"https://github.com/sanny32/OpenUaExplorer\">GitHub</a>"));
-    ui->linksLabel->setTextFormat(Qt::RichText);
-    ui->linksLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
-    ui->linksLabel->setOpenExternalLinks(true);
+    ui->websiteIconLabel->setIcon("website.svg", QSize(16, 16));
+    ui->websiteLinkLabel->setText(QStringLiteral("<a href=\"https://ananev.org\">Website</a>"));
+    ui->websiteLinkLabel->setTextFormat(Qt::RichText);
+    ui->websiteLinkLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    ui->websiteLinkLabel->setOpenExternalLinks(true);
+
+    ui->githubIconLabel->setIcon("github.svg", QSize(16, 16));
+    ui->githubLinkLabel->setText(
+        QStringLiteral("<a href=\"https://github.com/sanny32/OpenUaExplorer\">GitHub</a>"));
+    ui->githubLinkLabel->setTextFormat(Qt::RichText);
+    ui->githubLinkLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    ui->githubLinkLabel->setOpenExternalLinks(true);
 
     ui->aboutTextLabel->setText(tr(
         "OpenUaExplorer is a modern OPC UA client<br>"
@@ -110,6 +115,7 @@ void DialogAbout::setupFonts()
 
     ui->versionLabel->setForegroundRole(QPalette::PlaceholderText);
     ui->copyrightLabel->setForegroundRole(QPalette::PlaceholderText);
+    ui->linksSeparatorLabel->setForegroundRole(QPalette::PlaceholderText);
     ui->tabWidget->tabBar()->setExpanding(false);
     ui->tabWidget->tabBar()->setMinimumHeight(44);
 }
