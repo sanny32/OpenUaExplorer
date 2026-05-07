@@ -143,8 +143,9 @@ void AppTheme::applyInitialScheme()
         QStringLiteral("Read"));
     msg << QStringLiteral("org.freedesktop.appearance") << QStringLiteral("color-scheme");
     const QDBusMessage reply = QDBusConnection::sessionBus().call(msg, QDBus::Block, 500);
-    if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()) {
-        QVariant v = reply.arguments().first().value<QDBusVariant>().variant();
+    const QList<QVariant> arguments = reply.arguments();
+    if (reply.type() == QDBusMessage::ReplyMessage && !arguments.isEmpty()) {
+        QVariant v = arguments.first().value<QDBusVariant>().variant();
         if (v.canConvert<QDBusVariant>())
             v = v.value<QDBusVariant>().variant();
         const uint scheme = v.toUInt();
@@ -172,8 +173,9 @@ void AppTheme::applyInitialScheme()
             QStringLiteral("Read"));
         msgImpl << QStringLiteral("org.freedesktop.appearance") << QStringLiteral("color-scheme");
         const QDBusMessage replyImpl = QDBusConnection::sessionBus().call(msgImpl, QDBus::Block, 500);
-        if (replyImpl.type() == QDBusMessage::ReplyMessage && !replyImpl.arguments().isEmpty()) {
-            QVariant v = replyImpl.arguments().first().value<QDBusVariant>().variant();
+        const QList<QVariant> argumentsImpl = replyImpl.arguments();
+        if (replyImpl.type() == QDBusMessage::ReplyMessage && !argumentsImpl.isEmpty()) {
+            QVariant v = argumentsImpl.first().value<QDBusVariant>().variant();
             if (v.canConvert<QDBusVariant>())
                 v = v.value<QDBusVariant>().variant();
             _manualToggleSupported = true;
