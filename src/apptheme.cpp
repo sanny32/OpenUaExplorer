@@ -6,8 +6,9 @@
 /// \brief Implements the application theme manager.
 ///
 
-#include <QStyle>
 #include <QApplication>
+#include <QProxyStyle>
+#include <QStyle>
 #include <QGuiApplication>
 #include <QPalette>
 #include <QStyleHints>
@@ -146,7 +147,10 @@ void AppTheme::applyInitialScheme()
 void AppTheme::applyColorScheme(bool dark)
 {
     _dark = dark;
-    if (QApplication::style()->name().compare(QLatin1String("fusion"), Qt::CaseInsensitive) == 0)
+    const QStyle *base = QApplication::style();
+    while (const auto *proxy = qobject_cast<const QProxyStyle *>(base))
+        base = proxy->baseStyle();
+    if (base && base->name().compare(QLatin1String("fusion"), Qt::CaseInsensitive) == 0)
         QApplication::setPalette(fusionPalette(dark));
     emit colorSchemeChanged();
 }
