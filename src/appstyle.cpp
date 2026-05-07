@@ -2,20 +2,48 @@
 // SPDX-License-Identifier: MIT
 
 #include <QApplication>
+#include <QCoreApplication>
+#include <QDebug>
 #include <QProxyStyle>
 #include <QStyle>
+#include <QStyleFactory>
 #include <QStyleOptionButton>
 
 #include "appstyle.h"
+#include "loggingcategories.h"
 #include "widgets/themedpushbutton.h"
 #include "widgets/themedtoolbutton.h"
 
 ///
-/// \brief AppStyle::AppStyle
-/// \param style
+/// \brief createBaseStyle
+/// \param baseStyleName Base style name to create.
+/// \return Created style for the name, or the current application style.
 ///
-AppStyle::AppStyle(QStyle *style)
-    : QProxyStyle(style)
+static QStyle *createBaseStyle(const QString &baseStyleName)
+{
+    if (baseStyleName.isEmpty())
+        return QApplication::style();
+
+    QStyle *style = QStyleFactory::create(baseStyleName);
+    if (style) {
+        return style;
+    }
+
+    qCWarning(lcApp).noquote()
+        << QCoreApplication::translate(
+               "AppStyle",
+               "Failed to create base style \"%1\". Falling back to current application style.")
+               .arg(baseStyleName);
+
+    return QApplication::style();
+}
+
+///
+/// \brief AppStyle::AppStyle
+/// \param baseStyleName Base style name to use, or an empty string to wrap the current style.
+///
+AppStyle::AppStyle(const QString &baseStyleName)
+    : QProxyStyle(createBaseStyle(baseStyleName))
 {
 }
 

@@ -5,13 +5,14 @@
 
 #include <QProxyStyle>
 #include <QSize>
+#include <QString>
 
 class AppStyle : public QProxyStyle
 {
     Q_OBJECT
 
 public:
-    explicit AppStyle(QStyle *style = nullptr);
+    explicit AppStyle(const QString &baseStyleName = QString());
 
     QRect subElementRect(SubElement element, const QStyleOption *option,
                          const QWidget *widget = nullptr) const override;
