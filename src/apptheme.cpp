@@ -13,6 +13,7 @@
 
 #ifdef HAS_QTDBUS
 #include <QDBusConnection>
+#include <QDBusConnectionInterface>
 #include <QDBusMessage>
 #include <QDBusVariant>
 #endif
@@ -135,7 +136,7 @@ void AppTheme::applyInitialScheme()
         QStringLiteral("org.freedesktop.portal.Settings"),
         QStringLiteral("Read"));
     msg << QStringLiteral("org.freedesktop.appearance") << QStringLiteral("color-scheme");
-    const QDBusMessage reply = QDBusConnection::sessionBus().call(msg);
+    const QDBusMessage reply = QDBusConnection::sessionBus().call(msg, QDBus::Block, 500);
     if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()) {
         QVariant v = reply.arguments().first().value<QDBusVariant>().variant();
         if (v.canConvert<QDBusVariant>())
@@ -154,14 +155,17 @@ void AppTheme::applyInitialScheme()
         QStringLiteral("org.freedesktop.impl.portal.desktop.gnome"),
         QStringLiteral("org.freedesktop.impl.portal.desktop.gtk"),
     };
+    const auto iface = QDBusConnection::sessionBus().interface();
     for (const QString &service : implBackends) {
+        if (!iface || !iface->isServiceRegistered(service))
+            continue;
         QDBusMessage msgImpl = QDBusMessage::createMethodCall(
             service,
             QStringLiteral("/org/freedesktop/portal/desktop"),
             QStringLiteral("org.freedesktop.impl.portal.Settings"),
             QStringLiteral("Read"));
         msgImpl << QStringLiteral("org.freedesktop.appearance") << QStringLiteral("color-scheme");
-        const QDBusMessage replyImpl = QDBusConnection::sessionBus().call(msgImpl);
+        const QDBusMessage replyImpl = QDBusConnection::sessionBus().call(msgImpl, QDBus::Block, 500);
         if (replyImpl.type() == QDBusMessage::ReplyMessage && !replyImpl.arguments().isEmpty()) {
             QVariant v = replyImpl.arguments().first().value<QDBusVariant>().variant();
             if (v.canConvert<QDBusVariant>())
