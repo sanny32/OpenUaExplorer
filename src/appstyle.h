@@ -10,6 +10,9 @@
 
 #include <QProxyStyle>
 #include <QSize>
+#ifdef HAS_QTDBUS
+#include <QDBusVariant>
+#endif
 
 class AppStyle : public QProxyStyle
 {
