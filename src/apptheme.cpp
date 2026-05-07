@@ -86,21 +86,6 @@ AppTheme::AppTheme(QObject *parent)
         this,
         SLOT(onPortalSettingChanged(QString, QString, QDBusVariant)));
 
-    QDBusMessage msg = QDBusMessage::createMethodCall(
-        QStringLiteral("org.freedesktop.portal.Desktop"),
-        QStringLiteral("/org/freedesktop/portal/desktop"),
-        QStringLiteral("org.freedesktop.portal.Settings"),
-        QStringLiteral("Read"));
-    msg << QStringLiteral("org.freedesktop.appearance") << QStringLiteral("color-scheme");
-    const QDBusMessage reply = QDBusConnection::sessionBus().call(msg);
-    if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()) {
-        // org.freedesktop.portal.Settings.Read returns v — unwrap until we get uint
-        QVariant v = reply.arguments().first().value<QDBusVariant>().variant();
-        if (v.canConvert<QDBusVariant>())
-            v = v.value<QDBusVariant>().variant();
-        _dark = (v.toUInt() == 1);
-        _manualToggleSupported = true;
-    }
 #else
     const Qt::ColorScheme initial = QGuiApplication::styleHints()->colorScheme();
     _dark = (initial == Qt::ColorScheme::Dark);
@@ -143,6 +128,50 @@ void AppTheme::toggle()
 ///
 void AppTheme::applyInitialScheme()
 {
+#ifdef HAS_QTDBUS
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+        QStringLiteral("org.freedesktop.portal.Desktop"),
+        QStringLiteral("/org/freedesktop/portal/desktop"),
+        QStringLiteral("org.freedesktop.portal.Settings"),
+        QStringLiteral("Read"));
+    msg << QStringLiteral("org.freedesktop.appearance") << QStringLiteral("color-scheme");
+    const QDBusMessage reply = QDBusConnection::sessionBus().call(msg);
+    if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()) {
+        QVariant v = reply.arguments().first().value<QDBusVariant>().variant();
+        if (v.canConvert<QDBusVariant>())
+            v = v.value<QDBusVariant>().variant();
+        const uint scheme = v.toUInt();
+        if (scheme != 0) {
+            _manualToggleSupported = true;
+            applyColorScheme(scheme == 1);
+            return;
+        }
+    }
+
+    // portal returned 0 (no preference) — try impl backends directly
+    const QStringList implBackends = {
+        QStringLiteral("org.freedesktop.impl.portal.desktop.kde"),
+        QStringLiteral("org.freedesktop.impl.portal.desktop.gnome"),
+        QStringLiteral("org.freedesktop.impl.portal.desktop.gtk"),
+    };
+    for (const QString &service : implBackends) {
+        QDBusMessage msgImpl = QDBusMessage::createMethodCall(
+            service,
+            QStringLiteral("/org/freedesktop/portal/desktop"),
+            QStringLiteral("org.freedesktop.impl.portal.Settings"),
+            QStringLiteral("Read"));
+        msgImpl << QStringLiteral("org.freedesktop.appearance") << QStringLiteral("color-scheme");
+        const QDBusMessage replyImpl = QDBusConnection::sessionBus().call(msgImpl);
+        if (replyImpl.type() == QDBusMessage::ReplyMessage && !replyImpl.arguments().isEmpty()) {
+            QVariant v = replyImpl.arguments().first().value<QDBusVariant>().variant();
+            if (v.canConvert<QDBusVariant>())
+                v = v.value<QDBusVariant>().variant();
+            _manualToggleSupported = true;
+            applyColorScheme(v.toUInt() == 1);
+            return;
+        }
+    }
+#endif
     applyColorScheme(_dark);
 }
 
