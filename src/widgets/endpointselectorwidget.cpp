@@ -6,8 +6,6 @@
 /// \brief Implements the endpoint selector widget.
 ///
 
-#include <QString>
-
 #include "endpointselectorwidget.h"
 #include "ui_endpointselectorwidget.h"
 
@@ -21,7 +19,7 @@ EndpointSelectorWidget::EndpointSelectorWidget(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->endpointComboBox->addItem("opc.tcp://localhost:4840");
+    ui->endpointComboBox->addItem(QStringLiteral("opc.tcp://localhost:4840"));
 }
 
 ///

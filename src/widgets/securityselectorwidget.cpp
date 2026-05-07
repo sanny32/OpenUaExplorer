@@ -6,8 +6,6 @@
 /// \brief Implements the security policy selector widget.
 ///
 
-#include <QString>
-
 #include "securityselectorwidget.h"
 #include "ui_securityselectorwidget.h"
 
@@ -21,9 +19,9 @@ SecuritySelectorWidget::SecuritySelectorWidget(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->securityComboBox->addItem("None");
-    ui->securityComboBox->addItem("Basic256Sha256 / Sign");
-    ui->securityComboBox->addItem("Basic256Sha256 / Sign & Encrypt");
+    ui->securityComboBox->addItem(QStringLiteral("None"));
+    ui->securityComboBox->addItem(QStringLiteral("Basic256Sha256 / Sign"));
+    ui->securityComboBox->addItem(QStringLiteral("Basic256Sha256 / Sign & Encrypt"));
 }
 
 ///

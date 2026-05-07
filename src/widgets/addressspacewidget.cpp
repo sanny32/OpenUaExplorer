@@ -46,9 +46,9 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
 
     ui->addressTree->expandAll();
 
-    ui->refreshButton->setIcon("refresh.svg");
-    ui->refreshButton->setToolTip("Refresh");
-    ui->refreshButton->setText("");
+    ui->refreshButton->setIcon(QStringLiteral("refresh.svg"));
+    ui->refreshButton->setToolTip(QStringLiteral("Refresh"));
+    ui->refreshButton->setText(QString());
     ui->splitter->setSizes({455, 255});
 }
 

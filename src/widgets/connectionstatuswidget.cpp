@@ -7,7 +7,6 @@
 ///
 
 #include <QIcon>
-#include <QString>
 
 #include "connectionstatuswidget.h"
 #include "ui_connectionstatuswidget.h"
@@ -21,7 +20,7 @@ ConnectionStatusWidget::ConnectionStatusWidget(QWidget *parent)
     , ui(new Ui::ConnectionStatusWidget)
 {
     ui->setupUi(this);
-    setStatusText("Connected");
+    setStatusText(QStringLiteral("Connected"));
 }
 
 ///

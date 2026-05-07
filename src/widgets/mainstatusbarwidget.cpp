@@ -18,7 +18,7 @@ MainStatusBarWidget::MainStatusBarWidget(QWidget *parent)
     , ui(new Ui::MainStatusBarWidget)
 {
     ui->setupUi(this);
-    ui->statusIconLabel->setIcon("connected.svg", 12);
+    ui->statusIconLabel->setIcon(QStringLiteral("connected.svg"), 12);
 }
 
 ///
