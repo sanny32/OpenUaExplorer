@@ -10,6 +10,7 @@
 #include <QDockWidget>
 #include <QEvent>
 #include <QList>
+#include <QMessageBox>
 
 #include "appicons.h"
 #include "application.h"
@@ -17,6 +18,7 @@
 #include "itestdatapopulatable.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "widgets/dataaccesswidget.h"
 
 
 ///
@@ -30,17 +32,22 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     ui->actionTheme->setVisible(theApp()->theme().isManualToggleSupported());
 
+    setupMainMenu();
     ui->mainToolBar->setupFromDesignerActions();
 
     setupDockOptions();
     bindIcons();
 
+    connect(ui->actionNewConnection, &QAction::triggered, this, &MainWindow::openConnectionDialog);
     connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::openConnectionDialog);
+    connect(ui->actionExit, &QAction::triggered, this, &MainWindow::close);
     connect(ui->actionTheme, &QAction::triggered, this, &MainWindow::toggleTheme);
+    connect(ui->actionAbout, &QAction::triggered, this, [this] {
+        QMessageBox::about(this, tr("About OpenUaExplorer"),
+                           tr("OpenUaExplorer\n\nOpen source OPC UA client."));
+    });
 
-    ui->centralSplitter->setSizes({360, 310});
-    resizeDocks({ui->addressSpaceDock, ui->attributesDock}, {300, 390}, Qt::Horizontal);
-    resizeDocks({ui->logDock}, {245}, Qt::Vertical);
+    resetLayout();
 
     populateWithTestData();
 }
@@ -76,12 +83,63 @@ void MainWindow::openConnectionDialog()
 }
 
 ///
+/// \brief MainWindow::setupMainMenu
+///
+void MainWindow::setupMainMenu()
+{
+    ui->actionViewAddressSpace->setChecked(!ui->addressSpaceDock->isHidden());
+    ui->actionViewActivity->setChecked(!ui->logDock->isHidden());
+
+    connect(ui->actionViewAddressSpace, &QAction::toggled,
+            ui->addressSpaceDock, &QDockWidget::setVisible);
+    connect(ui->addressSpaceDock, &QDockWidget::visibilityChanged,
+            ui->actionViewAddressSpace, &QAction::setChecked);
+
+    connect(ui->actionViewActivity, &QAction::toggled,
+            ui->logDock, &QDockWidget::setVisible);
+    connect(ui->logDock, &QDockWidget::visibilityChanged,
+            ui->actionViewActivity, &QAction::setChecked);
+
+    connect(ui->actionViewDataAccess, &QAction::triggered, this, [this] {
+        ui->dataAccessWidget->setCurrentPage(DataAccessWidget::DataAccessPage);
+    });
+    connect(ui->actionViewSubscriptions, &QAction::triggered, this, [this] {
+        ui->dataAccessWidget->setCurrentPage(DataAccessWidget::SubscriptionsPage);
+    });
+    connect(ui->actionViewEvents, &QAction::triggered, this, [this] {
+        ui->dataAccessWidget->setCurrentPage(DataAccessWidget::EventsPage);
+    });
+    connect(ui->actionViewHistory, &QAction::triggered, this, [this] {
+        ui->dataAccessWidget->setCurrentPage(DataAccessWidget::HistoryPage);
+    });
+    connect(ui->actionResetLayout, &QAction::triggered, this, &MainWindow::resetLayout);
+}
+
+///
 /// \brief MainWindow::setupDockOptions
 ///
 void MainWindow::setupDockOptions()
 {
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
     setCorner(Qt::TopLeftCorner, Qt::LeftDockWidgetArea);
+}
+
+///
+/// \brief MainWindow::resetLayout
+///
+void MainWindow::resetLayout()
+{
+    ui->addressSpaceDock->show();
+    ui->attributesDock->show();
+    ui->logDock->show();
+
+    addDockWidget(Qt::LeftDockWidgetArea, ui->addressSpaceDock);
+    addDockWidget(Qt::RightDockWidgetArea, ui->attributesDock);
+    addDockWidget(Qt::BottomDockWidgetArea, ui->logDock);
+
+    ui->centralSplitter->setSizes({360, 310});
+    resizeDocks({ui->addressSpaceDock, ui->attributesDock}, {300, 390}, Qt::Horizontal);
+    resizeDocks({ui->logDock}, {245}, Qt::Vertical);
 }
 
 ///

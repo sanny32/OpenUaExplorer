@@ -29,9 +29,17 @@ class DataAccessWidget : public QWidget, public ITestDataPopulatable
     Q_OBJECT
 
 public:
+    enum Page {
+        DataAccessPage = 0,
+        SubscriptionsPage,
+        EventsPage,
+        HistoryPage
+    };
+
     explicit DataAccessWidget(QWidget *parent = nullptr);
     ~DataAccessWidget() override;
 
+    void setCurrentPage(Page page);
     void populateWithTestData() override;
 
 private:

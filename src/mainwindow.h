@@ -30,7 +30,9 @@ protected:
 
 private:
     void openConnectionDialog();
+    void setupMainMenu();
     void setupDockOptions();
+    void resetLayout();
     void bindIcons();
     void toggleTheme();
     void populateWithTestData();

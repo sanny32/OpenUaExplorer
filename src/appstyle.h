@@ -22,6 +22,8 @@ public:
                            const QWidget *widget = nullptr) const override;
 
     static constexpr int controlMinHeight = 30;
+    static constexpr int menuItemMinHeight = 28;
+    static constexpr int menuBarItemMinHeight = 30;
     static constexpr int textHMargin = 6;
     static constexpr int textVMargin = 1;
 

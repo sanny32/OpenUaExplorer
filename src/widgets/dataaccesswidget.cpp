@@ -54,6 +54,15 @@ DataAccessWidget::~DataAccessWidget()
 }
 
 ///
+/// \brief DataAccessWidget::setCurrentPage
+/// \param page
+///
+void DataAccessWidget::setCurrentPage(Page page)
+{
+    ui->mainTabs->setCurrentIndex(static_cast<int>(page));
+}
+
+///
 /// \brief DataAccessWidget::populateWithTestData
 ///
 void DataAccessWidget::populateWithTestData()

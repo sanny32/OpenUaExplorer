@@ -8,6 +8,7 @@
 #include <QStyle>
 #include <QStyleFactory>
 #include <QStyleOptionButton>
+#include <QStyleOptionMenuItem>
 
 #include "appstyle.h"
 #include "loggingcategories.h"
@@ -111,6 +112,16 @@ QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
     case CT_SpinBox:
     case CT_TabBarTab:
         size.setHeight(qMax(size.height(), controlMinHeight));
+        break;
+    case CT_MenuItem:
+        if (const auto *menuItem = qstyleoption_cast<const QStyleOptionMenuItem *>(option)) {
+            if (menuItem->menuItemType != QStyleOptionMenuItem::Separator) {
+                size.setHeight(qMax(size.height(), menuItemMinHeight));
+            }
+        }
+        break;
+    case CT_MenuBarItem:
+        size.setHeight(qMax(size.height(), menuBarItemMinHeight));
         break;
     case CT_PushButton:
         if (qobject_cast<const ThemedPushButton *>(widget) != nullptr) {

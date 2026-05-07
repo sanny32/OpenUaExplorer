@@ -51,30 +51,106 @@
     <property name="title">
      <string>File</string>
     </property>
+    <widget class="QMenu" name="menuRecentConnections">
+     <property name="title">
+      <string>Recent Connections</string>
+     </property>
+     <addaction name="actionNoRecentConnections"/>
+    </widget>
+    <addaction name="actionNewConnection"/>
+    <addaction name="actionOpenSession"/>
+    <addaction name="actionSaveSession"/>
+    <addaction name="menuRecentConnections"/>
+    <addaction name="separator"/>
+    <addaction name="actionExportData"/>
+    <addaction name="actionExportLog"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
      <string>View</string>
     </property>
+    <addaction name="actionViewAddressSpace"/>
+    <addaction name="actionViewDataAccess"/>
+    <addaction name="actionViewSubscriptions"/>
+    <addaction name="actionViewEvents"/>
+    <addaction name="actionViewHistory"/>
+    <addaction name="actionViewActivity"/>
+    <addaction name="separator"/>
+    <addaction name="actionResetLayout"/>
    </widget>
    <widget class="QMenu" name="menuServer">
     <property name="title">
      <string>Server</string>
     </property>
+    <addaction name="actionConnect"/>
+    <addaction name="actionDisconnect"/>
+    <addaction name="separator"/>
+    <addaction name="actionBrowseAddressSpace"/>
+    <addaction name="actionRefresh"/>
+    <addaction name="separator"/>
+    <addaction name="actionEndpointSettings"/>
+    <addaction name="actionSecuritySettings"/>
+    <addaction name="actionCertificates"/>
+   </widget>
+   <widget class="QMenu" name="menuData">
+    <property name="title">
+     <string>Data</string>
+    </property>
+    <widget class="QMenu" name="menuSetSubscription">
+     <property name="title">
+      <string>Set Subscription</string>
+     </property>
+     <addaction name="actionSetSubscriptionNone"/>
+     <addaction name="actionSetSubscriptionDefault"/>
+     <addaction name="actionSetSubscriptionFast"/>
+     <addaction name="actionSetSubscriptionCustom"/>
+    </widget>
+    <addaction name="actionReadSelected"/>
+    <addaction name="actionWriteValue"/>
+    <addaction name="separator"/>
+    <addaction name="actionAddToDataAccess"/>
+    <addaction name="actionRemoveFromDataAccess"/>
+    <addaction name="separator"/>
+    <addaction name="menuSetSubscription"/>
+    <addaction name="separator"/>
+    <addaction name="actionClearDataAccess"/>
    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
      <string>Tools</string>
     </property>
+    <widget class="QMenu" name="menuTheme">
+     <property name="title">
+      <string>Theme</string>
+     </property>
+     <addaction name="actionThemeLight"/>
+     <addaction name="actionThemeDark"/>
+     <addaction name="actionThemeSystem"/>
+    </widget>
+    <addaction name="actionSettings"/>
+    <addaction name="menuTheme"/>
+    <addaction name="separator"/>
+    <addaction name="actionNamespaceInspector"/>
+    <addaction name="actionNodeMonitor"/>
+    <addaction name="separator"/>
+    <addaction name="actionDeveloperTools"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
     </property>
+    <addaction name="actionDocumentation"/>
+    <addaction name="actionOpcUaInfo"/>
+    <addaction name="separator"/>
+    <addaction name="actionCheckForUpdates"/>
+    <addaction name="actionAbout"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
    <addaction name="menuServer"/>
+   <addaction name="menuData"/>
    <addaction name="menuTools"/>
    <addaction name="menuHelp"/>
   </widget>
@@ -174,21 +250,33 @@
    </property>
   </action>
   <action name="actionDisconnect">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Disconnect</string>
    </property>
   </action>
   <action name="actionBrowse">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Browse</string>
    </property>
   </action>
   <action name="actionRefresh">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Refresh</string>
    </property>
   </action>
   <action name="actionRead">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="checked">
     <bool>false</bool>
    </property>
@@ -197,21 +285,33 @@
    </property>
   </action>
   <action name="actionWrite">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Write</string>
    </property>
   </action>
   <action name="actionSubscribe">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Subscribe</string>
    </property>
   </action>
   <action name="actionUnsubscribe">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Unsubscribe</string>
    </property>
   </action>
   <action name="actionSettings">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Settings</string>
    </property>
@@ -219,6 +319,278 @@
   <action name="actionTheme">
    <property name="text">
     <string>Theme</string>
+   </property>
+  </action>
+  <action name="actionNewConnection">
+   <property name="text">
+    <string>New Connection</string>
+   </property>
+  </action>
+  <action name="actionOpenSession">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Open Session...</string>
+   </property>
+  </action>
+  <action name="actionSaveSession">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Save Session...</string>
+   </property>
+  </action>
+  <action name="actionNoRecentConnections">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>No Recent Connections</string>
+   </property>
+  </action>
+  <action name="actionExportData">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Export Data...</string>
+   </property>
+  </action>
+  <action name="actionExportLog">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Export Log...</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionViewAddressSpace">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Address Space</string>
+   </property>
+  </action>
+  <action name="actionViewDataAccess">
+   <property name="text">
+    <string>Data Access</string>
+   </property>
+  </action>
+  <action name="actionViewSubscriptions">
+   <property name="text">
+    <string>Subscriptions</string>
+   </property>
+  </action>
+  <action name="actionViewEvents">
+   <property name="text">
+    <string>Events</string>
+   </property>
+  </action>
+  <action name="actionViewHistory">
+   <property name="text">
+    <string>History</string>
+   </property>
+  </action>
+  <action name="actionViewActivity">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Activity</string>
+   </property>
+  </action>
+  <action name="actionResetLayout">
+   <property name="text">
+    <string>Reset Layout</string>
+   </property>
+  </action>
+  <action name="actionBrowseAddressSpace">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Browse Address Space</string>
+   </property>
+  </action>
+  <action name="actionEndpointSettings">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Endpoint Settings...</string>
+   </property>
+  </action>
+  <action name="actionSecuritySettings">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Security Settings...</string>
+   </property>
+  </action>
+  <action name="actionCertificates">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Certificates...</string>
+   </property>
+  </action>
+  <action name="actionReadSelected">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Read Selected</string>
+   </property>
+  </action>
+  <action name="actionWriteValue">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Write Value...</string>
+   </property>
+  </action>
+  <action name="actionAddToDataAccess">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Add to Data Access</string>
+   </property>
+  </action>
+  <action name="actionRemoveFromDataAccess">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Remove from Data Access</string>
+   </property>
+  </action>
+  <action name="actionSetSubscriptionNone">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>None</string>
+   </property>
+  </action>
+  <action name="actionSetSubscriptionDefault">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Default</string>
+   </property>
+  </action>
+  <action name="actionSetSubscriptionFast">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Fast</string>
+   </property>
+  </action>
+  <action name="actionSetSubscriptionCustom">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Custom...</string>
+   </property>
+  </action>
+  <action name="actionClearDataAccess">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Clear Data Access</string>
+   </property>
+  </action>
+  <action name="actionThemeLight">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Light</string>
+   </property>
+  </action>
+  <action name="actionThemeDark">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Dark</string>
+   </property>
+  </action>
+  <action name="actionThemeSystem">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>System</string>
+   </property>
+  </action>
+  <action name="actionNamespaceInspector">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Namespace Inspector</string>
+   </property>
+  </action>
+  <action name="actionNodeMonitor">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Node Monitor</string>
+   </property>
+  </action>
+  <action name="actionDeveloperTools">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Developer Tools</string>
+   </property>
+  </action>
+  <action name="actionDocumentation">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Documentation</string>
+   </property>
+  </action>
+  <action name="actionOpcUaInfo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>OPC UA Info</string>
+   </property>
+  </action>
+  <action name="actionCheckForUpdates">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Check for Updates</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
    </property>
   </action>
  </widget>
