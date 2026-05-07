@@ -10,6 +10,7 @@
 #include <QGuiApplication>
 #include <QPalette>
 #include <QStyleHints>
+
 #ifdef HAS_QTDBUS
 #include <QDBusConnection>
 #include <QDBusMessage>
@@ -19,6 +20,11 @@
 #include "appstyle.h"
 #include "apptheme.h"
 
+///
+/// \brief fusionPalette
+/// \param darkAppearance
+/// \return
+///
 static QPalette fusionPalette(bool darkAppearance)
 {
     const QColor windowText = darkAppearance ? QColor(240, 240, 240) : Qt::black;
@@ -88,9 +94,11 @@ AppTheme::AppTheme(QObject *parent)
     msg << QStringLiteral("org.freedesktop.appearance") << QStringLiteral("color-scheme");
     const QDBusMessage reply = QDBusConnection::sessionBus().call(msg);
     if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()) {
-        const QDBusVariant outer = reply.arguments().first().value<QDBusVariant>();
-        const uint scheme = outer.variant().value<QDBusVariant>().variant().toUInt();
-        _dark = (scheme == 1);
+        // org.freedesktop.portal.Settings.Read returns v — unwrap until we get uint
+        QVariant v = reply.arguments().first().value<QDBusVariant>().variant();
+        if (v.canConvert<QDBusVariant>())
+            v = v.value<QDBusVariant>().variant();
+        _dark = (v.toUInt() == 1);
         _manualToggleSupported = true;
     }
 #else
@@ -135,8 +143,7 @@ void AppTheme::toggle()
 ///
 void AppTheme::applyInitialScheme()
 {
-    if (_dark)
-        applyColorScheme(true);
+    applyColorScheme(_dark);
 }
 
 ///
