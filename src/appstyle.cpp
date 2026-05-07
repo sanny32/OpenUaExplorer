@@ -40,6 +40,16 @@ static QStyle *createBaseStyle(const QString &baseStyleName)
 
 ///
 /// \brief AppStyle::AppStyle
+/// \param parent Parent object that owns the style.
+///
+AppStyle::AppStyle(QObject *parent)
+    : AppStyle(QString())
+{
+    setParent(parent);
+}
+
+///
+/// \brief AppStyle::AppStyle
 /// \param baseStyleName Base style name to use, or an empty string to wrap the current style.
 ///
 AppStyle::AppStyle(const QString &baseStyleName)

@@ -12,6 +12,7 @@ class AppStyle : public QProxyStyle
     Q_OBJECT
 
 public:
+    explicit AppStyle(QObject *parent);
     explicit AppStyle(const QString &baseStyleName = QString());
 
     QRect subElementRect(SubElement element, const QStyleOption *option,
