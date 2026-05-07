@@ -18,7 +18,7 @@ namespace AppIcons {
 
 inline bool isDarkTheme()
 {
-    return theApp()->theme()->isDark();
+    return theApp()->theme().isDark();
 }
 
 inline QIcon themed(const QString &icon)
@@ -33,7 +33,7 @@ inline void bindIcon(QAction *action, const QString &icon)
     };
     refresh();
 
-    QObject::connect(theApp()->theme(), &AppTheme::colorSchemeChanged, action, refresh);
+    QObject::connect(&theApp()->theme(), &AppTheme::colorSchemeChanged, action, refresh);
 }
 
 }

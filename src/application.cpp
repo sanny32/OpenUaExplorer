@@ -17,15 +17,17 @@ Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
     , _theme(this)
 {
+    setStyle(&_style);
+    _theme.applyInitialScheme();
 }
 
 ///
 /// \brief Application::theme
 /// \return Pointer to the application theme manager.
 ///
-AppTheme *Application::theme()
+AppTheme& Application::theme()
 {
-    return &_theme;
+    return _theme;
 }
 
 ///

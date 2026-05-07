@@ -10,6 +10,7 @@
 
 #include <QApplication>
 
+#include "appstyle.h"
 #include "apptheme.h"
 
 class Application : public QApplication
@@ -19,11 +20,12 @@ class Application : public QApplication
 public:
     Application(int &argc, char **argv);
 
-    AppTheme *theme();
+    AppTheme& theme();
 
     static Application *instance();
 
 private:
+    AppStyle _style;
     AppTheme _theme;
 };
 

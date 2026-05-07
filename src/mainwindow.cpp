@@ -15,13 +15,9 @@
 #include "application.h"
 #include "dialogs/connectiondialog.h"
 #include "itestdatapopulatable.h"
+#include "widgets/mainstatusbarwidget.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "widgets/addressspacewidget.h"
-#include "widgets/attributeswidget.h"
-#include "widgets/dataaccesswidget.h"
-#include "widgets/logwidget.h"
-#include "widgets/mainstatusbarwidget.h"
 
 
 ///
@@ -34,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
     , _mainStatusBarWidget(new MainStatusBarWidget(this))
 {
     ui->setupUi(this);
-    ui->actionTheme->setVisible(theApp()->theme()->isManualToggleSupported());
+    ui->actionTheme->setVisible(theApp()->theme().isManualToggleSupported());
 
     ui->mainToolBar->setupFromDesignerActions();
     ui->statusbar->addWidget(_mainStatusBarWidget, 1);
@@ -96,7 +92,7 @@ void MainWindow::setupDockOptions()
 ///
 void MainWindow::toggleTheme()
 {
-    theApp()->theme()->toggle();
+    theApp()->theme().toggle();
 }
 
 ///
