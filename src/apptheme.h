@@ -30,13 +30,14 @@ signals:
     void colorSchemeChanged();
 
 private:
-    void applyColorScheme(bool dark);
-
-    bool _dark = false;
-    bool _manualToggleSupported = false;
+    void applyColorScheme(Qt::ColorScheme scheme);
 
 #ifdef HAS_QTDBUS
     Q_SLOT void onPortalSettingChanged(const QString &group, const QString &key,
                                        const QDBusVariant &value);
 #endif
+
+private:
+    bool _manualToggleSupported = false;
+    Qt::ColorScheme _scheme = Qt::ColorScheme::Unknown;
 };

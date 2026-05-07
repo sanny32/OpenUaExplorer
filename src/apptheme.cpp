@@ -88,13 +88,10 @@ AppTheme::AppTheme(QObject *parent)
         SLOT(onPortalSettingChanged(QString, QString, QDBusVariant)));
 
 #else
-    const Qt::ColorScheme initial = QGuiApplication::styleHints()->colorScheme();
-    _dark = (initial == Qt::ColorScheme::Dark);
-    _manualToggleSupported = (initial != Qt::ColorScheme::Unknown);
-    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
-            this, [this](Qt::ColorScheme scheme) {
-                applyColorScheme(scheme == Qt::ColorScheme::Dark);
-            });
+    _scheme = QGuiApplication::styleHints()->colorScheme();
+    _manualToggleSupported = (_scheme != Qt::ColorScheme::Unknown);
+
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,this, &AppTheme::applyColorScheme);
 #endif
 }
 
@@ -104,7 +101,7 @@ AppTheme::AppTheme(QObject *parent)
 ///
 bool AppTheme::isDark() const
 {
-    return _dark;
+    return _scheme == Qt::ColorScheme::Dark;
 }
 
 ///
@@ -121,11 +118,13 @@ bool AppTheme::isManualToggleSupported() const
 ///
 void AppTheme::toggle()
 {
+    const auto newScheme = _scheme == Qt::ColorScheme::Dark ?
+                                    Qt::ColorScheme::Light :
+                                    Qt::ColorScheme::Dark;
 #ifdef Q_OS_WIN
-    QGuiApplication::styleHints()->setColorScheme(_dark ? Qt::ColorScheme::Light
-                                                        : Qt::ColorScheme::Dark);
+    QGuiApplication::styleHints()->setColorScheme(newScheme);
 #else
-    applyColorScheme(!_dark);
+    applyColorScheme(newScheme);
 #endif
 }
 
@@ -149,7 +148,7 @@ void AppTheme::applyInitialScheme()
         const uint scheme = v.toUInt();
         if (scheme != 0) {
             _manualToggleSupported = true;
-            applyColorScheme(scheme == 1);
+            applyColorScheme(scheme == 1 ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
             return;
         }
     }
@@ -176,26 +175,25 @@ void AppTheme::applyInitialScheme()
             if (v.canConvert<QDBusVariant>())
                 v = v.value<QDBusVariant>().variant();
             _manualToggleSupported = true;
-            applyColorScheme(v.toUInt() == 1);
+            applyColorScheme(v.toUInt() == 1 ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
             return;
         }
     }
 #endif
-    applyColorScheme(_dark);
+    applyColorScheme(_scheme);
 }
 
 ///
 /// \brief AppTheme::applyColorScheme
-/// \param dark True to apply the dark palette, false for light.
+/// \param scheme The color scheme to apply.
 ///
-void AppTheme::applyColorScheme(bool dark)
+void AppTheme::applyColorScheme(Qt::ColorScheme scheme)
 {
-    _dark = dark;
+    _scheme = scheme;
 
     const QStyle *base = AppStyle::baseStyle();
-    const QString baseName = base ? base->name() : QStringLiteral("(null)");
     if (base && base->name().compare(QLatin1String("fusion"), Qt::CaseInsensitive) == 0)
-        QApplication::setPalette(fusionPalette(dark));
+        QApplication::setPalette(fusionPalette(_scheme == Qt::ColorScheme::Dark));
 
     emit colorSchemeChanged();
 }
