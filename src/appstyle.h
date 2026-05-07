@@ -31,6 +31,8 @@ public:
     static constexpr int textHMargin = 6;
     static constexpr int textVMargin = 1;
 
+    static void applyColorScheme(bool dark);
+
 private slots:
 #ifdef HAS_QTDBUS
     void onPortalSettingChanged(const QString &group, const QString &key,

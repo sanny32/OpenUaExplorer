@@ -7,7 +7,6 @@
 ///
 
 #include <QApplication>
-#include <QStyleHints>
 #ifdef HAS_QTDBUS
 #include <QDBusConnection>
 #include <QDBusMessage>
@@ -31,13 +30,13 @@ static void applyPortalColorScheme()
     if (reply.type() != QDBusMessage::ReplyMessage || reply.arguments().isEmpty())
         return;
 
-    // reply is variant<variant<uint>>
+    // reply is variant<variant<uint>>: 1=dark, 2=light, 0=no preference
     const QDBusVariant outer = reply.arguments().first().value<QDBusVariant>();
     const uint scheme = outer.variant().value<QDBusVariant>().variant().toUInt();
     if (scheme == 1)
-        QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
+        AppStyle::applyColorScheme(true);
     else if (scheme == 2)
-        QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Light);
+        AppStyle::applyColorScheme(false);
 }
 #endif
 
