@@ -10,6 +10,10 @@
 #include "widgets/themedpushbutton.h"
 #include "widgets/themedtoolbutton.h"
 
+///
+/// \brief AppStyle::AppStyle
+/// \param style
+///
 AppStyle::AppStyle(QStyle *style)
     : QProxyStyle(style)
 {
@@ -27,6 +31,13 @@ const QStyle *AppStyle::baseStyle()
     return base;
 }
 
+///
+/// \brief AppStyle::subElementRect
+/// \param element
+/// \param option
+/// \param widget
+/// \return
+///
 QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option,
                                 const QWidget *widget) const
 {
@@ -42,6 +53,14 @@ QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option,
     }
 }
 
+///
+/// \brief AppStyle::sizeFromContents
+/// \param type
+/// \param option
+/// \param contentsSize
+/// \param widget
+/// \return
+///
 QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
                                  const QSize &contentsSize,
                                  const QWidget *widget) const

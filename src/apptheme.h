@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QObject>
+
 #ifdef HAS_QTDBUS
 #include <QDBusVariant>
 #endif

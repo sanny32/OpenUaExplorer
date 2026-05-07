@@ -66,8 +66,8 @@ static QPalette fusionPalette(bool darkAppearance)
     p.setBrush(QPalette::Inactive, QPalette::Accent,     highlight);
     p.setBrush(QPalette::Disabled, QPalette::Accent,     disabledHighlight);
     p.setBrush(QPalette::PlaceholderText, placeholder);
-    if (darkAppearance)
-        p.setBrush(QPalette::Link, highlight);
+    if (darkAppearance) p.setBrush(QPalette::Link, highlight);
+
     return p;
 }
 
@@ -121,7 +121,12 @@ bool AppTheme::isManualToggleSupported() const
 ///
 void AppTheme::toggle()
 {
+#ifdef Q_OS_WIN
+    QGuiApplication::styleHints()->setColorScheme(_dark ? Qt::ColorScheme::Light
+                                                        : Qt::ColorScheme::Dark);
+#else
     applyColorScheme(!_dark);
+#endif
 }
 
 ///
@@ -186,9 +191,12 @@ void AppTheme::applyInitialScheme()
 void AppTheme::applyColorScheme(bool dark)
 {
     _dark = dark;
+
     const QStyle *base = AppStyle::baseStyle();
+    const QString baseName = base ? base->name() : QStringLiteral("(null)");
     if (base && base->name().compare(QLatin1String("fusion"), Qt::CaseInsensitive) == 0)
         QApplication::setPalette(fusionPalette(dark));
+
     emit colorSchemeChanged();
 }
 
