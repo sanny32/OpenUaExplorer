@@ -21,6 +21,9 @@ public:
     explicit AppTheme(QObject *parent = nullptr);
 
     bool isDark() const;
+    bool isManualToggleSupported() const;
+    void toggle();
+    void applyInitialScheme();
 
 signals:
     void colorSchemeChanged();
@@ -29,6 +32,7 @@ private:
     void applyColorScheme(bool dark);
 
     bool _dark = false;
+    bool _manualToggleSupported = false;
 
 #ifdef HAS_QTDBUS
     Q_SLOT void onPortalSettingChanged(const QString &group, const QString &key,

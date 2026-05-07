@@ -90,11 +90,12 @@ AppTheme::AppTheme(QObject *parent)
         const QDBusVariant outer = reply.arguments().first().value<QDBusVariant>();
         const uint scheme = outer.variant().value<QDBusVariant>().variant().toUInt();
         _dark = (scheme == 1);
-        if (_dark)
-            QApplication::setPalette(fusionPalette(true));
+        _manualToggleSupported = true;
     }
 #else
-    _dark = (QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+    const Qt::ColorScheme initial = QGuiApplication::styleHints()->colorScheme();
+    _dark = (initial == Qt::ColorScheme::Dark);
+    _manualToggleSupported = (initial != Qt::ColorScheme::Unknown);
     connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
             this, [this](Qt::ColorScheme scheme) {
                 applyColorScheme(scheme == Qt::ColorScheme::Dark);
@@ -112,13 +113,40 @@ bool AppTheme::isDark() const
 }
 
 ///
+/// \brief AppTheme::isManualToggleSupported
+/// \return True if the user can manually toggle the color scheme.
+///
+bool AppTheme::isManualToggleSupported() const
+{
+    return _manualToggleSupported;
+}
+
+///
+/// \brief AppTheme::toggle
+///
+void AppTheme::toggle()
+{
+    applyColorScheme(!_dark);
+}
+
+///
+/// \brief AppTheme::applyInitialScheme
+///
+void AppTheme::applyInitialScheme()
+{
+    if (_dark)
+        applyColorScheme(true);
+}
+
+///
 /// \brief AppTheme::applyColorScheme
 /// \param dark True to apply the dark palette, false for light.
 ///
 void AppTheme::applyColorScheme(bool dark)
 {
     _dark = dark;
-    QApplication::setPalette(fusionPalette(dark));
+    if (QApplication::style()->name().compare(QLatin1String("fusion"), Qt::CaseInsensitive) == 0)
+        QApplication::setPalette(fusionPalette(dark));
     emit colorSchemeChanged();
 }
 
