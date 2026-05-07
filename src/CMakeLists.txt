@@ -138,6 +138,7 @@ set(SOURCES
     apptheme.cpp
     application.cpp
     fusionstyle.cpp
+    loggingcategories.cpp
     dialogs/appbasedialog.cpp
     dialogs/connectiondialog.cpp
     mainwindow.cpp
@@ -178,6 +179,7 @@ set(HEADERS
     apptheme.h
     application.h
     fusionstyle.h
+    loggingcategories.h
     dialogs/appbasedialog.h
     dialogs/connectiondialog.h
     itestdatapopulatable.h

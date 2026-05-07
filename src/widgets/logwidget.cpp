@@ -14,15 +14,12 @@
 
 #include "appicons.h"
 #include "headerview.h"
+#include "loggingcategories.h"
 #include "logmodel.h"
 #include "logwidget.h"
 #include "tableview.h"
 #include "testdata.h"
 #include "ui_logwidget.h"
-
-Q_LOGGING_CATEGORY(lcApp,     "ouaexp.App")
-Q_LOGGING_CATEGORY(lcClient,  "ouaexp.Client")
-Q_LOGGING_CATEGORY(lcSession, "ouaexp.Session")
 
 namespace {
 static LogWidget*       s_instance    = nullptr;
