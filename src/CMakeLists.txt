@@ -135,6 +135,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 set(SOURCES
     main.cpp
     appstyle.cpp
+    apptheme.cpp
+    application.cpp
     dialogs/appbasedialog.cpp
     dialogs/connectiondialog.cpp
     mainwindow.cpp
@@ -172,6 +174,8 @@ set(SOURCES
 set(HEADERS
     appicons.h
     appstyle.h
+    apptheme.h
+    application.h
     dialogs/appbasedialog.h
     dialogs/connectiondialog.h
     itestdatapopulatable.h

@@ -1,18 +1,10 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
-///
-/// \file appstyle.h
-/// \brief Declares the application proxy style.
-///
-
 #pragma once
 
 #include <QProxyStyle>
 #include <QSize>
-#ifdef HAS_QTDBUS
-#include <QDBusVariant>
-#endif
 
 class AppStyle : public QProxyStyle
 {
@@ -30,12 +22,4 @@ public:
     static constexpr int controlMinHeight = 30;
     static constexpr int textHMargin = 6;
     static constexpr int textVMargin = 1;
-
-    static void applyColorScheme(bool dark);
-
-private slots:
-#ifdef HAS_QTDBUS
-    void onPortalSettingChanged(const QString &group, const QString &key,
-                                const QDBusVariant &value);
-#endif
 };
