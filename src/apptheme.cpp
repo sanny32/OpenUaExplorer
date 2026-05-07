@@ -118,14 +118,16 @@ bool AppTheme::isManualToggleSupported() const
 ///
 void AppTheme::toggle()
 {
-    const auto newScheme = _scheme == Qt::ColorScheme::Dark ?
-                                    Qt::ColorScheme::Light :
-                                    Qt::ColorScheme::Dark;
-#ifdef Q_OS_WIN
-    QGuiApplication::styleHints()->setColorScheme(newScheme);
-#else
-    applyColorScheme(newScheme);
-#endif
+    switch (_scheme) {
+    case Qt::ColorScheme::Dark:
+        applyColorScheme(Qt::ColorScheme::Light);
+        break;
+    case Qt::ColorScheme::Light:
+        applyColorScheme(Qt::ColorScheme::Dark);
+        break;
+    default:
+        break;
+    }
 }
 
 ///
@@ -191,9 +193,13 @@ void AppTheme::applyColorScheme(Qt::ColorScheme scheme)
 {
     _scheme = scheme;
 
+#ifdef Q_OS_WIN
+    QGuiApplication::styleHints()->setColorScheme(scheme);
+#else
     const QStyle *base = AppStyle::baseStyle();
     if (base && base->name().compare(QLatin1String("fusion"), Qt::CaseInsensitive) == 0)
         QApplication::setPalette(fusionPalette(_scheme == Qt::ColorScheme::Dark));
+#endif
 
     emit colorSchemeChanged();
 }
@@ -214,6 +220,14 @@ void AppTheme::onPortalSettingChanged(const QString &group, const QString &key,
     }
 
     // 1 = dark, 2 = light, 0 = no preference
-    applyColorScheme(value.variant().toUInt() == 1);
+    switch(value.variant().toUInt()) {
+        case 1:
+            applyColorScheme(Qt::ColorScheme::Dark);
+        break;
+        case 2:
+            applyColorScheme(Qt::ColorScheme::Light);
+        break;
+        default: break;
+    }
 }
 #endif
