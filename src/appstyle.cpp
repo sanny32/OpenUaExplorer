@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+#include <QApplication>
+#include <QProxyStyle>
+#include <QStyle>
 #include <QStyleOptionButton>
 
 #include "appstyle.h"
@@ -10,6 +13,18 @@
 AppStyle::AppStyle(QStyle *style)
     : QProxyStyle(style)
 {
+}
+
+///
+/// \brief AppStyle::baseStyle
+/// \return The innermost non-proxy base style of the application style stack.
+///
+const QStyle *AppStyle::baseStyle()
+{
+    const QStyle *base = QApplication::style();
+    while (const auto *proxy = qobject_cast<const QProxyStyle *>(base))
+        base = proxy->baseStyle();
+    return base;
 }
 
 QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option,

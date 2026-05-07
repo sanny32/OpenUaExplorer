@@ -22,4 +22,6 @@ public:
     static constexpr int controlMinHeight = 30;
     static constexpr int textHMargin = 6;
     static constexpr int textVMargin = 1;
+
+    static const QStyle *baseStyle();
 };

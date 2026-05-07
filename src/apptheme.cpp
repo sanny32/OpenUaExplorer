@@ -7,8 +7,6 @@
 ///
 
 #include <QApplication>
-#include <QProxyStyle>
-#include <QStyle>
 #include <QGuiApplication>
 #include <QPalette>
 #include <QStyleHints>
@@ -18,6 +16,7 @@
 #include <QDBusVariant>
 #endif
 
+#include "appstyle.h"
 #include "apptheme.h"
 
 static QPalette fusionPalette(bool darkAppearance)
@@ -147,9 +146,7 @@ void AppTheme::applyInitialScheme()
 void AppTheme::applyColorScheme(bool dark)
 {
     _dark = dark;
-    const QStyle *base = QApplication::style();
-    while (const auto *proxy = qobject_cast<const QProxyStyle *>(base))
-        base = proxy->baseStyle();
+    const QStyle *base = AppStyle::baseStyle();
     if (base && base->name().compare(QLatin1String("fusion"), Qt::CaseInsensitive) == 0)
         QApplication::setPalette(fusionPalette(dark));
     emit colorSchemeChanged();
