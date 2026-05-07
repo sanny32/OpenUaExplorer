@@ -32,6 +32,16 @@ const QStyle *AppStyle::baseStyle()
 }
 
 ///
+/// \brief AppStyle::isFusionStyle
+/// \return True if the application base style is Fusion.
+///
+bool AppStyle::isFusionStyle()
+{
+    const QStyle *base = baseStyle();
+    return base && base->name().compare(QLatin1String("fusion"), Qt::CaseInsensitive) == 0;
+}
+
+///
 /// \brief AppStyle::subElementRect
 /// \param element
 /// \param option

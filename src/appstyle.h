@@ -24,4 +24,5 @@ public:
     static constexpr int textVMargin = 1;
 
     static const QStyle *baseStyle();
+    static bool isFusionStyle();
 };

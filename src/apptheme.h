@@ -39,5 +39,6 @@ private:
 
 private:
     bool _manualToggleSupported = false;
+    bool _manualSchemeOverriden = false;
     Qt::ColorScheme _scheme = Qt::ColorScheme::Unknown;
 };
