@@ -21,11 +21,11 @@ QPalette FusionStyle::palette(bool darkAppearance)
     const QColor windowText = darkAppearance ? QColor(240, 240, 240) : Qt::black;
     const QColor backGround = darkAppearance ? QColor(50, 50, 50) : QColor(239, 239, 239);
     const QColor light = backGround.lighter(150);
-    const QColor mid = backGround.darker(130);
+    const QColor mid = darkAppearance ? backGround.lighter(150) : backGround.darker(130);
     const QColor midLight = mid.lighter(110);
     const QColor base = darkAppearance ? backGround.darker(140) : Qt::white;
     const QColor disabledBase(backGround);
-    const QColor dark = backGround.darker(150);
+    const QColor dark = darkAppearance ? backGround.lighter(175) : backGround.darker(150);
     const QColor darkDisabled = QColor(209, 209, 209).darker(110);
     const QColor text = darkAppearance ? windowText : Qt::black;
     const QColor highlight = QColor(48, 140, 198);
