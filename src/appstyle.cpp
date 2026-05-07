@@ -1,33 +1,32 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
-///
-/// \file appstyle.cpp
-/// \brief Implements the application proxy style.
-///
-
+#include <QApplication>
+#include <QProxyStyle>
+#include <QStyle>
 #include <QStyleOptionButton>
 
 #include "appstyle.h"
 #include "widgets/themedpushbutton.h"
 #include "widgets/themedtoolbutton.h"
 
-///
-/// \brief AppStyle::AppStyle
-/// \param style
-///
 AppStyle::AppStyle(QStyle *style)
     : QProxyStyle(style)
 {
 }
 
 ///
-/// \brief AppStyle::subElementRect
-/// \param element
-/// \param option
-/// \param widget
-/// \return
+/// \brief AppStyle::baseStyle
+/// \return The innermost non-proxy base style of the application style stack.
 ///
+const QStyle *AppStyle::baseStyle()
+{
+    const QStyle *base = QApplication::style();
+    while (const auto *proxy = qobject_cast<const QProxyStyle *>(base))
+        base = proxy->baseStyle();
+    return base;
+}
+
 QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option,
                                 const QWidget *widget) const
 {
@@ -43,14 +42,6 @@ QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option,
     }
 }
 
-///
-/// \brief AppStyle::sizeFromContents
-/// \param type
-/// \param option
-/// \param contentsSize
-/// \param widget
-/// \return
-///
 QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
                                  const QSize &contentsSize,
                                  const QWidget *widget) const

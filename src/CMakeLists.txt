@@ -33,16 +33,28 @@ endif()
 
 if(USE_QT5)
     find_package(Qt5 5.15.2 COMPONENTS Core Gui Widgets Svg REQUIRED)
+    if(LINUX)
+        find_package(Qt5 COMPONENTS DBus QUIET)
+    endif()
     set(QT_VERSION_MAJOR 5)
 elseif(USE_QT6)
     find_package(Qt6 COMPONENTS Core Gui Widgets Svg REQUIRED)
+    if(LINUX)
+        find_package(Qt6 COMPONENTS DBus QUIET)
+    endif()
     set(QT_VERSION_MAJOR 6)
 else()
     find_package(Qt6 COMPONENTS Core Gui Widgets Svg QUIET)
     if(Qt6_FOUND)
+        if(LINUX)
+            find_package(Qt6 COMPONENTS DBus QUIET)
+        endif()
         set(QT_VERSION_MAJOR 6)
     else()
         find_package(Qt5 5.15.2 COMPONENTS Core Gui Widgets Svg REQUIRED)
+        if(LINUX)
+            find_package(Qt5 COMPONENTS DBus QUIET)
+        endif()
         set(QT_VERSION_MAJOR 5)
     endif()
 endif()
@@ -123,6 +135,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 set(SOURCES
     main.cpp
     appstyle.cpp
+    apptheme.cpp
+    application.cpp
     dialogs/appbasedialog.cpp
     dialogs/connectiondialog.cpp
     mainwindow.cpp
@@ -160,6 +174,8 @@ set(SOURCES
 set(HEADERS
     appicons.h
     appstyle.h
+    apptheme.h
+    application.h
     dialogs/appbasedialog.h
     dialogs/connectiondialog.h
     itestdatapopulatable.h
@@ -257,6 +273,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Svg
 )
 
+if(LINUX)
+    if(Qt6DBus_FOUND OR Qt5DBus_FOUND)
+        target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::DBus)
+        target_compile_definitions(${PROJECT_NAME} PRIVATE HAS_QTDBUS)
+    endif()
+endif()
+
 if(WIN32)
     if(MSVC)
         target_compile_options(${PROJECT_NAME} PRIVATE /utf-8)
@@ -270,7 +293,7 @@ elseif(APPLE)
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
     )
-elseif(UNIX)
+elseif(LINUX)
     target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
 endif()
 
@@ -365,7 +388,7 @@ elseif(APPLE)
             endif()
         ")
     endif()
-elseif(UNIX)
+elseif(LINUX)
     set(APP_EXECUTABLE_NAME "${PROJECT_NAME}")
 
     install(PROGRAMS "$<TARGET_FILE:${PROJECT_NAME}>" DESTINATION "${CMAKE_INSTALL_BINDIR}" RENAME "${APP_EXECUTABLE_NAME}")

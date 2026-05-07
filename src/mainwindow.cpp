@@ -6,17 +6,13 @@
 /// \brief Implements the main application window.
 ///
 
-#include <QApplication>
 #include <QAction>
 #include <QDockWidget>
 #include <QEvent>
-#include <QGuiApplication>
 #include <QList>
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-#include <QStyleHints>
-#endif
 
 #include "appicons.h"
+#include "application.h"
 #include "dialogs/connectiondialog.h"
 #include "itestdatapopulatable.h"
 #include "mainwindow.h"
@@ -27,22 +23,6 @@
 #include "widgets/logwidget.h"
 #include "widgets/mainstatusbarwidget.h"
 
-namespace {
-
-///
-/// \brief isThemeSwitchingSupported
-/// \return
-///
-bool isThemeSwitchingSupported()
-{
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-    return QGuiApplication::styleHints()->colorScheme() != Qt::ColorScheme::Unknown;
-#else
-    return false;
-#endif
-}
-
-}
 
 ///
 /// \brief MainWindow::MainWindow
@@ -54,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     , _mainStatusBarWidget(new MainStatusBarWidget(this))
 {
     ui->setupUi(this);
-    ui->actionTheme->setVisible(isThemeSwitchingSupported());
+    ui->actionTheme->setVisible(theApp()->theme()->isManualToggleSupported());
 
     ui->mainToolBar->setupFromDesignerActions();
     ui->statusbar->addWidget(_mainStatusBarWidget, 1);
@@ -116,10 +96,7 @@ void MainWindow::setupDockOptions()
 ///
 void MainWindow::toggleTheme()
 {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-    auto *hints = QGuiApplication::styleHints();
-    hints->setColorScheme(AppIcons::isDarkTheme() ? Qt::ColorScheme::Light : Qt::ColorScheme::Dark);
-#endif
+    theApp()->theme()->toggle();
 }
 
 ///
