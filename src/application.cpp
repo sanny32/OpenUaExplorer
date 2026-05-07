@@ -6,6 +6,7 @@
 /// \brief Implements the application class.
 ///
 
+#include "appstyle.h"
 #include "application.h"
 
 ///
@@ -17,7 +18,7 @@ Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
     , _theme(this)
 {
-    setStyle(&_style);
+    setStyle(new AppStyle());
     _theme.applyInitialScheme();
 }
 

@@ -27,5 +27,4 @@ public:
 
 private:
     Ui::MainStatusBarWidget *ui;
-    QWidget *_contentWidget;
 };

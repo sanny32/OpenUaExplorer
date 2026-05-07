@@ -24,9 +24,9 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->clientCertificateHintIcon->setIcon(QStringLiteral("info"), 24);
-    ui->serverCertificateIconLabel->setIcon(QStringLiteral("lock"), 48);
-    ui->statusIconLabel->setIcon(QStringLiteral("disconnected"), 16);
+    ui->clientCertificateHintIcon->setIcon(QStringLiteral("info"), QSize(24, 24));
+    ui->serverCertificateIconLabel->setIcon(QStringLiteral("lock"), QSize(48, 48));
+    ui->statusIconLabel->setIcon(QStringLiteral("disconnected"), QSize(16, 16));
     ui->connectButton->setColors({ QColor(0x0a74d1), QColor(0x1682df), QColor(0x075ca7) });
 
     connect(ui->cancelButton, &QPushButton::clicked, this, &QDialog::reject);

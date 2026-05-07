@@ -28,6 +28,22 @@ public:
 protected:
     void changeEvent(QEvent *event) override;
 
+private slots:
+    void on_actionNewConnection_triggered();
+    void on_actionConnect_triggered();
+    void on_actionExit_triggered();
+    void on_actionTheme_triggered();
+    void on_actionAbout_triggered();
+    void on_actionViewAddressSpace_toggled(bool checked);
+    void on_addressSpaceDock_visibilityChanged(bool visible);
+    void on_actionViewActivity_toggled(bool checked);
+    void on_logDock_visibilityChanged(bool visible);
+    void on_actionViewDataAccess_triggered();
+    void on_actionViewSubscriptions_triggered();
+    void on_actionViewEvents_triggered();
+    void on_actionViewHistory_triggered();
+    void on_actionResetLayout_triggered();
+
 private:
     void openConnectionDialog();
     void setupMainMenu();
@@ -37,5 +53,6 @@ private:
     void toggleTheme();
     void populateWithTestData();
 
+private:
     Ui::MainWindow *ui;
 };

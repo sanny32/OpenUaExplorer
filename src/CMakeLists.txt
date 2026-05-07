@@ -141,6 +141,7 @@ set(SOURCES
     loggingcategories.cpp
     dialogs/appbasedialog.cpp
     dialogs/connectiondialog.cpp
+    dialogs/dialogabout.cpp
     mainwindow.cpp
     widgets/addressspacemodel.cpp
     widgets/addressspacewidget.cpp
@@ -182,6 +183,7 @@ set(HEADERS
     loggingcategories.h
     dialogs/appbasedialog.h
     dialogs/connectiondialog.h
+    dialogs/dialogabout.h
     itestdatapopulatable.h
     mainwindow.h
     testdata.h
@@ -228,6 +230,7 @@ set(UI_FILES
     widgets/connectionstatuswidget.ui
     widgets/dataaccesswidget.ui
     dialogs/connectiondialog.ui
+    dialogs/dialogabout.ui
     widgets/endpointselectorwidget.ui
     widgets/logwidget.ui
     widgets/mainstatusbarwidget.ui

@@ -18,11 +18,11 @@
 MainStatusBarWidget::MainStatusBarWidget(QWidget *parent)
     : QStatusBar(parent)
     , ui(new Ui::MainStatusBarWidget)
-    , _contentWidget(new QWidget(this))
 {
-    ui->setupUi(_contentWidget);
-    ui->statusIconLabel->setIcon(QStringLiteral("connected.svg"), 12);
-    addWidget(_contentWidget, 1);
+    auto *content = new QWidget(this);
+    ui->setupUi(content);
+    ui->statusIconLabel->setIcon(QStringLiteral("connected.svg"), QSize(12, 12));
+    addWidget(content, 1);
 }
 
 ///

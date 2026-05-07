@@ -10,10 +10,10 @@
 #include <QDockWidget>
 #include <QEvent>
 #include <QList>
-#include <QMessageBox>
 
 #include "appicons.h"
 #include "application.h"
+#include "dialogs/dialogabout.h"
 #include "dialogs/connectiondialog.h"
 #include "itestdatapopulatable.h"
 #include "mainwindow.h"
@@ -37,15 +37,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupDockOptions();
     bindIcons();
-
-    connect(ui->actionNewConnection, &QAction::triggered, this, &MainWindow::openConnectionDialog);
-    connect(ui->actionConnect, &QAction::triggered, this, &MainWindow::openConnectionDialog);
-    connect(ui->actionExit, &QAction::triggered, this, &MainWindow::close);
-    connect(ui->actionTheme, &QAction::triggered, this, &MainWindow::toggleTheme);
-    connect(ui->actionAbout, &QAction::triggered, this, [this] {
-        QMessageBox::about(this, tr("About OpenUaExplorer"),
-                           tr("OpenUaExplorer\n\nOpen source OPC UA client."));
-    });
 
     resetLayout();
 
@@ -74,6 +65,120 @@ void MainWindow::changeEvent(QEvent *event)
 }
 
 ///
+/// \brief MainWindow::on_actionNewConnection_triggered
+///
+void MainWindow::on_actionNewConnection_triggered()
+{
+    openConnectionDialog();
+}
+
+///
+/// \brief MainWindow::on_actionConnect_triggered
+///
+void MainWindow::on_actionConnect_triggered()
+{
+    openConnectionDialog();
+}
+
+///
+/// \brief MainWindow::on_actionExit_triggered
+///
+void MainWindow::on_actionExit_triggered()
+{
+    close();
+}
+
+///
+/// \brief MainWindow::on_actionTheme_triggered
+///
+void MainWindow::on_actionTheme_triggered()
+{
+    toggleTheme();
+}
+
+///
+/// \brief MainWindow::on_actionAbout_triggered
+///
+void MainWindow::on_actionAbout_triggered()
+{
+    DialogAbout dialog(this);
+    dialog.exec();
+}
+
+///
+/// \brief MainWindow::on_actionViewAddressSpace_toggled
+///
+void MainWindow::on_actionViewAddressSpace_toggled(bool checked)
+{
+    ui->addressSpaceDock->setVisible(checked);
+}
+
+///
+/// \brief MainWindow::on_addressSpaceDock_visibilityChanged
+///
+void MainWindow::on_addressSpaceDock_visibilityChanged(bool visible)
+{
+    if (!ui) return;
+    ui->actionViewAddressSpace->setChecked(visible);
+}
+
+///
+/// \brief MainWindow::on_actionViewActivity_toggled
+///
+void MainWindow::on_actionViewActivity_toggled(bool checked)
+{
+    ui->logDock->setVisible(checked);
+}
+
+///
+/// \brief MainWindow::on_logDock_visibilityChanged
+///
+void MainWindow::on_logDock_visibilityChanged(bool visible)
+{
+    ui->actionViewActivity->setChecked(visible);
+}
+
+///
+/// \brief MainWindow::on_actionViewDataAccess_triggered
+///
+void MainWindow::on_actionViewDataAccess_triggered()
+{
+    ui->dataAccessWidget->setCurrentPage(DataAccessWidget::DataAccessPage);
+}
+
+///
+/// \brief MainWindow::on_actionViewSubscriptions_triggered
+///
+void MainWindow::on_actionViewSubscriptions_triggered()
+{
+    ui->dataAccessWidget->setCurrentPage(DataAccessWidget::SubscriptionsPage);
+}
+
+///
+/// \brief MainWindow::on_actionViewEvents_triggered
+///
+void MainWindow::on_actionViewEvents_triggered()
+{
+    ui->dataAccessWidget->setCurrentPage(DataAccessWidget::EventsPage);
+}
+
+///
+/// \brief MainWindow::on_actionViewHistory_triggered
+///
+void MainWindow::on_actionViewHistory_triggered()
+{
+    ui->dataAccessWidget->setCurrentPage(DataAccessWidget::HistoryPage);
+}
+
+///
+/// \brief MainWindow::on_actionResetLayout_triggered
+///
+void MainWindow::on_actionResetLayout_triggered()
+{
+    resetLayout();
+}
+
+///
 /// \brief MainWindow::openConnectionDialog
 ///
 void MainWindow::openConnectionDialog()
@@ -89,30 +194,6 @@ void MainWindow::setupMainMenu()
 {
     ui->actionViewAddressSpace->setChecked(!ui->addressSpaceDock->isHidden());
     ui->actionViewActivity->setChecked(!ui->logDock->isHidden());
-
-    connect(ui->actionViewAddressSpace, &QAction::toggled,
-            ui->addressSpaceDock, &QDockWidget::setVisible);
-    connect(ui->addressSpaceDock, &QDockWidget::visibilityChanged,
-            ui->actionViewAddressSpace, &QAction::setChecked);
-
-    connect(ui->actionViewActivity, &QAction::toggled,
-            ui->logDock, &QDockWidget::setVisible);
-    connect(ui->logDock, &QDockWidget::visibilityChanged,
-            ui->actionViewActivity, &QAction::setChecked);
-
-    connect(ui->actionViewDataAccess, &QAction::triggered, this, [this] {
-        ui->dataAccessWidget->setCurrentPage(DataAccessWidget::DataAccessPage);
-    });
-    connect(ui->actionViewSubscriptions, &QAction::triggered, this, [this] {
-        ui->dataAccessWidget->setCurrentPage(DataAccessWidget::SubscriptionsPage);
-    });
-    connect(ui->actionViewEvents, &QAction::triggered, this, [this] {
-        ui->dataAccessWidget->setCurrentPage(DataAccessWidget::EventsPage);
-    });
-    connect(ui->actionViewHistory, &QAction::triggered, this, [this] {
-        ui->dataAccessWidget->setCurrentPage(DataAccessWidget::HistoryPage);
-    });
-    connect(ui->actionResetLayout, &QAction::triggered, this, &MainWindow::resetLayout);
 }
 
 ///

@@ -25,7 +25,7 @@ ThemedIconLabel::ThemedIconLabel(QWidget *parent)
 /// \param name
 /// \param size
 ///
-void ThemedIconLabel::setIcon(const QString &name, int size)
+void ThemedIconLabel::setIcon(const QString &name, QSize size)
 {
     _iconName = name;
     _size     = size;
@@ -52,5 +52,7 @@ void ThemedIconLabel::changeEvent(QEvent *event)
 ///
 void ThemedIconLabel::refreshIcon()
 {
-    setPixmap(AppIcons::themed(_iconName).pixmap(_size, _size));
+    const QIcon icon = AppIcons::themed(_iconName);
+    const QSize size = _size.isValid() ? _size : icon.availableSizes().value(0);
+    setPixmap(icon.pixmap(size));
 }

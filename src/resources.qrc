@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file alias="icons/light/add.svg">res/icons/light/add.svg</file>
+        <file alias="icons/light/app.svg">res/icons/light/app.svg</file>
         <file alias="icons/light/browse.svg">res/icons/light/browse.svg</file>
         <file alias="icons/light/connect.svg">res/icons/light/connect.svg</file>
         <file alias="icons/light/connected.svg">res/icons/light/connected.svg</file>
@@ -19,6 +20,7 @@
         <file alias="icons/light/variable.svg">res/icons/light/variable.svg</file>
         <file alias="icons/light/write.svg">res/icons/light/write.svg</file>
         <file alias="icons/dark/add.svg">res/icons/dark/add.svg</file>
+        <file alias="icons/dark/app.svg">res/icons/dark/app.svg</file>
         <file alias="icons/dark/browse.svg">res/icons/dark/browse.svg</file>
         <file alias="icons/dark/connect.svg">res/icons/dark/connect.svg</file>
         <file alias="icons/dark/connected.svg">res/icons/dark/connected.svg</file>
@@ -39,6 +41,8 @@
         <file alias="app.ico">res/icons/light/app.ico</file>
         <file alias="icons/light/app.ico">res/icons/light/app.ico</file>
         <file alias="icons/dark/app.ico">res/icons/dark/app.ico</file>
+        <file alias="icons/light/automation.png">res/icons/light/automation.png</file>
+        <file alias="icons/dark/automation.png">res/icons/dark/automation.png</file>
         <file alias="icons/light/disconnected.svg">res/icons/light/disconnected.svg</file>
         <file alias="icons/dark/disconnected.svg">res/icons/dark/disconnected.svg</file>
         <file alias="icons/light/info.svg">res/icons/light/info.svg</file>
