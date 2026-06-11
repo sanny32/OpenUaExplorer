@@ -6,13 +6,13 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>920</width>
+    <width>1000</width>
     <height>620</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>920</width>
+     <width>1000</width>
     <height>620</height>
    </size>
   </property>
@@ -25,7 +25,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_9">
+     <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="3,2">
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
@@ -33,7 +33,10 @@
          <property name="title">
           <string>Endpoint</string>
          </property>
-         <layout class="QFormLayout" name="formLayout">
+          <layout class="QFormLayout" name="formLayout">
+           <property name="fieldGrowthPolicy">
+            <enum>QFormLayout::FieldGrowthPolicy::AllNonFixedFieldsGrow</enum>
+           </property>
           <item row="0" column="0">
            <widget class="QLabel" name="backendLabel">
             <property name="text">
@@ -76,6 +79,12 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
            <layout class="QHBoxLayout" name="horizontalLayout">
             <item>
              <widget class="QComboBox" name="endpointComboBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>1</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
               <property name="minimumSize">
                <size>
                 <width>300</width>
@@ -115,7 +124,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
          <property name="title">
           <string>Security</string>
          </property>
-         <layout class="QGridLayout" name="gridLayout_2">
+          <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1,0,0,1">
           <item row="1" column="0">
            <widget class="QLabel" name="authenticationLabel">
             <property name="text">
@@ -140,7 +149,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="1" colspan="3">
+           <item row="2" column="1" colspan="4">
            <widget class="QLineEdit" name="usernameEdit">
             <property name="text">
              <string>user1</string>
@@ -154,7 +163,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="1" colspan="3">
+           <item row="3" column="1" colspan="3">
            <widget class="QLineEdit" name="passwordEdit">
             <property name="text">
              <string>password</string>
@@ -197,7 +206,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
             </item>
            </widget>
           </item>
-          <item row="1" column="1" colspan="2">
+           <item row="1" column="1">
            <widget class="QComboBox" name="authenticationComboBox">
             <item>
              <property name="text">
@@ -216,7 +225,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
             </item>
            </widget>
           </item>
-          <item row="0" column="1" colspan="2">
+           <item row="0" column="1">
            <widget class="QComboBox" name="securityModeComboBox">
             <item>
              <property name="text">
@@ -243,7 +252,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
          <property name="title">
           <string>Advanced</string>
          </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_8">
+          <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="1,1">
           <item>
            <layout class="QFormLayout" name="formLayout_3">
             <item row="0" column="0">
@@ -259,7 +268,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
                <widget class="QSpinBox" name="sessionTimeoutSpinBox">
                 <property name="minimumSize">
                  <size>
-                  <width>80</width>
+                   <width>100</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -306,7 +315,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
                <widget class="QSpinBox" name="connectTimeoutSpinBox">
                 <property name="minimumSize">
                  <size>
-                  <width>80</width>
+                   <width>100</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -353,7 +362,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
                <widget class="QSpinBox" name="secureChannelLifetimeSpinBox">
                 <property name="minimumSize">
                  <size>
-                  <width>80</width>
+                   <width>100</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -404,7 +413,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
                <widget class="QSpinBox" name="endpointTimeoutSpinBox">
                 <property name="minimumSize">
                  <size>
-                  <width>80</width>
+                   <width>100</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -451,7 +460,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
                <widget class="QSpinBox" name="requestTimeoutSpinBox">
                 <property name="minimumSize">
                  <size>
-                  <width>80</width>
+                   <width>100</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -498,7 +507,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
                <widget class="QSpinBox" name="maxMessageSizeSpinBox">
                 <property name="minimumSize">
                  <size>
-                  <width>80</width>
+                   <width>100</width>
                   <height>0</height>
                  </size>
                 </property>

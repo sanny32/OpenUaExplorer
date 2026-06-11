@@ -76,6 +76,12 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     connect(ui->endpointComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ConnectionDialog::updateEndpointSelection);
+    connect(ui->endpointComboBox->lineEdit(), &QLineEdit::textEdited, this, [this]() {
+        _endpoints.clear();
+    });
+    connect(ui->endpointComboBox->lineEdit(), &QLineEdit::editingFinished, this, [this]() {
+        ui->endpointComboBox->lineEdit()->setCursorPosition(0);
+    });
     connect(ui->authenticationComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ConnectionDialog::updateAuthenticationFields);
@@ -193,6 +199,7 @@ QString ConnectionDialog::privateKeyPassword() const
 void ConnectionDialog::discoverEndpoints()
 {
     if (!_service) {
+        _connectAfterDiscovery = false;
         QMessageBox::critical(this, tr("OPC UA Unavailable"),
                               tr("The OPC UA client service is unavailable."));
         return;
@@ -214,10 +221,16 @@ void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QStr
     ui->browseServersButton->setEnabled(true);
     ui->connectButton->setEnabled(true);
     if (!error.isEmpty()) {
+        _connectAfterDiscovery = false;
         ui->statusLabel->setText(error);
         return;
     }
     _endpoints = endpoints;
+    if (_endpoints.isEmpty()) {
+        _connectAfterDiscovery = false;
+        ui->statusLabel->setText(tr("No endpoints discovered."));
+        return;
+    }
     ui->endpointComboBox->clear();
     for (int index = 0; index < _endpoints.size(); ++index) {
         const EndpointInfo &endpoint = _endpoints.at(index);
@@ -230,6 +243,10 @@ void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QStr
     updatePopupWidth(ui->endpointComboBox);
     ui->statusLabel->setText(tr("%1 endpoints discovered.").arg(_endpoints.size()));
     updateEndpointSelection();
+    if (_connectAfterDiscovery) {
+        _connectAfterDiscovery = false;
+        validateAndAccept();
+    }
 }
 
 ///
@@ -343,6 +360,7 @@ void ConnectionDialog::validateAndAccept()
 {
     const int endpointIndex = ui->endpointComboBox->currentData().toInt();
     if (_endpoints.isEmpty() || endpointIndex < 0 || endpointIndex >= _endpoints.size()) {
+        _connectAfterDiscovery = true;
         discoverEndpoints();
         return;
     }
