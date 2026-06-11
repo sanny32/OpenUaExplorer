@@ -264,10 +264,16 @@ public:
         });
         QObject::connect(client, &QOpcUaClient::connectError, q,
                          [this](QOpcUaErrorState *state) {
-            const QString message = OpcUaClientService::tr(
+            QString message = OpcUaClientService::tr(
                 "Connection step %1 failed: %2")
                 .arg(static_cast<int>(state->connectionStep()))
                 .arg(statusName(state->errorCode()));
+            if (state->errorCode() == QOpcUa::UaStatusCode::BadCertificateInvalid) {
+                message += OpcUaClientService::tr(
+                    "\nThe server rejected the client certificate. Add this certificate "
+                    "to the server trust list and retry: %1")
+                    .arg(activeClientCertificateFile);
+            }
             if (state->connectionStep() == QOpcUaErrorState::ConnectionStep::CertificateValidation) {
                 int decision = OpcUaClientService::RejectCertificate;
                 emit q->certificateValidationRequired(activeCertificate, message, &decision);
@@ -318,6 +324,7 @@ public:
         client->setPkiConfiguration(configuration);
         if (configuration.isKeyAndCertificateFileSet())
             client->setApplicationIdentity(configuration.applicationIdentity());
+        activeClientCertificateFile = profile.clientCertificateFile;
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
         QOpcUaConnectionSettings settings;
@@ -343,6 +350,7 @@ public:
     QString activeBackend;
     QList<QOpcUaEndpointDescription> endpointDescriptions;
     QByteArray activeCertificate;
+    QString activeClientCertificateFile;
 #endif
 };
 

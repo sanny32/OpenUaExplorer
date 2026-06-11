@@ -8,23 +8,37 @@
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
-#include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QSaveFile>
 #include <QStandardPaths>
 #include <QSysInfo>
 
 #ifdef OUAEXP_HAS_OPENSSL
 #include <openssl/bio.h>
+#include <openssl/bn.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+#include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #endif
 
 #include "pkimanager.h"
+
+///
+/// \brief PkiManager::applicationUri
+/// \return Application URI matching the four-part format expected by Qt OPC UA.
+///
+QString PkiManager::applicationUri()
+{
+    QString hostName = QSysInfo::machineHostName().trimmed().toLower();
+    if (hostName.isEmpty())
+        hostName = QStringLiteral("localhost");
+    return QStringLiteral("urn:%1:OpenUaExplorer:OpenUaExplorer").arg(hostName);
+}
 
 ///
 /// \brief PkiManager::paths
@@ -75,6 +89,62 @@ bool PkiManager::ensureDirectories(QString *error) const
 }
 
 ///
+/// \brief PkiManager::existingClientCertificate
+/// \param certificateFile Receives the existing DER certificate path.
+/// \param privateKeyFile Receives the existing PEM private key path.
+/// \return True when the generated key pair exists and has the current application URI.
+///
+bool PkiManager::existingClientCertificate(QString *certificateFile,
+                                           QString *privateKeyFile) const
+{
+#ifndef OUAEXP_HAS_OPENSSL
+    Q_UNUSED(certificateFile)
+    Q_UNUSED(privateKeyFile)
+    return false;
+#else
+    const Paths p = paths();
+    const QString certPath = p.ownCertificates + QStringLiteral("/openuaexplorer.der");
+    const QString keyPath = p.ownPrivate + QStringLiteral("/openuaexplorer.pem");
+    if (!QFileInfo::exists(certPath) || !QFileInfo::exists(keyPath))
+        return false;
+
+    BIO *certificateBio = BIO_new_file(QFile::encodeName(certPath).constData(), "rb");
+    X509 *certificate = certificateBio ? d2i_X509_bio(certificateBio, nullptr) : nullptr;
+    BIO_free(certificateBio);
+    if (!certificate)
+        return false;
+
+    bool uriMatches = false;
+    GENERAL_NAMES *names = static_cast<GENERAL_NAMES *>(
+        X509_get_ext_d2i(certificate, NID_subject_alt_name, nullptr, nullptr));
+    const QByteArray expectedUri = applicationUri().toUtf8();
+    for (int index = 0; names && index < sk_GENERAL_NAME_num(names); ++index) {
+        const GENERAL_NAME *name = sk_GENERAL_NAME_value(names, index);
+        if (name->type != GEN_URI)
+            continue;
+        const ASN1_IA5STRING *uri = name->d.uniformResourceIdentifier;
+        const QByteArray value(
+            reinterpret_cast<const char *>(ASN1_STRING_get0_data(uri)),
+            ASN1_STRING_length(uri));
+        if (value == expectedUri) {
+            uriMatches = true;
+            break;
+        }
+    }
+    GENERAL_NAMES_free(names);
+    X509_free(certificate);
+    if (!uriMatches)
+        return false;
+
+    if (certificateFile)
+        *certificateFile = certPath;
+    if (privateKeyFile)
+        *privateKeyFile = keyPath;
+    return true;
+#endif
+}
+
+///
 /// \brief PkiManager::generateClientCertificate
 /// \param commonName Certificate common name.
 /// \param applicationUri OPC UA application URI.
@@ -119,36 +189,65 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
 
     certificate = X509_new();
     if (certificate) {
-        X509_set_version(certificate, 2);
-        ASN1_INTEGER_set(X509_get_serialNumber(certificate),
-                         static_cast<long>(QDateTime::currentMSecsSinceEpoch() & 0x7fffffff));
-        X509_gmtime_adj(X509_get_notBefore(certificate), 0);
-        X509_gmtime_adj(X509_get_notAfter(certificate), 3650L * 24L * 60L * 60L);
-        X509_set_pubkey(certificate, key);
+        unsigned char serialBytes[16] = {};
+        const bool serialGenerated = RAND_bytes(serialBytes, sizeof(serialBytes)) == 1;
+        serialBytes[0] &= 0x7f;
+        serialBytes[0] |= 0x01;
+        BIGNUM *serialNumber = serialGenerated
+            ? BN_bin2bn(serialBytes, sizeof(serialBytes), nullptr)
+            : nullptr;
+        const bool certificateInitialized =
+            X509_set_version(certificate, 2) == 1
+            && serialNumber
+            && BN_to_ASN1_INTEGER(serialNumber, X509_get_serialNumber(certificate))
+            && X509_gmtime_adj(X509_get_notBefore(certificate), 0)
+            && X509_gmtime_adj(X509_get_notAfter(certificate), 3650L * 24L * 60L * 60L)
+            && X509_set_pubkey(certificate, key) == 1;
+        BN_free(serialNumber);
 
         X509_NAME *subject = X509_get_subject_name(certificate);
         const QByteArray cn = commonName.toUtf8();
-        X509_NAME_add_entry_by_txt(subject, "CN", MBSTRING_UTF8,
-                                   reinterpret_cast<const unsigned char *>(cn.constData()),
-                                   cn.size(), -1, 0);
-        X509_set_issuer_name(certificate, subject);
+        const bool subjectInitialized =
+            X509_NAME_add_entry_by_txt(
+                subject, "CN", MBSTRING_UTF8,
+                reinterpret_cast<const unsigned char *>(cn.constData()),
+                cn.size(), -1, 0) == 1
+            && X509_set_issuer_name(certificate, subject) == 1;
 
         const QByteArray san = QStringLiteral("URI:%1,DNS:%2")
             .arg(applicationUri, QSysInfo::machineHostName()).toUtf8();
-        X509_EXTENSION *extension =
-            X509V3_EXT_conf_nid(nullptr, nullptr, NID_subject_alt_name,
-                                const_cast<char *>(san.constData()));
-        if (extension) {
-            X509_add_ext(certificate, extension, -1);
+        X509V3_CTX extensionContext;
+        X509V3_set_ctx(&extensionContext, certificate, certificate, nullptr, nullptr, 0);
+        const auto addExtension =
+            [certificate, &extensionContext](int nid, const QByteArray &value) {
+            X509_EXTENSION *extension =
+                X509V3_EXT_conf_nid(nullptr, &extensionContext, nid,
+                                    const_cast<char *>(value.constData()));
+            if (!extension)
+                return false;
+            const bool added = X509_add_ext(certificate, extension, -1) == 1;
             X509_EXTENSION_free(extension);
-        }
+            return added;
+        };
+        const bool extensionsAdded =
+            addExtension(NID_basic_constraints, QByteArrayLiteral("critical,CA:FALSE"))
+            && addExtension(
+                NID_key_usage,
+                QByteArrayLiteral(
+                    "critical,nonRepudiation,digitalSignature,keyEncipherment,dataEncipherment"))
+            && addExtension(NID_ext_key_usage, QByteArrayLiteral("clientAuth"))
+            && addExtension(NID_subject_alt_name, san)
+            && addExtension(NID_subject_key_identifier, QByteArrayLiteral("hash"))
+            && addExtension(NID_authority_key_identifier,
+                            QByteArrayLiteral("keyid:always,issuer:always"));
 
         const Paths p = paths();
         const QString keyPath = p.ownPrivate + QStringLiteral("/openuaexplorer.pem");
         const QString certPath = p.ownCertificates + QStringLiteral("/openuaexplorer.der");
         BIO *keyBio = BIO_new_file(QFile::encodeName(keyPath).constData(), "wb");
         BIO *certBio = BIO_new_file(QFile::encodeName(certPath).constData(), "wb");
-        success = keyBio && certBio
+        success = certificateInitialized && subjectInitialized && extensionsAdded
+            && keyBio && certBio
             && X509_sign(certificate, key, EVP_sha256()) > 0
             && PEM_write_bio_PrivateKey(keyBio, key, nullptr, nullptr, 0, nullptr, nullptr) == 1
             && i2d_X509_bio(certBio, certificate) == 1;

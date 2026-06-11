@@ -28,8 +28,11 @@ public:
         QString issuerCrl;
     };
 
+    static QString applicationUri();
     Paths paths() const;
     bool ensureDirectories(QString *error = nullptr) const;
+    bool existingClientCertificate(QString *certificateFile,
+                                   QString *privateKeyFile) const;
     bool generateClientCertificate(const QString &commonName,
                                    const QString &applicationUri,
                                    QString *certificateFile,

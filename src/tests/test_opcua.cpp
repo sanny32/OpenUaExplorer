@@ -6,10 +6,15 @@
 /// \brief Tests OPC UA profiles, PKI paths and lazy address-space behavior.
 ///
 
+#include <QFile>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
+
+#if defined(OUAEXP_HAS_OPENSSL) && defined(OUAEXP_HAS_OPCUA)
+#include <QOpcUaPkiConfiguration>
+#endif
 
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuaclientservice.h"
@@ -27,6 +32,7 @@ private slots:
     void initTestCase();
     void profileRoundTripDoesNotStoreSecrets();
     void pkiPathsUseExpectedLayout();
+    void generatedCertificateProvidesApplicationIdentity();
     void lazyModelRequestsAndAppliesBrowse();
     void open62541BackendIsAvailable();
     void integrationEndpointDiscovery();
@@ -87,6 +93,44 @@ void TestOpcUa::pkiPathsUseExpectedLayout()
     QVERIFY(paths.trustedCertificates.endsWith(QStringLiteral("/trusted/certs")));
     QVERIFY(paths.rejectedCertificates.endsWith(QStringLiteral("/rejected/certs")));
     QVERIFY(paths.issuerCertificates.endsWith(QStringLiteral("/issuers/certs")));
+}
+
+///
+/// \brief TestOpcUa::generatedCertificateProvidesApplicationIdentity
+///
+void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
+{
+#if defined(OUAEXP_HAS_OPENSSL) && defined(OUAEXP_HAS_OPCUA)
+    PkiManager pki;
+    QString certificateFile;
+    QString privateKeyFile;
+    QString error;
+    QVERIFY2(pki.generateClientCertificate(
+                 QStringLiteral("OpenUaExplorerTests"),
+                 PkiManager::applicationUri(),
+                 &certificateFile,
+                 &privateKeyFile,
+                 &error),
+             qPrintable(error));
+
+    QOpcUaPkiConfiguration configuration;
+    configuration.setClientCertificateFile(certificateFile);
+    configuration.setPrivateKeyFile(privateKeyFile);
+    QCOMPARE(configuration.applicationIdentity().applicationUri(),
+             PkiManager::applicationUri());
+
+    QString existingCertificateFile;
+    QString existingPrivateKeyFile;
+    QVERIFY(pki.existingClientCertificate(
+        &existingCertificateFile, &existingPrivateKeyFile));
+    QCOMPARE(existingCertificateFile, certificateFile);
+    QCOMPARE(existingPrivateKeyFile, privateKeyFile);
+
+    QVERIFY(QFile::remove(certificateFile));
+    QVERIFY(QFile::remove(privateKeyFile));
+#else
+    QSKIP("OpenSSL and Qt OpcUa are required for certificate generation.");
+#endif
 }
 
 ///

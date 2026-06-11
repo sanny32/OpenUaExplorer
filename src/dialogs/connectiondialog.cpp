@@ -6,10 +6,10 @@
 /// \brief Implements the OPC UA connection dialog.
 ///
 
-#include <QCoreApplication>
 #include <QAbstractItemView>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFontMetrics>
@@ -19,7 +19,6 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QStyle>
-#include <QSysInfo>
 #include <QUuid>
 
 #include "connectiondialog.h"
@@ -92,6 +91,12 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     ui->clientCertificateComboBox->addItem(tr("Imported certificate"));
     ui->trustListManageButton->setText(tr("Generate..."));
     ui->clientCertificateViewButton->setText(tr("Import..."));
+    PkiManager pki;
+    if (pki.existingClientCertificate(&_clientCertificateFile, &_privateKeyFile)) {
+        ui->clientCertificateComboBox->setItemText(
+            0, tr("Auto-generated (%1)").arg(QFileInfo(_clientCertificateFile).fileName()));
+        ui->serverCertificateStatusLabel->setText(tr("Existing client certificate selected"));
+    }
     updatePopupWidth(ui->endpointComboBox);
     updateAuthenticationFields();
 }
@@ -321,7 +326,7 @@ void ConnectionDialog::generateClientCertificate()
     QString error;
     if (!pki.generateClientCertificate(
             QCoreApplication::applicationName(),
-            QStringLiteral("urn:%1:OpenUaExplorer").arg(QSysInfo::machineHostName()),
+            PkiManager::applicationUri(),
             &_clientCertificateFile, &_privateKeyFile, &error)) {
         QMessageBox::critical(this, tr("Certificate Generation Failed"), error);
         return;
