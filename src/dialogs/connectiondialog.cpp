@@ -7,14 +7,18 @@
 ///
 
 #include <QCoreApplication>
+#include <QAbstractItemView>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFontMetrics>
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QScreen>
+#include <QStyle>
 #include <QSysInfo>
 #include <QUuid>
 
@@ -23,6 +27,32 @@
 #include "opcua/pkimanager.h"
 #include "ui_connectiondialog.h"
 #include "widgets/coloredpushbutton.h"
+
+namespace {
+
+///
+/// \brief Expands a combo box popup to fit its longest item.
+/// \param comboBox Combo box whose popup width should be updated.
+///
+void updatePopupWidth(QComboBox *comboBox)
+{
+    int contentWidth = comboBox->width();
+    const QFontMetrics metrics(comboBox->view()->font());
+    for (int index = 0; index < comboBox->count(); ++index)
+        contentWidth = qMax(contentWidth, metrics.horizontalAdvance(comboBox->itemText(index)));
+
+    const int popupPadding = comboBox->style()->pixelMetric(QStyle::PM_ScrollBarExtent)
+        + comboBox->style()->pixelMetric(QStyle::PM_ComboBoxFrameWidth) * 2
+        + 32;
+    contentWidth += popupPadding;
+
+    if (const QScreen *screen = comboBox->screen())
+        contentWidth = qMin(contentWidth, screen->availableGeometry().width() - 40);
+
+    comboBox->view()->setMinimumWidth(contentWidth);
+}
+
+}
 
 ///
 /// \brief ConnectionDialog::ConnectionDialog
@@ -62,6 +92,7 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     ui->clientCertificateComboBox->addItem(tr("Imported certificate"));
     ui->trustListManageButton->setText(tr("Generate..."));
     ui->clientCertificateViewButton->setText(tr("Import..."));
+    updatePopupWidth(ui->endpointComboBox);
     updateAuthenticationFields();
 }
 
@@ -191,6 +222,7 @@ void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QStr
                 .arg(endpoint.endpointUrl, policy, endpoint.securityMode),
             index);
     }
+    updatePopupWidth(ui->endpointComboBox);
     ui->statusLabel->setText(tr("%1 endpoints discovered.").arg(_endpoints.size()));
     updateEndpointSelection();
 }
