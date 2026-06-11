@@ -74,13 +74,7 @@ function(ouaexp_configure_qt_target target_name)
         Qt${QT_VERSION_MAJOR}::Svg
     )
 
-    if(TARGET Qt${QT_VERSION_MAJOR}::OpcUa)
-        target_link_libraries(${target_name} PRIVATE Qt${QT_VERSION_MAJOR}::OpcUa)
-        target_compile_definitions(${target_name} PRIVATE OUAEXP_HAS_OPCUA)
-    else()
-        message(WARNING
-            "Qt OpcUa was not found. The application will build without OPC UA runtime support.")
-    endif()
+    target_link_libraries(${target_name} PRIVATE Qt${QT_VERSION_MAJOR}::OpcUa)
 
     if(LINUX AND (Qt6DBus_FOUND OR Qt5DBus_FOUND))
         target_link_libraries(${target_name} PRIVATE Qt${QT_VERSION_MAJOR}::DBus)

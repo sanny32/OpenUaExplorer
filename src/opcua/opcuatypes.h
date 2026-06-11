@@ -68,6 +68,7 @@ struct OpcUaNodeAttribute
     QString status;
     QDateTime sourceTimestamp;
     QDateTime serverTimestamp;
+    QVector<OpcUaNodeAttribute> children;
 };
 
 ///

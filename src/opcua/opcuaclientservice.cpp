@@ -14,7 +14,6 @@
 #include <QTimer>
 #include <QUrl>
 
-#ifdef OUAEXP_HAS_OPCUA
 #include <QOpcUaAuthenticationInformation>
 #include <QOpcUaClient>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
@@ -31,13 +30,24 @@
 #include <QOpcUaReadResult>
 #include <QOpcUaReferenceDescription>
 #include <QOpcUaUserTokenPolicy>
-#endif
 
 #include "loggingcategories.h"
 #include "opcuaclientservice.h"
 #include "pkimanager.h"
 
 namespace {
+
+///
+/// \brief Checks whether a QVariant contains a sequential value array.
+/// \param value Value to inspect.
+/// \return True for list-like values, excluding scalar strings and byte strings.
+///
+bool isValueArray(const QVariant &value)
+{
+    return value.userType() != QMetaType::QString
+        && value.userType() != QMetaType::QByteArray
+        && value.canConvert<QVariantList>();
+}
 
 ///
 /// \brief Formats a QVariant for display without discarding its typed value.
@@ -52,7 +62,7 @@ QString displayValue(const QVariant &value)
         return QString::fromLatin1(value.toByteArray().toHex(' '));
     if (value.userType() == QMetaType::QDateTime)
         return value.toDateTime().toString(Qt::ISODateWithMs);
-    if (value.canConvert<QVariantList>()) {
+    if (isValueArray(value)) {
         const QVariantList list = value.toList();
         QStringList parts;
         parts.reserve(list.size());
@@ -63,7 +73,8 @@ QString displayValue(const QVariant &value)
     return value.toString();
 }
 
-#ifdef OUAEXP_HAS_OPCUA
+QOpcUa::Types valueTypeForDataType(const QString &nodeId);
+
 ///
 /// \brief Returns the localized security mode name.
 /// \param mode OPC UA message security mode.
@@ -87,6 +98,325 @@ QString securityModeName(QOpcUaEndpointDescription::MessageSecurityMode mode)
 QString statusName(QOpcUa::UaStatusCode status)
 {
     return QOpcUa::statusToString(status);
+}
+
+///
+/// \brief Formats a status code with its numeric representation.
+/// \param status OPC UA status code.
+/// \return Status name and hexadecimal value.
+///
+QString statusDisplay(QOpcUa::UaStatusCode status)
+{
+    return QStringLiteral("%1 (0x%2)")
+        .arg(statusName(status))
+        .arg(static_cast<quint32>(status), 8, 16, QLatin1Char('0'));
+}
+
+///
+/// \brief Formats a timestamp like UaExpert.
+/// \param timestamp Timestamp to format.
+/// \return Localized timestamp text.
+///
+QString timestampDisplay(const QDateTime &timestamp)
+{
+    return timestamp.isValid()
+        ? timestamp.toLocalTime().toString(QStringLiteral("dd.MM.yyyy H:mm:ss.zzz"))
+        : QString();
+}
+
+///
+/// \brief Returns the symbolic name of an OPC UA value type.
+/// \param type OPC UA value type.
+/// \return Symbolic type name.
+///
+QString valueTypeName(QOpcUa::Types type)
+{
+    const char *key = QMetaEnum::fromType<QOpcUa::Types>().valueToKey(type);
+    return key ? QString::fromLatin1(key) : QObject::tr("Unknown");
+}
+
+///
+/// \brief Returns the symbolic name of an OPC UA node class.
+/// \param nodeClass OPC UA node class.
+/// \return Symbolic node class name.
+///
+QString nodeClassName(QOpcUa::NodeClass nodeClass)
+{
+    const char *key = QMetaEnum::fromType<QOpcUa::NodeClass>()
+                          .valueToKey(static_cast<int>(nodeClass));
+    return key ? QString::fromLatin1(key) : QString::number(static_cast<int>(nodeClass));
+}
+
+///
+/// \brief Formats an OPC UA access level mask.
+/// \param accessLevel Access level mask.
+/// \return Set flag names separated by vertical bars.
+///
+QString accessLevelDisplay(quint32 accessLevel)
+{
+    const QMetaEnum metaEnum = QMetaEnum::fromType<QOpcUa::AccessLevelBit>();
+    QStringList names;
+    for (int index = 0; index < metaEnum.keyCount(); ++index) {
+        const quint32 flag = static_cast<quint32>(metaEnum.value(index));
+        if (flag && (accessLevel & flag) == flag)
+            names.append(QString::fromLatin1(metaEnum.key(index)));
+    }
+    return names.isEmpty() ? QStringLiteral("None") : names.join(QStringLiteral(" | "));
+}
+
+///
+/// \brief Formats an OPC UA write mask.
+/// \param writeMask Write mask.
+/// \return Set flag names or zero.
+///
+QString writeMaskDisplay(quint32 writeMask)
+{
+    if (!writeMask)
+        return QStringLiteral("0");
+    const QMetaEnum metaEnum = QMetaEnum::fromType<QOpcUa::WriteMaskBit>();
+    QStringList names;
+    for (int index = 0; index < metaEnum.keyCount(); ++index) {
+        const quint32 flag = static_cast<quint32>(metaEnum.value(index));
+        if (flag && (writeMask & flag) == flag)
+            names.append(QString::fromLatin1(metaEnum.key(index)));
+    }
+    return names.isEmpty() ? QString::number(writeMask)
+                           : names.join(QStringLiteral(" | "));
+}
+
+///
+/// \brief Formats an OPC UA value rank.
+/// \param valueRank Value rank.
+/// \return Numeric rank with its symbolic meaning.
+///
+QString valueRankDisplay(int valueRank)
+{
+    switch (valueRank) {
+    case -3: return QStringLiteral("-3 (ScalarOrOneDimension)");
+    case -2: return QStringLiteral("-2 (Any)");
+    case -1: return QStringLiteral("-1 (Scalar)");
+    case 0: return QStringLiteral("0 (OneOrMoreDimensions)");
+    case 1: return QStringLiteral("1 (OneDimension)");
+    case 2: return QStringLiteral("2 (TwoDimensions)");
+    default: return QString::number(valueRank);
+    }
+}
+
+///
+/// \brief Returns the textual name of a NodeId identifier type.
+/// \param identifierType OPC UA NodeId identifier type marker.
+/// \return Identifier type name.
+///
+QString identifierTypeName(char identifierType)
+{
+    switch (identifierType) {
+    case 'i': return QStringLiteral("Numeric");
+    case 's': return QStringLiteral("String");
+    case 'g': return QStringLiteral("Guid");
+    case 'b': return QStringLiteral("ByteString");
+    default: return QObject::tr("Unknown");
+    }
+}
+
+///
+/// \brief Creates a child row.
+/// \param name Row name.
+/// \param displayValue Display value.
+/// \return Child attribute row.
+///
+OpcUaNodeAttribute childAttribute(const QString &name, const QString &displayValue)
+{
+    OpcUaNodeAttribute child;
+    child.name = name;
+    child.displayValue = displayValue;
+    return child;
+}
+
+///
+/// \brief Adds parsed NodeId fields to an attribute row.
+/// \param attribute Attribute row to populate.
+/// \param nodeId OPC UA NodeId string.
+///
+void addNodeIdChildren(OpcUaNodeAttribute *attribute, const QString &nodeId)
+{
+    quint16 namespaceIndex = 0;
+    QString identifier;
+    char identifierType = '\0';
+    if (!QOpcUa::nodeIdStringSplit(nodeId, &namespaceIndex, &identifier, &identifierType))
+        return;
+
+    attribute->children.append(
+        childAttribute(QObject::tr("NamespaceIndex"), QString::number(namespaceIndex)));
+    attribute->children.append(
+        childAttribute(QObject::tr("IdentifierType"), identifierTypeName(identifierType)));
+    attribute->children.append(
+        childAttribute(QObject::tr("Identifier"), identifier));
+}
+
+///
+/// \brief Formats a NodeId and adds its parsed fields.
+/// \param attribute Attribute row to populate.
+/// \param nodeId OPC UA NodeId string.
+///
+void formatNodeIdAttribute(OpcUaNodeAttribute *attribute, const QString &nodeId)
+{
+    attribute->displayValue = nodeId;
+    addNodeIdChildren(attribute, nodeId);
+}
+
+///
+/// \brief Formats a DataType NodeId using its built-in type name when possible.
+/// \param attribute Attribute row to populate.
+/// \param nodeId DataType NodeId.
+///
+void formatDataTypeAttribute(OpcUaNodeAttribute *attribute, const QString &nodeId)
+{
+    const QOpcUa::Types type = valueTypeForDataType(nodeId);
+    attribute->displayValue = type == QOpcUa::Types::Undefined
+        ? nodeId
+        : valueTypeName(type);
+    addNodeIdChildren(attribute, nodeId);
+}
+
+///
+/// \brief Formats a QVariant as a tree value.
+/// \param value Value to format.
+/// \param type OPC UA value type.
+/// \return Root row containing scalar or array entries.
+///
+OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type)
+{
+    OpcUaNodeAttribute result = childAttribute(QObject::tr("Value"), displayValue(value));
+    if (!isValueArray(value))
+        return result;
+
+    const QVariantList values = value.toList();
+    result.displayValue = QStringLiteral("%1 Array[%2]")
+                              .arg(valueTypeName(type))
+                              .arg(values.size());
+    for (int index = 0; index < values.size(); ++index) {
+        result.children.append(
+            childAttribute(QStringLiteral("[%1]").arg(index), displayValue(values.at(index))));
+    }
+    return result;
+}
+
+///
+/// \brief Formats an attribute value and creates expandable child rows.
+/// \param attribute Attribute row to populate.
+/// \param nodeAttribute OPC UA attribute identifier.
+/// \param value Attribute value.
+/// \param valueType Variable value type.
+///
+void formatAttribute(OpcUaNodeAttribute *attribute,
+                     QOpcUa::NodeAttribute nodeAttribute,
+                     const QVariant &value,
+                     QOpcUa::Types valueType)
+{
+    switch (nodeAttribute) {
+    case QOpcUa::NodeAttribute::NodeId:
+        formatNodeIdAttribute(attribute, value.toString());
+        break;
+    case QOpcUa::NodeAttribute::NodeClass:
+        attribute->displayValue =
+            nodeClassName(static_cast<QOpcUa::NodeClass>(value.toInt()));
+        break;
+    case QOpcUa::NodeAttribute::BrowseName:
+        if (value.canConvert<QOpcUaQualifiedName>()) {
+            const QOpcUaQualifiedName name = value.value<QOpcUaQualifiedName>();
+            attribute->displayValue = QStringLiteral("%1, \"%2\"")
+                                          .arg(name.namespaceIndex())
+                                          .arg(name.name());
+        }
+        break;
+    case QOpcUa::NodeAttribute::DisplayName:
+    case QOpcUa::NodeAttribute::Description:
+    case QOpcUa::NodeAttribute::InverseName:
+        if (value.canConvert<QOpcUaLocalizedText>()) {
+            const QOpcUaLocalizedText text = value.value<QOpcUaLocalizedText>();
+            attribute->displayValue = QStringLiteral("\"%1\", \"%2\"")
+                                          .arg(text.locale(), text.text());
+        }
+        break;
+    case QOpcUa::NodeAttribute::ValueRank:
+        attribute->displayValue = valueRankDisplay(value.toInt());
+        break;
+    case QOpcUa::NodeAttribute::DataType:
+        formatDataTypeAttribute(attribute, value.toString());
+        break;
+    case QOpcUa::NodeAttribute::ArrayDimensions: {
+        const QVariantList dimensions = value.toList();
+        attribute->displayValue =
+            QStringLiteral("UInt32 Array[%1]").arg(dimensions.size());
+        for (int index = 0; index < dimensions.size(); ++index) {
+            attribute->children.append(
+                childAttribute(QStringLiteral("[%1]").arg(index),
+                               dimensions.at(index).toString()));
+        }
+        break;
+    }
+    case QOpcUa::NodeAttribute::AccessLevel:
+    case QOpcUa::NodeAttribute::UserAccessLevel:
+        attribute->displayValue = accessLevelDisplay(value.toUInt());
+        break;
+    case QOpcUa::NodeAttribute::WriteMask:
+    case QOpcUa::NodeAttribute::UserWriteMask:
+        attribute->displayValue = writeMaskDisplay(value.toUInt());
+        break;
+    default:
+        attribute->displayValue = displayValue(value);
+        break;
+    }
+
+    if (nodeAttribute == QOpcUa::NodeAttribute::Value) {
+        attribute->displayValue = isValueArray(value)
+            ? QStringLiteral("%1 Array[%2]")
+                  .arg(valueTypeName(valueType))
+                  .arg(value.toList().size())
+            : valueTypeName(valueType);
+    }
+}
+
+///
+/// \brief Checks whether an attribute is defined for a node class.
+/// \param attribute OPC UA attribute.
+/// \param nodeClass OPC UA node class.
+/// \return True if the attribute applies to the node class.
+///
+bool attributeAppliesToNodeClass(QOpcUa::NodeAttribute attribute,
+                                 QOpcUa::NodeClass nodeClass)
+{
+    switch (attribute) {
+    case QOpcUa::NodeAttribute::Value:
+    case QOpcUa::NodeAttribute::DataType:
+    case QOpcUa::NodeAttribute::ValueRank:
+    case QOpcUa::NodeAttribute::ArrayDimensions:
+        return nodeClass == QOpcUa::NodeClass::Variable
+            || nodeClass == QOpcUa::NodeClass::VariableType;
+    case QOpcUa::NodeAttribute::AccessLevel:
+    case QOpcUa::NodeAttribute::UserAccessLevel:
+    case QOpcUa::NodeAttribute::MinimumSamplingInterval:
+    case QOpcUa::NodeAttribute::Historizing:
+        return nodeClass == QOpcUa::NodeClass::Variable;
+    case QOpcUa::NodeAttribute::Executable:
+    case QOpcUa::NodeAttribute::UserExecutable:
+        return nodeClass == QOpcUa::NodeClass::Method;
+    case QOpcUa::NodeAttribute::IsAbstract:
+        return nodeClass == QOpcUa::NodeClass::ObjectType
+            || nodeClass == QOpcUa::NodeClass::VariableType
+            || nodeClass == QOpcUa::NodeClass::ReferenceType
+            || nodeClass == QOpcUa::NodeClass::DataType;
+    case QOpcUa::NodeAttribute::Symmetric:
+    case QOpcUa::NodeAttribute::InverseName:
+        return nodeClass == QOpcUa::NodeClass::ReferenceType;
+    case QOpcUa::NodeAttribute::ContainsNoLoops:
+        return nodeClass == QOpcUa::NodeClass::View;
+    case QOpcUa::NodeAttribute::EventNotifier:
+        return nodeClass == QOpcUa::NodeClass::Object
+            || nodeClass == QOpcUa::NodeClass::View;
+    default:
+        return true;
+    }
 }
 
 ///
@@ -127,8 +457,6 @@ QOpcUa::Types valueTypeForDataType(const QString &nodeId)
     default: return QOpcUa::Types::Undefined;
     }
 }
-#endif
-
 } // namespace
 
 ///
@@ -144,10 +472,8 @@ public:
         connectWatchdog.setSingleShot(true);
         QObject::connect(&connectWatchdog, &QTimer::timeout, q, [this]() {
             setError(OpcUaClientService::tr("The OPC UA connection timed out."));
-#ifdef OUAEXP_HAS_OPCUA
             if (client)
                 client->disconnectFromEndpoint();
-#endif
         });
     }
 
@@ -166,7 +492,6 @@ public:
         emit q->errorOccurred(message);
     }
 
-#ifdef OUAEXP_HAS_OPCUA
     bool createClient(const QString &backend)
     {
         if (client && activeBackend == backend)
@@ -336,22 +661,18 @@ public:
         client->setConnectionSettings(settings);
 #endif
     }
-#endif
-
     OpcUaClientService *q;
     OpcUaConnectionState currentState = OpcUaConnectionState::Disconnected;
     QString error;
     QTimer connectWatchdog;
     quint64 generation = 0;
     PkiManager pki;
-#ifdef OUAEXP_HAS_OPCUA
     QOpcUaProvider provider;
     QOpcUaClient *client = nullptr;
     QString activeBackend;
     QList<QOpcUaEndpointDescription> endpointDescriptions;
     QByteArray activeCertificate;
     QString activeClientCertificateFile;
-#endif
 };
 
 ///
@@ -366,10 +687,6 @@ OpcUaClientService::OpcUaClientService(QObject *parent)
     qRegisterMetaType<OpcUaNodeInfo>();
     qRegisterMetaType<OpcUaNodeDetails>();
     qRegisterMetaType<OpcUaDataValue>();
-#ifndef OUAEXP_HAS_OPCUA
-    _d->currentState = OpcUaConnectionState::Unavailable;
-    _d->error = tr("Qt OpcUa support is not available in this build.");
-#endif
 }
 
 ///
@@ -377,9 +694,7 @@ OpcUaClientService::OpcUaClientService(QObject *parent)
 ///
 OpcUaClientService::~OpcUaClientService()
 {
-#ifdef OUAEXP_HAS_OPCUA
     delete _d->client;
-#endif
     delete _d;
 }
 
@@ -389,11 +704,7 @@ OpcUaClientService::~OpcUaClientService()
 ///
 bool OpcUaClientService::isAvailable() const
 {
-#ifdef OUAEXP_HAS_OPCUA
     return !_d->provider.availableBackends().isEmpty();
-#else
-    return false;
-#endif
 }
 
 ///
@@ -402,11 +713,7 @@ bool OpcUaClientService::isAvailable() const
 ///
 QStringList OpcUaClientService::availableBackends() const
 {
-#ifdef OUAEXP_HAS_OPCUA
     return _d->provider.availableBackends();
-#else
-    return {};
-#endif
 }
 
 ///
@@ -434,7 +741,6 @@ QString OpcUaClientService::lastError() const
 ///
 void OpcUaClientService::discoverEndpoints(const QString &url, const QString &backend)
 {
-#ifdef OUAEXP_HAS_OPCUA
     if (!_d->createClient(backend)) {
         emit endpointsDiscovered({}, _d->error);
         return;
@@ -453,11 +759,6 @@ void OpcUaClientService::discoverEndpoints(const QString &url, const QString &ba
         _d->setState(OpcUaConnectionState::Disconnected);
         emit endpointsDiscovered({}, message);
     }
-#else
-    Q_UNUSED(url)
-    Q_UNUSED(backend)
-    emit endpointsDiscovered({}, _d->error);
-#endif
 }
 
 ///
@@ -470,7 +771,6 @@ void OpcUaClientService::connectToEndpoint(const ConnectionProfile &profile,
                                            const QString &password,
                                            const QString &privateKeyPassword)
 {
-#ifdef OUAEXP_HAS_OPCUA
     if (!_d->createClient(profile.backend))
         return;
 
@@ -493,12 +793,6 @@ void OpcUaClientService::connectToEndpoint(const ConnectionProfile &profile,
     _d->activeCertificate = _d->endpointDescriptions.at(endpointIndex).serverCertificate();
     _d->connectWatchdog.start(qMax(1000, profile.connectTimeoutMs));
     _d->client->connectToEndpoint(_d->endpointDescriptions.at(endpointIndex));
-#else
-    Q_UNUSED(profile)
-    Q_UNUSED(password)
-    Q_UNUSED(privateKeyPassword)
-    _d->setError(_d->error);
-#endif
 }
 
 ///
@@ -506,10 +800,8 @@ void OpcUaClientService::connectToEndpoint(const ConnectionProfile &profile,
 ///
 void OpcUaClientService::disconnectFromEndpoint()
 {
-#ifdef OUAEXP_HAS_OPCUA
     if (_d->client)
         _d->client->disconnectFromEndpoint();
-#endif
 }
 
 ///
@@ -518,7 +810,6 @@ void OpcUaClientService::disconnectFromEndpoint()
 ///
 void OpcUaClientService::browse(const QString &nodeId)
 {
-#ifdef OUAEXP_HAS_OPCUA
     if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
         emit browseFinished(nodeId, {}, tr("The OPC UA client is not connected."));
         return;
@@ -560,9 +851,6 @@ void OpcUaClientService::browse(const QString &nodeId)
         node->deleteLater();
         emit browseFinished(nodeId, {}, tr("The backend rejected the browse request."));
     }
-#else
-    emit browseFinished(nodeId, {}, _d->error);
-#endif
 }
 
 ///
@@ -571,7 +859,6 @@ void OpcUaClientService::browse(const QString &nodeId)
 ///
 void OpcUaClientService::readNode(const QString &nodeId)
 {
-#ifdef OUAEXP_HAS_OPCUA
     if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
         emit nodeDetailsReady({}, tr("The OPC UA client is not connected."));
         return;
@@ -582,7 +869,12 @@ void OpcUaClientService::readNode(const QString &nodeId)
         return;
     }
     const QOpcUa::NodeAttributes attributes =
-        QOpcUaNode::mandatoryBaseAttributes()
+        QOpcUaNode::allBaseAttributes()
+        | QOpcUa::NodeAttribute::IsAbstract
+        | QOpcUa::NodeAttribute::Symmetric
+        | QOpcUa::NodeAttribute::InverseName
+        | QOpcUa::NodeAttribute::ContainsNoLoops
+        | QOpcUa::NodeAttribute::EventNotifier
         | QOpcUa::NodeAttribute::Description
         | QOpcUa::NodeAttribute::Value
         | QOpcUa::NodeAttribute::DataType
@@ -590,6 +882,7 @@ void OpcUaClientService::readNode(const QString &nodeId)
         | QOpcUa::NodeAttribute::ArrayDimensions
         | QOpcUa::NodeAttribute::AccessLevel
         | QOpcUa::NodeAttribute::UserAccessLevel
+        | QOpcUa::NodeAttribute::MinimumSamplingInterval
         | QOpcUa::NodeAttribute::Historizing
         | QOpcUa::NodeAttribute::Executable
         | QOpcUa::NodeAttribute::UserExecutable;
@@ -603,9 +896,11 @@ void OpcUaClientService::readNode(const QString &nodeId)
         OpcUaNodeDetails details;
         details.nodeId = nodeId;
         details.nodeClass = node->attribute(QOpcUa::NodeAttribute::NodeClass).toInt();
+        const auto nodeClass = static_cast<QOpcUa::NodeClass>(details.nodeClass);
         details.value = node->attribute(QOpcUa::NodeAttribute::Value);
         details.dataTypeId = node->attribute(QOpcUa::NodeAttribute::DataType).toString();
         details.valueType = static_cast<int>(valueTypeForDataType(details.dataTypeId));
+        const auto valueType = static_cast<QOpcUa::Types>(details.valueType);
         details.valueRank = node->attribute(QOpcUa::NodeAttribute::ValueRank).toInt();
         const QVariant dimensions = node->attribute(QOpcUa::NodeAttribute::ArrayDimensions);
         for (const QVariant &dimension : dimensions.toList())
@@ -624,27 +919,59 @@ void OpcUaClientService::readNode(const QString &nodeId)
             {tr("Browse Name"), QOpcUa::NodeAttribute::BrowseName},
             {tr("Display Name"), QOpcUa::NodeAttribute::DisplayName},
             {tr("Description"), QOpcUa::NodeAttribute::Description},
+            {tr("Is Abstract"), QOpcUa::NodeAttribute::IsAbstract},
+            {tr("Symmetric"), QOpcUa::NodeAttribute::Symmetric},
+            {tr("Inverse Name"), QOpcUa::NodeAttribute::InverseName},
+            {tr("Contains No Loops"), QOpcUa::NodeAttribute::ContainsNoLoops},
+            {tr("Event Notifier"), QOpcUa::NodeAttribute::EventNotifier},
             {tr("Value"), QOpcUa::NodeAttribute::Value},
             {tr("Data Type"), QOpcUa::NodeAttribute::DataType},
             {tr("Value Rank"), QOpcUa::NodeAttribute::ValueRank},
             {tr("Array Dimensions"), QOpcUa::NodeAttribute::ArrayDimensions},
             {tr("Access Level"), QOpcUa::NodeAttribute::AccessLevel},
             {tr("User Access Level"), QOpcUa::NodeAttribute::UserAccessLevel},
+            {tr("Minimum Sampling Interval"),
+             QOpcUa::NodeAttribute::MinimumSamplingInterval},
             {tr("Historizing"), QOpcUa::NodeAttribute::Historizing},
             {tr("Executable"), QOpcUa::NodeAttribute::Executable},
-            {tr("User Executable"), QOpcUa::NodeAttribute::UserExecutable}
+            {tr("User Executable"), QOpcUa::NodeAttribute::UserExecutable},
+            {tr("Write Mask"), QOpcUa::NodeAttribute::WriteMask},
+            {tr("User Write Mask"), QOpcUa::NodeAttribute::UserWriteMask},
+            {tr("Role Permissions"), QOpcUa::NodeAttribute::RolePermissions},
+            {tr("User Role Permissions"), QOpcUa::NodeAttribute::UserRolePermissions},
+            {tr("Access Restrictions"), QOpcUa::NodeAttribute::AccessRestrictions}
         };
         for (const auto &field : fields) {
-            if (!(attributes & field.second))
+            if (!(attributes & field.second)
+                || !attributeAppliesToNodeClass(field.second, nodeClass)
+                || node->attributeError(field.second)
+                    == QOpcUa::UaStatusCode::BadAttributeIdInvalid) {
                 continue;
+            }
             const QVariant value = node->attribute(field.second);
             OpcUaNodeAttribute attribute;
             attribute.name = field.first;
             attribute.value = value;
-            attribute.displayValue = displayValue(value);
             attribute.status = statusName(node->attributeError(field.second));
             attribute.sourceTimestamp = node->sourceTimestamp(field.second);
             attribute.serverTimestamp = node->serverTimestamp(field.second);
+            formatAttribute(&attribute, field.second, value, valueType);
+            if (field.second == QOpcUa::NodeAttribute::Value) {
+                if (attribute.sourceTimestamp.isValid()) {
+                    attribute.children.append(
+                        childAttribute(tr("Source Timestamp"),
+                                       timestampDisplay(attribute.sourceTimestamp)));
+                }
+                if (attribute.serverTimestamp.isValid()) {
+                    attribute.children.append(
+                        childAttribute(tr("Server Timestamp"),
+                                       timestampDisplay(attribute.serverTimestamp)));
+                }
+                attribute.children.append(
+                    childAttribute(tr("Status Code"),
+                                   statusDisplay(node->attributeError(field.second))));
+                attribute.children.append(valueAttribute(value, valueType));
+            }
             details.attributes.append(attribute);
         }
         const QVariant displayNameValue = node->attribute(QOpcUa::NodeAttribute::DisplayName);
@@ -657,10 +984,6 @@ void OpcUaClientService::readNode(const QString &nodeId)
         node->deleteLater();
         emit nodeDetailsReady({}, tr("The backend rejected the read request."));
     }
-#else
-    Q_UNUSED(nodeId)
-    emit nodeDetailsReady({}, _d->error);
-#endif
 }
 
 ///
@@ -669,7 +992,6 @@ void OpcUaClientService::readNode(const QString &nodeId)
 ///
 void OpcUaClientService::readValues(const QStringList &nodeIds)
 {
-#ifdef OUAEXP_HAS_OPCUA
     if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
         emit dataValuesReady({}, tr("The OPC UA client is not connected."));
         return;
@@ -707,10 +1029,6 @@ void OpcUaClientService::readValues(const QStringList &nodeIds)
         disconnect(connection);
         emit dataValuesReady({}, tr("The backend rejected the batch read request."));
     }
-#else
-    Q_UNUSED(nodeIds)
-    emit dataValuesReady({}, _d->error);
-#endif
 }
 
 ///
@@ -721,7 +1039,6 @@ void OpcUaClientService::readValues(const QStringList &nodeIds)
 ///
 void OpcUaClientService::writeValue(const QString &nodeId, const QVariant &value, int valueType)
 {
-#ifdef OUAEXP_HAS_OPCUA
     if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
         emit writeFinished(nodeId, false, tr("The OPC UA client is not connected."));
         return;
@@ -745,9 +1062,4 @@ void OpcUaClientService::writeValue(const QString &nodeId, const QVariant &value
         node->deleteLater();
         emit writeFinished(nodeId, false, tr("The backend rejected the write request."));
     }
-#else
-    Q_UNUSED(value)
-    Q_UNUSED(valueType)
-    emit writeFinished(nodeId, false, _d->error);
-#endif
 }

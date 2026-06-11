@@ -19,12 +19,18 @@
     <number>8</number>
    </property>
    <item>
-    <widget class="TableView" name="attributesTable">
+    <widget class="QTreeView" name="attributesTree">
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>
      <property name="selectionBehavior">
       <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <property name="uniformRowHeights">
+      <bool>true</bool>
+     </property>
+     <property name="allColumnsShowFocus">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
@@ -84,11 +90,6 @@
    <class>ThemedPushButton</class>
    <extends>QPushButton</extends>
    <header>widgets/themedpushbutton.h</header>
-  </customwidget>
-  <customwidget>
-   <class>TableView</class>
-   <extends>QTableView</extends>
-   <header>widgets/tableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

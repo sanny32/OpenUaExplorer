@@ -1,14 +1,12 @@
 include(FetchContent)
 
 function(ouaexp_copy_qtopcua_runtime target_name)
-    if(TARGET Qt${QT_VERSION_MAJOR}::OpcUa)
-        add_custom_command(TARGET ${target_name} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "$<TARGET_FILE:Qt${QT_VERSION_MAJOR}::OpcUa>"
-                "$<TARGET_FILE_DIR:${target_name}>"
-            VERBATIM
-        )
-    endif()
+    add_custom_command(TARGET ${target_name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:Qt${QT_VERSION_MAJOR}::OpcUa>"
+            "$<TARGET_FILE_DIR:${target_name}>"
+        VERBATIM
+    )
 
     if(TARGET Qt${QT_VERSION_MAJOR}::QOpen62541Plugin)
         add_custom_command(TARGET ${target_name} POST_BUILD
@@ -27,15 +25,19 @@ option(OUAEXP_FETCH_QTOPCUA
 
 find_package(Qt${QT_VERSION_MAJOR}OpcUa CONFIG QUIET)
 
-if(TARGET Qt${QT_VERSION_MAJOR}::OpcUa OR NOT OUAEXP_FETCH_QTOPCUA)
+if(TARGET Qt${QT_VERSION_MAJOR}::OpcUa)
+    return()
+endif()
+
+if(NOT OUAEXP_FETCH_QTOPCUA)
+    find_package(Qt${QT_VERSION_MAJOR}OpcUa CONFIG REQUIRED)
     return()
 endif()
 
 if(NOT QT_VERSION_MAJOR EQUAL 6)
-    message(WARNING
+    message(FATAL_ERROR
         "Automatic Qt OpcUa bootstrap is available only for Qt 6. "
         "Install Qt5OpcUa for the selected Qt 5 kit.")
-    return()
 endif()
 
 set(QTOPCUA_VERSION "${Qt6Core_VERSION}")

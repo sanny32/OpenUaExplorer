@@ -12,7 +12,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 
-#if defined(OUAEXP_HAS_OPENSSL) && defined(OUAEXP_HAS_OPCUA)
+#ifdef OUAEXP_HAS_OPENSSL
 #include <QOpcUaPkiConfiguration>
 #endif
 
@@ -20,6 +20,7 @@
 #include "opcua/opcuaclientservice.h"
 #include "opcua/pkimanager.h"
 #include "widgets/addressspacemodel.h"
+#include "widgets/attributesmodel.h"
 
 ///
 /// \brief Unit tests for transport-neutral OPC UA components.
@@ -34,6 +35,7 @@ private slots:
     void pkiPathsUseExpectedLayout();
     void generatedCertificateProvidesApplicationIdentity();
     void lazyModelRequestsAndAppliesBrowse();
+    void attributesModelExposesStructuredValues();
     void open62541BackendIsAvailable();
     void integrationEndpointDiscovery();
 
@@ -100,7 +102,7 @@ void TestOpcUa::pkiPathsUseExpectedLayout()
 ///
 void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
 {
-#if defined(OUAEXP_HAS_OPENSSL) && defined(OUAEXP_HAS_OPCUA)
+#ifdef OUAEXP_HAS_OPENSSL
     PkiManager pki;
     QString certificateFile;
     QString privateKeyFile;
@@ -129,7 +131,7 @@ void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
     QVERIFY(QFile::remove(certificateFile));
     QVERIFY(QFile::remove(privateKeyFile));
 #else
-    QSKIP("OpenSSL and Qt OpcUa are required for certificate generation.");
+    QSKIP("OpenSSL is required for certificate generation.");
 #endif
 }
 
@@ -165,17 +167,46 @@ void TestOpcUa::lazyModelRequestsAndAppliesBrowse()
 }
 
 ///
+/// \brief TestOpcUa::attributesModelExposesStructuredValues
+///
+void TestOpcUa::attributesModelExposesStructuredValues()
+{
+    OpcUaNodeAttribute nodeId;
+    nodeId.name = QStringLiteral("Node Id");
+    nodeId.displayValue = QStringLiteral("ns=0;i=2269");
+
+    OpcUaNodeAttribute namespaceIndex;
+    namespaceIndex.name = QStringLiteral("NamespaceIndex");
+    namespaceIndex.displayValue = QStringLiteral("0");
+    nodeId.children.append(namespaceIndex);
+
+    OpcUaNodeAttribute identifier;
+    identifier.name = QStringLiteral("Identifier");
+    identifier.displayValue = QStringLiteral("2269");
+    nodeId.children.append(identifier);
+
+    AttributesModel model;
+    model.setAttributes({nodeId});
+
+    QCOMPARE(model.rowCount(), 1);
+    const QModelIndex nodeIdIndex = model.index(0, AttributesModel::ColAttribute);
+    QCOMPARE(model.data(nodeIdIndex).toString(), nodeId.name);
+    QCOMPARE(model.rowCount(nodeIdIndex), 2);
+
+    const QModelIndex identifierIndex =
+        model.index(1, AttributesModel::ColValue, nodeIdIndex);
+    QCOMPARE(model.data(identifierIndex).toString(), identifier.displayValue);
+    QCOMPARE(model.parent(identifierIndex), nodeIdIndex);
+}
+
+///
 /// \brief TestOpcUa::open62541BackendIsAvailable
 ///
 void TestOpcUa::open62541BackendIsAvailable()
 {
-#ifdef OUAEXP_HAS_OPCUA
     const OpcUaClientService service;
     QVERIFY2(service.availableBackends().contains(QStringLiteral("open62541")),
              qPrintable(service.availableBackends().join(QStringLiteral(", "))));
-#else
-    QSKIP("Qt OpcUa was not available in this Qt kit.");
-#endif
 }
 
 ///

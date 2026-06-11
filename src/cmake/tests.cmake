@@ -8,6 +8,7 @@ function(ouaexp_configure_tests)
         opcua/pkimanager.cpp
         loggingcategories.cpp
         widgets/addressspacemodel.cpp
+        widgets/attributesmodel.cpp
         opcua/connectionprofile.h
         opcua/connectionprofilestore.h
         opcua/opcuaclientservice.h
@@ -15,6 +16,7 @@ function(ouaexp_configure_tests)
         opcua/pkimanager.h
         widgets/addressspaceitem.h
         widgets/addressspacemodel.h
+        widgets/attributesmodel.h
     )
 
     target_include_directories(ouaexp_tests PRIVATE
@@ -25,17 +27,13 @@ function(ouaexp_configure_tests)
     target_link_libraries(ouaexp_tests PRIVATE
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Gui
+        Qt${QT_VERSION_MAJOR}::OpcUa
         Qt${QT_VERSION_MAJOR}::Test
     )
 
     if(TARGET OpenSSL::Crypto)
         target_link_libraries(ouaexp_tests PRIVATE OpenSSL::Crypto)
         target_compile_definitions(ouaexp_tests PRIVATE OUAEXP_HAS_OPENSSL)
-    endif()
-
-    if(TARGET Qt${QT_VERSION_MAJOR}::OpcUa)
-        target_link_libraries(ouaexp_tests PRIVATE Qt${QT_VERSION_MAJOR}::OpcUa)
-        target_compile_definitions(ouaexp_tests PRIVATE OUAEXP_HAS_OPCUA)
     endif()
 
     if(MSVC)

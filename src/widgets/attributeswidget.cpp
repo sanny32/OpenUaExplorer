@@ -6,10 +6,10 @@
 /// \brief Implements the selected node attributes widget.
 ///
 
+#include <QHeaderView>
+
 #include "attributesmodel.h"
 #include "attributeswidget.h"
-#include "headerview.h"
-#include "tableview.h"
 #include "testdata.h"
 #include "ui_attributeswidget.h"
 
@@ -40,6 +40,7 @@ AttributesWidget::~AttributesWidget()
 void AttributesWidget::populateWithTestData()
 {
     _model->setItems(TestData::attributeItems());
+    ui->attributesTree->expandToDepth(0);
 }
 
 ///
@@ -48,15 +49,8 @@ void AttributesWidget::populateWithTestData()
 ///
 void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
 {
-    QVector<QPair<QString, QString>> items;
-    items.reserve(details.attributes.size());
-    for (const OpcUaNodeAttribute &attribute : details.attributes) {
-        QString value = attribute.displayValue;
-        if (!attribute.status.isEmpty() && attribute.status != QLatin1String("Good"))
-            value += QStringLiteral(" [%1]").arg(attribute.status);
-        items.append({attribute.name, value});
-    }
-    _model->setItems(items);
+    _model->setAttributes(details.attributes);
+    ui->attributesTree->expandToDepth(0);
 }
 
 ///
@@ -72,18 +66,11 @@ void AttributesWidget::clear()
 ///
 void AttributesWidget::setupAttributesView()
 {
-    ui->attributesTable->setModel(_model);
-    ui->attributesTable->verticalHeader()->hide();
-
-    auto *header = ui->attributesTable->headerView();
-    connect(header, &HeaderView::sectionAlignmentChanged, this,
-            [this](int logicalIndex, Qt::Alignment alignment) {
-                _model->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
-            });
-
+    ui->attributesTree->setModel(_model);
+    auto *header = ui->attributesTree->header();
     header->setStretchLastSection(false);
     header->setSectionResizeMode(AttributesModel::ColAttribute, QHeaderView::Fixed);
-    header->setSectionResizeMode(AttributesModel::ColValue,     QHeaderView::Stretch);
+    header->setSectionResizeMode(AttributesModel::ColValue, QHeaderView::Stretch);
 
-    ui->attributesTable->setColumnWidth(AttributesModel::ColAttribute, 125);
+    ui->attributesTree->setColumnWidth(AttributesModel::ColAttribute, 165);
 }
