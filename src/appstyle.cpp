@@ -12,6 +12,7 @@
 
 #include "appstyle.h"
 #include "loggingcategories.h"
+#include "widgets/coloredpushbutton.h"
 #include "widgets/themedpushbutton.h"
 #include "widgets/themedtoolbutton.h"
 
@@ -129,7 +130,9 @@ QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
         size.setHeight(qMax(size.height(), menuBarItemMinHeight));
         break;
     case CT_PushButton:
-        if (qobject_cast<const ThemedPushButton *>(widget) != nullptr) {
+        if (qobject_cast<const ThemedPushButton *>(widget) != nullptr
+            || qobject_cast<const ColoredPushButton *>(widget) != nullptr) {
+            size.setWidth(qMax(size.width(), pushButtonMinWidth));
             size.setHeight(qMax(size.height(), controlMinHeight));
         }
         break;

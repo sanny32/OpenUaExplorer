@@ -266,35 +266,18 @@ void drawButton(QPainter *painter, const QPushButton *button, const QColor &bg, 
 namespace Windows11 {
 
 ///
-/// \brief Draws a colored push button using Windows 11 button geometry.
+/// \brief Draws a colored push button using native Windows 11 geometry.
 /// \param painter
 /// \param button
+/// \param option Native push button style option.
 /// \param bg
-/// \param enabled
-/// \param down
-/// \param hovered
 ///
-void drawButton(QPainter *painter, const QPushButton *button, const QColor &bg,
-                bool enabled, bool down, bool hovered)
+void drawButton(QPainter *painter, const QPushButton *button,
+                QStyleOptionButton option, const QColor &bg)
 {
-    constexpr int radius = 4;
-    const QRectF fillRect = QRectF(button->rect().marginsRemoved(QMargins(2, 2, 2, 2)));
-    QColor fillColor = bg;
-    if (down)
-        fillColor = bg.darker(108);
-    else if (hovered)
-        fillColor = bg.lighter(108);
-
-    painter->setPen(Qt::NoPen);
-    painter->setBrush(fillColor);
-    painter->drawRoundedRect(fillRect, radius, radius);
-
-    QRectF borderRect = fillRect.adjusted(0.5, 0.5, -0.5, -0.5);
-    const QColor borderColor = enabled ? bg.darker(125)
-                                       : button->palette().color(QPalette::Disabled, QPalette::Mid);
-    painter->setBrush(Qt::NoBrush);
-    painter->setPen(borderColor);
-    painter->drawRoundedRect(borderRect, radius, radius);
+    option.palette.setColor(QPalette::Button, bg);
+    option.palette.setColor(QPalette::ButtonText, Qt::transparent);
+    button->style()->drawControl(QStyle::CE_PushButton, &option, painter, button);
 }
 
 }
@@ -359,8 +342,8 @@ void ColoredPushButton::paintEvent(QPaintEvent *event)
         return;
     }
 
-    QStyleOption opt;
-    opt.initFrom(this);
+    QStyleOptionButton opt;
+    initStyleOption(&opt);
 
     const bool enabled = opt.state & QStyle::State_Enabled;
     const bool down = enabled && (isDown() || isChecked());
@@ -377,7 +360,7 @@ void ColoredPushButton::paintEvent(QPaintEvent *event)
         Fusion::drawButton(&p, this, opt, bg, enabled, down, hovered);
         break;
     case ButtonStyle::Windows11:
-        Windows11::drawButton(&p, this, bg, enabled, down, hovered);
+        Windows11::drawButton(&p, this, opt, bg);
         break;
     case ButtonStyle::Windows:
         Windows::drawButton(&p, this, bg, down);
