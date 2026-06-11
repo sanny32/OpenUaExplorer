@@ -9,6 +9,7 @@
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QMenu>
+#include <QPushButton>
 
 #include "dataaccessmodel.h"
 #include "dataaccesswidget.h"
@@ -71,6 +72,36 @@ void DataAccessWidget::populateWithTestData()
     _subscriptionsModel->setItems(TestData::subscriptionItems());
     _eventsModel->setItems(TestData::eventItems());
     _historyModel->setItems(TestData::historyItems());
+}
+
+///
+/// \brief DataAccessWidget::addNode
+/// \param details Variable node details.
+///
+void DataAccessWidget::addNode(const OpcUaNodeDetails &details)
+{
+    _dataModel->addOrUpdate(details);
+    setCurrentPage(DataAccessPage);
+}
+
+///
+/// \brief DataAccessWidget::updateValues
+/// \param values Read results.
+///
+void DataAccessWidget::updateValues(const QVector<OpcUaDataValue> &values)
+{
+    _dataModel->updateValues(values);
+}
+
+///
+/// \brief DataAccessWidget::clearRuntimeData
+///
+void DataAccessWidget::clearRuntimeData()
+{
+    _dataModel->clear();
+    _subscriptionsModel->clear();
+    _eventsModel->setItems({});
+    _historyModel->setItems({});
 }
 
 ///
@@ -188,6 +219,26 @@ void DataAccessWidget::configureToolbar()
 
     ui->subscribeButton->setPopupMode(QToolButton::InstantPopup);
     ui->subscribeButton->setEnabled(false);
+    ui->mainTabs->setTabEnabled(SubscriptionsPage, false);
+    ui->mainTabs->setTabEnabled(EventsPage, false);
+    ui->mainTabs->setTabEnabled(HistoryPage, false);
+
+    connect(ui->addNodeButton, &QPushButton::clicked,
+            this, &DataAccessWidget::addSelectedNodeRequested);
+    connect(ui->removeButton, &QPushButton::clicked, this, [this]() {
+        _dataModel->removeRows(selectedDataRows());
+    });
+    connect(ui->readButton, &QPushButton::clicked, this, [this]() {
+        emit readRequested(_dataModel->nodeIds(selectedDataRows()));
+    });
+    connect(ui->writeButton, &QPushButton::clicked, this, [this]() {
+        const QModelIndexList rows = selectedDataRows();
+        if (rows.size() != 1)
+            return;
+        const DataAccessItem item = _dataModel->itemAt(rows.first().row());
+        emit writeRequested(item.nodeId, item.typedValue, item.valueType,
+                            item.dataTypeId, (item.userAccessLevel & 0x02) != 0);
+    });
 }
 
 ///
@@ -224,4 +275,13 @@ void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionN
         _dataModel->setData(_dataModel->index(idx.row(), DataAccessModel::ColSubscription),
                         subscriptionName, Qt::EditRole);
     }
+}
+
+///
+/// \brief DataAccessWidget::selectedDataRows
+/// \return Selected Data Access rows.
+///
+QModelIndexList DataAccessWidget::selectedDataRows() const
+{
+    return ui->dataView->selectionModel()->selectedRows();
 }

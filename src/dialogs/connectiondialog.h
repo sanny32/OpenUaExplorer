@@ -8,7 +8,11 @@
 
 #pragma once
 
+#include <QList>
+
 #include "dialogs/appbasedialog.h"
+#include "opcua/connectionprofile.h"
+#include "opcua/opcuatypes.h"
 
 namespace Ui {
 class ConnectionDialog;
@@ -25,6 +29,25 @@ public:
     explicit ConnectionDialog(QWidget *parent = nullptr);
     ~ConnectionDialog() override;
 
+    void setClientService(class OpcUaClientService *service);
+    ConnectionProfile profile() const;
+    QString password() const;
+    QString privateKeyPassword() const;
+
+private slots:
+    void discoverEndpoints();
+    void handleEndpoints(QList<EndpointInfo> endpoints, const QString &error);
+    void updateEndpointSelection();
+    void updateAuthenticationFields();
+    void chooseClientCertificate();
+    void generateClientCertificate();
+    void validateAndAccept();
+
 private:
     Ui::ConnectionDialog *ui;
+    class OpcUaClientService *_service = nullptr;
+    QList<EndpointInfo> _endpoints;
+    QString _clientCertificateFile;
+    QString _privateKeyFile;
+    QString _privateKeyPassword;
 };

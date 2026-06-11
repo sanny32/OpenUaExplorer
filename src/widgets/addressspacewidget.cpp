@@ -7,6 +7,8 @@
 ///
 
 #include <QHeaderView>
+#include <QItemSelectionModel>
+#include <QPushButton>
 
 #include "addressspacemodel.h"
 #include "addressspacewidget.h"
@@ -34,6 +36,19 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     setupNodeInfoView();
     setupReferencesView();
 
+    connect(_treeModel, &AddressSpaceModel::browseRequested,
+            this, &AddressSpaceWidget::browseRequested);
+    connect(ui->addressTree->selectionModel(), &QItemSelectionModel::currentChanged,
+            this, [this](const QModelIndex &current) {
+        const OpcUaNodeInfo info = _treeModel->nodeInfo(current);
+        _selectedNodeId = info.nodeId;
+        if (!info.nodeId.isEmpty())
+            emit nodeSelected(info);
+    });
+    connect(ui->refreshButton, &QPushButton::clicked, this, [this]() {
+        emit refreshRequested(_selectedNodeId);
+    });
+
     _treeModel->setIconProvider([this](AddressSpaceItem::NodeType type) {
         switch (type) {
         case AddressSpaceItem::NodeType::Folder:   return AppIcons::themed("folder.svg");
@@ -50,6 +65,78 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     ui->refreshButton->setToolTip(QStringLiteral("Refresh"));
     ui->refreshButton->setText(QString());
     ui->splitter->setSizes({455, 255});
+}
+
+///
+/// \brief AddressSpaceWidget::setRootNode
+/// \param root Root folder information.
+///
+void AddressSpaceWidget::setRootNode(const OpcUaNodeInfo &root)
+{
+    _treeModel->setRootNode(root);
+    const QModelIndex rootIndex = _treeModel->index(0, 0);
+    ui->addressTree->setCurrentIndex(rootIndex);
+    ui->addressTree->expand(rootIndex);
+}
+
+///
+/// \brief AddressSpaceWidget::setBrowseChildren
+/// \param parentNodeId Parent NodeId.
+/// \param children Browse result.
+/// \param error Browse error.
+///
+void AddressSpaceWidget::setBrowseChildren(const QString &parentNodeId,
+                                           const QVector<OpcUaNodeInfo> &children,
+                                           const QString &error)
+{
+    if (!error.isEmpty()) {
+        _treeModel->setBrowseFailed(parentNodeId);
+        return;
+    }
+    _treeModel->setChildren(parentNodeId, children);
+    if (_selectedNodeId == parentNodeId) {
+        QVector<ReferenceItem> references;
+        references.reserve(children.size());
+        for (const OpcUaNodeInfo &child : children)
+            references.append({child.referenceTypeId, child.displayName});
+        _referencesModel->setItems(references);
+    }
+}
+
+///
+/// \brief AddressSpaceWidget::setNodeDetails
+/// \param details Selected node details.
+///
+void AddressSpaceWidget::setNodeDetails(const OpcUaNodeDetails &details)
+{
+    QVector<NodeInfoItem> items;
+    items.append({tr("Node Id"), details.nodeId});
+    items.append({tr("Display Name"), details.displayName});
+    items.append({tr("Node Class"), QString::number(details.nodeClass)});
+    items.append({tr("Data Type"), details.dataTypeId});
+    items.append({tr("Value Rank"), QString::number(details.valueRank)});
+    items.append({tr("Status"), details.status});
+    _nodeInfoModel->setItems(items);
+}
+
+///
+/// \brief AddressSpaceWidget::clear
+///
+void AddressSpaceWidget::clear()
+{
+    _selectedNodeId.clear();
+    _treeModel->clear();
+    _nodeInfoModel->clear();
+    _referencesModel->clear();
+}
+
+///
+/// \brief AddressSpaceWidget::selectedNode
+/// \return Currently selected OPC UA node.
+///
+OpcUaNodeInfo AddressSpaceWidget::selectedNode() const
+{
+    return _treeModel->nodeInfo(ui->addressTree->currentIndex());
 }
 
 ///

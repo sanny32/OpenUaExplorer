@@ -43,6 +43,31 @@ void AttributesWidget::populateWithTestData()
 }
 
 ///
+/// \brief AttributesWidget::setNodeDetails
+/// \param details Selected node details.
+///
+void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
+{
+    QVector<QPair<QString, QString>> items;
+    items.reserve(details.attributes.size());
+    for (const OpcUaNodeAttribute &attribute : details.attributes) {
+        QString value = attribute.displayValue;
+        if (!attribute.status.isEmpty() && attribute.status != QLatin1String("Good"))
+            value += QStringLiteral(" [%1]").arg(attribute.status);
+        items.append({attribute.name, value});
+    }
+    _model->setItems(items);
+}
+
+///
+/// \brief AttributesWidget::clear
+///
+void AttributesWidget::clear()
+{
+    _model->clear();
+}
+
+///
 /// \brief AttributesWidget::setupAttributesView
 ///
 void AttributesWidget::setupAttributesView()

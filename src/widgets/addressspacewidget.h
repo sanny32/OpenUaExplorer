@@ -12,6 +12,7 @@
 
 #include "addressspaceitem.h"
 #include "itestdatapopulatable.h"
+#include "opcua/opcuatypes.h"
 
 namespace Ui {
 class AddressSpaceWidget;
@@ -33,6 +34,18 @@ public:
     ~AddressSpaceWidget() override;
 
     void populateWithTestData() override;
+    void setRootNode(const OpcUaNodeInfo &root);
+    void setBrowseChildren(const QString &parentNodeId,
+                           const QVector<OpcUaNodeInfo> &children,
+                           const QString &error);
+    void setNodeDetails(const OpcUaNodeDetails &details);
+    void clear();
+    OpcUaNodeInfo selectedNode() const;
+
+signals:
+    void browseRequested(QString nodeId);
+    void nodeSelected(OpcUaNodeInfo node);
+    void refreshRequested(QString nodeId);
 
 private:
     void setupTreeView();
@@ -43,4 +56,5 @@ private:
     AddressSpaceModel      *_treeModel;
     NodeInfoModel          *_nodeInfoModel;
     ReferencesModel        *_referencesModel;
+    QString                 _selectedNodeId;
 };

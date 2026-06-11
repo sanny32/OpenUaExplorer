@@ -8,7 +8,9 @@
 
 #pragma once
 
+#include <QDateTime>
 #include <QString>
+#include <QVariant>
 
 ///
 /// \brief Describes one OPC UA data access item row.
@@ -22,4 +24,9 @@ struct DataAccessItem
     QString sourceTimestamp;
     QString status;
     QString subscriptionName;
+    QVariant typedValue;
+    int valueType = 0;
+    QString dataTypeId;
+    QDateTime serverTimestamp;
+    quint8 userAccessLevel = 0;
 };

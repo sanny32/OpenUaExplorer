@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include <QModelIndex>
 #include <QWidget>
 
 #include "itestdatapopulatable.h"
+#include "opcua/opcuatypes.h"
 
 namespace Ui {
 class DataAccessWidget;
@@ -41,6 +43,15 @@ public:
 
     void setCurrentPage(Page page);
     void populateWithTestData() override;
+    void addNode(const OpcUaNodeDetails &details);
+    void updateValues(const QVector<OpcUaDataValue> &values);
+    void clearRuntimeData();
+
+signals:
+    void addSelectedNodeRequested();
+    void readRequested(QStringList nodeIds);
+    void writeRequested(QString nodeId, QVariant currentValue, int valueType,
+                        QString dataTypeId, bool writable);
 
 private:
     void setupDataView();
@@ -50,6 +61,7 @@ private:
     void configureToolbar();
     void rebuildSubscribeMenu();
     void applySubscriptionToSelection(const QString &subscriptionName);
+    QModelIndexList selectedDataRows() const;
 
     Ui::DataAccessWidget *ui;
     DataAccessModel      *_dataModel;

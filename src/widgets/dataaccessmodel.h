@@ -14,6 +14,7 @@
 #include <QVector>
 
 #include "dataaccessitem.h"
+#include "opcua/opcuatypes.h"
 
 ///
 /// \brief Table model for OPC UA data access monitored items.
@@ -26,6 +27,12 @@ public:
     explicit DataAccessModel(QObject *parent = nullptr);
 
     void setItems(const QVector<DataAccessItem> &items);
+    void addOrUpdate(const OpcUaNodeDetails &details);
+    void updateValues(const QVector<OpcUaDataValue> &values);
+    void removeRows(const QModelIndexList &rows);
+    QStringList nodeIds(const QModelIndexList &rows = {}) const;
+    DataAccessItem itemAt(int row) const;
+    void clear();
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;

@@ -10,6 +10,8 @@
 
 #include <QStatusBar>
 
+#include "opcua/opcuatypes.h"
+
 namespace Ui {
 class MainStatusBarWidget;
 }
@@ -24,6 +26,10 @@ class MainStatusBarWidget : public QStatusBar
 public:
     explicit MainStatusBarWidget(QWidget *parent = nullptr);
     ~MainStatusBarWidget() override;
+
+    void setConnectionState(OpcUaConnectionState state,
+                            const QString &endpoint = QString(),
+                            const QString &security = QString());
 
 private:
     Ui::MainStatusBarWidget *ui;

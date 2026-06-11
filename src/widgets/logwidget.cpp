@@ -91,7 +91,8 @@ LogWidget::LogWidget(QWidget *parent)
         ui->pauseButton->setText(checked ? tr("Resume") : tr("Pause"));
     });
 
-    connect(ui->levelCombo, &QComboBox::currentIndexChanged, this, [this](int index) {
+    connect(ui->levelCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int index) {
         switch (index) {
         case 0: _model->clearFilterLevel();                        break;
         case 1: _model->setFilterLevel(LogItem::Level::Info);     break;

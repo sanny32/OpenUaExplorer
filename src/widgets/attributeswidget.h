@@ -11,6 +11,7 @@
 #include <QWidget>
 
 #include "itestdatapopulatable.h"
+#include "opcua/opcuatypes.h"
 
 namespace Ui {
 class AttributesWidget;
@@ -30,6 +31,8 @@ public:
     ~AttributesWidget() override;
 
     void populateWithTestData() override;
+    void setNodeDetails(const OpcUaNodeDetails &details);
+    void clear();
 
 private:
     void setupAttributesView();

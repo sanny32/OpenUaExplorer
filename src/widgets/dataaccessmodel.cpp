@@ -6,6 +6,9 @@
 /// \brief Implements the OPC UA data access table model.
 ///
 
+#include <algorithm>
+#include <functional>
+
 #include <QApplication>
 #include <QBrush>
 #include <QColor>
@@ -31,6 +34,131 @@ void DataAccessModel::setItems(const QVector<DataAccessItem> &items)
     beginResetModel();
     _items = items;
     endResetModel();
+}
+
+///
+/// \brief DataAccessModel::addOrUpdate
+/// \param details Node details to add or update.
+///
+void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
+{
+    for (int row = 0; row < _items.size(); ++row) {
+        if (_items.at(row).nodeId != details.nodeId)
+            continue;
+        DataAccessItem &item = _items[row];
+        item.displayName = details.displayName;
+        item.typedValue = details.value;
+        item.value = details.value.toString();
+        item.valueType = details.valueType;
+        item.dataTypeId = details.dataTypeId;
+        item.dataType = details.dataTypeId;
+        item.status = details.status;
+        item.sourceTimestamp = details.sourceTimestamp.toString(Qt::ISODateWithMs);
+        item.serverTimestamp = details.serverTimestamp;
+        item.userAccessLevel = details.userAccessLevel;
+        emit dataChanged(index(row, 0), index(row, ColCount - 1));
+        return;
+    }
+
+    const int row = _items.size();
+    beginInsertRows({}, row, row);
+    DataAccessItem item;
+    item.nodeId = details.nodeId;
+    item.displayName = details.displayName;
+    item.typedValue = details.value;
+    item.value = details.value.toString();
+    item.valueType = details.valueType;
+    item.dataTypeId = details.dataTypeId;
+    item.dataType = details.dataTypeId;
+    item.status = details.status;
+    item.sourceTimestamp = details.sourceTimestamp.toString(Qt::ISODateWithMs);
+    item.serverTimestamp = details.serverTimestamp;
+    item.userAccessLevel = details.userAccessLevel;
+    _items.append(item);
+    endInsertRows();
+}
+
+///
+/// \brief DataAccessModel::updateValues
+/// \param values Read results.
+///
+void DataAccessModel::updateValues(const QVector<OpcUaDataValue> &values)
+{
+    for (const OpcUaDataValue &value : values) {
+        for (int row = 0; row < _items.size(); ++row) {
+            DataAccessItem &item = _items[row];
+            if (item.nodeId != value.nodeId)
+                continue;
+            item.typedValue = value.value;
+            item.value = value.value.toString();
+            item.status = value.status;
+            item.sourceTimestamp = value.sourceTimestamp.toString(Qt::ISODateWithMs);
+            item.serverTimestamp = value.serverTimestamp;
+            emit dataChanged(index(row, ColValue), index(row, ColStatus));
+            break;
+        }
+    }
+}
+
+///
+/// \brief DataAccessModel::removeRows
+/// \param rows Selected model rows.
+///
+void DataAccessModel::removeRows(const QModelIndexList &rows)
+{
+    QList<int> rowNumbers;
+    for (const QModelIndex &index : rows) {
+        if (!rowNumbers.contains(index.row()))
+            rowNumbers.append(index.row());
+    }
+    std::sort(rowNumbers.begin(), rowNumbers.end(), std::greater<int>());
+    for (int row : rowNumbers) {
+        if (row < 0 || row >= _items.size())
+            continue;
+        beginRemoveRows({}, row, row);
+        _items.removeAt(row);
+        endRemoveRows();
+    }
+}
+
+///
+/// \brief DataAccessModel::nodeIds
+/// \param rows Optional selected rows.
+/// \return NodeIds for selected rows or all rows.
+///
+QStringList DataAccessModel::nodeIds(const QModelIndexList &rows) const
+{
+    QStringList result;
+    if (rows.isEmpty()) {
+        for (const DataAccessItem &item : _items)
+            result.append(item.nodeId);
+        return result;
+    }
+    for (const QModelIndex &index : rows) {
+        if (index.row() >= 0 && index.row() < _items.size()
+            && !result.contains(_items.at(index.row()).nodeId)) {
+            result.append(_items.at(index.row()).nodeId);
+        }
+    }
+    return result;
+}
+
+///
+/// \brief DataAccessModel::itemAt
+/// \param row Model row.
+/// \return Data item or an empty item.
+///
+DataAccessItem DataAccessModel::itemAt(int row) const
+{
+    return row >= 0 && row < _items.size() ? _items.at(row) : DataAccessItem();
+}
+
+///
+/// \brief DataAccessModel::clear
+///
+void DataAccessModel::clear()
+{
+    setItems({});
 }
 
 

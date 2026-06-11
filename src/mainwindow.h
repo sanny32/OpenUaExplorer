@@ -10,6 +10,9 @@
 
 #include <QMainWindow>
 
+#include "opcua/connectionprofile.h"
+#include "opcua/opcuatypes.h"
+
 namespace Ui {
 class MainWindow;
 }
@@ -31,6 +34,15 @@ protected:
 private slots:
     void on_actionNewConnection_triggered();
     void on_actionConnect_triggered();
+    void on_actionDisconnect_triggered();
+    void on_actionBrowse_triggered();
+    void on_actionBrowseAddressSpace_triggered();
+    void on_actionRefresh_triggered();
+    void on_actionRead_triggered();
+    void on_actionReadSelected_triggered();
+    void on_actionWrite_triggered();
+    void on_actionWriteValue_triggered();
+    void on_actionAddToDataAccess_triggered();
     void on_actionExit_triggered();
     void on_actionTheme_triggered();
     void on_actionAbout_triggered();
@@ -52,7 +64,26 @@ private:
     void bindIcons();
     void toggleTheme();
     void populateWithTestData();
+    void setupOpcUaClient();
+    void updateClientUi(OpcUaConnectionState state);
+    void initializeAddressSpace();
+    void showWriteDialog(const QString &nodeId, const QVariant &value, int valueType,
+                         const QString &dataTypeId, bool writable);
+    void saveProfile(const ConnectionProfile &profile,
+                     const QString &password,
+                     const QString &privateKeyPassword);
+    void rebuildRecentConnections();
+    void connectProfile(const ConnectionProfile &profile);
 
 private:
     Ui::MainWindow *ui;
+    class OpcUaClientService *_clientService;
+    class SecretStore *_secretStore;
+    class ConnectionProfileStore *_profileStore;
+    ConnectionProfile _activeProfile;
+    ConnectionProfile _pendingProfile;
+    OpcUaNodeDetails _selectedNodeDetails;
+    QString _pendingPassword;
+    QString _pendingPrivateKeyPassword;
+    int _pendingSecretReads = 0;
 };
