@@ -44,10 +44,13 @@ private slots:
     void validateAndAccept();
 
 private:
+    void saveLastEndpointUrl();
+
     Ui::ConnectionDialog *ui;
     class OpcUaClientService *_service = nullptr;
     QList<EndpointInfo> _endpoints;
     bool _connectAfterDiscovery = false;
+    QString _lastEnteredEndpointUrl;
     QString _clientCertificateFile;
     QString _privateKeyFile;
     QString _privateKeyPassword;

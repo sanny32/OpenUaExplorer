@@ -18,6 +18,9 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QScreen>
+#include <QSettings>
+#include <QSignalBlocker>
+#include <QStringList>
 #include <QStyle>
 #include <QUuid>
 
@@ -28,6 +31,10 @@
 #include "widgets/coloredpushbutton.h"
 
 namespace {
+
+constexpr auto lastEndpointUrlKey = "connectionDialog/lastEndpointUrl";
+constexpr auto endpointUrlHistoryKey = "connectionDialog/endpointUrlHistory";
+constexpr int maximumEndpointHistorySize = 10;
 
 ///
 /// \brief Expands a combo box popup to fit its longest item.
@@ -63,6 +70,23 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
 {
     ui->setupUi(this);
 
+    QSettings settings;
+    QStringList endpointHistory = settings.value(
+        QLatin1String(endpointUrlHistoryKey)).toStringList();
+    const QString lastEndpointUrl = settings.value(
+        QLatin1String(lastEndpointUrlKey)).toString().trimmed();
+    if (!lastEndpointUrl.isEmpty()) {
+        endpointHistory.removeAll(lastEndpointUrl);
+        endpointHistory.prepend(lastEndpointUrl);
+    }
+    if (endpointHistory.isEmpty())
+        endpointHistory.append(ui->endpointComboBox->currentText());
+
+    ui->endpointComboBox->clear();
+    ui->endpointComboBox->addItems(endpointHistory);
+    _lastEnteredEndpointUrl = endpointHistory.constFirst();
+    ui->endpointComboBox->setEditText(_lastEnteredEndpointUrl);
+
     ui->clientCertificateHintIcon->setIcon(QStringLiteral("info"), QSize(24, 24));
     ui->serverCertificateIconLabel->setIcon(QStringLiteral("lock"), QSize(48, 48));
     ui->statusIconLabel->setIcon(QStringLiteral("disconnected"), QSize(16, 16));
@@ -76,10 +100,20 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     connect(ui->endpointComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ConnectionDialog::updateEndpointSelection);
-    connect(ui->endpointComboBox->lineEdit(), &QLineEdit::textEdited, this, [this]() {
+    connect(ui->endpointComboBox, QOverload<int>::of(&QComboBox::activated),
+            this, [this](int index) {
+        if (ui->endpointComboBox->itemData(index).isValid())
+            return;
         _endpoints.clear();
+        _lastEnteredEndpointUrl = ui->endpointComboBox->itemText(index);
+    });
+    connect(ui->endpointComboBox->lineEdit(), &QLineEdit::textEdited,
+            this, [this](const QString &text) {
+        _endpoints.clear();
+        _lastEnteredEndpointUrl = text;
     });
     connect(ui->endpointComboBox->lineEdit(), &QLineEdit::editingFinished, this, [this]() {
+        saveLastEndpointUrl();
         ui->endpointComboBox->lineEdit()->setCursorPosition(0);
     });
     connect(ui->authenticationComboBox,
@@ -112,6 +146,7 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
 ///
 ConnectionDialog::~ConnectionDialog()
 {
+    saveLastEndpointUrl();
     delete ui;
 }
 
@@ -204,6 +239,7 @@ void ConnectionDialog::discoverEndpoints()
                               tr("The OPC UA client service is unavailable."));
         return;
     }
+    saveLastEndpointUrl();
     const QString url = ui->endpointComboBox->currentText();
     ui->statusLabel->setText(tr("Discovering endpoints..."));
     ui->browseServersButton->setEnabled(false);
@@ -379,4 +415,34 @@ void ConnectionDialog::validateAndAccept()
         return;
     }
     accept();
+}
+
+///
+/// \brief ConnectionDialog::saveLastEndpointUrl
+///
+void ConnectionDialog::saveLastEndpointUrl()
+{
+    const QString endpointUrl = _lastEnteredEndpointUrl.trimmed();
+    if (endpointUrl.isEmpty())
+        return;
+
+    QSettings settings;
+    QStringList endpointHistory = settings.value(
+        QLatin1String(endpointUrlHistoryKey)).toStringList();
+    endpointHistory.removeAll(endpointUrl);
+    endpointHistory.prepend(endpointUrl);
+    while (endpointHistory.size() > maximumEndpointHistorySize)
+        endpointHistory.removeLast();
+
+    settings.setValue(QLatin1String(lastEndpointUrlKey), endpointUrl);
+    settings.setValue(QLatin1String(endpointUrlHistoryKey), endpointHistory);
+    settings.sync();
+
+    if (_endpoints.isEmpty()) {
+        const QSignalBlocker blocker(ui->endpointComboBox);
+        ui->endpointComboBox->clear();
+        ui->endpointComboBox->addItems(endpointHistory);
+        ui->endpointComboBox->setEditText(endpointUrl);
+        updatePopupWidth(ui->endpointComboBox);
+    }
 }

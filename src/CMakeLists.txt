@@ -15,6 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 set(PRODUCT_NAME "Open UaExplorer")
+set(ORGANIZATION_NAME "OpenUaExplorer")
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/qt.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies.cmake")
@@ -34,6 +35,7 @@ ouaexp_apply_project_version_suffix()
 
 add_compile_definitions(
     APP_NAME="${PRODUCT_NAME}"
+    APP_ORGANIZATION_NAME="${ORGANIZATION_NAME}"
     APP_PRODUCT_NAME="${PRODUCT_NAME}"
     APP_DESCRIPTION="${PROJECT_DESCRIPTION}"
     APP_VERSION_MAJOR="${VERSION_MAJOR}"

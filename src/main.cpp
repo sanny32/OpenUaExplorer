@@ -13,6 +13,7 @@
 int main(int argc, char *argv[])
 {
     Application a(argc, argv);
+    a.setOrganizationName(APP_ORGANIZATION_NAME);
     a.setApplicationName(APP_NAME);
     a.setApplicationVersion(APP_VERSION);
 
