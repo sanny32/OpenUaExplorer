@@ -6,6 +6,7 @@ set(SOURCES
     fusionstyle.cpp
     loggingcategories.cpp
 
+    opcua/attributeformatter.cpp
     opcua/connectionprofilestore.cpp
     opcua/opcuaclientservice.cpp
     opcua/pkimanager.cpp
@@ -58,6 +59,7 @@ set(HEADERS
     fusionstyle.h
     loggingcategories.h
 
+    opcua/attributeformatter.h
     opcua/connectionprofile.h
     opcua/connectionprofilestore.h
     opcua/opcuaclientservice.h

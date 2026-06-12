@@ -7,6 +7,7 @@ function(ouaexp_configure_tests)
     # the test binaries. Keeping the list in one place avoids duplicating it
     # across the per-area test executables created below.
     add_library(ouaexp_testable STATIC
+        opcua/attributeformatter.cpp
         opcua/connectionprofilestore.cpp
         opcua/opcuaclientservice.cpp
         opcua/pkimanager.cpp
@@ -21,6 +22,7 @@ function(ouaexp_configure_tests)
         widgets/nodeinfomodel.cpp
         widgets/referencesmodel.cpp
         widgets/subscriptionsmodel.cpp
+        opcua/attributeformatter.h
         opcua/connectionprofile.h
         opcua/connectionprofilestore.h
         opcua/opcuaclientservice.h
@@ -91,4 +93,5 @@ function(ouaexp_configure_tests)
     ouaexp_add_test(ouaexp_tests_profiles  test_profiles.cpp)
     ouaexp_add_test(ouaexp_tests_models    test_models.cpp)
     ouaexp_add_test(ouaexp_tests_secrets   test_secretstore.cpp)
+    ouaexp_add_test(ouaexp_tests_formatter test_attributeformatter.cpp)
 endfunction()
