@@ -1,4 +1,8 @@
 function(ouaexp_configure_tests)
+    # Group every test-related target under a "Tests" node in IDE project trees
+    # (Qt Creator, Visual Studio, Xcode) instead of listing them flat.
+    set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
     # Static library with the transport-neutral production sources exercised by
     # the test binaries. Keeping the list in one place avoids duplicating it
     # across the per-area test executables created below.
@@ -69,6 +73,7 @@ function(ouaexp_configure_tests)
 
     # Instrument the shared production sources when coverage is requested.
     ouaexp_apply_coverage(ouaexp_testable)
+    set_target_properties(ouaexp_testable PROPERTIES FOLDER "Tests")
 
     # Creates one Qt Test executable per area and registers it with CTest.
     function(ouaexp_add_test test_name source_file)
@@ -78,6 +83,7 @@ function(ouaexp_configure_tests)
             Qt${QT_VERSION_MAJOR}::Test
         )
         ouaexp_apply_coverage(${test_name})
+        set_target_properties(${test_name} PROPERTIES FOLDER "Tests")
         add_test(NAME ${test_name} COMMAND ${test_name})
     endfunction()
 
