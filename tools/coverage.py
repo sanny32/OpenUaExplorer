@@ -122,8 +122,7 @@ def report_msvc(build_dir: Path, out_dir: Path, config: str) -> tuple[Path, int]
         "--",
         "ctest", "--test-dir", build_dir, "-C", config, "--output-on-failure",
     ]
-    # OpenCppCoverage forwards the suite's exit code; a failing test must not
-    # discard the report, so don't raise here - surface it to the caller.
+    # Don't raise on a failing suite: surface the exit code but keep the report.
     rc = run(cmd, check=False).returncode
     return xml, rc
 

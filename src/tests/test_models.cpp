@@ -194,9 +194,7 @@ void TestModels::dataAccessRemoveRowsDropsSelected()
     const QVector<DataAccessItem> items = TestData::dataAccessItems();
     model.setItems(items);
 
-    // Remove the last row: the positional "#" column means dropping an earlier
-    // row would renumber the survivors without a dataChanged signal, which the
-    // model tester rejects. Removing the tail leaves the numbering untouched.
+    // Remove the tail: dropping an earlier row renumbers survivors without a dataChanged signal, which the model tester rejects.
     const int lastRow = items.size() - 1;
     model.removeRows({model.index(lastRow, 0)});
 
@@ -300,9 +298,7 @@ static OpcUaNodeInfo makeRoot()
 ///
 void TestModels::addressSpaceFetchMoreEmitsBrowseOnce()
 {
-    // No QAbstractItemModelTester here: it eagerly calls fetchMore() while
-    // probing the model, which would consume the single browse this test wants
-    // to observe.
+    // No QAbstractItemModelTester here: it eagerly calls fetchMore(), consuming the single browse this test observes.
     AddressSpaceModel model;
     model.setRootNode(makeRoot());
 
@@ -770,8 +766,7 @@ void TestModels::addressSpaceDataRolesAndTreeOps()
     QVERIFY(!model.data(folder, Qt::SizeHintRole).isValid());
     QVERIFY(!model.data(QModelIndex()).isValid());
 
-    // The decoration role only resolves once an icon provider is installed; calling
-    // it on each NodeType drives iconType's branches.
+    // The decoration role only resolves once an icon provider is installed; calling it per NodeType drives iconType's branches.
     QVERIFY(!model.data(folder, Qt::DecorationRole).isValid());
     model.setIconProvider([](AddressSpaceItem::NodeType) { return QIcon(); });
     model.data(folder, Qt::DecorationRole);

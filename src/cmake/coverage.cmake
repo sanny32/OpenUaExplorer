@@ -20,16 +20,14 @@ function(ouaexp_apply_coverage target)
         return()
     endif()
 
-    # Coverage and link-time optimization don't mix: LTO folds away the
-    # per-translation-unit mapping the tools rely on. Disable it per target.
+    # LTO folds away the per-translation-unit mapping coverage tools rely on.
     set_target_properties(${target} PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(${target} PRIVATE --coverage -O0 -g)
         target_link_options(${target} PRIVATE --coverage)
     elseif(MSVC)
-        # /Zi -> PDBs for OpenCppCoverage; keep the linker from merging or
-        # discarding code so line mapping stays accurate.
+        # /Zi emits PDBs for OpenCppCoverage; /OPT:NOREF,NOICF keep line mapping intact.
         target_compile_options(${target} PRIVATE /Zi /Od)
         target_link_options(${target} PRIVATE /DEBUG /OPT:NOREF /OPT:NOICF)
     else()

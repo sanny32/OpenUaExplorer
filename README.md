@@ -13,6 +13,32 @@ OpenUaExplorer is an open source OPC UA client for browsing, inspecting, and mon
 - Use the built-in activity log while working with connections.
 - Switch between light and dark application themes.
 
+## Tests
+
+Install the test dependencies:
+
+```sh
+pip install -r tools/requirements.txt
+```
+
+Configure the build:
+
+```sh
+cmake -S src -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/<kit>
+```
+
+Build:
+
+```sh
+cmake --build build --parallel
+```
+
+Run the suite with CTest:
+
+```sh
+ctest --test-dir build --output-on-failure
+```
+
 ## Test coverage
 
 A cross-platform helper measures how much of the tested production code the unit
@@ -27,28 +53,23 @@ and writes a Cobertura + HTML report, picking the backend from the compiler:
 Run it from the repository root (in a shell where your compiler and Qt are on
 the path — e.g. an MSVC *Developer* prompt on Windows):
 
+Build, test and write the report:
+
 ```sh
-python tools/coverage.py            # build, test, report
-python tools/coverage.py --open     # also open the HTML report
-# Forward extra CMake args (e.g. Qt location) after a literal --:
-python tools/coverage.py -- -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/<kit>
+python tools/coverage.py
 ```
 
-It prints a `Line coverage: NN.N%` summary and writes the full report to
-`build-coverage/coverage/` (`coverage.xml` for CI, `index.html` to browse).
-Coverage instrumentation is gated behind the `OUAEXP_ENABLE_COVERAGE` CMake
-option, so normal builds are unaffected.
+Also open the HTML report:
 
-The build defaults to the `RelWithDebInfo` configuration: the instrumentation
-already forces `-O0`/`/Od` plus debug info on the test targets for accurate line
-mapping, while a release config keeps Qt happy when loading the (release-built)
-Qt OPC UA backend plugin — a debug build cannot load release Qt plugins.
+```sh
+python tools/coverage.py --open
+```
 
-One end-to-end test (`ouaexp_tests_integration`) drives the client against a real
-OPC UA server launched from [tools/opcua_test_server.py](tools/opcua_test_server.py).
-It needs Python with the `asyncua` package (`pip install asyncua`); when Python,
-asyncua, or an OPC UA backend is unavailable the test skips itself, so it never
-breaks a build that lacks the dependency.
+If needed, forward extra CMake args (e.g. Qt location) after a literal `--`:
+
+```sh
+python tools/coverage.py -- -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/<kit>
+```
 
 ## MIT License
 

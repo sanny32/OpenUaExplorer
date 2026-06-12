@@ -36,8 +36,7 @@ private:
             + QUuid::createUuid().toString(QUuid::WithoutBraces);
     }
 
-    // Performs a synchronous write, returning the reported error string.
-    // Empty string means success.
+    // Performs a synchronous write, returning the reported error string ("" on success).
     QString writeSync(SecretStore &store, const QString &profileId,
                       SecretStore::Secret secret, const QString &value)
     {

@@ -1,11 +1,6 @@
 function(ouaexp_configure_tests)
-    # Group every test-related target under a "Tests" node in IDE project trees
-    # (Qt Creator, Visual Studio, Xcode) instead of listing them flat.
     set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-    # Static library with the transport-neutral production sources exercised by
-    # the test binaries. Keeping the list in one place avoids duplicating it
-    # across the per-area test executables created below.
     add_library(ouaexp_testable STATIC
         opcua/attributeformatter.cpp
         opcua/connectionprofilestore.cpp
@@ -57,8 +52,6 @@ function(ouaexp_configure_tests)
         Qt${QT_VERSION_MAJOR}::OpcUa
     )
 
-    # Propagate the optional backends (and their feature macros) to every test
-    # executable that links the library, so the tests can branch on them too.
     if(TARGET OpenSSL::Crypto)
         target_link_libraries(ouaexp_testable PUBLIC OpenSSL::Crypto)
         target_compile_definitions(ouaexp_testable PUBLIC OUAEXP_HAS_OPENSSL)
@@ -73,11 +66,9 @@ function(ouaexp_configure_tests)
         target_compile_options(ouaexp_testable PUBLIC /utf-8)
     endif()
 
-    # Instrument the shared production sources when coverage is requested.
     ouaexp_apply_coverage(ouaexp_testable)
     set_target_properties(ouaexp_testable PROPERTIES FOLDER "Tests")
 
-    # Creates one Qt Test executable per area and registers it with CTest.
     function(ouaexp_add_test test_name source_file)
         add_executable(${test_name} tests/${source_file})
         target_link_libraries(${test_name} PRIVATE
@@ -95,9 +86,6 @@ function(ouaexp_configure_tests)
     ouaexp_add_test(ouaexp_tests_secrets   test_secretstore.cpp)
     ouaexp_add_test(ouaexp_tests_formatter test_attributeformatter.cpp)
 
-    # Integration test: drives the client against a real Python asyncua server.
-    # It skips itself when Python/asyncua or a backend is unavailable, so the
-    # server location is the only extra wiring it needs.
     ouaexp_add_test(ouaexp_tests_integration test_opcua_integration.cpp)
     target_compile_definitions(ouaexp_tests_integration PRIVATE
         OUAEXP_TEST_SERVER_SCRIPT="${CMAKE_CURRENT_SOURCE_DIR}/../tools/opcua_test_server.py")
