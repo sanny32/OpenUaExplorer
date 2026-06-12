@@ -20,6 +20,8 @@ public:
     QSize sizeFromContents(ContentsType type, const QStyleOption *option,
                            const QSize &contentsSize,
                            const QWidget *widget = nullptr) const override;
+    void drawControl(ControlElement element, const QStyleOption *option,
+                     QPainter *painter, const QWidget *widget = nullptr) const override;
 
     static constexpr int controlMinHeight = 30;
     static constexpr int pushButtonMinWidth = 80;

@@ -4,11 +4,14 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QPalette>
 #include <QProxyStyle>
 #include <QStyle>
 #include <QStyleFactory>
 #include <QStyleOptionButton>
 #include <QStyleOptionMenuItem>
+#include <QStyleOptionViewItem>
+#include <QWidget>
 
 #include "appstyle.h"
 #include "loggingcategories.h"
@@ -74,6 +77,29 @@ bool AppStyle::isFusionStyle()
     return base && QString::fromLatin1(base->metaObject()->className())
         .contains(QLatin1String("Fusion"), Qt::CaseInsensitive);
 #endif
+}
+
+///
+/// \brief AppStyle::drawControl
+/// \param element
+/// \param option
+/// \param painter
+/// \param widget
+///
+void AppStyle::drawControl(ControlElement element, const QStyleOption *option,
+                           QPainter *painter, const QWidget *widget) const
+{
+    if (element == CE_ItemViewItem && widget
+        && widget->objectName() == QLatin1String("attributesTree")
+        && option->state.testAnyFlags(State_Selected | State_MouseOver)) {
+        if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option)) {
+            QStyleOptionViewItem opt(*item);
+            opt.palette.setColor(QPalette::Text, opt.palette.color(QPalette::HighlightedText));
+            QProxyStyle::drawControl(element, &opt, painter, widget);
+            return;
+        }
+    }
+    QProxyStyle::drawControl(element, option, painter, widget);
 }
 
 ///
