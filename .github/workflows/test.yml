@@ -7,7 +7,7 @@ on:
 
 # Cancel superseded runs on the same ref to save CI minutes.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: test-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -17,7 +17,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            cmake_extra: ''
+          - os: windows-latest
+            cmake_extra: '-DOUAEXP_OPENSSL_ROOT_DIR='
 
     env:
       # Run Qt GUI/Test binaries without a real display.
@@ -27,9 +31,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Build dependencies needed to compile QtKeychain and the GUI libraries
-      # on Linux. The keychain backend itself may still be unavailable at run
-      # time, in which case the SecretStore test skips instead of failing.
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
         run: |
@@ -45,27 +46,45 @@ jobs:
         if: runner.os == 'Windows'
         uses: seanmiddleditch/gha-setup-ninja@v5
 
-      # Install Qt with the prebuilt OpcUa module so the heavy source bootstrap
-      # in cmake/qtopcua.cmake is skipped (find_package succeeds and returns).
+      - name: Set up MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: '6.9.3'
-          modules: 'qtopcua'
           cache: true
+
+      - name: Cache Qt OpcUa build
+        uses: actions/cache@v4
+        with:
+          path: build/_deps/qtopcua-install
+          key: qtopcua-${{ matrix.os }}-6.9.3-${{ hashFiles('src/cmake/qtopcua.cmake') }}
 
       - name: Configure
         run: >
           cmake -S src -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF
+          ${{ matrix.cmake_extra }}
 
       - name: Build tests
         run: >
-          cmake --build build --config Release
+          cmake --build build --config Release --parallel
           --target ouaexp_tests ouaexp_tests_profiles ouaexp_tests_models ouaexp_tests_secrets
 
-      - name: Run tests
-        # Restrict to our suites; vendored dependencies (QtKeychain) may register
-        # their own autotests when built in-tree.
-        run: ctest --test-dir build --output-on-failure -R "^ouaexp_"
+      - name: Run tests (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          export LD_LIBRARY_PATH="$QT_ROOT_DIR/lib:$PWD/build/_deps/qtopcua-install/lib:$LD_LIBRARY_PATH"
+          export QT_PLUGIN_PATH="$PWD/build/_deps/qtopcua-install/plugins:$QT_ROOT_DIR/plugins"
+          ctest --test-dir build --output-on-failure -R "^ouaexp_"
+
+      - name: Run tests (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:QT_ROOT_DIR\bin;$PWD\build\_deps\qtopcua-install\bin;" + $env:PATH
+          $env:QT_PLUGIN_PATH = "$PWD\build\_deps\qtopcua-install\plugins;$env:QT_ROOT_DIR\plugins"
+          ctest --test-dir build --output-on-failure -R "^ouaexp_"
