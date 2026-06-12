@@ -94,4 +94,11 @@ function(ouaexp_configure_tests)
     ouaexp_add_test(ouaexp_tests_models    test_models.cpp)
     ouaexp_add_test(ouaexp_tests_secrets   test_secretstore.cpp)
     ouaexp_add_test(ouaexp_tests_formatter test_attributeformatter.cpp)
+
+    # Integration test: drives the client against a real Python asyncua server.
+    # It skips itself when Python/asyncua or a backend is unavailable, so the
+    # server location is the only extra wiring it needs.
+    ouaexp_add_test(ouaexp_tests_integration test_opcua_integration.cpp)
+    target_compile_definitions(ouaexp_tests_integration PRIVATE
+        OUAEXP_TEST_SERVER_SCRIPT="${CMAKE_CURRENT_SOURCE_DIR}/../tools/opcua_test_server.py")
 endfunction()

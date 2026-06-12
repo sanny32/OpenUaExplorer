@@ -44,6 +44,12 @@ already forces `-O0`/`/Od` plus debug info on the test targets for accurate line
 mapping, while a release config keeps Qt happy when loading the (release-built)
 Qt OPC UA backend plugin — a debug build cannot load release Qt plugins.
 
+One end-to-end test (`ouaexp_tests_integration`) drives the client against a real
+OPC UA server launched from [tools/opcua_test_server.py](tools/opcua_test_server.py).
+It needs Python with the `asyncua` package (`pip install asyncua`); when Python,
+asyncua, or an OPC UA backend is unavailable the test skips itself, so it never
+breaks a build that lacks the dependency.
+
 ## MIT License
 
 Copyright 2026 Alexandr Ananev [mail@ananev.org]
