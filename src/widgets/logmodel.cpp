@@ -140,11 +140,13 @@ void LogModel::addItem(const LogItem &item)
     const bool levelOk  = !_filtered || item.level == _filterLevel;
     const bool searchOk = _searchText.isEmpty()
                           || item.message.contains(_searchText, Qt::CaseInsensitive);
-    _items.append(item);
     if (levelOk && searchOk) {
-        const int row = visibleItems().size() - 1;
+        const int row = visibleItems().size();
         beginInsertRows(QModelIndex(), row, row);
+        _items.append(item);
         endInsertRows();
+    } else {
+        _items.append(item);
     }
 }
 

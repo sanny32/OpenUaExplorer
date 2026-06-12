@@ -29,6 +29,8 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/target_macos.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/target_linux.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake")
 
+enable_testing()
+
 add_executable(${PROJECT_NAME})
 
 ouaexp_apply_project_version_suffix()

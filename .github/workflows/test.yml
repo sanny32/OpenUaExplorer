@@ -1,0 +1,71 @@
+name: Test
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    env:
+      # Run Qt GUI/Test binaries without a real display.
+      QT_QPA_PLATFORM: offscreen
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Build dependencies needed to compile QtKeychain and the GUI libraries
+      # on Linux. The keychain backend itself may still be unavailable at run
+      # time, in which case the SecretStore test skips instead of failing.
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build \
+            libsecret-1-dev \
+            libssl-dev \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0
+
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      # Install Qt with the prebuilt OpcUa module so the heavy source bootstrap
+      # in cmake/qtopcua.cmake is skipped (find_package succeeds and returns).
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.9.3'
+          modules: 'qtopcua'
+          cache: true
+
+      - name: Configure
+        run: >
+          cmake -S src -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF
+
+      - name: Build tests
+        run: >
+          cmake --build build --config Release
+          --target ouaexp_tests ouaexp_tests_profiles ouaexp_tests_models ouaexp_tests_secrets
+
+      - name: Run tests
+        # Restrict to our suites; vendored dependencies (QtKeychain) may register
+        # their own autotests when built in-tree.
+        run: ctest --test-dir build --output-on-failure -R "^ouaexp_"

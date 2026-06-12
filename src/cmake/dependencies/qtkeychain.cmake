@@ -11,6 +11,8 @@ if(NOT TARGET qt${QT_VERSION_MAJOR}keychain AND OUAEXP_FETCH_QTKEYCHAIN)
     endif()
     set(BUILD_TEST_APPLICATION OFF CACHE BOOL
         "Build QtKeychain test application" FORCE)
+    # Keep QtKeychain's own autotests out of our CTest run.
+    set(BUILD_TESTING OFF CACHE BOOL "Build the testing tree" FORCE)
     set(BUILD_QTQUICK_DEMO OFF CACHE BOOL
         "Build QtKeychain Qt Quick demo" FORCE)
     set(BUILD_TRANSLATIONS OFF CACHE BOOL
