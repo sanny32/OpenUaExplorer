@@ -17,6 +17,56 @@
 #include <QVector>
 
 ///
+/// \brief Named OPC UA constants and small helpers shared across the UI.
+///
+/// Avoids scattering raw bit masks and the well-known Objects-folder NodeId
+/// throughout the code. Values follow the OPC UA specification (Part 3/Part 6).
+///
+namespace OpcUa {
+
+///
+/// \brief NodeClass bit values (OPC UA Part 3).
+///
+enum NodeClass : int {
+    Object   = 1,
+    Variable = 2,
+    Method   = 4,
+};
+
+///
+/// \brief AccessLevel / UserAccessLevel bits (OPC UA Part 3).
+///
+enum AccessLevel : quint8 {
+    CurrentRead  = 0x01,
+    CurrentWrite = 0x02,
+};
+
+///
+/// \brief Well-known NodeId of the standard Objects folder (browse root).
+///
+inline constexpr char kObjectsFolderId[] = "ns=0;i=84";
+
+///
+/// \brief Returns true when a NodeClass mask denotes a Variable node.
+///
+inline bool isVariable(int nodeClass) { return (nodeClass & Variable) != 0; }
+
+///
+/// \brief Returns true when a NodeClass mask denotes a Method node.
+///
+inline bool isMethod(int nodeClass) { return (nodeClass & Method) != 0; }
+
+///
+/// \brief Returns true when a UserAccessLevel mask grants current-write access.
+///
+inline bool isWritable(quint8 userAccessLevel)
+{
+    return (userAccessLevel & CurrentWrite) != 0;
+}
+
+} // namespace OpcUa
+
+///
 /// \brief Connection lifecycle state exposed to the UI.
 ///
 enum class OpcUaConnectionState {

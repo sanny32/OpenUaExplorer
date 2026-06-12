@@ -478,11 +478,11 @@ void AddressSpaceModel::appendTestItems(AddressSpaceNode *parent,
 ///
 AddressSpaceItem::NodeType AddressSpaceModel::iconType(int nodeClass) const
 {
-    if (nodeClass & 2)
+    if (nodeClass & OpcUa::Variable)
         return AddressSpaceItem::NodeType::Variable;
-    if (nodeClass & 4)
+    if (nodeClass & OpcUa::Method)
         return AddressSpaceItem::NodeType::Method;
-    if (nodeClass & 1)
+    if (nodeClass & OpcUa::Object)
         return AddressSpaceItem::NodeType::Folder;
     return AddressSpaceItem::NodeType::Node;
 }

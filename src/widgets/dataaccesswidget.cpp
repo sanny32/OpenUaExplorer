@@ -237,7 +237,7 @@ void DataAccessWidget::configureToolbar()
             return;
         const DataAccessItem item = _dataModel->itemAt(rows.first().row());
         emit writeRequested(item.nodeId, item.typedValue, item.valueType,
-                            item.dataTypeId, (item.userAccessLevel & 0x02) != 0);
+                            item.dataTypeId, OpcUa::isWritable(item.userAccessLevel));
     });
 }
 

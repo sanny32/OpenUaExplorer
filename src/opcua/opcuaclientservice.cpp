@@ -244,6 +244,123 @@ public:
         client->setConnectionSettings(settings);
 #endif
     }
+
+    ///
+    /// \brief Translates a string in the OpcUaClientService context.
+    ///
+    /// Lets the helpers below reuse the same translatable strings as the
+    /// surrounding member functions without qualifying every call.
+    ///
+    static QString tr(const char *text)
+    {
+        return OpcUaClientService::tr(text);
+    }
+
+    ///
+    /// \brief Returns the ordered table of node attributes shown to the user.
+    ///
+    static QList<QPair<QString, QOpcUa::NodeAttribute>> attributeFieldTable()
+    {
+        return {
+            {tr("Node Id"), QOpcUa::NodeAttribute::NodeId},
+            {tr("Node Class"), QOpcUa::NodeAttribute::NodeClass},
+            {tr("Browse Name"), QOpcUa::NodeAttribute::BrowseName},
+            {tr("Display Name"), QOpcUa::NodeAttribute::DisplayName},
+            {tr("Description"), QOpcUa::NodeAttribute::Description},
+            {tr("Is Abstract"), QOpcUa::NodeAttribute::IsAbstract},
+            {tr("Symmetric"), QOpcUa::NodeAttribute::Symmetric},
+            {tr("Inverse Name"), QOpcUa::NodeAttribute::InverseName},
+            {tr("Contains No Loops"), QOpcUa::NodeAttribute::ContainsNoLoops},
+            {tr("Event Notifier"), QOpcUa::NodeAttribute::EventNotifier},
+            {tr("Value"), QOpcUa::NodeAttribute::Value},
+            {tr("Data Type"), QOpcUa::NodeAttribute::DataType},
+            {tr("Value Rank"), QOpcUa::NodeAttribute::ValueRank},
+            {tr("Array Dimensions"), QOpcUa::NodeAttribute::ArrayDimensions},
+            {tr("Access Level"), QOpcUa::NodeAttribute::AccessLevel},
+            {tr("User Access Level"), QOpcUa::NodeAttribute::UserAccessLevel},
+            {tr("Minimum Sampling Interval"),
+             QOpcUa::NodeAttribute::MinimumSamplingInterval},
+            {tr("Historizing"), QOpcUa::NodeAttribute::Historizing},
+            {tr("Executable"), QOpcUa::NodeAttribute::Executable},
+            {tr("User Executable"), QOpcUa::NodeAttribute::UserExecutable},
+            {tr("Write Mask"), QOpcUa::NodeAttribute::WriteMask},
+            {tr("User Write Mask"), QOpcUa::NodeAttribute::UserWriteMask},
+            {tr("Role Permissions"), QOpcUa::NodeAttribute::RolePermissions},
+            {tr("User Role Permissions"), QOpcUa::NodeAttribute::UserRolePermissions},
+            {tr("Access Restrictions"), QOpcUa::NodeAttribute::AccessRestrictions}
+        };
+    }
+
+    ///
+    /// \brief Builds the displayable node details from a freshly read node.
+    /// \param node Node whose attributes were read.
+    /// \param nodeId NodeId of the read node.
+    /// \param attributes Attribute mask that was requested.
+    /// \return Populated node details.
+    ///
+    OpcUaNodeDetails buildNodeDetails(QOpcUaNode *node, const QString &nodeId,
+                                      QOpcUa::NodeAttributes attributes) const
+    {
+        OpcUaNodeDetails details;
+        details.nodeId = nodeId;
+        details.nodeClass = node->attribute(QOpcUa::NodeAttribute::NodeClass).toInt();
+        const auto nodeClass = static_cast<QOpcUa::NodeClass>(details.nodeClass);
+        details.value = node->attribute(QOpcUa::NodeAttribute::Value);
+        details.dataTypeId = node->attribute(QOpcUa::NodeAttribute::DataType).toString();
+        details.valueType = static_cast<int>(valueTypeForDataType(details.dataTypeId));
+        const auto valueType = static_cast<QOpcUa::Types>(details.valueType);
+        details.valueRank = node->attribute(QOpcUa::NodeAttribute::ValueRank).toInt();
+        const QVariant dimensions = node->attribute(QOpcUa::NodeAttribute::ArrayDimensions);
+        for (const QVariant &dimension : dimensions.toList())
+            details.arrayDimensions.append(dimension.toUInt());
+        details.accessLevel = static_cast<quint8>(
+            node->attribute(QOpcUa::NodeAttribute::AccessLevel).toUInt());
+        details.userAccessLevel = static_cast<quint8>(
+            node->attribute(QOpcUa::NodeAttribute::UserAccessLevel).toUInt());
+        details.status = statusName(node->attributeError(QOpcUa::NodeAttribute::Value));
+        details.sourceTimestamp = node->sourceTimestamp(QOpcUa::NodeAttribute::Value);
+        details.serverTimestamp = node->serverTimestamp(QOpcUa::NodeAttribute::Value);
+
+        const QList<QPair<QString, QOpcUa::NodeAttribute>> fields = attributeFieldTable();
+        for (const auto &field : fields) {
+            if (!(attributes & field.second)
+                || !attributeAppliesToNodeClass(field.second, nodeClass)
+                || node->attributeError(field.second)
+                    == QOpcUa::UaStatusCode::BadAttributeIdInvalid) {
+                continue;
+            }
+            const QVariant value = node->attribute(field.second);
+            OpcUaNodeAttribute attribute;
+            attribute.name = field.first;
+            attribute.value = value;
+            attribute.status = statusName(node->attributeError(field.second));
+            attribute.sourceTimestamp = node->sourceTimestamp(field.second);
+            attribute.serverTimestamp = node->serverTimestamp(field.second);
+            formatAttribute(&attribute, field.second, value, valueType);
+            if (field.second == QOpcUa::NodeAttribute::Value) {
+                if (attribute.sourceTimestamp.isValid()) {
+                    attribute.children.append(
+                        childAttribute(tr("Source Timestamp"),
+                                       timestampDisplay(attribute.sourceTimestamp)));
+                }
+                if (attribute.serverTimestamp.isValid()) {
+                    attribute.children.append(
+                        childAttribute(tr("Server Timestamp"),
+                                       timestampDisplay(attribute.serverTimestamp)));
+                }
+                attribute.children.append(
+                    childAttribute(tr("Status Code"),
+                                   statusDisplay(node->attributeError(field.second))));
+                attribute.children.append(valueAttribute(value, valueType));
+            }
+            details.attributes.append(attribute);
+        }
+        const QVariant displayNameValue = node->attribute(QOpcUa::NodeAttribute::DisplayName);
+        if (displayNameValue.canConvert<QOpcUaLocalizedText>())
+            details.displayName = displayNameValue.value<QOpcUaLocalizedText>().text();
+        return details;
+    }
+
     OpcUaClientService *q;
     OpcUaConnectionState currentState = OpcUaConnectionState::Disconnected;
     QString error;
@@ -476,91 +593,7 @@ void OpcUaClientService::readNode(const QString &nodeId)
             node->deleteLater();
             return;
         }
-        OpcUaNodeDetails details;
-        details.nodeId = nodeId;
-        details.nodeClass = node->attribute(QOpcUa::NodeAttribute::NodeClass).toInt();
-        const auto nodeClass = static_cast<QOpcUa::NodeClass>(details.nodeClass);
-        details.value = node->attribute(QOpcUa::NodeAttribute::Value);
-        details.dataTypeId = node->attribute(QOpcUa::NodeAttribute::DataType).toString();
-        details.valueType = static_cast<int>(valueTypeForDataType(details.dataTypeId));
-        const auto valueType = static_cast<QOpcUa::Types>(details.valueType);
-        details.valueRank = node->attribute(QOpcUa::NodeAttribute::ValueRank).toInt();
-        const QVariant dimensions = node->attribute(QOpcUa::NodeAttribute::ArrayDimensions);
-        for (const QVariant &dimension : dimensions.toList())
-            details.arrayDimensions.append(dimension.toUInt());
-        details.accessLevel = static_cast<quint8>(
-            node->attribute(QOpcUa::NodeAttribute::AccessLevel).toUInt());
-        details.userAccessLevel = static_cast<quint8>(
-            node->attribute(QOpcUa::NodeAttribute::UserAccessLevel).toUInt());
-        details.status = statusName(node->attributeError(QOpcUa::NodeAttribute::Value));
-        details.sourceTimestamp = node->sourceTimestamp(QOpcUa::NodeAttribute::Value);
-        details.serverTimestamp = node->serverTimestamp(QOpcUa::NodeAttribute::Value);
-
-        const QList<QPair<QString, QOpcUa::NodeAttribute>> fields = {
-            {tr("Node Id"), QOpcUa::NodeAttribute::NodeId},
-            {tr("Node Class"), QOpcUa::NodeAttribute::NodeClass},
-            {tr("Browse Name"), QOpcUa::NodeAttribute::BrowseName},
-            {tr("Display Name"), QOpcUa::NodeAttribute::DisplayName},
-            {tr("Description"), QOpcUa::NodeAttribute::Description},
-            {tr("Is Abstract"), QOpcUa::NodeAttribute::IsAbstract},
-            {tr("Symmetric"), QOpcUa::NodeAttribute::Symmetric},
-            {tr("Inverse Name"), QOpcUa::NodeAttribute::InverseName},
-            {tr("Contains No Loops"), QOpcUa::NodeAttribute::ContainsNoLoops},
-            {tr("Event Notifier"), QOpcUa::NodeAttribute::EventNotifier},
-            {tr("Value"), QOpcUa::NodeAttribute::Value},
-            {tr("Data Type"), QOpcUa::NodeAttribute::DataType},
-            {tr("Value Rank"), QOpcUa::NodeAttribute::ValueRank},
-            {tr("Array Dimensions"), QOpcUa::NodeAttribute::ArrayDimensions},
-            {tr("Access Level"), QOpcUa::NodeAttribute::AccessLevel},
-            {tr("User Access Level"), QOpcUa::NodeAttribute::UserAccessLevel},
-            {tr("Minimum Sampling Interval"),
-             QOpcUa::NodeAttribute::MinimumSamplingInterval},
-            {tr("Historizing"), QOpcUa::NodeAttribute::Historizing},
-            {tr("Executable"), QOpcUa::NodeAttribute::Executable},
-            {tr("User Executable"), QOpcUa::NodeAttribute::UserExecutable},
-            {tr("Write Mask"), QOpcUa::NodeAttribute::WriteMask},
-            {tr("User Write Mask"), QOpcUa::NodeAttribute::UserWriteMask},
-            {tr("Role Permissions"), QOpcUa::NodeAttribute::RolePermissions},
-            {tr("User Role Permissions"), QOpcUa::NodeAttribute::UserRolePermissions},
-            {tr("Access Restrictions"), QOpcUa::NodeAttribute::AccessRestrictions}
-        };
-        for (const auto &field : fields) {
-            if (!(attributes & field.second)
-                || !attributeAppliesToNodeClass(field.second, nodeClass)
-                || node->attributeError(field.second)
-                    == QOpcUa::UaStatusCode::BadAttributeIdInvalid) {
-                continue;
-            }
-            const QVariant value = node->attribute(field.second);
-            OpcUaNodeAttribute attribute;
-            attribute.name = field.first;
-            attribute.value = value;
-            attribute.status = statusName(node->attributeError(field.second));
-            attribute.sourceTimestamp = node->sourceTimestamp(field.second);
-            attribute.serverTimestamp = node->serverTimestamp(field.second);
-            formatAttribute(&attribute, field.second, value, valueType);
-            if (field.second == QOpcUa::NodeAttribute::Value) {
-                if (attribute.sourceTimestamp.isValid()) {
-                    attribute.children.append(
-                        childAttribute(tr("Source Timestamp"),
-                                       timestampDisplay(attribute.sourceTimestamp)));
-                }
-                if (attribute.serverTimestamp.isValid()) {
-                    attribute.children.append(
-                        childAttribute(tr("Server Timestamp"),
-                                       timestampDisplay(attribute.serverTimestamp)));
-                }
-                attribute.children.append(
-                    childAttribute(tr("Status Code"),
-                                   statusDisplay(node->attributeError(field.second))));
-                attribute.children.append(valueAttribute(value, valueType));
-            }
-            details.attributes.append(attribute);
-        }
-        const QVariant displayNameValue = node->attribute(QOpcUa::NodeAttribute::DisplayName);
-        if (displayNameValue.canConvert<QOpcUaLocalizedText>())
-            details.displayName = displayNameValue.value<QOpcUaLocalizedText>().text();
-        emit nodeDetailsReady(details, QString());
+        emit nodeDetailsReady(_d->buildNodeDetails(node, nodeId, attributes), QString());
         node->deleteLater();
     });
     if (!node->readAttributes(attributes)) {

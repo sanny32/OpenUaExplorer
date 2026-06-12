@@ -12,6 +12,7 @@
 
 #include "opcua/connectionprofile.h"
 #include "opcua/opcuatypes.h"
+#include "opcua/secretstore.h"
 
 namespace Ui {
 class MainWindow;
@@ -74,6 +75,21 @@ private:
                      const QString &privateKeyPassword);
     void rebuildRecentConnections();
     void connectProfile(const ConnectionProfile &profile);
+    void discoverThenConnect(const ConnectionProfile &profile,
+                             const QString &password = {},
+                             const QString &privateKeyPassword = {});
+
+    // OPC UA client signal handlers (wired up in setupOpcUaClient).
+    void onClientError(const QString &message);
+    void browseNodeOrRoot(const QString &nodeId);
+    void onNodeSelected(const OpcUaNodeInfo &node);
+    void onNodeDetailsReady(const OpcUaNodeDetails &details, const QString &error);
+    void onDataValuesReady(const QVector<OpcUaDataValue> &values, const QString &error);
+    void onWriteFinished(const QString &nodeId, bool success, const QString &error);
+    void onCertificateValidationRequired(const QByteArray &certificate,
+                                         const QString &message, int *decision);
+    void onSecretReadFinished(const QString &profileId, SecretStore::Secret secret,
+                              const QString &value, const QString &error);
 
 private:
     Ui::MainWindow *ui;

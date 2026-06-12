@@ -142,7 +142,7 @@ void TestOpcUa::lazyModelRequestsAndAppliesBrowse()
 {
     AddressSpaceModel model;
     OpcUaNodeInfo root;
-    root.nodeId = QStringLiteral("ns=0;i=84");
+    root.nodeId = QString::fromLatin1(OpcUa::kObjectsFolderId);
     root.displayName = QStringLiteral("Root");
     root.nodeClass = 1;
     root.hasChildren = true;

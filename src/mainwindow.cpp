@@ -124,9 +124,7 @@ void MainWindow::on_actionBrowseAddressSpace_triggered()
 ///
 void MainWindow::on_actionRefresh_triggered()
 {
-    const OpcUaNodeInfo selected = ui->addressSpaceWidget->selectedNode();
-    _clientService->browse(selected.nodeId.isEmpty()
-        ? QStringLiteral("ns=0;i=84") : selected.nodeId);
+    browseNodeOrRoot(ui->addressSpaceWidget->selectedNode().nodeId);
 }
 
 ///
@@ -156,7 +154,7 @@ void MainWindow::on_actionWrite_triggered()
         return;
     showWriteDialog(_selectedNodeDetails.nodeId, _selectedNodeDetails.value,
                     _selectedNodeDetails.valueType, _selectedNodeDetails.dataTypeId,
-                    (_selectedNodeDetails.userAccessLevel & 0x02) != 0);
+                    OpcUa::isWritable(_selectedNodeDetails.userAccessLevel));
 }
 
 ///
@@ -172,7 +170,7 @@ void MainWindow::on_actionWriteValue_triggered()
 ///
 void MainWindow::on_actionAddToDataAccess_triggered()
 {
-    if ((_selectedNodeDetails.nodeClass & 2) != 0)
+    if (OpcUa::isVariable(_selectedNodeDetails.nodeClass))
         ui->dataAccessWidget->addNode(_selectedNodeDetails);
 }
 
@@ -357,35 +355,17 @@ void MainWindow::setupOpcUaClient()
     connect(_clientService, &OpcUaClientService::stateChanged,
             this, &MainWindow::updateClientUi);
     connect(_clientService, &OpcUaClientService::errorOccurred,
-            this, [](const QString &message) {
-        qCWarning(lcClient) << message;
-    });
+            this, &MainWindow::onClientError);
     connect(_clientService, &OpcUaClientService::browseFinished,
             ui->addressSpaceWidget, &AddressSpaceWidget::setBrowseChildren);
     connect(ui->addressSpaceWidget, &AddressSpaceWidget::browseRequested,
             _clientService, &OpcUaClientService::browse);
     connect(ui->addressSpaceWidget, &AddressSpaceWidget::refreshRequested,
-            this, [this](const QString &nodeId) {
-        _clientService->browse(nodeId.isEmpty() ? QStringLiteral("ns=0;i=84") : nodeId);
-    });
+            this, &MainWindow::browseNodeOrRoot);
     connect(ui->addressSpaceWidget, &AddressSpaceWidget::nodeSelected,
-            this, [this](const OpcUaNodeInfo &node) {
-        _clientService->readNode(node.nodeId);
-    });
+            this, &MainWindow::onNodeSelected);
     connect(_clientService, &OpcUaClientService::nodeDetailsReady,
-            this, [this](const OpcUaNodeDetails &details, const QString &error) {
-        if (!error.isEmpty())
-            return;
-        _selectedNodeDetails = details;
-        ui->addressSpaceWidget->setNodeDetails(details);
-        ui->attributesWidget->setNodeDetails(details);
-        const bool variable = (details.nodeClass & 2) != 0;
-        ui->actionRead->setEnabled(variable);
-        ui->actionReadSelected->setEnabled(variable);
-        ui->actionWrite->setEnabled(variable && (details.userAccessLevel & 0x02));
-        ui->actionWriteValue->setEnabled(variable && (details.userAccessLevel & 0x02));
-        ui->actionAddToDataAccess->setEnabled(variable);
-    });
+            this, &MainWindow::onNodeDetailsReady);
     connect(ui->dataAccessWidget, &DataAccessWidget::readRequested,
             _clientService, &OpcUaClientService::readValues);
     connect(ui->dataAccessWidget, &DataAccessWidget::addSelectedNodeRequested,
@@ -393,51 +373,124 @@ void MainWindow::setupOpcUaClient()
     connect(ui->dataAccessWidget, &DataAccessWidget::writeRequested,
             this, &MainWindow::showWriteDialog);
     connect(_clientService, &OpcUaClientService::dataValuesReady,
-            this, [this](const QVector<OpcUaDataValue> &values, const QString &error) {
-        if (error.isEmpty())
-            ui->dataAccessWidget->updateValues(values);
-    });
+            this, &MainWindow::onDataValuesReady);
     connect(_clientService, &OpcUaClientService::writeFinished,
-            this, [this](const QString &nodeId, bool success, const QString &error) {
-        if (success) {
-            _clientService->readNode(nodeId);
-            _clientService->readValues({nodeId});
-        } else {
-            QMessageBox::warning(this, tr("Write Failed"), error);
-        }
-    });
+            this, &MainWindow::onWriteFinished);
     connect(_clientService, &OpcUaClientService::certificateValidationRequired,
-            this, [this](const QByteArray &certificate, const QString &message, int *decision) {
-        CertificateTrustDialog dialog(this);
-        dialog.setCertificate(certificate, message);
-        dialog.exec();
-        *decision = static_cast<int>(dialog.decision());
-    }, Qt::DirectConnection);
+            this, &MainWindow::onCertificateValidationRequired, Qt::DirectConnection);
     connect(_secretStore, &SecretStore::readFinished,
-            this, [this](const QString &, SecretStore::Secret secret,
-                         const QString &value, const QString &error) {
-        if (!error.isEmpty())
-            qCWarning(lcClient) << error;
-        if (secret == SecretStore::Secret::Password)
-            _pendingPassword = value;
-        else
-            _pendingPrivateKeyPassword = value;
-        if (--_pendingSecretReads == 0) {
-            _activeProfile = _pendingProfile;
-            _clientService->discoverEndpoints(_pendingProfile.endpointUrl,
-                                              _pendingProfile.backend);
-            auto connection = std::make_shared<QMetaObject::Connection>();
-            *connection = connect(_clientService, &OpcUaClientService::endpointsDiscovered,
-                                  this, [this, connection](const QList<EndpointInfo> &,
-                                                          const QString &error) {
-                disconnect(*connection);
-                if (error.isEmpty())
-                    _clientService->connectToEndpoint(_pendingProfile, _pendingPassword,
-                                                      _pendingPrivateKeyPassword);
-            });
-        }
-    });
+            this, &MainWindow::onSecretReadFinished);
     updateClientUi(_clientService->state());
+}
+
+///
+/// \brief MainWindow::onClientError
+/// \param message Error reported by the OPC UA client service.
+///
+void MainWindow::onClientError(const QString &message)
+{
+    qCWarning(lcClient) << message;
+}
+
+///
+/// \brief MainWindow::browseNodeOrRoot
+/// \param nodeId Node to browse, or empty to browse the Objects folder.
+///
+void MainWindow::browseNodeOrRoot(const QString &nodeId)
+{
+    _clientService->browse(nodeId.isEmpty()
+        ? QString::fromLatin1(OpcUa::kObjectsFolderId) : nodeId);
+}
+
+///
+/// \brief MainWindow::onNodeSelected
+/// \param node Node selected in the address space.
+///
+void MainWindow::onNodeSelected(const OpcUaNodeInfo &node)
+{
+    _clientService->readNode(node.nodeId);
+}
+
+///
+/// \brief MainWindow::onNodeDetailsReady
+/// \param details Read node details.
+/// \param error Read error, if any.
+///
+void MainWindow::onNodeDetailsReady(const OpcUaNodeDetails &details, const QString &error)
+{
+    if (!error.isEmpty())
+        return;
+    _selectedNodeDetails = details;
+    ui->addressSpaceWidget->setNodeDetails(details);
+    ui->attributesWidget->setNodeDetails(details);
+    const bool variable = OpcUa::isVariable(details.nodeClass);
+    const bool writable = variable && OpcUa::isWritable(details.userAccessLevel);
+    ui->actionRead->setEnabled(variable);
+    ui->actionReadSelected->setEnabled(variable);
+    ui->actionWrite->setEnabled(writable);
+    ui->actionWriteValue->setEnabled(writable);
+    ui->actionAddToDataAccess->setEnabled(variable);
+}
+
+///
+/// \brief MainWindow::onDataValuesReady
+/// \param values Latest data access values.
+/// \param error Read error, if any.
+///
+void MainWindow::onDataValuesReady(const QVector<OpcUaDataValue> &values, const QString &error)
+{
+    if (error.isEmpty())
+        ui->dataAccessWidget->updateValues(values);
+}
+
+///
+/// \brief MainWindow::onWriteFinished
+/// \param nodeId Written node.
+/// \param success Whether the write succeeded.
+/// \param error Write error, if any.
+///
+void MainWindow::onWriteFinished(const QString &nodeId, bool success, const QString &error)
+{
+    if (success) {
+        _clientService->readNode(nodeId);
+        _clientService->readValues({nodeId});
+    } else {
+        QMessageBox::warning(this, tr("Write Failed"), error);
+    }
+}
+
+///
+/// \brief MainWindow::onCertificateValidationRequired
+/// \param certificate Server certificate awaiting a trust decision.
+/// \param message Validation message to display.
+/// \param decision Out-parameter receiving the user's trust decision.
+///
+void MainWindow::onCertificateValidationRequired(const QByteArray &certificate,
+                                                 const QString &message, int *decision)
+{
+    CertificateTrustDialog dialog(this);
+    dialog.setCertificate(certificate, message);
+    dialog.exec();
+    *decision = static_cast<int>(dialog.decision());
+}
+
+///
+/// \brief MainWindow::onSecretReadFinished
+/// \param secret Which secret was read.
+/// \param value Secret value.
+/// \param error Read error, if any.
+///
+void MainWindow::onSecretReadFinished(const QString &, SecretStore::Secret secret,
+                                      const QString &value, const QString &error)
+{
+    if (!error.isEmpty())
+        qCWarning(lcClient) << error;
+    if (secret == SecretStore::Secret::Password)
+        _pendingPassword = value;
+    else
+        _pendingPrivateKeyPassword = value;
+    if (--_pendingSecretReads == 0)
+        discoverThenConnect(_pendingProfile, _pendingPassword, _pendingPrivateKeyPassword);
 }
 
 ///
@@ -473,7 +526,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
 void MainWindow::initializeAddressSpace()
 {
     OpcUaNodeInfo root;
-    root.nodeId = QStringLiteral("ns=0;i=84");
+    root.nodeId = QString::fromLatin1(OpcUa::kObjectsFolderId);
     root.browseName = tr("Root");
     root.displayName = tr("Root");
     root.nodeClass = 1;
@@ -555,18 +608,33 @@ void MainWindow::connectProfile(const ConnectionProfile &profile)
         ++_pendingSecretReads;
         _secretStore->read(profile.id, SecretStore::Secret::PrivateKeyPassword);
     }
-    if (_pendingSecretReads == 0) {
-        _activeProfile = profile;
-        _clientService->discoverEndpoints(profile.endpointUrl, profile.backend);
-        auto connection = std::make_shared<QMetaObject::Connection>();
-        *connection = connect(_clientService, &OpcUaClientService::endpointsDiscovered,
-                              this, [this, connection](const QList<EndpointInfo> &,
-                                                      const QString &error) {
-            disconnect(*connection);
-            if (error.isEmpty())
-                _clientService->connectToEndpoint(_pendingProfile);
-        });
-    }
+    if (_pendingSecretReads == 0)
+        discoverThenConnect(profile);
+}
+
+///
+/// \brief MainWindow::discoverThenConnect
+/// \param profile Connection profile to use.
+/// \param password Username password (empty when unused).
+/// \param privateKeyPassword Private key password (empty when unused).
+///
+/// Runs endpoint discovery and, once it succeeds, connects to the endpoint
+/// exactly once. Shared by saved-profile connects and the post-secret-read path.
+///
+void MainWindow::discoverThenConnect(const ConnectionProfile &profile,
+                                     const QString &password,
+                                     const QString &privateKeyPassword)
+{
+    _activeProfile = profile;
+    _clientService->discoverEndpoints(profile.endpointUrl, profile.backend);
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(_clientService, &OpcUaClientService::endpointsDiscovered,
+                          this, [this, connection, profile, password, privateKeyPassword](
+                              const QList<EndpointInfo> &, const QString &error) {
+        disconnect(*connection);
+        if (error.isEmpty())
+            _clientService->connectToEndpoint(profile, password, privateKeyPassword);
+    });
 }
 
 ///
