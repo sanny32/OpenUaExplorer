@@ -67,6 +67,9 @@ function(ouaexp_configure_tests)
         target_compile_options(ouaexp_testable PUBLIC /utf-8)
     endif()
 
+    # Instrument the shared production sources when coverage is requested.
+    ouaexp_apply_coverage(ouaexp_testable)
+
     # Creates one Qt Test executable per area and registers it with CTest.
     function(ouaexp_add_test test_name source_file)
         add_executable(${test_name} tests/${source_file})
@@ -74,6 +77,7 @@ function(ouaexp_configure_tests)
             ouaexp_testable
             Qt${QT_VERSION_MAJOR}::Test
         )
+        ouaexp_apply_coverage(${test_name})
         add_test(NAME ${test_name} COMMAND ${test_name})
     endfunction()
 
