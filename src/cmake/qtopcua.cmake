@@ -1,12 +1,14 @@
 include(FetchContent)
 
 function(ouaexp_copy_qtopcua_runtime target_name)
-    add_custom_command(TARGET ${target_name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "$<TARGET_FILE:Qt${QT_VERSION_MAJOR}::OpcUa>"
-            "$<TARGET_FILE_DIR:${target_name}>"
-        VERBATIM
-    )
+    if(WIN32)
+        add_custom_command(TARGET ${target_name} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:Qt${QT_VERSION_MAJOR}::OpcUa>"
+                "$<TARGET_FILE_DIR:${target_name}>"
+            VERBATIM
+        )
+    endif()
 
     if(TARGET Qt${QT_VERSION_MAJOR}::QOpen62541Plugin)
         add_custom_command(TARGET ${target_name} POST_BUILD

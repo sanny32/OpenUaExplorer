@@ -66,7 +66,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 ouaexp_configure_qt_target(${PROJECT_NAME})
 ouaexp_configure_qlementine_app_style(${PROJECT_NAME})
 ouaexp_configure_dependencies(${PROJECT_NAME})
-ouaexp_copy_windows_runtime(${PROJECT_NAME})
+ouaexp_copy_runtime(${PROJECT_NAME})
 ouaexp_configure_tests()
 
 if(WIN32)

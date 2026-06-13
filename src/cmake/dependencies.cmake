@@ -6,11 +6,10 @@ function(ouaexp_configure_dependencies target_name)
     ouaexp_configure_qtkeychain(${target_name})
 endfunction()
 
-function(ouaexp_copy_windows_runtime target_name)
-    if(NOT WIN32)
-        return()
-    endif()
-
-    ouaexp_copy_openssl_runtime(${target_name})
+function(ouaexp_copy_runtime target_name)
     ouaexp_copy_qtopcua_runtime(${target_name})
+
+    if(WIN32)
+        ouaexp_copy_openssl_runtime(${target_name})
+    endif()
 endfunction()
