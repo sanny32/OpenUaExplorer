@@ -18,6 +18,7 @@ set(PRODUCT_NAME "Open UaExplorer")
 set(ORGANIZATION_NAME "OpenUaExplorer")
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/qt.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/qlementine.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/dependencies.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/qtopcua.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/project_version.cmake")
@@ -63,6 +64,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 )
 
 ouaexp_configure_qt_target(${PROJECT_NAME})
+ouaexp_configure_qlementine_app_style(${PROJECT_NAME})
 ouaexp_configure_dependencies(${PROJECT_NAME})
 ouaexp_copy_windows_runtime(${PROJECT_NAME})
 ouaexp_configure_tests()

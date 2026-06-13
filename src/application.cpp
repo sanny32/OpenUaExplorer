@@ -9,6 +9,12 @@
 #include "appstyle.h"
 #include "application.h"
 
+#if defined(HAVE_QLEMENTINE_APP_STYLE) && defined(Q_OS_MAC)
+#include "macappstyle.h"
+#elif defined(HAVE_QLEMENTINE_APP_STYLE)
+#include "qlementineappstyle.h"
+#endif
+
 ///
 /// \brief Application::Application
 /// \param argc Argument count passed to main.
@@ -18,7 +24,13 @@ Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
     , _theme(this)
 {
+#if defined(HAVE_QLEMENTINE_APP_STYLE) && defined(Q_OS_MAC)
+    setStyle(new MacAppStyle());
+#elif defined(HAVE_QLEMENTINE_APP_STYLE)
+    setStyle(new QlementineAppStyle());
+#else
     setStyle(new AppStyle());
+#endif
     _theme.applyInitialScheme();
 }
 

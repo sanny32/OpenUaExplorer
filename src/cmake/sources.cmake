@@ -4,6 +4,8 @@ set(SOURCES
     apptheme.cpp
     application.cpp
     fusionstyle.cpp
+    qlementineappstyle.cpp
+    macappstyle.cpp
     loggingcategories.cpp
 
     opcua/attributeformatter.cpp
@@ -57,6 +59,8 @@ set(HEADERS
     apptheme.h
     application.h
     fusionstyle.h
+    qlementineappstyle.h
+    macappstyle.h
     loggingcategories.h
 
     opcua/attributeformatter.h
