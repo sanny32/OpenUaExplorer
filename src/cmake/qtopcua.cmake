@@ -77,10 +77,21 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
             "-DOPENSSL_ROOT_DIR=${OUAEXP_OPENSSL_ROOT_DIR}")
     endif()
 
+    # qt-cmake needs cmake and ninja on PATH, which QtCreator does not set.
+    get_filename_component(CMAKE_BIN_DIR "${CMAKE_COMMAND}" DIRECTORY)
+    find_program(NINJA NAMES ninja REQUIRED)
+    get_filename_component(NINJA_DIR "${NINJA}" DIRECTORY)
+    if(CMAKE_HOST_WIN32)
+        set(CMAKE_PATH "${CMAKE_BIN_DIR};${NINJA_DIR};$ENV{PATH}")
+    else()
+        set(CMAKE_PATH "${CMAKE_BIN_DIR}:${NINJA_DIR}:$ENV{PATH}")
+    endif()
+
     message(STATUS
         "Configuring Qt OpcUa ${QTOPCUA_VERSION} with the bundled open62541 backend")
     execute_process(
-        COMMAND "${QTOPCUA_CONFIGURE_EXECUTABLE}"
+        COMMAND "${CMAKE_COMMAND}" -E env "PATH=${CMAKE_PATH}"
+            "${QTOPCUA_CONFIGURE_EXECUTABLE}"
             "${qtopcua_SOURCE_DIR}"
             --
             ${QTOPCUA_CONFIGURE_OPTIONS}
@@ -90,7 +101,8 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
 
     message(STATUS "Building and installing Qt OpcUa ${QTOPCUA_VERSION}")
     execute_process(
-        COMMAND "${CMAKE_COMMAND}"
+        COMMAND "${CMAKE_COMMAND}" -E env "PATH=${CMAKE_PATH}"
+            "${CMAKE_COMMAND}"
             --build "${QTOPCUA_BUILD_DIR}"
             --config RelWithDebInfo
             --target install
