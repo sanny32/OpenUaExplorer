@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>1000</width>
-    <height>620</height>
+    <height>680</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
      <width>1000</width>
-    <height>620</height>
+    <height>0</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -37,6 +37,18 @@
            <property name="fieldGrowthPolicy">
             <enum>QFormLayout::FieldGrowthPolicy::AllNonFixedFieldsGrow</enum>
            </property>
+           <property name="leftMargin">
+            <number>16</number>
+           </property>
+           <property name="topMargin">
+            <number>12</number>
+           </property>
+           <property name="rightMargin">
+            <number>16</number>
+           </property>
+           <property name="bottomMargin">
+            <number>16</number>
+           </property>
           <item row="0" column="0">
            <widget class="QLabel" name="backendLabel">
             <property name="text">
@@ -59,6 +71,27 @@
           </item>
           <item row="2" column="1">
            <widget class="QTextEdit" name="endpointDescriptionEdit">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>56</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>56</height>
+             </size>
+            </property>
+            <property name="verticalScrollBarPolicy">
+             <enum>Qt::ScrollBarAsNeeded</enum>
+            </property>
             <property name="readOnly">
              <bool>true</bool>
             </property>
@@ -255,6 +288,9 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
           <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="1,1">
           <item>
            <layout class="QFormLayout" name="formLayout_3">
+            <property name="rowWrapPolicy">
+             <enum>QFormLayout::RowWrapPolicy::DontWrapRows</enum>
+            </property>
             <item row="0" column="0">
              <widget class="QLabel" name="sessionTimeoutLabel">
               <property name="text">
@@ -400,6 +436,9 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
           </item>
           <item>
            <layout class="QFormLayout" name="formLayout_2">
+            <property name="rowWrapPolicy">
+             <enum>QFormLayout::RowWrapPolicy::DontWrapRows</enum>
+            </property>
             <item row="0" column="0">
              <widget class="QLabel" name="endpointTimeoutLabel">
               <property name="text">
