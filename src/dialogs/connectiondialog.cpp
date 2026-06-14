@@ -159,18 +159,10 @@ void ConnectionDialog::setClientService(OpcUaClientService *service)
     if (_service)
         disconnect(_service, nullptr, this, nullptr);
     _service = service;
-    ui->backendComboBox->clear();
     if (_service) {
-        ui->backendComboBox->addItems(_service->availableBackends());
-        const int open62541 = ui->backendComboBox->findText(
-            QStringLiteral("open62541"), Qt::MatchContains);
-        if (open62541 >= 0)
-            ui->backendComboBox->setCurrentIndex(open62541);
         connect(_service, &OpcUaClientService::endpointsDiscovered,
                 this, &ConnectionDialog::handleEndpoints);
     }
-    if (ui->backendComboBox->count() == 0)
-        ui->backendComboBox->addItem(QStringLiteral("open62541"));
 }
 
 ///
@@ -182,7 +174,6 @@ ConnectionProfile ConnectionDialog::profile() const
     ConnectionProfile result;
     result.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     result.name = ui->endpointComboBox->currentText();
-    result.backend = ui->backendComboBox->currentText();
     const int endpointIndex = ui->endpointComboBox->currentData().toInt();
     if (endpointIndex >= 0 && endpointIndex < _endpoints.size()) {
         const EndpointInfo &endpoint = _endpoints.at(endpointIndex);
@@ -244,7 +235,7 @@ void ConnectionDialog::discoverEndpoints()
     ui->statusLabel->setText(tr("Discovering endpoints..."));
     ui->browseServersButton->setEnabled(false);
     ui->connectButton->setEnabled(false);
-    _service->discoverEndpoints(url, ui->backendComboBox->currentText());
+    _service->discoverEndpoints(url);
 }
 
 ///

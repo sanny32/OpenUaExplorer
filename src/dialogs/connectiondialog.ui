@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>1000</width>
-    <height>720</height>
+    <height>690</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
      <width>1000</width>
-    <height>720</height>
+    <height>690</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -49,17 +49,7 @@
            <property name="bottomMargin">
             <number>20</number>
            </property>
-          <item row="0" column="0">
-           <widget class="QLabel" name="backendLabel">
-            <property name="text">
-             <string>Backend:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QComboBox" name="backendComboBox"/>
-          </item>
-          <item row="2" column="0">
+          <item row="1" column="0">
            <widget class="QLabel" name="endpointDescriptionLabel">
             <property name="text">
              <string>Endpoint Description:</string>
@@ -69,7 +59,7 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
+          <item row="1" column="1">
            <widget class="QTextEdit" name="endpointDescriptionEdit">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -101,14 +91,14 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
+          <item row="0" column="0">
            <widget class="QLabel" name="endpointUrlLabel">
             <property name="text">
              <string>Endpoint URL:</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
+          <item row="0" column="1">
            <layout class="QHBoxLayout" name="horizontalLayout">
             <item>
              <widget class="QComboBox" name="endpointComboBox">
