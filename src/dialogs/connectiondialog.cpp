@@ -139,6 +139,7 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     }
     updatePopupWidth(ui->endpointComboBox);
     updateAuthenticationFields();
+    adjustSize();
 }
 
 ///
