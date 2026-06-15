@@ -20,8 +20,19 @@ function(ouaexp_configure_test_environment test_name)
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
             ENVIRONMENT_MODIFICATION "${environment_modifications}")
     elseif(APPLE)
-        set_tests_properties(${test_name} PROPERTIES ENVIRONMENT
-            "QT_QPA_PLATFORM=offscreen")
+        set(environment_modifications
+            "QT_PLUGIN_PATH=path_list_prepend:${QT_BINARY_DIR}/../plugins")
+        if(DEFINED QTOPCUA_INSTALL_DIR)
+            list(APPEND environment_modifications
+                "QT_PLUGIN_PATH=path_list_prepend:${QTOPCUA_INSTALL_DIR}/plugins")
+        endif()
+        if(TARGET OpenSSL::Crypto)
+            list(APPEND environment_modifications
+                "DYLD_LIBRARY_PATH=path_list_prepend:$<TARGET_FILE_DIR:OpenSSL::Crypto>")
+        endif()
+        set_tests_properties(${test_name} PROPERTIES
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+            ENVIRONMENT_MODIFICATION "${environment_modifications}")
     else()
         set(environment_modifications
             "LD_LIBRARY_PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::Core>"
