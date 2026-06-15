@@ -1,7 +1,7 @@
 option(USE_QT5 "Force Qt5 usage" OFF)
 option(USE_QT6 "Force Qt6 usage" OFF)
 
-set(QT_COMMON_COMPONENTS Core Gui Widgets Svg)
+set(QT_COMMON_COMPONENTS Core Gui Widgets Svg Network)
 
 if(USE_QT5 AND USE_QT6)
     message(FATAL_ERROR "USE_QT5 and USE_QT6 are mutually exclusive")
@@ -72,6 +72,7 @@ function(ouaexp_configure_qt_target target_name)
         Qt${QT_VERSION_MAJOR}::Gui
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Svg
+        Qt${QT_VERSION_MAJOR}::Network
     )
 
     target_link_libraries(${target_name} PRIVATE Qt${QT_VERSION_MAJOR}::OpcUa)

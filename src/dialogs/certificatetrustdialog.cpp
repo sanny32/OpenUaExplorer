@@ -49,13 +49,25 @@ CertificateTrustDialog::~CertificateTrustDialog()
 /// \param message Validation error description.
 ///
 void CertificateTrustDialog::setCertificate(const QByteArray &certificate,
-                                            const QString &message)
+                                             const QString &message)
 {
     ui->messageLabel->setText(message);
     const QByteArray fingerprint =
         QCryptographicHash::hash(certificate, QCryptographicHash::Sha256).toHex(':').toUpper();
     ui->fingerprintEdit->setText(QString::fromLatin1(fingerprint));
     ui->sizeLabel->setText(tr("%1 bytes").arg(certificate.size()));
+}
+
+///
+/// \brief CertificateTrustDialog::setViewOnly
+/// \param viewOnly Whether the dialog should only display certificate details.
+///
+void CertificateTrustDialog::setViewOnly(bool viewOnly)
+{
+    ui->trustOnceButton->setVisible(!viewOnly);
+    ui->trustPermanentlyButton->setVisible(!viewOnly);
+    ui->rejectButton->setText(viewOnly ? tr("Close") : tr("Reject"));
+    setWindowTitle(viewOnly ? tr("Server Certificate") : tr("Untrusted Server Certificate"));
 }
 
 ///

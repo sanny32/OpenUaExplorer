@@ -32,6 +32,7 @@ public:
     ~CertificateTrustDialog() override;
 
     void setCertificate(const QByteArray &certificate, const QString &message);
+    void setViewOnly(bool viewOnly);
     Decision decision() const;
 
 private:

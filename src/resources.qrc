@@ -47,6 +47,12 @@
         <file alias="icons/dark/disconnected.svg">res/icons/dark/disconnected.svg</file>
         <file alias="icons/light/info.svg">res/icons/light/info.svg</file>
         <file alias="icons/dark/info.svg">res/icons/dark/info.svg</file>
+        <file alias="icons/light/check-circle.svg">res/icons/light/check-circle.svg</file>
+        <file alias="icons/dark/check-circle.svg">res/icons/dark/check-circle.svg</file>
+        <file alias="icons/light/certificate.svg">res/icons/light/certificate.svg</file>
+        <file alias="icons/dark/certificate.svg">res/icons/dark/certificate.svg</file>
+        <file alias="icons/light/shield-trusted.svg">res/icons/light/shield-trusted.svg</file>
+        <file alias="icons/dark/shield-trusted.svg">res/icons/dark/shield-trusted.svg</file>
         <file alias="icons/light/lock.svg">res/icons/light/lock.svg</file>
         <file alias="icons/dark/lock.svg">res/icons/dark/lock.svg</file>
         <file alias="icons/light/shield-check.svg">res/icons/light/shield-check.svg</file>

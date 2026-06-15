@@ -577,13 +577,13 @@
       </layout>
      </item>
      <item>
-      <widget class="QGroupBox" name="certificatesGroupBox">
+      <widget class="QGroupBox" name="certificatesPanel">
        <property name="title">
         <string>Certificates</string>
        </property>
        <layout class="QVBoxLayout" name="certificatesLayout">
         <property name="spacing">
-         <number>12</number>
+         <number>16</number>
         </property>
         <property name="leftMargin">
          <number>16</number>
@@ -598,164 +598,631 @@
          <number>16</number>
         </property>
         <item>
-         <widget class="QLabel" name="clientCertificateLabel">
-          <property name="text">
-           <string>Client Certificate:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="clientCertificateLayout">
-          <item>
-           <widget class="QComboBox" name="clientCertificateComboBox">
-            <item>
-             <property name="text">
-              <string>Auto-select</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Default client certificate</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item>
-           <widget class="ThemedPushButton" name="clientCertificateViewButton">
-            <property name="text">
-             <string>View...</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <widget class="QFrame" name="clientCertificateHint">
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
-          </property>
-          <layout class="QHBoxLayout" name="clientCertificateHintLayout">
+         <widget class="QWidget" name="clientCertificateGroupBox" native="true">
+          <layout class="QVBoxLayout" name="clientCertificateCardLayout">
+           <property name="spacing">
+            <number>8</number>
+           </property>
            <property name="leftMargin">
-            <number>14</number>
+            <number>0</number>
            </property>
            <property name="topMargin">
-            <number>12</number>
+            <number>0</number>
            </property>
            <property name="rightMargin">
-            <number>14</number>
+            <number>0</number>
            </property>
            <property name="bottomMargin">
-            <number>12</number>
+            <number>0</number>
            </property>
            <item>
-            <widget class="ThemedIconLabel" name="clientCertificateHintIcon">
-             <property name="text">
-              <string/>
+            <layout class="QHBoxLayout" name="clientCertificateHeaderLayout">
+             <property name="spacing">
+              <number>8</number>
              </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
+             <item>
+              <widget class="ThemedIconLabel" name="clientCertificateHeaderIcon">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="clientCertificateHeader">
+               <property name="font">
+                <font>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Client Certificate</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="clientCertificateHeaderSpacer">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="Line" name="clientCertificateHeaderLine">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="clientCertificateHintLabel">
-             <property name="text">
-              <string>The application will automatically select
-a suitable certificate.</string>
-             </property>
+            <widget class="QWidget" name="clientCertificateDetails" native="true">
+             <layout class="QGridLayout" name="clientCertificateForm" columnstretch="0,1">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <property name="horizontalSpacing">
+               <number>14</number>
+              </property>
+              <property name="verticalSpacing">
+               <number>8</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="clientCertificateCaption">
+                <property name="certCaption" stdset="0">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>Certificate:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <layout class="QHBoxLayout" name="clientCertificateLayout">
+                <property name="spacing">
+                 <number>8</number>
+                </property>
+                <item>
+                 <widget class="QComboBox" name="clientCertificateComboBox">
+                  <item>
+                   <property name="text">
+                    <string>Auto-select</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Default client certificate</string>
+                   </property>
+                  </item>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="ThemedPushButton" name="clientCertificateViewButton">
+                  <property name="text">
+                   <string>View...</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item row="1" column="0" colspan="2">
+               <widget class="Line" name="clientCertSeparatorTop">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="clientCertSubjectCaption">
+                <property name="certCaption" stdset="0">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>Subject:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLabel" name="clientCertSubjectEdit">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                  <horstretch>1</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="textInteractionFlags">
+                 <set>Qt::TextSelectableByMouse</set>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0" colspan="2">
+               <widget class="Line" name="clientCertSeparator0">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="0">
+               <widget class="QLabel" name="clientCertIssuerCaption">
+                <property name="certCaption" stdset="0">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>Issuer:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="1">
+               <widget class="QLabel" name="clientCertIssuerEdit">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                  <horstretch>1</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="textInteractionFlags">
+                 <set>Qt::TextSelectableByMouse</set>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="0" colspan="2">
+               <widget class="Line" name="clientCertSeparator1">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="0">
+               <widget class="QLabel" name="clientCertValidCaption">
+                <property name="certCaption" stdset="0">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>Valid until:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="1">
+               <layout class="QHBoxLayout" name="clientCertValidLayout">
+                <property name="spacing">
+                 <number>6</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="clientCertValidEdit">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="textInteractionFlags">
+                   <set>Qt::TextSelectableByMouse</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="ThemedIconLabel" name="clientCertValidIcon">
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="clientCertValidBadge">
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item row="7" column="0" colspan="2">
+               <widget class="Line" name="clientCertSeparator2">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="0">
+               <widget class="QLabel" name="clientCertFingerprintCaption">
+                <property name="certCaption" stdset="0">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>SHA-256:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="1">
+               <layout class="QHBoxLayout" name="clientCertFingerprintLayout">
+                <property name="spacing">
+                 <number>8</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="clientCertFingerprintEdit">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                    <horstretch>1</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="textInteractionFlags">
+                   <set>Qt::TextSelectableByMouse</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="ThemedPushButton" name="clientCertViewButton">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
+                  <property name="text">
+                   <string>View...</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
             </widget>
            </item>
           </layout>
          </widget>
         </item>
         <item>
-         <spacer name="certificatesTopSpacer">
+         <widget class="Line" name="certificateSectionLine">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>22</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QLabel" name="serverCertificateLabel">
-          <property name="text">
-           <string>Server Certificate:</string>
+           <enum>Qt::Horizontal</enum>
           </property>
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="serverCertificateStatusLayout">
-          <item>
-           <widget class="QLabel" name="serverCertificateStatusLabel">
-            <property name="text">
-             <string>Not available</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="serverCertificateStatusSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="ThemedPushButton" name="serverCertificateViewButton">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
-            <property name="text">
-             <string>View...</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <widget class="QFrame" name="serverCertificateFrame">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>140</height>
-           </size>
-          </property>
-          <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
-          </property>
-          <layout class="QVBoxLayout" name="serverCertificateFrameLayout">
+         <widget class="QWidget" name="serverCertificateGroupBox" native="true">
+          <layout class="QVBoxLayout" name="serverCertificateCardLayout">
+           <property name="spacing">
+            <number>6</number>
+           </property>
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
            <item>
-            <widget class="ThemedIconLabel" name="serverCertificateIconLabel">
-             <property name="text">
-              <string/>
+            <layout class="QHBoxLayout" name="serverCertificateHeaderLayout">
+             <property name="spacing">
+              <number>8</number>
              </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
+             <item>
+              <widget class="ThemedIconLabel" name="serverCertificateHeaderIcon">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="serverCertificateHeader">
+               <property name="font">
+                <font>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Server Certificate</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="serverCertificateHeaderSpacer">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="Line" name="serverCertificateHeaderLine">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QLabel" name="serverCertificateHintLabel">
              <property name="text">
-              <string>Server certificate will be available
-after connection.</string>
+              <string>Select an endpoint that provides a server certificate.</string>
              </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
+             <property name="wordWrap">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
+           <item>
+            <widget class="QWidget" name="serverCertificateDetails" native="true">
+             <layout class="QGridLayout" name="serverCertificateForm" columnstretch="0,1">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <property name="horizontalSpacing">
+               <number>14</number>
+              </property>
+              <property name="verticalSpacing">
+               <number>8</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="serverCertSubjectCaption">
+                <property name="certCaption" stdset="0">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>Subject:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLabel" name="serverCertSubjectEdit">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                  <horstretch>1</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="textInteractionFlags">
+                 <set>Qt::TextSelectableByMouse</set>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0" colspan="2">
+               <widget class="Line" name="serverCertSeparator0">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="serverCertIssuerCaption">
+                <property name="certCaption" stdset="0">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>Issuer:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLabel" name="serverCertIssuerEdit">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                  <horstretch>1</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="textInteractionFlags">
+                 <set>Qt::TextSelectableByMouse</set>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0" colspan="2">
+               <widget class="Line" name="serverCertSeparator1">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="0">
+               <widget class="QLabel" name="serverCertValidCaption">
+                <property name="certCaption" stdset="0">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>Valid until:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="1">
+               <layout class="QHBoxLayout" name="serverCertValidLayout">
+                <property name="spacing">
+                 <number>6</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="serverCertValidEdit">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="textInteractionFlags">
+                   <set>Qt::TextSelectableByMouse</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="ThemedIconLabel" name="serverCertValidIcon">
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="serverCertValidBadge">
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item row="5" column="0" colspan="2">
+               <widget class="Line" name="serverCertSeparator2">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="0">
+               <widget class="QLabel" name="serverCertFingerprintCaption">
+                <property name="certCaption" stdset="0">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>SHA-256:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="1">
+               <layout class="QHBoxLayout" name="serverCertFingerprintLayout">
+                <property name="spacing">
+                 <number>8</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="serverCertFingerprintEdit">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+                    <horstretch>1</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="textInteractionFlags">
+                   <set>Qt::TextSelectableByMouse</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="ThemedPushButton" name="serverCertificateViewButton">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
+                  <property name="text">
+                   <string>View...</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
           </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="Line" name="trustSectionLine">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
          </widget>
         </item>
         <item>
@@ -816,6 +1283,19 @@ after connection.</string>
            </widget>
           </item>
          </layout>
+        </item>
+        <item>
+         <spacer name="certificatesBottomSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </widget>
