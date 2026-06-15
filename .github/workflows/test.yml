@@ -26,6 +26,10 @@ jobs:
             qt: '6.9.3'
             use_qt: '-DUSE_QT6=ON'
             cmake_extra: '-DOUAEXP_OPENSSL_ROOT_DIR='
+          - os: macos-26
+            qt: '6.9.3'
+            use_qt: '-DUSE_QT6=ON'
+            cmake_extra: '-DOUAEXP_OPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR'
           - os: ubuntu-latest
             qt: '5.15.2'
             use_qt: '-DUSE_QT5=ON'
@@ -34,7 +38,6 @@ jobs:
             qt: '5.15.2'
             use_qt: '-DUSE_QT5=ON'
             cmake_extra: '-DOUAEXP_FETCH_QTOPCUA=OFF -DOUAEXP_OPENSSL_ROOT_DIR='
-
     env:
       # Run Qt GUI/Test binaries without a real display.
       QT_QPA_PLATFORM: offscreen
@@ -57,6 +60,12 @@ jobs:
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'
         uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Install macOS build dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew install ninja openssl@3
+          echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
 
       - name: Set up MSVC environment (Windows)
         if: runner.os == 'Windows'
