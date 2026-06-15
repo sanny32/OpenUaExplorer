@@ -69,8 +69,10 @@ if(QT_VERSION_MAJOR EQUAL 5)
     file(MAKE_DIRECTORY "${QTOPCUA_BUILD_DIR}")
     set(QTOPCUA_ORIGINAL_INCLUDE "$ENV{INCLUDE}")
     if(CMAKE_HOST_WIN32 AND OUAEXP_OPENSSL_ROOT_DIR)
-        set(ENV{INCLUDE}
-            "${OUAEXP_OPENSSL_ROOT_DIR}/include;$ENV{INCLUDE}")
+        # Forward-slash path: backslashes from -D did not resolve for cl on CI.
+        file(TO_CMAKE_PATH "${OUAEXP_OPENSSL_ROOT_DIR}/include" _ssl_include)
+        set(ENV{INCLUDE} "${_ssl_include};$ENV{INCLUDE}")
+        message(STATUS "Qt OpcUa build: prepended OpenSSL include ${_ssl_include}")
     endif()
 
     message(STATUS
