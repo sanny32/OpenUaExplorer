@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QSettings>
 #include <QSignalSpy>
+#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -50,6 +51,7 @@ private:
 void TestOpcUa::initTestCase()
 {
     QVERIFY(_settingsDirectory.isValid());
+    QStandardPaths::setTestModeEnabled(true);
     QCoreApplication::setOrganizationName(QStringLiteral("OpenUaExplorerTests"));
     QCoreApplication::setApplicationName(QStringLiteral("OpenUaExplorerTests"));
     QSettings::setDefaultFormat(QSettings::IniFormat);

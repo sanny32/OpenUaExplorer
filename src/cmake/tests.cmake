@@ -8,6 +8,14 @@ function(ouaexp_configure_test_environment test_name)
             list(APPEND environment_modifications
                 "QT_PLUGIN_PATH=path_list_prepend:${QTOPCUA_INSTALL_DIR}/plugins")
         endif()
+        if(TARGET OpenSSL::Crypto)
+            list(APPEND environment_modifications
+                "PATH=path_list_prepend:$<TARGET_FILE_DIR:OpenSSL::Crypto>")
+        endif()
+        if(OUAEXP_OPENSSL_ROOT_DIR)
+            list(APPEND environment_modifications
+                "PATH=path_list_prepend:${OUAEXP_OPENSSL_ROOT_DIR}/bin")
+        endif()
         set_tests_properties(${test_name} PROPERTIES
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
             ENVIRONMENT_MODIFICATION "${environment_modifications}")
@@ -22,6 +30,10 @@ function(ouaexp_configure_test_environment test_name)
         if(DEFINED QTOPCUA_INSTALL_DIR)
             list(APPEND environment_modifications
                 "QT_PLUGIN_PATH=path_list_prepend:${QTOPCUA_INSTALL_DIR}/plugins")
+        endif()
+        if(TARGET OpenSSL::Crypto)
+            list(APPEND environment_modifications
+                "LD_LIBRARY_PATH=path_list_prepend:$<TARGET_FILE_DIR:OpenSSL::Crypto>")
         endif()
         set_tests_properties(${test_name} PROPERTIES
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen"

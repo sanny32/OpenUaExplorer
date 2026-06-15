@@ -36,17 +36,9 @@ if(NOT OUAEXP_FETCH_QTOPCUA)
     return()
 endif()
 
-if(NOT QT_VERSION_MAJOR EQUAL 6)
-    message(FATAL_ERROR
-        "Automatic Qt OpcUa bootstrap is available only for Qt 6. "
-        "Install Qt5OpcUa for the selected Qt 5 kit.")
-endif()
-
-set(QTOPCUA_VERSION "${Qt6Core_VERSION}")
+set(QTOPCUA_VERSION "${Qt${QT_VERSION_MAJOR}Core_VERSION}")
 set(QTOPCUA_BUILD_DIR "${CMAKE_BINARY_DIR}/_deps/qtopcua-build")
 set(QTOPCUA_INSTALL_DIR "${CMAKE_BINARY_DIR}/_deps/qtopcua-install")
-set(QTOPCUA_CONFIG_FILE
-    "${QTOPCUA_INSTALL_DIR}/lib/cmake/Qt6OpcUa/Qt6OpcUaConfig.cmake")
 
 FetchContent_Declare(qtopcua
     GIT_REPOSITORY https://code.qt.io/qt/qtopcua.git
@@ -58,6 +50,59 @@ FetchContent_GetProperties(qtopcua)
 if(NOT qtopcua_POPULATED)
     FetchContent_Populate(qtopcua)
 endif()
+
+if(QT_VERSION_MAJOR EQUAL 5)
+    set(QTOPCUA_QMAKE_EXECUTABLE "${QT_QMAKE_EXECUTABLE}")
+    if(CMAKE_HOST_WIN32)
+        find_program(QTOPCUA_MAKE_EXECUTABLE NAMES nmake REQUIRED)
+        set(QTOPCUA_BUILD_OPTIONS)
+    else()
+        find_program(QTOPCUA_MAKE_EXECUTABLE NAMES make gmake REQUIRED)
+        include(ProcessorCount)
+        ProcessorCount(QTOPCUA_PROCESSOR_COUNT)
+        if(NOT QTOPCUA_PROCESSOR_COUNT)
+            set(QTOPCUA_PROCESSOR_COUNT 2)
+        endif()
+        set(QTOPCUA_BUILD_OPTIONS "-j${QTOPCUA_PROCESSOR_COUNT}")
+    endif()
+
+    file(MAKE_DIRECTORY "${QTOPCUA_BUILD_DIR}")
+    set(QTOPCUA_ORIGINAL_INCLUDE "$ENV{INCLUDE}")
+    if(CMAKE_HOST_WIN32 AND OUAEXP_OPENSSL_ROOT_DIR)
+        set(ENV{INCLUDE}
+            "${OUAEXP_OPENSSL_ROOT_DIR}/include;$ENV{INCLUDE}")
+    endif()
+
+    message(STATUS
+        "Configuring Qt OpcUa ${QTOPCUA_VERSION} with the bundled open62541 backend")
+    execute_process(
+        COMMAND "${QTOPCUA_QMAKE_EXECUTABLE}"
+            "${qtopcua_SOURCE_DIR}/qtopcua.pro"
+            --
+            --open62541=qt
+        WORKING_DIRECTORY "${QTOPCUA_BUILD_DIR}"
+        COMMAND_ERROR_IS_FATAL ANY
+    )
+
+    message(STATUS "Building and installing Qt OpcUa ${QTOPCUA_VERSION}")
+    execute_process(
+        COMMAND "${QTOPCUA_MAKE_EXECUTABLE}" ${QTOPCUA_BUILD_OPTIONS}
+        WORKING_DIRECTORY "${QTOPCUA_BUILD_DIR}"
+        COMMAND_ERROR_IS_FATAL ANY
+    )
+    execute_process(
+        COMMAND "${QTOPCUA_MAKE_EXECUTABLE}" install
+        WORKING_DIRECTORY "${QTOPCUA_BUILD_DIR}"
+        COMMAND_ERROR_IS_FATAL ANY
+    )
+    set(ENV{INCLUDE} "${QTOPCUA_ORIGINAL_INCLUDE}")
+
+    find_package(Qt5OpcUa CONFIG REQUIRED)
+    return()
+endif()
+
+set(QTOPCUA_CONFIG_FILE
+    "${QTOPCUA_INSTALL_DIR}/lib/cmake/Qt6OpcUa/Qt6OpcUaConfig.cmake")
 
 if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
     find_program(QTOPCUA_CONFIGURE_EXECUTABLE

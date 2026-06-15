@@ -25,7 +25,7 @@ jobs:
           - os: windows-latest
             qt: '6.9.3'
             use_qt: '-DUSE_QT6=ON'
-            cmake_extra: '-DOUAEXP_OPENSSL_ROOT_DIR='
+            cmake_extra: '-DOUAEXP_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR'
           - os: macos-26
             qt: '6.9.3'
             use_qt: '-DUSE_QT6=ON'
@@ -33,11 +33,11 @@ jobs:
           - os: ubuntu-latest
             qt: '5.15.2'
             use_qt: '-DUSE_QT5=ON'
-            cmake_extra: '-DOUAEXP_FETCH_QTOPCUA=OFF'
+            cmake_extra: ''
           - os: windows-latest
             qt: '5.15.2'
             use_qt: '-DUSE_QT5=ON'
-            cmake_extra: '-DOUAEXP_FETCH_QTOPCUA=OFF -DOUAEXP_OPENSSL_ROOT_DIR='
+            cmake_extra: '-DOUAEXP_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR'
     env:
       # Run Qt GUI/Test binaries without a real display.
       QT_QPA_PLATFORM: offscreen
@@ -61,6 +61,13 @@ jobs:
         if: runner.os == 'Windows'
         uses: seanmiddleditch/gha-setup-ninja@v5
 
+      - name: Install Windows build dependencies
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install openssl --no-progress -y
+          "OPENSSL_ROOT_DIR=$env:ProgramFiles\OpenSSL-Win64" >> $env:GITHUB_ENV
+
       - name: Install macOS build dependencies
         if: runner.os == 'macOS'
         run: |
@@ -75,13 +82,13 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ matrix.qt }}
-          modules: qtopcua
           cache: true
 
       - name: Install test dependencies
         run: python -m pip install -r tools/requirements.txt
 
       - name: Cache Qt OpcUa build
+        if: matrix.qt != '5.15.2'
         uses: actions/cache@v4
         with:
           path: build/_deps/qtopcua-install

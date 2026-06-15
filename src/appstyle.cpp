@@ -91,7 +91,8 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option,
 {
     if (element == CE_ItemViewItem && widget
         && widget->objectName() == QLatin1String("attributesTree")
-        && option->state.testAnyFlags(State_Selected | State_MouseOver)) {
+        && (option->state.testFlag(State_Selected)
+            || option->state.testFlag(State_MouseOver))) {
         if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option)) {
             QStyleOptionViewItem opt(*item);
             opt.palette.setColor(QPalette::Text, opt.palette.color(QPalette::HighlightedText));

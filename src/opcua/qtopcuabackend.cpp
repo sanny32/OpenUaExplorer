@@ -38,9 +38,6 @@
 #include "pkimanager.h"
 #include "qtopcuabackend.h"
 
-// The transport-neutral value/attribute formatting helpers were extracted into
-// OpcUaFormat (attributeformatter.h) so they can be unit tested without a live
-// connection. Pull them into scope so existing unqualified calls keep working.
 using namespace OpcUaFormat;
 
 
@@ -242,7 +239,7 @@ public:
     ///
     static QList<QPair<QString, QOpcUa::NodeAttribute>> attributeFieldTable()
     {
-        return {
+        QList<QPair<QString, QOpcUa::NodeAttribute>> fields = {
             {tr("Node Id"), QOpcUa::NodeAttribute::NodeId},
             {tr("Node Class"), QOpcUa::NodeAttribute::NodeClass},
             {tr("Browse Name"), QOpcUa::NodeAttribute::BrowseName},
@@ -265,11 +262,17 @@ public:
             {tr("Executable"), QOpcUa::NodeAttribute::Executable},
             {tr("User Executable"), QOpcUa::NodeAttribute::UserExecutable},
             {tr("Write Mask"), QOpcUa::NodeAttribute::WriteMask},
-            {tr("User Write Mask"), QOpcUa::NodeAttribute::UserWriteMask},
-            {tr("Role Permissions"), QOpcUa::NodeAttribute::RolePermissions},
-            {tr("User Role Permissions"), QOpcUa::NodeAttribute::UserRolePermissions},
-            {tr("Access Restrictions"), QOpcUa::NodeAttribute::AccessRestrictions}
+            {tr("User Write Mask"), QOpcUa::NodeAttribute::UserWriteMask}
         };
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        fields.append(qMakePair(tr("Role Permissions"),
+                                QOpcUa::NodeAttribute::RolePermissions));
+        fields.append(qMakePair(tr("User Role Permissions"),
+                                QOpcUa::NodeAttribute::UserRolePermissions));
+        fields.append(qMakePair(tr("Access Restrictions"),
+                                QOpcUa::NodeAttribute::AccessRestrictions));
+#endif
+        return fields;
     }
 
     ///
@@ -356,7 +359,7 @@ public:
     QOpcUaProvider provider;
     QOpcUaClient *client = nullptr;
     QString activeBackend;
-    QList<QOpcUaEndpointDescription> endpointDescriptions;
+    QVector<QOpcUaEndpointDescription> endpointDescriptions;
     QByteArray activeCertificate;
     QString activeClientCertificateFile;
     CertificateTrustDecider *trustDecider = nullptr;
@@ -451,7 +454,7 @@ void QtOpcUaBackend::discoverEndpoints(const QString &url, const QString &backen
     *connection = connect(
         _d->client, &QOpcUaClient::endpointsRequestFinished, this,
         [this, connection, requestGeneration](
-            const QList<QOpcUaEndpointDescription> &result,
+            const QVector<QOpcUaEndpointDescription> &result,
             QOpcUa::UaStatusCode status, const QUrl &) {
         disconnect(*connection);
         if (requestGeneration != _d->discoveryGeneration)
@@ -580,7 +583,7 @@ void QtOpcUaBackend::browse(const QString &nodeId, int timeoutMs)
     });
     connect(node, &QOpcUaNode::browseFinished, this,
             [this, node, nodeId, requestGeneration, operationGeneration](
-                const QList<QOpcUaReferenceDescription> &references,
+                const QVector<QOpcUaReferenceDescription> &references,
                 QOpcUa::UaStatusCode status) {
         QVector<OpcUaNodeInfo> children;
         QString error;
@@ -686,7 +689,7 @@ void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
         emit dataValuesReady({}, tr("The OPC UA client is not connected."));
         return;
     }
-    QList<QOpcUaReadItem> items;
+    QVector<QOpcUaReadItem> items;
     items.reserve(nodeIds.size());
     for (const QString &nodeId : nodeIds)
         items.append(QOpcUaReadItem(nodeId, QOpcUa::NodeAttribute::Value));
@@ -695,7 +698,7 @@ void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
     QMetaObject::Connection connection;
     connection = connect(_d->client, &QOpcUaClient::readNodeAttributesFinished, this,
                          [this, connection, requestGeneration, operationGeneration](
-                             const QList<QOpcUaReadResult> &results,
+                             const QVector<QOpcUaReadResult> &results,
                              QOpcUa::UaStatusCode serviceResult) mutable {
         disconnect(connection);
         if (requestGeneration != _d->generation

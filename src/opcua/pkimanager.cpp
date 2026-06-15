@@ -13,11 +13,13 @@
 #include <QFileInfo>
 #include <QSaveFile>
 #include <QStandardPaths>
+#include <QStringList>
 #include <QSysInfo>
 
 #ifdef OUAEXP_HAS_OPENSSL
 #include <openssl/bio.h>
 #include <openssl/bn.h>
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
@@ -27,6 +29,23 @@
 #endif
 
 #include "pkimanager.h"
+
+#ifdef OUAEXP_HAS_OPENSSL
+namespace {
+
+QString openSslError()
+{
+    QStringList messages;
+    for (unsigned long code = ERR_get_error(); code != 0; code = ERR_get_error()) {
+        char buffer[256] = {};
+        ERR_error_string_n(code, buffer, sizeof(buffer));
+        messages.append(QString::fromLatin1(buffer));
+    }
+    return messages.join(QStringLiteral("; "));
+}
+
+} // namespace
+#endif
 
 ///
 /// \brief PkiManager::applicationUri
@@ -180,8 +199,10 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
         || EVP_PKEY_keygen_init(keyContext) <= 0
         || EVP_PKEY_CTX_set_rsa_keygen_bits(keyContext, 2048) <= 0
         || EVP_PKEY_keygen(keyContext, &key) <= 0) {
-        if (error)
-            *error = QObject::tr("OpenSSL could not generate the RSA private key.");
+        if (error) {
+            *error = QObject::tr("OpenSSL could not generate the RSA private key: %1")
+                .arg(openSslError());
+        }
         EVP_PKEY_CTX_free(keyContext);
         return false;
     }
@@ -264,8 +285,10 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
 
     X509_free(certificate);
     EVP_PKEY_free(key);
-    if (!success && error)
-        *error = QObject::tr("OpenSSL could not create the client certificate.");
+    if (!success && error) {
+        *error = QObject::tr("OpenSSL could not create the client certificate: %1")
+            .arg(openSslError());
+    }
     return success;
 #endif
 }
