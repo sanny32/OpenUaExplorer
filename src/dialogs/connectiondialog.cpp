@@ -95,7 +95,7 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     connect(ui->cancelButton, &QPushButton::clicked, this, &QDialog::reject);
     connect(ui->connectButton, &QPushButton::clicked,
             this, &ConnectionDialog::validateAndAccept);
-    connect(ui->browseServersButton, &QPushButton::clicked,
+    connect(ui->getEndpointsButton, &QPushButton::clicked,
             this, &ConnectionDialog::discoverEndpoints);
     connect(ui->endpointComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -234,7 +234,7 @@ void ConnectionDialog::discoverEndpoints()
     saveLastEndpointUrl();
     const QString url = ui->endpointComboBox->currentText();
     ui->statusLabel->setText(tr("Discovering endpoints..."));
-    ui->browseServersButton->setEnabled(false);
+    ui->getEndpointsButton->setEnabled(false);
     ui->connectButton->setEnabled(false);
     _service->discoverEndpoints(url);
 }
@@ -246,7 +246,7 @@ void ConnectionDialog::discoverEndpoints()
 ///
 void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QString &error)
 {
-    ui->browseServersButton->setEnabled(true);
+    ui->getEndpointsButton->setEnabled(true);
     ui->connectButton->setEnabled(true);
     if (!error.isEmpty()) {
         _connectAfterDiscovery = false;

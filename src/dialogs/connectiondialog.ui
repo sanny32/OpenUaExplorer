@@ -125,9 +125,9 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
              </widget>
             </item>
             <item>
-             <widget class="ThemedPushButton" name="browseServersButton">
+             <widget class="ThemedPushButton" name="getEndpointsButton">
               <property name="text">
-               <string>Browse Servers...</string>
+               <string>Get Endpoints...</string>
               </property>
              </widget>
             </item>
@@ -960,7 +960,7 @@ after connection.</string>
  </customwidgets>
  <tabstops>
   <tabstop>endpointComboBox</tabstop>
-  <tabstop>browseServersButton</tabstop>
+  <tabstop>getEndpointsButton</tabstop>
   <tabstop>securityModeComboBox</tabstop>
   <tabstop>securityPolicyComboBox</tabstop>
   <tabstop>authenticationComboBox</tabstop>
