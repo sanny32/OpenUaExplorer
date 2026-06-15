@@ -49,6 +49,10 @@
         <file alias="icons/dark/info.svg">res/icons/dark/info.svg</file>
         <file alias="icons/light/lock.svg">res/icons/light/lock.svg</file>
         <file alias="icons/dark/lock.svg">res/icons/dark/lock.svg</file>
+        <file alias="icons/light/shield-check.svg">res/icons/light/shield-check.svg</file>
+        <file alias="icons/dark/shield-check.svg">res/icons/dark/shield-check.svg</file>
+        <file alias="icons/light/unlock.svg">res/icons/light/unlock.svg</file>
+        <file alias="icons/dark/unlock.svg">res/icons/dark/unlock.svg</file>
         <file alias="icons/light/theme.svg">res/icons/light/theme.svg</file>
         <file alias="icons/dark/theme.svg">res/icons/dark/theme.svg</file>
         <file alias="icons/light/search.svg">res/icons/light/search.svg</file>

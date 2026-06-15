@@ -49,48 +49,6 @@
            <property name="bottomMargin">
             <number>20</number>
            </property>
-          <item row="1" column="0">
-           <widget class="QLabel" name="endpointDescriptionLabel">
-            <property name="text">
-             <string>Endpoint Description:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QTextEdit" name="endpointDescriptionEdit">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>56</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>100</height>
-             </size>
-            </property>
-            <property name="verticalScrollBarPolicy">
-             <enum>Qt::ScrollBarAsNeeded</enum>
-            </property>
-            <property name="readOnly">
-             <bool>true</bool>
-            </property>
-            <property name="plainText">
-             <string>opc.tcp://localhost:4840
-Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="0">
            <widget class="QLabel" name="endpointUrlLabel">
             <property name="text">
@@ -101,7 +59,7 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
           <item row="0" column="1">
            <layout class="QHBoxLayout" name="horizontalLayout">
             <item>
-             <widget class="QComboBox" name="endpointComboBox">
+             <widget class="QComboBox" name="discoveryUrlComboBox">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>1</horstretch>
@@ -132,6 +90,47 @@ Basic256Sha256 - Sign &amp; Encrypt - Binary</string>
              </widget>
             </item>
            </layout>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="endpointLabel">
+            <property name="text">
+             <string>Endpoints:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QListWidget" name="endpointListWidget">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>1</horstretch>
+              <verstretch>1</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>300</width>
+              <height>170</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>220</height>
+             </size>
+            </property>
+            <property name="alternatingRowColors">
+             <bool>true</bool>
+            </property>
+            <property name="horizontalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOff</enum>
+            </property>
+            <property name="uniformItemSizes">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -959,8 +958,9 @@ after connection.</string>
   </customwidget>
  </customwidgets>
  <tabstops>
-  <tabstop>endpointComboBox</tabstop>
+  <tabstop>discoveryUrlComboBox</tabstop>
   <tabstop>getEndpointsButton</tabstop>
+  <tabstop>endpointListWidget</tabstop>
   <tabstop>securityModeComboBox</tabstop>
   <tabstop>securityPolicyComboBox</tabstop>
   <tabstop>authenticationComboBox</tabstop>
