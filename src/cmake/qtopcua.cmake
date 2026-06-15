@@ -123,6 +123,10 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
         list(APPEND QTOPCUA_CONFIGURE_OPTIONS
             "-DOPENSSL_ROOT_DIR=${OUAEXP_OPENSSL_ROOT_DIR}")
     endif()
+    if(CMAKE_OSX_ARCHITECTURES)
+        list(APPEND QTOPCUA_CONFIGURE_OPTIONS
+            "-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}")
+    endif()
 
     # qt-cmake needs cmake and ninja on PATH, which QtCreator does not set.
     get_filename_component(CMAKE_BIN_DIR "${CMAKE_COMMAND}" DIRECTORY)
