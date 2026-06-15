@@ -25,12 +25,12 @@ jobs:
           - os: windows-latest
             qt: '6.9.3'
             use_qt: '-DUSE_QT6=ON'
-            cmake_extra: '-DOUAEXP_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR'
+            cmake_extra: ''
             qt_tools: 'tools_opensslv3_x64'
           - os: macos-26
             qt: '6.9.3'
             use_qt: '-DUSE_QT6=ON'
-            cmake_extra: '-DOUAEXP_OPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR -DCMAKE_OSX_ARCHITECTURES=arm64'
+            cmake_extra: '-DCMAKE_OSX_ARCHITECTURES=arm64'
           - os: ubuntu-latest
             qt: '5.15.2'
             use_qt: '-DUSE_QT5=ON'
@@ -38,7 +38,7 @@ jobs:
           - os: windows-2022
             qt: '5.15.2'
             use_qt: '-DUSE_QT5=ON'
-            cmake_extra: '-DOUAEXP_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR'
+            cmake_extra: ''
             msvc_toolset: '14.29'
             qt_tools: 'tools_opensslv3_x64'
     env:
