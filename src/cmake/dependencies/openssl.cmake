@@ -1,22 +1,11 @@
-if(DEFINED ENV{OPENSSL_ROOT_DIR})
-    set(OUAEXP_OPENSSL_DEFAULT_ROOT_DIR "$ENV{OPENSSL_ROOT_DIR}")
-elseif(WIN32)
-    set(OUAEXP_OPENSSL_DEFAULT_ROOT_DIR "C:/Qt/Tools/OpenSSLv3/Win_x64")
-else()
-    set(OUAEXP_OPENSSL_DEFAULT_ROOT_DIR "")
-endif()
-
-set(OUAEXP_OPENSSL_ROOT_DIR "${OUAEXP_OPENSSL_DEFAULT_ROOT_DIR}"
-    CACHE PATH "Root directory of the OpenSSL 3 installation")
-
-if(OUAEXP_OPENSSL_ROOT_DIR AND NOT DEFINED OPENSSL_ROOT_DIR)
-    set(OPENSSL_ROOT_DIR "${OUAEXP_OPENSSL_ROOT_DIR}" CACHE PATH
-        "Root directory used by FindOpenSSL")
-endif()
-
-if(OUAEXP_OPENSSL_ROOT_DIR)
-    set(OPENSSL_INCLUDE_DIR "${OUAEXP_OPENSSL_ROOT_DIR}/include" CACHE PATH
-        "OpenSSL include directory" FORCE)
+if(NOT DEFINED OPENSSL_ROOT_DIR)
+    if(DEFINED ENV{OPENSSL_ROOT_DIR})
+        set(OPENSSL_ROOT_DIR "$ENV{OPENSSL_ROOT_DIR}"
+            CACHE PATH "Root directory of the OpenSSL 3 installation")
+    elseif(WIN32)
+        set(OPENSSL_ROOT_DIR "C:/Qt/Tools/OpenSSLv3/Win_x64"
+            CACHE PATH "Root directory of the OpenSSL 3 installation")
+    endif()
 endif()
 
 find_package(OpenSSL 3 QUIET COMPONENTS Crypto SSL)

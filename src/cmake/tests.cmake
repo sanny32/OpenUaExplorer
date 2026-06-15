@@ -12,9 +12,9 @@ function(ouaexp_configure_test_environment test_name)
             list(APPEND environment_modifications
                 "PATH=path_list_prepend:$<TARGET_FILE_DIR:OpenSSL::Crypto>")
         endif()
-        if(OUAEXP_OPENSSL_ROOT_DIR)
+        if(OPENSSL_ROOT_DIR)
             list(APPEND environment_modifications
-                "PATH=path_list_prepend:${OUAEXP_OPENSSL_ROOT_DIR}/bin")
+                "PATH=path_list_prepend:${OPENSSL_ROOT_DIR}/bin")
         endif()
         set_tests_properties(${test_name} PROPERTIES
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
