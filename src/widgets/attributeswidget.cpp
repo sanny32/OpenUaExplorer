@@ -10,7 +10,6 @@
 
 #include "attributesmodel.h"
 #include "attributeswidget.h"
-#include "testdata.h"
 #include "ui_attributeswidget.h"
 
 ///
@@ -32,15 +31,6 @@ AttributesWidget::AttributesWidget(QWidget *parent)
 AttributesWidget::~AttributesWidget()
 {
     delete ui;
-}
-
-///
-/// \brief AttributesWidget::populateWithTestData
-///
-void AttributesWidget::populateWithTestData()
-{
-    _model->setItems(TestData::attributeItems());
-    ui->attributesTree->expandToDepth(0);
 }
 
 ///

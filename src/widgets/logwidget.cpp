@@ -18,7 +18,6 @@
 #include "logmodel.h"
 #include "logwidget.h"
 #include "tableview.h"
-#include "testdata.h"
 #include "ui_logwidget.h"
 
 namespace {
@@ -191,20 +190,4 @@ void LogWidget::refreshIcons()
 void LogWidget::scrollToBottom()
 {
     ui->logTable->scrollToBottom();
-}
-
-///
-/// \brief LogWidget::populateWithTestData
-///
-void LogWidget::populateWithTestData()
-{
-    for (const TestData::LogEntry &e : TestData::logItems()) {
-        const QByteArray cat = QByteArrayLiteral("ouaexp.") + e.source;
-        QMessageLogger logger(nullptr, 0, nullptr, cat.constData());
-        switch (e.level) {
-        case LogItem::Level::Warning: logger.warning()  << e.message; break;
-        case LogItem::Level::Error:   logger.critical() << e.message; break;
-        default:                      logger.debug()    << e.message; break;
-        }
-    }
 }

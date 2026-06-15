@@ -1,18 +1,74 @@
-set(SOURCES
-    main.cpp
+set(CORE_SOURCES
+    loggingcategories.cpp
+
+    opcua/attributeformatter.cpp
+    opcua/certificateinfo.cpp
+    opcua/connectioncontroller.cpp
+    opcua/connectionprofilestore.cpp
+    opcua/connectionprofilevalidator.cpp
+    opcua/endpointhistorystore.cpp
+    opcua/opcuaclientservice.cpp
+    opcua/pkimanager.cpp
+    opcua/qtopcuabackend.cpp
+    opcua/secretstore.cpp
+
+    widgets/addressspacemodel.cpp
+    widgets/attributesmodel.cpp
+    widgets/dataaccessmodel.cpp
+    widgets/endpointmodel.cpp
+    widgets/eventsmodel.cpp
+    widgets/historymodel.cpp
+    widgets/logmodel.cpp
+    widgets/nodeinfomodel.cpp
+    widgets/referencesmodel.cpp
+    widgets/subscriptionsmodel.cpp
+)
+
+set(CORE_HEADERS
+    loggingcategories.h
+
+    opcua/attributeformatter.h
+    opcua/certificateinfo.h
+    opcua/certificatetrustdecider.h
+    opcua/connectioncontroller.h
+    opcua/connectionprofile.h
+    opcua/connectionprofilestore.h
+    opcua/connectionprofilevalidator.h
+    opcua/endpointhistorystore.h
+    opcua/opcuabackend.h
+    opcua/opcuaclientservice.h
+    opcua/opcuatypes.h
+    opcua/pkimanager.h
+    opcua/qtopcuabackend.h
+    opcua/secretstore.h
+
+    widgets/addressspaceitem.h
+    widgets/addressspacemodel.h
+    widgets/attributesmodel.h
+    widgets/columnalignmentstore.h
+    widgets/dataaccessitem.h
+    widgets/dataaccessmodel.h
+    widgets/endpointmodel.h
+    widgets/eventsmodel.h
+    widgets/historymodel.h
+    widgets/logitem.h
+    widgets/logmodel.h
+    widgets/nodeinfomodel.h
+    widgets/nodeitem.h
+    widgets/referencesmodel.h
+    widgets/subscriptionitem.h
+    widgets/subscriptionsmodel.h
+)
+
+set(UI_SOURCES
     appstyle.cpp
     apptheme.cpp
     application.cpp
     fusionstyle.cpp
+    macthemefactory.cpp
     qlementineappstyle.cpp
+    qlementinethemefactory.cpp
     macappstyle.cpp
-    loggingcategories.cpp
-
-    opcua/attributeformatter.cpp
-    opcua/connectionprofilestore.cpp
-    opcua/opcuaclientservice.cpp
-    opcua/pkimanager.cpp
-    opcua/secretstore.cpp
 
     dialogs/appbasedialog.cpp
     dialogs/connectiondialog.cpp
@@ -22,29 +78,20 @@ set(SOURCES
 
     mainwindow.cpp
 
-    widgets/addressspacemodel.cpp
     widgets/addressspacewidget.cpp
-    widgets/nodeinfomodel.cpp
-    widgets/referencesmodel.cpp
-    widgets/attributesmodel.cpp
     widgets/attributeswidget.cpp
     widgets/coloredpushbutton.cpp
     widgets/connectionstatuswidget.cpp
     widgets/dataaccesswidget.cpp
-    widgets/dataaccessmodel.cpp
-    widgets/eventsmodel.cpp
-    widgets/historymodel.cpp
-    widgets/subscriptiondelegate.cpp
-    widgets/subscriptionsmodel.cpp
     widgets/endpointselectorwidget.cpp
     widgets/fixedgap.cpp
     widgets/headerview.cpp
     widgets/tableview.cpp
-    widgets/logmodel.cpp
     widgets/logwidget.cpp
     widgets/mainstatusbarwidget.cpp
     widgets/maintoolbar.cpp
     widgets/maintoolbutton.cpp
+    widgets/subscriptiondelegate.cpp
     widgets/themediconlabel.cpp
     widgets/themedpushbutton.cpp
     widgets/themedtoolbutton.cpp
@@ -53,23 +100,16 @@ set(SOURCES
     widgets/trendgraphwidget.cpp
 )
 
-set(HEADERS
+set(UI_HEADERS
     appicons.h
     appstyle.h
     apptheme.h
     application.h
     fusionstyle.h
+    macthemefactory.h
     qlementineappstyle.h
+    qlementinethemefactory.h
     macappstyle.h
-    loggingcategories.h
-
-    opcua/attributeformatter.h
-    opcua/connectionprofile.h
-    opcua/connectionprofilestore.h
-    opcua/opcuaclientservice.h
-    opcua/opcuatypes.h
-    opcua/pkimanager.h
-    opcua/secretstore.h
 
     dialogs/appbasedialog.h
     dialogs/connectiondialog.h
@@ -77,42 +117,26 @@ set(HEADERS
     dialogs/certificatetrustdialog.h
     dialogs/writevaluedialog.h
 
-    itestdatapopulatable.h
     mainwindow.h
-    testdata.h
 
-    widgets/addressspaceitem.h
-    widgets/addressspacemodel.h
     widgets/addressspacewidget.h
-    widgets/nodeitem.h
-    widgets/nodeinfomodel.h
-    widgets/referencesmodel.h
-    widgets/attributesmodel.h
     widgets/attributeswidget.h
     widgets/coloredpushbutton.h
     widgets/connectionstatuswidget.h
     widgets/dataaccesswidget.h
-    widgets/dataaccessitem.h
-    widgets/dataaccessmodel.h
-    widgets/eventsmodel.h
-    widgets/historymodel.h
-    widgets/subscriptiondelegate.h
-    widgets/subscriptionitem.h
-    widgets/subscriptionsmodel.h
     widgets/endpointselectorwidget.h
     widgets/fixedgap.h
     widgets/headerview.h
     widgets/tableview.h
-    widgets/logitem.h
-    widgets/logmodel.h
     widgets/logwidget.h
     widgets/mainstatusbarwidget.h
     widgets/maintoolbar.h
     widgets/maintoolbutton.h
+    widgets/securityselectorwidget.h
+    widgets/subscriptiondelegate.h
     widgets/themediconlabel.h
     widgets/themedpushbutton.h
     widgets/themedtoolbutton.h
-    widgets/securityselectorwidget.h
     widgets/trendpanelwidget.h
     widgets/trendgraphwidget.h
 )

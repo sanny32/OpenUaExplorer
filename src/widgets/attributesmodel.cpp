@@ -138,8 +138,7 @@ QVariant AttributesModel::data(const QModelIndex &index, int role) const
         return index.column() == ColAttribute ? item->attribute : item->value;
 
     if (role == Qt::TextAlignmentRole)
-        return QVariant(_columnAlignments.value(
-            index.column(), Qt::AlignLeft | Qt::AlignVCenter));
+        return QVariant(_columnAlignments.alignment(index.column()));
 
     if (role == Qt::ForegroundRole && index.column() == ColValue) {
         if (item->value.startsWith(QLatin1String("Bad")))
@@ -198,7 +197,7 @@ void AttributesModel::clear()
 ///
 void AttributesModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {
-    _columnAlignments[column] = alignment;
+    _columnAlignments.setAlignment(column, alignment);
     if (rowCount() > 0) {
         emit dataChanged(index(0, column), index(rowCount() - 1, column),
                          {Qt::TextAlignmentRole});

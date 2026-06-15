@@ -37,6 +37,7 @@ private slots:
     void lazyModelRequestsAndAppliesBrowse();
     void attributesModelExposesStructuredValues();
     void open62541BackendIsAvailable();
+    void encryptedPrivateKeyPasswordIsRejected();
     void integrationEndpointDiscovery();
 
 private:
@@ -207,6 +208,23 @@ void TestOpcUa::open62541BackendIsAvailable()
     const OpcUaClientService service;
     QVERIFY2(service.availableBackends().contains(QStringLiteral("open62541")),
              qPrintable(service.availableBackends().join(QStringLiteral(", "))));
+}
+
+void TestOpcUa::encryptedPrivateKeyPasswordIsRejected()
+{
+    OpcUaClientService service;
+    const QStringList backends = service.availableBackends();
+    if (backends.isEmpty())
+        QSKIP("Qt OpcUa backend is not available.");
+
+    ConnectionProfile profile;
+    profile.backend = backends.constFirst();
+    QSignalSpy errorSpy(&service, &OpcUaClientService::errorOccurred);
+    service.connectToEndpoint(profile, {}, QStringLiteral("encrypted-key-password"));
+
+    QCOMPARE(errorSpy.size(), 1);
+    QVERIFY(service.lastError().contains(
+        QStringLiteral("Encrypted private keys"), Qt::CaseInsensitive));
 }
 
 ///

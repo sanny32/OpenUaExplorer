@@ -9,10 +9,10 @@
 #pragma once
 
 #include <QAbstractTableModel>
-#include <QHash>
 #include <QStringList>
 #include <QVector>
 
+#include "columnalignmentstore.h"
 #include "dataaccessitem.h"
 #include "opcua/opcuatypes.h"
 
@@ -59,5 +59,5 @@ public:
 
 private:
     QVector<DataAccessItem> _items;
-    QHash<int, Qt::Alignment> _columnAlignments;
+    ColumnAlignmentStore _columnAlignments;
 };

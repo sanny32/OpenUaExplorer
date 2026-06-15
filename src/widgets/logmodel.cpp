@@ -126,7 +126,7 @@ QVariant LogModel::data(const QModelIndex &index, int role) const
         return QColor(levelColor(item.level));
 
     if (role == Qt::TextAlignmentRole)
-        return QVariant(_columnAlignments.value(col, Qt::AlignLeft | Qt::AlignVCenter));
+        return QVariant(_columnAlignments.alignment(col));
 
     return QVariant();
 }
@@ -209,7 +209,7 @@ void LogModel::setSearchFilter(const QString &text)
 ///
 void LogModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {
-    _columnAlignments[column] = alignment;
+    _columnAlignments.setAlignment(column, alignment);
     emit dataChanged(index(0, column), index(rowCount() - 1, column), {Qt::TextAlignmentRole});
 }
 

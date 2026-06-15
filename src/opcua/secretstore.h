@@ -25,11 +25,12 @@ public:
     };
 
     explicit SecretStore(QObject *parent = nullptr);
+    ~SecretStore() override = default;
 
-    bool isAvailable() const;
-    void read(const QString &profileId, Secret secret);
-    void write(const QString &profileId, Secret secret, const QString &value);
-    void remove(const QString &profileId, Secret secret);
+    virtual bool isAvailable() const;
+    virtual void read(const QString &profileId, Secret secret);
+    virtual void write(const QString &profileId, Secret secret, const QString &value);
+    virtual void remove(const QString &profileId, Secret secret);
 
 signals:
     void readFinished(QString profileId, Secret secret, QString value, QString error);

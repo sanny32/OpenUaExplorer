@@ -11,6 +11,7 @@
 #include <QList>
 
 #include "dialogs/appbasedialog.h"
+#include "opcua/endpointhistorystore.h"
 #include "opcua/connectionprofile.h"
 #include "opcua/opcuatypes.h"
 
@@ -60,7 +61,8 @@ private:
 
     Ui::ConnectionDialog *ui;
     class OpcUaClientService *_service = nullptr;
-    QList<EndpointInfo> _endpoints;
+    class EndpointModel *_endpointModel;
+    EndpointHistoryStore _endpointHistoryStore;
     bool _connectAfterDiscovery = false;
     QString _lastEnteredEndpointUrl;
     QString _clientCertificateFile;

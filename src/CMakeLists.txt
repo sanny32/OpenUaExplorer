@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 project(ouaexp
         VERSION 0.0.1
@@ -33,8 +33,6 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake")
 
 enable_testing()
 
-add_executable(${PROJECT_NAME})
-
 ouaexp_apply_project_version_suffix()
 
 add_compile_definitions(
@@ -49,23 +47,55 @@ add_compile_definitions(
     BUILD_YEAR="${CURRENT_YEAR}"
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
+add_library(ouaexp_core STATIC
+    ${CORE_SOURCES}
+    ${CORE_HEADERS}
+)
+target_include_directories(ouaexp_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/widgets
 )
+target_link_libraries(ouaexp_core PUBLIC
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+    Qt${QT_VERSION_MAJOR}::OpcUa
+)
+ouaexp_configure_dependencies(ouaexp_core)
+ouaexp_apply_coverage(ouaexp_core)
+if(TARGET OpenSSL::Crypto)
+    target_compile_definitions(ouaexp_core PUBLIC OUAEXP_HAS_OPENSSL)
+endif()
+if(TARGET qt${QT_VERSION_MAJOR}keychain)
+    target_compile_definitions(ouaexp_core PUBLIC OUAEXP_HAS_QTKEYCHAIN)
+endif()
+if(MSVC)
+    target_compile_options(ouaexp_core PUBLIC /utf-8)
+endif()
 
-ouaexp_configure_ui_enum_normalization(${PROJECT_NAME})
-
-target_sources(${PROJECT_NAME} PRIVATE
-    ${SOURCES}
-    ${HEADERS}
+add_library(ouaexp_ui STATIC
+    ${UI_SOURCES}
+    ${UI_HEADERS}
     ${UI_FILES}
+)
+target_include_directories(ouaexp_ui PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/widgets
+)
+target_link_libraries(ouaexp_ui PUBLIC ouaexp_core)
+ouaexp_configure_ui_enum_normalization(ouaexp_ui)
+ouaexp_configure_qt_target(ouaexp_ui)
+ouaexp_configure_qlementine_app_style(ouaexp_ui)
+if(MSVC)
+    target_compile_options(ouaexp_ui PUBLIC /utf-8)
+endif()
+
+add_executable(${PROJECT_NAME}
+    main.cpp
     ${RESOURCE_FILES}
 )
-
-ouaexp_configure_qt_target(${PROJECT_NAME})
-ouaexp_configure_qlementine_app_style(${PROJECT_NAME})
-ouaexp_configure_dependencies(${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} PRIVATE ouaexp_ui)
 ouaexp_copy_runtime(${PROJECT_NAME})
 ouaexp_configure_tests()
 

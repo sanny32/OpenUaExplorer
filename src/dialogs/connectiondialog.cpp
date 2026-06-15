@@ -11,7 +11,6 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
-#include <QCryptographicHash>
 #include <QDateTime>
 #include <QEvent>
 #include <QFile>
@@ -19,15 +18,15 @@
 #include <QFileInfo>
 #include <QFontMetrics>
 #include <QInputDialog>
+#include <QItemSelectionModel>
 #include <QLineEdit>
 #include <QSslCertificate>
-#include <QListWidget>
+#include <QListView>
 #include <QMessageBox>
 #include <QPainter>
 #include <QPixmap>
 #include <QPushButton>
 #include <QScreen>
-#include <QSettings>
 #include <QSignalBlocker>
 #include <QStringList>
 #include <QStyle>
@@ -37,20 +36,16 @@
 #include "appicons.h"
 #include "certificatetrustdialog.h"
 #include "connectiondialog.h"
+#include "opcua/certificateinfo.h"
 #include "opcua/opcuaclientservice.h"
+#include "opcua/connectionprofilevalidator.h"
 #include "opcua/pkimanager.h"
 #include "ui_connectiondialog.h"
 #include "widgets/coloredpushbutton.h"
+#include "widgets/endpointmodel.h"
 #include "widgets/themediconlabel.h"
 
 namespace {
-
-constexpr auto lastEndpointUrlKey = "connectionDialog/lastEndpointUrl";
-constexpr auto endpointUrlHistoryKey = "connectionDialog/endpointUrlHistory";
-constexpr int maximumEndpointHistorySize = 10;
-constexpr int endpointPolicyRole = Qt::UserRole;
-constexpr int endpointModeRole = Qt::UserRole + 1;
-constexpr int endpointIconRole = Qt::UserRole + 2;
 
 ///
 /// \brief Delegate that renders endpoint security details in one compact row.
@@ -103,7 +98,7 @@ void EndpointItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     const QRect iconRect(contentRect.left(),
                          contentRect.center().y() - iconSize / 2,
                          iconSize, iconSize);
-    QPixmap iconPixmap = AppIcons::themed(index.data(endpointIconRole).toString())
+    QPixmap iconPixmap = AppIcons::themed(index.data(EndpointModel::IconRole).toString())
                              .pixmap(QSize(iconSize, iconSize));
     if (selected) {
         QPainter iconPainter(&iconPixmap);
@@ -117,7 +112,7 @@ void EndpointItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     primaryFont.setWeight(QFont::DemiBold);
     const QFontMetrics primaryMetrics(primaryFont);
     const QFontMetrics secondaryMetrics(option.font);
-    const QString mode = index.data(endpointModeRole).toString();
+    const QString mode = index.data(EndpointModel::ModeRole).toString();
     const int modeWidth = secondaryMetrics.horizontalAdvance(mode);
     const int textGap = 16;
     const int policyWidth = qMax(0, textRect.width() - modeWidth - textGap);
@@ -128,7 +123,7 @@ void EndpointItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     painter->drawText(
         QRect(textRect.left(), textRect.top(), policyWidth, textRect.height()),
         Qt::AlignLeft | Qt::AlignVCenter,
-        primaryMetrics.elidedText(index.data(endpointPolicyRole).toString(),
+        primaryMetrics.elidedText(index.data(EndpointModel::PolicyRole).toString(),
                                   Qt::ElideRight, policyWidth));
 
     painter->setPen(secondaryColor);
@@ -154,22 +149,6 @@ QSize EndpointItemDelegate::sizeHint(const QStyleOptionViewItem &option,
 }
 
 ///
-/// \brief Returns the icon name for an endpoint security mode.
-/// \param securityMode OPC UA message security mode value.
-/// \return Theme-aware icon resource name.
-///
-QString endpointSecurityIconName(int securityMode)
-{
-    switch (securityMode) {
-    case 2:
-        return QStringLiteral("shield-check.svg");
-    case 3:
-        return QStringLiteral("lock.svg");
-    default:
-        return QStringLiteral("unlock.svg");
-    }
-}
-
 ///
 /// \brief Expands a combo box popup to fit its longest item.
 /// \param comboBox Combo box whose popup width should be updated.
@@ -201,18 +180,11 @@ void updatePopupWidth(QComboBox *comboBox)
 ConnectionDialog::ConnectionDialog(QWidget *parent)
     : AppBaseDialog(parent)
     , ui(new Ui::ConnectionDialog)
+    , _endpointModel(new EndpointModel(this))
 {
     ui->setupUi(this);
 
-    QSettings settings;
-    QStringList endpointHistory = settings.value(
-        QLatin1String(endpointUrlHistoryKey)).toStringList();
-    const QString lastEndpointUrl = settings.value(
-        QLatin1String(lastEndpointUrlKey)).toString().trimmed();
-    if (!lastEndpointUrl.isEmpty()) {
-        endpointHistory.removeAll(lastEndpointUrl);
-        endpointHistory.prepend(lastEndpointUrl);
-    }
+    QStringList endpointHistory = _endpointHistoryStore.history();
     if (endpointHistory.isEmpty())
         endpointHistory.append(ui->discoveryUrlComboBox->currentText());
 
@@ -242,6 +214,7 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     ui->clientCertFingerprintEdit->installEventFilter(this);
     ui->statusIconLabel->setIcon(QStringLiteral("disconnected"), QSize(16, 16));
     ui->connectButton->setColors({ QColor(0x0a74d1), QColor(0x1682df), QColor(0x075ca7) });
+    ui->endpointListWidget->setModel(_endpointModel);
     ui->endpointListWidget->setItemDelegate(new EndpointItemDelegate(ui->endpointListWidget));
 
     connect(ui->cancelButton, &QPushButton::clicked, this, &QDialog::reject);
@@ -249,19 +222,18 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
             this, &ConnectionDialog::validateAndAccept);
     connect(ui->getEndpointsButton, &QPushButton::clicked,
             this, &ConnectionDialog::discoverEndpoints);
-    connect(ui->endpointListWidget, &QListWidget::currentRowChanged,
+    connect(ui->endpointListWidget->selectionModel(),
+            &QItemSelectionModel::currentChanged,
             this, &ConnectionDialog::updateEndpointSelection);
     connect(ui->discoveryUrlComboBox, QOverload<int>::of(&QComboBox::activated),
             this, [this](int index) {
-        _endpoints.clear();
-        ui->endpointListWidget->clear();
+        _endpointModel->clear();
         updateServerCertificate({});
         _lastEnteredEndpointUrl = ui->discoveryUrlComboBox->itemText(index);
     });
     connect(ui->discoveryUrlComboBox->lineEdit(), &QLineEdit::textEdited,
             this, [this](const QString &text) {
-        _endpoints.clear();
-        ui->endpointListWidget->clear();
+        _endpointModel->clear();
         updateServerCertificate({});
         _lastEnteredEndpointUrl = text;
     });
@@ -332,9 +304,9 @@ ConnectionProfile ConnectionDialog::profile() const
 {
     ConnectionProfile result;
     result.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    const int endpointIndex = ui->endpointListWidget->currentRow();
-    if (endpointIndex >= 0 && endpointIndex < _endpoints.size()) {
-        const EndpointInfo &endpoint = _endpoints.at(endpointIndex);
+    const int endpointIndex = ui->endpointListWidget->currentIndex().row();
+    if (endpointIndex >= 0 && endpointIndex < _endpointModel->rowCount()) {
+        const EndpointInfo endpoint = _endpointModel->endpointAt(endpointIndex);
         result.name = endpoint.endpointUrl;
         result.endpointUrl = endpoint.endpointUrl;
         result.securityPolicy = endpoint.securityPolicy;
@@ -392,8 +364,7 @@ void ConnectionDialog::discoverEndpoints()
     }
     saveLastEndpointUrl();
     const QString url = ui->discoveryUrlComboBox->currentText();
-    _endpoints.clear();
-    ui->endpointListWidget->clear();
+    _endpointModel->clear();
     updateServerCertificate({});
     ui->statusLabel->setText(tr("Discovering endpoints..."));
     ui->getEndpointsButton->setEnabled(false);
@@ -415,25 +386,14 @@ void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QStr
         ui->statusLabel->setText(error);
         return;
     }
-    _endpoints = endpoints;
-    if (_endpoints.isEmpty()) {
+    _endpointModel->setEndpoints(endpoints);
+    if (endpoints.isEmpty()) {
         _connectAfterDiscovery = false;
         ui->statusLabel->setText(tr("No endpoints discovered."));
         return;
     }
-    ui->endpointListWidget->clear();
-    for (int index = 0; index < _endpoints.size(); ++index) {
-        const EndpointInfo &endpoint = _endpoints.at(index);
-        const QString policy = endpoint.securityPolicy.section(QLatin1Char('#'), -1);
-        QListWidgetItem *item = new QListWidgetItem(ui->endpointListWidget);
-        item->setText(policy);
-        item->setData(endpointPolicyRole, policy);
-        item->setData(endpointModeRole, endpoint.securityMode);
-        item->setData(endpointIconRole, endpointSecurityIconName(endpoint.securityModeValue));
-        item->setToolTip(endpoint.endpointUrl);
-    }
-    ui->statusLabel->setText(tr("%1 endpoints discovered.").arg(_endpoints.size()));
-    ui->endpointListWidget->setCurrentRow(0);
+    ui->statusLabel->setText(tr("%1 endpoints discovered.").arg(endpoints.size()));
+    ui->endpointListWidget->setCurrentIndex(_endpointModel->index(0, 0));
     updateEndpointSelection();
     if (_connectAfterDiscovery) {
         _connectAfterDiscovery = false;
@@ -446,10 +406,10 @@ void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QStr
 ///
 void ConnectionDialog::updateEndpointSelection()
 {
-    const int endpointIndex = ui->endpointListWidget->currentRow();
-    if (endpointIndex < 0 || endpointIndex >= _endpoints.size())
+    const int endpointIndex = ui->endpointListWidget->currentIndex().row();
+    if (endpointIndex < 0 || endpointIndex >= _endpointModel->rowCount())
         return;
-    const EndpointInfo &endpoint = _endpoints.at(endpointIndex);
+    const EndpointInfo endpoint = _endpointModel->endpointAt(endpointIndex);
     updateServerCertificate(endpoint.serverCertificate);
     ui->securityModeComboBox->setCurrentIndex(qMax(0, endpoint.securityModeValue - 1));
     int policyIndex = ui->securityPolicyComboBox->findText(
@@ -572,22 +532,22 @@ void ConnectionDialog::viewServerCertificate()
 ///
 void ConnectionDialog::validateAndAccept()
 {
-    const int endpointIndex = ui->endpointListWidget->currentRow();
-    if (_endpoints.isEmpty() || endpointIndex < 0 || endpointIndex >= _endpoints.size()) {
+    const int endpointIndex = ui->endpointListWidget->currentIndex().row();
+    if (_endpointModel->rowCount() == 0
+        || endpointIndex < 0 || endpointIndex >= _endpointModel->rowCount()) {
         _connectAfterDiscovery = true;
         discoverEndpoints();
         return;
     }
     const ConnectionProfile selectedProfile = profile();
-    const bool needsCertificate = selectedProfile.securityMode > 1
-        || selectedProfile.authentication == ConnectionProfile::Authentication::Certificate;
-    if (needsCertificate && (_clientCertificateFile.isEmpty() || _privateKeyFile.isEmpty())) {
+    if (ConnectionProfileValidator::validate(selectedProfile)
+        == ConnectionProfileValidator::Error::MissingClientCertificate) {
         generateClientCertificate();
         if (_clientCertificateFile.isEmpty() || _privateKeyFile.isEmpty())
             return;
     }
-    if (selectedProfile.authentication == ConnectionProfile::Authentication::Username
-        && ui->usernameEdit->text().isEmpty()) {
+    if (ConnectionProfileValidator::validate(profile())
+        == ConnectionProfileValidator::Error::MissingUsername) {
         QMessageBox::warning(this, tr("Missing Username"),
                              tr("Enter a username for this endpoint."));
         return;
@@ -604,17 +564,8 @@ void ConnectionDialog::saveLastEndpointUrl()
     if (endpointUrl.isEmpty())
         return;
 
-    QSettings settings;
-    QStringList endpointHistory = settings.value(
-        QLatin1String(endpointUrlHistoryKey)).toStringList();
-    endpointHistory.removeAll(endpointUrl);
-    endpointHistory.prepend(endpointUrl);
-    while (endpointHistory.size() > maximumEndpointHistorySize)
-        endpointHistory.removeLast();
-
-    settings.setValue(QLatin1String(lastEndpointUrlKey), endpointUrl);
-    settings.setValue(QLatin1String(endpointUrlHistoryKey), endpointHistory);
-    settings.sync();
+    _endpointHistoryStore.save(endpointUrl);
+    const QStringList endpointHistory = _endpointHistoryStore.history();
 
     const QSignalBlocker blocker(ui->discoveryUrlComboBox);
     ui->discoveryUrlComboBox->clear();
@@ -702,14 +653,12 @@ void ConnectionDialog::fillCertificateFields(
     QLabel *validEdit, QLabel *fingerprintLabel, ThemedIconLabel *validIcon,
     QLabel *validBadge, QString *fingerprintStore)
 {
-    const QByteArray fingerprint =
-        QCryptographicHash::hash(der, QCryptographicHash::Sha256).toHex(':').toUpper();
-    *fingerprintStore = QString::fromLatin1(fingerprint);
+    const CertificateInfo info = CertificateInfo::fromDer(der);
+    *fingerprintStore = info.fingerprint;
     fingerprintLabel->setToolTip(tr("SHA-256: %1").arg(*fingerprintStore));
     elideFingerprint(fingerprintLabel, *fingerprintStore);
 
-    const QList<QSslCertificate> chain = QSslCertificate::fromData(der, QSsl::Der);
-    if (chain.isEmpty()) {
+    if (!info.readable) {
         subjectEdit->setText(tr("Unable to read certificate"));
         issuerEdit->clear();
         validEdit->setText(tr("%1 bytes").arg(der.size()));
@@ -718,46 +667,30 @@ void ConnectionDialog::fillCertificateFields(
         return;
     }
 
-    const auto firstInfo = [](const QStringList &values) {
-        return values.isEmpty() ? QString() : values.constFirst();
-    };
-
-    const QSslCertificate cert = chain.constFirst();
-    QString subject = firstInfo(cert.subjectInfo(QSslCertificate::CommonName));
-    if (subject.isEmpty())
-        subject = firstInfo(cert.subjectInfo(QSslCertificate::Organization));
-    if (subject.isEmpty())
-        subject = cert.subjectDisplayName();
-
-    QString issuer = firstInfo(cert.issuerInfo(QSslCertificate::CommonName));
-    if (issuer.isEmpty())
-        issuer = firstInfo(cert.issuerInfo(QSslCertificate::Organization));
-    if (issuer.isEmpty())
-        issuer = cert.issuerDisplayName();
-    if (cert.isSelfSigned() && !issuer.isEmpty())
+    subjectEdit->setText(info.subject);
+    QString issuer = info.issuer;
+    if (info.selfSigned && !issuer.isEmpty())
         issuer = tr("%1 (self-signed)").arg(issuer);
-
-    subjectEdit->setText(subject);
     issuerEdit->setText(issuer);
-
-    const QDateTime now = QDateTime::currentDateTimeUtc();
-    const QDateTime notBefore = cert.effectiveDate();
-    const QDateTime notAfter = cert.expiryDate();
-    validEdit->setText(notAfter.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")));
+    validEdit->setText(
+        info.expiryDate.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")));
 
     QString badgeText;
     QColor color;
     bool valid = false;
-    if (notBefore.isValid() && now < notBefore) {
+    if (info.status == CertificateInfo::Status::NotYetValid) {
         badgeText = tr("Not yet valid");
         color = QColor(0xc0, 0x7d, 0x00);
-    } else if (notAfter.isValid() && now > notAfter) {
+    } else if (info.status == CertificateInfo::Status::Expired) {
         badgeText = tr("Expired");
         color = QColor(0xd1, 0x34, 0x38);
-    } else {
+    } else if (info.status == CertificateInfo::Status::Valid) {
         badgeText = tr("Valid");
         color = QColor(0x2e, 0x9e, 0x44);
         valid = true;
+    } else {
+        badgeText = tr("Invalid");
+        color = QColor(0xd1, 0x34, 0x38);
     }
 
     validIcon->setVisible(valid);

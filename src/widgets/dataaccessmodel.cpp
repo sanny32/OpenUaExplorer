@@ -298,7 +298,7 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
 ///
 Qt::Alignment DataAccessModel::columnAlignment(int column) const
 {
-    return _columnAlignments.value(column, Qt::AlignLeft | Qt::AlignVCenter);
+    return _columnAlignments.alignment(column);
 }
 
 ///
@@ -308,6 +308,6 @@ Qt::Alignment DataAccessModel::columnAlignment(int column) const
 ///
 void DataAccessModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {
-    _columnAlignments[column] = alignment;
+    _columnAlignments.setAlignment(column, alignment);
     emit dataChanged(index(0, column), index(rowCount() - 1, column), {Qt::TextAlignmentRole});
 }

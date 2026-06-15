@@ -16,7 +16,6 @@
 #include "nodeinfomodel.h"
 #include "referencesmodel.h"
 #include "tableview.h"
-#include "testdata.h"
 #include "ui_addressspacewidget.h"
 
 ///
@@ -145,22 +144,6 @@ OpcUaNodeInfo AddressSpaceWidget::selectedNode() const
 AddressSpaceWidget::~AddressSpaceWidget()
 {
     delete ui;
-}
-
-///
-/// \brief AddressSpaceWidget::populateWithTestData
-///
-void AddressSpaceWidget::populateWithTestData()
-{
-    _treeModel->setItems(TestData::addressSpaceItems());
-    _nodeInfoModel->setItems(TestData::nodeInfoItems());
-    _referencesModel->setItems(TestData::referenceItems());
-
-    ui->addressTree->expandAll();
-
-    const QModelIndex found = _treeModel->findFirst("Temperature");
-    if (found.isValid())
-        ui->addressTree->setCurrentIndex(found);
 }
 
 ///

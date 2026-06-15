@@ -79,7 +79,7 @@ QVariant EventsModel::data(const QModelIndex &index, int role) const
     }
 
     if (role == Qt::TextAlignmentRole)
-        return QVariant(_columnAlignments.value(index.column(), Qt::AlignLeft | Qt::AlignVCenter));
+        return QVariant(_columnAlignments.alignment(index.column()));
 
     return QVariant();
 }
@@ -112,6 +112,6 @@ void EventsModel::clear()
 ///
 void EventsModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {
-    _columnAlignments[column] = alignment;
+    _columnAlignments.setAlignment(column, alignment);
     emit dataChanged(index(0, column), index(rowCount() - 1, column), {Qt::TextAlignmentRole});
 }

@@ -18,7 +18,9 @@
 class ConnectionProfileStore
 {
 public:
-    QList<ConnectionProfile> profiles() const;
-    bool save(const ConnectionProfile &profile);
-    bool remove(const QString &id);
+    virtual ~ConnectionProfileStore() = default;
+
+    virtual QList<ConnectionProfile> profiles() const;
+    virtual bool save(const ConnectionProfile &profile);
+    virtual bool remove(const QString &id);
 };

@@ -19,7 +19,6 @@
 #include "subscriptiondelegate.h"
 #include "subscriptionsmodel.h"
 #include "tableview.h"
-#include "testdata.h"
 #include "ui_dataaccesswidget.h"
 
 ///
@@ -61,17 +60,6 @@ DataAccessWidget::~DataAccessWidget()
 void DataAccessWidget::setCurrentPage(Page page)
 {
     ui->mainTabs->setCurrentIndex(static_cast<int>(page));
-}
-
-///
-/// \brief DataAccessWidget::populateWithTestData
-///
-void DataAccessWidget::populateWithTestData()
-{
-    _dataModel->setItems(TestData::dataAccessItems());
-    _subscriptionsModel->setItems(TestData::subscriptionItems());
-    _eventsModel->setItems(TestData::eventItems());
-    _historyModel->setItems(TestData::historyItems());
 }
 
 ///

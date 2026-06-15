@@ -9,9 +9,9 @@
 #pragma once
 
 #include <QAbstractTableModel>
-#include <QHash>
 #include <QVector>
 
+#include "columnalignmentstore.h"
 #include "logitem.h"
 
 ///
@@ -56,5 +56,5 @@ private:
     LogItem::Level            _filterLevel;
     bool                      _filtered = false;
     QString                   _searchText;
-    QHash<int, Qt::Alignment> _columnAlignments;
+    ColumnAlignmentStore     _columnAlignments;
 };

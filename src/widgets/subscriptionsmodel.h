@@ -9,9 +9,9 @@
 #pragma once
 
 #include <QAbstractTableModel>
-#include <QHash>
 #include <QVector>
 
+#include "columnalignmentstore.h"
 #include "subscriptionitem.h"
 
 ///
@@ -45,5 +45,5 @@ public:
 
 private:
     QVector<SubscriptionItem>  _items;
-    QHash<int, Qt::Alignment>  _columnAlignments;
+    ColumnAlignmentStore _columnAlignments;
 };

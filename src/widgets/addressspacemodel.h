@@ -9,6 +9,8 @@
 #pragma once
 
 #include <functional>
+#include <memory>
+#include <vector>
 
 #include <QAbstractItemModel>
 #include <QIcon>
@@ -26,7 +28,7 @@ public:
     explicit AddressSpaceNode(const OpcUaNodeInfo &info, AddressSpaceNode *parent = nullptr);
     ~AddressSpaceNode();
 
-    void appendChild(AddressSpaceNode *child);
+    void appendChild(std::unique_ptr<AddressSpaceNode> child);
     void clearChildren();
 
     AddressSpaceNode *child(int row) const;
@@ -43,7 +45,7 @@ public:
 private:
     OpcUaNodeInfo _info;
     AddressSpaceNode *_parent;
-    QVector<AddressSpaceNode *> _children;
+    std::vector<std::unique_ptr<AddressSpaceNode>> _children;
     bool _browseStarted = false;
     bool _browseComplete = false;
 };
@@ -92,6 +94,6 @@ private:
                          const QString &path);
     AddressSpaceItem::NodeType iconType(int nodeClass) const;
 
-    AddressSpaceNode *_root;
+    std::unique_ptr<AddressSpaceNode> _root;
     std::function<QIcon(AddressSpaceItem::NodeType)> _iconProvider;
 };

@@ -12,11 +12,11 @@
 #include <vector>
 
 #include <QAbstractItemModel>
-#include <QHash>
 #include <QPair>
 #include <QString>
 #include <QVector>
 
+#include "columnalignmentstore.h"
 #include "opcua/opcuatypes.h"
 
 ///
@@ -58,5 +58,5 @@ private:
     Item *itemForIndex(const QModelIndex &index) const;
 
     std::unique_ptr<Item> _root;
-    QHash<int, Qt::Alignment> _columnAlignments;
+    ColumnAlignmentStore _columnAlignments;
 };

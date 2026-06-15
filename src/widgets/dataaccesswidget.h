@@ -11,7 +11,6 @@
 #include <QModelIndex>
 #include <QWidget>
 
-#include "itestdatapopulatable.h"
 #include "opcua/opcuatypes.h"
 
 namespace Ui {
@@ -26,7 +25,7 @@ class HistoryModel;
 ///
 /// \brief Widget for browsing data access items, subscriptions, events and history.
 ///
-class DataAccessWidget : public QWidget, public ITestDataPopulatable
+class DataAccessWidget : public QWidget
 {
     Q_OBJECT
 
@@ -42,7 +41,6 @@ public:
     ~DataAccessWidget() override;
 
     void setCurrentPage(Page page);
-    void populateWithTestData() override;
     void addNode(const OpcUaNodeDetails &details);
     void updateValues(const QVector<OpcUaDataValue> &values);
     void clearRuntimeData();

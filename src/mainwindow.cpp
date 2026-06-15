@@ -6,8 +6,6 @@
 /// \brief Implements the main application window.
 ///
 
-#include <memory>
-
 #include <QAction>
 #include <QDockWidget>
 #include <QEvent>
@@ -20,12 +18,10 @@
 #include "dialogs/dialogabout.h"
 #include "dialogs/connectiondialog.h"
 #include "dialogs/writevaluedialog.h"
-#include "itestdatapopulatable.h"
 #include "loggingcategories.h"
 #include "mainwindow.h"
-#include "opcua/connectionprofilestore.h"
+#include "opcua/connectioncontroller.h"
 #include "opcua/opcuaclientservice.h"
-#include "opcua/secretstore.h"
 #include "ui_mainwindow.h"
 #include "widgets/addressspacewidget.h"
 #include "widgets/attributeswidget.h"
@@ -39,9 +35,8 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , _clientService(new OpcUaClientService(this))
-    , _secretStore(new SecretStore(this))
-    , _profileStore(new ConnectionProfileStore)
+    , _connectionController(new ConnectionController(this))
+    , _clientService(_connectionController->clientService())
 {
     ui->setupUi(this);
     ui->actionTheme->setVisible(theApp()->theme().isManualToggleSupported());
@@ -62,7 +57,6 @@ MainWindow::MainWindow(QWidget *parent)
 ///
 MainWindow::~MainWindow()
 {
-    delete _profileStore;
     delete ui;
 }
 
@@ -281,11 +275,13 @@ void MainWindow::openConnectionDialog()
     dialog.setClientService(_clientService);
     if (dialog.exec() != QDialog::Accepted)
         return;
-    _activeProfile = dialog.profile();
-    if (_activeProfile.saveProfile)
-        saveProfile(_activeProfile, dialog.password(), dialog.privateKeyPassword());
-    _clientService->connectToEndpoint(_activeProfile, dialog.password(),
-                                      dialog.privateKeyPassword());
+    const ConnectionProfile profile = dialog.profile();
+    if (profile.saveProfile) {
+        _connectionController->saveProfile(
+            profile, dialog.password(), dialog.privateKeyPassword());
+    }
+    _connectionController->connectNewProfile(
+        profile, dialog.password(), dialog.privateKeyPassword());
 }
 
 ///
@@ -333,21 +329,6 @@ void MainWindow::toggleTheme()
 }
 
 ///
-/// \brief MainWindow::populateWithTestData
-///
-void MainWindow::populateWithTestData()
-{
-    const QList<ITestDataPopulatable *> targets = {
-        ui->addressSpaceWidget,
-        ui->attributesWidget,
-        ui->dataAccessWidget,
-        ui->logWidget,
-    };
-    for (ITestDataPopulatable *t : targets)
-        t->populateWithTestData();
-}
-
-///
 /// \brief MainWindow::setupOpcUaClient
 ///
 void MainWindow::setupOpcUaClient()
@@ -376,10 +357,11 @@ void MainWindow::setupOpcUaClient()
             this, &MainWindow::onDataValuesReady);
     connect(_clientService, &OpcUaClientService::writeFinished,
             this, &MainWindow::onWriteFinished);
-    connect(_clientService, &OpcUaClientService::certificateValidationRequired,
-            this, &MainWindow::onCertificateValidationRequired, Qt::DirectConnection);
-    connect(_secretStore, &SecretStore::readFinished,
-            this, &MainWindow::onSecretReadFinished);
+    connect(_connectionController, &ConnectionController::profilesChanged,
+            this, &MainWindow::rebuildRecentConnections);
+    connect(_connectionController, &ConnectionController::errorOccurred,
+            this, &MainWindow::onClientError);
+    _connectionController->setCertificateTrustDecider(this);
     updateClientUi(_clientService->state());
 }
 
@@ -460,37 +442,26 @@ void MainWindow::onWriteFinished(const QString &nodeId, bool success, const QStr
 }
 
 ///
-/// \brief MainWindow::onCertificateValidationRequired
+/// \brief Shows the certificate prompt and returns the selected trust policy.
 /// \param certificate Server certificate awaiting a trust decision.
 /// \param message Validation message to display.
-/// \param decision Out-parameter receiving the user's trust decision.
+/// \return Selected certificate trust policy.
 ///
-void MainWindow::onCertificateValidationRequired(const QByteArray &certificate,
-                                                 const QString &message, int *decision)
+CertificateTrustDecision MainWindow::decide(const QByteArray &certificate,
+                                            const QString &message)
 {
     CertificateTrustDialog dialog(this);
     dialog.setCertificate(certificate, message);
     dialog.exec();
-    *decision = static_cast<int>(dialog.decision());
-}
-
-///
-/// \brief MainWindow::onSecretReadFinished
-/// \param secret Which secret was read.
-/// \param value Secret value.
-/// \param error Read error, if any.
-///
-void MainWindow::onSecretReadFinished(const QString &, SecretStore::Secret secret,
-                                      const QString &value, const QString &error)
-{
-    if (!error.isEmpty())
-        qCWarning(lcClient) << error;
-    if (secret == SecretStore::Secret::Password)
-        _pendingPassword = value;
-    else
-        _pendingPrivateKeyPassword = value;
-    if (--_pendingSecretReads == 0)
-        discoverThenConnect(_pendingProfile, _pendingPassword, _pendingPrivateKeyPassword);
+    switch (dialog.decision()) {
+    case CertificateTrustDialog::TrustOnce:
+        return CertificateTrustDecision::TrustOnce;
+    case CertificateTrustDialog::TrustPermanently:
+        return CertificateTrustDecision::TrustPermanently;
+    case CertificateTrustDialog::Reject:
+        return CertificateTrustDecision::Reject;
+    }
+    return CertificateTrustDecision::Reject;
 }
 
 ///
@@ -508,8 +479,9 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     ui->actionBrowse->setEnabled(connected);
     ui->actionBrowseAddressSpace->setEnabled(connected);
     ui->actionRefresh->setEnabled(connected);
-    ui->statusbar->setConnectionState(state, _activeProfile.endpointUrl,
-                                      _activeProfile.securityPolicy);
+    const ConnectionProfile &profile = _connectionController->activeProfile();
+    ui->statusbar->setConnectionState(state, profile.endpointUrl,
+                                      profile.securityPolicy);
     if (connected) {
         initializeAddressSpace();
     } else if (state == OpcUaConnectionState::Disconnected
@@ -553,32 +525,12 @@ void MainWindow::showWriteDialog(const QString &nodeId, const QVariant &value,
 }
 
 ///
-/// \brief MainWindow::saveProfile
-/// \param profile Profile metadata.
-/// \param password Username password.
-/// \param privateKeyPassword Private key password.
-///
-void MainWindow::saveProfile(const ConnectionProfile &profile,
-                             const QString &password,
-                             const QString &privateKeyPassword)
-{
-    _profileStore->save(profile);
-    if (!password.isEmpty())
-        _secretStore->write(profile.id, SecretStore::Secret::Password, password);
-    if (!privateKeyPassword.isEmpty()) {
-        _secretStore->write(profile.id, SecretStore::Secret::PrivateKeyPassword,
-                            privateKeyPassword);
-    }
-    rebuildRecentConnections();
-}
-
-///
 /// \brief MainWindow::rebuildRecentConnections
 ///
 void MainWindow::rebuildRecentConnections()
 {
     ui->menuRecentConnections->clear();
-    const QList<ConnectionProfile> profiles = _profileStore->profiles();
+    const QList<ConnectionProfile> profiles = _connectionController->profiles();
     if (profiles.isEmpty()) {
         ui->menuRecentConnections->addAction(tr("No Recent Connections"))->setEnabled(false);
         return;
@@ -586,55 +538,10 @@ void MainWindow::rebuildRecentConnections()
     for (const ConnectionProfile &profile : profiles) {
         ui->menuRecentConnections->addAction(
             profile.name.isEmpty() ? profile.endpointUrl : profile.name,
-            this, [this, profile]() { connectProfile(profile); });
+            this, [this, profile]() {
+                _connectionController->connectSavedProfile(profile);
+            });
     }
-}
-
-///
-/// \brief MainWindow::connectProfile
-/// \param profile Saved connection profile.
-///
-void MainWindow::connectProfile(const ConnectionProfile &profile)
-{
-    _pendingProfile = profile;
-    _pendingPassword.clear();
-    _pendingPrivateKeyPassword.clear();
-    _pendingSecretReads = 0;
-    if (profile.authentication == ConnectionProfile::Authentication::Username) {
-        ++_pendingSecretReads;
-        _secretStore->read(profile.id, SecretStore::Secret::Password);
-    }
-    if (!profile.privateKeyFile.isEmpty()) {
-        ++_pendingSecretReads;
-        _secretStore->read(profile.id, SecretStore::Secret::PrivateKeyPassword);
-    }
-    if (_pendingSecretReads == 0)
-        discoverThenConnect(profile);
-}
-
-///
-/// \brief MainWindow::discoverThenConnect
-/// \param profile Connection profile to use.
-/// \param password Username password (empty when unused).
-/// \param privateKeyPassword Private key password (empty when unused).
-///
-/// Runs endpoint discovery and, once it succeeds, connects to the endpoint
-/// exactly once. Shared by saved-profile connects and the post-secret-read path.
-///
-void MainWindow::discoverThenConnect(const ConnectionProfile &profile,
-                                     const QString &password,
-                                     const QString &privateKeyPassword)
-{
-    _activeProfile = profile;
-    _clientService->discoverEndpoints(profile.endpointUrl, profile.backend);
-    auto connection = std::make_shared<QMetaObject::Connection>();
-    *connection = connect(_clientService, &OpcUaClientService::endpointsDiscovered,
-                          this, [this, connection, profile, password, privateKeyPassword](
-                              const QList<EndpointInfo> &, const QString &error) {
-        disconnect(*connection);
-        if (error.isEmpty())
-            _clientService->connectToEndpoint(profile, password, privateKeyPassword);
-    });
 }
 
 ///

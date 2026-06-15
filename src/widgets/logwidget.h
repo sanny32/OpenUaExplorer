@@ -11,7 +11,6 @@
 #include <QAction>
 #include <QWidget>
 
-#include "itestdatapopulatable.h"
 #include "logitem.h"
 
 namespace Ui {
@@ -23,7 +22,7 @@ class LogModel;
 ///
 /// \brief Widget that displays, filters and searches application activity log messages.
 ///
-class LogWidget : public QWidget, public ITestDataPopulatable
+class LogWidget : public QWidget
 {
     Q_OBJECT
 
@@ -32,7 +31,6 @@ public:
     ~LogWidget() override;
 
     void addItem(const LogItem &item);
-    void populateWithTestData() override;
 
 protected:
     void changeEvent(QEvent *event) override;

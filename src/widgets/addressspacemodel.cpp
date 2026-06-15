@@ -22,18 +22,15 @@ AddressSpaceNode::AddressSpaceNode(const OpcUaNodeInfo &info, AddressSpaceNode *
 ///
 /// \brief AddressSpaceNode::~AddressSpaceNode
 ///
-AddressSpaceNode::~AddressSpaceNode()
-{
-    qDeleteAll(_children);
-}
+AddressSpaceNode::~AddressSpaceNode() = default;
 
 ///
 /// \brief AddressSpaceNode::appendChild
 /// \param child Child node.
 ///
-void AddressSpaceNode::appendChild(AddressSpaceNode *child)
+void AddressSpaceNode::appendChild(std::unique_ptr<AddressSpaceNode> child)
 {
-    _children.append(child);
+    _children.push_back(std::move(child));
 }
 
 ///
@@ -41,7 +38,6 @@ void AddressSpaceNode::appendChild(AddressSpaceNode *child)
 ///
 void AddressSpaceNode::clearChildren()
 {
-    qDeleteAll(_children);
     _children.clear();
 }
 
@@ -52,7 +48,9 @@ void AddressSpaceNode::clearChildren()
 ///
 AddressSpaceNode *AddressSpaceNode::child(int row) const
 {
-    return _children.value(row, nullptr);
+    return row >= 0 && row < childCount()
+        ? _children.at(static_cast<std::size_t>(row)).get()
+        : nullptr;
 }
 
 ///
@@ -61,7 +59,7 @@ AddressSpaceNode *AddressSpaceNode::child(int row) const
 ///
 int AddressSpaceNode::childCount() const
 {
-    return _children.size();
+    return static_cast<int>(_children.size());
 }
 
 ///
@@ -70,7 +68,13 @@ int AddressSpaceNode::childCount() const
 ///
 int AddressSpaceNode::row() const
 {
-    return _parent ? _parent->_children.indexOf(const_cast<AddressSpaceNode *>(this)) : 0;
+    if (!_parent)
+        return 0;
+    for (int index = 0; index < _parent->childCount(); ++index) {
+        if (_parent->child(index) == this)
+            return index;
+    }
+    return -1;
 }
 
 ///
@@ -133,7 +137,7 @@ void AddressSpaceNode::setBrowseComplete(bool value)
 ///
 AddressSpaceModel::AddressSpaceModel(QObject *parent)
     : QAbstractItemModel(parent)
-    , _root(new AddressSpaceNode({}))
+    , _root(std::make_unique<AddressSpaceNode>(OpcUaNodeInfo{}))
 {
     _root->setBrowseComplete(true);
 }
@@ -141,10 +145,7 @@ AddressSpaceModel::AddressSpaceModel(QObject *parent)
 ///
 /// \brief AddressSpaceModel::~AddressSpaceModel
 ///
-AddressSpaceModel::~AddressSpaceModel()
-{
-    delete _root;
-}
+AddressSpaceModel::~AddressSpaceModel() = default;
 
 ///
 /// \brief AddressSpaceModel::index
@@ -171,7 +172,7 @@ QModelIndex AddressSpaceModel::parent(const QModelIndex &index) const
     if (!index.isValid())
         return {};
     AddressSpaceNode *parentNode = nodeForIndex(index)->parent();
-    if (!parentNode || parentNode == _root)
+    if (!parentNode || parentNode == _root.get())
         return {};
     return createIndex(parentNode->row(), 0, parentNode);
 }
@@ -265,10 +266,9 @@ void AddressSpaceModel::fetchMore(const QModelIndex &parent)
 void AddressSpaceModel::setRootNode(const OpcUaNodeInfo &root)
 {
     beginResetModel();
-    delete _root;
-    _root = new AddressSpaceNode({});
+    _root = std::make_unique<AddressSpaceNode>(OpcUaNodeInfo{});
     _root->setBrowseComplete(true);
-    _root->appendChild(new AddressSpaceNode(root, _root));
+    _root->appendChild(std::make_unique<AddressSpaceNode>(root, _root.get()));
     endResetModel();
 }
 
@@ -280,7 +280,7 @@ void AddressSpaceModel::setRootNode(const OpcUaNodeInfo &root)
 void AddressSpaceModel::setChildren(const QString &parentNodeId,
                                     const QVector<OpcUaNodeInfo> &children)
 {
-    AddressSpaceNode *parentNode = findNode(_root, parentNodeId);
+    AddressSpaceNode *parentNode = findNode(_root.get(), parentNodeId);
     if (!parentNode)
         return;
     const QModelIndex parentIndex = indexForNode(parentNode);
@@ -292,7 +292,8 @@ void AddressSpaceModel::setChildren(const QString &parentNodeId,
     if (!children.isEmpty()) {
         beginInsertRows(parentIndex, 0, children.size() - 1);
         for (const OpcUaNodeInfo &child : children)
-            parentNode->appendChild(new AddressSpaceNode(child, parentNode));
+            parentNode->appendChild(
+                std::make_unique<AddressSpaceNode>(child, parentNode));
         endInsertRows();
     }
     parentNode->setBrowseStarted(true);
@@ -305,7 +306,7 @@ void AddressSpaceModel::setChildren(const QString &parentNodeId,
 ///
 void AddressSpaceModel::setBrowseFailed(const QString &parentNodeId)
 {
-    AddressSpaceNode *node = findNode(_root, parentNodeId);
+    AddressSpaceNode *node = findNode(_root.get(), parentNodeId);
     if (node)
         node->setBrowseStarted(false);
 }
@@ -317,10 +318,9 @@ void AddressSpaceModel::setBrowseFailed(const QString &parentNodeId)
 void AddressSpaceModel::setItems(const QVector<AddressSpaceItem> &items)
 {
     beginResetModel();
-    delete _root;
-    _root = new AddressSpaceNode({});
+    _root = std::make_unique<AddressSpaceNode>(OpcUaNodeInfo{});
     _root->setBrowseComplete(true);
-    appendTestItems(_root, items, QStringLiteral("test"));
+    appendTestItems(_root.get(), items, QStringLiteral("test"));
     endResetModel();
 }
 
@@ -330,8 +330,7 @@ void AddressSpaceModel::setItems(const QVector<AddressSpaceItem> &items)
 void AddressSpaceModel::clear()
 {
     beginResetModel();
-    delete _root;
-    _root = new AddressSpaceNode({});
+    _root = std::make_unique<AddressSpaceNode>(OpcUaNodeInfo{});
     _root->setBrowseComplete(true);
     endResetModel();
 }
@@ -353,7 +352,7 @@ OpcUaNodeInfo AddressSpaceModel::nodeInfo(const QModelIndex &index) const
 ///
 QModelIndex AddressSpaceModel::findByNodeId(const QString &nodeId) const
 {
-    return indexForNode(findNode(_root, nodeId));
+    return indexForNode(findNode(_root.get(), nodeId));
 }
 
 ///
@@ -363,7 +362,7 @@ QModelIndex AddressSpaceModel::findByNodeId(const QString &nodeId) const
 ///
 QModelIndex AddressSpaceModel::findFirst(const QString &displayName) const
 {
-    return findFirstRecursive(_root, displayName);
+    return findFirstRecursive(_root.get(), displayName);
 }
 
 ///
@@ -385,7 +384,7 @@ AddressSpaceNode *AddressSpaceModel::nodeForIndex(const QModelIndex &index) cons
 {
     return index.isValid()
         ? static_cast<AddressSpaceNode *>(index.internalPointer())
-        : _root;
+        : _root.get();
 }
 
 ///
@@ -415,7 +414,7 @@ AddressSpaceNode *AddressSpaceModel::findNode(AddressSpaceNode *node,
 ///
 QModelIndex AddressSpaceModel::indexForNode(AddressSpaceNode *node) const
 {
-    if (!node || node == _root)
+    if (!node || node == _root.get())
         return {};
     return createIndex(node->row(), 0, node);
 }
@@ -463,11 +462,12 @@ void AddressSpaceModel::appendTestItems(AddressSpaceNode *parent,
         case AddressSpaceItem::NodeType::Method: info.nodeClass = 4; break;
         }
         info.hasChildren = !item.children.isEmpty();
-        auto *child = new AddressSpaceNode(info, parent);
-        child->setBrowseStarted(true);
-        child->setBrowseComplete(true);
-        parent->appendChild(child);
-        appendTestItems(child, item.children, info.nodeId);
+        auto child = std::make_unique<AddressSpaceNode>(info, parent);
+        AddressSpaceNode *childNode = child.get();
+        childNode->setBrowseStarted(true);
+        childNode->setBrowseComplete(true);
+        parent->appendChild(std::move(child));
+        appendTestItems(childNode, item.children, info.nodeId);
     }
 }
 

@@ -9,6 +9,7 @@
 #if defined(HAVE_QLEMENTINE_APP_STYLE)
 
 #include "qlementineappstyle.h"
+#include "qlementinethemefactory.h"
 #include "application.h"
 #include <oclero/qlementine/icons/QlementineIcons.hpp>
 
@@ -197,108 +198,6 @@ bool isStandaloneIndicatorButton(const QStyleOption* option)
 }
 
 ///
-/// \brief makeQlementineAppTheme
-/// \param baseTheme
-/// \param darkMode
-/// \return
-///
-Theme makeQlementineAppTheme(const Theme& baseTheme, bool darkMode)
-{
-    const auto rgb = [darkMode](QRgb light, QRgb dark) { return darkMode ? dark : light; };
-    const auto color = [&rgb](QRgb light, QRgb dark) { return QColor(rgb(light, dark)); };
-
-    Theme theme = baseTheme;
-    theme.meta.name = darkMode
-        ? QStringLiteral("Open UaExplorer Qlementine Dark")
-        : QStringLiteral("Open UaExplorer Qlementine Light");
-    theme.meta.version = QStringLiteral("1.0");
-    theme.meta.author = QStringLiteral("Open UaExplorer");
-
-    theme.backgroundColorMain1 = color(Light::kCanvas, Dark::kCanvas);
-    theme.backgroundColorMain2 = color(Light::kChrome, Dark::kChrome);
-    theme.backgroundColorMain3 = color(Light::kChromeStrong, Dark::kChromeStrong);
-    theme.backgroundColorMain4 = color(Light::kChromePressed, Dark::kChromePressed);
-    theme.backgroundColorMainTransparent = transparent(rgb(Light::kCanvas, Dark::kCanvas));
-    theme.backgroundColorWorkspace = color(Light::kCanvas, Dark::kCanvas);
-    theme.backgroundColorTabBar = color(Light::kChrome, Dark::kChrome);
-
-    theme.neutralColor = color(Light::kChromeStrong, Dark::kChromeStrong);
-    theme.neutralColorHovered = color(Light::kChromePressed, Dark::kChromePressed);
-    theme.neutralColorPressed = color(Light::kBorderActive, Dark::kBorderActive);
-    theme.neutralColorDisabled = color(Light::kChromeDisabled, Dark::kChromeDisabled);
-    theme.neutralColorTransparent = transparent(rgb(Light::kChromeStrong, Dark::kChromeStrong));
-
-    theme.primaryColor = color(Light::kBlue, Dark::kBlue);
-    theme.primaryColorHovered = color(Light::kBlueHover, Dark::kBlueHover);
-    theme.primaryColorPressed = color(Light::kBluePressed, Dark::kBluePressed);
-    theme.primaryColorDisabled = color(Light::kBlueDisabled, Dark::kBlueDisabled);
-    theme.primaryColorTransparent = transparent(rgb(Light::kBlue, Dark::kBlue));
-
-    theme.primaryColorForeground = color(Light::kTooltipText, Dark::kTextEmphasis);
-    theme.primaryColorForegroundHovered = color(Light::kTooltipText, Dark::kTextEmphasis);
-    theme.primaryColorForegroundPressed = color(Light::kTooltipText, Dark::kTextEmphasis);
-    theme.primaryColorForegroundDisabled = color(Light::kChromeMuted, Dark::kDisabledText);
-    theme.primaryColorForegroundTransparent = transparent(rgb(Light::kTooltipText, Dark::kTextEmphasis));
-
-    theme.secondaryColor = color(Light::kText, Dark::kText);
-    theme.secondaryColorHovered = color(Light::kTextEmphasis, Dark::kTextEmphasis);
-    theme.secondaryColorPressed = color(Light::kTextEmphasis, Dark::kTextEmphasis);
-    theme.secondaryColorDisabled = color(Light::kDisabledText, Dark::kDisabledText);
-    theme.secondaryColorTransparent = transparent(rgb(Light::kText, Dark::kText));
-
-    theme.secondaryColorForeground = color(Light::kTextMuted, Dark::kTextMuted);
-    theme.secondaryColorForegroundHovered = color(Light::kBluePressed, Dark::kBlueHover);
-    theme.secondaryColorForegroundPressed = color(Light::kBluePressed, Dark::kBluePressed);
-    theme.secondaryColorForegroundDisabled = color(Light::kDisabledText, Dark::kDisabledText);
-    theme.secondaryColorForegroundTransparent = transparent(rgb(Light::kTextMuted, Dark::kTextMuted));
-
-    theme.secondaryAlternativeColor = color(Light::kTextMuted, Dark::kTextMuted);
-    theme.secondaryAlternativeColorHovered = color(Light::kText, Dark::kText);
-    theme.secondaryAlternativeColorPressed = color(Light::kText, Dark::kTextEmphasis);
-    theme.secondaryAlternativeColorDisabled = color(Light::kDisabledText, Dark::kDisabledText);
-    theme.secondaryAlternativeColorTransparent = transparent(rgb(Light::kTextMuted, Dark::kTextMuted));
-
-    theme.borderColor = color(Light::kBorder, Dark::kBorder);
-    theme.borderColorHovered = color(Light::kBorderActive, Dark::kBorderActive);
-    theme.borderColorPressed = color(Light::kBorderActive, Dark::kBorderActive);
-    theme.borderColorDisabled = color(Light::kBorderDisabled, Dark::kBorderDisabled);
-    theme.borderColorTransparent = transparent(rgb(Light::kBorder, Dark::kBorder));
-
-    theme.semiTransparentColor1 = alpha(rgb(Light::kText, Dark::kText), 0);
-    theme.semiTransparentColor2 = alpha(rgb(Light::kText, Dark::kText), darkMode ? 28 : 18);
-    theme.semiTransparentColor3 = alpha(rgb(Light::kText, Dark::kText), darkMode ? 42 : 26);
-    theme.semiTransparentColor4 = alpha(rgb(Light::kText, Dark::kText), darkMode ? 58 : 36);
-    theme.semiTransparentColorTransparent = transparent(rgb(Light::kText, Dark::kText));
-
-    theme.shadowColor1 = alpha(0x000000, darkMode ? 32 : 14);
-    theme.shadowColor2 = alpha(0x000000, darkMode ? 44 : 20);
-    theme.shadowColor3 = alpha(0x000000, darkMode ? 64 : 32);
-    theme.shadowColorTransparent = alpha(0x000000, 0);
-
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::Window, theme.backgroundColorMain2);
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::Base, theme.backgroundColorMain1);
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::AlternateBase, theme.backgroundColorMain3);
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::Button, theme.neutralColor);
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::Text, theme.secondaryColor);
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::WindowText, theme.secondaryColor);
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::ButtonText, theme.secondaryColor);
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::ToolTipBase, color(Light::kTooltipBase, Dark::kTooltipBase));
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::ToolTipText, color(Light::kTooltipText, Dark::kTooltipText));
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::Highlight, theme.primaryColor);
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::HighlightedText, theme.primaryColorForeground);
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::PlaceholderText, theme.secondaryColorForeground);
-    theme.palette.setColor(QPalette::ColorGroup::All, QPalette::Mid, theme.borderColor);
-    theme.palette.setColor(QPalette::ColorGroup::Disabled, QPalette::Base, color(Light::kSurfaceDisabled, Dark::kSurfaceDisabled));
-    theme.palette.setColor(QPalette::ColorGroup::Disabled, QPalette::Button, color(Light::kChromeDisabled, Dark::kChromeDisabled));
-    theme.palette.setColor(QPalette::ColorGroup::Disabled, QPalette::Text, theme.secondaryColorDisabled);
-    theme.palette.setColor(QPalette::ColorGroup::Disabled, QPalette::WindowText, theme.secondaryColorDisabled);
-    theme.palette.setColor(QPalette::ColorGroup::Disabled, QPalette::ButtonText, theme.secondaryColorDisabled);
-    theme.palette.setColor(QPalette::ColorGroup::Disabled, QPalette::Highlight, theme.primaryColorDisabled);
-
-    return theme;
-}
-
-///
 /// \brief Tints a pixmap to a single colour while preserving its alpha.
 /// \param src
 /// \param color
@@ -359,8 +258,8 @@ QlementineAppStyle::QlementineAppStyle(QObject* parent)
     QIcon::setThemeName(QStringLiteral("qlementine"));
 
     const Theme baseTheme = theme();
-    _lightTheme = makeQlementineAppTheme(baseTheme, false);
-    _darkTheme = makeQlementineAppTheme(baseTheme, true);
+    _lightTheme = QlementineThemeFactory::make(baseTheme, false);
+    _darkTheme = QlementineThemeFactory::make(baseTheme, true);
     updateTheme();
 
     connect(&theApp()->theme(), &AppTheme::colorSchemeChanged,

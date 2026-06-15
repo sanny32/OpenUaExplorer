@@ -11,7 +11,6 @@
 #include <QWidget>
 
 #include "addressspaceitem.h"
-#include "itestdatapopulatable.h"
 #include "opcua/opcuatypes.h"
 
 namespace Ui {
@@ -25,7 +24,7 @@ class ReferencesModel;
 ///
 /// \brief Widget for browsing the OPC UA address space and selected node details.
 ///
-class AddressSpaceWidget : public QWidget, public ITestDataPopulatable
+class AddressSpaceWidget : public QWidget
 {
     Q_OBJECT
 
@@ -33,7 +32,6 @@ public:
     explicit AddressSpaceWidget(QWidget *parent = nullptr);
     ~AddressSpaceWidget() override;
 
-    void populateWithTestData() override;
     void setRootNode(const OpcUaNodeInfo &root);
     void setBrowseChildren(const QString &parentNodeId,
                            const QVector<OpcUaNodeInfo> &children,

@@ -102,7 +102,7 @@
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QListWidget" name="endpointListWidget">
+           <widget class="QListView" name="endpointListWidget">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>1</horstretch>

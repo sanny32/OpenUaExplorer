@@ -10,7 +10,6 @@
 
 #include <QWidget>
 
-#include "itestdatapopulatable.h"
 #include "opcua/opcuatypes.h"
 
 namespace Ui {
@@ -22,7 +21,7 @@ class AttributesModel;
 ///
 /// \brief Widget that displays attributes for the selected OPC UA node.
 ///
-class AttributesWidget : public QWidget, public ITestDataPopulatable
+class AttributesWidget : public QWidget
 {
     Q_OBJECT
 
@@ -30,7 +29,6 @@ public:
     explicit AttributesWidget(QWidget *parent = nullptr);
     ~AttributesWidget() override;
 
-    void populateWithTestData() override;
     void setNodeDetails(const OpcUaNodeDetails &details);
     void clear();
 
