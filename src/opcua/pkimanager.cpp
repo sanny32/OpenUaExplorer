@@ -221,8 +221,8 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
             X509_set_version(certificate, 2) == 1
             && serialNumber
             && BN_to_ASN1_INTEGER(serialNumber, X509_get_serialNumber(certificate))
-            && X509_gmtime_adj(X509_get_notBefore(certificate), 0)
-            && X509_gmtime_adj(X509_get_notAfter(certificate), 3650L * 24L * 60L * 60L)
+            && X509_gmtime_adj(X509_getm_notBefore(certificate), 0)
+            && X509_gmtime_adj(X509_getm_notAfter(certificate), 3650L * 24L * 60L * 60L)
             && X509_set_pubkey(certificate, key) == 1;
         BN_free(serialNumber);
 
