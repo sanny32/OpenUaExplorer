@@ -7,11 +7,8 @@
 ///
 
 #include <QCoreApplication>
-#include <QMetaObject>
 
-#ifdef OUAEXP_HAS_QTKEYCHAIN
 #include <qtkeychain/keychain.h>
-#endif
 
 #include "secretstore.h"
 
@@ -31,15 +28,11 @@ SecretStore::SecretStore(QObject *parent)
 
 ///
 /// \brief SecretStore::isAvailable
-/// \return True when QtKeychain support was compiled in.
+/// \return True because QtKeychain is a required dependency.
 ///
 bool SecretStore::isAvailable() const
 {
-#ifdef OUAEXP_HAS_QTKEYCHAIN
     return true;
-#else
-    return false;
-#endif
 }
 
 ///
@@ -49,7 +42,6 @@ bool SecretStore::isAvailable() const
 ///
 void SecretStore::read(const QString &profileId, Secret secret)
 {
-#ifdef OUAEXP_HAS_QTKEYCHAIN
     auto *job = new QKeychain::ReadPasswordJob(QLatin1String(serviceName), this);
     job->setKey(key(profileId, secret));
     connect(job, &QKeychain::Job::finished, this, [this, job, profileId, secret]() {
@@ -58,12 +50,6 @@ void SecretStore::read(const QString &profileId, Secret secret)
         job->deleteLater();
     });
     job->start();
-#else
-    QMetaObject::invokeMethod(this, [this, profileId, secret]() {
-        emit readFinished(profileId, secret, QString(),
-                          tr("QtKeychain support is not available in this build."));
-    }, Qt::QueuedConnection);
-#endif
 }
 
 ///
@@ -74,7 +60,6 @@ void SecretStore::read(const QString &profileId, Secret secret)
 ///
 void SecretStore::write(const QString &profileId, Secret secret, const QString &value)
 {
-#ifdef OUAEXP_HAS_QTKEYCHAIN
     auto *job = new QKeychain::WritePasswordJob(QLatin1String(serviceName), this);
     job->setKey(key(profileId, secret));
     job->setTextData(value);
@@ -84,13 +69,6 @@ void SecretStore::write(const QString &profileId, Secret secret, const QString &
         job->deleteLater();
     });
     job->start();
-#else
-    Q_UNUSED(value)
-    QMetaObject::invokeMethod(this, [this, profileId, secret]() {
-        emit writeFinished(profileId, secret,
-                           tr("QtKeychain support is not available in this build."));
-    }, Qt::QueuedConnection);
-#endif
 }
 
 ///
@@ -100,7 +78,6 @@ void SecretStore::write(const QString &profileId, Secret secret, const QString &
 ///
 void SecretStore::remove(const QString &profileId, Secret secret)
 {
-#ifdef OUAEXP_HAS_QTKEYCHAIN
     auto *job = new QKeychain::DeletePasswordJob(QLatin1String(serviceName), this);
     job->setKey(key(profileId, secret));
     connect(job, &QKeychain::Job::finished, this, [this, job, profileId, secret]() {
@@ -109,12 +86,6 @@ void SecretStore::remove(const QString &profileId, Secret secret)
         job->deleteLater();
     });
     job->start();
-#else
-    QMetaObject::invokeMethod(this, [this, profileId, secret]() {
-        emit writeFinished(profileId, secret,
-                           tr("QtKeychain support is not available in this build."));
-    }, Qt::QueuedConnection);
-#endif
 }
 
 ///

@@ -2,12 +2,17 @@
 // SPDX-License-Identifier: MIT
 
 #include <QComboBox>
+#include <QCoreApplication>
+#include <QFile>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
+#include <QSettings>
 #include <QSizePolicy>
 #include <QSpinBox>
+#include <QStandardPaths>
 #include <QTableView>
+#include <QTemporaryDir>
 #include <QTest>
 
 #include "dialogs/connectiondialog.h"
@@ -50,9 +55,16 @@ class TestConnectionDialog : public QObject
     Q_OBJECT
 
 private slots:
+    void initTestCase();
+    void cleanup();
     void discoveryPopulatesEndpointModelAndAuthentication();
+    void clientCertificateActionFollowsSelection();
+    void clientCertificateSelectorFillsRow();
     void certificateStatusRowsAlignBadgeToRight();
     void advancedSettingsControlsAlignToGrid();
+
+private:
+    QTemporaryDir _settingsDirectory;
 };
 
 namespace {
@@ -83,6 +95,23 @@ void verifyRightAlignedCertificateStatus(ConnectionDialog &dialog, const QString
     QCOMPARE(layout->itemAt(3)->widget(), badgeLabel);
 }
 
+}
+
+void TestConnectionDialog::initTestCase()
+{
+    QVERIFY(_settingsDirectory.isValid());
+    QStandardPaths::setTestModeEnabled(true);
+    QCoreApplication::setOrganizationName(QStringLiteral("OpenUaExplorerTests"));
+    QCoreApplication::setApplicationName(QStringLiteral("ConnectionDialog"));
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                       _settingsDirectory.path());
+}
+
+void TestConnectionDialog::cleanup()
+{
+    QSettings settings;
+    settings.clear();
 }
 
 void TestConnectionDialog::discoveryPopulatesEndpointModelAndAuthentication()
@@ -127,6 +156,49 @@ void TestConnectionDialog::discoveryPopulatesEndpointModelAndAuthentication()
     QVERIFY(discoverButton->isEnabled());
     QVERIFY(connectButton->isEnabled());
     QCOMPARE(dialog.profile().endpointUrl, endpoint.endpointUrl);
+}
+
+void TestConnectionDialog::clientCertificateActionFollowsSelection()
+{
+    ConnectionDialog dialog;
+    auto *certificateMode = dialog.findChild<QComboBox *>(
+        QStringLiteral("clientCertificateComboBox"));
+    auto *certificateAction = dialog.findChild<QPushButton *>(
+        QStringLiteral("clientCertificateViewButton"));
+    QVERIFY(certificateMode);
+    QVERIFY(certificateAction);
+
+    certificateMode->setCurrentIndex(0);
+    QCOMPARE(certificateAction->text(), QStringLiteral("Generate..."));
+
+    certificateMode->setCurrentIndex(1);
+    QCOMPARE(certificateAction->text(), QStringLiteral("Import..."));
+
+    certificateMode->setCurrentIndex(0);
+    QTest::mouseClick(certificateAction, Qt::LeftButton);
+    const ConnectionProfile profile = dialog.profile();
+    QVERIFY(QFile::exists(profile.clientCertificateFile));
+    QVERIFY(QFile::exists(profile.privateKeyFile));
+    QVERIFY(QFile::remove(profile.clientCertificateFile));
+    QVERIFY(QFile::remove(profile.privateKeyFile));
+}
+
+void TestConnectionDialog::clientCertificateSelectorFillsRow()
+{
+    ConnectionDialog dialog;
+    auto *layout = dialog.findChild<QHBoxLayout *>(QStringLiteral("clientCertificateLayout"));
+    auto *certificateMode = dialog.findChild<QComboBox *>(
+        QStringLiteral("clientCertificateComboBox"));
+    auto *certificateAction = dialog.findChild<QPushButton *>(
+        QStringLiteral("clientCertificateViewButton"));
+    QVERIFY(layout);
+    QVERIFY(certificateMode);
+    QVERIFY(certificateAction);
+
+    QCOMPARE(layout->count(), 3);
+    QCOMPARE(layout->stretch(1), 1);
+    QCOMPARE(layout->itemAt(1)->widget(), certificateMode);
+    QCOMPARE(layout->itemAt(2)->widget(), certificateAction);
 }
 
 void TestConnectionDialog::certificateStatusRowsAlignBadgeToRight()

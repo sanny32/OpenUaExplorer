@@ -13,9 +13,8 @@
 #include <QTemporaryDir>
 #include <QTest>
 
-#ifdef OUAEXP_HAS_OPENSSL
 #include <QOpcUaPkiConfiguration>
-#endif
+#include <QSslCertificate>
 
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuaclientservice.h"
@@ -105,18 +104,31 @@ void TestOpcUa::pkiPathsUseExpectedLayout()
 ///
 void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
 {
-#ifdef OUAEXP_HAS_OPENSSL
     PkiManager pki;
     QString certificateFile;
     QString privateKeyFile;
     QString error;
     QVERIFY2(pki.generateClientCertificate(
-                 QStringLiteral("OpenUaExplorerTests"),
+                 PkiManager::clientCertificateCommonName(),
                  PkiManager::applicationUri(),
                  &certificateFile,
                  &privateKeyFile,
                  &error),
              qPrintable(error));
+
+    QFile certificate(certificateFile);
+    QVERIFY(certificate.open(QIODevice::ReadOnly));
+    const QByteArray certificateData = certificate.readAll();
+    certificate.close();
+    const QList<QSslCertificate> certificates =
+        QSslCertificate::fromData(certificateData, QSsl::Der);
+    QCOMPARE(certificates.size(), 1);
+    const QSslCertificate generated = certificates.constFirst();
+    const QString commonName = PkiManager::clientCertificateCommonName();
+    QCOMPARE(generated.subjectInfo(QSslCertificate::CommonName), QStringList({commonName}));
+    QCOMPARE(generated.issuerInfo(QSslCertificate::CommonName), QStringList({commonName}));
+    QVERIFY(generated.isSelfSigned());
+    QVERIFY(!commonName.contains(QLatin1Char(' ')));
 
     QOpcUaPkiConfiguration configuration;
     configuration.setClientCertificateFile(certificateFile);
@@ -133,9 +145,6 @@ void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
 
     QVERIFY(QFile::remove(certificateFile));
     QVERIFY(QFile::remove(privateKeyFile));
-#else
-    QSKIP("OpenSSL is required for certificate generation.");
-#endif
 }
 
 ///

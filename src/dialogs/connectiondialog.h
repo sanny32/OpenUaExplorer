@@ -42,6 +42,7 @@ private slots:
     void updateAuthenticationFields();
     void chooseClientCertificate();
     void generateClientCertificate();
+    void handleClientCertificateAction();
     void viewServerCertificate();
     void viewClientCertificate();
     void validateAndAccept();
@@ -55,6 +56,7 @@ private:
     void saveLastEndpointUrl();
     void resetDiscovery();
     void updateClientCertificate();
+    void updateClientCertificateAction();
 
     Ui::ConnectionDialog *ui;
     class OpcUaClientService *_service = nullptr;

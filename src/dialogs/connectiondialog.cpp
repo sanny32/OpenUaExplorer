@@ -10,7 +10,6 @@
 #include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
-#include <QCoreApplication>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -22,6 +21,7 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QSignalBlocker>
+#include <QSizePolicy>
 #include <QStringList>
 #include <QStyle>
 #include <QUuid>
@@ -117,14 +117,18 @@ void ConnectionDialog::setupCertificatePanels()
     ui->clientCertificateComboBox->clear();
     ui->clientCertificateComboBox->addItem(tr("Auto-generate"));
     ui->clientCertificateComboBox->addItem(tr("Imported certificate"));
+    ui->clientCertificateComboBox->setSizePolicy(
+        QSizePolicy::Expanding, ui->clientCertificateComboBox->sizePolicy().verticalPolicy());
+    ui->clientCertificateLayout->setStretch(1, 1);
+    ui->clientCertificateLayout->setStretch(2, 0);
     ui->trustListManageButton->setText(tr("Generate..."));
-    ui->clientCertificateViewButton->setText(tr("Import..."));
 
     PkiManager pki;
     if (pki.existingClientCertificate(&_clientCertificateFile, &_privateKeyFile)) {
         ui->clientCertificateComboBox->setItemText(
             0, tr("Auto-generated (%1)").arg(QFileInfo(_clientCertificateFile).fileName()));
     }
+    updateClientCertificateAction();
     updateClientCertificate();
 }
 
@@ -190,8 +194,11 @@ void ConnectionDialog::setupConnections()
     connect(ui->authenticationComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ConnectionDialog::updateAuthenticationFields);
+    connect(ui->clientCertificateComboBox,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &ConnectionDialog::updateClientCertificateAction);
     connect(ui->clientCertificateViewButton, &QPushButton::clicked,
-            this, &ConnectionDialog::chooseClientCertificate);
+            this, &ConnectionDialog::handleClientCertificateAction);
     connect(ui->clientCertificateWidget, &CertificateSummaryWidget::viewRequested,
             this, &ConnectionDialog::viewClientCertificate);
     connect(ui->serverCertificateWidget, &CertificateSummaryWidget::viewRequested,
@@ -438,7 +445,7 @@ void ConnectionDialog::generateClientCertificate()
     PkiManager pki;
     QString error;
     if (!pki.generateClientCertificate(
-            QCoreApplication::applicationName(),
+            PkiManager::clientCertificateCommonName(),
             PkiManager::applicationUri(),
             &_clientCertificateFile, &_privateKeyFile, &error)) {
         QMessageBox::critical(this, tr("Certificate Generation Failed"), error);
@@ -446,7 +453,19 @@ void ConnectionDialog::generateClientCertificate()
     }
     _privateKeyPassword.clear();
     ui->clientCertificateComboBox->setCurrentIndex(0);
+    updateClientCertificateAction();
     updateClientCertificate();
+}
+
+///
+/// \brief ConnectionDialog::handleClientCertificateAction
+///
+void ConnectionDialog::handleClientCertificateAction()
+{
+    if (ui->clientCertificateComboBox->currentIndex() == 0)
+        generateClientCertificate();
+    else
+        chooseClientCertificate();
 }
 
 ///
@@ -530,6 +549,15 @@ void ConnectionDialog::updateClientCertificate()
         chain = QSslCertificate::fromData(data, QSsl::Pem);
     ui->clientCertificateWidget->setCertificate(
         chain.isEmpty() ? QByteArray() : chain.constFirst().toDer());
+}
+
+///
+/// \brief ConnectionDialog::updateClientCertificateAction
+///
+void ConnectionDialog::updateClientCertificateAction()
+{
+    ui->clientCertificateViewButton->setText(
+        ui->clientCertificateComboBox->currentIndex() == 0 ? tr("Generate...") : tr("Import..."));
 }
 
 ///

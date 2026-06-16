@@ -29,6 +29,7 @@ public:
     };
 
     static QString applicationUri();
+    static QString clientCertificateCommonName();
     Paths paths() const;
     bool ensureDirectories(QString *error = nullptr) const;
     bool existingClientCertificate(QString *certificateFile,

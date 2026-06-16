@@ -29,11 +29,9 @@ if(NOT TARGET qt${QT_VERSION_MAJOR}keychain AND OUAEXP_FETCH_QTKEYCHAIN)
 endif()
 
 function(ouaexp_configure_qtkeychain target_name)
-    if(TARGET qt${QT_VERSION_MAJOR}keychain)
-        target_link_libraries(${target_name} PRIVATE qt${QT_VERSION_MAJOR}keychain)
-        target_compile_definitions(${target_name} PRIVATE OUAEXP_HAS_QTKEYCHAIN)
-    else()
-        message(WARNING
-            "QtKeychain was not found. Connection secrets will not be persisted.")
+    if(NOT TARGET qt${QT_VERSION_MAJOR}keychain)
+        message(FATAL_ERROR "QtKeychain target qt${QT_VERSION_MAJOR}keychain is required.")
     endif()
+
+    target_link_libraries(${target_name} PRIVATE qt${QT_VERSION_MAJOR}keychain)
 endfunction()

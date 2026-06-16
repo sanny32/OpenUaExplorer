@@ -6,7 +6,6 @@
 /// \brief Implements OPC UA PKI directory and certificate management.
 ///
 
-#include <QCoreApplication>
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
@@ -16,7 +15,6 @@
 #include <QStringList>
 #include <QSysInfo>
 
-#ifdef OUAEXP_HAS_OPENSSL
 #include <openssl/bio.h>
 #include <openssl/bn.h>
 #include <openssl/err.h>
@@ -26,12 +24,92 @@
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
-#endif
 
 #include "pkimanager.h"
 
-#ifdef OUAEXP_HAS_OPENSSL
 namespace {
+
+QString hostName()
+{
+    QString host = QSysInfo::machineHostName().trimmed();
+    if (host.isEmpty())
+        host = QStringLiteral("localhost");
+    return host;
+}
+
+QString productNameWithoutSpaces()
+{
+    QString productName = QString::fromUtf8(APP_PRODUCT_NAME);
+    productName.remove(QLatin1Char(' '));
+    return productName;
+}
+
+QString certificateCommonName(X509 *certificate)
+{
+    X509_NAME *subject = X509_get_subject_name(certificate);
+    const int index = subject ? X509_NAME_get_index_by_NID(subject, NID_commonName, -1) : -1;
+    if (index < 0)
+        return {};
+
+    X509_NAME_ENTRY *entry = X509_NAME_get_entry(subject, index);
+    ASN1_STRING *value = entry ? X509_NAME_ENTRY_get_data(entry) : nullptr;
+    if (!value)
+        return {};
+
+    unsigned char *utf8 = nullptr;
+    const int length = ASN1_STRING_to_UTF8(&utf8, value);
+    if (length < 0 || !utf8)
+        return {};
+
+    const QString result = QString::fromUtf8(reinterpret_cast<const char *>(utf8), length);
+    OPENSSL_free(utf8);
+    return result;
+}
+
+bool certificateHasApplicationUri(X509 *certificate, const QByteArray &expectedUri)
+{
+    bool uriMatches = false;
+    GENERAL_NAMES *names = static_cast<GENERAL_NAMES *>(
+        X509_get_ext_d2i(certificate, NID_subject_alt_name, nullptr, nullptr));
+    for (int index = 0; names && index < sk_GENERAL_NAME_num(names); ++index) {
+        const GENERAL_NAME *name = sk_GENERAL_NAME_value(names, index);
+        if (name->type != GEN_URI)
+            continue;
+        const ASN1_IA5STRING *uri = name->d.uniformResourceIdentifier;
+        const QByteArray value(
+            reinterpret_cast<const char *>(ASN1_STRING_get0_data(uri)),
+            ASN1_STRING_length(uri));
+        if (value == expectedUri) {
+            uriMatches = true;
+            break;
+        }
+    }
+    GENERAL_NAMES_free(names);
+    return uriMatches;
+}
+
+bool certificateIsSelfSigned(X509 *certificate)
+{
+    if (X509_check_issued(certificate, certificate) != X509_V_OK)
+        return false;
+
+    EVP_PKEY *publicKey = X509_get_pubkey(certificate);
+    const bool verified = publicKey && X509_verify(certificate, publicKey) == 1;
+    EVP_PKEY_free(publicKey);
+    return verified;
+}
+
+bool addExtension(X509 *certificate, X509V3_CTX *context, int nid, const QByteArray &value)
+{
+    X509_EXTENSION *extension =
+        X509V3_EXT_conf_nid(nullptr, context, nid, const_cast<char *>(value.constData()));
+    if (!extension)
+        return false;
+
+    const bool added = X509_add_ext(certificate, extension, -1) == 1;
+    X509_EXTENSION_free(extension);
+    return added;
+}
 
 QString openSslError()
 {
@@ -45,7 +123,6 @@ QString openSslError()
 }
 
 } // namespace
-#endif
 
 ///
 /// \brief PkiManager::applicationUri
@@ -53,10 +130,17 @@ QString openSslError()
 ///
 QString PkiManager::applicationUri()
 {
-    QString hostName = QSysInfo::machineHostName().trimmed().toLower();
-    if (hostName.isEmpty())
-        hostName = QStringLiteral("localhost");
-    return QStringLiteral("urn:%1:OpenUaExplorer:OpenUaExplorer").arg(hostName);
+    const QString productName = productNameWithoutSpaces();
+    return QStringLiteral("urn:%1:%2:%2").arg(hostName().toLower(), productName);
+}
+
+///
+/// \brief PkiManager::clientCertificateCommonName
+/// \return Common name used by the auto-generated client certificate.
+///
+QString PkiManager::clientCertificateCommonName()
+{
+    return QStringLiteral("%1@%2").arg(productNameWithoutSpaces(), hostName());
 }
 
 ///
@@ -116,11 +200,6 @@ bool PkiManager::ensureDirectories(QString *error) const
 bool PkiManager::existingClientCertificate(QString *certificateFile,
                                            QString *privateKeyFile) const
 {
-#ifndef OUAEXP_HAS_OPENSSL
-    Q_UNUSED(certificateFile)
-    Q_UNUSED(privateKeyFile)
-    return false;
-#else
     const Paths p = paths();
     const QString certPath = p.ownCertificates + QStringLiteral("/openuaexplorer.der");
     const QString keyPath = p.ownPrivate + QStringLiteral("/openuaexplorer.pem");
@@ -133,26 +212,13 @@ bool PkiManager::existingClientCertificate(QString *certificateFile,
     if (!certificate)
         return false;
 
-    bool uriMatches = false;
-    GENERAL_NAMES *names = static_cast<GENERAL_NAMES *>(
-        X509_get_ext_d2i(certificate, NID_subject_alt_name, nullptr, nullptr));
     const QByteArray expectedUri = applicationUri().toUtf8();
-    for (int index = 0; names && index < sk_GENERAL_NAME_num(names); ++index) {
-        const GENERAL_NAME *name = sk_GENERAL_NAME_value(names, index);
-        if (name->type != GEN_URI)
-            continue;
-        const ASN1_IA5STRING *uri = name->d.uniformResourceIdentifier;
-        const QByteArray value(
-            reinterpret_cast<const char *>(ASN1_STRING_get0_data(uri)),
-            ASN1_STRING_length(uri));
-        if (value == expectedUri) {
-            uriMatches = true;
-            break;
-        }
-    }
-    GENERAL_NAMES_free(names);
+    const bool identityMatches =
+        certificateHasApplicationUri(certificate, expectedUri)
+        && certificateCommonName(certificate) == clientCertificateCommonName()
+        && certificateIsSelfSigned(certificate);
     X509_free(certificate);
-    if (!uriMatches)
+    if (!identityMatches)
         return false;
 
     if (certificateFile)
@@ -160,7 +226,6 @@ bool PkiManager::existingClientCertificate(QString *certificateFile,
     if (privateKeyFile)
         *privateKeyFile = keyPath;
     return true;
-#endif
 }
 
 ///
@@ -178,15 +243,6 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
                                            QString *privateKeyFile,
                                            QString *error) const
 {
-#ifndef OUAEXP_HAS_OPENSSL
-    Q_UNUSED(commonName)
-    Q_UNUSED(applicationUri)
-    Q_UNUSED(certificateFile)
-    Q_UNUSED(privateKeyFile)
-    if (error)
-        *error = QObject::tr("OpenSSL Crypto support is not available in this build.");
-    return false;
-#else
     if (!ensureDirectories(error))
         return false;
 
@@ -236,30 +292,24 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
             && X509_set_issuer_name(certificate, subject) == 1;
 
         const QByteArray san = QStringLiteral("URI:%1,DNS:%2")
-            .arg(applicationUri, QSysInfo::machineHostName()).toUtf8();
+            .arg(applicationUri, hostName()).toUtf8();
         X509V3_CTX extensionContext;
         X509V3_set_ctx(&extensionContext, certificate, certificate, nullptr, nullptr, 0);
-        const auto addExtension =
-            [certificate, &extensionContext](int nid, const QByteArray &value) {
-            X509_EXTENSION *extension =
-                X509V3_EXT_conf_nid(nullptr, &extensionContext, nid,
-                                    const_cast<char *>(value.constData()));
-            if (!extension)
-                return false;
-            const bool added = X509_add_ext(certificate, extension, -1) == 1;
-            X509_EXTENSION_free(extension);
-            return added;
-        };
         const bool extensionsAdded =
-            addExtension(NID_basic_constraints, QByteArrayLiteral("critical,CA:FALSE"))
+            addExtension(certificate, &extensionContext,
+                         NID_basic_constraints, QByteArrayLiteral("critical,CA:TRUE"))
             && addExtension(
+                certificate, &extensionContext,
                 NID_key_usage,
                 QByteArrayLiteral(
-                    "critical,nonRepudiation,digitalSignature,keyEncipherment,dataEncipherment"))
-            && addExtension(NID_ext_key_usage, QByteArrayLiteral("clientAuth"))
-            && addExtension(NID_subject_alt_name, san)
-            && addExtension(NID_subject_key_identifier, QByteArrayLiteral("hash"))
-            && addExtension(NID_authority_key_identifier,
+                    "critical,nonRepudiation,digitalSignature,keyEncipherment,"
+                    "dataEncipherment,keyCertSign,cRLSign"))
+            && addExtension(certificate, &extensionContext,
+                            NID_ext_key_usage, QByteArrayLiteral("clientAuth"))
+            && addExtension(certificate, &extensionContext, NID_subject_alt_name, san)
+            && addExtension(certificate, &extensionContext,
+                            NID_subject_key_identifier, QByteArrayLiteral("hash"))
+            && addExtension(certificate, &extensionContext, NID_authority_key_identifier,
                             QByteArrayLiteral("keyid:always,issuer:always"));
 
         const Paths p = paths();
@@ -290,7 +340,6 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
             .arg(openSslError());
     }
     return success;
-#endif
 }
 
 ///

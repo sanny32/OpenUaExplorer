@@ -24,7 +24,7 @@ class TestSecretStore : public QObject
     Q_OBJECT
 
 private slots:
-    void isAvailableReflectsBuild();
+    void isAvailableReflectsRequiredDependency();
     void roundTripWriteReadRemove();
     void distinctSecretsDoNotCollide();
 
@@ -63,20 +63,12 @@ private:
 };
 
 ///
-/// \brief isAvailable() matches whether QtKeychain was compiled in.
+/// \brief isAvailable() reports the required QtKeychain adapter.
 ///
-void TestSecretStore::isAvailableReflectsBuild()
+void TestSecretStore::isAvailableReflectsRequiredDependency()
 {
     SecretStore store;
-#ifdef OUAEXP_HAS_QTKEYCHAIN
     QVERIFY(store.isAvailable());
-#else
-    QVERIFY(!store.isAvailable());
-    // Without a backend every operation must still answer (with an error).
-    QString value;
-    QVERIFY(!readSync(store, QStringLiteral("any"),
-                      SecretStore::Secret::Password, &value).isEmpty());
-#endif
 }
 
 ///
@@ -85,8 +77,6 @@ void TestSecretStore::isAvailableReflectsBuild()
 void TestSecretStore::roundTripWriteReadRemove()
 {
     SecretStore store;
-    if (!store.isAvailable())
-        QSKIP("QtKeychain support is not available in this build.");
 
     const QString profileId = uniqueProfileId();
     const QString secret = QStringLiteral("s3cr3t-value");
@@ -114,8 +104,6 @@ void TestSecretStore::roundTripWriteReadRemove()
 void TestSecretStore::distinctSecretsDoNotCollide()
 {
     SecretStore store;
-    if (!store.isAvailable())
-        QSKIP("QtKeychain support is not available in this build.");
 
     const QString profileId = uniqueProfileId();
     const QString password = QStringLiteral("login-password");

@@ -9,7 +9,7 @@ if(NOT DEFINED OPENSSL_ROOT_DIR)
 endif()
 
 # Qt 5.15.2 builds against OpenSSL 1.1.1; Qt6 against 3.x.
-find_package(OpenSSL 1.1 QUIET COMPONENTS Crypto SSL)
+find_package(OpenSSL 1.1 REQUIRED COMPONENTS Crypto SSL)
 
 if(WIN32 AND TARGET OpenSSL::Crypto)
     file(GLOB OPENSSL_RUNTIME_FILES
@@ -18,13 +18,7 @@ if(WIN32 AND TARGET OpenSSL::Crypto)
 endif()
 
 function(ouaexp_configure_openssl target_name)
-    if(TARGET OpenSSL::Crypto)
-        target_link_libraries(${target_name} PRIVATE OpenSSL::Crypto)
-        target_compile_definitions(${target_name} PRIVATE OUAEXP_HAS_OPENSSL)
-    else()
-        message(WARNING
-            "OpenSSL Crypto was not found. Client certificate generation will be unavailable.")
-    endif()
+    target_link_libraries(${target_name} PRIVATE OpenSSL::Crypto)
 endfunction()
 
 function(ouaexp_copy_openssl_runtime target_name)
