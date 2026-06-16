@@ -38,7 +38,11 @@ bool TestThemeDBus::sendPortalSettingChanged(uint value, const QString &group,
         QStringLiteral("/org/freedesktop/portal/desktop"),
         QStringLiteral("org.freedesktop.portal.Settings"),
         QStringLiteral("SettingChanged"));
-    message << group << key << QDBusVariant(QVariant(value));
+    message.setArguments({
+        group,
+        key,
+        QVariant::fromValue(QDBusVariant(QVariant(value)))
+    });
     return QDBusConnection::sessionBus().send(message);
 }
 
