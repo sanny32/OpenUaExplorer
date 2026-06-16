@@ -10,6 +10,7 @@
 #include <QDockWidget>
 #include <QEvent>
 #include <QList>
+#include <QMenu>
 #include <QMessageBox>
 
 #include "appicons.h"
@@ -39,7 +40,10 @@ MainWindow::MainWindow(QWidget *parent)
     , _clientService(_connectionController->clientService())
 {
     ui->setupUi(this);
-    ui->actionTheme->setVisible(theApp()->theme().isManualToggleSupported());
+
+    const bool manualThemeSupported = theApp()->theme().isManualToggleSupported();
+    ui->actionTheme->setVisible(manualThemeSupported);
+    ui->menuTheme->menuAction()->setVisible(manualThemeSupported);
 
     setupMainMenu();
     ui->mainToolBar->setupFromDesignerActions();

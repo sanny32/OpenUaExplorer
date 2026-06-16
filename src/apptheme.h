@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QObject>
+#include <QtGlobal>
 
 #ifdef HAS_QTDBUS
 #include <QDBusVariant>
@@ -36,7 +37,12 @@ signals:
     void colorSchemeChanged();
 
 private:
+    void setupSystemColorScheme();
+    bool setupPortalColorScheme();
+    bool applyPortalColorScheme();
+    void readStyleHintsColorScheme();
     void applyColorScheme(ColorScheme scheme);
+    void applyNativeColorScheme(ColorScheme scheme);
 
 #ifdef HAS_QTDBUS
     Q_SLOT void onPortalSettingChanged(const QString &group, const QString &key,

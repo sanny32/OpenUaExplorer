@@ -10,6 +10,8 @@
 #include <QGuiApplication>
 #include <QStyleHints>
 
+#include "apptheme.h"
+
 #ifdef HAS_QTDBUS
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
@@ -18,11 +20,37 @@
 #endif
 
 #include "appstyle.h"
-#include "apptheme.h"
 #include "fusionstyle.h"
 
 namespace {
 
+///
+/// \brief qtThemeApiAvailable
+/// \return
+///
+bool qtThemeApiAvailable()
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    return true;
+#else
+    return false;
+#endif
+}
+
+///
+/// \brief applyLightPalette
+///
+void applyLightPalette()
+{
+#ifdef Q_OS_WIN
+    QApplication::setPalette(FusionStyle::palette(false));
+#else
+    if (AppStyle::isFusionStyle())
+        QApplication::setPalette(FusionStyle::palette(false));
+#endif
+}
+
+#ifdef HAS_QTDBUS
 ///
 /// \brief colorSchemeFromDBus
 /// \param value
@@ -36,6 +64,7 @@ AppTheme::ColorScheme colorSchemeFromDBus(uint value)
     default: return AppTheme::ColorScheme::Unknown;
     }
 }
+#endif
 }
 
 ///
@@ -45,6 +74,31 @@ AppTheme::ColorScheme colorSchemeFromDBus(uint value)
 AppTheme::AppTheme(QObject *parent)
     : QObject(parent)
 {
+    setupSystemColorScheme();
+}
+
+///
+/// \brief AppTheme::setupSystemColorScheme
+///
+void AppTheme::setupSystemColorScheme()
+{
+    if (!qtThemeApiAvailable()) {
+        _scheme = ColorScheme::Light;
+        return;
+    }
+
+    if (setupPortalColorScheme())
+        return;
+
+    readStyleHintsColorScheme();
+}
+
+///
+/// \brief AppTheme::setupPortalColorScheme
+/// \return
+///
+bool AppTheme::setupPortalColorScheme()
+{
 #ifdef HAS_QTDBUS
     QDBusConnection::sessionBus().connect(
         QString(),
@@ -53,7 +107,17 @@ AppTheme::AppTheme(QObject *parent)
         QStringLiteral("SettingChanged"),
         this,
         SLOT(onPortalSettingChanged(QString, QString, QDBusVariant)));
+    return true;
 #else
+    return false;
+#endif
+}
+
+///
+/// \brief AppTheme::readStyleHintsColorScheme
+///
+void AppTheme::readStyleHintsColorScheme()
+{
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     const Qt::ColorScheme applicationScheme = QGuiApplication::styleHints()->colorScheme();
     _scheme = applicationScheme == Qt::ColorScheme::Dark
@@ -72,7 +136,6 @@ AppTheme::AppTheme(QObject *parent)
     _scheme = qApp->palette().color(QPalette::Window).lightness() < 128
         ? ColorScheme::Dark : ColorScheme::Light;
     _manualToggleSupported = true;
-#endif
 #endif
 }
 
@@ -99,6 +162,9 @@ bool AppTheme::isManualToggleSupported() const
 ///
 void AppTheme::toggle()
 {
+    if (!_manualToggleSupported)
+        return;
+
     _manualSchemeOverriden = true;
     switch (_scheme) {
     case ColorScheme::Dark:
@@ -117,6 +183,23 @@ void AppTheme::toggle()
 ///
 void AppTheme::applyInitialScheme()
 {
+    if (!qtThemeApiAvailable()) {
+        applyColorScheme(ColorScheme::Light);
+        return;
+    }
+
+    if (applyPortalColorScheme())
+        return;
+
+    applyColorScheme(_scheme);
+}
+
+///
+/// \brief AppTheme::applyPortalColorScheme
+/// \return
+///
+bool AppTheme::applyPortalColorScheme()
+{
 #ifdef HAS_QTDBUS
     QDBusMessage msg = QDBusMessage::createMethodCall(
         QStringLiteral("org.freedesktop.portal.Desktop"),
@@ -134,7 +217,7 @@ void AppTheme::applyInitialScheme()
         if (scheme != ColorScheme::Unknown) {
             _manualToggleSupported = true;
             applyColorScheme(scheme);
-            return;
+            return true;
         }
     }
 
@@ -163,11 +246,12 @@ void AppTheme::applyInitialScheme()
             const ColorScheme scheme = colorSchemeFromDBus(v.toUInt());
             _manualToggleSupported = true;
             applyColorScheme(scheme);
-            return;
+            return true;
         }
     }
 #endif
-    applyColorScheme(_scheme);
+
+    return false;
 }
 
 ///
@@ -176,21 +260,32 @@ void AppTheme::applyInitialScheme()
 ///
 void AppTheme::applyColorScheme(ColorScheme scheme)
 {
+    if (!qtThemeApiAvailable())
+        scheme = ColorScheme::Light;
+
     _scheme = scheme;
+    applyNativeColorScheme(_scheme);
+
+    emit colorSchemeChanged();
+}
+
+///
+/// \brief AppTheme::applyNativeColorScheme
+/// \param scheme
+///
+void AppTheme::applyNativeColorScheme(ColorScheme scheme)
+{
+    if (!qtThemeApiAvailable()) {
+        applyLightPalette();
+        return;
+    }
 
 #ifdef Q_OS_WIN
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     QGuiApplication::styleHints()->setColorScheme(
         scheme == ColorScheme::Dark ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
-#else
-    QApplication::setPalette(FusionStyle::palette(_scheme == ColorScheme::Dark));
 #endif
-#else
-    if (AppStyle::isFusionStyle())
-        QApplication::setPalette(FusionStyle::palette(_scheme == ColorScheme::Dark));
 #endif
-
-    emit colorSchemeChanged();
 }
 
 #ifdef HAS_QTDBUS
@@ -203,6 +298,9 @@ void AppTheme::applyColorScheme(ColorScheme scheme)
 void AppTheme::onPortalSettingChanged(const QString &group, const QString &key,
                                       const QDBusVariant &value)
 {
+    if (!qtThemeApiAvailable())
+        return;
+
     if (_manualSchemeOverriden ||
         group != QLatin1String("org.freedesktop.appearance") ||
         key != QLatin1String("color-scheme"))

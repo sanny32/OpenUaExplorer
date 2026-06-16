@@ -82,6 +82,7 @@ function(ouaexp_configure_tests)
     ouaexp_add_test(ouaexp_tests_controller test_connectioncontroller.cpp)
     ouaexp_add_test(ouaexp_tests_connection_data test_connectiondata.cpp)
     ouaexp_add_ui_test(ouaexp_tests_connection_dialog test_connectiondialog.cpp)
+    ouaexp_add_ui_test(ouaexp_tests_mainwindow_theme test_mainwindow_theme.cpp)
     ouaexp_add_test(ouaexp_tests_integration test_opcua_integration.cpp)
     target_compile_definitions(ouaexp_tests_integration PRIVATE
         OUAEXP_TEST_SERVER_SCRIPT="${CMAKE_CURRENT_SOURCE_DIR}/../tools/opcua_test_server.py")
