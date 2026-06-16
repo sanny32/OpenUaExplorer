@@ -54,6 +54,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            dbus \
             ninja-build \
             libsecret-1-dev \
             libssl-dev \
@@ -110,5 +111,10 @@ jobs:
           ${{ matrix.use_qt }}
           ${{ matrix.cmake_extra }}
 
+      - name: Build and run tests (Linux)
+        if: runner.os == 'Linux'
+        run: dbus-run-session -- cmake --build build --config Release --parallel --target ouaexp_check
+
       - name: Build and run tests
+        if: runner.os != 'Linux'
         run: cmake --build build --config Release --parallel --target ouaexp_check

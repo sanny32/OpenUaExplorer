@@ -52,6 +52,28 @@ function(ouaexp_configure_test_environment test_name)
     endif()
 endfunction()
 
+function(ouaexp_configure_platform_tests)
+    if(LINUX)
+        include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests_linux_dbus.cmake")
+        ouaexp_configure_linux_dbus_tests()
+    endif()
+endfunction()
+
+function(ouaexp_configure_unit_tests)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests_unit.cmake")
+    ouaexp_configure_common_unit_tests()
+endfunction()
+
+function(ouaexp_configure_ui_tests)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests_ui.cmake")
+    ouaexp_configure_common_ui_tests()
+endfunction()
+
+function(ouaexp_configure_integration_tests)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests_integration.cmake")
+    ouaexp_configure_opcua_integration_tests()
+endfunction()
+
 function(ouaexp_configure_tests)
     set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -74,18 +96,10 @@ function(ouaexp_configure_tests)
         target_link_libraries(${test_name} PRIVATE ouaexp_ui)
     endfunction()
 
-    ouaexp_add_test(ouaexp_tests           test_opcua.cpp)
-    ouaexp_add_test(ouaexp_tests_profiles  test_profiles.cpp)
-    ouaexp_add_test(ouaexp_tests_models    test_models.cpp)
-    ouaexp_add_test(ouaexp_tests_secrets   test_secretstore.cpp)
-    ouaexp_add_test(ouaexp_tests_formatter test_attributeformatter.cpp)
-    ouaexp_add_test(ouaexp_tests_controller test_connectioncontroller.cpp)
-    ouaexp_add_test(ouaexp_tests_connection_data test_connectiondata.cpp)
-    ouaexp_add_ui_test(ouaexp_tests_connection_dialog test_connectiondialog.cpp)
-    ouaexp_add_ui_test(ouaexp_tests_mainwindow_theme test_mainwindow_theme.cpp)
-    ouaexp_add_test(ouaexp_tests_integration test_opcua_integration.cpp)
-    target_compile_definitions(ouaexp_tests_integration PRIVATE
-        OUAEXP_TEST_SERVER_SCRIPT="${CMAKE_CURRENT_SOURCE_DIR}/../tools/opcua_test_server.py")
+    ouaexp_configure_unit_tests()
+    ouaexp_configure_ui_tests()
+    ouaexp_configure_platform_tests()
+    ouaexp_configure_integration_tests()
 
     get_property(test_targets GLOBAL PROPERTY OUAEXP_TEST_TARGETS)
     add_custom_target(ouaexp_check
