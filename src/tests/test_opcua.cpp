@@ -108,8 +108,11 @@ void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
     QString certificateFile;
     QString privateKeyFile;
     QString error;
+    const QString commonName = PkiManager::clientCertificateCommonName();
+    QVERIFY(!commonName.contains(QLatin1Char(' ')));
+    QVERIFY(commonName.toUtf8().size() <= 64);
     QVERIFY2(pki.generateClientCertificate(
-                 PkiManager::clientCertificateCommonName(),
+                 commonName,
                  PkiManager::applicationUri(),
                  &certificateFile,
                  &privateKeyFile,
@@ -124,11 +127,9 @@ void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
         QSslCertificate::fromData(certificateData, QSsl::Der);
     QCOMPARE(certificates.size(), 1);
     const QSslCertificate generated = certificates.constFirst();
-    const QString commonName = PkiManager::clientCertificateCommonName();
     QCOMPARE(generated.subjectInfo(QSslCertificate::CommonName), QStringList({commonName}));
     QCOMPARE(generated.issuerInfo(QSslCertificate::CommonName), QStringList({commonName}));
     QVERIFY(generated.isSelfSigned());
-    QVERIFY(!commonName.contains(QLatin1Char(' ')));
 
     QOpcUaPkiConfiguration configuration;
     configuration.setClientCertificateFile(certificateFile);

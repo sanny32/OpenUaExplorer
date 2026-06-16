@@ -18,6 +18,7 @@
 #include "dialogs/connectiondialog.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/opcuaclientservice.h"
+#include "opcua/pkimanager.h"
 
 class DialogFakeBackend : public OpcUaBackend
 {
@@ -173,6 +174,19 @@ void TestConnectionDialog::clientCertificateActionFollowsSelection()
 
     certificateMode->setCurrentIndex(1);
     QCOMPARE(certificateAction->text(), QStringLiteral("Import..."));
+
+    PkiManager pki;
+    QString preflightCertificateFile;
+    QString preflightPrivateKeyFile;
+    QString preflightError;
+    if (!pki.generateClientCertificate(
+            PkiManager::clientCertificateCommonName(),
+            PkiManager::applicationUri(),
+            &preflightCertificateFile, &preflightPrivateKeyFile, &preflightError)) {
+        QSKIP(qPrintable(preflightError));
+    }
+    QVERIFY(QFile::remove(preflightCertificateFile));
+    QVERIFY(QFile::remove(preflightPrivateKeyFile));
 
     certificateMode->setCurrentIndex(0);
     QTest::mouseClick(certificateAction, Qt::LeftButton);

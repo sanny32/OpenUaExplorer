@@ -29,6 +29,8 @@
 
 namespace {
 
+constexpr int maximumCommonNameBytes = 64;
+
 QString hostName()
 {
     QString host = QSysInfo::machineHostName().trimmed();
@@ -37,11 +39,47 @@ QString hostName()
     return host;
 }
 
+QString withoutSpaces(QString value)
+{
+    value.remove(QLatin1Char(' '));
+    return value;
+}
+
+QString utf8Prefix(const QString &value, int maximumBytes)
+{
+    QByteArray result;
+    for (const QChar ch : value) {
+        const QByteArray encoded = QString(ch).toUtf8();
+        if (result.size() + encoded.size() > maximumBytes)
+            break;
+        result += encoded;
+    }
+    return QString::fromUtf8(result);
+}
+
 QString productNameWithoutSpaces()
 {
-    QString productName = QString::fromUtf8(APP_PRODUCT_NAME);
-    productName.remove(QLatin1Char(' '));
-    return productName;
+    return withoutSpaces(QString::fromUtf8(APP_PRODUCT_NAME));
+}
+
+QString clientCertificateCommonNameForHost(const QString &host)
+{
+    const QString productName = productNameWithoutSpaces();
+    const QString normalizedHost = withoutSpaces(host);
+    const QString commonName = QStringLiteral("%1@%2").arg(productName, normalizedHost);
+    if (commonName.toUtf8().size() <= maximumCommonNameBytes)
+        return commonName;
+
+    const QString hashSuffix = QStringLiteral("-%1").arg(QString::fromLatin1(
+        QCryptographicHash::hash(normalizedHost.toUtf8(), QCryptographicHash::Sha256)
+            .toHex()
+            .left(10)));
+    const int productLimit = maximumCommonNameBytes - 1 - hashSuffix.toUtf8().size() - 1;
+    const QString productPrefix = utf8Prefix(productName, qMax(1, productLimit));
+    const int hostLimit =
+        maximumCommonNameBytes - productPrefix.toUtf8().size() - 1 - hashSuffix.toUtf8().size();
+    const QString hostPrefix = utf8Prefix(normalizedHost, qMax(0, hostLimit));
+    return QStringLiteral("%1@%2%3").arg(productPrefix, hostPrefix, hashSuffix);
 }
 
 QString certificateCommonName(X509 *certificate)
@@ -140,7 +178,7 @@ QString PkiManager::applicationUri()
 ///
 QString PkiManager::clientCertificateCommonName()
 {
-    return QStringLiteral("%1@%2").arg(productNameWithoutSpaces(), hostName());
+    return clientCertificateCommonNameForHost(hostName());
 }
 
 ///
