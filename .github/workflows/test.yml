@@ -21,26 +21,26 @@ jobs:
           - os: ubuntu-latest
             qt: '6.9.3'
             use_qt: '-DUSE_QT6=ON'
-            cmake_extra: ''
+
           - os: windows-latest
             qt: '6.9.3'
             use_qt: '-DUSE_QT6=ON'
-            cmake_extra: ''
-            qt_tools: 'tools_opensslv3_x64'
+            openssl_version: '3.5.4'
+
           - os: macos-26
             qt: '6.9.3'
             use_qt: '-DUSE_QT6=ON'
             cmake_extra: '-DCMAKE_OSX_ARCHITECTURES=arm64'
+
           - os: ubuntu-latest
             qt: '5.15.2'
             use_qt: '-DUSE_QT5=ON'
-            cmake_extra: ''
+
           - os: windows-2022
             qt: '5.15.2'
             use_qt: '-DUSE_QT5=ON'
-            cmake_extra: ''
             msvc_toolset: '14.29'
-            qt_tools: 'tools_opensslv3_x64'
+            openssl_version: '1.1.1.1600'
     env:
       # Run Qt GUI/Test binaries without a real display.
       QT_QPA_PLATFORM: offscreen
@@ -80,14 +80,14 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ matrix.qt }}
-          tools: ${{ matrix.qt_tools }}
           cache: true
 
-      - name: Point OPENSSL_ROOT_DIR at the Qt OpenSSL tool (Windows)
+      - name: Set up OpenSSL (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          "OPENSSL_ROOT_DIR=$env:IQTA_TOOLS\OpenSSLv3\Win_x64" >> $env:GITHUB_ENV
+          choco install openssl --version=${{ matrix.openssl_version }} --no-progress -y
+          "OPENSSL_ROOT_DIR=$env:ProgramFiles\OpenSSL-Win64" >> $env:GITHUB_ENV
 
       - name: Install test dependencies
         run: python -m pip install -r tools/requirements.txt
