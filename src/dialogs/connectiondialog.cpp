@@ -11,8 +11,6 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
-#include <QDateTime>
-#include <QEvent>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -31,14 +29,13 @@
 #include "appicons.h"
 #include "certificatetrustdialog.h"
 #include "connectiondialog.h"
-#include "opcua/certificateinfo.h"
 #include "opcua/opcuaclientservice.h"
 #include "opcua/connectionprofilevalidator.h"
 #include "opcua/pkimanager.h"
 #include "ui_connectiondialog.h"
+#include "widgets/certificatesummarywidget.h"
 #include "widgets/coloredpushbutton.h"
 #include "widgets/endpointdiscoverywidget.h"
-#include "widgets/themediconlabel.h"
 
 namespace {
 
@@ -76,6 +73,20 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
 {
     ui->setupUi(this);
 
+    setupEndpointHistory();
+    setupCertificatePanels();
+    setupControls();
+    setupConnections();
+    updateAuthenticationFields();
+}
+
+///
+/// \brief ConnectionDialog::setupEndpointHistory
+///
+/// Populates the endpoint URL combo box from the persisted history.
+///
+void ConnectionDialog::setupEndpointHistory()
+{
     QStringList endpointHistory = _endpointHistoryStore.history();
     if (endpointHistory.isEmpty())
         endpointHistory.append(ui->discoveryUrlComboBox->currentText());
@@ -84,30 +95,77 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     ui->discoveryUrlComboBox->addItems(endpointHistory);
     _lastEnteredEndpointUrl = endpointHistory.constFirst();
     ui->discoveryUrlComboBox->setEditText(_lastEnteredEndpointUrl);
+    updatePopupWidth(ui->discoveryUrlComboBox);
+}
 
-    const QString certDetailsStyle = QStringLiteral(
-        "QLineEdit { background: transparent; border: none; padding: 0; }"
-        "QLabel[certCaption=\"true\"] { color: #6b7280; }");
-    ui->serverCertValidIcon->setIcon(QStringLiteral("check-circle"), QSize(18, 18));
-    ui->clientCertValidIcon->setIcon(QStringLiteral("check-circle"), QSize(18, 18));
-    ui->clientCertificateHeaderIcon->setIcon(QStringLiteral("certificate"), QSize(18, 18));
-    ui->serverCertificateHeaderIcon->setIcon(QStringLiteral("certificate"), QSize(18, 18));
-    const bool darkTheme = AppIcons::isDarkTheme();
-    const QString certHeaderStyle = QStringLiteral(
-        "QLabel { color: %1; font-weight: 600; }"
-        "QLabel:disabled { color: %2; }")
-        .arg(darkTheme ? QStringLiteral("#60a5fa") : QStringLiteral("#2563eb"),
-             darkTheme ? QStringLiteral("#5b626b") : QStringLiteral("#9aa0a6"));
-    ui->clientCertificateHeader->setStyleSheet(certHeaderStyle);
-    ui->serverCertificateHeader->setStyleSheet(certHeaderStyle);
-    ui->serverCertificateDetails->setStyleSheet(certDetailsStyle);
-    ui->clientCertificateDetails->setStyleSheet(certDetailsStyle);
-    ui->serverCertFingerprintEdit->installEventFilter(this);
-    ui->clientCertFingerprintEdit->installEventFilter(this);
+///
+/// \brief ConnectionDialog::setupCertificatePanels
+///
+/// Configures the server and client certificate summary panels and seeds the
+/// client certificate selection from any existing auto-generated certificate.
+///
+void ConnectionDialog::setupCertificatePanels()
+{
+    ui->serverCertificateWidget->setTitle(tr("Server Certificate"));
+    ui->serverCertificateWidget->setHint(
+        tr("Select an endpoint that provides a server certificate."));
+    ui->serverCertificateWidget->clear();
+
+    ui->clientCertificateWidget->setTitle(tr("Client Certificate"));
+    ui->clientCertificateWidget->setEmptyText(tr("No client certificate"));
+
+    ui->clientCertificateComboBox->clear();
+    ui->clientCertificateComboBox->addItem(tr("Auto-generate"));
+    ui->clientCertificateComboBox->addItem(tr("Imported certificate"));
+    ui->trustListManageButton->setText(tr("Generate..."));
+    ui->clientCertificateViewButton->setText(tr("Import..."));
+
+    PkiManager pki;
+    if (pki.existingClientCertificate(&_clientCertificateFile, &_privateKeyFile)) {
+        ui->clientCertificateComboBox->setItemText(
+            0, tr("Auto-generated (%1)").arg(QFileInfo(_clientCertificateFile).fileName()));
+    }
+    updateClientCertificate();
+}
+
+///
+/// \brief ConnectionDialog::setupControls
+///
+/// Applies icons, colours and the password visibility toggle.
+///
+void ConnectionDialog::setupControls()
+{
     ui->statusIconLabel->setIcon(QStringLiteral("disconnected"), QSize(16, 16));
     ui->connectButton->setColors({ QColor(0x0a74d1), QColor(0x1682df), QColor(0x075ca7) });
     ui->getEndpointsButton->setIcon(QStringLiteral("search.svg"));
 
+    const bool darkTheme = AppIcons::isDarkTheme();
+    const QString hintStyle = QStringLiteral("color: %1;")
+        .arg(darkTheme ? QStringLiteral("#7c828b") : QStringLiteral("#9aa0a6"));
+    ui->usernameHintLabel->setStyleSheet(hintStyle);
+    ui->passwordHintLabel->setStyleSheet(hintStyle);
+
+    QAction *passwordToggle = ui->passwordEdit->addAction(
+        AppIcons::themed(QStringLiteral("eye.svg")), QLineEdit::TrailingPosition);
+    passwordToggle->setCheckable(true);
+    auto refreshPasswordToggle = [this, passwordToggle] {
+        const bool shown = passwordToggle->isChecked();
+        ui->passwordEdit->setEchoMode(shown ? QLineEdit::Normal : QLineEdit::Password);
+        passwordToggle->setIcon(AppIcons::themed(
+            shown ? QStringLiteral("eye-off.svg") : QStringLiteral("eye.svg")));
+        passwordToggle->setToolTip(shown ? tr("Hide password") : tr("Show password"));
+    };
+    refreshPasswordToggle();
+    connect(passwordToggle, &QAction::toggled, this, refreshPasswordToggle);
+}
+
+///
+/// \brief ConnectionDialog::setupConnections
+///
+/// Wires the dialog widgets to their handlers.
+///
+void ConnectionDialog::setupConnections()
+{
     connect(ui->cancelButton, &QPushButton::clicked, this, &QDialog::reject);
     connect(ui->connectButton, &QPushButton::clicked,
             this, &ConnectionDialog::validateAndAccept);
@@ -134,43 +192,23 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
             this, &ConnectionDialog::updateAuthenticationFields);
     connect(ui->clientCertificateViewButton, &QPushButton::clicked,
             this, &ConnectionDialog::chooseClientCertificate);
-    connect(ui->serverCertificateViewButton, &QPushButton::clicked,
-            this, &ConnectionDialog::viewServerCertificate);
-    connect(ui->clientCertViewButton, &QPushButton::clicked,
+    connect(ui->clientCertificateWidget, &CertificateSummaryWidget::viewRequested,
             this, &ConnectionDialog::viewClientCertificate);
+    connect(ui->serverCertificateWidget, &CertificateSummaryWidget::viewRequested,
+            this, &ConnectionDialog::viewServerCertificate);
     connect(ui->trustListManageButton, &QPushButton::clicked,
             this, &ConnectionDialog::generateClientCertificate);
-    QAction *passwordToggle = ui->passwordEdit->addAction(
-        AppIcons::themed(QStringLiteral("eye.svg")), QLineEdit::TrailingPosition);
-    passwordToggle->setCheckable(true);
-    auto refreshPasswordToggle = [this, passwordToggle] {
-        const bool shown = passwordToggle->isChecked();
-        ui->passwordEdit->setEchoMode(shown ? QLineEdit::Normal : QLineEdit::Password);
-        passwordToggle->setIcon(AppIcons::themed(
-            shown ? QStringLiteral("eye-off.svg") : QStringLiteral("eye.svg")));
-        passwordToggle->setToolTip(shown ? tr("Hide password") : tr("Show password"));
-    };
-    refreshPasswordToggle();
-    connect(passwordToggle, &QAction::toggled, this, refreshPasswordToggle);
+}
 
-    const QString hintStyle = QStringLiteral("color: %1;")
-        .arg(darkTheme ? QStringLiteral("#7c828b") : QStringLiteral("#9aa0a6"));
-    ui->usernameHintLabel->setStyleSheet(hintStyle);
-    ui->passwordHintLabel->setStyleSheet(hintStyle);
-    ui->clientCertificateComboBox->clear();
-    ui->clientCertificateComboBox->addItem(tr("Auto-generate"));
-    ui->clientCertificateComboBox->addItem(tr("Imported certificate"));
-    ui->trustListManageButton->setText(tr("Generate..."));
-    ui->clientCertificateViewButton->setText(tr("Import..."));
-    PkiManager pki;
-    if (pki.existingClientCertificate(&_clientCertificateFile, &_privateKeyFile)) {
-        ui->clientCertificateComboBox->setItemText(
-            0, tr("Auto-generated (%1)").arg(QFileInfo(_clientCertificateFile).fileName()));
-    }
-    updateServerCertificate({});
-    updateClientCertificate();
-    updatePopupWidth(ui->discoveryUrlComboBox);
-    updateAuthenticationFields();
+///
+/// \brief ConnectionDialog::currentAuthentication
+/// \return Selected authentication mode value.
+///
+int ConnectionDialog::currentAuthentication() const
+{
+    return ui->authenticationComboBox->currentData().isValid()
+        ? ui->authenticationComboBox->currentData().toInt()
+        : ui->authenticationComboBox->currentIndex();
 }
 
 ///
@@ -217,10 +255,8 @@ ConnectionProfile ConnectionDialog::profile() const
         result.securityPolicy = QStringLiteral("None");
         result.securityMode = 1;
     }
-    result.authentication = static_cast<ConnectionProfile::Authentication>(
-        ui->authenticationComboBox->currentData().isValid()
-            ? ui->authenticationComboBox->currentData().toInt()
-            : ui->authenticationComboBox->currentIndex());
+    result.authentication =
+        static_cast<ConnectionProfile::Authentication>(currentAuthentication());
     result.username = ui->usernameEdit->text();
     result.clientCertificateFile = _clientCertificateFile;
     result.privateKeyFile = _privateKeyFile;
@@ -260,7 +296,7 @@ QString ConnectionDialog::privateKeyPassword() const
 void ConnectionDialog::resetDiscovery()
 {
     ui->endpointsWidget->clear();
-    updateServerCertificate({});
+    ui->serverCertificateWidget->clear();
     ui->statusIconLabel->setIcon(QStringLiteral("disconnected"), QSize(16, 16));
     ui->statusLabel->setText(tr("Disconnected"));
 }
@@ -321,7 +357,7 @@ void ConnectionDialog::updateEndpointSelection()
     if (!ui->endpointsWidget->hasSelection())
         return;
     const EndpointInfo endpoint = ui->endpointsWidget->currentEndpoint();
-    updateServerCertificate(endpoint.serverCertificate);
+    ui->serverCertificateWidget->setCertificate(endpoint.serverCertificate);
     _selectedSecurityModeValue = endpoint.securityModeValue;
     const int previousAuthentication = ui->authenticationComboBox->currentIndex();
     ui->authenticationComboBox->clear();
@@ -344,9 +380,7 @@ void ConnectionDialog::updateEndpointSelection()
 ///
 void ConnectionDialog::updateAuthenticationFields()
 {
-    const int authentication = ui->authenticationComboBox->currentData().isValid()
-        ? ui->authenticationComboBox->currentData().toInt()
-        : ui->authenticationComboBox->currentIndex();
+    const int authentication = currentAuthentication();
     const bool username = authentication
         == static_cast<int>(ConnectionProfile::Authentication::Username);
     const bool certificate = authentication
@@ -420,13 +454,14 @@ void ConnectionDialog::generateClientCertificate()
 ///
 void ConnectionDialog::viewServerCertificate()
 {
-    if (_serverCertificate.isEmpty())
+    const QByteArray certificate = ui->serverCertificateWidget->certificate();
+    if (certificate.isEmpty())
         return;
 
     CertificateTrustDialog dialog(this);
     dialog.setViewOnly(true);
     dialog.setCertificate(
-        _serverCertificate,
+        certificate,
         tr("Certificate advertised by the selected OPC UA endpoint."));
     dialog.exec();
 }
@@ -477,32 +512,6 @@ void ConnectionDialog::saveLastEndpointUrl()
 }
 
 ///
-/// \brief ConnectionDialog::updateServerCertificate
-/// \param certificate DER-encoded certificate advertised by the selected endpoint.
-///
-void ConnectionDialog::updateServerCertificate(const QByteArray &certificate)
-{
-    _serverCertificate = certificate;
-    const bool available = !_serverCertificate.isEmpty();
-    ui->serverCertificateViewButton->setEnabled(available);
-    ui->serverCertificateDetails->setVisible(available);
-    ui->serverCertificateHintLabel->setVisible(!available);
-    ui->serverCertificateHeader->setEnabled(available);
-    ui->serverCertificateHeaderIcon->setEnabled(available);
-
-    if (!available) {
-        ui->serverCertificateHintLabel->setText(
-            tr("Select an endpoint that provides a server certificate."));
-        return;
-    }
-
-    fillCertificateFields(_serverCertificate, ui->serverCertSubjectEdit,
-                          ui->serverCertIssuerEdit, ui->serverCertValidEdit,
-                          ui->serverCertFingerprintEdit, ui->serverCertValidIcon,
-                          ui->serverCertValidBadge, &_serverCertFingerprint);
-}
-
-///
 /// \brief ConnectionDialog::updateClientCertificate
 ///
 /// Reads the currently selected client certificate file and shows its details.
@@ -519,86 +528,8 @@ void ConnectionDialog::updateClientCertificate()
     QList<QSslCertificate> chain = QSslCertificate::fromData(data, QSsl::Der);
     if (chain.isEmpty())
         chain = QSslCertificate::fromData(data, QSsl::Pem);
-    _clientCertificate = chain.isEmpty() ? QByteArray() : chain.constFirst().toDer();
-
-    const bool available = !_clientCertificate.isEmpty();
-    ui->clientCertViewButton->setEnabled(available);
-    if (!available) {
-        ui->clientCertSubjectEdit->setText(tr("No client certificate"));
-        ui->clientCertIssuerEdit->clear();
-        ui->clientCertValidEdit->clear();
-        ui->clientCertFingerprintEdit->clear();
-        ui->clientCertValidIcon->setVisible(false);
-        ui->clientCertValidBadge->clear();
-        return;
-    }
-
-    fillCertificateFields(_clientCertificate, ui->clientCertSubjectEdit,
-                          ui->clientCertIssuerEdit, ui->clientCertValidEdit,
-                          ui->clientCertFingerprintEdit, ui->clientCertValidIcon,
-                          ui->clientCertValidBadge, &_clientCertFingerprint);
-}
-
-///
-/// \brief ConnectionDialog::fillCertificateFields
-/// \param der DER-encoded certificate to describe.
-/// \param subjectEdit Subject field.
-/// \param issuerEdit Issuer field.
-/// \param validEdit Expiry field.
-/// \param fingerprintLabel SHA-256 fingerprint label.
-/// \param validIcon Validity badge icon.
-/// \param validBadge Validity badge text.
-/// \param fingerprintStore Receives the full fingerprint for elision.
-///
-void ConnectionDialog::fillCertificateFields(
-    const QByteArray &der, QLabel *subjectEdit, QLabel *issuerEdit,
-    QLabel *validEdit, QLabel *fingerprintLabel, ThemedIconLabel *validIcon,
-    QLabel *validBadge, QString *fingerprintStore)
-{
-    const CertificateInfo info = CertificateInfo::fromDer(der);
-    *fingerprintStore = info.fingerprint;
-    fingerprintLabel->setToolTip(tr("SHA-256: %1").arg(*fingerprintStore));
-    elideFingerprint(fingerprintLabel, *fingerprintStore);
-
-    if (!info.readable) {
-        subjectEdit->setText(tr("Unable to read certificate"));
-        issuerEdit->clear();
-        validEdit->setText(tr("%1 bytes").arg(der.size()));
-        validIcon->setVisible(false);
-        validBadge->clear();
-        return;
-    }
-
-    subjectEdit->setText(info.subject);
-    QString issuer = info.issuer;
-    if (info.selfSigned && !issuer.isEmpty())
-        issuer = tr("%1 (self-signed)").arg(issuer);
-    issuerEdit->setText(issuer);
-    validEdit->setText(
-        info.expiryDate.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")));
-
-    QString badgeText;
-    QColor color;
-    bool valid = false;
-    if (info.status == CertificateInfo::Status::NotYetValid) {
-        badgeText = tr("Not yet valid");
-        color = QColor(0xc0, 0x7d, 0x00);
-    } else if (info.status == CertificateInfo::Status::Expired) {
-        badgeText = tr("Expired");
-        color = QColor(0xd1, 0x34, 0x38);
-    } else if (info.status == CertificateInfo::Status::Valid) {
-        badgeText = tr("Valid");
-        color = QColor(0x2e, 0x9e, 0x44);
-        valid = true;
-    } else {
-        badgeText = tr("Invalid");
-        color = QColor(0xd1, 0x34, 0x38);
-    }
-
-    validIcon->setVisible(valid);
-    validBadge->setText(badgeText);
-    validBadge->setStyleSheet(
-        QStringLiteral("color: %1; font-weight: 600;").arg(color.name()));
+    ui->clientCertificateWidget->setCertificate(
+        chain.isEmpty() ? QByteArray() : chain.constFirst().toDer());
 }
 
 ///
@@ -606,66 +537,13 @@ void ConnectionDialog::fillCertificateFields(
 ///
 void ConnectionDialog::viewClientCertificate()
 {
-    if (_clientCertificate.isEmpty())
+    const QByteArray certificate = ui->clientCertificateWidget->certificate();
+    if (certificate.isEmpty())
         return;
 
     CertificateTrustDialog dialog(this);
     dialog.setViewOnly(true);
-    dialog.setCertificate(_clientCertificate,
+    dialog.setCertificate(certificate,
                           tr("Certificate presented by this application to the server."));
     dialog.exec();
-}
-
-///
-/// \brief ConnectionDialog::elideFingerprint
-/// \param label Fingerprint label to update.
-/// \param fingerprint Full SHA-256 fingerprint (colon-separated bytes).
-///
-/// Shows the fingerprint truncated on a byte boundary with an ellipsis so it is
-/// never clipped in the middle of a hex pair.
-///
-void ConnectionDialog::elideFingerprint(QLabel *label, const QString &fingerprint)
-{
-    if (fingerprint.isEmpty()) {
-        label->clear();
-        return;
-    }
-
-    const QFontMetrics metrics(label->font());
-    const int available = label->contentsRect().width();
-    if (available <= 0 || metrics.horizontalAdvance(fingerprint) <= available) {
-        label->setText(fingerprint);
-        return;
-    }
-
-    const QStringList bytes = fingerprint.split(QLatin1Char(':'));
-    const QString ellipsis = QStringLiteral("…");
-    QString shown;
-    for (const QString &part : bytes) {
-        const QString candidate = shown.isEmpty()
-            ? part : shown + QLatin1Char(':') + part;
-        if (!shown.isEmpty()
-            && metrics.horizontalAdvance(candidate + ellipsis) > available) {
-            break;
-        }
-        shown = candidate;
-    }
-    label->setText(shown.isEmpty() ? ellipsis : shown + ellipsis);
-}
-
-///
-/// \brief ConnectionDialog::eventFilter
-/// \param watched Watched object.
-/// \param event Event being delivered.
-/// \return True if the event was handled.
-///
-bool ConnectionDialog::eventFilter(QObject *watched, QEvent *event)
-{
-    if (event->type() == QEvent::Resize) {
-        if (watched == ui->serverCertFingerprintEdit)
-            elideFingerprint(ui->serverCertFingerprintEdit, _serverCertFingerprint);
-        else if (watched == ui->clientCertFingerprintEdit)
-            elideFingerprint(ui->clientCertFingerprintEdit, _clientCertFingerprint);
-    }
-    return AppBaseDialog::eventFilter(watched, event);
 }

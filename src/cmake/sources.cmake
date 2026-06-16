@@ -80,6 +80,7 @@ set(UI_SOURCES
 
     widgets/addressspacewidget.cpp
     widgets/attributeswidget.cpp
+    widgets/certificatesummarywidget.cpp
     widgets/coloredpushbutton.cpp
     widgets/connectionstatuswidget.cpp
     widgets/dataaccesswidget.cpp
@@ -122,6 +123,7 @@ set(UI_HEADERS
 
     widgets/addressspacewidget.h
     widgets/attributeswidget.h
+    widgets/certificatesummarywidget.h
     widgets/coloredpushbutton.h
     widgets/connectionstatuswidget.h
     widgets/dataaccesswidget.h
@@ -153,6 +155,7 @@ set(UI_FILES
 
     widgets/addressspacewidget.ui
     widgets/attributeswidget.ui
+    widgets/certificatesummarywidget.ui
     widgets/connectionstatuswidget.ui
     widgets/dataaccesswidget.ui
     widgets/endpointselectorwidget.ui

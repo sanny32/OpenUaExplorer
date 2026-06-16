@@ -55,15 +55,17 @@ private slots:
 
 namespace {
 
-void verifyRightAlignedCertificateStatus(ConnectionDialog &dialog, const QString &layoutName,
-                                         const QString &dateLabelName,
-                                         const QString &iconLabelName,
-                                         const QString &badgeLabelName)
+void verifyRightAlignedCertificateStatus(ConnectionDialog &dialog, const QString &panelName)
 {
-    auto *layout = dialog.findChild<QHBoxLayout *>(layoutName);
-    auto *dateLabel = dialog.findChild<QLabel *>(dateLabelName);
-    auto *iconLabel = dialog.findChild<QLabel *>(iconLabelName);
-    auto *badgeLabel = dialog.findChild<QLabel *>(badgeLabelName);
+    auto *panel = dialog.findChild<QWidget *>(panelName);
+    QVERIFY(panel);
+
+    // The Subject/Issuer/Valid/Fingerprint rows now live inside the reusable
+    // CertificateSummaryWidget, so scope the lookups to that panel.
+    auto *layout = panel->findChild<QHBoxLayout *>(QStringLiteral("validLayout"));
+    auto *dateLabel = panel->findChild<QLabel *>(QStringLiteral("validEdit"));
+    auto *iconLabel = panel->findChild<QLabel *>(QStringLiteral("validIcon"));
+    auto *badgeLabel = panel->findChild<QLabel *>(QStringLiteral("validBadge"));
 
     QVERIFY(layout);
     QVERIFY(dateLabel);
@@ -129,14 +131,8 @@ void TestConnectionDialog::certificateStatusRowsAlignBadgeToRight()
 {
     ConnectionDialog dialog;
 
-    verifyRightAlignedCertificateStatus(dialog, QStringLiteral("clientCertValidLayout"),
-                                        QStringLiteral("clientCertValidEdit"),
-                                        QStringLiteral("clientCertValidIcon"),
-                                        QStringLiteral("clientCertValidBadge"));
-    verifyRightAlignedCertificateStatus(dialog, QStringLiteral("serverCertValidLayout"),
-                                        QStringLiteral("serverCertValidEdit"),
-                                        QStringLiteral("serverCertValidIcon"),
-                                        QStringLiteral("serverCertValidBadge"));
+    verifyRightAlignedCertificateStatus(dialog, QStringLiteral("clientCertificateWidget"));
+    verifyRightAlignedCertificateStatus(dialog, QStringLiteral("serverCertificateWidget"));
 }
 
 QTEST_MAIN(TestConnectionDialog)

@@ -35,9 +35,6 @@ public:
     QString password() const;
     QString privateKeyPassword() const;
 
-protected:
-    bool eventFilter(QObject *watched, QEvent *event) override;
-
 private slots:
     void discoverEndpoints();
     void handleEndpoints(QList<EndpointInfo> endpoints, const QString &error);
@@ -50,15 +47,14 @@ private slots:
     void validateAndAccept();
 
 private:
+    void setupEndpointHistory();
+    void setupCertificatePanels();
+    void setupControls();
+    void setupConnections();
+    int currentAuthentication() const;
     void saveLastEndpointUrl();
     void resetDiscovery();
-    void updateServerCertificate(const QByteArray &certificate);
     void updateClientCertificate();
-    void fillCertificateFields(const QByteArray &der, class QLabel *subjectEdit,
-                               class QLabel *issuerEdit, class QLabel *validEdit,
-                               class QLabel *fingerprintLabel, class ThemedIconLabel *validIcon,
-                               class QLabel *validBadge, QString *fingerprintStore);
-    void elideFingerprint(class QLabel *label, const QString &fingerprint);
 
     Ui::ConnectionDialog *ui;
     class OpcUaClientService *_service = nullptr;
@@ -69,8 +65,4 @@ private:
     QString _privateKeyFile;
     QString _privateKeyPassword;
     int _selectedSecurityModeValue = 1;
-    QByteArray _serverCertificate;
-    QString _serverCertFingerprint;
-    QByteArray _clientCertificate;
-    QString _clientCertFingerprint;
 };
