@@ -51,6 +51,7 @@ private slots:
 
 private:
     void saveLastEndpointUrl();
+    void resetDiscovery();
     void updateServerCertificate(const QByteArray &certificate);
     void updateClientCertificate();
     void fillCertificateFields(const QByteArray &der, class QLabel *subjectEdit,
@@ -61,13 +62,13 @@ private:
 
     Ui::ConnectionDialog *ui;
     class OpcUaClientService *_service = nullptr;
-    class EndpointModel *_endpointModel;
     EndpointHistoryStore _endpointHistoryStore;
     bool _connectAfterDiscovery = false;
     QString _lastEnteredEndpointUrl;
     QString _clientCertificateFile;
     QString _privateKeyFile;
     QString _privateKeyPassword;
+    int _selectedSecurityModeValue = 1;
     QByteArray _serverCertificate;
     QString _serverCertFingerprint;
     QByteArray _clientCertificate;

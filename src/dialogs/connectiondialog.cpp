@@ -7,7 +7,7 @@
 ///
 
 #include <QAbstractItemView>
-#include <QApplication>
+#include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
@@ -18,19 +18,14 @@
 #include <QFileInfo>
 #include <QFontMetrics>
 #include <QInputDialog>
-#include <QItemSelectionModel>
 #include <QLineEdit>
 #include <QSslCertificate>
-#include <QListView>
 #include <QMessageBox>
-#include <QPainter>
-#include <QPixmap>
 #include <QPushButton>
 #include <QScreen>
 #include <QSignalBlocker>
 #include <QStringList>
 #include <QStyle>
-#include <QStyledItemDelegate>
 #include <QUuid>
 
 #include "appicons.h"
@@ -42,113 +37,11 @@
 #include "opcua/pkimanager.h"
 #include "ui_connectiondialog.h"
 #include "widgets/coloredpushbutton.h"
-#include "widgets/endpointmodel.h"
+#include "widgets/endpointdiscoverywidget.h"
 #include "widgets/themediconlabel.h"
 
 namespace {
 
-///
-/// \brief Delegate that renders endpoint security details in one compact row.
-///
-class EndpointItemDelegate final : public QStyledItemDelegate
-{
-public:
-    explicit EndpointItemDelegate(QObject *parent = nullptr);
-
-    void paint(QPainter *painter, const QStyleOptionViewItem &option,
-               const QModelIndex &index) const override;
-    QSize sizeHint(const QStyleOptionViewItem &option,
-                   const QModelIndex &index) const override;
-};
-
-///
-/// \brief EndpointItemDelegate::EndpointItemDelegate
-/// \param parent Delegate owner.
-///
-EndpointItemDelegate::EndpointItemDelegate(QObject *parent)
-    : QStyledItemDelegate(parent)
-{
-}
-
-///
-/// \brief EndpointItemDelegate::paint
-/// \param painter Item painter.
-/// \param option Item style options.
-/// \param index Model index being rendered.
-///
-void EndpointItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
-                                 const QModelIndex &index) const
-{
-    QStyleOptionViewItem backgroundOption(option);
-    initStyleOption(&backgroundOption, index);
-    backgroundOption.text.clear();
-    backgroundOption.icon = QIcon();
-
-    const QStyle *style = option.widget ? option.widget->style() : QApplication::style();
-    style->drawControl(QStyle::CE_ItemViewItem, &backgroundOption, painter, option.widget);
-
-    const bool selected = option.state.testFlag(QStyle::State_Selected);
-    const QColor primaryColor = option.palette.color(
-        selected ? QPalette::HighlightedText : QPalette::Text);
-    const QColor secondaryColor = option.palette.color(
-        selected ? QPalette::HighlightedText : QPalette::PlaceholderText);
-
-    const QRect contentRect = option.rect.adjusted(8, 3, -8, -3);
-    const int iconSize = 20;
-    const QRect iconRect(contentRect.left(),
-                         contentRect.center().y() - iconSize / 2,
-                         iconSize, iconSize);
-    QPixmap iconPixmap = AppIcons::themed(index.data(EndpointModel::IconRole).toString())
-                             .pixmap(QSize(iconSize, iconSize));
-    if (selected) {
-        QPainter iconPainter(&iconPixmap);
-        iconPainter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-        iconPainter.fillRect(iconPixmap.rect(), primaryColor);
-    }
-    painter->drawPixmap(iconRect, iconPixmap);
-
-    const QRect textRect = contentRect.adjusted(iconSize + 8, 0, 0, 0);
-    QFont primaryFont = option.font;
-    primaryFont.setWeight(QFont::DemiBold);
-    const QFontMetrics primaryMetrics(primaryFont);
-    const QFontMetrics secondaryMetrics(option.font);
-    const QString mode = index.data(EndpointModel::ModeRole).toString();
-    const int modeWidth = secondaryMetrics.horizontalAdvance(mode);
-    const int textGap = 16;
-    const int policyWidth = qMax(0, textRect.width() - modeWidth - textGap);
-
-    painter->save();
-    painter->setPen(primaryColor);
-    painter->setFont(primaryFont);
-    painter->drawText(
-        QRect(textRect.left(), textRect.top(), policyWidth, textRect.height()),
-        Qt::AlignLeft | Qt::AlignVCenter,
-        primaryMetrics.elidedText(index.data(EndpointModel::PolicyRole).toString(),
-                                  Qt::ElideRight, policyWidth));
-
-    painter->setPen(secondaryColor);
-    painter->setFont(option.font);
-    painter->drawText(
-        QRect(textRect.right() - modeWidth, textRect.top(), modeWidth, textRect.height()),
-        Qt::AlignRight | Qt::AlignVCenter, mode);
-    painter->restore();
-}
-
-///
-/// \brief EndpointItemDelegate::sizeHint
-/// \param option Item style options.
-/// \param index Model index.
-/// \return Preferred endpoint row size.
-///
-QSize EndpointItemDelegate::sizeHint(const QStyleOptionViewItem &option,
-                                     const QModelIndex &index) const
-{
-    QSize size = QStyledItemDelegate::sizeHint(option, index);
-    size.setHeight(qMax(size.height(), 32));
-    return size;
-}
-
-///
 ///
 /// \brief Expands a combo box popup to fit its longest item.
 /// \param comboBox Combo box whose popup width should be updated.
@@ -180,7 +73,6 @@ void updatePopupWidth(QComboBox *comboBox)
 ConnectionDialog::ConnectionDialog(QWidget *parent)
     : AppBaseDialog(parent)
     , ui(new Ui::ConnectionDialog)
-    , _endpointModel(new EndpointModel(this))
 {
     ui->setupUi(this);
 
@@ -214,27 +106,23 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     ui->clientCertFingerprintEdit->installEventFilter(this);
     ui->statusIconLabel->setIcon(QStringLiteral("disconnected"), QSize(16, 16));
     ui->connectButton->setColors({ QColor(0x0a74d1), QColor(0x1682df), QColor(0x075ca7) });
-    ui->endpointListWidget->setModel(_endpointModel);
-    ui->endpointListWidget->setItemDelegate(new EndpointItemDelegate(ui->endpointListWidget));
+    ui->getEndpointsButton->setIcon(QStringLiteral("search.svg"));
 
     connect(ui->cancelButton, &QPushButton::clicked, this, &QDialog::reject);
     connect(ui->connectButton, &QPushButton::clicked,
             this, &ConnectionDialog::validateAndAccept);
     connect(ui->getEndpointsButton, &QPushButton::clicked,
             this, &ConnectionDialog::discoverEndpoints);
-    connect(ui->endpointListWidget->selectionModel(),
-            &QItemSelectionModel::currentChanged,
+    connect(ui->endpointsWidget, &EndpointDiscoveryWidget::currentEndpointChanged,
             this, &ConnectionDialog::updateEndpointSelection);
     connect(ui->discoveryUrlComboBox, QOverload<int>::of(&QComboBox::activated),
             this, [this](int index) {
-        _endpointModel->clear();
-        updateServerCertificate({});
+        resetDiscovery();
         _lastEnteredEndpointUrl = ui->discoveryUrlComboBox->itemText(index);
     });
     connect(ui->discoveryUrlComboBox->lineEdit(), &QLineEdit::textEdited,
             this, [this](const QString &text) {
-        _endpointModel->clear();
-        updateServerCertificate({});
+        resetDiscovery();
         _lastEnteredEndpointUrl = text;
     });
     connect(ui->discoveryUrlComboBox->lineEdit(), &QLineEdit::editingFinished, this, [this]() {
@@ -252,9 +140,23 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
             this, &ConnectionDialog::viewClientCertificate);
     connect(ui->trustListManageButton, &QPushButton::clicked,
             this, &ConnectionDialog::generateClientCertificate);
-    connect(ui->showPasswordCheckBox, &QCheckBox::toggled, ui->passwordEdit, [this](bool checked) {
-        ui->passwordEdit->setEchoMode(checked ? QLineEdit::Normal : QLineEdit::Password);
-    });
+    QAction *passwordToggle = ui->passwordEdit->addAction(
+        AppIcons::themed(QStringLiteral("eye.svg")), QLineEdit::TrailingPosition);
+    passwordToggle->setCheckable(true);
+    auto refreshPasswordToggle = [this, passwordToggle] {
+        const bool shown = passwordToggle->isChecked();
+        ui->passwordEdit->setEchoMode(shown ? QLineEdit::Normal : QLineEdit::Password);
+        passwordToggle->setIcon(AppIcons::themed(
+            shown ? QStringLiteral("eye-off.svg") : QStringLiteral("eye.svg")));
+        passwordToggle->setToolTip(shown ? tr("Hide password") : tr("Show password"));
+    };
+    refreshPasswordToggle();
+    connect(passwordToggle, &QAction::toggled, this, refreshPasswordToggle);
+
+    const QString hintStyle = QStringLiteral("color: %1;")
+        .arg(darkTheme ? QStringLiteral("#7c828b") : QStringLiteral("#9aa0a6"));
+    ui->usernameHintLabel->setStyleSheet(hintStyle);
+    ui->passwordHintLabel->setStyleSheet(hintStyle);
     ui->clientCertificateComboBox->clear();
     ui->clientCertificateComboBox->addItem(tr("Auto-generate"));
     ui->clientCertificateComboBox->addItem(tr("Imported certificate"));
@@ -269,7 +171,6 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     updateClientCertificate();
     updatePopupWidth(ui->discoveryUrlComboBox);
     updateAuthenticationFields();
-    adjustSize();
 }
 
 ///
@@ -304,9 +205,8 @@ ConnectionProfile ConnectionDialog::profile() const
 {
     ConnectionProfile result;
     result.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    const int endpointIndex = ui->endpointListWidget->currentIndex().row();
-    if (endpointIndex >= 0 && endpointIndex < _endpointModel->rowCount()) {
-        const EndpointInfo endpoint = _endpointModel->endpointAt(endpointIndex);
+    if (ui->endpointsWidget->hasSelection()) {
+        const EndpointInfo endpoint = ui->endpointsWidget->currentEndpoint();
         result.name = endpoint.endpointUrl;
         result.endpointUrl = endpoint.endpointUrl;
         result.securityPolicy = endpoint.securityPolicy;
@@ -314,8 +214,8 @@ ConnectionProfile ConnectionDialog::profile() const
     } else {
         result.name = ui->discoveryUrlComboBox->currentText();
         result.endpointUrl = result.name;
-        result.securityPolicy = ui->securityPolicyComboBox->currentText();
-        result.securityMode = ui->securityModeComboBox->currentIndex() + 1;
+        result.securityPolicy = QStringLiteral("None");
+        result.securityMode = 1;
     }
     result.authentication = static_cast<ConnectionProfile::Authentication>(
         ui->authenticationComboBox->currentData().isValid()
@@ -352,6 +252,20 @@ QString ConnectionDialog::privateKeyPassword() const
 }
 
 ///
+/// \brief ConnectionDialog::resetDiscovery
+///
+/// Clears the discovered endpoints, the server certificate and the status
+/// indicator so no stale discovery result is shown for a new endpoint URL.
+///
+void ConnectionDialog::resetDiscovery()
+{
+    ui->endpointsWidget->clear();
+    updateServerCertificate({});
+    ui->statusIconLabel->setIcon(QStringLiteral("disconnected"), QSize(16, 16));
+    ui->statusLabel->setText(tr("Disconnected"));
+}
+
+///
 /// \brief ConnectionDialog::discoverEndpoints
 ///
 void ConnectionDialog::discoverEndpoints()
@@ -364,8 +278,7 @@ void ConnectionDialog::discoverEndpoints()
     }
     saveLastEndpointUrl();
     const QString url = ui->discoveryUrlComboBox->currentText();
-    _endpointModel->clear();
-    updateServerCertificate({});
+    resetDiscovery();
     ui->statusLabel->setText(tr("Discovering endpoints..."));
     ui->getEndpointsButton->setEnabled(false);
     ui->connectButton->setEnabled(false);
@@ -386,15 +299,14 @@ void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QStr
         ui->statusLabel->setText(error);
         return;
     }
-    _endpointModel->setEndpoints(endpoints);
+    ui->endpointsWidget->setEndpoints(endpoints);
     if (endpoints.isEmpty()) {
         _connectAfterDiscovery = false;
         ui->statusLabel->setText(tr("No endpoints discovered."));
         return;
     }
     ui->statusLabel->setText(tr("%1 endpoints discovered.").arg(endpoints.size()));
-    ui->endpointListWidget->setCurrentIndex(_endpointModel->index(0, 0));
-    updateEndpointSelection();
+    ui->statusIconLabel->setIcon(QStringLiteral("check-circle"), QSize(16, 16));
     if (_connectAfterDiscovery) {
         _connectAfterDiscovery = false;
         validateAndAccept();
@@ -406,20 +318,11 @@ void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QStr
 ///
 void ConnectionDialog::updateEndpointSelection()
 {
-    const int endpointIndex = ui->endpointListWidget->currentIndex().row();
-    if (endpointIndex < 0 || endpointIndex >= _endpointModel->rowCount())
+    if (!ui->endpointsWidget->hasSelection())
         return;
-    const EndpointInfo endpoint = _endpointModel->endpointAt(endpointIndex);
+    const EndpointInfo endpoint = ui->endpointsWidget->currentEndpoint();
     updateServerCertificate(endpoint.serverCertificate);
-    ui->securityModeComboBox->setCurrentIndex(qMax(0, endpoint.securityModeValue - 1));
-    int policyIndex = ui->securityPolicyComboBox->findText(
-        endpoint.securityPolicy.section(QLatin1Char('#'), -1));
-    if (policyIndex < 0) {
-        ui->securityPolicyComboBox->addItem(
-            endpoint.securityPolicy.section(QLatin1Char('#'), -1));
-        policyIndex = ui->securityPolicyComboBox->count() - 1;
-    }
-    ui->securityPolicyComboBox->setCurrentIndex(policyIndex);
+    _selectedSecurityModeValue = endpoint.securityModeValue;
     const int previousAuthentication = ui->authenticationComboBox->currentIndex();
     ui->authenticationComboBox->clear();
     if (endpoint.supportsAnonymous)
@@ -450,12 +353,13 @@ void ConnectionDialog::updateAuthenticationFields()
         == static_cast<int>(ConnectionProfile::Authentication::Certificate);
     ui->usernameEdit->setEnabled(username);
     ui->passwordEdit->setEnabled(username);
-    ui->showPasswordCheckBox->setEnabled(username);
+    ui->usernameHintLabel->setVisible(!username);
+    ui->passwordHintLabel->setVisible(!username);
 
     // The client certificate stays available regardless of the security mode
     // (it can still be imported, generated or inspected). Only the server
     // certificate and trust settings depend on a secure channel.
-    const bool secureChannel = certificate || ui->securityModeComboBox->currentIndex() > 0;
+    const bool secureChannel = certificate || _selectedSecurityModeValue > 1;
     ui->serverCertificateGroupBox->setEnabled(secureChannel);
     ui->trustServerCertificateCheckBox->setEnabled(secureChannel);
     ui->trustListLabel->setEnabled(secureChannel);
@@ -532,9 +436,7 @@ void ConnectionDialog::viewServerCertificate()
 ///
 void ConnectionDialog::validateAndAccept()
 {
-    const int endpointIndex = ui->endpointListWidget->currentIndex().row();
-    if (_endpointModel->rowCount() == 0
-        || endpointIndex < 0 || endpointIndex >= _endpointModel->rowCount()) {
+    if (!ui->endpointsWidget->hasSelection()) {
         _connectAfterDiscovery = true;
         discoverEndpoints();
         return;

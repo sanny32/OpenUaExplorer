@@ -73,5 +73,9 @@
         <file alias="icons/dark/resume.svg">res/icons/dark/resume.svg</file>
         <file alias="icons/light/trash.svg">res/icons/light/trash.svg</file>
         <file alias="icons/dark/trash.svg">res/icons/dark/trash.svg</file>
+        <file alias="icons/light/eye.svg">res/icons/light/eye.svg</file>
+        <file alias="icons/dark/eye.svg">res/icons/dark/eye.svg</file>
+        <file alias="icons/light/eye-off.svg">res/icons/light/eye-off.svg</file>
+        <file alias="icons/dark/eye-off.svg">res/icons/dark/eye-off.svg</file>
     </qresource>
 </RCC>

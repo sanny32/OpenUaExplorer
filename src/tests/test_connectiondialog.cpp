@@ -4,9 +4,9 @@
 #include <QComboBox>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QListView>
 #include <QPushButton>
 #include <QSizePolicy>
+#include <QTableView>
 #include <QTest>
 
 #include "dialogs/connectiondialog.h"
@@ -88,7 +88,7 @@ void TestConnectionDialog::discoveryPopulatesEndpointModelAndAuthentication()
     ConnectionDialog dialog;
     dialog.setClientService(&service);
 
-    auto *endpointView = dialog.findChild<QListView *>(
+    auto *endpointView = dialog.findChild<QTableView *>(
         QStringLiteral("endpointListWidget"));
     auto *authentication = dialog.findChild<QComboBox *>(
         QStringLiteral("authenticationComboBox"));

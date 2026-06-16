@@ -83,6 +83,7 @@ set(UI_SOURCES
     widgets/coloredpushbutton.cpp
     widgets/connectionstatuswidget.cpp
     widgets/dataaccesswidget.cpp
+    widgets/endpointdiscoverywidget.cpp
     widgets/endpointselectorwidget.cpp
     widgets/fixedgap.cpp
     widgets/headerview.cpp
@@ -124,6 +125,7 @@ set(UI_HEADERS
     widgets/coloredpushbutton.h
     widgets/connectionstatuswidget.h
     widgets/dataaccesswidget.h
+    widgets/endpointdiscoverywidget.h
     widgets/endpointselectorwidget.h
     widgets/fixedgap.h
     widgets/headerview.h
