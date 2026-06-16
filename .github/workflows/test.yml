@@ -1,4 +1,4 @@
-name: Test
+name: Test CI
 
 on:
   push:
@@ -47,7 +47,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
@@ -97,7 +97,7 @@ jobs:
 
       - name: Cache Qt OpcUa build
         if: matrix.qt != '5.15.2'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: build/_deps/qtopcua-install
           key: qtopcua-${{ matrix.os }}-${{ matrix.qt }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
