@@ -6,26 +6,20 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
-    <height>690</height>
+    <width>1020</width>
+    <height>650</height>
    </rect>
-  </property>
-  <property name="minimumSize">
-   <size>
-     <width>1000</width>
-    <height>620</height>
-   </size>
   </property>
   <property name="windowTitle">
    <string>Connect to OPC UA Server</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="../resources.qrc">
+   <iconset>
     <normaloff>:/app.ico</normaloff>:/app.ico</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="3,2">
+    <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="3,2">
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
        <property name="spacing">
@@ -54,12 +48,12 @@
             </item>
             <item>
              <widget class="QComboBox" name="discoveryUrlComboBox">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                 <horstretch>1</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="minimumSize">
                <size>
                 <width>300</width>
@@ -103,7 +97,7 @@
          <property name="title">
           <string>Authentication</string>
          </property>
-         <layout class="QGridLayout" name="authenticationLayout" columnstretch="0,0,0,1">
+         <layout class="QGridLayout" name="authenticationLayout" columnstretch="0,0,0">
           <item row="0" column="0">
            <widget class="QLabel" name="authenticationLabel">
             <property name="text">
@@ -216,7 +210,7 @@
           </property>
           <item>
            <widget class="QWidget" name="advancedContent" native="true">
-            <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="1,1">
+            <layout class="QGridLayout" name="advancedGridLayout" columnstretch="0,0,0,1,0,0,0">
              <property name="leftMargin">
               <number>9</number>
              </property>
@@ -229,301 +223,191 @@
              <property name="bottomMargin">
               <number>9</number>
              </property>
-             <item>
-              <layout class="QFormLayout" name="formLayout_3">
-               <property name="rowWrapPolicy">
-                <enum>QFormLayout::RowWrapPolicy::DontWrapRows</enum>
+             <property name="horizontalSpacing">
+              <number>8</number>
+             </property>
+             <property name="verticalSpacing">
+              <number>6</number>
+             </property>
+             <item row="0" column="0">
+              <widget class="QLabel" name="sessionTimeoutLabel">
+               <property name="text">
+                <string>Session Timeout:</string>
                </property>
-               <item row="0" column="0">
-                <widget class="QLabel" name="sessionTimeoutLabel">
-                 <property name="text">
-                  <string>Session Timeout:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <layout class="QHBoxLayout" name="horizontalLayout_2">
-                 <item>
-                  <widget class="QSpinBox" name="sessionTimeoutSpinBox">
-                   <property name="minimumSize">
-                    <size>
-                      <width>100</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximum">
-                    <number>1000000</number>
-                   </property>
-                   <property name="value">
-                    <number>60000</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="sessionTimeoutUnitLabel">
-                   <property name="text">
-                    <string>ms</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="connectTimeoutLabel">
-                 <property name="text">
-                  <string>Connect Timeout:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <layout class="QHBoxLayout" name="horizontalLayout_3">
-                 <item>
-                  <widget class="QSpinBox" name="connectTimeoutSpinBox">
-                   <property name="minimumSize">
-                    <size>
-                      <width>100</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximum">
-                    <number>1000000</number>
-                   </property>
-                   <property name="value">
-                    <number>10000</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="connectTimeoutUnitLabel">
-                   <property name="text">
-                    <string>ms</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_2">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="secureChannelLifetimeLabel">
-                 <property name="text">
-                  <string>Secure Channel Lifetime:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1">
-                <layout class="QHBoxLayout" name="horizontalLayout_4">
-                 <item>
-                  <widget class="QSpinBox" name="secureChannelLifetimeSpinBox">
-                   <property name="minimumSize">
-                    <size>
-                      <width>100</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximum">
-                    <number>1000000</number>
-                   </property>
-                   <property name="value">
-                    <number>600000</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="secureChannelLifetimeUnitLabel">
-                   <property name="text">
-                    <string>ms</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_3">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-              </layout>
+              </widget>
              </item>
-             <item>
-              <layout class="QFormLayout" name="formLayout_2">
-               <property name="rowWrapPolicy">
-                <enum>QFormLayout::RowWrapPolicy::DontWrapRows</enum>
+             <item row="0" column="1">
+              <widget class="QSpinBox" name="sessionTimeoutSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
                </property>
-               <item row="0" column="0">
-                <widget class="QLabel" name="endpointTimeoutLabel">
-                 <property name="text">
-                  <string>Endpoint Timeout:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <layout class="QHBoxLayout" name="horizontalLayout_5">
-                 <item>
-                  <widget class="QSpinBox" name="endpointTimeoutSpinBox">
-                   <property name="minimumSize">
-                    <size>
-                      <width>100</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximum">
-                    <number>1000000</number>
-                   </property>
-                   <property name="value">
-                    <number>10000</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="endpointTimeoutUnitLabel">
-                   <property name="text">
-                    <string>ms</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_4">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="requestTimeoutLabel">
-                 <property name="text">
-                  <string>Request Timeout:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <layout class="QHBoxLayout" name="horizontalLayout_6">
-                 <item>
-                  <widget class="QSpinBox" name="requestTimeoutSpinBox">
-                   <property name="minimumSize">
-                    <size>
-                      <width>100</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximum">
-                    <number>1000000</number>
-                   </property>
-                   <property name="value">
-                    <number>5000</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="requestTimeoutUnitLabel">
-                   <property name="text">
-                    <string>ms</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_5">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="maxMessageSizeLabel">
-                 <property name="text">
-                  <string>Max. Message Size:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1">
-                <layout class="QHBoxLayout" name="horizontalLayout_7">
-                 <item>
-                  <widget class="QSpinBox" name="maxMessageSizeSpinBox">
-                   <property name="minimumSize">
-                    <size>
-                      <width>100</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <property name="maximum">
-                    <number>10000000</number>
-                   </property>
-                   <property name="value">
-                    <number>4194304</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="maxMessageSizeUnitLabel">
-                   <property name="text">
-                    <string>bytes</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_6">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-              </layout>
+               <property name="maximum">
+                <number>1000000</number>
+               </property>
+               <property name="value">
+                <number>60000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <widget class="QLabel" name="sessionTimeoutUnitLabel">
+               <property name="text">
+                <string>ms</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="4">
+              <widget class="QLabel" name="endpointTimeoutLabel">
+               <property name="text">
+                <string>Endpoint Timeout:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="5">
+              <widget class="QSpinBox" name="endpointTimeoutSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>1000000</number>
+               </property>
+               <property name="value">
+                <number>10000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="6">
+              <widget class="QLabel" name="endpointTimeoutUnitLabel">
+               <property name="text">
+                <string>ms</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="connectTimeoutLabel">
+               <property name="text">
+                <string>Connect Timeout:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QSpinBox" name="connectTimeoutSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>1000000</number>
+               </property>
+               <property name="value">
+                <number>10000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="2">
+              <widget class="QLabel" name="connectTimeoutUnitLabel">
+               <property name="text">
+                <string>ms</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="4">
+              <widget class="QLabel" name="requestTimeoutLabel">
+               <property name="text">
+                <string>Request Timeout:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="5">
+              <widget class="QSpinBox" name="requestTimeoutSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>1000000</number>
+               </property>
+               <property name="value">
+                <number>5000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="6">
+              <widget class="QLabel" name="requestTimeoutUnitLabel">
+               <property name="text">
+                <string>ms</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="secureChannelLifetimeLabel">
+               <property name="text">
+                <string>Secure Channel Lifetime:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QSpinBox" name="secureChannelLifetimeSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>1000000</number>
+               </property>
+               <property name="value">
+                <number>600000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="2">
+              <widget class="QLabel" name="secureChannelLifetimeUnitLabel">
+               <property name="text">
+                <string>ms</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="4">
+              <widget class="QLabel" name="maxMessageSizeLabel">
+               <property name="text">
+                <string>Max. Message Size:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="5">
+              <widget class="QSpinBox" name="maxMessageSizeSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>10000000</number>
+               </property>
+               <property name="value">
+                <number>4194304</number>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="6">
+              <widget class="QLabel" name="maxMessageSizeUnitLabel">
+               <property name="text">
+                <string>bytes</string>
+               </property>
+              </widget>
              </item>
             </layout>
            </widget>
@@ -579,14 +463,14 @@
              </property>
              <item>
               <widget class="QLabel" name="clientCertificateCaption">
-               <property name="certCaption" stdset="0">
-                <bool>true</bool>
-               </property>
                <property name="text">
                 <string>Certificate:</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+               </property>
+               <property name="certCaption" stdset="0">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -853,14 +737,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ColoredPushButton</class>
-   <extends>QPushButton</extends>
-   <header>widgets/coloredpushbutton.h</header>
-  </customwidget>
-  <customwidget>
    <class>ThemedPushButton</class>
    <extends>QPushButton</extends>
    <header>widgets/themedpushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ColoredPushButton</class>
+   <extends>QPushButton</extends>
+   <header>widgets/coloredpushbutton.h</header>
   </customwidget>
   <customwidget>
    <class>ThemedIconLabel</class>
@@ -903,8 +787,6 @@
   <tabstop>cancelButton</tabstop>
   <tabstop>connectButton</tabstop>
  </tabstops>
- <resources>
-  <include location="../resources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

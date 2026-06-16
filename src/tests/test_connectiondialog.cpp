@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QSizePolicy>
+#include <QSpinBox>
 #include <QTableView>
 #include <QTest>
 
@@ -51,6 +52,8 @@ class TestConnectionDialog : public QObject
 private slots:
     void discoveryPopulatesEndpointModelAndAuthentication();
     void certificateStatusRowsAlignBadgeToRight();
+    void dialogKeepsWiderMinimumWidthForEndpointUrl();
+    void advancedSettingsControlsAlignToGrid();
 };
 
 namespace {
@@ -133,6 +136,44 @@ void TestConnectionDialog::certificateStatusRowsAlignBadgeToRight()
 
     verifyRightAlignedCertificateStatus(dialog, QStringLiteral("clientCertificateWidget"));
     verifyRightAlignedCertificateStatus(dialog, QStringLiteral("serverCertificateWidget"));
+}
+
+void TestConnectionDialog::dialogKeepsWiderMinimumWidthForEndpointUrl()
+{
+    ConnectionDialog dialog;
+
+    QCOMPARE(dialog.minimumWidth(), 1200);
+    QVERIFY(dialog.width() >= dialog.minimumWidth());
+}
+
+void TestConnectionDialog::advancedSettingsControlsAlignToGrid()
+{
+    ConnectionDialog dialog;
+    dialog.resize(dialog.minimumSize());
+    QVERIFY(dialog.layout()->activate());
+
+    auto *sessionTimeout = dialog.findChild<QSpinBox *>(QStringLiteral("sessionTimeoutSpinBox"));
+    auto *connectTimeout = dialog.findChild<QSpinBox *>(QStringLiteral("connectTimeoutSpinBox"));
+    auto *secureChannelLifetime =
+        dialog.findChild<QSpinBox *>(QStringLiteral("secureChannelLifetimeSpinBox"));
+    auto *endpointTimeout = dialog.findChild<QSpinBox *>(QStringLiteral("endpointTimeoutSpinBox"));
+    auto *requestTimeout = dialog.findChild<QSpinBox *>(QStringLiteral("requestTimeoutSpinBox"));
+    auto *maxMessageSize = dialog.findChild<QSpinBox *>(QStringLiteral("maxMessageSizeSpinBox"));
+    QVERIFY(sessionTimeout);
+    QVERIFY(connectTimeout);
+    QVERIFY(secureChannelLifetime);
+    QVERIFY(endpointTimeout);
+    QVERIFY(requestTimeout);
+    QVERIFY(maxMessageSize);
+
+    QCOMPARE(sessionTimeout->x(), connectTimeout->x());
+    QCOMPARE(sessionTimeout->x(), secureChannelLifetime->x());
+    QCOMPARE(endpointTimeout->x(), requestTimeout->x());
+    QCOMPARE(endpointTimeout->x(), maxMessageSize->x());
+
+    QCOMPARE(sessionTimeout->y(), endpointTimeout->y());
+    QCOMPARE(connectTimeout->y(), requestTimeout->y());
+    QCOMPARE(secureChannelLifetime->y(), maxMessageSize->y());
 }
 
 QTEST_MAIN(TestConnectionDialog)
