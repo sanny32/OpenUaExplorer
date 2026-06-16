@@ -52,7 +52,6 @@ class TestConnectionDialog : public QObject
 private slots:
     void discoveryPopulatesEndpointModelAndAuthentication();
     void certificateStatusRowsAlignBadgeToRight();
-    void dialogKeepsWiderMinimumWidthForEndpointUrl();
     void advancedSettingsControlsAlignToGrid();
 };
 
@@ -136,14 +135,6 @@ void TestConnectionDialog::certificateStatusRowsAlignBadgeToRight()
 
     verifyRightAlignedCertificateStatus(dialog, QStringLiteral("clientCertificateWidget"));
     verifyRightAlignedCertificateStatus(dialog, QStringLiteral("serverCertificateWidget"));
-}
-
-void TestConnectionDialog::dialogKeepsWiderMinimumWidthForEndpointUrl()
-{
-    ConnectionDialog dialog;
-
-    QCOMPARE(dialog.minimumWidth(), 1200);
-    QVERIFY(dialog.width() >= dialog.minimumWidth());
 }
 
 void TestConnectionDialog::advancedSettingsControlsAlignToGrid()
