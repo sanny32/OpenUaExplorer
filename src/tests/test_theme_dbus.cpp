@@ -48,13 +48,6 @@ void TestThemeDBus::portalSettingChangedSwitchesTheme()
     QSignalSpy spy(&theme, &AppTheme::colorSchemeChanged);
     QVERIFY(spy.isValid());
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QVERIFY(!theme.isDark());
-    QVERIFY(sendPortalSettingChanged(1));
-    QTest::qWait(100);
-    QCOMPARE(spy.size(), 0);
-    QVERIFY(!theme.isDark());
-#else
     const int beforeDark = spy.size();
     QVERIFY(sendPortalSettingChanged(1));
     QTRY_VERIFY(spy.size() > beforeDark);
@@ -64,7 +57,6 @@ void TestThemeDBus::portalSettingChangedSwitchesTheme()
     QVERIFY(sendPortalSettingChanged(2));
     QTRY_VERIFY(spy.size() > beforeLight);
     QVERIFY(!theme.isDark());
-#endif
 }
 
 void TestThemeDBus::unrelatedPortalSettingIsIgnored()

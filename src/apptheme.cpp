@@ -50,6 +50,32 @@ void applyLightPalette()
 #endif
 }
 
+///
+/// \brief applyFusionPalette
+/// \param scheme
+///
+void applyFusionPalette(AppTheme::ColorScheme scheme)
+{
+    if (AppStyle::isFusionStyle())
+        QApplication::setPalette(FusionStyle::palette(scheme == AppTheme::ColorScheme::Dark));
+}
+
+///
+/// \brief colorSchemeAvailable
+/// \return
+///
+bool colorSchemeAvailable()
+{
+    if (qtThemeApiAvailable())
+        return true;
+
+#ifdef HAS_QTDBUS
+    return true;
+#else
+    return false;
+#endif
+}
+
 #ifdef HAS_QTDBUS
 ///
 /// \brief colorSchemeFromDBus
@@ -82,13 +108,13 @@ AppTheme::AppTheme(QObject *parent)
 ///
 void AppTheme::setupSystemColorScheme()
 {
+    if (setupPortalColorScheme())
+        return;
+
     if (!qtThemeApiAvailable()) {
         _scheme = ColorScheme::Light;
         return;
     }
-
-    if (setupPortalColorScheme())
-        return;
 
     readStyleHintsColorScheme();
 }
@@ -183,13 +209,13 @@ void AppTheme::toggle()
 ///
 void AppTheme::applyInitialScheme()
 {
+    if (applyPortalColorScheme())
+        return;
+
     if (!qtThemeApiAvailable()) {
         applyColorScheme(ColorScheme::Light);
         return;
     }
-
-    if (applyPortalColorScheme())
-        return;
 
     applyColorScheme(_scheme);
 }
@@ -260,7 +286,7 @@ bool AppTheme::applyPortalColorScheme()
 ///
 void AppTheme::applyColorScheme(ColorScheme scheme)
 {
-    if (!qtThemeApiAvailable())
+    if (!colorSchemeAvailable())
         scheme = ColorScheme::Light;
 
     _scheme = scheme;
@@ -276,7 +302,11 @@ void AppTheme::applyColorScheme(ColorScheme scheme)
 void AppTheme::applyNativeColorScheme(ColorScheme scheme)
 {
     if (!qtThemeApiAvailable()) {
+#ifdef HAS_QTDBUS
+        applyFusionPalette(scheme);
+#else
         applyLightPalette();
+#endif
         return;
     }
 
@@ -285,6 +315,8 @@ void AppTheme::applyNativeColorScheme(ColorScheme scheme)
     QGuiApplication::styleHints()->setColorScheme(
         scheme == ColorScheme::Dark ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
 #endif
+#else
+    applyFusionPalette(scheme);
 #endif
 }
 
@@ -298,9 +330,6 @@ void AppTheme::applyNativeColorScheme(ColorScheme scheme)
 void AppTheme::onPortalSettingChanged(const QString &group, const QString &key,
                                       const QDBusVariant &value)
 {
-    if (!qtThemeApiAvailable())
-        return;
-
     if (_manualSchemeOverriden ||
         group != QLatin1String("org.freedesktop.appearance") ||
         key != QLatin1String("color-scheme"))
