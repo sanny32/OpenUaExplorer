@@ -1,5 +1,13 @@
 function(ouaexp_configure_test_environment test_name)
     if(WIN32)
+        set(test_home "${CMAKE_BINARY_DIR}/.test-home")
+        set(test_appdata "${CMAKE_BINARY_DIR}/.test-appdata")
+        set(test_environment
+            "QT_QPA_PLATFORM=offscreen"
+            "USERPROFILE=${test_home}"
+            "HOME=${test_home}"
+            "APPDATA=${test_home}/AppData/Roaming"
+            "LOCALAPPDATA=${test_appdata}")
         set(environment_modifications
             "PATH=path_list_prepend:${QT_BINARY_DIR}"
             "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::OpcUa>"
@@ -17,7 +25,7 @@ function(ouaexp_configure_test_environment test_name)
                 "PATH=path_list_prepend:${OPENSSL_ROOT_DIR}/bin")
         endif()
         set_tests_properties(${test_name} PROPERTIES
-            ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+            ENVIRONMENT "${test_environment}"
             ENVIRONMENT_MODIFICATION "${environment_modifications}")
     elseif(APPLE)
         set(environment_modifications

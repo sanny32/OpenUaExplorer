@@ -65,8 +65,9 @@ __pycache__
 .vscode
 AGENTS.md
 
-# Local build commands
+# Local build and test commands
 build_with_vs.cmd
+test_with_vs.cmd
 
 # Coverage (tools/coverage.py)
 LastCoverageResults.log
