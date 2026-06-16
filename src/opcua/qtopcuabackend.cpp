@@ -197,20 +197,22 @@ public:
         }
         client->setAuthenticationInformation(authentication);
 
-        QString pkiError;
-        pki.ensureDirectories(&pkiError);
-        const PkiManager::Paths paths = pki.paths();
-        QOpcUaPkiConfiguration configuration;
-        configuration.setClientCertificateFile(profile.clientCertificateFile);
-        configuration.setPrivateKeyFile(profile.privateKeyFile);
-        configuration.setTrustListDirectory(paths.trustedCertificates);
-        configuration.setRevocationListDirectory(paths.trustedCrl);
-        configuration.setIssuerListDirectory(paths.issuerCertificates);
-        configuration.setIssuerRevocationListDirectory(paths.issuerCrl);
-        client->setPkiConfiguration(configuration);
-        if (configuration.isKeyAndCertificateFileSet())
-            client->setApplicationIdentity(configuration.applicationIdentity());
-        activeClientCertificateFile = profile.clientCertificateFile;
+        if (!profile.clientCertificateFile.isEmpty()) {
+            QString pkiError;
+            pki.ensureDirectories(&pkiError);
+            const PkiManager::Paths paths = pki.paths();
+            QOpcUaPkiConfiguration configuration;
+            configuration.setClientCertificateFile(profile.clientCertificateFile);
+            configuration.setPrivateKeyFile(profile.privateKeyFile);
+            configuration.setTrustListDirectory(paths.trustedCertificates);
+            configuration.setRevocationListDirectory(paths.trustedCrl);
+            configuration.setIssuerListDirectory(paths.issuerCertificates);
+            configuration.setIssuerRevocationListDirectory(paths.issuerCrl);
+            client->setPkiConfiguration(configuration);
+            if (configuration.isKeyAndCertificateFileSet())
+                client->setApplicationIdentity(configuration.applicationIdentity());
+            activeClientCertificateFile = profile.clientCertificateFile;
+        }
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
         QOpcUaConnectionSettings settings;
