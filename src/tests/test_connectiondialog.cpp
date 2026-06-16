@@ -2,8 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 #include <QComboBox>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QListView>
 #include <QPushButton>
+#include <QSizePolicy>
 #include <QTest>
 
 #include "dialogs/connectiondialog.h"
@@ -47,7 +50,36 @@ class TestConnectionDialog : public QObject
 
 private slots:
     void discoveryPopulatesEndpointModelAndAuthentication();
+    void certificateStatusRowsAlignBadgeToRight();
 };
+
+namespace {
+
+void verifyRightAlignedCertificateStatus(ConnectionDialog &dialog, const QString &layoutName,
+                                         const QString &dateLabelName,
+                                         const QString &iconLabelName,
+                                         const QString &badgeLabelName)
+{
+    auto *layout = dialog.findChild<QHBoxLayout *>(layoutName);
+    auto *dateLabel = dialog.findChild<QLabel *>(dateLabelName);
+    auto *iconLabel = dialog.findChild<QLabel *>(iconLabelName);
+    auto *badgeLabel = dialog.findChild<QLabel *>(badgeLabelName);
+
+    QVERIFY(layout);
+    QVERIFY(dateLabel);
+    QVERIFY(iconLabel);
+    QVERIFY(badgeLabel);
+    QCOMPARE(layout->count(), 4);
+    QCOMPARE(dateLabel->sizePolicy().horizontalPolicy(), QSizePolicy::Maximum);
+    QCOMPARE(iconLabel->sizePolicy().horizontalPolicy(), QSizePolicy::Maximum);
+    QCOMPARE(badgeLabel->sizePolicy().horizontalPolicy(), QSizePolicy::Maximum);
+    QVERIFY(layout->itemAt(1)->spacerItem());
+    QVERIFY(layout->itemAt(1)->expandingDirections().testFlag(Qt::Horizontal));
+    QCOMPARE(layout->itemAt(2)->widget(), iconLabel);
+    QCOMPARE(layout->itemAt(3)->widget(), badgeLabel);
+}
+
+}
 
 void TestConnectionDialog::discoveryPopulatesEndpointModelAndAuthentication()
 {
@@ -91,6 +123,20 @@ void TestConnectionDialog::discoveryPopulatesEndpointModelAndAuthentication()
     QVERIFY(discoverButton->isEnabled());
     QVERIFY(connectButton->isEnabled());
     QCOMPARE(dialog.profile().endpointUrl, endpoint.endpointUrl);
+}
+
+void TestConnectionDialog::certificateStatusRowsAlignBadgeToRight()
+{
+    ConnectionDialog dialog;
+
+    verifyRightAlignedCertificateStatus(dialog, QStringLiteral("clientCertValidLayout"),
+                                        QStringLiteral("clientCertValidEdit"),
+                                        QStringLiteral("clientCertValidIcon"),
+                                        QStringLiteral("clientCertValidBadge"));
+    verifyRightAlignedCertificateStatus(dialog, QStringLiteral("serverCertValidLayout"),
+                                        QStringLiteral("serverCertValidEdit"),
+                                        QStringLiteral("serverCertValidIcon"),
+                                        QStringLiteral("serverCertValidBadge"));
 }
 
 QTEST_MAIN(TestConnectionDialog)
