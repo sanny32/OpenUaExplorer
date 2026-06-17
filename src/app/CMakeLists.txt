@@ -1,3 +1,7 @@
+include("${PROJECT_SOURCE_DIR}/cmake/target_windows.cmake")
+include("${PROJECT_SOURCE_DIR}/cmake/target_macos.cmake")
+include("${PROJECT_SOURCE_DIR}/cmake/target_linux.cmake")
+
 add_executable(${PROJECT_NAME}
     main.cpp
     resources.qrc

@@ -113,8 +113,8 @@ jobs:
 
       - name: Build and run tests (Linux)
         if: runner.os == 'Linux'
-        run: dbus-run-session -- cmake --build build --config Release --parallel --target ouaexp_check
+        run: dbus-run-session -- cmake --build build --config Release --parallel --target ouaexp ouaexp_check
 
       - name: Build and run tests
         if: runner.os != 'Linux'
-        run: cmake --build build --config Release --parallel --target ouaexp_check
+        run: cmake --build build --config Release --parallel --target ouaexp ouaexp_check

@@ -1,3 +1,6 @@
+include("${PROJECT_SOURCE_DIR}/cmake/qlementine.cmake")
+include("${PROJECT_SOURCE_DIR}/cmake/ui_normalization.cmake")
+
 set(UI_FILES
     mainwindow.ui
 

@@ -9,7 +9,7 @@ function(ouaexp_configure_ui_enum_normalization target_name)
         file(APPEND "${UI_FILE_LIST}" "${UI_FILE_ABSOLUTE}\n")
     endforeach()
 
-    set(NORMALIZE_UI_ENUMS_SCRIPT "${OUAEXP_SOURCE_DIR}/cmake/NormalizeUiEnums.cmake")
+    set(NORMALIZE_UI_ENUMS_SCRIPT "${PROJECT_SOURCE_DIR}/cmake/NormalizeUiEnums.cmake")
 
     add_custom_target(normalize_ui_enums ALL
         COMMAND ${CMAKE_COMMAND}
