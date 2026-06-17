@@ -9,12 +9,14 @@ function(ouaexp_configure_ui_enum_normalization target_name)
         file(APPEND "${UI_FILE_LIST}" "${UI_FILE_ABSOLUTE}\n")
     endforeach()
 
+    set(NORMALIZE_UI_ENUMS_SCRIPT "${OUAEXP_SOURCE_DIR}/cmake/NormalizeUiEnums.cmake")
+
     add_custom_target(normalize_ui_enums ALL
         COMMAND ${CMAKE_COMMAND}
                 "-DUI_FILE_LIST=${UI_FILE_LIST}"
-                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/NormalizeUiEnums.cmake"
+                -P "${NORMALIZE_UI_ENUMS_SCRIPT}"
         DEPENDS
-            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/NormalizeUiEnums.cmake"
+            "${NORMALIZE_UI_ENUMS_SCRIPT}"
             ${UI_FILES_ABSOLUTE}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         COMMENT "Normalizing Qt Designer UI enum names for Qt5 compatibility..."

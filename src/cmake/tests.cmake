@@ -62,23 +62,23 @@ endfunction()
 
 function(ouaexp_configure_platform_tests)
     if(LINUX)
-        include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests_linux_dbus.cmake")
+        include("${OUAEXP_SOURCE_DIR}/cmake/tests_linux_dbus.cmake")
         ouaexp_configure_linux_dbus_tests()
     endif()
 endfunction()
 
 function(ouaexp_configure_unit_tests)
-    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests_unit.cmake")
+    include("${OUAEXP_SOURCE_DIR}/cmake/tests_unit.cmake")
     ouaexp_configure_common_unit_tests()
 endfunction()
 
 function(ouaexp_configure_ui_tests)
-    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests_ui.cmake")
+    include("${OUAEXP_SOURCE_DIR}/cmake/tests_ui.cmake")
     ouaexp_configure_common_ui_tests()
 endfunction()
 
 function(ouaexp_configure_integration_tests)
-    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests_integration.cmake")
+    include("${OUAEXP_SOURCE_DIR}/cmake/tests_integration.cmake")
     ouaexp_configure_opcua_integration_tests()
 endfunction()
 
@@ -86,11 +86,12 @@ function(ouaexp_configure_tests)
     set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
     function(ouaexp_add_test test_name source_file)
-        add_executable(${test_name} tests/${source_file})
+        add_executable(${test_name} "${OUAEXP_TEST_SOURCE_DIR}/${source_file}")
         target_link_libraries(${test_name} PRIVATE
             ouaexp_core
             Qt${QT_VERSION_MAJOR}::Test
         )
+        ouaexp_copy_qtopcua_runtime(${test_name})
         ouaexp_apply_coverage(${test_name})
         set_target_properties(${test_name} PROPERTIES FOLDER "Tests")
         add_test(NAME ${test_name} COMMAND ${test_name})

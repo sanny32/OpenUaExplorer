@@ -1,11 +1,11 @@
-function(ouaexp_configure_target_windows target_name)
+function(ouaexp_configure_target_windows target_name rc_template icon_file)
     if(MSVC)
         target_compile_options(${target_name} PRIVATE /utf-8)
     endif()
 
-    set(ICON_FILE "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/light/app.ico")
+    set(ICON_FILE "${icon_file}")
     configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/ouaexp.rc.in"
+        "${rc_template}"
         "${PROJECT_BINARY_DIR}/ouaexp.rc"
         @ONLY
     )
