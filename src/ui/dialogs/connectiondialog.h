@@ -70,6 +70,8 @@ private slots:
     void chooseClientCertificate();
     void generateClientCertificate();
     void handleClientCertificateAction();
+    void viewClientCertificateDetails();
+    void viewServerCertificateDetails();
     void validateAndAccept();
 
 private:
@@ -82,6 +84,7 @@ private:
     void resetDiscovery();
     void updateClientCertificate();
     void updateClientCertificateAction();
+    void showCertificateDetails(const QByteArray &certificate);
 
     Ui::ConnectionDialog *ui;
     class OpcUaClientService *_service = nullptr;

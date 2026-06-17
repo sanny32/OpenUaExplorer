@@ -1,0 +1,343 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file certificatedetailsdialog.cpp
+/// \brief Implements the certificate details dialog.
+///
+
+#include <QApplication>
+#include <QClipboard>
+#include <QColor>
+#include <QCryptographicHash>
+#include <QFileDialog>
+#include <QLabel>
+#include <QMessageBox>
+#include <QRegularExpression>
+#include <QSaveFile>
+#include <QSslCertificate>
+#include <QSslCertificateExtension>
+#include <QSslKey>
+#include <QVariant>
+
+#include "appicons.h"
+#include "certificatedetailsdialog.h"
+#include "opcua/certificateinfo.h"
+#include "ui_certificatedetailsdialog.h"
+
+namespace {
+
+///
+/// \brief Returns display text for an empty value.
+/// \return Placeholder text.
+///
+QString unavailable()
+{
+    return QObject::tr("Unavailable");
+}
+
+///
+/// \brief Formats a certificate date for the details dialog.
+/// \param value Date to format.
+/// \return Local date text, or an unavailable placeholder.
+///
+QString formatDate(const QDateTime &value)
+{
+    return value.isValid()
+        ? value.toLocalTime().toString(QStringLiteral("dd.MM.yyyy HH:mm"))
+        : unavailable();
+}
+
+///
+/// \brief Builds a compact distinguished name from certificate attributes.
+/// \param certificate Certificate to inspect.
+/// \param subject True for subject attributes, false for issuer attributes.
+/// \return Distinguished name text.
+///
+QString distinguishedName(const QSslCertificate &certificate, bool subject)
+{
+    const QList<QByteArray> attributes = subject
+        ? certificate.subjectInfoAttributes()
+        : certificate.issuerInfoAttributes();
+
+    QStringList parts;
+    for (const QByteArray &attribute : attributes) {
+        const QStringList values = subject
+            ? certificate.subjectInfo(attribute)
+            : certificate.issuerInfo(attribute);
+        for (const QString &value : values) {
+            if (!value.isEmpty()) {
+                parts.append(QStringLiteral("%1=%2")
+                                 .arg(QString::fromLatin1(attribute), value));
+            }
+        }
+    }
+    return parts.isEmpty() ? unavailable() : parts.join(QStringLiteral(", "));
+}
+
+///
+/// \brief Renders the subject alternative names as GeneralName tag/value pairs.
+/// \param certificate Certificate to inspect.
+/// \return Display text such as "[[6, urn:...], [2, host]]", or an unavailable placeholder.
+///
+QString subjectAlternativeNameText(const QSslCertificate &certificate)
+{
+    // RFC 5280 GeneralName ASN.1 tag numbers, listed in the order OPC UA tooling shows them.
+    static const QList<QPair<QString, int>> generalNames = {
+        {QStringLiteral("URI"), 6},
+        {QStringLiteral("DNS"), 2},
+        {QStringLiteral("IP"), 7},
+        {QStringLiteral("Email"), 1},
+    };
+
+    for (const QSslCertificateExtension &extension : certificate.extensions()) {
+        if (extension.oid() != QStringLiteral("2.5.29.17"))
+            continue;
+
+        const QVariantMap entries = extension.value().toMap();
+        QStringList parts;
+        for (const auto &generalName : generalNames) {
+            const QStringList values = entries.value(generalName.first).toStringList();
+            for (const QString &value : values) {
+                if (!value.isEmpty()) {
+                    parts.append(QStringLiteral("[%1, %2]")
+                                     .arg(QString::number(generalName.second), value));
+                }
+            }
+        }
+        if (!parts.isEmpty())
+            return QStringLiteral("[%1]").arg(parts.join(QStringLiteral(", ")));
+    }
+    return unavailable();
+}
+
+///
+/// \brief Extracts the OPC UA application URI from subject alternative names.
+/// \param certificate Certificate to inspect.
+/// \return Application URI, or an unavailable placeholder.
+///
+QString applicationUri(const QSslCertificate &certificate)
+{
+    const QString alternativeNames = subjectAlternativeNameText(certificate);
+    const QRegularExpression uriPattern(QStringLiteral(R"((urn:[^\],\)\s]+))"));
+    const QRegularExpressionMatch match = uriPattern.match(alternativeNames);
+    return match.hasMatch() ? match.captured(1) : unavailable();
+}
+
+///
+/// \brief Extracts the signature algorithm from Qt's certificate text dump.
+/// \param certificate Certificate to inspect.
+/// \return Signature algorithm text.
+///
+QString signatureAlgorithm(const QSslCertificate &certificate)
+{
+    const QRegularExpression pattern(
+        QStringLiteral(R"(Signature Algorithm:\s*([^\r\n]+))"));
+    const QRegularExpressionMatch match = pattern.match(certificate.toText());
+    return match.hasMatch() ? match.captured(1).trimmed() : unavailable();
+}
+
+///
+/// \brief Builds the copy-to-clipboard text from the shown fields.
+/// \param rows Label/value rows.
+/// \return Plain text details.
+///
+QString detailsText(const QList<QPair<QString, QString>> &rows)
+{
+    QStringList lines;
+    for (const auto &row : rows)
+        lines.append(QStringLiteral("%1 %2").arg(row.first, row.second));
+    return lines.join(QLatin1Char('\n'));
+}
+
+}
+
+///
+/// \brief Builds the dialog and wires its actions.
+/// \param parent Parent widget.
+///
+CertificateDetailsDialog::CertificateDetailsDialog(QWidget *parent)
+    : AppBaseDialog(parent)
+    , ui(new Ui::CertificateDetailsDialog)
+{
+    ui->setupUi(this);
+
+    ui->statusIcon->setIcon(QStringLiteral("shield-trusted.svg"), QSize(22, 22));
+    ui->closeButton->setColors({ QColor(0x0a74d1), QColor(0x1682df), QColor(0x075ca7) });
+
+    // Render the field labels in the muted steel-blue used across the application
+    // and measure the widest one so both sections share a single value-column grid line.
+    const QColor labelColor = AppIcons::isDarkTheme()
+        ? QColor(0x8aaace) : QColor(0x4a6f96);
+    const QString labelStyle = QStringLiteral("color: %1;").arg(labelColor.name());
+    int labelColumnWidth = 0;
+    for (QLabel *label : findChildren<QLabel *>()) {
+        if (label->objectName().endsWith(QStringLiteral("Label"))) {
+            label->setStyleSheet(labelStyle);
+            labelColumnWidth = qMax(labelColumnWidth, label->sizeHint().width());
+        }
+    }
+    ui->summaryLayout->setColumnMinimumWidth(0, labelColumnWidth);
+    ui->technicalLayout->setColumnMinimumWidth(0, labelColumnWidth);
+
+    connect(ui->copyButton, &QPushButton::clicked,
+            this, &CertificateDetailsDialog::copyDetails);
+    connect(ui->exportButton, &QPushButton::clicked,
+            this, &CertificateDetailsDialog::exportCertificate);
+    connect(ui->closeButton, &QPushButton::clicked,
+            this, &QDialog::accept);
+
+    clearDetails();
+}
+
+///
+/// \brief Destroys the dialog and its generated UI.
+///
+CertificateDetailsDialog::~CertificateDetailsDialog()
+{
+    delete ui;
+}
+
+///
+/// \brief Shows a DER certificate in the details grid.
+/// \param certificate DER-encoded certificate.
+///
+void CertificateDetailsDialog::setCertificate(const QByteArray &certificate)
+{
+    _certificate = certificate;
+    clearDetails();
+
+    const CertificateInfo info = CertificateInfo::fromDer(certificate);
+    const QList<QSslCertificate> chain = QSslCertificate::fromData(certificate, QSsl::Der);
+    if (chain.isEmpty()) {
+        ui->nameValue->setText(unavailable());
+        ui->serialNumberValue->setText(unavailable());
+        setSummaryStatus(tr("Invalid"), false);
+        _detailsText = detailsText({
+            {tr("Status:"), ui->statusValue->text()},
+            {tr("Name:"), ui->nameValue->text()},
+            {tr("Serial Number:"), ui->serialNumberValue->text()},
+        });
+        return;
+    }
+
+    const QSslCertificate parsed = chain.constFirst();
+    const QString signedBy = parsed.isSelfSigned() ? tr("Self Signed") : info.issuer;
+    const QString serialNumber =
+        QString::fromLatin1(parsed.serialNumber()).remove(QLatin1Char(':')).toLower();
+    const QString thumbprint = QStringLiteral("[%1] 0x%2")
+        .arg(parsed.digest(QCryptographicHash::Sha1).size())
+        .arg(QString::fromLatin1(parsed.digest(QCryptographicHash::Sha1).toHex()));
+    const QString keySize = parsed.publicKey().isNull()
+        ? unavailable()
+        : QString::number(parsed.publicKey().length());
+
+    ui->nameValue->setText(info.subject.isEmpty() ? unavailable() : info.subject);
+    ui->signedByValue->setText(signedBy.isEmpty() ? unavailable() : signedBy);
+    ui->validFromValue->setText(formatDate(parsed.effectiveDate()));
+    ui->validToValue->setText(formatDate(parsed.expiryDate()));
+    ui->applicationUriValue->setText(applicationUri(parsed));
+    ui->keySizeValue->setText(keySize);
+    ui->serialNumberValue->setText(serialNumber.isEmpty() ? unavailable() : serialNumber);
+    ui->signatureAlgorithmValue->setText(signatureAlgorithm(parsed));
+    ui->issuerValue->setText(distinguishedName(parsed, false));
+    ui->subjectValue->setText(distinguishedName(parsed, true));
+    ui->subjectAlternativeNameValue->setText(subjectAlternativeNameText(parsed));
+    ui->thumbprintValue->setText(thumbprint);
+
+    bool valid = false;
+    QString statusText;
+    if (info.status == CertificateInfo::Status::Valid) {
+        statusText = tr("Trusted");
+        valid = true;
+    } else if (info.status == CertificateInfo::Status::Expired) {
+        statusText = tr("Expired");
+    } else if (info.status == CertificateInfo::Status::NotYetValid) {
+        statusText = tr("Not yet valid");
+    } else {
+        statusText = tr("Invalid");
+    }
+    setSummaryStatus(statusText, valid);
+
+    _detailsText = detailsText({
+        {tr("Status:"), ui->statusValue->text()},
+        {tr("Name:"), ui->nameValue->text()},
+        {tr("Signed By:"), ui->signedByValue->text()},
+        {tr("Valid From:"), ui->validFromValue->text()},
+        {tr("Valid To:"), ui->validToValue->text()},
+        {tr("Application URI:"), ui->applicationUriValue->text()},
+        {tr("Key Size:"), ui->keySizeValue->text()},
+        {tr("Serial Number:"), ui->serialNumberValue->text()},
+        {tr("Signature Algorithm:"), ui->signatureAlgorithmValue->text()},
+        {tr("Issuer:"), ui->issuerValue->text()},
+        {tr("Subject:"), ui->subjectValue->text()},
+        {tr("Subject Alternative Name:"), ui->subjectAlternativeNameValue->text()},
+        {tr("Thumbprint:"), ui->thumbprintValue->text()},
+    });
+}
+
+///
+/// \brief Copies the displayed details to the clipboard.
+///
+void CertificateDetailsDialog::copyDetails()
+{
+    QApplication::clipboard()->setText(_detailsText);
+}
+
+///
+/// \brief Exports the displayed certificate in DER format.
+///
+void CertificateDetailsDialog::exportCertificate()
+{
+    if (_certificate.isEmpty())
+        return;
+
+    const QString fileName = QFileDialog::getSaveFileName(
+        this, tr("Export Certificate"), QString(),
+        tr("DER Certificate (*.der);;All Files (*)"));
+    if (fileName.isEmpty())
+        return;
+
+    QSaveFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly)
+        || file.write(_certificate) != _certificate.size()
+        || !file.commit()) {
+        QMessageBox::critical(this, tr("Export Failed"),
+                              tr("Could not write the certificate file."));
+    }
+}
+
+///
+/// \brief Clears all detail labels to their unavailable state.
+///
+void CertificateDetailsDialog::clearDetails()
+{
+    setSummaryStatus(unavailable(), false);
+    ui->nameValue->setText(unavailable());
+    ui->signedByValue->setText(unavailable());
+    ui->validFromValue->setText(unavailable());
+    ui->validToValue->setText(unavailable());
+    ui->applicationUriValue->setText(unavailable());
+    ui->keySizeValue->setText(unavailable());
+    ui->serialNumberValue->setText(unavailable());
+    ui->signatureAlgorithmValue->setText(unavailable());
+    ui->issuerValue->setText(unavailable());
+    ui->subjectValue->setText(unavailable());
+    ui->subjectAlternativeNameValue->setText(unavailable());
+    ui->thumbprintValue->setText(unavailable());
+    _detailsText.clear();
+}
+
+///
+/// \brief Updates the summary status text and colour.
+/// \param text Status text.
+/// \param valid Whether the status should use the valid colour.
+///
+void CertificateDetailsDialog::setSummaryStatus(const QString &text, bool valid)
+{
+    ui->statusValue->setText(text);
+    ui->statusIcon->setVisible(valid);
+    ui->statusValue->setStyleSheet(
+        QStringLiteral("color: %1; font-weight: 600;")
+            .arg(valid ? QStringLiteral("#16a34a") : QStringLiteral("#d13438")));
+}

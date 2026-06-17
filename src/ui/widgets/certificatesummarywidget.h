@@ -73,6 +73,12 @@ public:
     ///
     QByteArray certificate() const;
 
+signals:
+    ///
+    /// \brief Emitted when the user requests the full certificate details.
+    ///
+    void viewDetailsRequested();
+
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 

@@ -77,5 +77,7 @@
         <file alias="icons/dark/eye.svg">res/icons/dark/eye.svg</file>
         <file alias="icons/light/eye-off.svg">res/icons/light/eye-off.svg</file>
         <file alias="icons/dark/eye-off.svg">res/icons/dark/eye-off.svg</file>
+        <file alias="icons/light/copy.svg">res/icons/light/copy.svg</file>
+        <file alias="icons/dark/copy.svg">res/icons/dark/copy.svg</file>
     </qresource>
 </RCC>

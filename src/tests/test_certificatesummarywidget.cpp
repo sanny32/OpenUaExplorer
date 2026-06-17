@@ -7,6 +7,7 @@
 ///
 
 #include <QLabel>
+#include <QSignalSpy>
 #include <QTest>
 #include <QWidget>
 
@@ -24,6 +25,7 @@ private slots:
     void hintModeHidesDetailsWhenEmpty();
     void inlineModeShowsPlaceholderWhenEmpty();
     void unreadableCertificateFillsDetails();
+    void viewDetailsButtonEmitsRequest();
 };
 
 void TestCertificateSummaryWidget::hintModeHidesDetailsWhenEmpty()
@@ -96,6 +98,20 @@ void TestCertificateSummaryWidget::unreadableCertificateFillsDetails()
     QCOMPARE(serialNumberEdit->text(), QStringLiteral("Unavailable"));
     QVERIFY(viewDetailsButton->isEnabled());
     QCOMPARE(widget.certificate(), garbage);
+}
+
+void TestCertificateSummaryWidget::viewDetailsButtonEmitsRequest()
+{
+    CertificateSummaryWidget widget;
+    widget.setCertificate(QByteArrayLiteral("not a certificate"));
+
+    auto *viewDetailsButton =
+        widget.findChild<ThemedToolButton *>(QStringLiteral("viewDetailsButton"));
+    QVERIFY(viewDetailsButton);
+
+    QSignalSpy spy(&widget, &CertificateSummaryWidget::viewDetailsRequested);
+    viewDetailsButton->click();
+    QCOMPARE(spy.count(), 1);
 }
 
 QTEST_MAIN(TestCertificateSummaryWidget)

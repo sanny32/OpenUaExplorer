@@ -21,12 +21,38 @@ ThemedPushButton::ThemedPushButton(QWidget *parent)
 }
 
 ///
+/// \brief Returns the themed icon resource name.
+/// \return Icon resource name.
+///
+QString ThemedPushButton::iconName() const
+{
+    return _iconName;
+}
+
+///
+/// \brief Sets the themed icon resource name.
+/// \param name Icon resource name.
+///
+void ThemedPushButton::setIconName(const QString &name)
+{
+    setIcon(name);
+}
+
+///
 /// \brief Sets the themed icon by resource name.
 /// \param name Icon resource name.
 ///
 void ThemedPushButton::setIcon(const QString &name)
 {
+    if (_iconName == name) {
+        return;
+    }
+
     _iconName = name;
+    if (_iconName.isEmpty()) {
+        QPushButton::setIcon({});
+        return;
+    }
     refreshIcon();
 }
 

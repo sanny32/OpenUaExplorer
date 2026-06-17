@@ -9,6 +9,7 @@
 #include <QColor>
 #include <QEvent>
 #include <QFontMetrics>
+#include <QToolButton>
 
 #include "appicons.h"
 #include "certificatesummarywidget.h"
@@ -30,6 +31,9 @@ CertificateSummaryWidget::CertificateSummaryWidget(QWidget *parent)
     ui->detailsWidget->setStyleSheet(QStringLiteral(
         "QLabel[certCaption=\"true\"] { color: #6b7280; }"));
     ui->serialNumberEdit->installEventFilter(this);
+
+    connect(ui->viewDetailsButton, &QToolButton::clicked,
+            this, &CertificateSummaryWidget::viewDetailsRequested);
 
     applyTheme();
     updateContents();

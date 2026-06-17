@@ -16,6 +16,7 @@
 class ThemedPushButton : public QPushButton
 {
     Q_OBJECT
+    Q_PROPERTY(QString iconName READ iconName WRITE setIconName)
 
 public:
     ///
@@ -23,6 +24,18 @@ public:
     /// \param parent Parent widget.
     ///
     explicit ThemedPushButton(QWidget *parent = nullptr);
+
+    ///
+    /// \brief Returns the themed icon resource name.
+    /// \return Icon resource name.
+    ///
+    QString iconName() const;
+
+    ///
+    /// \brief Sets the themed icon resource name.
+    /// \param name Icon resource name.
+    ///
+    void setIconName(const QString &name);
 
     ///
     /// \brief Sets the themed icon by resource name.

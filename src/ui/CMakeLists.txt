@@ -4,6 +4,7 @@ include("${PROJECT_SOURCE_DIR}/cmake/ui_normalization.cmake")
 set(UI_FILES
     mainwindow.ui
 
+    dialogs/certificatedetailsdialog.ui
     dialogs/certificatetrustdialog.ui
     dialogs/connectiondialog.ui
     dialogs/dialogabout.ui
@@ -45,6 +46,8 @@ add_library(ouaexp_ui STATIC
 
     dialogs/appbasedialog.cpp
     dialogs/appbasedialog.h
+    dialogs/certificatedetailsdialog.cpp
+    dialogs/certificatedetailsdialog.h
     dialogs/certificatetrustdialog.cpp
     dialogs/certificatetrustdialog.h
     dialogs/connectiondialog.cpp

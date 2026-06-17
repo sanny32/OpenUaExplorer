@@ -27,11 +27,13 @@
 #include <QUuid>
 
 #include "appicons.h"
+#include "certificatedetailsdialog.h"
 #include "connectiondialog.h"
 #include "opcua/opcuaclientservice.h"
 #include "opcua/connectionprofilevalidator.h"
 #include "opcua/pkimanager.h"
 #include "ui_connectiondialog.h"
+#include "widgets/certificatesummarywidget.h"
 #include "widgets/coloredpushbutton.h"
 #include "widgets/endpointdiscoverywidget.h"
 
@@ -189,6 +191,10 @@ void ConnectionDialog::setupConnections()
             this, &ConnectionDialog::updateClientCertificateAction);
     connect(ui->clientCertificateViewButton, &QPushButton::clicked,
             this, &ConnectionDialog::handleClientCertificateAction);
+    connect(ui->clientCertificateWidget, &CertificateSummaryWidget::viewDetailsRequested,
+            this, &ConnectionDialog::viewClientCertificateDetails);
+    connect(ui->serverCertificateWidget, &CertificateSummaryWidget::viewDetailsRequested,
+            this, &ConnectionDialog::viewServerCertificateDetails);
     connect(ui->trustListManageButton, &QPushButton::clicked,
             this, &ConnectionDialog::generateClientCertificate);
 }
@@ -452,6 +458,22 @@ void ConnectionDialog::handleClientCertificateAction()
 }
 
 ///
+/// \brief Opens the configured client certificate details.
+///
+void ConnectionDialog::viewClientCertificateDetails()
+{
+    showCertificateDetails(ui->clientCertificateWidget->certificate());
+}
+
+///
+/// \brief Opens the selected endpoint's server certificate details.
+///
+void ConnectionDialog::viewServerCertificateDetails()
+{
+    showCertificateDetails(ui->serverCertificateWidget->certificate());
+}
+
+///
 /// \brief Validates the profile (discovering or generating a certificate first) before accepting.
 ///
 void ConnectionDialog::validateAndAccept()
@@ -522,4 +544,18 @@ void ConnectionDialog::updateClientCertificateAction()
 {
     ui->clientCertificateViewButton->setText(
         ui->clientCertificateComboBox->currentIndex() == 0 ? tr("Generate...") : tr("Import..."));
+}
+
+///
+/// \brief Opens a read-only certificate details dialog.
+/// \param certificate DER-encoded certificate to show.
+///
+void ConnectionDialog::showCertificateDetails(const QByteArray &certificate)
+{
+    if (certificate.isEmpty())
+        return;
+
+    CertificateDetailsDialog dialog(this);
+    dialog.setCertificate(certificate);
+    dialog.exec();
 }
