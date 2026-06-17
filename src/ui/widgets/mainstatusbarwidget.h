@@ -9,12 +9,13 @@
 #pragma once
 
 #include <QStatusBar>
-
 #include "opcua/opcuatypes.h"
 
 namespace Ui {
 class MainStatusBarWidget;
 }
+
+class ConnectionController;
 
 ///
 /// \brief Status bar widget that displays connection state.
@@ -36,15 +37,21 @@ public:
     ~MainStatusBarWidget() override;
 
     ///
-    /// \brief Updates the status text, icon, and security label for the connection state.
-    /// \param state Current client state.
-    /// \param endpoint Connected endpoint.
-    /// \param security Selected security policy.
+    /// \brief Subscribes to the controller's connection state and reflects it in the labels.
+    /// \param controller Connection controller providing the client service and active profile.
     ///
-    void setConnectionState(OpcUaConnectionState state,
-                            const QString &endpoint = QString(),
-                            const QString &security = QString());
+    void setConnectionController(ConnectionController *controller);
+
+private slots:
+    void updateConnectionState(OpcUaConnectionState state);
 
 private:
+    void setConnectionState(OpcUaConnectionState state,
+                            const QString &endpoint = QString(),
+                            const QString &securityPolicy = QString(),
+                            int securityMode = 0,
+                            const QString &sessionName = QString());
+
     Ui::MainStatusBarWidget *ui;
+    ConnectionController *_controller = nullptr;
 };

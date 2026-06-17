@@ -370,6 +370,7 @@ void MainWindow::setupOpcUaClient()
     connect(_connectionController, &ConnectionController::errorOccurred,
             this, &MainWindow::onClientError);
     _connectionController->setCertificateTrustDecider(this);
+    ui->statusbar->setConnectionController(_connectionController);
     updateClientUi(_clientService->state());
 }
 
@@ -487,9 +488,6 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     ui->actionBrowse->setEnabled(connected);
     ui->actionBrowseAddressSpace->setEnabled(connected);
     ui->actionRefresh->setEnabled(connected);
-    const ConnectionProfile &profile = _connectionController->activeProfile();
-    ui->statusbar->setConnectionState(state, profile.endpointUrl,
-                                      profile.securityPolicy);
     if (connected) {
         initializeAddressSpace();
     } else if (state == OpcUaConnectionState::Disconnected

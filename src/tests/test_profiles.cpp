@@ -157,6 +157,7 @@ void TestProfiles::removeUnknownIdIsNoOp()
 void TestProfiles::allFieldsRoundTrip()
 {
     ConnectionProfile profile = makeProfile(QStringLiteral("full"), QStringLiteral("Full"));
+    profile.sessionName = QStringLiteral("Operator Session");
     profile.backend = QStringLiteral("uacpp");
     profile.securityPolicy =
         QStringLiteral("http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256");
@@ -179,6 +180,7 @@ void TestProfiles::allFieldsRoundTrip()
     const ConnectionProfile &read = profiles.first();
     QCOMPARE(read.id, profile.id);
     QCOMPARE(read.name, profile.name);
+    QCOMPARE(read.sessionName, profile.sessionName);
     QCOMPARE(read.backend, profile.backend);
     QCOMPARE(read.endpointUrl, profile.endpointUrl);
     QCOMPARE(read.securityPolicy, profile.securityPolicy);

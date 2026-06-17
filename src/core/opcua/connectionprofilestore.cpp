@@ -29,6 +29,7 @@ QList<ConnectionProfile> ConnectionProfileStore::profiles() const
         ConnectionProfile profile;
         profile.id = id;
         profile.name = settings.value(QStringLiteral("name")).toString();
+        profile.sessionName = settings.value(QStringLiteral("sessionName")).toString();
         profile.backend = settings.value(QStringLiteral("backend"), QStringLiteral("open62541")).toString();
         profile.endpointUrl = settings.value(QStringLiteral("endpointUrl")).toString();
         profile.securityPolicy = settings.value(QStringLiteral("securityPolicy")).toString();
@@ -66,6 +67,7 @@ bool ConnectionProfileStore::save(const ConnectionProfile &profile)
     settings.beginGroup(QLatin1String(profilesGroup));
     settings.beginGroup(profile.id);
     settings.setValue(QStringLiteral("name"), profile.name);
+    settings.setValue(QStringLiteral("sessionName"), profile.sessionName);
     settings.setValue(QStringLiteral("backend"), profile.backend);
     settings.setValue(QStringLiteral("endpointUrl"), profile.endpointUrl);
     settings.setValue(QStringLiteral("securityPolicy"), profile.securityPolicy);

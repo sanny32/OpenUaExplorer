@@ -254,6 +254,7 @@ ConnectionProfile ConnectionDialog::profile() const
         result.securityPolicy = QStringLiteral("None");
         result.securityMode = 1;
     }
+    result.sessionName = ui->sessionNameEdit->text().trimmed();
     result.authentication =
         static_cast<ConnectionProfile::Authentication>(currentAuthentication());
     result.username = ui->usernameEdit->text();

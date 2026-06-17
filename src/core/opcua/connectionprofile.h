@@ -28,6 +28,8 @@ struct ConnectionProfile
     QString id;
     /// \brief User-visible profile name.
     QString name;
+    /// \brief Session name reported to the server.
+    QString sessionName;
     /// \brief Preferred Qt OPC UA backend.
     QString backend = QStringLiteral("open62541");
     /// \brief Endpoint URL.
