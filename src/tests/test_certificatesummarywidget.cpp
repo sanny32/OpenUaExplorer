@@ -11,6 +11,7 @@
 #include <QWidget>
 
 #include "widgets/certificatesummarywidget.h"
+#include "widgets/themedtoolbutton.h"
 
 ///
 /// \brief Tests the panel's hint/inline empty states and populated details.
@@ -34,12 +35,16 @@ void TestCertificateSummaryWidget::hintModeHidesDetailsWhenEmpty()
 
     auto *hintLabel = widget.findChild<QLabel *>(QStringLiteral("hintLabel"));
     auto *detailsWidget = widget.findChild<QWidget *>(QStringLiteral("detailsWidget"));
+    auto *viewDetailsButton = widget.findChild<ThemedToolButton *>(QStringLiteral("viewDetailsButton"));
     QVERIFY(hintLabel);
     QVERIFY(detailsWidget);
+    QVERIFY(viewDetailsButton);
 
     QVERIFY(!hintLabel->isHidden());
     QVERIFY(detailsWidget->isHidden());
-    QVERIFY(!widget.findChild<QWidget *>(QStringLiteral("viewButton")));
+    QCOMPARE(viewDetailsButton->text(), QStringLiteral("View details"));
+    QCOMPARE(viewDetailsButton->iconName(), QStringLiteral("read.svg"));
+    QVERIFY(!viewDetailsButton->isEnabled());
     QVERIFY(widget.certificate().isEmpty());
 }
 
@@ -54,15 +59,18 @@ void TestCertificateSummaryWidget::inlineModeShowsPlaceholderWhenEmpty()
     auto *detailsWidget = widget.findChild<QWidget *>(QStringLiteral("detailsWidget"));
     auto *subjectEdit = widget.findChild<QLabel *>(QStringLiteral("subjectEdit"));
     auto *validIcon = widget.findChild<QLabel *>(QStringLiteral("validIcon"));
+    auto *viewDetailsButton = widget.findChild<ThemedToolButton *>(QStringLiteral("viewDetailsButton"));
     QVERIFY(hintLabel);
     QVERIFY(detailsWidget);
     QVERIFY(subjectEdit);
     QVERIFY(validIcon);
+    QVERIFY(viewDetailsButton);
 
     QVERIFY(hintLabel->isHidden());
     QVERIFY(!detailsWidget->isHidden());
     QCOMPARE(subjectEdit->text(), QStringLiteral("No client certificate"));
     QVERIFY(validIcon->isHidden());
+    QVERIFY(!viewDetailsButton->isEnabled());
 }
 
 void TestCertificateSummaryWidget::unreadableCertificateFillsDetails()
@@ -77,13 +85,16 @@ void TestCertificateSummaryWidget::unreadableCertificateFillsDetails()
     auto *subjectEdit = widget.findChild<QLabel *>(QStringLiteral("subjectEdit"));
     auto *validEdit = widget.findChild<QLabel *>(QStringLiteral("validEdit"));
     auto *serialNumberEdit = widget.findChild<QLabel *>(QStringLiteral("serialNumberEdit"));
+    auto *viewDetailsButton = widget.findChild<ThemedToolButton *>(QStringLiteral("viewDetailsButton"));
     QVERIFY(subjectEdit);
     QVERIFY(validEdit);
     QVERIFY(serialNumberEdit);
+    QVERIFY(viewDetailsButton);
 
     QCOMPARE(subjectEdit->text(), QStringLiteral("Unable to read certificate"));
     QCOMPARE(validEdit->text(), QStringLiteral("%1 bytes").arg(garbage.size()));
     QCOMPARE(serialNumberEdit->text(), QStringLiteral("Unavailable"));
+    QVERIFY(viewDetailsButton->isEnabled());
     QCOMPARE(widget.certificate(), garbage);
 }
 

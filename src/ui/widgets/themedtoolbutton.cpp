@@ -48,6 +48,15 @@ bool ThemedToolButton::squareIconOnly() const
 }
 
 ///
+/// \brief Returns the themed icon resource name.
+/// \return Icon resource name.
+///
+QString ThemedToolButton::iconName() const
+{
+    return _iconName;
+}
+
+///
 /// \brief Enables or disables forcing a square shape for icon-only buttons.
 /// \param enabled True to force a square shape.
 ///
@@ -62,12 +71,29 @@ void ThemedToolButton::setSquareIconOnly(bool enabled)
 }
 
 ///
+/// \brief Sets the themed icon resource name.
+/// \param name Icon resource name.
+///
+void ThemedToolButton::setIconName(const QString &name)
+{
+    setIcon(name);
+}
+
+///
 /// \brief Sets the themed icon by resource name.
 /// \param name Icon resource name.
 ///
 void ThemedToolButton::setIcon(const QString &name)
 {
+    if (_iconName == name) {
+        return;
+    }
+
     _iconName = name;
+    if (_iconName.isEmpty()) {
+        QToolButton::setIcon({});
+        return;
+    }
     refreshIcon();
 }
 

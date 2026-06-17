@@ -18,6 +18,7 @@ class ThemedToolButton : public QToolButton
 {
     Q_OBJECT
     Q_PROPERTY(bool squareIconOnly READ squareIconOnly WRITE setSquareIconOnly)
+    Q_PROPERTY(QString iconName READ iconName WRITE setIconName)
 
 public:
     ///
@@ -45,10 +46,22 @@ public:
     bool squareIconOnly() const;
 
     ///
+    /// \brief Returns the themed icon resource name.
+    /// \return Icon resource name.
+    ///
+    QString iconName() const;
+
+    ///
     /// \brief Enables or disables forcing a square shape for icon-only buttons.
     /// \param enabled True to force a square shape.
     ///
     void setSquareIconOnly(bool enabled);
+
+    ///
+    /// \brief Sets the themed icon resource name.
+    /// \param name Icon resource name.
+    ///
+    void setIconName(const QString &name);
 
     ///
     /// \brief Sets the themed icon by resource name.

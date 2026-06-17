@@ -53,6 +53,7 @@ void CertificateSummaryWidget::setTitle(const QString &title)
     ui->headerLabel->setText(title);
     ui->headerIcon->setVisible(show);
     ui->headerLabel->setVisible(show);
+    ui->viewDetailsButton->setVisible(show);
     ui->headerLine->setVisible(show);
 }
 
@@ -139,6 +140,7 @@ void CertificateSummaryWidget::updateContents()
     const bool headerActive = available || !hintMode;
     ui->headerIcon->setEnabled(headerActive);
     ui->headerLabel->setEnabled(headerActive);
+    ui->viewDetailsButton->setEnabled(available);
 
     if (!available) {
         _serialNumber.clear();
