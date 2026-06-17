@@ -40,6 +40,8 @@ struct CertificateInfo
     QDateTime expiryDate;
     /// \brief Validity classification.
     Status status = Status::Invalid;
+    /// \brief Public key size in bits, or zero when unavailable.
+    int keyBits = 0;
 
     ///
     /// \brief Parses a DER certificate into display fields, serial number, fingerprint, and validity status.

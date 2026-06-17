@@ -4,6 +4,9 @@
 #include <QCryptographicHash>
 #include <QSslCertificate>
 
+#include <openssl/evp.h>
+#include <openssl/x509.h>
+
 #include "certificateinfo.h"
 
 namespace {
@@ -15,6 +18,28 @@ namespace {
 QString firstValue(const QStringList &values)
 {
     return values.isEmpty() ? QString() : values.constFirst();
+}
+
+///
+/// \brief Reads the public key size from a DER certificate via OpenSSL.
+/// \param der Certificate bytes in DER encoding.
+/// \return Key size in bits, or zero when it cannot be determined.
+/// \note Uses OpenSSL directly because Qt's QSslKey cannot read keys when the
+///       Qt build and the available OpenSSL runtime disagree on ABI (e.g. Qt 5
+///       linked for OpenSSL 1.1 running against OpenSSL 3).
+///
+int publicKeyBits(const QByteArray &der)
+{
+    const unsigned char *data = reinterpret_cast<const unsigned char *>(der.constData());
+    X509 *certificate = d2i_X509(nullptr, &data, der.size());
+    if (!certificate)
+        return 0;
+
+    EVP_PKEY *publicKey = X509_get_pubkey(certificate);
+    const int bits = publicKey ? EVP_PKEY_bits(publicKey) : 0;
+    EVP_PKEY_free(publicKey);
+    X509_free(certificate);
+    return bits > 0 ? bits : 0;
 }
 }
 
@@ -60,6 +85,7 @@ CertificateInfo CertificateInfo::fromDer(const QByteArray &der, const QDateTime 
     result.effectiveDate = certificate.effectiveDate();
     result.expiryDate = certificate.expiryDate();
     result.status = statusForDates(result.effectiveDate, result.expiryDate, now);
+    result.keyBits = publicKeyBits(der);
     return result;
 }
 

@@ -17,7 +17,6 @@
 #include <QSaveFile>
 #include <QSslCertificate>
 #include <QSslCertificateExtension>
-#include <QSslKey>
 #include <QVariant>
 
 #include "appcolors.h"
@@ -229,9 +228,9 @@ void CertificateDetailsDialog::setCertificate(const QByteArray &certificate)
     const QString thumbprint = QStringLiteral("[%1] 0x%2")
         .arg(parsed.digest(QCryptographicHash::Sha1).size())
         .arg(QString::fromLatin1(parsed.digest(QCryptographicHash::Sha1).toHex()));
-    const QString keySize = parsed.publicKey().isNull()
-        ? unavailable()
-        : QString::number(parsed.publicKey().length());
+    const QString keySize = info.keyBits > 0
+        ? QString::number(info.keyBits)
+        : unavailable();
 
     ui->nameValue->setText(info.subject.isEmpty() ? unavailable() : info.subject);
     ui->signedByValue->setText(signedBy.isEmpty() ? unavailable() : signedBy);
