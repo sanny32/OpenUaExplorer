@@ -11,7 +11,7 @@
 #include <QAction>
 #include <QWidget>
 
-#include "logitem.h"
+#include "models/logitem.h"
 
 namespace Ui {
 class LogWidget;

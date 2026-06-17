@@ -27,37 +27,36 @@ add_library(ouaexp_core STATIC
     opcua/secretstore.cpp
     opcua/secretstore.h
 
-    widgets/addressspaceitem.h
-    widgets/addressspacemodel.cpp
-    widgets/addressspacemodel.h
-    widgets/attributesmodel.cpp
-    widgets/attributesmodel.h
-    widgets/columnalignmentstore.h
-    widgets/dataaccessitem.h
-    widgets/dataaccessmodel.cpp
-    widgets/dataaccessmodel.h
-    widgets/endpointmodel.cpp
-    widgets/endpointmodel.h
-    widgets/eventsmodel.cpp
-    widgets/eventsmodel.h
-    widgets/historymodel.cpp
-    widgets/historymodel.h
-    widgets/logitem.h
-    widgets/logmodel.cpp
-    widgets/logmodel.h
-    widgets/nodeinfomodel.cpp
-    widgets/nodeinfomodel.h
-    widgets/nodeitem.h
-    widgets/referencesmodel.cpp
-    widgets/referencesmodel.h
-    widgets/subscriptionitem.h
-    widgets/subscriptionsmodel.cpp
-    widgets/subscriptionsmodel.h
+    models/addressspaceitem.h
+    models/addressspacemodel.cpp
+    models/addressspacemodel.h
+    models/attributesmodel.cpp
+    models/attributesmodel.h
+    models/columnalignmentstore.h
+    models/dataaccessitem.h
+    models/dataaccessmodel.cpp
+    models/dataaccessmodel.h
+    models/endpointmodel.cpp
+    models/endpointmodel.h
+    models/eventsmodel.cpp
+    models/eventsmodel.h
+    models/historymodel.cpp
+    models/historymodel.h
+    models/logitem.h
+    models/logmodel.cpp
+    models/logmodel.h
+    models/nodeinfomodel.cpp
+    models/nodeinfomodel.h
+    models/nodeitem.h
+    models/referencesmodel.cpp
+    models/referencesmodel.h
+    models/subscriptionitem.h
+    models/subscriptionsmodel.cpp
+    models/subscriptionsmodel.h
 )
 
 target_include_directories(ouaexp_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/widgets
 )
 
 target_link_libraries(ouaexp_core PUBLIC

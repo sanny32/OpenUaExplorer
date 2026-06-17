@@ -8,8 +8,8 @@
 
 #include <QHeaderView>
 
-#include "attributesmodel.h"
 #include "attributeswidget.h"
+#include "models/attributesmodel.h"
 #include "ui_attributeswidget.h"
 
 ///

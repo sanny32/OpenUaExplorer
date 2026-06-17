@@ -13,7 +13,7 @@
 #include "opcua/certificateinfo.h"
 #include "opcua/connectionprofilevalidator.h"
 #include "opcua/endpointhistorystore.h"
-#include "widgets/endpointmodel.h"
+#include "models/endpointmodel.h"
 
 ///
 /// \brief Tests the pure connection-data helpers against a temporary settings store.

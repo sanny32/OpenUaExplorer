@@ -15,8 +15,8 @@
 #include "appicons.h"
 #include "headerview.h"
 #include "loggingcategories.h"
-#include "logmodel.h"
 #include "logwidget.h"
+#include "models/logmodel.h"
 #include "tableview.h"
 #include "ui_logwidget.h"
 

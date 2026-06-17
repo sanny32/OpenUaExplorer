@@ -11,13 +11,13 @@
 #include <QMenu>
 #include <QPushButton>
 
-#include "dataaccessmodel.h"
 #include "dataaccesswidget.h"
-#include "eventsmodel.h"
 #include "headerview.h"
-#include "historymodel.h"
+#include "models/dataaccessmodel.h"
+#include "models/eventsmodel.h"
+#include "models/historymodel.h"
+#include "models/subscriptionsmodel.h"
 #include "subscriptiondelegate.h"
-#include "subscriptionsmodel.h"
 #include "tableview.h"
 #include "ui_dataaccesswidget.h"
 

@@ -19,7 +19,7 @@
 #include <QVBoxLayout>
 
 #include "endpointdiscoverywidget.h"
-#include "widgets/endpointmodel.h"
+#include "models/endpointmodel.h"
 
 namespace {
 

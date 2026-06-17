@@ -10,11 +10,11 @@
 #include <QItemSelectionModel>
 #include <QPushButton>
 
-#include "addressspacemodel.h"
 #include "addressspacewidget.h"
 #include "appicons.h"
-#include "nodeinfomodel.h"
-#include "referencesmodel.h"
+#include "models/addressspacemodel.h"
+#include "models/nodeinfomodel.h"
+#include "models/referencesmodel.h"
 #include "tableview.h"
 #include "ui_addressspacewidget.h"
 

@@ -10,7 +10,7 @@
 
 #include <QWidget>
 
-#include "addressspaceitem.h"
+#include "models/addressspaceitem.h"
 #include "opcua/opcuatypes.h"
 
 namespace Ui {

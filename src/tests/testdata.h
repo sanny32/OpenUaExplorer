@@ -12,11 +12,11 @@
 #include <QStringList>
 #include <QVector>
 
-#include "widgets/addressspaceitem.h"
-#include "widgets/dataaccessitem.h"
-#include "widgets/logitem.h"
-#include "widgets/nodeitem.h"
-#include "widgets/subscriptionitem.h"
+#include "models/addressspaceitem.h"
+#include "models/dataaccessitem.h"
+#include "models/logitem.h"
+#include "models/nodeitem.h"
+#include "models/subscriptionitem.h"
 
 namespace TestData {
 

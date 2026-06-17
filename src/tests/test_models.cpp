@@ -14,15 +14,15 @@
 
 #include "testdata.h"
 #include "opcua/opcuatypes.h"
-#include "widgets/addressspacemodel.h"
-#include "widgets/attributesmodel.h"
-#include "widgets/dataaccessmodel.h"
-#include "widgets/eventsmodel.h"
-#include "widgets/historymodel.h"
-#include "widgets/logmodel.h"
-#include "widgets/nodeinfomodel.h"
-#include "widgets/referencesmodel.h"
-#include "widgets/subscriptionsmodel.h"
+#include "models/addressspacemodel.h"
+#include "models/attributesmodel.h"
+#include "models/dataaccessmodel.h"
+#include "models/eventsmodel.h"
+#include "models/historymodel.h"
+#include "models/logmodel.h"
+#include "models/nodeinfomodel.h"
+#include "models/referencesmodel.h"
+#include "models/subscriptionsmodel.h"
 
 ///
 /// \brief Unit tests for the OPC UA UI models.

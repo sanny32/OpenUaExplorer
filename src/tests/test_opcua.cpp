@@ -19,8 +19,8 @@
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuaclientservice.h"
 #include "opcua/pkimanager.h"
-#include "widgets/addressspacemodel.h"
-#include "widgets/attributesmodel.h"
+#include "models/addressspacemodel.h"
+#include "models/attributesmodel.h"
 
 ///
 /// \brief Unit tests for transport-neutral OPC UA components.
