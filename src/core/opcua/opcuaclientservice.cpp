@@ -41,6 +41,8 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::dataValuesReady);
     connect(_backend, &OpcUaBackend::writeFinished,
             this, &OpcUaClientService::writeFinished);
+    connect(_backend, &OpcUaBackend::serverSessionNameResolved,
+            this, &OpcUaClientService::serverSessionNameResolved);
 }
 
 ///
@@ -179,4 +181,12 @@ void OpcUaClientService::writeValue(const QString &nodeId, const QVariant &value
                                     int valueType)
 {
     _backend->writeValue(nodeId, value, valueType, _requestTimeoutMs);
+}
+
+///
+/// \brief Resolves this client's session name from the server diagnostics.
+///
+void OpcUaClientService::readServerSessionName()
+{
+    _backend->readServerSessionName(_requestTimeoutMs);
 }

@@ -118,6 +118,15 @@ public:
     virtual void writeValue(const QString &nodeId, const QVariant &value,
                             int valueType, int timeoutMs) = 0;
 
+    ///
+    /// \brief Resolves this client's session name from the server diagnostics.
+    ///
+    /// Backends that cannot read the server diagnostics may leave the default
+    /// no-op, which resolves to an empty name.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    virtual void readServerSessionName(int timeoutMs) { Q_UNUSED(timeoutMs); }
+
 signals:
     ///
     /// \brief Emitted when the connection state changes.
@@ -167,4 +176,10 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void writeFinished(QString nodeId, bool success, QString error);
+
+    ///
+    /// \brief Emitted when the server-assigned session name has been resolved.
+    /// \param sessionName Resolved session name, empty when unavailable.
+    ///
+    void serverSessionNameResolved(QString sessionName);
 };

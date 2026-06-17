@@ -46,6 +46,7 @@ private slots:
     void updateConnectionState(OpcUaConnectionState state);
     void updateClocks();
     void handleServerTime(const QVector<OpcUaDataValue> &values, const QString &error);
+    void handleServerSessionName(const QString &sessionName);
 
 private:
     void setConnectionState(OpcUaConnectionState state,

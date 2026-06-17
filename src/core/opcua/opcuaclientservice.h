@@ -131,6 +131,11 @@ public:
     ///
     void writeValue(const QString &nodeId, const QVariant &value, int valueType);
 
+    ///
+    /// \brief Resolves this client's session name from the server diagnostics.
+    ///
+    void readServerSessionName();
+
 signals:
     ///
     /// \brief Emitted when the connection state changes.
@@ -180,6 +185,12 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void writeFinished(QString nodeId, bool success, QString error);
+
+    ///
+    /// \brief Emitted when the server-assigned session name has been resolved.
+    /// \param sessionName Resolved session name, empty when unavailable.
+    ///
+    void serverSessionNameResolved(QString sessionName);
 private:
     OpcUaBackend *_backend;
     bool _ownsBackend;

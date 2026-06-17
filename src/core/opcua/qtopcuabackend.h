@@ -109,6 +109,12 @@ public:
     void writeValue(const QString &nodeId, const QVariant &value,
                     int valueType, int timeoutMs) override;
 
+    ///
+    /// \brief Reads the SessionDiagnosticsArray and resolves this client's session name.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void readServerSessionName(int timeoutMs) override;
+
 private:
     class Private;
     Private *_d;

@@ -22,6 +22,9 @@ public:
     /// \brief Server.ServerStatus.CurrentTime, the server's UTC clock.
     static constexpr char ServerCurrentTime[] = "ns=0;i=2258";
 
+    /// \brief Server.ServerDiagnostics.SessionsDiagnosticsSummary.SessionDiagnosticsArray.
+    static constexpr char SessionDiagnosticsArray[] = "ns=0;i=3707";
+
     ///
     /// \brief Returns the Objects-folder NodeId as a QLatin1String.
     /// \return Objects-folder NodeId.
@@ -33,4 +36,13 @@ public:
     /// \return Server CurrentTime NodeId.
     ///
     static QLatin1String serverCurrentTime() { return QLatin1String(ServerCurrentTime); }
+
+    ///
+    /// \brief Returns the SessionDiagnosticsArray NodeId as a QLatin1String.
+    /// \return SessionDiagnosticsArray NodeId.
+    ///
+    static QLatin1String sessionDiagnosticsArray()
+    {
+        return QLatin1String(SessionDiagnosticsArray);
+    }
 };

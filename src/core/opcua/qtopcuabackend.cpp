@@ -15,8 +15,11 @@
 #include <QTimer>
 #include <QUrl>
 
+#include <QOpcUaApplicationDescription>
 #include <QOpcUaAuthenticationInformation>
+#include <QOpcUaBinaryDataEncoding>
 #include <QOpcUaClient>
+#include <QOpcUaExtensionObject>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
 #include <QOpcUaConnectionSettings>
 #endif
@@ -37,6 +40,7 @@
 #include "loggingcategories.h"
 #include "pkimanager.h"
 #include "qtopcuabackend.h"
+#include "standardnodeid.h"
 
 using namespace OpcUaFormat;
 
@@ -96,6 +100,7 @@ public:
         ++nodeReadGeneration;
         ++valueReadGeneration;
         ++writeGeneration;
+        ++sessionNameReadGeneration;
     }
 
     ///
@@ -382,6 +387,7 @@ public:
     quint64 nodeReadGeneration = 0;
     quint64 valueReadGeneration = 0;
     quint64 writeGeneration = 0;
+    quint64 sessionNameReadGeneration = 0;
     PkiManager pki;
     QOpcUaProvider provider;
     QOpcUaClient *client = nullptr;
@@ -768,6 +774,148 @@ void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
         disconnect(connection);
         ++_d->valueReadGeneration;
         emit dataValuesReady({}, tr("The backend rejected the batch read request."));
+    }
+}
+
+namespace {
+
+///
+/// \brief Leading fields of a SessionDiagnosticsDataType needed to identify a session.
+///
+struct SessionDiagnostics
+{
+    QString sessionName;
+    QString applicationUri;
+    QDateTime connectionTime;
+    bool valid = false;
+};
+
+///
+/// \brief Decodes the leading fields of a binary SessionDiagnosticsDataType body.
+/// \param object Extension object holding one SessionDiagnosticsDataType.
+/// \return Decoded fields, with valid == false when decoding failed.
+///
+SessionDiagnostics decodeSessionDiagnostics(QOpcUaExtensionObject object)
+{
+    SessionDiagnostics result;
+    QOpcUaBinaryDataEncoding decoder(object);
+    bool step = false;
+    bool ok = true;
+
+    decoder.decode<QString, QOpcUa::Types::NodeId>(step); ok &= step;     // SessionId
+    const QString sessionName = decoder.decode<QString>(step); ok &= step; // SessionName
+    // ClientDescription (ApplicationDescription):
+    const QString applicationUri = decoder.decode<QString>(step); ok &= step; // ApplicationUri
+    decoder.decode<QString>(step); ok &= step;                            // ProductUri
+    decoder.decode<QOpcUaLocalizedText>(step); ok &= step;                // ApplicationName
+    decoder.decode<quint32>(step); ok &= step;                           // ApplicationType
+    decoder.decode<QString>(step); ok &= step;                           // GatewayServerUri
+    decoder.decode<QString>(step); ok &= step;                           // DiscoveryProfileUri
+    decoder.decodeArray<QString>(step); ok &= step;                      // DiscoveryUrls
+    decoder.decode<QString>(step); ok &= step;                          // ServerUri
+    decoder.decode<QString>(step); ok &= step;                          // EndpointUrl
+    decoder.decodeArray<QString>(step); ok &= step;                     // LocaleIds
+    decoder.decode<double>(step); ok &= step;                           // ActualSessionTimeout
+    decoder.decode<quint32>(step); ok &= step;                          // MaxResponseMessageSize
+    const QDateTime connectionTime = decoder.decode<QDateTime>(step); ok &= step; // ClientConnectionTime
+
+    if (!ok)
+        return result;
+    result.sessionName = sessionName;
+    result.applicationUri = applicationUri;
+    result.connectionTime = connectionTime;
+    result.valid = true;
+    return result;
+}
+
+///
+/// \brief Picks this client's session name from a SessionDiagnosticsArray value.
+/// \param value Value of the SessionDiagnosticsArray node (array of extension objects).
+/// \param ownApplicationUri This client's application URI used to match its session.
+/// \return Resolved session name, or empty when none matched.
+///
+QString resolveOwnSessionName(const QVariant &value, const QString &ownApplicationUri)
+{
+    QList<QOpcUaExtensionObject> objects;
+    if (value.canConvert<QList<QOpcUaExtensionObject>>()) {
+        objects = value.value<QList<QOpcUaExtensionObject>>();
+    } else {
+        const QVariantList list = value.toList();
+        for (const QVariant &entry : list)
+            if (entry.canConvert<QOpcUaExtensionObject>())
+                objects.append(entry.value<QOpcUaExtensionObject>());
+    }
+
+    // Prefer the session whose client application URI matches ours; if none match
+    // (e.g. an unsecured connection without an application identity), fall back to
+    // the most recently connected session, which is the one we just opened.
+    QString matchedName;
+    QDateTime matchedTime;
+    QString latestName;
+    QDateTime latestTime;
+    for (const QOpcUaExtensionObject &object : objects) {
+        const SessionDiagnostics diagnostics = decodeSessionDiagnostics(object);
+        if (!diagnostics.valid)
+            continue;
+        if (latestName.isEmpty() || diagnostics.connectionTime > latestTime) {
+            latestName = diagnostics.sessionName;
+            latestTime = diagnostics.connectionTime;
+        }
+        if (ownApplicationUri.isEmpty() || diagnostics.applicationUri != ownApplicationUri)
+            continue;
+        if (matchedName.isEmpty() || diagnostics.connectionTime > matchedTime) {
+            matchedName = diagnostics.sessionName;
+            matchedTime = diagnostics.connectionTime;
+        }
+    }
+    return matchedName.isEmpty() ? latestName : matchedName;
+}
+
+}
+
+///
+/// \brief Reads the SessionDiagnosticsArray and resolves this client's session name.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::readServerSessionName(int timeoutMs)
+{
+    if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
+        emit serverSessionNameResolved(QString());
+        return;
+    }
+    QOpcUaNode *node = _d->client->node(
+        QString::fromLatin1(StandardNodeId::SessionDiagnosticsArray));
+    if (!node) {
+        emit serverSessionNameResolved(QString());
+        return;
+    }
+    const quint64 requestGeneration = _d->generation;
+    const quint64 operationGeneration = ++_d->sessionNameReadGeneration;
+    QTimer::singleShot(qMax(1000, timeoutMs), this,
+                       [this, node, operationGeneration]() {
+        if (operationGeneration != _d->sessionNameReadGeneration)
+            return;
+        ++_d->sessionNameReadGeneration;
+        node->deleteLater();
+        emit serverSessionNameResolved(QString());
+    });
+    connect(node, &QOpcUaNode::attributeRead, this,
+            [this, node, requestGeneration, operationGeneration](QOpcUa::NodeAttributes) {
+        if (requestGeneration != _d->generation
+            || operationGeneration != _d->sessionNameReadGeneration) {
+            node->deleteLater();
+            return;
+        }
+        ++_d->sessionNameReadGeneration;
+        const QVariant value = node->valueAttribute();
+        node->deleteLater();
+        emit serverSessionNameResolved(
+            resolveOwnSessionName(value, PkiManager::applicationUri()));
+    });
+    if (!node->readAttributes(QOpcUa::NodeAttribute::Value)) {
+        ++_d->sessionNameReadGeneration;
+        node->deleteLater();
+        emit serverSessionNameResolved(QString());
     }
 }
 
