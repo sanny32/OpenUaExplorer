@@ -19,6 +19,7 @@ private slots:
     void cleanup();
     void endpointHistoryIsDeduplicatedAndBounded();
     void endpointModelExposesSelectionRoles();
+    void endpointModelSortsByRank();
     void certificateStatusCoversDateBoundaries();
     void corruptCertificateIsReportedAsInvalid();
     void profileValidationCoversCredentials();
@@ -78,6 +79,44 @@ void TestConnectionData::endpointModelExposesSelectionRoles()
     QCOMPARE(model.data(index, EndpointModel::IconRole).toString(),
              QStringLiteral("lock.svg"));
     QCOMPARE(model.endpointAt(0).endpointUrl, endpoint.endpointUrl);
+}
+
+void TestConnectionData::endpointModelSortsByRank()
+{
+    const auto makeEndpoint = [](const QString &policy, int modeValue) {
+        EndpointInfo endpoint;
+        endpoint.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
+        endpoint.securityPolicy =
+            QStringLiteral("http://opcfoundation.org/UA/SecurityPolicy#") + policy;
+        endpoint.securityModeValue = modeValue;
+        return endpoint;
+    };
+
+    // Supplied out of rank order: insecure, then weak-secure, then strong-secure.
+    const QList<EndpointInfo> endpoints = {
+        makeEndpoint(QStringLiteral("None"), 1),
+        makeEndpoint(QStringLiteral("Basic256"), 3),
+        makeEndpoint(QStringLiteral("Aes256_Sha256_RsaPss"), 3),
+    };
+
+    EndpointModel model;
+    model.setEndpoints(endpoints);
+
+    QCOMPARE(model.rowCount(), 3);
+
+    // Recommended (strongest secure) first, then good, then None.
+    QCOMPARE(model.data(model.index(0, 0), EndpointModel::PolicyRole).toString(),
+             QStringLiteral("Aes256_Sha256_RsaPss"));
+    QCOMPARE(model.data(model.index(0, 0), EndpointModel::RecommendedRole).toBool(),
+             true);
+    QCOMPARE(model.data(model.index(1, 0), EndpointModel::PolicyRole).toString(),
+             QStringLiteral("Basic256"));
+    QCOMPARE(model.data(model.index(1, 0), EndpointModel::StatusRole).toString(),
+             QStringLiteral("Good"));
+    QCOMPARE(model.data(model.index(2, 0), EndpointModel::PolicyRole).toString(),
+             QStringLiteral("None"));
+    QCOMPARE(model.data(model.index(2, 0), EndpointModel::StatusRole).toString(),
+             QStringLiteral("Not secure"));
 }
 
 void TestConnectionData::certificateStatusCoversDateBoundaries()

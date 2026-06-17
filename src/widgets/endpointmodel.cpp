@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+#include <algorithm>
 #include "endpointmodel.h"
 
 namespace {
@@ -61,16 +62,20 @@ bool EndpointModel::isSecure(const EndpointInfo &endpoint) const
         && policy.compare(QStringLiteral("None"), Qt::CaseInsensitive) != 0;
 }
 
+int EndpointModel::rankScore(const EndpointInfo &endpoint) const
+{
+    if (!isSecure(endpoint))
+        return -1;
+    const QString policy = endpoint.securityPolicy.section(QLatin1Char('#'), -1);
+    return policyStrength(policy) * 10 + endpoint.securityModeValue;
+}
+
 int EndpointModel::recommendedRow() const
 {
     int best = -1;
     int bestScore = -1;
     for (int row = 0; row < _endpoints.size(); ++row) {
-        const EndpointInfo &endpoint = _endpoints.at(row);
-        if (!isSecure(endpoint))
-            continue;
-        const QString policy = endpoint.securityPolicy.section(QLatin1Char('#'), -1);
-        const int score = policyStrength(policy) * 10 + endpoint.securityModeValue;
+        const int score = rankScore(_endpoints.at(row));
         if (score > bestScore) {
             bestScore = score;
             best = row;
@@ -157,6 +162,10 @@ void EndpointModel::setEndpoints(const QList<EndpointInfo> &endpoints)
 {
     beginResetModel();
     _endpoints = endpoints;
+    std::stable_sort(_endpoints.begin(), _endpoints.end(),
+                     [this](const EndpointInfo &a, const EndpointInfo &b) {
+                         return rankScore(a) > rankScore(b);
+                     });
     _recommendedRow = recommendedRow();
     endResetModel();
 }

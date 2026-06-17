@@ -50,6 +50,7 @@ public:
 
 private:
     bool isSecure(const EndpointInfo &endpoint) const;
+    int rankScore(const EndpointInfo &endpoint) const;
     int recommendedRow() const;
 
     QList<EndpointInfo> _endpoints;
