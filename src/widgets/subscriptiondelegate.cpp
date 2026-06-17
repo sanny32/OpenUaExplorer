@@ -11,9 +11,9 @@
 #include "subscriptiondelegate.h"
 
 ///
-/// \brief SubscriptionDelegate::SubscriptionDelegate
-/// \param subscriptionNames
-/// \param parent
+/// \brief Constructs the delegate with the set of selectable subscription names.
+/// \param subscriptionNames Names offered in the editor combo box.
+/// \param parent Owning QObject.
 ///
 SubscriptionDelegate::SubscriptionDelegate(QStringList subscriptionNames, QObject *parent)
     : QStyledItemDelegate(parent)
@@ -22,11 +22,9 @@ SubscriptionDelegate::SubscriptionDelegate(QStringList subscriptionNames, QObjec
 }
 
 ///
-/// \brief SubscriptionDelegate::createEditor
-/// \param parent
-/// \param option
-/// \param index
-/// \return
+/// \brief Creates a combo-box editor listing the subscription names plus an empty choice.
+/// \param parent Parent for the editor widget.
+/// \return The combo-box editor.
 ///
 QWidget *SubscriptionDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &,
                                             const QModelIndex &) const
@@ -39,9 +37,9 @@ QWidget *SubscriptionDelegate::createEditor(QWidget *parent, const QStyleOptionV
 }
 
 ///
-/// \brief SubscriptionDelegate::setEditorData
-/// \param editor
-/// \param index
+/// \brief Selects the combo entry matching the item's current value.
+/// \param editor Combo-box editor.
+/// \param index Model index being edited.
 ///
 void SubscriptionDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
 {
@@ -52,10 +50,10 @@ void SubscriptionDelegate::setEditorData(QWidget *editor, const QModelIndex &ind
 }
 
 ///
-/// \brief SubscriptionDelegate::setModelData
-/// \param editor
-/// \param model
-/// \param index
+/// \brief Writes the combo's selected subscription back to the model.
+/// \param editor Combo-box editor.
+/// \param model Model to update.
+/// \param index Model index being edited.
 ///
 void SubscriptionDelegate::setModelData(QWidget *editor, QAbstractItemModel *model,
                                         const QModelIndex &index) const

@@ -22,8 +22,8 @@
 #include "ui_dataaccesswidget.h"
 
 ///
-/// \brief DataAccessWidget::DataAccessWidget
-/// \param parent
+/// \brief Builds the widget and its data, subscriptions, events, and history views.
+/// \param parent Parent widget.
 ///
 DataAccessWidget::DataAccessWidget(QWidget *parent)
     : QWidget(parent)
@@ -46,7 +46,7 @@ DataAccessWidget::DataAccessWidget(QWidget *parent)
 }
 
 ///
-/// \brief DataAccessWidget::~DataAccessWidget
+/// \brief Destroys the widget and its generated UI.
 ///
 DataAccessWidget::~DataAccessWidget()
 {
@@ -54,8 +54,8 @@ DataAccessWidget::~DataAccessWidget()
 }
 
 ///
-/// \brief DataAccessWidget::setCurrentPage
-/// \param page
+/// \brief Switches the visible tab.
+/// \param page Page to show.
 ///
 void DataAccessWidget::setCurrentPage(Page page)
 {
@@ -63,7 +63,7 @@ void DataAccessWidget::setCurrentPage(Page page)
 }
 
 ///
-/// \brief DataAccessWidget::addNode
+/// \brief Adds or updates a node row and shows the Data Access page.
 /// \param details Variable node details.
 ///
 void DataAccessWidget::addNode(const OpcUaNodeDetails &details)
@@ -73,7 +73,7 @@ void DataAccessWidget::addNode(const OpcUaNodeDetails &details)
 }
 
 ///
-/// \brief DataAccessWidget::updateValues
+/// \brief Applies read results to the data rows.
 /// \param values Read results.
 ///
 void DataAccessWidget::updateValues(const QVector<OpcUaDataValue> &values)
@@ -82,7 +82,7 @@ void DataAccessWidget::updateValues(const QVector<OpcUaDataValue> &values)
 }
 
 ///
-/// \brief DataAccessWidget::clearRuntimeData
+/// \brief Clears the data, subscriptions, events, and history models.
 ///
 void DataAccessWidget::clearRuntimeData()
 {
@@ -93,7 +93,7 @@ void DataAccessWidget::clearRuntimeData()
 }
 
 ///
-/// \brief DataAccessWidget::setupDataView
+/// \brief Binds and lays out the data table, including column sizing and selection wiring.
 ///
 void DataAccessWidget::setupDataView()
 {
@@ -141,7 +141,7 @@ void DataAccessWidget::setupDataView()
 }
 
 ///
-/// \brief DataAccessWidget::setupSubscriptionsView
+/// \brief Binds and lays out the subscriptions table.
 ///
 void DataAccessWidget::setupSubscriptionsView()
 {
@@ -159,7 +159,7 @@ void DataAccessWidget::setupSubscriptionsView()
 }
 
 ///
-/// \brief DataAccessWidget::setupEventsView
+/// \brief Binds and lays out the events table.
 ///
 void DataAccessWidget::setupEventsView()
 {
@@ -177,7 +177,7 @@ void DataAccessWidget::setupEventsView()
 }
 
 ///
-/// \brief DataAccessWidget::setupHistoryView
+/// \brief Binds and lays out the history table.
 ///
 void DataAccessWidget::setupHistoryView()
 {
@@ -195,7 +195,7 @@ void DataAccessWidget::setupHistoryView()
 }
 
 ///
-/// \brief DataAccessWidget::configureToolbar
+/// \brief Sets toolbar icons, disables empty-state actions, and wires the toolbar buttons.
 ///
 void DataAccessWidget::configureToolbar()
 {
@@ -230,7 +230,7 @@ void DataAccessWidget::configureToolbar()
 }
 
 ///
-/// \brief DataAccessWidget::rebuildSubscribeMenu
+/// \brief Rebuilds the subscription editor delegate and the subscribe button's menu.
 ///
 void DataAccessWidget::rebuildSubscribeMenu()
 {
@@ -253,8 +253,8 @@ void DataAccessWidget::rebuildSubscribeMenu()
 }
 
 ///
-/// \brief DataAccessWidget::applySubscriptionToSelection
-/// \param subscriptionName
+/// \brief Assigns a subscription (or clears it) on every selected data row.
+/// \param subscriptionName Subscription to assign, or empty to unsubscribe.
 ///
 void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionName)
 {
@@ -266,7 +266,7 @@ void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionN
 }
 
 ///
-/// \brief DataAccessWidget::selectedDataRows
+/// \brief Returns the currently selected data rows.
 /// \return Selected Data Access rows.
 ///
 QModelIndexList DataAccessWidget::selectedDataRows() const

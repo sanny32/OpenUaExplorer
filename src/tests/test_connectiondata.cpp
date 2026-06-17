@@ -1,6 +1,11 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+///
+/// \file test_connectiondata.cpp
+/// \brief Unit tests for endpoint history, the endpoint model, certificate status, and validation.
+///
+
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>
@@ -10,6 +15,9 @@
 #include "opcua/endpointhistorystore.h"
 #include "widgets/endpointmodel.h"
 
+///
+/// \brief Tests the pure connection-data helpers against a temporary settings store.
+///
 class TestConnectionData : public QObject
 {
     Q_OBJECT

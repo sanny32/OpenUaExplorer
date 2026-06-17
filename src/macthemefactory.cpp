@@ -55,6 +55,11 @@ namespace Dark {
     constexpr QRgb kIconActive     = 0x409cff;
 }
 
+///
+/// \brief Builds a fully transparent colour from an RGB value.
+/// \param rgb Source RGB value.
+/// \return Colour with alpha set to zero.
+///
 QColor transparent(QRgb rgb)
 {
     QColor color(rgb);
@@ -62,6 +67,12 @@ QColor transparent(QRgb rgb)
     return color;
 }
 
+///
+/// \brief Builds a colour from an RGB value with an explicit alpha.
+/// \param rgb Source RGB value.
+/// \param value Alpha channel, 0–255.
+/// \return Colour with the given opacity.
+///
 QColor alpha(QRgb rgb, int value)
 {
     QColor color(rgb);
@@ -71,8 +82,8 @@ QColor alpha(QRgb rgb, int value)
 
 } // namespace
 ///
-/// \brief makeMacLightTheme
-/// \return
+/// \brief Builds the macOS light theme: palette, status colours, fonts, and metrics.
+/// \return The configured light theme.
 ///
 Theme MacThemeFactory::makeLightTheme()
 {
@@ -204,8 +215,8 @@ Theme MacThemeFactory::makeLightTheme()
 }
 
 ///
-/// \brief makeMacDarkTheme
-/// \return
+/// \brief Builds the macOS dark theme: palette, status colours, fonts, and metrics.
+/// \return The configured dark theme.
 ///
 Theme MacThemeFactory::makeDarkTheme()
 {

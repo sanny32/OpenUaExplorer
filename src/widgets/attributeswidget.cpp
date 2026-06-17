@@ -13,8 +13,8 @@
 #include "ui_attributeswidget.h"
 
 ///
-/// \brief AttributesWidget::AttributesWidget
-/// \param parent
+/// \brief Builds the attributes widget and its tree view.
+/// \param parent Parent widget.
 ///
 AttributesWidget::AttributesWidget(QWidget *parent)
     : QWidget(parent)
@@ -26,7 +26,7 @@ AttributesWidget::AttributesWidget(QWidget *parent)
 }
 
 ///
-/// \brief AttributesWidget::~AttributesWidget
+/// \brief Destroys the widget and its generated UI.
 ///
 AttributesWidget::~AttributesWidget()
 {
@@ -34,7 +34,7 @@ AttributesWidget::~AttributesWidget()
 }
 
 ///
-/// \brief AttributesWidget::setNodeDetails
+/// \brief Shows the attributes of the selected node, expanding the top level.
 /// \param details Selected node details.
 ///
 void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
@@ -44,7 +44,7 @@ void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
 }
 
 ///
-/// \brief AttributesWidget::clear
+/// \brief Clears the attributes view.
 ///
 void AttributesWidget::clear()
 {
@@ -52,7 +52,7 @@ void AttributesWidget::clear()
 }
 
 ///
-/// \brief AttributesWidget::setupAttributesView
+/// \brief Binds the tree to the attributes model and configures its columns.
 ///
 void AttributesWidget::setupAttributesView()
 {

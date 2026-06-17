@@ -19,8 +19,8 @@
 #include "ui_addressspacewidget.h"
 
 ///
-/// \brief AddressSpaceWidget::AddressSpaceWidget
-/// \param parent
+/// \brief Builds the browser, wiring its tree, node-info, and references views.
+/// \param parent Parent widget.
 ///
 AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     : QWidget(parent)
@@ -67,7 +67,7 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
 }
 
 ///
-/// \brief AddressSpaceWidget::setRootNode
+/// \brief Sets the tree's root node and selects it.
 /// \param root Root folder information.
 ///
 void AddressSpaceWidget::setRootNode(const OpcUaNodeInfo &root)
@@ -79,7 +79,7 @@ void AddressSpaceWidget::setRootNode(const OpcUaNodeInfo &root)
 }
 
 ///
-/// \brief AddressSpaceWidget::setBrowseChildren
+/// \brief Applies browse results to the tree and refreshes the references view if selected.
 /// \param parentNodeId Parent NodeId.
 /// \param children Browse result.
 /// \param error Browse error.
@@ -103,7 +103,7 @@ void AddressSpaceWidget::setBrowseChildren(const QString &parentNodeId,
 }
 
 ///
-/// \brief AddressSpaceWidget::setNodeDetails
+/// \brief Populates the node-info table from the selected node's details.
 /// \param details Selected node details.
 ///
 void AddressSpaceWidget::setNodeDetails(const OpcUaNodeDetails &details)
@@ -119,7 +119,7 @@ void AddressSpaceWidget::setNodeDetails(const OpcUaNodeDetails &details)
 }
 
 ///
-/// \brief AddressSpaceWidget::clear
+/// \brief Clears the tree, node-info, and references views.
 ///
 void AddressSpaceWidget::clear()
 {
@@ -130,7 +130,7 @@ void AddressSpaceWidget::clear()
 }
 
 ///
-/// \brief AddressSpaceWidget::selectedNode
+/// \brief Returns the node currently selected in the tree.
 /// \return Currently selected OPC UA node.
 ///
 OpcUaNodeInfo AddressSpaceWidget::selectedNode() const
@@ -139,7 +139,7 @@ OpcUaNodeInfo AddressSpaceWidget::selectedNode() const
 }
 
 ///
-/// \brief AddressSpaceWidget::~AddressSpaceWidget
+/// \brief Destroys the widget and its generated UI.
 ///
 AddressSpaceWidget::~AddressSpaceWidget()
 {
@@ -147,7 +147,7 @@ AddressSpaceWidget::~AddressSpaceWidget()
 }
 
 ///
-/// \brief AddressSpaceWidget::setupTreeView
+/// \brief Binds the tree view to the address-space model.
 ///
 void AddressSpaceWidget::setupTreeView()
 {
@@ -157,7 +157,7 @@ void AddressSpaceWidget::setupTreeView()
 }
 
 ///
-/// \brief AddressSpaceWidget::setupNodeInfoView
+/// \brief Binds and lays out the node-info table.
 ///
 void AddressSpaceWidget::setupNodeInfoView()
 {
@@ -169,7 +169,7 @@ void AddressSpaceWidget::setupNodeInfoView()
 }
 
 ///
-/// \brief AddressSpaceWidget::setupReferencesView
+/// \brief Binds and lays out the references table.
 ///
 void AddressSpaceWidget::setupReferencesView()
 {

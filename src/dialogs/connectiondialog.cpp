@@ -64,8 +64,8 @@ void updatePopupWidth(QComboBox *comboBox)
 }
 
 ///
-/// \brief ConnectionDialog::ConnectionDialog
-/// \param parent
+/// \brief Builds the dialog and initialises its history, certificate panels, and controls.
+/// \param parent Parent widget.
 ///
 ConnectionDialog::ConnectionDialog(QWidget *parent)
     : AppBaseDialog(parent)
@@ -81,9 +81,7 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
 }
 
 ///
-/// \brief ConnectionDialog::setupEndpointHistory
-///
-/// Populates the endpoint URL combo box from the persisted history.
+/// \brief Populates the endpoint URL combo box from the persisted history.
 ///
 void ConnectionDialog::setupEndpointHistory()
 {
@@ -99,10 +97,8 @@ void ConnectionDialog::setupEndpointHistory()
 }
 
 ///
-/// \brief ConnectionDialog::setupCertificatePanels
-///
-/// Configures the server and client certificate summary panels and seeds the
-/// client certificate selection from any existing auto-generated certificate.
+/// \brief Configures the server and client certificate panels, seeding any existing
+///        auto-generated client certificate.
 ///
 void ConnectionDialog::setupCertificatePanels()
 {
@@ -133,9 +129,7 @@ void ConnectionDialog::setupCertificatePanels()
 }
 
 ///
-/// \brief ConnectionDialog::setupControls
-///
-/// Applies icons, colours and the password visibility toggle.
+/// \brief Applies icons, colours, and the password visibility toggle.
 ///
 void ConnectionDialog::setupControls()
 {
@@ -164,9 +158,7 @@ void ConnectionDialog::setupControls()
 }
 
 ///
-/// \brief ConnectionDialog::setupConnections
-///
-/// Wires the dialog widgets to their handlers.
+/// \brief Wires the dialog widgets to their handlers.
 ///
 void ConnectionDialog::setupConnections()
 {
@@ -208,7 +200,7 @@ void ConnectionDialog::setupConnections()
 }
 
 ///
-/// \brief ConnectionDialog::currentAuthentication
+/// \brief Returns the selected authentication mode.
 /// \return Selected authentication mode value.
 ///
 int ConnectionDialog::currentAuthentication() const
@@ -219,7 +211,7 @@ int ConnectionDialog::currentAuthentication() const
 }
 
 ///
-/// \brief ConnectionDialog::~ConnectionDialog
+/// \brief Saves the last endpoint URL and destroys the dialog.
 ///
 ConnectionDialog::~ConnectionDialog()
 {
@@ -228,7 +220,7 @@ ConnectionDialog::~ConnectionDialog()
 }
 
 ///
-/// \brief ConnectionDialog::setClientService
+/// \brief Sets the client service used for discovery and subscribes to its results.
 /// \param service OPC UA client service.
 ///
 void ConnectionDialog::setClientService(OpcUaClientService *service)
@@ -243,7 +235,7 @@ void ConnectionDialog::setClientService(OpcUaClientService *service)
 }
 
 ///
-/// \brief ConnectionDialog::profile
+/// \brief Builds a connection profile from the dialog's current selections.
 /// \return Connection settings selected by the user.
 ///
 ConnectionProfile ConnectionDialog::profile() const
@@ -277,7 +269,7 @@ ConnectionProfile ConnectionDialog::profile() const
 }
 
 ///
-/// \brief ConnectionDialog::password
+/// \brief Returns the entered username password.
 /// \return Username password.
 ///
 QString ConnectionDialog::password() const
@@ -286,7 +278,7 @@ QString ConnectionDialog::password() const
 }
 
 ///
-/// \brief ConnectionDialog::privateKeyPassword
+/// \brief Returns the password for the imported private key.
 /// \return Imported private key password.
 ///
 QString ConnectionDialog::privateKeyPassword() const
@@ -295,10 +287,7 @@ QString ConnectionDialog::privateKeyPassword() const
 }
 
 ///
-/// \brief ConnectionDialog::resetDiscovery
-///
-/// Clears the discovered endpoints, the server certificate and the status
-/// indicator so no stale discovery result is shown for a new endpoint URL.
+/// \brief Clears stale discovery results (endpoints, server certificate, status) for a new URL.
 ///
 void ConnectionDialog::resetDiscovery()
 {
@@ -309,7 +298,7 @@ void ConnectionDialog::resetDiscovery()
 }
 
 ///
-/// \brief ConnectionDialog::discoverEndpoints
+/// \brief Starts endpoint discovery for the entered URL.
 ///
 void ConnectionDialog::discoverEndpoints()
 {
@@ -329,7 +318,7 @@ void ConnectionDialog::discoverEndpoints()
 }
 
 ///
-/// \brief ConnectionDialog::handleEndpoints
+/// \brief Shows the discovery result and, when queued, continues to connect.
 /// \param endpoints Discovered endpoints.
 /// \param error Discovery error.
 ///
@@ -357,7 +346,7 @@ void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QStr
 }
 
 ///
-/// \brief ConnectionDialog::updateEndpointSelection
+/// \brief Shows the selected endpoint's certificate and rebuilds the authentication choices.
 ///
 void ConnectionDialog::updateEndpointSelection()
 {
@@ -383,7 +372,7 @@ void ConnectionDialog::updateEndpointSelection()
 }
 
 ///
-/// \brief ConnectionDialog::updateAuthenticationFields
+/// \brief Enables the username and certificate fields appropriate to the chosen auth and security.
 ///
 void ConnectionDialog::updateAuthenticationFields()
 {
@@ -409,7 +398,7 @@ void ConnectionDialog::updateAuthenticationFields()
 }
 
 ///
-/// \brief ConnectionDialog::chooseClientCertificate
+/// \brief Prompts for a client certificate, private key, and optional key password.
 ///
 void ConnectionDialog::chooseClientCertificate()
 {
@@ -438,7 +427,7 @@ void ConnectionDialog::chooseClientCertificate()
 }
 
 ///
-/// \brief ConnectionDialog::generateClientCertificate
+/// \brief Generates a self-signed client certificate and selects it.
 ///
 void ConnectionDialog::generateClientCertificate()
 {
@@ -458,7 +447,7 @@ void ConnectionDialog::generateClientCertificate()
 }
 
 ///
-/// \brief ConnectionDialog::handleClientCertificateAction
+/// \brief Generates or imports a client certificate depending on the selected mode.
 ///
 void ConnectionDialog::handleClientCertificateAction()
 {
@@ -469,7 +458,7 @@ void ConnectionDialog::handleClientCertificateAction()
 }
 
 ///
-/// \brief ConnectionDialog::viewServerCertificate
+/// \brief Opens a read-only view of the selected endpoint's server certificate.
 ///
 void ConnectionDialog::viewServerCertificate()
 {
@@ -486,7 +475,7 @@ void ConnectionDialog::viewServerCertificate()
 }
 
 ///
-/// \brief ConnectionDialog::validateAndAccept
+/// \brief Validates the profile (discovering or generating a certificate first) before accepting.
 ///
 void ConnectionDialog::validateAndAccept()
 {
@@ -512,7 +501,7 @@ void ConnectionDialog::validateAndAccept()
 }
 
 ///
-/// \brief ConnectionDialog::saveLastEndpointUrl
+/// \brief Persists the last entered endpoint URL and refreshes the history combo box.
 ///
 void ConnectionDialog::saveLastEndpointUrl()
 {
@@ -531,9 +520,7 @@ void ConnectionDialog::saveLastEndpointUrl()
 }
 
 ///
-/// \brief ConnectionDialog::updateClientCertificate
-///
-/// Reads the currently selected client certificate file and shows its details.
+/// \brief Reads the selected client certificate file and shows its details.
 ///
 void ConnectionDialog::updateClientCertificate()
 {
@@ -552,7 +539,7 @@ void ConnectionDialog::updateClientCertificate()
 }
 
 ///
-/// \brief ConnectionDialog::updateClientCertificateAction
+/// \brief Sets the certificate action button label to Generate or Import for the current mode.
 ///
 void ConnectionDialog::updateClientCertificateAction()
 {
@@ -561,7 +548,7 @@ void ConnectionDialog::updateClientCertificateAction()
 }
 
 ///
-/// \brief ConnectionDialog::viewClientCertificate
+/// \brief Opens a read-only view of the configured client certificate.
 ///
 void ConnectionDialog::viewClientCertificate()
 {

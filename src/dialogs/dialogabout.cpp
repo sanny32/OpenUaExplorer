@@ -20,8 +20,8 @@
 #include "ui_dialogabout.h"
 
 ///
-/// \brief DialogAbout::DialogAbout
-/// \param parent
+/// \brief Builds the About dialog and fills its content.
+/// \param parent Parent widget.
 ///
 DialogAbout::DialogAbout(QWidget *parent)
     : AppBaseDialog(parent)
@@ -38,7 +38,7 @@ DialogAbout::DialogAbout(QWidget *parent)
 }
 
 ///
-/// \brief DialogAbout::~DialogAbout
+/// \brief Destroys the dialog and its generated UI.
 ///
 DialogAbout::~DialogAbout()
 {
@@ -46,7 +46,7 @@ DialogAbout::~DialogAbout()
 }
 
 ///
-/// \brief DialogAbout::setupContent
+/// \brief Populates the version, links, license, and credits text.
 ///
 void DialogAbout::setupContent()
 {
@@ -104,7 +104,7 @@ void DialogAbout::setupContent()
 }
 
 ///
-/// \brief DialogAbout::setupFonts
+/// \brief Applies the title font and muted roles to the dialog labels.
 ///
 void DialogAbout::setupFonts()
 {

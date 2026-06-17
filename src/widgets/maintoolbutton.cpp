@@ -15,9 +15,9 @@ constexpr int mainToolButtonWidth = 78;
 }
 
 ///
-/// \brief MainToolButton::MainToolButton
-/// \param action
-/// \param parent
+/// \brief Builds a fixed-width text-under-icon button bound to an action.
+/// \param action Default action driving the button; its text becomes the tooltip.
+/// \param parent Parent widget.
 ///
 MainToolButton::MainToolButton(QAction *action, QWidget *parent)
     : ThemedToolButton(parent)

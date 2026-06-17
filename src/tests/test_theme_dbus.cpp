@@ -1,6 +1,11 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+///
+/// \file test_theme_dbus.cpp
+/// \brief Tests that AppTheme reacts to freedesktop portal color-scheme signals over D-Bus.
+///
+
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusVariant>
@@ -9,6 +14,9 @@
 
 #include "application.h"
 
+///
+/// \brief Verifies portal SettingChanged handling; skips when no session bus is available.
+///
 class TestThemeDBus : public QObject
 {
     Q_OBJECT
@@ -31,6 +39,13 @@ void TestThemeDBus::initTestCase()
         QSKIP("No D-Bus session bus available.");
 }
 
+///
+/// \brief Emits a portal SettingChanged signal on the session bus.
+/// \param value Color-scheme value to broadcast.
+/// \param group Settings namespace.
+/// \param key Setting key.
+/// \return True when the signal was queued for delivery.
+///
 bool TestThemeDBus::sendPortalSettingChanged(uint value, const QString &group,
                                              const QString &key)
 {
@@ -77,6 +92,12 @@ void TestThemeDBus::unrelatedPortalSettingIsIgnored()
     QCOMPARE(theme.isDark(), wasDark);
 }
 
+///
+/// \brief Runs the suite under a real Application so AppTheme's D-Bus wiring is live.
+/// \param argc Argument count.
+/// \param argv Argument vector.
+/// \return Test exit code.
+///
 int main(int argc, char *argv[])
 {
     Application app(argc, argv);

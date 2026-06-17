@@ -20,7 +20,7 @@
 #include "widgets/themedtoolbutton.h"
 
 ///
-/// \brief createBaseStyle
+/// \brief Creates the base style to proxy, falling back to the application style.
 /// \param baseStyleName Base style name to create.
 /// \return Created style for the name, or the current application style.
 ///
@@ -44,7 +44,7 @@ static QStyle *createBaseStyle(const QString &baseStyleName)
 }
 
 ///
-/// \brief AppStyle::AppStyle
+/// \brief Constructs the proxy style around the named base style.
 /// \param baseStyleName Base style name to use, or an empty string to wrap the current style.
 ///
 AppStyle::AppStyle(const QString &baseStyleName)
@@ -53,7 +53,7 @@ AppStyle::AppStyle(const QString &baseStyleName)
 }
 
 ///
-/// \brief AppStyle::baseStyle
+/// \brief Resolves the innermost concrete base style.
 /// \return The innermost non-proxy base style of the application style stack.
 ///
 const QStyle *AppStyle::baseStyle()
@@ -65,7 +65,7 @@ const QStyle *AppStyle::baseStyle()
 }
 
 ///
-/// \brief AppStyle::isFusionStyle
+/// \brief Reports whether the active base style is the Fusion style.
 /// \return True if the application base style is Fusion.
 ///
 bool AppStyle::isFusionStyle()
@@ -80,11 +80,11 @@ bool AppStyle::isFusionStyle()
 }
 
 ///
-/// \brief AppStyle::drawControl
-/// \param element
-/// \param option
-/// \param painter
-/// \param widget
+/// \brief Draws a control element, forcing highlighted text colour on the attributes tree.
+/// \param element Control element to render.
+/// \param option Style option carrying the element state.
+/// \param painter Painter to draw with.
+/// \param widget Widget the element belongs to.
 ///
 void AppStyle::drawControl(ControlElement element, const QStyleOption *option,
                            QPainter *painter, const QWidget *widget) const
@@ -104,11 +104,11 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option,
 }
 
 ///
-/// \brief AppStyle::subElementRect
-/// \param element
-/// \param option
-/// \param widget
-/// \return
+/// \brief Returns the geometry of a sub-element, adding padding to headers and item text.
+/// \param element Sub-element to locate.
+/// \param option Style option carrying the element geometry.
+/// \param widget Widget the element belongs to.
+/// \return Adjusted sub-element rectangle.
 ///
 QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option,
                                 const QWidget *widget) const
@@ -126,12 +126,12 @@ QRect AppStyle::subElementRect(SubElement element, const QStyleOption *option,
 }
 
 ///
-/// \brief AppStyle::sizeFromContents
-/// \param type
-/// \param option
-/// \param contentsSize
-/// \param widget
-/// \return
+/// \brief Enforces minimum heights and widths for selected control types.
+/// \param type Contents type being measured.
+/// \param option Style option carrying the element state.
+/// \param contentsSize Size requested by the contents.
+/// \param widget Widget the element belongs to.
+/// \return Size clamped to the style's minimum dimensions.
 ///
 QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
                                  const QSize &contentsSize,

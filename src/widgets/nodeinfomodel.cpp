@@ -9,8 +9,8 @@
 #include "nodeinfomodel.h"
 
 ///
-/// \brief NodeInfoModel::NodeInfoModel
-/// \param parent
+/// \brief Constructs an empty node-info model.
+/// \param parent Owning QObject.
 ///
 NodeInfoModel::NodeInfoModel(QObject *parent)
     : QAbstractTableModel(parent)
@@ -18,9 +18,9 @@ NodeInfoModel::NodeInfoModel(QObject *parent)
 }
 
 ///
-/// \brief NodeInfoModel::rowCount
-/// \param parent
-/// \return
+/// \brief Returns the number of info rows.
+/// \param parent Parent index; non-root parents have no rows.
+/// \return Item count, or 0 for non-root parents.
 ///
 int NodeInfoModel::rowCount(const QModelIndex &parent) const
 {
@@ -29,9 +29,9 @@ int NodeInfoModel::rowCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief NodeInfoModel::columnCount
-/// \param parent
-/// \return
+/// \brief Returns the fixed column count.
+/// \param parent Parent index; non-root parents have no columns.
+/// \return Column count, or 0 for non-root parents.
 ///
 int NodeInfoModel::columnCount(const QModelIndex &parent) const
 {
@@ -40,10 +40,10 @@ int NodeInfoModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief NodeInfoModel::data
-/// \param index
-/// \param role
-/// \return
+/// \brief Returns the label or value text for a cell.
+/// \param index Cell to query.
+/// \param role Only Qt::DisplayRole is handled.
+/// \return Cell text, or an invalid variant.
 ///
 QVariant NodeInfoModel::data(const QModelIndex &index, int role) const
 {
@@ -61,8 +61,8 @@ QVariant NodeInfoModel::data(const QModelIndex &index, int role) const
 }
 
 ///
-/// \brief NodeInfoModel::setItems
-/// \param items
+/// \brief Replaces the info rows.
+/// \param items New label/value rows to display.
 ///
 void NodeInfoModel::setItems(const QVector<NodeInfoItem> &items)
 {
@@ -72,7 +72,7 @@ void NodeInfoModel::setItems(const QVector<NodeInfoItem> &items)
 }
 
 ///
-/// \brief NodeInfoModel::clear
+/// \brief Removes all rows.
 ///
 void NodeInfoModel::clear()
 {

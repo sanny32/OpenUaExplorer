@@ -10,8 +10,8 @@
 #include "ui_endpointselectorwidget.h"
 
 ///
-/// \brief EndpointSelectorWidget::EndpointSelectorWidget
-/// \param parent
+/// \brief Builds the selector with a default localhost endpoint.
+/// \param parent Parent widget.
 ///
 EndpointSelectorWidget::EndpointSelectorWidget(QWidget *parent)
     : QWidget(parent)
@@ -23,7 +23,7 @@ EndpointSelectorWidget::EndpointSelectorWidget(QWidget *parent)
 }
 
 ///
-/// \brief EndpointSelectorWidget::~EndpointSelectorWidget
+/// \brief Destroys the widget and its generated UI.
 ///
 EndpointSelectorWidget::~EndpointSelectorWidget()
 {
@@ -31,8 +31,8 @@ EndpointSelectorWidget::~EndpointSelectorWidget()
 }
 
 ///
-/// \brief EndpointSelectorWidget::currentEndpoint
-/// \return
+/// \brief Returns the selected endpoint URL.
+/// \return Current endpoint text.
 ///
 QString EndpointSelectorWidget::currentEndpoint() const
 {

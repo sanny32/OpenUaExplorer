@@ -17,8 +17,8 @@
 #include "trendgraphwidget.h"
 
 ///
-/// \brief TrendGraphWidget::TrendGraphWidget
-/// \param parent
+/// \brief Constructs an expanding trend graph widget.
+/// \param parent Parent widget.
 ///
 TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     : QWidget(parent)
@@ -27,8 +27,8 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
 }
 
 ///
-/// \brief TrendGraphWidget::paintEvent
-/// \param event
+/// \brief Paints the axes, grid, labels, and the sample trend line.
+/// \param event Paint event (unused).
 ///
 void TrendGraphWidget::paintEvent(QPaintEvent *event)
 {
@@ -77,9 +77,9 @@ void TrendGraphWidget::paintEvent(QPaintEvent *event)
 }
 
 ///
-/// \brief TrendGraphWidget::trendPoints
-/// \param plotRect
-/// \return
+/// \brief Maps the sample data series to screen points within the plot area.
+/// \param plotRect Plot area rectangle.
+/// \return Polyline points for the trend curve.
 ///
 QVector<QPointF> TrendGraphWidget::trendPoints(const QRectF &plotRect) const
 {

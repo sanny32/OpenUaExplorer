@@ -15,8 +15,8 @@
 #include "tableview.h"
 
 ///
-/// \brief TableView::TableView
-/// \param parent
+/// \brief Constructs the table view with a wrapped header.
+/// \param parent Parent widget.
 ///
 TableView::TableView(QWidget *parent)
     : QTableView(parent)
@@ -26,7 +26,8 @@ TableView::TableView(QWidget *parent)
 }
 
 ///
-/// \brief TableView::headerView
+/// \brief Returns the custom horizontal header.
+/// \return The header view, or nullptr when not set.
 ///
 HeaderView *TableView::headerView() const
 {
@@ -34,8 +35,9 @@ HeaderView *TableView::headerView() const
 }
 
 ///
-/// \brief TableView::viewportEvent
-/// \param event
+/// \brief Shows a tooltip only when a cell's text is elided.
+/// \param event Viewport event being handled.
+/// \return True when the event was consumed.
 ///
 bool TableView::viewportEvent(QEvent *event)
 {

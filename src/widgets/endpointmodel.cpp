@@ -5,6 +5,11 @@
 #include "endpointmodel.h"
 
 namespace {
+///
+/// \brief Picks the icon name representing a security mode.
+/// \param securityMode Message security mode value.
+/// \return Icon file name for the mode.
+///
 QString securityIconName(int securityMode)
 {
     switch (securityMode) {
@@ -40,21 +45,40 @@ int policyStrength(const QString &policy)
 }
 }
 
+///
+/// \brief Constructs an empty endpoint model.
+/// \param parent Owning QObject.
+///
 EndpointModel::EndpointModel(QObject *parent)
     : QAbstractTableModel(parent)
 {
 }
 
+///
+/// \brief Returns the number of endpoint rows.
+/// \param parent Parent index; non-root parents have no rows.
+/// \return Endpoint count for the root, otherwise 0.
+///
 int EndpointModel::rowCount(const QModelIndex &parent) const
 {
     return parent.isValid() ? 0 : _endpoints.size();
 }
 
+///
+/// \brief Returns the fixed number of columns.
+/// \param parent Parent index; non-root parents have no columns.
+/// \return Column count for the root, otherwise 0.
+///
 int EndpointModel::columnCount(const QModelIndex &parent) const
 {
     return parent.isValid() ? 0 : ColumnCount;
 }
 
+///
+/// \brief Reports whether an endpoint uses signing/encryption with a real security policy.
+/// \param endpoint Endpoint to classify.
+/// \return True when the endpoint is considered secure.
+///
 bool EndpointModel::isSecure(const EndpointInfo &endpoint) const
 {
     const QString policy = endpoint.securityPolicy.section(QLatin1Char('#'), -1);
@@ -62,6 +86,11 @@ bool EndpointModel::isSecure(const EndpointInfo &endpoint) const
         && policy.compare(QStringLiteral("None"), Qt::CaseInsensitive) != 0;
 }
 
+///
+/// \brief Scores an endpoint so stronger security ranks higher; insecure endpoints score -1.
+/// \param endpoint Endpoint to score.
+/// \return Ranking score, higher is better.
+///
 int EndpointModel::rankScore(const EndpointInfo &endpoint) const
 {
     if (!isSecure(endpoint))
@@ -70,6 +99,10 @@ int EndpointModel::rankScore(const EndpointInfo &endpoint) const
     return policyStrength(policy) * 10 + endpoint.securityModeValue;
 }
 
+///
+/// \brief Finds the row of the highest-ranked endpoint.
+/// \return Index of the recommended endpoint, or -1 when empty.
+///
 int EndpointModel::recommendedRow() const
 {
     int best = -1;
@@ -84,6 +117,12 @@ int EndpointModel::recommendedRow() const
     return best;
 }
 
+///
+/// \brief Returns endpoint data for a cell and role, including status text, colour, and icon.
+/// \param index Cell to query.
+/// \param role Display or custom endpoint role.
+/// \return Value for the role, or an invalid variant.
+///
 QVariant EndpointModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid() || index.row() < 0 || index.row() >= _endpoints.size())
@@ -128,6 +167,13 @@ QVariant EndpointModel::data(const QModelIndex &index, int role) const
     }
 }
 
+///
+/// \brief Returns the horizontal header titles.
+/// \param section Column index.
+/// \param orientation Header orientation.
+/// \param role Display role.
+/// \return Column title, or the base implementation for other roles.
+///
 QVariant EndpointModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole)
@@ -145,6 +191,10 @@ QVariant EndpointModel::headerData(int section, Qt::Orientation orientation, int
     }
 }
 
+///
+/// \brief Exposes the custom role names for QML/delegate access.
+/// \return Role-id to name mapping.
+///
 QHash<int, QByteArray> EndpointModel::roleNames() const
 {
     auto roles = QAbstractTableModel::roleNames();
@@ -158,6 +208,10 @@ QHash<int, QByteArray> EndpointModel::roleNames() const
     return roles;
 }
 
+///
+/// \brief Replaces the endpoints, sorting by rank and caching the recommended row.
+/// \param endpoints Endpoints to display.
+///
 void EndpointModel::setEndpoints(const QList<EndpointInfo> &endpoints)
 {
     beginResetModel();
@@ -170,11 +224,19 @@ void EndpointModel::setEndpoints(const QList<EndpointInfo> &endpoints)
     endResetModel();
 }
 
+///
+/// \brief Removes all endpoints.
+///
 void EndpointModel::clear()
 {
     setEndpoints({});
 }
 
+///
+/// \brief Returns the endpoint at a row.
+/// \param row Row index.
+/// \return Endpoint, or a default-constructed value when out of range.
+///
 EndpointInfo EndpointModel::endpointAt(int row) const
 {
     return row >= 0 && row < _endpoints.size()
@@ -182,6 +244,10 @@ EndpointInfo EndpointModel::endpointAt(int row) const
         : EndpointInfo{};
 }
 
+///
+/// \brief Returns the current endpoints in ranked order.
+/// \return The sorted endpoint list.
+///
 const QList<EndpointInfo> &EndpointModel::endpoints() const
 {
     return _endpoints;

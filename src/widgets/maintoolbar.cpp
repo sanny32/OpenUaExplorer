@@ -18,8 +18,8 @@
 #include "securityselectorwidget.h"
 
 ///
-/// \brief MainToolBar::MainToolBar
-/// \param parent
+/// \brief Constructs the toolbar with its endpoint and security selector widgets.
+/// \param parent Parent widget.
 ///
 MainToolBar::MainToolBar(QWidget *parent)
     : QToolBar(parent)
@@ -32,7 +32,7 @@ MainToolBar::MainToolBar(QWidget *parent)
 }
 
 ///
-/// \brief MainToolBar::setupFromDesignerActions
+/// \brief Rebuilds the toolbar from its Designer actions, appending the selector widgets.
 ///
 void MainToolBar::setupFromDesignerActions()
 {
@@ -58,9 +58,9 @@ void MainToolBar::setupFromDesignerActions()
 }
 
 ///
-/// \brief MainToolBar::addMainButton
-/// \param action
-/// \return
+/// \brief Adds a main toolbar button bound to an action.
+/// \param action Action the button triggers.
+/// \return The created button.
 ///
 MainToolButton *MainToolBar::addMainButton(QAction *action)
 {

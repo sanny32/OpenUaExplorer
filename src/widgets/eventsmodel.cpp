@@ -9,8 +9,8 @@
 #include "eventsmodel.h"
 
 ///
-/// \brief EventsModel::EventsModel
-/// \param parent
+/// \brief Constructs an empty events model.
+/// \param parent Owning QObject.
 ///
 EventsModel::EventsModel(QObject *parent)
     : QAbstractTableModel(parent)
@@ -18,9 +18,9 @@ EventsModel::EventsModel(QObject *parent)
 }
 
 ///
-/// \brief EventsModel::rowCount
-/// \param parent
-/// \return
+/// \brief Returns the number of event rows.
+/// \param parent Parent index; non-root parents have no rows.
+/// \return Event count, or 0 for non-root parents.
 ///
 int EventsModel::rowCount(const QModelIndex &parent) const
 {
@@ -29,9 +29,9 @@ int EventsModel::rowCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief EventsModel::columnCount
-/// \param parent
-/// \return
+/// \brief Returns the fixed column count.
+/// \param parent Parent index; non-root parents have no columns.
+/// \return Column count, or 0 for non-root parents.
 ///
 int EventsModel::columnCount(const QModelIndex &parent) const
 {
@@ -40,11 +40,11 @@ int EventsModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief EventsModel::headerData
-/// \param section
-/// \param orientation
-/// \param role
-/// \return
+/// \brief Returns the Time/Message column titles.
+/// \param section Column index.
+/// \param orientation Header orientation.
+/// \param role Display role.
+/// \return Column title, or the base implementation otherwise.
 ///
 QVariant EventsModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
@@ -59,10 +59,10 @@ QVariant EventsModel::headerData(int section, Qt::Orientation orientation, int r
 }
 
 ///
-/// \brief EventsModel::data
-/// \param index
-/// \param role
-/// \return
+/// \brief Returns the time/message text and column alignment for an event row.
+/// \param index Cell to query.
+/// \param role Requested data role.
+/// \return Value for the role, or an invalid variant.
 ///
 QVariant EventsModel::data(const QModelIndex &index, int role) const
 {
@@ -85,8 +85,8 @@ QVariant EventsModel::data(const QModelIndex &index, int role) const
 }
 
 ///
-/// \brief EventsModel::setItems
-/// \param items
+/// \brief Replaces all event rows.
+/// \param items New events to display.
 ///
 void EventsModel::setItems(const QVector<EventItem> &items)
 {
@@ -96,7 +96,7 @@ void EventsModel::setItems(const QVector<EventItem> &items)
 }
 
 ///
-/// \brief EventsModel::clear
+/// \brief Removes all events.
 ///
 void EventsModel::clear()
 {
@@ -106,9 +106,9 @@ void EventsModel::clear()
 }
 
 ///
-/// \brief EventsModel::setColumnAlignment
-/// \param column
-/// \param alignment
+/// \brief Sets the text alignment for a column.
+/// \param column Column index.
+/// \param alignment Alignment to apply.
 ///
 void EventsModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {

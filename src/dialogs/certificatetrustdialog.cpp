@@ -13,7 +13,7 @@
 #include "ui_certificatetrustdialog.h"
 
 ///
-/// \brief CertificateTrustDialog::CertificateTrustDialog
+/// \brief Builds the dialog and wires its reject/trust-once/trust-permanently buttons.
 /// \param parent Parent widget.
 ///
 CertificateTrustDialog::CertificateTrustDialog(QWidget *parent)
@@ -36,7 +36,7 @@ CertificateTrustDialog::CertificateTrustDialog(QWidget *parent)
 }
 
 ///
-/// \brief CertificateTrustDialog::~CertificateTrustDialog
+/// \brief Destroys the dialog and its generated UI.
 ///
 CertificateTrustDialog::~CertificateTrustDialog()
 {
@@ -44,7 +44,7 @@ CertificateTrustDialog::~CertificateTrustDialog()
 }
 
 ///
-/// \brief CertificateTrustDialog::setCertificate
+/// \brief Shows the certificate's fingerprint, size, and validation message.
 /// \param certificate DER-encoded certificate.
 /// \param message Validation error description.
 ///
@@ -59,7 +59,7 @@ void CertificateTrustDialog::setCertificate(const QByteArray &certificate,
 }
 
 ///
-/// \brief CertificateTrustDialog::setViewOnly
+/// \brief Hides the trust buttons and retitles the dialog for a read-only view.
 /// \param viewOnly Whether the dialog should only display certificate details.
 ///
 void CertificateTrustDialog::setViewOnly(bool viewOnly)
@@ -71,7 +71,7 @@ void CertificateTrustDialog::setViewOnly(bool viewOnly)
 }
 
 ///
-/// \brief CertificateTrustDialog::decision
+/// \brief Returns the trust decision the user made.
 /// \return Selected decision.
 ///
 CertificateTrustDialog::Decision CertificateTrustDialog::decision() const

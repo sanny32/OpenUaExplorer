@@ -17,8 +17,8 @@
 #include "dataaccessmodel.h"
 
 ///
-/// \brief DataAccessModel::DataAccessModel
-/// \param parent
+/// \brief Constructs an empty data-access model.
+/// \param parent Owning QObject.
 ///
 DataAccessModel::DataAccessModel(QObject *parent)
     : QAbstractTableModel(parent)
@@ -26,8 +26,8 @@ DataAccessModel::DataAccessModel(QObject *parent)
 }
 
 ///
-/// \brief DataAccessModel::setItems
-/// \param items
+/// \brief Replaces all rows.
+/// \param items New data-access rows.
 ///
 void DataAccessModel::setItems(const QVector<DataAccessItem> &items)
 {
@@ -37,7 +37,7 @@ void DataAccessModel::setItems(const QVector<DataAccessItem> &items)
 }
 
 ///
-/// \brief DataAccessModel::addOrUpdate
+/// \brief Updates the row matching the node, or appends a new row when absent.
 /// \param details Node details to add or update.
 ///
 void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
@@ -79,7 +79,7 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
 }
 
 ///
-/// \brief DataAccessModel::updateValues
+/// \brief Refreshes the value, status, and timestamps of rows matching the read results.
 /// \param values Read results.
 ///
 void DataAccessModel::updateValues(const QVector<OpcUaDataValue> &values)
@@ -101,7 +101,7 @@ void DataAccessModel::updateValues(const QVector<OpcUaDataValue> &values)
 }
 
 ///
-/// \brief DataAccessModel::removeRows
+/// \brief Removes the rows referenced by the given indexes, highest row first.
 /// \param rows Selected model rows.
 ///
 void DataAccessModel::removeRows(const QModelIndexList &rows)
@@ -122,7 +122,7 @@ void DataAccessModel::removeRows(const QModelIndexList &rows)
 }
 
 ///
-/// \brief DataAccessModel::nodeIds
+/// \brief Collects the NodeIds of the given rows, or of every row when none are given.
 /// \param rows Optional selected rows.
 /// \return NodeIds for selected rows or all rows.
 ///
@@ -144,7 +144,7 @@ QStringList DataAccessModel::nodeIds(const QModelIndexList &rows) const
 }
 
 ///
-/// \brief DataAccessModel::itemAt
+/// \brief Returns the item at a row.
 /// \param row Model row.
 /// \return Data item or an empty item.
 ///
@@ -154,7 +154,7 @@ DataAccessItem DataAccessModel::itemAt(int row) const
 }
 
 ///
-/// \brief DataAccessModel::clear
+/// \brief Removes all rows.
 ///
 void DataAccessModel::clear()
 {
@@ -163,9 +163,9 @@ void DataAccessModel::clear()
 
 
 ///
-/// \brief DataAccessModel::rowCount
-/// \param parent
-/// \return
+/// \brief Returns the number of rows.
+/// \param parent Parent index; non-root parents have no rows.
+/// \return Item count, or 0 for non-root parents.
 ///
 int DataAccessModel::rowCount(const QModelIndex &parent) const
 {
@@ -174,9 +174,9 @@ int DataAccessModel::rowCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief DataAccessModel::columnCount
-/// \param parent
-/// \return
+/// \brief Returns the fixed column count.
+/// \param parent Parent index; non-root parents have no columns.
+/// \return Column count, or 0 for non-root parents.
 ///
 int DataAccessModel::columnCount(const QModelIndex &parent) const
 {
@@ -185,11 +185,11 @@ int DataAccessModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief DataAccessModel::headerData
-/// \param section
-/// \param orientation
-/// \param role
-/// \return
+/// \brief Returns the column titles.
+/// \param section Column index.
+/// \param orientation Header orientation.
+/// \param role Display role.
+/// \return Column title, or the base implementation otherwise.
 ///
 QVariant DataAccessModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
@@ -210,9 +210,9 @@ QVariant DataAccessModel::headerData(int section, Qt::Orientation orientation, i
 }
 
 ///
-/// \brief DataAccessModel::flags
-/// \param index
-/// \return
+/// \brief Marks the Subscription column editable.
+/// \param index Cell to query.
+/// \return Item flags for the cell.
 ///
 Qt::ItemFlags DataAccessModel::flags(const QModelIndex &index) const
 {
@@ -223,11 +223,11 @@ Qt::ItemFlags DataAccessModel::flags(const QModelIndex &index) const
 }
 
 ///
-/// \brief DataAccessModel::setData
-/// \param index
-/// \param value
-/// \param role
-/// \return
+/// \brief Writes the edited subscription name into the Subscription column.
+/// \param index Cell being edited.
+/// \param value New subscription name.
+/// \param role Only Qt::EditRole is accepted.
+/// \return True when the value was applied.
 ///
 bool DataAccessModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
@@ -241,10 +241,10 @@ bool DataAccessModel::setData(const QModelIndex &index, const QVariant &value, i
 }
 
 ///
-/// \brief DataAccessModel::data
-/// \param index
-/// \param role
-/// \return
+/// \brief Returns cell text, alignment, and status/subscription colours for a row.
+/// \param index Cell to query.
+/// \param role Requested data role.
+/// \return Value for the role, or an invalid variant.
 ///
 QVariant DataAccessModel::data(const QModelIndex &index, int role) const
 {
@@ -292,9 +292,9 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
 }
 
 ///
-/// \brief DataAccessModel::columnAlignment
-/// \param column
-/// \return
+/// \brief Returns the text alignment for a column.
+/// \param column Column index.
+/// \return Column alignment.
 ///
 Qt::Alignment DataAccessModel::columnAlignment(int column) const
 {
@@ -302,9 +302,9 @@ Qt::Alignment DataAccessModel::columnAlignment(int column) const
 }
 
 ///
-/// \brief DataAccessModel::setColumnAlignment
-/// \param column
-/// \param alignment
+/// \brief Sets the text alignment for a column.
+/// \param column Column index.
+/// \param alignment Alignment to apply.
 ///
 void DataAccessModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {

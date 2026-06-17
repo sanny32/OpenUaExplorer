@@ -1,6 +1,11 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+///
+/// \file test_mainwindow_theme.cpp
+/// \brief Tests that the main window's theme controls track manual-toggle support.
+///
+
 #include <QAction>
 #include <QMenu>
 #include <QTest>
@@ -9,6 +14,9 @@
 #include "application.h"
 #include "mainwindow.h"
 
+///
+/// \brief Verifies the theme action and menu visibility against AppTheme's capabilities.
+///
 class TestMainWindowTheme : public QObject
 {
     Q_OBJECT
@@ -39,6 +47,12 @@ void TestMainWindowTheme::themeControlsFollowManualThemeSupport()
 #endif
 }
 
+///
+/// \brief Runs the suite under a real Application so theApp() and the theme are available.
+/// \param argc Argument count.
+/// \param argv Argument vector.
+/// \return Test exit code.
+///
 int main(int argc, char *argv[])
 {
     Application app(argc, argv);

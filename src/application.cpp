@@ -16,7 +16,7 @@
 #endif
 
 ///
-/// \brief Application::Application
+/// \brief Constructs the application, installs the platform style, and applies the initial theme.
 /// \param argc Argument count passed to main.
 /// \param argv Argument vector passed to main.
 ///
@@ -35,8 +35,8 @@ Application::Application(int &argc, char **argv)
 }
 
 ///
-/// \brief Application::theme
-/// \return Pointer to the application theme manager.
+/// \brief Gives access to the application theme manager.
+/// \return Reference to the application theme manager.
 ///
 AppTheme& Application::theme()
 {
@@ -44,7 +44,7 @@ AppTheme& Application::theme()
 }
 
 ///
-/// \brief Application::instance
+/// \brief Returns the running application downcast to this type.
 /// \return Pointer to the global Application instance.
 ///
 Application *Application::instance()

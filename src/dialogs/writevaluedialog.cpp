@@ -49,7 +49,7 @@ enum OpcUaType {
 }
 
 ///
-/// \brief WriteValueDialog::WriteValueDialog
+/// \brief Builds the dialog, fills the type list, and wires the button box.
 /// \param parent Parent widget.
 ///
 WriteValueDialog::WriteValueDialog(QWidget *parent)
@@ -65,7 +65,7 @@ WriteValueDialog::WriteValueDialog(QWidget *parent)
 }
 
 ///
-/// \brief WriteValueDialog::~WriteValueDialog
+/// \brief Destroys the dialog and its generated UI.
 ///
 WriteValueDialog::~WriteValueDialog()
 {
@@ -73,7 +73,7 @@ WriteValueDialog::~WriteValueDialog()
 }
 
 ///
-/// \brief WriteValueDialog::setValue
+/// \brief Seeds the editor from the current value and locks it when not writable.
 /// \param value Current value.
 /// \param valueType QOpcUa::Types numeric value.
 /// \param dataTypeId OPC UA DataType NodeId.
@@ -115,7 +115,7 @@ void WriteValueDialog::setValue(const QVariant &value, int valueType,
 }
 
 ///
-/// \brief WriteValueDialog::value
+/// \brief Returns the value entered by the user.
 /// \return Converted value.
 ///
 QVariant WriteValueDialog::value() const
@@ -124,7 +124,7 @@ QVariant WriteValueDialog::value() const
 }
 
 ///
-/// \brief WriteValueDialog::valueType
+/// \brief Returns the selected OPC UA value type.
 /// \return Selected QOpcUa::Types numeric value.
 ///
 int WriteValueDialog::valueType() const
@@ -133,7 +133,7 @@ int WriteValueDialog::valueType() const
 }
 
 ///
-/// \brief WriteValueDialog::validateAndAccept
+/// \brief Parses the input (scalar or JSON array), and accepts only when valid.
 ///
 void WriteValueDialog::validateAndAccept()
 {
@@ -170,11 +170,11 @@ void WriteValueDialog::validateAndAccept()
 }
 
 ///
-/// \brief WriteValueDialog::convertScalar
+/// \brief Converts text to a typed scalar, range-checking integral types.
 /// \param text Source text.
 /// \param type QOpcUa::Types numeric value.
 /// \param ok Receives conversion status.
-/// \return Converted scalar.
+/// \return Converted scalar, or an invalid variant on failure.
 ///
 QVariant WriteValueDialog::convertScalar(const QString &text, int type, bool *ok) const
 {
@@ -243,7 +243,7 @@ QVariant WriteValueDialog::convertScalar(const QString &text, int type, bool *ok
 }
 
 ///
-/// \brief WriteValueDialog::populateTypes
+/// \brief Fills the type combo box with the supported OPC UA types.
 ///
 void WriteValueDialog::populateTypes()
 {

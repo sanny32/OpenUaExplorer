@@ -112,9 +112,9 @@ constexpr QRgb kTooltipText = 0xe7ecf3;
 }
 
 ///
-/// \brief transparent
-/// \param rgb
-/// \return
+/// \brief Builds a fully transparent colour from an RGB value.
+/// \param rgb Source RGB value.
+/// \return Colour with alpha set to zero.
 ///
 QColor transparent(QRgb rgb)
 {
@@ -124,10 +124,10 @@ QColor transparent(QRgb rgb)
 }
 
 ///
-/// \brief alpha
-/// \param rgb
-/// \param value
-/// \return
+/// \brief Builds a colour from an RGB value with an explicit alpha.
+/// \param rgb Source RGB value.
+/// \param value Alpha channel, 0–255.
+/// \return Colour with the given opacity.
 ///
 QColor alpha(QRgb rgb, int value)
 {
@@ -137,9 +137,9 @@ QColor alpha(QRgb rgb, int value)
 }
 
 ///
-/// \brief colorRef
-/// \param rgb
-/// \return
+/// \brief Returns a cached QColor for an RGB value, suitable for by-reference style getters.
+/// \param rgb Source RGB value.
+/// \return Reference to the cached colour.
 ///
 const QColor& colorRef(QRgb rgb)
 {
@@ -151,9 +151,9 @@ const QColor& colorRef(QRgb rgb)
 }
 
 ///
-/// \brief transparentRef
-/// \param rgb
-/// \return
+/// \brief Returns a cached transparent QColor for an RGB value.
+/// \param rgb Source RGB value.
+/// \return Reference to the cached transparent colour.
 ///
 const QColor& transparentRef(QRgb rgb)
 {
@@ -165,9 +165,9 @@ const QColor& transparentRef(QRgb rgb)
 }
 
 ///
-/// \brief modelBackgroundColor
-/// \param index
-/// \return
+/// \brief Extracts an item's background colour from its Qt::BackgroundRole data.
+/// \param index Model index to inspect.
+/// \return The item's background colour, or an invalid colour when none is set.
 ///
 QColor modelBackgroundColor(const QModelIndex& index)
 {
@@ -188,8 +188,8 @@ QColor modelBackgroundColor(const QModelIndex& index)
 
 ///
 /// \brief Checks whether a button option represents an indicator without adjacent content.
-/// \param option
-/// \return
+/// \param option Style option to inspect.
+/// \return True when the button has neither text nor icon.
 ///
 bool isStandaloneIndicatorButton(const QStyleOption* option)
 {
@@ -199,9 +199,9 @@ bool isStandaloneIndicatorButton(const QStyleOption* option)
 
 ///
 /// \brief Tints a pixmap to a single colour while preserving its alpha.
-/// \param src
-/// \param color
-/// \return
+/// \param src Source pixmap.
+/// \param color Colour to tint with.
+/// \return Recoloured copy of the pixmap.
 ///
 QPixmap tintedPixmap(const QPixmap& src, const QColor& color)
 {
@@ -222,10 +222,10 @@ QPixmap tintedPixmap(const QPixmap& src, const QColor& color)
 }
 
 ///
-/// \brief tabShapePadding
-/// \param option
-/// \param spacing
-/// \return
+/// \brief Computes the padding that insets the active-tab indicator to the tab shape.
+/// \param option Tab style option carrying the tab's position in the bar.
+/// \param spacing Base spacing of the active theme.
+/// \return Margins to remove from the tab rect.
 ///
 QMargins tabShapePadding(const QStyleOptionTab& option, int spacing)
 {
@@ -246,8 +246,8 @@ QMargins tabShapePadding(const QStyleOptionTab& option, int spacing)
 } // namespace
 
 ///
-/// \brief QlementineAppStyle::QlementineAppStyle
-/// \param parent
+/// \brief Builds the style, initialises the icon theme, and tracks app color-scheme changes.
+/// \param parent Owning QObject.
 ///
 QlementineAppStyle::QlementineAppStyle(QObject* parent)
     : QlementineStyle(parent)
@@ -272,7 +272,7 @@ QlementineAppStyle::QlementineAppStyle(QObject* parent)
 }
 
 ///
-/// \brief QlementineAppStyle::updateTheme
+/// \brief Switches the active Qlementine theme to match the current light/dark mode.
 ///
 void QlementineAppStyle::updateTheme()
 {
@@ -280,8 +280,8 @@ void QlementineAppStyle::updateTheme()
 }
 
 ///
-/// \brief QlementineAppStyle::isDarkMode
-/// \return
+/// \brief Reports whether the application theme is currently dark.
+/// \return True when the active scheme is dark.
 ///
 bool QlementineAppStyle::isDarkMode() const
 {
@@ -289,8 +289,8 @@ bool QlementineAppStyle::isDarkMode() const
 }
 
 ///
-/// \brief QlementineAppStyle::polishWidget
-/// \param widget
+/// \brief Applies per-widget tweaks (tooltip roles, non-bold buttons, MDI/text-browser colours).
+/// \param widget Widget being polished.
 ///
 void QlementineAppStyle::polishWidget(QWidget* widget) const
 {
@@ -321,11 +321,11 @@ void QlementineAppStyle::polishWidget(QWidget* widget) const
 }
 
 ///
-/// \brief QlementineAppStyle::buttonBackgroundColor
-/// \param mouse
-/// \param role
-/// \param widget
-/// \return
+/// \brief Background colour for secondary buttons; primary buttons defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param role Button colour role.
+/// \param widget Button widget (unused).
+/// \return Reference to the resolved background colour.
 ///
 QColor const& QlementineAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole role,
                                                   const QWidget* widget) const
@@ -353,11 +353,11 @@ QColor const& QlementineAppStyle::buttonBackgroundColor(MouseState mouse, ColorR
 }
 
 ///
-/// \brief QlementineAppStyle::buttonForegroundColor
-/// \param mouse
-/// \param role
-/// \param widget
-/// \return
+/// \brief Foreground colour for secondary buttons; primary buttons defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param role Button colour role.
+/// \param widget Button widget (unused).
+/// \return Reference to the resolved foreground colour.
 ///
 QColor const& QlementineAppStyle::buttonForegroundColor(MouseState mouse, ColorRole role,
                                                  const QWidget* widget) const
@@ -373,11 +373,12 @@ QColor const& QlementineAppStyle::buttonForegroundColor(MouseState mouse, ColorR
 }
 
 ///
-/// \brief QlementineAppStyle::drawControl
-/// \param element
-/// \param option
-/// \param painter
-/// \param widget
+/// \brief Custom-draws elements Qlementine lacks: text-under-icon tool buttons, centred item
+///        text, un-recoloured menu icons, dock titles, and the active-MDI tab indicator.
+/// \param element Control element to render.
+/// \param option Style option carrying the element state.
+/// \param painter Painter to draw with.
+/// \param widget Widget the element belongs to.
 ///
 void QlementineAppStyle::drawControl(ControlElement element, const QStyleOption* option,
                               QPainter* painter, const QWidget* widget) const
@@ -586,10 +587,10 @@ void QlementineAppStyle::drawControl(ControlElement element, const QStyleOption*
 }
 
 ///
-/// \brief QlementineAppStyle::iconForegroundColor
-/// \param mouse
-/// \param role
-/// \return
+/// \brief Icon tint for secondary roles; primary roles defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param role Icon colour role.
+/// \return Reference to the resolved icon colour.
 ///
 QColor const& QlementineAppStyle::iconForegroundColor(MouseState mouse, ColorRole role) const
 {
@@ -612,14 +613,14 @@ QColor const& QlementineAppStyle::iconForegroundColor(MouseState mouse, ColorRol
 }
 
 ///
-/// \brief QlementineAppStyle::listItemBackgroundColor
-/// \param mouse
-/// \param selected
-/// \param focus
-/// \param active
-/// \param index
-/// \param widget
-/// \return
+/// \brief Background colour for a list/tree item, honouring per-row model colours when unselected.
+/// \param mouse Mouse interaction state.
+/// \param selected Selection state.
+/// \param focus Focus state (unused).
+/// \param active Active state (unused).
+/// \param index Model index of the item.
+/// \param widget Owning view (unused).
+/// \return Resolved item background colour.
 ///
 QColor QlementineAppStyle::listItemBackgroundColor(MouseState mouse, SelectionState selected, FocusState focus,
                                             ActiveState active, const QModelIndex& index,
@@ -653,12 +654,12 @@ QColor QlementineAppStyle::listItemBackgroundColor(MouseState mouse, SelectionSt
 }
 
 ///
-/// \brief QlementineAppStyle::listItemForegroundColor
-/// \param mouse
-/// \param selected
-/// \param focus
-/// \param active
-/// \return
+/// \brief Text colour for a list/tree item.
+/// \param mouse Mouse interaction state.
+/// \param selected Selection state (unused).
+/// \param focus Focus state (unused).
+/// \param active Active state (unused).
+/// \return Reference to the resolved item text colour.
 ///
 QColor const& QlementineAppStyle::listItemForegroundColor(MouseState mouse, SelectionState selected,
                                                    FocusState focus, ActiveState active) const
@@ -673,11 +674,11 @@ QColor const& QlementineAppStyle::listItemForegroundColor(MouseState mouse, Sele
 }
 
 ///
-/// \brief QlementineAppStyle::pixelMetric
-/// \param metric
-/// \param option
-/// \param widget
-/// \return
+/// \brief Overrides dock, splitter, and toolbar metrics; keeps pressed icons from shifting.
+/// \param metric Pixel metric being queried.
+/// \param option Style option for the metric.
+/// \param widget Widget the metric applies to.
+/// \return Metric value in pixels.
 ///
 int QlementineAppStyle::pixelMetric(PixelMetric metric, const QStyleOption* option, const QWidget* widget) const
 {
@@ -713,8 +714,8 @@ int QlementineAppStyle::pixelMetric(PixelMetric metric, const QStyleOption* opti
 }
 
 ///
-/// \brief QlementineAppStyle::polish
-/// \param widget
+/// \brief Runs base polishing then the app-specific per-widget tweaks.
+/// \param widget Widget being polished.
 ///
 void QlementineAppStyle::polish(QWidget* widget)
 {
@@ -723,12 +724,12 @@ void QlementineAppStyle::polish(QWidget* widget)
 }
 
 ///
-/// \brief QlementineAppStyle::sizeFromContents
-/// \param type
-/// \param option
-/// \param contentsSize
-/// \param widget
-/// \return
+/// \brief Adjusts sizing for line edits, standalone indicators, and main-toolbar tool buttons.
+/// \param type Contents type being measured.
+/// \param option Style option carrying the element state.
+/// \param contentsSize Size requested by the contents.
+/// \param widget Widget the element belongs to.
+/// \return Adjusted contents size.
 ///
 QSize QlementineAppStyle::sizeFromContents(ContentsType type, const QStyleOption* option,
                                     const QSize& contentsSize, const QWidget* widget) const
@@ -767,11 +768,11 @@ QSize QlementineAppStyle::sizeFromContents(ContentsType type, const QStyleOption
 }
 
 ///
-/// \brief QlementineAppStyle::subElementRect
-/// \param element
-/// \param option
-/// \param widget
-/// \return
+/// \brief Centres standalone check-box and radio-button indicators within their rect.
+/// \param element Sub-element to locate.
+/// \param option Style option carrying the element geometry.
+/// \param widget Widget the element belongs to.
+/// \return Resolved sub-element rectangle.
 ///
 QRect QlementineAppStyle::subElementRect(SubElement element, const QStyleOption* option,
                                          const QWidget* widget) const
@@ -790,9 +791,9 @@ QRect QlementineAppStyle::subElementRect(SubElement element, const QStyleOption*
 }
 
 ///
-/// \brief QlementineAppStyle::splitterColor
-/// \param mouse
-/// \return
+/// \brief Colour of splitter handles, brightening on hover/press.
+/// \param mouse Mouse interaction state.
+/// \return Reference to the resolved splitter colour.
 ///
 QColor const& QlementineAppStyle::splitterColor(MouseState mouse) const
 {
@@ -811,12 +812,13 @@ QColor const& QlementineAppStyle::splitterColor(MouseState mouse) const
 }
 
 ///
-/// \brief QlementineAppStyle::styleHint
-/// \param hint
-/// \param option
-/// \param widget
-/// \param returnData
-/// \return
+/// \brief Keeps main-toolbar buttons on their own toolButtonStyle and guards QFocusFrame against
+///        MDI subwindows to avoid mapTo() warnings on close.
+/// \param hint Style hint being queried.
+/// \param option Style option for the hint.
+/// \param widget Widget the hint applies to.
+/// \param returnData Optional structured return data.
+/// \return Style hint value.
 ///
 int QlementineAppStyle::styleHint(StyleHint hint, const QStyleOption* option,
                            const QWidget* widget, QStyleHintReturn* returnData) const
@@ -857,10 +859,10 @@ int QlementineAppStyle::styleHint(StyleHint hint, const QStyleOption* option,
 }
 
 ///
-/// \brief QlementineAppStyle::tabBackgroundColor
-/// \param mouse
-/// \param selected
-/// \return
+/// \brief Background colour of a tab; the selected tab matches the canvas.
+/// \param mouse Mouse interaction state.
+/// \param selected Selection state.
+/// \return Reference to the resolved tab background colour.
 ///
 QColor const& QlementineAppStyle::tabBackgroundColor(MouseState mouse, SelectionState selected) const
 {
@@ -888,9 +890,9 @@ QColor const& QlementineAppStyle::tabBackgroundColor(MouseState mouse, Selection
 }
 
 ///
-/// \brief QlementineAppStyle::tabBarBackgroundColor
-/// \param mouse
-/// \return
+/// \brief Background colour of the tab bar behind the tabs.
+/// \param mouse Mouse interaction state.
+/// \return Reference to the resolved tab-bar background colour.
 ///
 QColor const& QlementineAppStyle::tabBarBackgroundColor(MouseState mouse) const
 {
@@ -900,10 +902,10 @@ QColor const& QlementineAppStyle::tabBarBackgroundColor(MouseState mouse) const
 }
 
 ///
-/// \brief QlementineAppStyle::tabForegroundColor
-/// \param mouse
-/// \param selected
-/// \return
+/// \brief Text colour of a tab label.
+/// \param mouse Mouse interaction state.
+/// \param selected Selection state (unused).
+/// \return Reference to the resolved tab text colour.
 ///
 QColor const& QlementineAppStyle::tabForegroundColor(MouseState mouse, SelectionState selected) const
 {
@@ -915,10 +917,10 @@ QColor const& QlementineAppStyle::tabForegroundColor(MouseState mouse, Selection
 }
 
 ///
-/// \brief QlementineAppStyle::tableHeaderBgColor
-/// \param mouse
-/// \param checked
-/// \return
+/// \brief Background colour of a table header section.
+/// \param mouse Mouse interaction state.
+/// \param checked Sort/check state (unused).
+/// \return Reference to the resolved header background colour.
 ///
 QColor const& QlementineAppStyle::tableHeaderBgColor(MouseState mouse, CheckState checked) const
 {
@@ -941,10 +943,10 @@ QColor const& QlementineAppStyle::tableHeaderBgColor(MouseState mouse, CheckStat
 }
 
 ///
-/// \brief QlementineAppStyle::tableHeaderFgColor
-/// \param mouse
-/// \param checked
-/// \return
+/// \brief Text colour of a table header section.
+/// \param mouse Mouse interaction state.
+/// \param checked Sort/check state (unused).
+/// \return Reference to the resolved header text colour.
 ///
 QColor const& QlementineAppStyle::tableHeaderFgColor(MouseState mouse, CheckState checked) const
 {
@@ -956,8 +958,8 @@ QColor const& QlementineAppStyle::tableHeaderFgColor(MouseState mouse, CheckStat
 }
 
 ///
-/// \brief QlementineAppStyle::tableLineColor
-/// \return
+/// \brief Colour of the grid lines between table cells.
+/// \return Reference to the resolved grid-line colour.
 ///
 QColor const& QlementineAppStyle::tableLineColor() const
 {
@@ -965,10 +967,10 @@ QColor const& QlementineAppStyle::tableLineColor() const
 }
 
 ///
-/// \brief QlementineAppStyle::textFieldBackgroundColor
-/// \param mouse
-/// \param status
-/// \return
+/// \brief Background colour of text input fields.
+/// \param mouse Mouse interaction state.
+/// \param status Validation status (unused).
+/// \return Reference to the resolved field background colour.
 ///
 QColor const& QlementineAppStyle::textFieldBackgroundColor(MouseState mouse, Status status) const
 {
@@ -980,11 +982,11 @@ QColor const& QlementineAppStyle::textFieldBackgroundColor(MouseState mouse, Sta
 }
 
 ///
-/// \brief QlementineAppStyle::textFieldBorderColor
-/// \param mouse
-/// \param focus
-/// \param status
-/// \return
+/// \brief Border colour of text input fields; non-default statuses defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param focus Focus state.
+/// \param status Validation status.
+/// \return Reference to the resolved field border colour.
 ///
 QColor const& QlementineAppStyle::textFieldBorderColor(MouseState mouse, FocusState focus, Status status) const
 {
@@ -1004,8 +1006,8 @@ QColor const& QlementineAppStyle::textFieldBorderColor(MouseState mouse, FocusSt
 }
 
 ///
-/// \brief QlementineAppStyle::toolBarBackgroundColor
-/// \return
+/// \brief Background colour of toolbars.
+/// \return Reference to the resolved toolbar background colour.
 ///
 QColor const& QlementineAppStyle::toolBarBackgroundColor() const
 {
@@ -1013,8 +1015,8 @@ QColor const& QlementineAppStyle::toolBarBackgroundColor() const
 }
 
 ///
-/// \brief QlementineAppStyle::toolBarBorderColor
-/// \return
+/// \brief Border colour of toolbars.
+/// \return Reference to the resolved toolbar border colour.
 ///
 QColor const& QlementineAppStyle::toolBarBorderColor() const
 {
@@ -1022,8 +1024,8 @@ QColor const& QlementineAppStyle::toolBarBorderColor() const
 }
 
 ///
-/// \brief QlementineAppStyle::toolTipBackgroundColor
-/// \return
+/// \brief Background colour of tooltips.
+/// \return Reference to the resolved tooltip background colour.
 ///
 QColor const& QlementineAppStyle::toolTipBackgroundColor() const
 {
@@ -1031,8 +1033,8 @@ QColor const& QlementineAppStyle::toolTipBackgroundColor() const
 }
 
 ///
-/// \brief QlementineAppStyle::toolTipBorderColor
-/// \return
+/// \brief Border colour of tooltips.
+/// \return Reference to the resolved tooltip border colour.
 ///
 QColor const& QlementineAppStyle::toolTipBorderColor() const
 {
@@ -1040,8 +1042,8 @@ QColor const& QlementineAppStyle::toolTipBorderColor() const
 }
 
 ///
-/// \brief QlementineAppStyle::toolTipForegroundColor
-/// \return
+/// \brief Text colour of tooltips.
+/// \return Reference to the resolved tooltip text colour.
 ///
 QColor const& QlementineAppStyle::toolTipForegroundColor() const
 {
@@ -1049,10 +1051,10 @@ QColor const& QlementineAppStyle::toolTipForegroundColor() const
 }
 
 ///
-/// \brief QlementineAppStyle::toolButtonBackgroundColor
-/// \param mouse
-/// \param role
-/// \return
+/// \brief Background colour for secondary tool buttons; primary roles defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param role Tool-button colour role.
+/// \return Reference to the resolved background colour.
 ///
 QColor const& QlementineAppStyle::toolButtonBackgroundColor(MouseState mouse, ColorRole role) const
 {
@@ -1075,10 +1077,10 @@ QColor const& QlementineAppStyle::toolButtonBackgroundColor(MouseState mouse, Co
 }
 
 ///
-/// \brief QlementineAppStyle::toolButtonForegroundColor
-/// \param mouse
-/// \param role
-/// \return
+/// \brief Foreground colour for secondary tool buttons; primary roles defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param role Tool-button colour role.
+/// \return Reference to the resolved foreground colour.
 ///
 QColor const& QlementineAppStyle::toolButtonForegroundColor(MouseState mouse, ColorRole role) const
 {

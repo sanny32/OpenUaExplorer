@@ -1,6 +1,11 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+///
+/// \file test_connectiondialog.cpp
+/// \brief UI tests for ConnectionDialog: discovery, certificate selection, and layout.
+///
+
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QFile>
@@ -20,6 +25,9 @@
 #include "opcua/opcuaclientservice.h"
 #include "opcua/pkimanager.h"
 
+///
+/// \brief Minimal OPC UA backend double that only counts discovery calls.
+///
 class DialogFakeBackend : public OpcUaBackend
 {
     Q_OBJECT
@@ -51,6 +59,9 @@ public:
     int discoveryCalls = 0;
 };
 
+///
+/// \brief Drives the dialog through discovery, certificate, and layout scenarios.
+///
 class TestConnectionDialog : public QObject
 {
     Q_OBJECT
@@ -70,6 +81,11 @@ private:
 
 namespace {
 
+///
+/// \brief Asserts a certificate panel's validity row right-aligns its icon and badge.
+/// \param dialog Dialog under test.
+/// \param panelName Object name of the certificate summary panel.
+///
 void verifyRightAlignedCertificateStatus(ConnectionDialog &dialog, const QString &panelName)
 {
     auto *panel = dialog.findChild<QWidget *>(panelName);

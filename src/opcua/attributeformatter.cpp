@@ -16,6 +16,11 @@
 
 namespace OpcUaFormat {
 
+///
+/// \brief Reports whether a value is an array, treating strings and byte arrays as scalars.
+/// \param value Variant to inspect.
+/// \return True when the value should be rendered as a list.
+///
 bool isValueArray(const QVariant &value)
 {
     return value.userType() != QMetaType::QString
@@ -23,6 +28,11 @@ bool isValueArray(const QVariant &value)
         && value.canConvert<QVariantList>();
 }
 
+///
+/// \brief Renders a value for display, recursing into arrays and hex-encoding byte strings.
+/// \param value Variant to format.
+/// \return Human-readable representation.
+///
 QString displayValue(const QVariant &value)
 {
     if (!value.isValid())
@@ -42,6 +52,11 @@ QString displayValue(const QVariant &value)
     return value.toString();
 }
 
+///
+/// \brief Returns the translated name of a message security mode.
+/// \param mode Security mode to name.
+/// \return Localised mode name.
+///
 QString securityModeName(QOpcUaEndpointDescription::MessageSecurityMode mode)
 {
     switch (mode) {
@@ -52,11 +67,21 @@ QString securityModeName(QOpcUaEndpointDescription::MessageSecurityMode mode)
     }
 }
 
+///
+/// \brief Returns the textual name of an OPC UA status code.
+/// \param status Status code to name.
+/// \return Status code name.
+///
 QString statusName(QOpcUa::UaStatusCode status)
 {
     return QOpcUa::statusToString(status);
 }
 
+///
+/// \brief Formats a status code as name plus zero-padded hexadecimal value.
+/// \param status Status code to format.
+/// \return Combined name and hex representation.
+///
 QString statusDisplay(QOpcUa::UaStatusCode status)
 {
     return QStringLiteral("%1 (0x%2)")
@@ -64,6 +89,11 @@ QString statusDisplay(QOpcUa::UaStatusCode status)
         .arg(static_cast<quint32>(status), 8, 16, QLatin1Char('0'));
 }
 
+///
+/// \brief Formats a timestamp in local time, or empty when invalid.
+/// \param timestamp Timestamp to format.
+/// \return Localised timestamp string.
+///
 QString timestampDisplay(const QDateTime &timestamp)
 {
     return timestamp.isValid()
@@ -71,12 +101,22 @@ QString timestampDisplay(const QDateTime &timestamp)
         : QString();
 }
 
+///
+/// \brief Returns the enum-key name of an OPC UA value type.
+/// \param type Value type to name.
+/// \return Type name, or "Unknown" when unrecognised.
+///
 QString valueTypeName(QOpcUa::Types type)
 {
     const char *key = QMetaEnum::fromType<QOpcUa::Types>().valueToKey(type);
     return key ? QString::fromLatin1(key) : QObject::tr("Unknown");
 }
 
+///
+/// \brief Returns the enum-key name of a node class.
+/// \param nodeClass Node class to name.
+/// \return Class name, or its numeric value when unrecognised.
+///
 QString nodeClassName(QOpcUa::NodeClass nodeClass)
 {
     const char *key = QMetaEnum::fromType<QOpcUa::NodeClass>()
@@ -84,6 +124,11 @@ QString nodeClassName(QOpcUa::NodeClass nodeClass)
     return key ? QString::fromLatin1(key) : QString::number(static_cast<int>(nodeClass));
 }
 
+///
+/// \brief Decodes an access-level bitmask into a pipe-separated list of flag names.
+/// \param accessLevel Access-level bits.
+/// \return Flag names, or "None" when no bits are set.
+///
 QString accessLevelDisplay(quint32 accessLevel)
 {
     const QMetaEnum metaEnum = QMetaEnum::fromType<QOpcUa::AccessLevelBit>();
@@ -96,6 +141,11 @@ QString accessLevelDisplay(quint32 accessLevel)
     return names.isEmpty() ? QStringLiteral("None") : names.join(QStringLiteral(" | "));
 }
 
+///
+/// \brief Decodes a write-mask bitmask into a pipe-separated list of flag names.
+/// \param writeMask Write-mask bits.
+/// \return Flag names, or the numeric value when no known bits match.
+///
 QString writeMaskDisplay(quint32 writeMask)
 {
     if (!writeMask)
@@ -111,6 +161,11 @@ QString writeMaskDisplay(quint32 writeMask)
                            : names.join(QStringLiteral(" | "));
 }
 
+///
+/// \brief Formats a value rank with its symbolic name for the well-known ranks.
+/// \param valueRank Value rank to format.
+/// \return Rank with description, or the bare number for custom ranks.
+///
 QString valueRankDisplay(int valueRank)
 {
     switch (valueRank) {
@@ -124,6 +179,11 @@ QString valueRankDisplay(int valueRank)
     }
 }
 
+///
+/// \brief Names a NodeId identifier type from its single-character code.
+/// \param identifierType Code: 'i', 's', 'g', or 'b'.
+/// \return Identifier-type name, or "Unknown".
+///
 QString identifierTypeName(char identifierType)
 {
     switch (identifierType) {
@@ -135,6 +195,12 @@ QString identifierTypeName(char identifierType)
     }
 }
 
+///
+/// \brief Builds a leaf attribute row with a name and display value.
+/// \param name Attribute name.
+/// \param displayValue Pre-formatted display value.
+/// \return The constructed attribute.
+///
 OpcUaNodeAttribute childAttribute(const QString &name, const QString &displayValue)
 {
     OpcUaNodeAttribute child;
@@ -143,6 +209,11 @@ OpcUaNodeAttribute childAttribute(const QString &name, const QString &displayVal
     return child;
 }
 
+///
+/// \brief Appends namespace index, identifier type, and identifier child rows for a NodeId.
+/// \param attribute Parent attribute to extend; unchanged when the NodeId cannot be split.
+/// \param nodeId NodeId string to decompose.
+///
 void addNodeIdChildren(OpcUaNodeAttribute *attribute, const QString &nodeId)
 {
     quint16 namespaceIndex = 0;
@@ -159,12 +230,22 @@ void addNodeIdChildren(OpcUaNodeAttribute *attribute, const QString &nodeId)
         childAttribute(QObject::tr("Identifier"), identifier));
 }
 
+///
+/// \brief Sets a NodeId attribute's display value and expands its components as children.
+/// \param attribute Attribute to populate.
+/// \param nodeId NodeId string.
+///
 void formatNodeIdAttribute(OpcUaNodeAttribute *attribute, const QString &nodeId)
 {
     attribute->displayValue = nodeId;
     addNodeIdChildren(attribute, nodeId);
 }
 
+///
+/// \brief Sets a DataType attribute to the resolved type name (or NodeId) plus component children.
+/// \param attribute Attribute to populate.
+/// \param nodeId DataType NodeId string.
+///
 void formatDataTypeAttribute(OpcUaNodeAttribute *attribute, const QString &nodeId)
 {
     const QOpcUa::Types type = valueTypeForDataType(nodeId);
@@ -174,6 +255,12 @@ void formatDataTypeAttribute(OpcUaNodeAttribute *attribute, const QString &nodeI
     addNodeIdChildren(attribute, nodeId);
 }
 
+///
+/// \brief Builds the Value attribute, expanding arrays into indexed child rows.
+/// \param value Node value.
+/// \param type Declared value type, used to label arrays.
+/// \return The constructed Value attribute.
+///
 OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type)
 {
     OpcUaNodeAttribute result = childAttribute(QObject::tr("Value"), displayValue(value));
@@ -191,6 +278,13 @@ OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type)
     return result;
 }
 
+///
+/// \brief Fills an attribute's display value (and children) using the rules for its attribute id.
+/// \param attribute Attribute to populate.
+/// \param nodeAttribute Which OPC UA attribute is being formatted.
+/// \param value Raw attribute value.
+/// \param valueType Value type, used when formatting the Value attribute.
+///
 void formatAttribute(OpcUaNodeAttribute *attribute,
                      QOpcUa::NodeAttribute nodeAttribute,
                      const QVariant &value,
@@ -260,6 +354,12 @@ void formatAttribute(OpcUaNodeAttribute *attribute,
     }
 }
 
+///
+/// \brief Reports whether an attribute is meaningful for a given node class.
+/// \param attribute Attribute to test.
+/// \param nodeClass Node class to test against.
+/// \return True when the attribute applies; class-agnostic attributes always return true.
+///
 bool attributeAppliesToNodeClass(QOpcUa::NodeAttribute attribute,
                                  QOpcUa::NodeClass nodeClass)
 {
@@ -296,6 +396,11 @@ bool attributeAppliesToNodeClass(QOpcUa::NodeAttribute attribute,
     }
 }
 
+///
+/// \brief Maps a namespace-0 built-in DataType NodeId to its OPC UA value type.
+/// \param nodeId DataType NodeId, expected as "ns=0;i=...".
+/// \return Matching value type, or Undefined for non-builtin or unparsable ids.
+///
 QOpcUa::Types valueTypeForDataType(const QString &nodeId)
 {
     bool ok = false;

@@ -6,6 +6,10 @@
 #include "connectionprofilestore.h"
 #include "opcuaclientservice.h"
 
+///
+/// \brief Constructs the controller owning freshly created client, secret, and profile stores.
+/// \param parent Owning QObject.
+///
 ConnectionController::ConnectionController(QObject *parent)
     : ConnectionController(new OpcUaClientService,
                            new SecretStore,
@@ -17,6 +21,13 @@ ConnectionController::ConnectionController(QObject *parent)
     _ownsDependencies = true;
 }
 
+///
+/// \brief Constructs the controller with injected dependencies, used for testing.
+/// \param clientService OPC UA client service.
+/// \param secretStore Secret store for profile passwords.
+/// \param profileStore Persistent profile store.
+/// \param parent Owning QObject.
+///
 ConnectionController::ConnectionController(OpcUaClientService *clientService,
                                            SecretStore *secretStore,
                                            ConnectionProfileStore *profileStore,
@@ -36,32 +47,57 @@ ConnectionController::ConnectionController(OpcUaClientService *clientService,
             this, &ConnectionController::handleEndpoints);
 }
 
+///
+/// \brief Destroys the controller, deleting the profile store only when it was self-created.
+///
 ConnectionController::~ConnectionController()
 {
     if (_ownsDependencies)
         delete _profileStore;
 }
 
+///
+/// \brief Gives access to the underlying client service.
+/// \return The OPC UA client service.
+///
 OpcUaClientService *ConnectionController::clientService() const
 {
     return _clientService;
 }
 
+///
+/// \brief Returns the saved connection profiles.
+/// \return All persisted profiles.
+///
 QList<ConnectionProfile> ConnectionController::profiles() const
 {
     return _profileStore->profiles();
 }
 
+///
+/// \brief Returns the profile of the current or most recent connection attempt.
+/// \return The active profile.
+///
 const ConnectionProfile &ConnectionController::activeProfile() const
 {
     return _activeProfile;
 }
 
+///
+/// \brief Sets the delegate that decides whether to trust a server certificate.
+/// \param decider Trust decider, forwarded to the client service.
+///
 void ConnectionController::setCertificateTrustDecider(CertificateTrustDecider *decider)
 {
     _clientService->setCertificateTrustDecider(decider);
 }
 
+///
+/// \brief Connects immediately using credentials supplied by the user (no stored-secret lookup).
+/// \param profile Profile to connect with.
+/// \param password User password, if any.
+/// \param privateKeyPassword Private-key password, if any.
+///
 void ConnectionController::connectNewProfile(const ConnectionProfile &profile,
                                              const QString &password,
                                              const QString &privateKeyPassword)
@@ -71,6 +107,10 @@ void ConnectionController::connectNewProfile(const ConnectionProfile &profile,
     _clientService->connectToEndpoint(profile, password, privateKeyPassword);
 }
 
+///
+/// \brief Connects a saved profile, first loading any required secrets from the keychain.
+/// \param profile Saved profile to connect with.
+///
 void ConnectionController::connectSavedProfile(const ConnectionProfile &profile)
 {
     _pendingProfile = profile;
@@ -95,6 +135,12 @@ void ConnectionController::connectSavedProfile(const ConnectionProfile &profile)
         discoverPendingProfile();
 }
 
+///
+/// \brief Persists a profile and its secrets, emitting profilesChanged() on success.
+/// \param profile Profile to store.
+/// \param password User password to store, if non-empty.
+/// \param privateKeyPassword Private-key password to store, if non-empty.
+///
 void ConnectionController::saveProfile(const ConnectionProfile &profile,
                                        const QString &password,
                                        const QString &privateKeyPassword)
@@ -112,6 +158,13 @@ void ConnectionController::saveProfile(const ConnectionProfile &profile,
     emit profilesChanged();
 }
 
+///
+/// \brief Collects a loaded secret and starts discovery once all pending reads complete.
+/// \param profileId Profile the secret belongs to.
+/// \param secret Which secret was read.
+/// \param value Secret value.
+/// \param error Read error, if any.
+///
 void ConnectionController::handleSecretRead(const QString &profileId,
                                             SecretStore::Secret secret,
                                             const QString &value,
@@ -129,6 +182,10 @@ void ConnectionController::handleSecretRead(const QString &profileId,
         discoverPendingProfile();
 }
 
+///
+/// \brief After discovery succeeds for a pending profile, connects to its endpoint.
+/// \param error Discovery error, if any.
+///
 void ConnectionController::handleEndpoints(const QList<EndpointInfo> &,
                                            const QString &error)
 {
@@ -144,6 +201,9 @@ void ConnectionController::handleEndpoints(const QList<EndpointInfo> &,
                                       _pendingPrivateKeyPassword);
 }
 
+///
+/// \brief Starts endpoint discovery for the pending profile and arms the discovery handler.
+///
 void ConnectionController::discoverPendingProfile()
 {
     _waitingForDiscovery = true;

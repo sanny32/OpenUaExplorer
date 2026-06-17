@@ -1,6 +1,11 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+///
+/// \file test_certificatesummarywidget.cpp
+/// \brief Unit tests for the certificate summary panel's empty, hint, and populated states.
+///
+
 #include <QLabel>
 #include <QPushButton>
 #include <QSignalSpy>
@@ -9,6 +14,9 @@
 
 #include "widgets/certificatesummarywidget.h"
 
+///
+/// \brief Tests the panel's hint/inline empty states and view-request signal.
+///
 class TestCertificateSummaryWidget : public QObject
 {
     Q_OBJECT

@@ -12,8 +12,8 @@
 #include "ui_connectionstatuswidget.h"
 
 ///
-/// \brief ConnectionStatusWidget::ConnectionStatusWidget
-/// \param parent
+/// \brief Builds the connection status widget.
+/// \param parent Parent widget.
 ///
 ConnectionStatusWidget::ConnectionStatusWidget(QWidget *parent)
     : QWidget(parent)
@@ -24,7 +24,7 @@ ConnectionStatusWidget::ConnectionStatusWidget(QWidget *parent)
 }
 
 ///
-/// \brief ConnectionStatusWidget::~ConnectionStatusWidget
+/// \brief Destroys the widget and its generated UI.
 ///
 ConnectionStatusWidget::~ConnectionStatusWidget()
 {
@@ -32,8 +32,8 @@ ConnectionStatusWidget::~ConnectionStatusWidget()
 }
 
 ///
-/// \brief ConnectionStatusWidget::setIcon
-/// \param icon
+/// \brief Sets the status icon.
+/// \param icon Icon shown next to the status text.
 ///
 void ConnectionStatusWidget::setIcon(const QIcon &icon)
 {
@@ -41,8 +41,8 @@ void ConnectionStatusWidget::setIcon(const QIcon &icon)
 }
 
 ///
-/// \brief ConnectionStatusWidget::setStatusText
-/// \param text
+/// \brief Sets the status text.
+/// \param text Text to display.
 ///
 void ConnectionStatusWidget::setStatusText(const QString &text)
 {

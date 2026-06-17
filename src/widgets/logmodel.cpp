@@ -13,9 +13,9 @@
 namespace {
 
 ///
-/// \brief levelText
-/// \param level
-/// \return
+/// \brief Returns the short label for a log level.
+/// \param level Log level.
+/// \return "INFO", "WARN", or "ERROR".
 ///
 QString levelText(LogItem::Level level)
 {
@@ -28,9 +28,9 @@ QString levelText(LogItem::Level level)
 }
 
 ///
-/// \brief levelColor
-/// \param level
-/// \return
+/// \brief Returns the display colour for a log level.
+/// \param level Log level.
+/// \return Colour used for the level cell.
 ///
 QColor levelColor(LogItem::Level level)
 {
@@ -45,8 +45,8 @@ QColor levelColor(LogItem::Level level)
 } // namespace
 
 ///
-/// \brief LogModel::LogModel
-/// \param parent
+/// \brief Constructs an empty log model.
+/// \param parent Owning QObject.
 ///
 LogModel::LogModel(QObject *parent)
     : QAbstractTableModel(parent)
@@ -54,9 +54,9 @@ LogModel::LogModel(QObject *parent)
 }
 
 ///
-/// \brief LogModel::rowCount
-/// \param parent
-/// \return
+/// \brief Returns the number of visible (filtered) log rows.
+/// \param parent Parent index; non-root parents have no rows.
+/// \return Visible item count, or 0 for non-root parents.
 ///
 int LogModel::rowCount(const QModelIndex &parent) const
 {
@@ -65,9 +65,9 @@ int LogModel::rowCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief LogModel::columnCount
-/// \param parent
-/// \return
+/// \brief Returns the fixed column count.
+/// \param parent Parent index; non-root parents have no columns.
+/// \return Column count, or 0 for non-root parents.
 ///
 int LogModel::columnCount(const QModelIndex &parent) const
 {
@@ -76,11 +76,11 @@ int LogModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief LogModel::headerData
-/// \param section
-/// \param orientation
-/// \param role
-/// \return
+/// \brief Returns the Time/Level/Source/Message column titles.
+/// \param section Column index.
+/// \param orientation Header orientation.
+/// \param role Display role.
+/// \return Column title, or the base implementation otherwise.
 ///
 QVariant LogModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
@@ -97,10 +97,10 @@ QVariant LogModel::headerData(int section, Qt::Orientation orientation, int role
 }
 
 ///
-/// \brief LogModel::data
-/// \param index
-/// \param role
-/// \return
+/// \brief Returns cell text, the level colour, and column alignment for a log row.
+/// \param index Cell to query.
+/// \param role Requested data role.
+/// \return Value for the role, or an invalid variant.
 ///
 QVariant LogModel::data(const QModelIndex &index, int role) const
 {
@@ -132,8 +132,8 @@ QVariant LogModel::data(const QModelIndex &index, int role) const
 }
 
 ///
-/// \brief LogModel::addItem
-/// \param item
+/// \brief Appends a log entry, inserting a row only when it passes the active filters.
+/// \param item Log entry to add.
 ///
 void LogModel::addItem(const LogItem &item)
 {
@@ -151,7 +151,7 @@ void LogModel::addItem(const LogItem &item)
 }
 
 ///
-/// \brief LogModel::clear
+/// \brief Removes all log entries.
 ///
 void LogModel::clear()
 {
@@ -161,8 +161,8 @@ void LogModel::clear()
 }
 
 ///
-/// \brief LogModel::filterLevel
-/// \return
+/// \brief Returns the level the log is filtered to.
+/// \return Active filter level.
 ///
 LogItem::Level LogModel::filterLevel() const
 {
@@ -170,8 +170,8 @@ LogItem::Level LogModel::filterLevel() const
 }
 
 ///
-/// \brief LogModel::setFilterLevel
-/// \param level
+/// \brief Filters the log to a single level.
+/// \param level Level to show.
 ///
 void LogModel::setFilterLevel(LogItem::Level level)
 {
@@ -182,7 +182,7 @@ void LogModel::setFilterLevel(LogItem::Level level)
 }
 
 ///
-/// \brief LogModel::clearFilterLevel
+/// \brief Removes the level filter, showing all levels.
 ///
 void LogModel::clearFilterLevel()
 {
@@ -192,8 +192,8 @@ void LogModel::clearFilterLevel()
 }
 
 ///
-/// \brief LogModel::setSearchFilter
-/// \param text
+/// \brief Filters log rows to those whose message contains the search text.
+/// \param text Case-insensitive substring filter; empty clears it.
 ///
 void LogModel::setSearchFilter(const QString &text)
 {
@@ -203,9 +203,9 @@ void LogModel::setSearchFilter(const QString &text)
 }
 
 ///
-/// \brief LogModel::setColumnAlignment
-/// \param column
-/// \param alignment
+/// \brief Sets the text alignment for a column.
+/// \param column Column index.
+/// \param alignment Alignment to apply.
 ///
 void LogModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {
@@ -214,8 +214,8 @@ void LogModel::setColumnAlignment(int column, Qt::Alignment alignment)
 }
 
 ///
-/// \brief LogModel::visibleItems
-/// \return
+/// \brief Returns the entries passing the level and search filters.
+/// \return Filtered log entries in insertion order.
 ///
 QVector<LogItem> LogModel::visibleItems() const
 {

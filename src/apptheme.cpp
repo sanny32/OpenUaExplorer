@@ -25,8 +25,8 @@
 namespace {
 
 ///
-/// \brief qtThemeApiAvailable
-/// \return
+/// \brief Reports whether Qt's native color-scheme API is usable on this build.
+/// \return True on Qt 6 and newer, where the style-hints color scheme exists.
 ///
 bool qtThemeApiAvailable()
 {
@@ -38,7 +38,7 @@ bool qtThemeApiAvailable()
 }
 
 ///
-/// \brief applyLightPalette
+/// \brief Forces the light Fusion palette, unconditionally on Windows.
 ///
 void applyLightPalette()
 {
@@ -51,8 +51,8 @@ void applyLightPalette()
 }
 
 ///
-/// \brief applyFusionPalette
-/// \param scheme
+/// \brief Applies the Fusion palette matching the scheme, when Fusion is active.
+/// \param scheme Color scheme that selects the light or dark palette.
 ///
 void applyFusionPalette(AppTheme::ColorScheme scheme)
 {
@@ -61,8 +61,8 @@ void applyFusionPalette(AppTheme::ColorScheme scheme)
 }
 
 ///
-/// \brief colorSchemeAvailable
-/// \return
+/// \brief Reports whether any color-scheme source (Qt API or D-Bus portal) exists.
+/// \return True when the scheme can be detected at runtime.
 ///
 bool colorSchemeAvailable()
 {
@@ -78,9 +78,9 @@ bool colorSchemeAvailable()
 
 #ifdef HAS_QTDBUS
 ///
-/// \brief colorSchemeFromDBus
-/// \param value
-/// \return
+/// \brief Maps a freedesktop portal color-scheme code to the application enum.
+/// \param value Portal value: 1 = dark, 2 = light, anything else = unknown.
+/// \return Corresponding color scheme.
 ///
 AppTheme::ColorScheme colorSchemeFromDBus(uint value)
 {
@@ -94,8 +94,8 @@ AppTheme::ColorScheme colorSchemeFromDBus(uint value)
 }
 
 ///
-/// \brief AppTheme::AppTheme
-/// \param parent
+/// \brief Constructs the theme manager and wires up system color-scheme detection.
+/// \param parent Owning QObject.
 ///
 AppTheme::AppTheme(QObject *parent)
     : QObject(parent)
@@ -104,7 +104,7 @@ AppTheme::AppTheme(QObject *parent)
 }
 
 ///
-/// \brief AppTheme::setupSystemColorScheme
+/// \brief Selects the color-scheme source: D-Bus portal, Qt style hints, or light fallback.
 ///
 void AppTheme::setupSystemColorScheme()
 {
@@ -120,8 +120,8 @@ void AppTheme::setupSystemColorScheme()
 }
 
 ///
-/// \brief AppTheme::setupPortalColorScheme
-/// \return
+/// \brief Subscribes to freedesktop portal SettingChanged notifications.
+/// \return True when D-Bus support is compiled in and the subscription was made.
 ///
 bool AppTheme::setupPortalColorScheme()
 {
@@ -140,7 +140,7 @@ bool AppTheme::setupPortalColorScheme()
 }
 
 ///
-/// \brief AppTheme::readStyleHintsColorScheme
+/// \brief Reads the initial scheme from Qt style hints and tracks later changes.
 ///
 void AppTheme::readStyleHintsColorScheme()
 {
@@ -166,7 +166,7 @@ void AppTheme::readStyleHintsColorScheme()
 }
 
 ///
-/// \brief AppTheme::isDark
+/// \brief Reports whether the dark scheme is active.
 /// \return True if the current color scheme is dark.
 ///
 bool AppTheme::isDark() const
@@ -175,7 +175,7 @@ bool AppTheme::isDark() const
 }
 
 ///
-/// \brief AppTheme::isManualToggleSupported
+/// \brief Reports whether the user may switch schemes manually.
 /// \return True if the user can manually toggle the color scheme.
 ///
 bool AppTheme::isManualToggleSupported() const
@@ -184,7 +184,7 @@ bool AppTheme::isManualToggleSupported() const
 }
 
 ///
-/// \brief AppTheme::toggle
+/// \brief Switches between light and dark, marking the scheme as manually overridden.
 ///
 void AppTheme::toggle()
 {
@@ -205,7 +205,7 @@ void AppTheme::toggle()
 }
 
 ///
-/// \brief AppTheme::applyInitialScheme
+/// \brief Applies the startup color scheme from the portal, Qt API, or light fallback.
 ///
 void AppTheme::applyInitialScheme()
 {
@@ -221,8 +221,8 @@ void AppTheme::applyInitialScheme()
 }
 
 ///
-/// \brief AppTheme::applyPortalColorScheme
-/// \return
+/// \brief Queries the portal (and impl backends) for the current scheme and applies it.
+/// \return True when a scheme was read and applied.
 ///
 bool AppTheme::applyPortalColorScheme()
 {
@@ -281,7 +281,7 @@ bool AppTheme::applyPortalColorScheme()
 }
 
 ///
-/// \brief AppTheme::applyColorScheme
+/// \brief Stores the scheme, applies it natively, and emits colorSchemeChanged().
 /// \param scheme The color scheme to apply.
 ///
 void AppTheme::applyColorScheme(ColorScheme scheme)
@@ -296,8 +296,8 @@ void AppTheme::applyColorScheme(ColorScheme scheme)
 }
 
 ///
-/// \brief AppTheme::applyNativeColorScheme
-/// \param scheme
+/// \brief Pushes the scheme to the platform: Qt style hints on Windows, Fusion palette elsewhere.
+/// \param scheme Color scheme to realise natively.
 ///
 void AppTheme::applyNativeColorScheme(ColorScheme scheme)
 {
@@ -322,7 +322,7 @@ void AppTheme::applyNativeColorScheme(ColorScheme scheme)
 
 #ifdef HAS_QTDBUS
 ///
-/// \brief AppTheme::onPortalSettingChanged
+/// \brief Applies a portal color-scheme change unless the user has overridden it.
 /// \param group  D-Bus settings namespace.
 /// \param key    Setting key name.
 /// \param value  New setting value.

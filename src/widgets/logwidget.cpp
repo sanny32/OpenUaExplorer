@@ -25,6 +25,12 @@ static LogWidget*       s_instance    = nullptr;
 static QtMessageHandler s_prevHandler = nullptr;
 static std::atomic<quint64> s_logEpoch { 0 };
 
+///
+/// \brief Qt message handler that forwards "ouaexp.*" log messages to the active LogWidget.
+/// \param type Qt message severity.
+/// \param ctx Log context carrying the category.
+/// \param msg Message text.
+///
 static void appMessageHandler(QtMsgType type, const QMessageLogContext &ctx, const QString &msg)
 {
     if (s_prevHandler) s_prevHandler(type, ctx, msg);
@@ -62,8 +68,8 @@ static void appMessageHandler(QtMsgType type, const QMessageLogContext &ctx, con
 } // namespace
 
 ///
-/// \brief LogWidget::LogWidget
-/// \param parent
+/// \brief Builds the log widget, installs the message handler, and wires its controls.
+/// \param parent Parent widget.
 ///
 LogWidget::LogWidget(QWidget *parent)
     : QWidget(parent)
@@ -111,7 +117,7 @@ LogWidget::LogWidget(QWidget *parent)
 }
 
 ///
-/// \brief LogWidget::~LogWidget
+/// \brief Restores the previous message handler and destroys the widget.
 ///
 LogWidget::~LogWidget()
 {
@@ -122,8 +128,8 @@ LogWidget::~LogWidget()
 }
 
 ///
-/// \brief LogWidget::addItem
-/// \param item
+/// \brief Appends a log entry unless logging is paused.
+/// \param item Log entry to add.
 ///
 void LogWidget::addItem(const LogItem &item)
 {
@@ -132,8 +138,8 @@ void LogWidget::addItem(const LogItem &item)
 }
 
 ///
-/// \brief LogWidget::changeEvent
-/// \param event
+/// \brief Refreshes the themed icons when the palette changes.
+/// \param event Change event being handled.
 ///
 void LogWidget::changeEvent(QEvent *event)
 {
@@ -146,7 +152,7 @@ void LogWidget::changeEvent(QEvent *event)
 }
 
 ///
-/// \brief LogWidget::setupLogView
+/// \brief Binds and lays out the log table.
 ///
 void LogWidget::setupLogView()
 {
@@ -174,7 +180,7 @@ void LogWidget::setupLogView()
 }
 
 ///
-/// \brief LogWidget::refreshIcons
+/// \brief Reloads the search, pause, and clear icons for the active theme.
 ///
 void LogWidget::refreshIcons()
 {
@@ -185,7 +191,7 @@ void LogWidget::refreshIcons()
 }
 
 ///
-/// \brief LogWidget::scrollToBottom
+/// \brief Scrolls the log table to the latest entry.
 ///
 void LogWidget::scrollToBottom()
 {

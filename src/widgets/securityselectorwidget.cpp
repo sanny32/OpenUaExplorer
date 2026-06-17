@@ -10,8 +10,8 @@
 #include "ui_securityselectorwidget.h"
 
 ///
-/// \brief SecuritySelectorWidget::SecuritySelectorWidget
-/// \param parent
+/// \brief Builds the selector and populates the security-policy choices.
+/// \param parent Parent widget.
 ///
 SecuritySelectorWidget::SecuritySelectorWidget(QWidget *parent)
     : QWidget(parent)
@@ -25,7 +25,7 @@ SecuritySelectorWidget::SecuritySelectorWidget(QWidget *parent)
 }
 
 ///
-/// \brief SecuritySelectorWidget::~SecuritySelectorWidget
+/// \brief Destroys the widget and its generated UI.
 ///
 SecuritySelectorWidget::~SecuritySelectorWidget()
 {
@@ -33,8 +33,8 @@ SecuritySelectorWidget::~SecuritySelectorWidget()
 }
 
 ///
-/// \brief SecuritySelectorWidget::currentSecurityPolicy
-/// \return
+/// \brief Returns the selected security policy.
+/// \return Current security-policy text.
 ///
 QString SecuritySelectorWidget::currentSecurityPolicy() const
 {

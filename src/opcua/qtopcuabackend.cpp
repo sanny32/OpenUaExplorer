@@ -42,11 +42,15 @@ using namespace OpcUaFormat;
 
 
 ///
-/// \brief Private implementation of OpcUaClientService.
+/// \brief Private implementation holding the Qt OPC UA client and request bookkeeping.
 ///
 class QtOpcUaBackend::Private
 {
 public:
+    ///
+    /// \brief Constructs the private state and arms the connection watchdog timer.
+    /// \param owner Backend that owns this state.
+    ///
     explicit Private(QtOpcUaBackend *owner)
         : q(owner)
         , connectWatchdog(owner)
@@ -59,6 +63,10 @@ public:
         });
     }
 
+    ///
+    /// \brief Updates the connection state and emits stateChanged() on a real transition.
+    /// \param newState New connection state.
+    ///
     void setState(OpcUaConnectionState newState)
     {
         if (currentState == newState)
@@ -67,6 +75,10 @@ public:
         emit q->stateChanged(currentState);
     }
 
+    ///
+    /// \brief Records, logs, and emits an error message.
+    /// \param message Error to report.
+    ///
     void setError(const QString &message)
     {
         error = message;
@@ -74,6 +86,9 @@ public:
         emit q->errorOccurred(message);
     }
 
+    ///
+    /// \brief Invalidates in-flight requests by bumping every operation generation counter.
+    ///
     void cancelRequests()
     {
         ++discoveryGeneration;
@@ -83,6 +98,11 @@ public:
         ++writeGeneration;
     }
 
+    ///
+    /// \brief Creates (or reuses) the client for a backend and wires its state/error/trust signals.
+    /// \param backend Requested backend name; "open62541" is matched case-insensitively.
+    /// \return True when a client is ready, false when the backend is unavailable.
+    ///
     bool createClient(const QString &backend)
     {
         if (client && activeBackend == backend)
@@ -180,6 +200,11 @@ public:
         return true;
     }
 
+    ///
+    /// \brief Applies authentication, PKI, and timeout settings to the client before connecting.
+    /// \param profile Connection profile to apply.
+    /// \param password Username password, when username auth is selected.
+    ///
     void configureClient(const ConnectionProfile &profile,
                          const QString &password)
     {
@@ -368,7 +393,7 @@ public:
 };
 
 ///
-/// \brief OpcUaClientService::OpcUaClientService
+/// \brief Constructs the backend and registers its transferable metatypes.
 /// \param parent Parent object.
 ///
 QtOpcUaBackend::QtOpcUaBackend(QObject *parent)
@@ -382,7 +407,7 @@ QtOpcUaBackend::QtOpcUaBackend(QObject *parent)
 }
 
 ///
-/// \brief OpcUaClientService::~OpcUaClientService
+/// \brief Destroys the backend, tearing down the client and private state.
 ///
 QtOpcUaBackend::~QtOpcUaBackend()
 {
@@ -391,7 +416,7 @@ QtOpcUaBackend::~QtOpcUaBackend()
 }
 
 ///
-/// \brief OpcUaClientService::isAvailable
+/// \brief Reports whether at least one Qt OPC UA backend plugin is installed.
 /// \return True when Qt OpcUa and at least one backend are available.
 ///
 bool QtOpcUaBackend::isAvailable() const
@@ -400,7 +425,7 @@ bool QtOpcUaBackend::isAvailable() const
 }
 
 ///
-/// \brief OpcUaClientService::availableBackends
+/// \brief Lists the installed Qt OPC UA backend plugins.
 /// \return Installed Qt OPC UA backend names.
 ///
 QStringList QtOpcUaBackend::availableBackends() const
@@ -409,7 +434,7 @@ QStringList QtOpcUaBackend::availableBackends() const
 }
 
 ///
-/// \brief OpcUaClientService::state
+/// \brief Returns the current connection state.
 /// \return Current connection state.
 ///
 OpcUaConnectionState QtOpcUaBackend::state() const
@@ -418,7 +443,7 @@ OpcUaConnectionState QtOpcUaBackend::state() const
 }
 
 ///
-/// \brief OpcUaClientService::lastError
+/// \brief Returns the most recent error reported by the backend.
 /// \return Most recent service error.
 ///
 QString QtOpcUaBackend::lastError() const
@@ -426,15 +451,20 @@ QString QtOpcUaBackend::lastError() const
     return _d->error;
 }
 
+///
+/// \brief Sets the delegate consulted during server-certificate validation.
+/// \param decider Trust decider, or nullptr to reject untrusted certificates.
+///
 void QtOpcUaBackend::setCertificateTrustDecider(CertificateTrustDecider *decider)
 {
     _d->trustDecider = decider;
 }
 
 ///
-/// \brief OpcUaClientService::discoverEndpoints
-/// \param url Discovery URL.
+/// \brief Requests the server's endpoint list, emitting endpointsDiscovered() with the result.
+/// \param url Discovery URL (must be opc.tcp).
 /// \param backend Preferred backend.
+/// \param timeoutMs Discovery timeout in milliseconds.
 ///
 void QtOpcUaBackend::discoverEndpoints(const QString &url, const QString &backend,
                                        int timeoutMs)
@@ -511,10 +541,10 @@ void QtOpcUaBackend::discoverEndpoints(const QString &url, const QString &backen
 }
 
 ///
-/// \brief OpcUaClientService::connectToEndpoint
+/// \brief Connects to the discovered endpoint that matches the profile's URL, policy, and mode.
 /// \param profile Connection settings.
 /// \param password Username password.
-/// \param privateKeyPassword Private key password.
+/// \param privateKeyPassword Private key password (unsupported; non-empty values are rejected).
 ///
 void QtOpcUaBackend::connectToEndpoint(const ConnectionProfile &profile,
                                        const QString &password,
@@ -549,7 +579,7 @@ void QtOpcUaBackend::connectToEndpoint(const ConnectionProfile &profile,
 }
 
 ///
-/// \brief OpcUaClientService::disconnectFromEndpoint
+/// \brief Cancels pending requests and disconnects from the endpoint.
 ///
 void QtOpcUaBackend::disconnectFromEndpoint()
 {
@@ -559,8 +589,9 @@ void QtOpcUaBackend::disconnectFromEndpoint()
 }
 
 ///
-/// \brief OpcUaClientService::browse
+/// \brief Browses a node's children, emitting browseFinished() with the references or an error.
 /// \param nodeId Node to browse.
+/// \param timeoutMs Request timeout in milliseconds.
 ///
 void QtOpcUaBackend::browse(const QString &nodeId, int timeoutMs)
 {
@@ -620,8 +651,9 @@ void QtOpcUaBackend::browse(const QString &nodeId, int timeoutMs)
 }
 
 ///
-/// \brief OpcUaClientService::readNode
+/// \brief Reads a node's full attribute set, emitting nodeDetailsReady() with the formatted result.
 /// \param nodeId Node to read.
+/// \param timeoutMs Request timeout in milliseconds.
 ///
 void QtOpcUaBackend::readNode(const QString &nodeId, int timeoutMs)
 {
@@ -682,8 +714,9 @@ void QtOpcUaBackend::readNode(const QString &nodeId, int timeoutMs)
 }
 
 ///
-/// \brief OpcUaClientService::readValues
+/// \brief Batch-reads the Value attribute of several nodes, emitting dataValuesReady().
 /// \param nodeIds Nodes whose Value attributes should be read.
+/// \param timeoutMs Request timeout in milliseconds.
 ///
 void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
 {
@@ -739,10 +772,11 @@ void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
 }
 
 ///
-/// \brief OpcUaClientService::writeValue
+/// \brief Writes a node's Value attribute, emitting writeFinished() with the outcome.
 /// \param nodeId Node to write.
 /// \param value Typed value.
 /// \param valueType QOpcUa::Types numeric value or Undefined.
+/// \param timeoutMs Request timeout in milliseconds.
 ///
 void QtOpcUaBackend::writeValue(const QString &nodeId, const QVariant &value,
                                 int valueType, int timeoutMs)

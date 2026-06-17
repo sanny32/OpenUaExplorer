@@ -10,9 +10,9 @@
 #include "fixedgap.h"
 
 ///
-/// \brief FixedGap::FixedGap
-/// \param width
-/// \param parent
+/// \brief Constructs a spacer of fixed width.
+/// \param width Fixed width in pixels.
+/// \param parent Parent widget.
 ///
 FixedGap::FixedGap(int width, QWidget *parent)
     : QWidget(parent)

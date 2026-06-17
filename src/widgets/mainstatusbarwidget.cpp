@@ -12,8 +12,8 @@
 #include "ui_mainstatusbarwidget.h"
 
 ///
-/// \brief MainStatusBarWidget::MainStatusBarWidget
-/// \param parent
+/// \brief Builds the status bar and shows the disconnected state.
+/// \param parent Parent widget.
 ///
 MainStatusBarWidget::MainStatusBarWidget(QWidget *parent)
     : QStatusBar(parent)
@@ -26,7 +26,7 @@ MainStatusBarWidget::MainStatusBarWidget(QWidget *parent)
 }
 
 ///
-/// \brief MainStatusBarWidget::setConnectionState
+/// \brief Updates the status text, icon, and security label for the connection state.
 /// \param state Current client state.
 /// \param endpoint Connected endpoint.
 /// \param security Selected security policy.
@@ -71,7 +71,7 @@ void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
 }
 
 ///
-/// \brief MainStatusBarWidget::~MainStatusBarWidget
+/// \brief Destroys the status bar and its generated UI.
 ///
 MainStatusBarWidget::~MainStatusBarWidget()
 {

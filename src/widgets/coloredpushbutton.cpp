@@ -32,8 +32,8 @@ enum class ButtonStyle {
 
 ///
 /// \brief Returns the unwrapped application style for a widget.
-/// \param widget
-/// \return
+/// \param widget Widget whose style to resolve, or nullptr for the app style.
+/// \return Innermost non-proxy style.
 ///
 const QStyle *baseStyle(const QWidget *widget)
 {
@@ -52,8 +52,8 @@ const QStyle *baseStyle(const QWidget *widget)
 
 ///
 /// \brief Checks whether a widget is rendered through the Fusion style.
-/// \param widget
-/// \return
+/// \param widget Widget to test.
+/// \return True when the base style is Fusion.
 ///
 bool isFusionStyle(const QWidget *widget)
 {
@@ -64,8 +64,8 @@ bool isFusionStyle(const QWidget *widget)
 
 ///
 /// \brief Checks whether a widget is rendered through a Windows style.
-/// \param widget
-/// \return
+/// \param widget Widget to test.
+/// \return True when the base style name contains "windows".
 ///
 bool isWindowsStyle(const QWidget *widget)
 {
@@ -76,8 +76,8 @@ bool isWindowsStyle(const QWidget *widget)
 
 ///
 /// \brief Checks whether a widget is rendered through the Windows 11 style.
-/// \param widget
-/// \return
+/// \param widget Widget to test.
+/// \return True when the base style is "windows11".
 ///
 bool isWindows11Style(const QWidget *widget)
 {
@@ -88,8 +88,8 @@ bool isWindows11Style(const QWidget *widget)
 
 ///
 /// \brief Resolves the style-specific drawing path for a widget.
-/// \param widget
-/// \return
+/// \param widget Widget to test.
+/// \return Drawing path matching the active base style.
 ///
 ButtonStyle buttonStyle(const QWidget *widget)
 {
@@ -107,10 +107,10 @@ namespace Fusion {
 
 ///
 /// \brief Blends two colors using the same weighting convention as Qt styles.
-/// \param colorA
-/// \param colorB
-/// \param factor
-/// \return
+/// \param colorA First colour (weighted by factor).
+/// \param colorB Second colour (weighted by 100 - factor).
+/// \param factor Weight of colorA, 0–100.
+/// \return Blended colour.
 ///
 QColor mergedColors(const QColor &colorA, const QColor &colorB, int factor)
 {
@@ -127,9 +127,9 @@ QColor mergedColors(const QColor &colorA, const QColor &colorB, int factor)
 
 ///
 /// \brief Creates a Fusion-style vertical gradient from a base color.
-/// \param rect
-/// \param baseColor
-/// \return
+/// \param rect Rectangle spanned by the gradient.
+/// \param baseColor Colour the gradient is derived from.
+/// \return Top-to-bottom gradient.
 ///
 QLinearGradient fusionGradient(const QRectF &rect, const QColor &baseColor)
 {
@@ -141,8 +141,8 @@ QLinearGradient fusionGradient(const QRectF &rect, const QColor &baseColor)
 
 ///
 /// \brief Returns the Fusion-style highlighted outline color.
-/// \param palette
-/// \return
+/// \param palette Palette to derive the outline from.
+/// \return Outline colour, capped in lightness.
 ///
 QColor fusionHighlightedOutline(const QPalette &palette)
 {
@@ -155,13 +155,13 @@ QColor fusionHighlightedOutline(const QPalette &palette)
 
 ///
 /// \brief Draws a colored push button using Fusion button geometry.
-/// \param painter
-/// \param button
-/// \param option
-/// \param bg
-/// \param enabled
-/// \param down
-/// \param hovered
+/// \param painter Painter to draw with.
+/// \param button Button being painted.
+/// \param option Style option carrying the button state.
+/// \param bg Background colour for the current state.
+/// \param enabled Whether the button is enabled.
+/// \param down Whether the button is pressed.
+/// \param hovered Whether the cursor is over the button.
 ///
 void drawButton(QPainter *painter, const QPushButton *button, const QStyleOption &option,
                 const QColor &bg, bool enabled, bool down, bool hovered)
@@ -200,13 +200,13 @@ void drawButton(QPainter *painter, const QPushButton *button, const QStyleOption
 
 ///
 /// \brief Selects the background color for the current button state.
-/// \param colors
-/// \param palette
-/// \param enabled
-/// \param down
-/// \param hovered
-/// \param style
-/// \return
+/// \param colors Configured base/hover/pressed colours.
+/// \param palette Palette used for the disabled Fusion fill.
+/// \param enabled Whether the button is enabled.
+/// \param down Whether the button is pressed.
+/// \param hovered Whether the cursor is over the button.
+/// \param style Active drawing path.
+/// \return Background colour to paint.
 ///
 QColor stateBackgroundColor(const ColoredPushButton::Colors &colors, const QPalette &palette,
                             bool enabled, bool down, bool hovered, ButtonStyle style)
@@ -226,9 +226,9 @@ namespace Generic {
 
 ///
 /// \brief Draws a colored push button using the generic flat fill.
-/// \param painter
-/// \param button
-/// \param bg
+/// \param painter Painter to draw with.
+/// \param button Button being painted.
+/// \param bg Fill colour.
 ///
 void drawButton(QPainter *painter, const QPushButton *button, const QColor &bg)
 {
@@ -250,10 +250,10 @@ namespace Windows {
 
 ///
 /// \brief Draws a colored push button using Qt's Windows button frame helper.
-/// \param painter
-/// \param button
-/// \param bg
-/// \param down
+/// \param painter Painter to draw with.
+/// \param button Button being painted.
+/// \param bg Fill colour.
+/// \param down Whether the button is pressed.
 ///
 void drawButton(QPainter *painter, const QPushButton *button, const QColor &bg, bool down)
 {
@@ -267,10 +267,10 @@ namespace Windows11 {
 
 ///
 /// \brief Draws a colored push button using native Windows 11 geometry.
-/// \param painter
-/// \param button
+/// \param painter Painter to draw with.
+/// \param button Button being painted.
 /// \param option Native push button style option.
-/// \param bg
+/// \param bg Fill colour applied as the button colour.
 ///
 void drawButton(QPainter *painter, const QPushButton *button,
                 QStyleOptionButton option, const QColor &bg)
@@ -285,8 +285,8 @@ void drawButton(QPainter *painter, const QPushButton *button,
 }
 
 ///
-/// \brief ColoredPushButton::ColoredPushButton
-/// \param parent
+/// \brief Constructs an uncoloured button that paints like a standard push button.
+/// \param parent Parent widget.
 ///
 ColoredPushButton::ColoredPushButton(QWidget *parent)
     : QPushButton(parent)
@@ -294,8 +294,8 @@ ColoredPushButton::ColoredPushButton(QWidget *parent)
 }
 
 ///
-/// \brief ColoredPushButton::setColors
-/// \param colors
+/// \brief Enables custom colouring, deriving the dark variant from the given light colours.
+/// \param colors Light-theme colour set.
 ///
 void ColoredPushButton::setColors(const Colors &colors)
 {
@@ -307,7 +307,7 @@ void ColoredPushButton::setColors(const Colors &colors)
 }
 
 ///
-/// \brief ColoredPushButton::clearColors
+/// \brief Disables custom colouring and restores the application palette.
 ///
 void ColoredPushButton::clearColors()
 {
@@ -317,8 +317,8 @@ void ColoredPushButton::clearColors()
 }
 
 ///
-/// \brief ColoredPushButton::changeEvent
-/// \param event
+/// \brief Re-applies the theme-appropriate colours when the palette changes.
+/// \param event Change event being handled.
 ///
 void ColoredPushButton::changeEvent(QEvent *event)
 {
@@ -332,8 +332,8 @@ void ColoredPushButton::changeEvent(QEvent *event)
 }
 
 ///
-/// \brief ColoredPushButton::paintEvent
-/// \param event
+/// \brief Paints the button with its state colour via the active style's drawing path.
+/// \param event Paint event being handled.
 ///
 void ColoredPushButton::paintEvent(QPaintEvent *event)
 {
@@ -377,9 +377,9 @@ void ColoredPushButton::paintEvent(QPaintEvent *event)
 }
 
 ///
-/// \brief ColoredPushButton::darkColorsFromLight
-/// \param lightColors
-/// \return
+/// \brief Derives a dark-theme colour set by lightening the light-theme colours.
+/// \param lightColors Light-theme colour set.
+/// \return Dark-theme colour set.
 ///
 ColoredPushButton::Colors ColoredPushButton::darkColorsFromLight(const Colors &lightColors)
 {
@@ -392,8 +392,8 @@ ColoredPushButton::Colors ColoredPushButton::darkColorsFromLight(const Colors &l
 }
 
 ///
-/// \brief ColoredPushButton::applyColors
-/// \param colors
+/// \brief Stores the active colours and mirrors them into the button palette.
+/// \param colors Colour set to apply.
 ///
 void ColoredPushButton::applyColors(const Colors &colors)
 {
@@ -409,7 +409,7 @@ void ColoredPushButton::applyColors(const Colors &colors)
 }
 
 ///
-/// \brief ColoredPushButton::refreshColors
+/// \brief Applies the light or dark colour set matching the current theme.
 ///
 void ColoredPushButton::refreshColors()
 {

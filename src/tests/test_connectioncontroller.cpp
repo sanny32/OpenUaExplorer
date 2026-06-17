@@ -1,6 +1,11 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+///
+/// \file test_connectioncontroller.cpp
+/// \brief Unit tests for ConnectionController and OpcUaClientService using fake dependencies.
+///
+
 #include <QHash>
 #include <QSignalSpy>
 #include <QTest>
@@ -10,6 +15,9 @@
 #include "opcua/opcuabackend.h"
 #include "opcua/opcuaclientservice.h"
 
+///
+/// \brief In-memory OPC UA backend double that records calls and drives discovery manually.
+///
 class FakeOpcUaBackend : public OpcUaBackend
 {
     Q_OBJECT
@@ -73,6 +81,9 @@ public:
     QString connectedPrivateKeyPassword;
 };
 
+///
+/// \brief Secret store double backed by an in-memory map, resolving reads synchronously.
+///
 class FakeSecretStore : public SecretStore
 {
     Q_OBJECT
@@ -110,6 +121,9 @@ public:
     QHash<QString, QString> errors;
 };
 
+///
+/// \brief Profile store double that keeps a single saved profile in memory.
+///
 class FakeProfileStore : public ConnectionProfileStore
 {
 public:
@@ -129,6 +143,9 @@ public:
     QList<ConnectionProfile> storedProfiles;
 };
 
+///
+/// \brief Tests connect/save flows and timeout propagation through the controller and service.
+///
 class TestConnectionController : public QObject
 {
     Q_OBJECT

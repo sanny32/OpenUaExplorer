@@ -30,8 +30,8 @@
 
 
 ///
-/// \brief MainWindow::MainWindow
-/// \param parent
+/// \brief Builds the window, wires up menus, docks, icons, and the OPC UA client.
+/// \param parent Parent widget.
 ///
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -57,7 +57,7 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 ///
-/// \brief MainWindow::~MainWindow
+/// \brief Destroys the window and its generated UI.
 ///
 MainWindow::~MainWindow()
 {
@@ -65,8 +65,8 @@ MainWindow::~MainWindow()
 }
 
 ///
-/// \brief MainWindow::changeEvent
-/// \param event
+/// \brief Re-applies the themed window icon when the palette changes.
+/// \param event Change event being handled.
 ///
 void MainWindow::changeEvent(QEvent *event)
 {
@@ -78,7 +78,7 @@ void MainWindow::changeEvent(QEvent *event)
 }
 
 ///
-/// \brief MainWindow::on_actionNewConnection_triggered
+/// \brief Opens the connection dialog to create a new connection.
 ///
 void MainWindow::on_actionNewConnection_triggered()
 {
@@ -86,7 +86,7 @@ void MainWindow::on_actionNewConnection_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionConnect_triggered
+/// \brief Opens the connection dialog to connect to a server.
 ///
 void MainWindow::on_actionConnect_triggered()
 {
@@ -94,7 +94,7 @@ void MainWindow::on_actionConnect_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionDisconnect_triggered
+/// \brief Disconnects from the current endpoint.
 ///
 void MainWindow::on_actionDisconnect_triggered()
 {
@@ -102,7 +102,7 @@ void MainWindow::on_actionDisconnect_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionBrowse_triggered
+/// \brief Initialises browsing of the server address space.
 ///
 void MainWindow::on_actionBrowse_triggered()
 {
@@ -110,7 +110,7 @@ void MainWindow::on_actionBrowse_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionBrowseAddressSpace_triggered
+/// \brief Initialises browsing of the server address space.
 ///
 void MainWindow::on_actionBrowseAddressSpace_triggered()
 {
@@ -118,7 +118,7 @@ void MainWindow::on_actionBrowseAddressSpace_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionRefresh_triggered
+/// \brief Re-browses the selected node, or the root when nothing is selected.
 ///
 void MainWindow::on_actionRefresh_triggered()
 {
@@ -126,7 +126,7 @@ void MainWindow::on_actionRefresh_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionRead_triggered
+/// \brief Reads the currently selected node.
 ///
 void MainWindow::on_actionRead_triggered()
 {
@@ -136,7 +136,7 @@ void MainWindow::on_actionRead_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionReadSelected_triggered
+/// \brief Reads the currently selected node.
 ///
 void MainWindow::on_actionReadSelected_triggered()
 {
@@ -144,7 +144,7 @@ void MainWindow::on_actionReadSelected_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionWrite_triggered
+/// \brief Opens the write dialog for the selected node's current value.
 ///
 void MainWindow::on_actionWrite_triggered()
 {
@@ -156,7 +156,7 @@ void MainWindow::on_actionWrite_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionWriteValue_triggered
+/// \brief Opens the write dialog for the selected node's current value.
 ///
 void MainWindow::on_actionWriteValue_triggered()
 {
@@ -164,7 +164,7 @@ void MainWindow::on_actionWriteValue_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionAddToDataAccess_triggered
+/// \brief Adds the selected variable node to the data-access view.
 ///
 void MainWindow::on_actionAddToDataAccess_triggered()
 {
@@ -173,7 +173,7 @@ void MainWindow::on_actionAddToDataAccess_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionExit_triggered
+/// \brief Closes the main window.
 ///
 void MainWindow::on_actionExit_triggered()
 {
@@ -181,7 +181,7 @@ void MainWindow::on_actionExit_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionTheme_triggered
+/// \brief Toggles between the light and dark colour scheme.
 ///
 void MainWindow::on_actionTheme_triggered()
 {
@@ -189,7 +189,7 @@ void MainWindow::on_actionTheme_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionAbout_triggered
+/// \brief Shows the About dialog.
 ///
 void MainWindow::on_actionAbout_triggered()
 {
@@ -198,7 +198,8 @@ void MainWindow::on_actionAbout_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionViewAddressSpace_toggled
+/// \brief Shows or hides the address-space dock.
+/// \param checked True to show the dock.
 ///
 void MainWindow::on_actionViewAddressSpace_toggled(bool checked)
 {
@@ -206,7 +207,8 @@ void MainWindow::on_actionViewAddressSpace_toggled(bool checked)
 }
 
 ///
-/// \brief MainWindow::on_addressSpaceDock_visibilityChanged
+/// \brief Keeps the address-space view action in sync with the dock's visibility.
+/// \param visible Current dock visibility.
 ///
 void MainWindow::on_addressSpaceDock_visibilityChanged(bool visible)
 {
@@ -215,7 +217,8 @@ void MainWindow::on_addressSpaceDock_visibilityChanged(bool visible)
 }
 
 ///
-/// \brief MainWindow::on_actionViewActivity_toggled
+/// \brief Shows or hides the activity-log dock.
+/// \param checked True to show the dock.
 ///
 void MainWindow::on_actionViewActivity_toggled(bool checked)
 {
@@ -223,7 +226,8 @@ void MainWindow::on_actionViewActivity_toggled(bool checked)
 }
 
 ///
-/// \brief MainWindow::on_logDock_visibilityChanged
+/// \brief Keeps the activity view action in sync with the log dock's visibility.
+/// \param visible Current dock visibility.
 ///
 void MainWindow::on_logDock_visibilityChanged(bool visible)
 {
@@ -231,7 +235,7 @@ void MainWindow::on_logDock_visibilityChanged(bool visible)
 }
 
 ///
-/// \brief MainWindow::on_actionViewDataAccess_triggered
+/// \brief Switches the data-access widget to the Data Access page.
 ///
 void MainWindow::on_actionViewDataAccess_triggered()
 {
@@ -239,7 +243,7 @@ void MainWindow::on_actionViewDataAccess_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionViewSubscriptions_triggered
+/// \brief Switches the data-access widget to the Subscriptions page.
 ///
 void MainWindow::on_actionViewSubscriptions_triggered()
 {
@@ -247,7 +251,7 @@ void MainWindow::on_actionViewSubscriptions_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionViewEvents_triggered
+/// \brief Switches the data-access widget to the Events page.
 ///
 void MainWindow::on_actionViewEvents_triggered()
 {
@@ -255,7 +259,7 @@ void MainWindow::on_actionViewEvents_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionViewHistory_triggered
+/// \brief Switches the data-access widget to the History page.
 ///
 void MainWindow::on_actionViewHistory_triggered()
 {
@@ -263,7 +267,7 @@ void MainWindow::on_actionViewHistory_triggered()
 }
 
 ///
-/// \brief MainWindow::on_actionResetLayout_triggered
+/// \brief Restores the default dock layout.
 ///
 void MainWindow::on_actionResetLayout_triggered()
 {
@@ -271,7 +275,7 @@ void MainWindow::on_actionResetLayout_triggered()
 }
 
 ///
-/// \brief MainWindow::openConnectionDialog
+/// \brief Runs the connection dialog and connects (optionally saving) the chosen profile.
 ///
 void MainWindow::openConnectionDialog()
 {
@@ -289,7 +293,7 @@ void MainWindow::openConnectionDialog()
 }
 
 ///
-/// \brief MainWindow::setupMainMenu
+/// \brief Initialises the view actions' checked state from the docks.
 ///
 void MainWindow::setupMainMenu()
 {
@@ -298,7 +302,7 @@ void MainWindow::setupMainMenu()
 }
 
 ///
-/// \brief MainWindow::setupDockOptions
+/// \brief Assigns the window corners to the left dock area.
 ///
 void MainWindow::setupDockOptions()
 {
@@ -307,7 +311,7 @@ void MainWindow::setupDockOptions()
 }
 
 ///
-/// \brief MainWindow::resetLayout
+/// \brief Restores docks to their default positions and sizes.
 ///
 void MainWindow::resetLayout()
 {
@@ -325,7 +329,7 @@ void MainWindow::resetLayout()
 }
 
 ///
-/// \brief MainWindow::toggleTheme
+/// \brief Toggles the application colour scheme.
 ///
 void MainWindow::toggleTheme()
 {
@@ -333,7 +337,7 @@ void MainWindow::toggleTheme()
 }
 
 ///
-/// \brief MainWindow::setupOpcUaClient
+/// \brief Wires the client service and connection controller signals to the UI.
 ///
 void MainWindow::setupOpcUaClient()
 {
@@ -370,7 +374,7 @@ void MainWindow::setupOpcUaClient()
 }
 
 ///
-/// \brief MainWindow::onClientError
+/// \brief Logs an error reported by the client service.
 /// \param message Error reported by the OPC UA client service.
 ///
 void MainWindow::onClientError(const QString &message)
@@ -379,7 +383,7 @@ void MainWindow::onClientError(const QString &message)
 }
 
 ///
-/// \brief MainWindow::browseNodeOrRoot
+/// \brief Browses a node, defaulting to the Objects folder when none is given.
 /// \param nodeId Node to browse, or empty to browse the Objects folder.
 ///
 void MainWindow::browseNodeOrRoot(const QString &nodeId)
@@ -389,7 +393,7 @@ void MainWindow::browseNodeOrRoot(const QString &nodeId)
 }
 
 ///
-/// \brief MainWindow::onNodeSelected
+/// \brief Reads the node selected in the address space.
 /// \param node Node selected in the address space.
 ///
 void MainWindow::onNodeSelected(const OpcUaNodeInfo &node)
@@ -398,7 +402,7 @@ void MainWindow::onNodeSelected(const OpcUaNodeInfo &node)
 }
 
 ///
-/// \brief MainWindow::onNodeDetailsReady
+/// \brief Shows the read node details and enables the matching actions.
 /// \param details Read node details.
 /// \param error Read error, if any.
 ///
@@ -419,7 +423,7 @@ void MainWindow::onNodeDetailsReady(const OpcUaNodeDetails &details, const QStri
 }
 
 ///
-/// \brief MainWindow::onDataValuesReady
+/// \brief Pushes the latest data-access values into the view.
 /// \param values Latest data access values.
 /// \param error Read error, if any.
 ///
@@ -430,7 +434,7 @@ void MainWindow::onDataValuesReady(const QVector<OpcUaDataValue> &values, const 
 }
 
 ///
-/// \brief MainWindow::onWriteFinished
+/// \brief Re-reads the node on success, or warns the user on failure.
 /// \param nodeId Written node.
 /// \param success Whether the write succeeded.
 /// \param error Write error, if any.
@@ -469,7 +473,7 @@ CertificateTrustDecision MainWindow::decide(const QByteArray &certificate,
 }
 
 ///
-/// \brief MainWindow::updateClientUi
+/// \brief Enables/disables actions and refreshes the views for the client state.
 /// \param state Current OPC UA client state.
 ///
 void MainWindow::updateClientUi(OpcUaConnectionState state)
@@ -497,7 +501,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
 }
 
 ///
-/// \brief MainWindow::initializeAddressSpace
+/// \brief Seeds the address-space view with the Objects-folder root node.
 ///
 void MainWindow::initializeAddressSpace()
 {
@@ -511,7 +515,7 @@ void MainWindow::initializeAddressSpace()
 }
 
 ///
-/// \brief MainWindow::showWriteDialog
+/// \brief Opens the write dialog and writes the entered value on accept.
 /// \param nodeId Node to write.
 /// \param value Current value.
 /// \param valueType OPC UA value type.
@@ -529,7 +533,7 @@ void MainWindow::showWriteDialog(const QString &nodeId, const QVariant &value,
 }
 
 ///
-/// \brief MainWindow::rebuildRecentConnections
+/// \brief Rebuilds the Recent Connections menu from the saved profiles.
 ///
 void MainWindow::rebuildRecentConnections()
 {
@@ -549,7 +553,7 @@ void MainWindow::rebuildRecentConnections()
 }
 
 ///
-/// \brief MainWindow::bindIcons
+/// \brief Binds themed icons to the window and its actions.
 ///
 void MainWindow::bindIcons()
 {

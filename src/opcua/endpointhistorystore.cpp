@@ -11,6 +11,10 @@ constexpr auto endpointUrlHistoryKey = "connectionDialog/endpointUrlHistory";
 constexpr int maximumEndpointHistorySize = 10;
 }
 
+///
+/// \brief Returns the endpoint URL history, with the last-used URL moved to the front.
+/// \return Most-recent-first list of endpoint URLs.
+///
 QStringList EndpointHistoryStore::history() const
 {
     QSettings settings;
@@ -25,6 +29,10 @@ QStringList EndpointHistoryStore::history() const
     return result;
 }
 
+///
+/// \brief Records an endpoint URL as most-recent, trimming the history to its cap.
+/// \param endpointUrl URL to store; blank values are ignored.
+///
 void EndpointHistoryStore::save(const QString &endpointUrl) const
 {
     const QString normalized = endpointUrl.trimmed();

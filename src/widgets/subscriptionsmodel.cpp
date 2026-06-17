@@ -9,8 +9,8 @@
 #include "subscriptionsmodel.h"
 
 ///
-/// \brief SubscriptionsModel::SubscriptionsModel
-/// \param parent
+/// \brief Constructs an empty subscriptions model.
+/// \param parent Owning QObject.
 ///
 SubscriptionsModel::SubscriptionsModel(QObject *parent)
     : QAbstractTableModel(parent)
@@ -18,9 +18,9 @@ SubscriptionsModel::SubscriptionsModel(QObject *parent)
 }
 
 ///
-/// \brief SubscriptionsModel::rowCount
-/// \param parent
-/// \return
+/// \brief Returns the number of subscription rows.
+/// \param parent Parent index; non-root parents have no rows.
+/// \return Subscription count, or 0 for non-root parents.
 ///
 int SubscriptionsModel::rowCount(const QModelIndex &parent) const
 {
@@ -29,9 +29,9 @@ int SubscriptionsModel::rowCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief SubscriptionsModel::columnCount
-/// \param parent
-/// \return
+/// \brief Returns the fixed column count.
+/// \param parent Parent index; non-root parents have no columns.
+/// \return Column count, or 0 for non-root parents.
 ///
 int SubscriptionsModel::columnCount(const QModelIndex &parent) const
 {
@@ -40,11 +40,11 @@ int SubscriptionsModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief SubscriptionsModel::headerData
-/// \param section
-/// \param orientation
-/// \param role
-/// \return
+/// \brief Returns the Name/Publishing Interval column titles.
+/// \param section Column index.
+/// \param orientation Header orientation.
+/// \param role Display role.
+/// \return Column title, or the base implementation otherwise.
 ///
 QVariant SubscriptionsModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
@@ -59,10 +59,10 @@ QVariant SubscriptionsModel::headerData(int section, Qt::Orientation orientation
 }
 
 ///
-/// \brief SubscriptionsModel::data
-/// \param index
-/// \param role
-/// \return
+/// \brief Returns the name/interval text and column alignment for a subscription row.
+/// \param index Cell to query.
+/// \param role Requested data role.
+/// \return Value for the role, or an invalid variant.
 ///
 QVariant SubscriptionsModel::data(const QModelIndex &index, int role) const
 {
@@ -85,8 +85,8 @@ QVariant SubscriptionsModel::data(const QModelIndex &index, int role) const
 }
 
 ///
-/// \brief SubscriptionsModel::setItems
-/// \param items
+/// \brief Replaces all subscription rows with row-change notifications.
+/// \param items New subscriptions to display.
 ///
 void SubscriptionsModel::setItems(const QVector<SubscriptionItem> &items)
 {
@@ -103,8 +103,8 @@ void SubscriptionsModel::setItems(const QVector<SubscriptionItem> &items)
 }
 
 ///
-/// \brief SubscriptionsModel::names
-/// \return
+/// \brief Returns the names of all subscriptions.
+/// \return Subscription names in row order.
 ///
 QStringList SubscriptionsModel::names() const
 {
@@ -116,7 +116,7 @@ QStringList SubscriptionsModel::names() const
 }
 
 ///
-/// \brief SubscriptionsModel::clear
+/// \brief Removes all subscriptions.
 ///
 void SubscriptionsModel::clear()
 {
@@ -127,9 +127,9 @@ void SubscriptionsModel::clear()
 }
 
 ///
-/// \brief SubscriptionsModel::setColumnAlignment
-/// \param column
-/// \param alignment
+/// \brief Sets the text alignment for a column.
+/// \param column Column index.
+/// \param alignment Alignment to apply.
 ///
 void SubscriptionsModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {

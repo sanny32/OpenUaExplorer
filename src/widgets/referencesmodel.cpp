@@ -9,8 +9,8 @@
 #include "referencesmodel.h"
 
 ///
-/// \brief ReferencesModel::ReferencesModel
-/// \param parent
+/// \brief Constructs an empty references model.
+/// \param parent Owning QObject.
 ///
 ReferencesModel::ReferencesModel(QObject *parent)
     : QAbstractTableModel(parent)
@@ -18,9 +18,9 @@ ReferencesModel::ReferencesModel(QObject *parent)
 }
 
 ///
-/// \brief ReferencesModel::rowCount
-/// \param parent
-/// \return
+/// \brief Returns the number of reference rows.
+/// \param parent Parent index; non-root parents have no rows.
+/// \return Reference count, or 0 for non-root parents.
 ///
 int ReferencesModel::rowCount(const QModelIndex &parent) const
 {
@@ -29,9 +29,9 @@ int ReferencesModel::rowCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief ReferencesModel::columnCount
-/// \param parent
-/// \return
+/// \brief Returns the fixed column count.
+/// \param parent Parent index; non-root parents have no columns.
+/// \return Column count, or 0 for non-root parents.
 ///
 int ReferencesModel::columnCount(const QModelIndex &parent) const
 {
@@ -40,11 +40,11 @@ int ReferencesModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief ReferencesModel::headerData
-/// \param section
-/// \param orientation
-/// \param role
-/// \return
+/// \brief Returns the Reference/Target column titles.
+/// \param section Column index.
+/// \param orientation Header orientation.
+/// \param role Display role.
+/// \return Column title, or the base implementation otherwise.
 ///
 QVariant ReferencesModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
@@ -59,10 +59,10 @@ QVariant ReferencesModel::headerData(int section, Qt::Orientation orientation, i
 }
 
 ///
-/// \brief ReferencesModel::data
-/// \param index
-/// \param role
-/// \return
+/// \brief Returns the reference or target text for a cell.
+/// \param index Cell to query.
+/// \param role Only Qt::DisplayRole is handled.
+/// \return Cell text, or an invalid variant.
 ///
 QVariant ReferencesModel::data(const QModelIndex &index, int role) const
 {
@@ -80,8 +80,8 @@ QVariant ReferencesModel::data(const QModelIndex &index, int role) const
 }
 
 ///
-/// \brief ReferencesModel::setItems
-/// \param items
+/// \brief Replaces the reference rows.
+/// \param items New references to display.
 ///
 void ReferencesModel::setItems(const QVector<ReferenceItem> &items)
 {
@@ -91,7 +91,7 @@ void ReferencesModel::setItems(const QVector<ReferenceItem> &items)
 }
 
 ///
-/// \brief ReferencesModel::clear
+/// \brief Removes all references.
 ///
 void ReferencesModel::clear()
 {

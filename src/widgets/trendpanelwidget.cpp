@@ -10,8 +10,8 @@
 #include "ui_trendpanelwidget.h"
 
 ///
-/// \brief TrendPanelWidget::TrendPanelWidget
-/// \param parent
+/// \brief Builds the trend panel and sets its toolbar icons.
+/// \param parent Parent widget.
 ///
 TrendPanelWidget::TrendPanelWidget(QWidget *parent)
     : QWidget(parent)
@@ -25,7 +25,7 @@ TrendPanelWidget::TrendPanelWidget(QWidget *parent)
 }
 
 ///
-/// \brief TrendPanelWidget::~TrendPanelWidget
+/// \brief Destroys the panel and its generated UI.
 ///
 TrendPanelWidget::~TrendPanelWidget()
 {

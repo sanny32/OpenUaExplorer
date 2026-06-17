@@ -12,8 +12,8 @@
 #include "themedpushbutton.h"
 
 ///
-/// \brief ThemedPushButton::ThemedPushButton
-/// \param parent
+/// \brief Constructs the themed push button.
+/// \param parent Parent widget.
 ///
 ThemedPushButton::ThemedPushButton(QWidget *parent)
     : QPushButton(parent)
@@ -21,8 +21,8 @@ ThemedPushButton::ThemedPushButton(QWidget *parent)
 }
 
 ///
-/// \brief ThemedPushButton::setIcon
-/// \param name
+/// \brief Sets the themed icon by resource name.
+/// \param name Icon resource name.
 ///
 void ThemedPushButton::setIcon(const QString &name)
 {
@@ -31,8 +31,8 @@ void ThemedPushButton::setIcon(const QString &name)
 }
 
 ///
-/// \brief ThemedPushButton::changeEvent
-/// \param event
+/// \brief Re-renders the icon when the palette changes.
+/// \param event Change event being handled.
 ///
 void ThemedPushButton::changeEvent(QEvent *event)
 {
@@ -46,7 +46,7 @@ void ThemedPushButton::changeEvent(QEvent *event)
 }
 
 ///
-/// \brief ThemedPushButton::refreshIcon
+/// \brief Reloads the current icon for the active theme.
 ///
 void ThemedPushButton::refreshIcon()
 {

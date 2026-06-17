@@ -219,7 +219,7 @@ private:
 }
 
 ///
-/// \brief EndpointDiscoveryWidget::EndpointDiscoveryWidget
+/// \brief Builds the endpoint table with its custom row delegates and hover tracking.
 /// \param parent Owning widget.
 ///
 EndpointDiscoveryWidget::EndpointDiscoveryWidget(QWidget *parent)
@@ -273,7 +273,7 @@ EndpointDiscoveryWidget::EndpointDiscoveryWidget(QWidget *parent)
 }
 
 ///
-/// \brief EndpointDiscoveryWidget::setEndpoints
+/// \brief Shows the discovered endpoints, updating the count and selecting the first row.
 /// \param endpoints Discovered endpoints to display.
 ///
 void EndpointDiscoveryWidget::setEndpoints(const QList<EndpointInfo> &endpoints)
@@ -287,7 +287,7 @@ void EndpointDiscoveryWidget::setEndpoints(const QList<EndpointInfo> &endpoints)
 }
 
 ///
-/// \brief EndpointDiscoveryWidget::clear
+/// \brief Removes all endpoints.
 ///
 void EndpointDiscoveryWidget::clear()
 {
@@ -295,7 +295,7 @@ void EndpointDiscoveryWidget::clear()
 }
 
 ///
-/// \brief EndpointDiscoveryWidget::endpointCount
+/// \brief Returns how many endpoints are shown.
 /// \return Number of discovered endpoints.
 ///
 int EndpointDiscoveryWidget::endpointCount() const
@@ -304,7 +304,7 @@ int EndpointDiscoveryWidget::endpointCount() const
 }
 
 ///
-/// \brief EndpointDiscoveryWidget::currentRow
+/// \brief Returns the selected row index.
 /// \return Selected endpoint row, or -1 when none is selected.
 ///
 int EndpointDiscoveryWidget::currentRow() const
@@ -313,7 +313,7 @@ int EndpointDiscoveryWidget::currentRow() const
 }
 
 ///
-/// \brief EndpointDiscoveryWidget::hasSelection
+/// \brief Reports whether a valid endpoint is selected.
 /// \return True when a valid endpoint row is selected.
 ///
 bool EndpointDiscoveryWidget::hasSelection() const
@@ -323,7 +323,7 @@ bool EndpointDiscoveryWidget::hasSelection() const
 }
 
 ///
-/// \brief EndpointDiscoveryWidget::currentEndpoint
+/// \brief Returns the selected endpoint.
 /// \return Endpoint for the selected row.
 ///
 EndpointInfo EndpointDiscoveryWidget::currentEndpoint() const
@@ -332,7 +332,7 @@ EndpointInfo EndpointDiscoveryWidget::currentEndpoint() const
 }
 
 ///
-/// \brief EndpointDiscoveryWidget::eventFilter
+/// \brief Tracks the hovered row from viewport mouse-move and leave events.
 /// \param watched Watched object.
 /// \param event Event being delivered.
 /// \return True if the event was consumed.
@@ -351,7 +351,7 @@ bool EndpointDiscoveryWidget::eventFilter(QObject *watched, QEvent *event)
 }
 
 ///
-/// \brief EndpointDiscoveryWidget::setHoveredRow
+/// \brief Updates the shared hovered-row property and repaints the viewport.
 /// \param row Endpoint row under the cursor, or -1 for none.
 ///
 void EndpointDiscoveryWidget::setHoveredRow(int row)

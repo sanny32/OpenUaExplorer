@@ -3,6 +3,11 @@
 
 #include "connectionprofilevalidator.h"
 
+///
+/// \brief Checks a connection profile for the fields required by its security and auth settings.
+/// \param profile Profile to validate.
+/// \return The first problem found, or Error::None when the profile is complete.
+///
 ConnectionProfileValidator::Error ConnectionProfileValidator::validate(
     const ConnectionProfile &profile)
 {

@@ -14,9 +14,9 @@
 #include "headerview.h"
 
 ///
-/// \brief HeaderView::HeaderView
-/// \param orientation
-/// \param parent
+/// \brief Constructs the header and clamps sections to their wrapped minimum width.
+/// \param orientation Header orientation.
+/// \param parent Parent widget.
 ///
 HeaderView::HeaderView(Qt::Orientation orientation, QWidget *parent)
     : QHeaderView(orientation, parent)
@@ -32,7 +32,8 @@ HeaderView::HeaderView(Qt::Orientation orientation, QWidget *parent)
 }
 
 ///
-/// \brief HeaderView::defaultAlignment
+/// \brief Returns the alignment used for sections without an explicit override.
+/// \return Default header alignment.
 ///
 Qt::Alignment HeaderView::defaultAlignment() const
 {
@@ -40,8 +41,8 @@ Qt::Alignment HeaderView::defaultAlignment() const
 }
 
 ///
-/// \brief HeaderView::setDefaultAlignment
-/// \param alignment
+/// \brief Sets the alignment used for sections without an explicit override.
+/// \param alignment Default header alignment.
 ///
 void HeaderView::setDefaultAlignment(Qt::Alignment alignment)
 {
@@ -49,8 +50,9 @@ void HeaderView::setDefaultAlignment(Qt::Alignment alignment)
 }
 
 ///
-/// \brief HeaderView::sectionAlignment
-/// \param logicalIndex
+/// \brief Returns the alignment for a section, falling back to the default.
+/// \param logicalIndex Section index.
+/// \return Section alignment.
 ///
 Qt::Alignment HeaderView::sectionAlignment(int logicalIndex) const
 {
@@ -60,9 +62,9 @@ Qt::Alignment HeaderView::sectionAlignment(int logicalIndex) const
 }
 
 ///
-/// \brief HeaderView::setSectionAlignment
-/// \param logicalIndex
-/// \param alignment
+/// \brief Overrides the alignment for a single section.
+/// \param logicalIndex Section index.
+/// \param alignment Alignment to apply.
 ///
 void HeaderView::setSectionAlignment(int logicalIndex, Qt::Alignment alignment)
 {
@@ -72,8 +74,9 @@ void HeaderView::setSectionAlignment(int logicalIndex, Qt::Alignment alignment)
 }
 
 ///
-/// \brief HeaderView::minimumWrappedSectionWidth
-/// \param logicalIndex
+/// \brief Computes the narrowest width that keeps the longest header word unbroken.
+/// \param logicalIndex Section index.
+/// \return Minimum section width in pixels.
 ///
 int HeaderView::minimumWrappedSectionWidth(int logicalIndex) const
 {
@@ -93,7 +96,8 @@ int HeaderView::minimumWrappedSectionWidth(int logicalIndex) const
 }
 
 ///
-/// \brief HeaderView::sizeHint
+/// \brief Returns a size hint tall enough for two wrapped header lines.
+/// \return Header size hint.
 ///
 QSize HeaderView::sizeHint() const
 {
@@ -104,10 +108,10 @@ QSize HeaderView::sizeHint() const
 }
 
 ///
-/// \brief HeaderView::paintSection
-/// \param painter
-/// \param rect
-/// \param logicalIndex
+/// \brief Paints a header section with bold, word-wrapped, section-aligned text.
+/// \param painter Painter to draw with.
+/// \param rect Section rectangle.
+/// \param logicalIndex Section index.
 ///
 void HeaderView::paintSection(QPainter *painter, const QRect &rect, int logicalIndex) const
 {

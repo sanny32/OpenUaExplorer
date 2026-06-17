@@ -31,6 +31,10 @@ namespace {
 
 constexpr int maximumCommonNameBytes = 64;
 
+///
+/// \brief Returns the machine host name, falling back to "localhost".
+/// \return Trimmed host name.
+///
 QString hostName()
 {
     QString host = QSysInfo::machineHostName().trimmed();
@@ -39,12 +43,23 @@ QString hostName()
     return host;
 }
 
+///
+/// \brief Removes all spaces from a string.
+/// \param value Input string (taken by value).
+/// \return The string without spaces.
+///
 QString withoutSpaces(QString value)
 {
     value.remove(QLatin1Char(' '));
     return value;
 }
 
+///
+/// \brief Returns the longest prefix of a string whose UTF-8 encoding fits a byte budget.
+/// \param value String to truncate.
+/// \param maximumBytes Maximum allowed UTF-8 size.
+/// \return Prefix that never splits a character across the limit.
+///
 QString utf8Prefix(const QString &value, int maximumBytes)
 {
     QByteArray result;
@@ -57,11 +72,20 @@ QString utf8Prefix(const QString &value, int maximumBytes)
     return QString::fromUtf8(result);
 }
 
+///
+/// \brief Returns the product name with spaces stripped.
+/// \return Compact product name.
+///
 QString productNameWithoutSpaces()
 {
     return withoutSpaces(QString::fromUtf8(APP_PRODUCT_NAME));
 }
 
+///
+/// \brief Builds the client-certificate common name, hash-truncating it to the 64-byte limit.
+/// \param host Host the certificate identifies.
+/// \return "product@host" name, shortened with a host hash suffix when it would overflow.
+///
 QString clientCertificateCommonNameForHost(const QString &host)
 {
     const QString productName = productNameWithoutSpaces();
@@ -82,6 +106,11 @@ QString clientCertificateCommonNameForHost(const QString &host)
     return QStringLiteral("%1@%2%3").arg(productPrefix, hostPrefix, hashSuffix);
 }
 
+///
+/// \brief Extracts the subject common name from an X.509 certificate.
+/// \param certificate Certificate to read.
+/// \return UTF-8 common name, or empty when absent.
+///
 QString certificateCommonName(X509 *certificate)
 {
     X509_NAME *subject = X509_get_subject_name(certificate);
@@ -104,6 +133,12 @@ QString certificateCommonName(X509 *certificate)
     return result;
 }
 
+///
+/// \brief Checks whether a certificate's subjectAltName contains the expected URI.
+/// \param certificate Certificate to inspect.
+/// \param expectedUri Application URI to match.
+/// \return True when a matching URI SAN entry is present.
+///
 bool certificateHasApplicationUri(X509 *certificate, const QByteArray &expectedUri)
 {
     bool uriMatches = false;
@@ -126,6 +161,11 @@ bool certificateHasApplicationUri(X509 *certificate, const QByteArray &expectedU
     return uriMatches;
 }
 
+///
+/// \brief Verifies that a certificate is self-issued and signed by its own key.
+/// \param certificate Certificate to verify.
+/// \return True when the certificate is genuinely self-signed.
+///
 bool certificateIsSelfSigned(X509 *certificate)
 {
     if (X509_check_issued(certificate, certificate) != X509_V_OK)
@@ -137,6 +177,14 @@ bool certificateIsSelfSigned(X509 *certificate)
     return verified;
 }
 
+///
+/// \brief Adds a configured X.509v3 extension to a certificate.
+/// \param certificate Certificate to extend.
+/// \param context Extension context for the certificate.
+/// \param nid OpenSSL NID of the extension.
+/// \param value Extension value in OpenSSL config syntax.
+/// \return True when the extension was created and added.
+///
 bool addExtension(X509 *certificate, X509V3_CTX *context, int nid, const QByteArray &value)
 {
     X509_EXTENSION *extension =
@@ -149,6 +197,10 @@ bool addExtension(X509 *certificate, X509V3_CTX *context, int nid, const QByteAr
     return added;
 }
 
+///
+/// \brief Drains and formats the OpenSSL error queue.
+/// \return Semicolon-separated error messages.
+///
 QString openSslError()
 {
     QStringList messages;

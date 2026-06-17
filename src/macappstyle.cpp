@@ -77,9 +77,9 @@ namespace Dark {
 }
 
 ///
-/// \brief transparent
-/// \param rgb
-/// \return
+/// \brief Builds a fully transparent colour from an RGB value.
+/// \param rgb Source RGB value.
+/// \return Colour with alpha set to zero.
 ///
 QColor transparent(QRgb rgb)
 {
@@ -89,10 +89,10 @@ QColor transparent(QRgb rgb)
 }
 
 ///
-/// \brief alpha
-/// \param rgb
-/// \param value
-/// \return
+/// \brief Builds a colour from an RGB value with an explicit alpha.
+/// \param rgb Source RGB value.
+/// \param value Alpha channel, 0–255.
+/// \return Colour with the given opacity.
 ///
 QColor alpha(QRgb rgb, int value)
 {
@@ -102,9 +102,9 @@ QColor alpha(QRgb rgb, int value)
 }
 
 ///
-/// \brief colorRef
-/// \param rgb
-/// \return
+/// \brief Returns a cached QColor for an RGB value, suitable for by-reference style getters.
+/// \param rgb Source RGB value.
+/// \return Reference to the cached colour.
 ///
 const QColor& colorRef(QRgb rgb)
 {
@@ -116,9 +116,9 @@ const QColor& colorRef(QRgb rgb)
 }
 
 ///
-/// \brief transparentRef
-/// \param rgb
-/// \return
+/// \brief Returns a cached transparent QColor for an RGB value.
+/// \param rgb Source RGB value.
+/// \return Reference to the cached transparent colour.
 ///
 const QColor& transparentRef(QRgb rgb)
 {
@@ -130,9 +130,9 @@ const QColor& transparentRef(QRgb rgb)
 }
 
 ///
-/// \brief modelBackgroundColor
-/// \param index
-/// \return
+/// \brief Extracts an item's background colour from its Qt::BackgroundRole data.
+/// \param index Model index to inspect.
+/// \return The item's background colour, or an invalid colour when none is set.
 ///
 QColor modelBackgroundColor(const QModelIndex& index)
 {
@@ -154,8 +154,8 @@ QColor modelBackgroundColor(const QModelIndex& index)
 } // namespace
 
 ///
-/// \brief MacAppStyle::MacAppStyle
-/// \param parent
+/// \brief Builds the macOS style with its light/dark themes and tracks color-scheme changes.
+/// \param parent Owning QObject.
 ///
 MacAppStyle::MacAppStyle(QObject* parent)
     : QlementineAppStyle(parent)
@@ -169,7 +169,7 @@ MacAppStyle::MacAppStyle(QObject* parent)
 }
 
 ///
-/// \brief MacAppStyle::updateTheme
+/// \brief Switches the active theme to match the current light/dark mode.
 ///
 void MacAppStyle::updateTheme()
 {
@@ -177,8 +177,8 @@ void MacAppStyle::updateTheme()
 }
 
 ///
-/// \brief MacAppStyle::isDarkMode
-/// \return
+/// \brief Reports whether the application theme is currently dark.
+/// \return True when the active scheme is dark.
 ///
 bool MacAppStyle::isDarkMode() const
 {
@@ -186,7 +186,11 @@ bool MacAppStyle::isDarkMode() const
 }
 
 ///
-/// \brief MacAppStyle::drawControl
+/// \brief Custom-draws macOS dock-widget titles; everything else defers to the base style.
+/// \param element Control element to render.
+/// \param option Style option carrying the element state.
+/// \param painter Painter to draw with.
+/// \param widget Widget the element belongs to.
 ///
 void MacAppStyle::drawControl(ControlElement element, const QStyleOption* option,
                                QPainter* painter, const QWidget* widget) const
@@ -225,7 +229,11 @@ void MacAppStyle::drawControl(ControlElement element, const QStyleOption* option
 }
 
 ///
-/// \brief MacAppStyle::buttonBackgroundColor
+/// \brief Background colour for secondary buttons; primary roles defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param role Button colour role.
+/// \param widget Button widget (unused).
+/// \return Reference to the resolved background colour.
 ///
 QColor const& MacAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole role, const QWidget* widget) const
 {
@@ -268,7 +276,11 @@ QColor const& MacAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole rol
 }
 
 ///
-/// \brief MacAppStyle::buttonForegroundColor
+/// \brief Foreground colour for secondary buttons; primary roles defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param role Button colour role.
+/// \param widget Button widget (unused).
+/// \return Reference to the resolved foreground colour.
 ///
 QColor const& MacAppStyle::buttonForegroundColor(MouseState mouse, ColorRole role, const QWidget* widget) const
 {
@@ -287,7 +299,10 @@ QColor const& MacAppStyle::buttonForegroundColor(MouseState mouse, ColorRole rol
 }
 
 ///
-/// \brief MacAppStyle::iconForegroundColor
+/// \brief Icon tint for secondary roles; primary roles defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param role Icon colour role.
+/// \return Reference to the resolved icon colour.
 ///
 QColor const& MacAppStyle::iconForegroundColor(MouseState mouse, ColorRole role) const
 {
@@ -324,7 +339,14 @@ QColor const& MacAppStyle::iconForegroundColor(MouseState mouse, ColorRole role)
 }
 
 ///
-/// \brief MacAppStyle::listItemBackgroundColor
+/// \brief Background colour for a list/tree item, honouring per-row model colours when unselected.
+/// \param mouse Mouse interaction state.
+/// \param selected Selection state.
+/// \param focus Focus state (unused).
+/// \param active Active state (unused).
+/// \param index Model index of the item.
+/// \param widget Owning view (unused).
+/// \return Resolved item background colour.
 ///
 QColor MacAppStyle::listItemBackgroundColor(MouseState mouse, SelectionState selected, FocusState focus,
                                              ActiveState active, const QModelIndex& index,
@@ -375,7 +397,12 @@ QColor MacAppStyle::listItemBackgroundColor(MouseState mouse, SelectionState sel
 }
 
 ///
-/// \brief MacAppStyle::listItemForegroundColor
+/// \brief Text colour for a list/tree item.
+/// \param mouse Mouse interaction state.
+/// \param selected Selection state (unused).
+/// \param focus Focus state (unused).
+/// \param active Active state (unused).
+/// \return Reference to the resolved item text colour.
 ///
 QColor const& MacAppStyle::listItemForegroundColor(MouseState mouse, SelectionState selected,
                                                     FocusState focus, ActiveState active) const
@@ -394,7 +421,9 @@ QColor const& MacAppStyle::listItemForegroundColor(MouseState mouse, SelectionSt
 }
 
 ///
-/// \brief MacAppStyle::splitterColor
+/// \brief Colour of splitter handles, brightening on hover/press.
+/// \param mouse Mouse interaction state.
+/// \return Reference to the resolved splitter colour.
 ///
 QColor const& MacAppStyle::splitterColor(MouseState mouse) const
 {
@@ -420,7 +449,10 @@ QColor const& MacAppStyle::splitterColor(MouseState mouse) const
 }
 
 ///
-/// \brief MacAppStyle::tabBackgroundColor
+/// \brief Background colour of a tab; the selected tab matches the canvas.
+/// \param mouse Mouse interaction state.
+/// \param selected Selection state.
+/// \return Reference to the resolved tab background colour.
 ///
 QColor const& MacAppStyle::tabBackgroundColor(MouseState mouse, SelectionState selected) const
 {
@@ -458,7 +490,9 @@ QColor const& MacAppStyle::tabBackgroundColor(MouseState mouse, SelectionState s
 }
 
 ///
-/// \brief MacAppStyle::tabBarBackgroundColor
+/// \brief Background colour of the tab bar behind the tabs.
+/// \param mouse Mouse interaction state.
+/// \return Reference to the resolved tab-bar background colour.
 ///
 QColor const& MacAppStyle::tabBarBackgroundColor(MouseState mouse) const
 {
@@ -472,7 +506,10 @@ QColor const& MacAppStyle::tabBarBackgroundColor(MouseState mouse) const
 }
 
 ///
-/// \brief MacAppStyle::tabForegroundColor
+/// \brief Text colour of a tab label.
+/// \param mouse Mouse interaction state.
+/// \param selected Selection state (unused).
+/// \return Reference to the resolved tab text colour.
 ///
 QColor const& MacAppStyle::tabForegroundColor(MouseState mouse, SelectionState selected) const
 {
@@ -488,7 +525,10 @@ QColor const& MacAppStyle::tabForegroundColor(MouseState mouse, SelectionState s
 }
 
 ///
-/// \brief MacAppStyle::tableHeaderBgColor
+/// \brief Background colour of a table header section.
+/// \param mouse Mouse interaction state.
+/// \param checked Sort/check state (unused).
+/// \return Reference to the resolved header background colour.
 ///
 QColor const& MacAppStyle::tableHeaderBgColor(MouseState mouse, CheckState checked) const
 {
@@ -522,7 +562,10 @@ QColor const& MacAppStyle::tableHeaderBgColor(MouseState mouse, CheckState check
 }
 
 ///
-/// \brief MacAppStyle::tableHeaderFgColor
+/// \brief Text colour of a table header section.
+/// \param mouse Mouse interaction state.
+/// \param checked Sort/check state (unused).
+/// \return Reference to the resolved header text colour.
 ///
 QColor const& MacAppStyle::tableHeaderFgColor(MouseState mouse, CheckState checked) const
 {
@@ -538,7 +581,8 @@ QColor const& MacAppStyle::tableHeaderFgColor(MouseState mouse, CheckState check
 }
 
 ///
-/// \brief MacAppStyle::tableLineColor
+/// \brief Colour of the grid lines between table cells.
+/// \return Reference to the resolved grid-line colour.
 ///
 QColor const& MacAppStyle::tableLineColor() const
 {
@@ -549,7 +593,10 @@ QColor const& MacAppStyle::tableLineColor() const
 }
 
 ///
-/// \brief MacAppStyle::textFieldBackgroundColor
+/// \brief Background colour of text input fields.
+/// \param mouse Mouse interaction state.
+/// \param status Validation status (unused).
+/// \return Reference to the resolved field background colour.
 ///
 QColor const& MacAppStyle::textFieldBackgroundColor(MouseState mouse, Status status) const
 {
@@ -565,7 +612,11 @@ QColor const& MacAppStyle::textFieldBackgroundColor(MouseState mouse, Status sta
 }
 
 ///
-/// \brief MacAppStyle::textFieldBorderColor
+/// \brief Border colour of text input fields; non-default statuses defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param focus Focus state.
+/// \param status Validation status.
+/// \return Reference to the resolved field border colour.
 ///
 QColor const& MacAppStyle::textFieldBorderColor(MouseState mouse, FocusState focus, Status status) const
 {
@@ -594,7 +645,8 @@ QColor const& MacAppStyle::textFieldBorderColor(MouseState mouse, FocusState foc
 }
 
 ///
-/// \brief MacAppStyle::toolBarBackgroundColor
+/// \brief Background colour of toolbars.
+/// \return Reference to the resolved toolbar background colour.
 ///
 QColor const& MacAppStyle::toolBarBackgroundColor() const
 {
@@ -605,7 +657,8 @@ QColor const& MacAppStyle::toolBarBackgroundColor() const
 }
 
 ///
-/// \brief MacAppStyle::toolBarBorderColor
+/// \brief Border colour of toolbars.
+/// \return Reference to the resolved toolbar border colour.
 ///
 QColor const& MacAppStyle::toolBarBorderColor() const
 {
@@ -616,7 +669,8 @@ QColor const& MacAppStyle::toolBarBorderColor() const
 }
 
 ///
-/// \brief MacAppStyle::toolTipForegroundColor
+/// \brief Text colour of tooltips.
+/// \return Reference to the resolved tooltip text colour.
 ///
 QColor const& MacAppStyle::toolTipForegroundColor() const
 {
@@ -627,7 +681,10 @@ QColor const& MacAppStyle::toolTipForegroundColor() const
 }
 
 ///
-/// \brief MacAppStyle::toolButtonBackgroundColor
+/// \brief Background colour for secondary tool buttons; primary roles defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param role Tool-button colour role.
+/// \return Reference to the resolved background colour.
 ///
 QColor const& MacAppStyle::toolButtonBackgroundColor(MouseState mouse, ColorRole role) const
 {
@@ -664,7 +721,10 @@ QColor const& MacAppStyle::toolButtonBackgroundColor(MouseState mouse, ColorRole
 }
 
 ///
-/// \brief MacAppStyle::toolButtonForegroundColor
+/// \brief Foreground colour for secondary tool buttons; primary roles defer to the base style.
+/// \param mouse Mouse interaction state.
+/// \param role Tool-button colour role.
+/// \return Reference to the resolved foreground colour.
 ///
 QColor const& MacAppStyle::toolButtonForegroundColor(MouseState mouse, ColorRole role) const
 {

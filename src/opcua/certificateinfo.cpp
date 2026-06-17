@@ -7,12 +7,23 @@
 #include "certificateinfo.h"
 
 namespace {
+///
+/// \brief Returns the first entry of a string list, or an empty string when empty.
+/// \param values List to read from.
+/// \return First value or an empty string.
+///
 QString firstValue(const QStringList &values)
 {
     return values.isEmpty() ? QString() : values.constFirst();
 }
 }
 
+///
+/// \brief Parses a DER certificate into display fields, fingerprint, and validity status.
+/// \param der Certificate bytes in DER encoding.
+/// \param now Reference time used to classify validity.
+/// \return Populated info; the fingerprint is set even when the certificate cannot be parsed.
+///
 CertificateInfo CertificateInfo::fromDer(const QByteArray &der, const QDateTime &now)
 {
     CertificateInfo result;
@@ -51,6 +62,13 @@ CertificateInfo CertificateInfo::fromDer(const QByteArray &der, const QDateTime 
     return result;
 }
 
+///
+/// \brief Classifies a certificate's validity from its date range.
+/// \param effectiveDate Start of the validity window.
+/// \param expiryDate End of the validity window.
+/// \param now Reference time to compare against.
+/// \return Invalid for unset dates, otherwise NotYetValid, Expired, or Valid.
+///
 CertificateInfo::Status CertificateInfo::statusForDates(
     const QDateTime &effectiveDate, const QDateTime &expiryDate,
     const QDateTime &now)

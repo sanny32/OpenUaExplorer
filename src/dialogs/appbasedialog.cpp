@@ -17,8 +17,8 @@
 #include "appbasedialog.h"
 
 ///
-/// \brief AppBaseDialog::AppBaseDialog
-/// \param parent
+/// \brief Constructs the dialog and keeps its window icon in sync with the colour scheme.
+/// \param parent Parent widget.
 ///
 AppBaseDialog::AppBaseDialog(QWidget *parent)
     : QDialog(parent)
@@ -32,8 +32,8 @@ AppBaseDialog::AppBaseDialog(QWidget *parent)
 }
 
 ///
-/// \brief AppBaseDialog::changeEvent
-/// \param event
+/// \brief Refreshes the window icon when the palette changes.
+/// \param event Change event being handled.
 ///
 void AppBaseDialog::changeEvent(QEvent *event)
 {
@@ -46,8 +46,8 @@ void AppBaseDialog::changeEvent(QEvent *event)
 }
 
 ///
-/// \brief AppBaseDialog::showEvent
-/// \param event
+/// \brief Refreshes the window icon as the dialog is shown.
+/// \param event Show event being handled.
 ///
 void AppBaseDialog::showEvent(QShowEvent *event)
 {
@@ -56,7 +56,7 @@ void AppBaseDialog::showEvent(QShowEvent *event)
 }
 
 ///
-/// \brief AppBaseDialog::updateWindowIcon
+/// \brief Sets the window icon to the themed application icon.
 ///
 void AppBaseDialog::updateWindowIcon()
 {

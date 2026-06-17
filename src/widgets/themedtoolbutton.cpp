@@ -12,8 +12,8 @@
 #include "themedtoolbutton.h"
 
 ///
-/// \brief ThemedToolButton::ThemedToolButton
-/// \param parent
+/// \brief Constructs the themed tool button.
+/// \param parent Parent widget.
 ///
 ThemedToolButton::ThemedToolButton(QWidget *parent)
     : QToolButton(parent)
@@ -21,8 +21,8 @@ ThemedToolButton::ThemedToolButton(QWidget *parent)
 }
 
 ///
-/// \brief ThemedToolButton::minimumSizeHint
-/// \return
+/// \brief Returns the minimum size hint, squared when in icon-only mode.
+/// \return Minimum size hint.
 ///
 QSize ThemedToolButton::minimumSizeHint() const
 {
@@ -30,8 +30,8 @@ QSize ThemedToolButton::minimumSizeHint() const
 }
 
 ///
-/// \brief ThemedToolButton::sizeHint
-/// \return
+/// \brief Returns the preferred size, squared when in icon-only mode.
+/// \return Preferred size hint.
 ///
 QSize ThemedToolButton::sizeHint() const
 {
@@ -39,8 +39,8 @@ QSize ThemedToolButton::sizeHint() const
 }
 
 ///
-/// \brief ThemedToolButton::squareIconOnly
-/// \return
+/// \brief Reports whether the button is forced square when it shows only an icon.
+/// \return True when square icon-only mode is enabled.
 ///
 bool ThemedToolButton::squareIconOnly() const
 {
@@ -48,8 +48,8 @@ bool ThemedToolButton::squareIconOnly() const
 }
 
 ///
-/// \brief ThemedToolButton::setSquareIconOnly
-/// \param enabled
+/// \brief Enables or disables forcing a square shape for icon-only buttons.
+/// \param enabled True to force a square shape.
 ///
 void ThemedToolButton::setSquareIconOnly(bool enabled)
 {
@@ -62,8 +62,8 @@ void ThemedToolButton::setSquareIconOnly(bool enabled)
 }
 
 ///
-/// \brief ThemedToolButton::setIcon
-/// \param name
+/// \brief Sets the themed icon by resource name.
+/// \param name Icon resource name.
 ///
 void ThemedToolButton::setIcon(const QString &name)
 {
@@ -72,8 +72,8 @@ void ThemedToolButton::setIcon(const QString &name)
 }
 
 ///
-/// \brief ThemedToolButton::changeEvent
-/// \param event
+/// \brief Re-renders the icon when the palette changes.
+/// \param event Change event being handled.
 ///
 void ThemedToolButton::changeEvent(QEvent *event)
 {
@@ -87,7 +87,7 @@ void ThemedToolButton::changeEvent(QEvent *event)
 }
 
 ///
-/// \brief ThemedToolButton::refreshIcon
+/// \brief Reloads the current icon for the active theme.
 ///
 void ThemedToolButton::refreshIcon()
 {
@@ -95,9 +95,9 @@ void ThemedToolButton::refreshIcon()
 }
 
 ///
-/// \brief ThemedToolButton::squareSize
-/// \param size
-/// \return
+/// \brief Squares a size hint when icon-only mode is active and there is no text.
+/// \param size Size to adjust.
+/// \return Squared size, or the original when not applicable.
 ///
 QSize ThemedToolButton::squareSize(const QSize &size) const
 {

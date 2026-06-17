@@ -12,7 +12,7 @@
 #include "fusionstyle.h"
 
 ///
-/// \brief FusionStyle::palette
+/// \brief Builds a Fusion-style palette tuned for a light or dark appearance.
 /// \param darkAppearance True to create a dark appearance palette.
 /// \return Palette configured for the Fusion style.
 ///

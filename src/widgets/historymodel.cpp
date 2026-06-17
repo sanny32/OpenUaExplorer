@@ -9,8 +9,8 @@
 #include "historymodel.h"
 
 ///
-/// \brief HistoryModel::HistoryModel
-/// \param parent
+/// \brief Constructs an empty history model.
+/// \param parent Owning QObject.
 ///
 HistoryModel::HistoryModel(QObject *parent)
     : QAbstractTableModel(parent)
@@ -18,9 +18,9 @@ HistoryModel::HistoryModel(QObject *parent)
 }
 
 ///
-/// \brief HistoryModel::rowCount
-/// \param parent
-/// \return
+/// \brief Returns the number of history rows.
+/// \param parent Parent index; non-root parents have no rows.
+/// \return Item count, or 0 for non-root parents.
 ///
 int HistoryModel::rowCount(const QModelIndex &parent) const
 {
@@ -29,9 +29,9 @@ int HistoryModel::rowCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief HistoryModel::columnCount
-/// \param parent
-/// \return
+/// \brief Returns the fixed column count.
+/// \param parent Parent index; non-root parents have no columns.
+/// \return Column count, or 0 for non-root parents.
 ///
 int HistoryModel::columnCount(const QModelIndex &parent) const
 {
@@ -40,11 +40,11 @@ int HistoryModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief HistoryModel::headerData
-/// \param section
-/// \param orientation
-/// \param role
-/// \return
+/// \brief Returns the Node/Range column titles.
+/// \param section Column index.
+/// \param orientation Header orientation.
+/// \param role Display role.
+/// \return Column title, or the base implementation otherwise.
 ///
 QVariant HistoryModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
@@ -59,10 +59,10 @@ QVariant HistoryModel::headerData(int section, Qt::Orientation orientation, int 
 }
 
 ///
-/// \brief HistoryModel::data
-/// \param index
-/// \param role
-/// \return
+/// \brief Returns the node/range text and column alignment for a history row.
+/// \param index Cell to query.
+/// \param role Requested data role.
+/// \return Value for the role, or an invalid variant.
 ///
 QVariant HistoryModel::data(const QModelIndex &index, int role) const
 {
@@ -85,8 +85,8 @@ QVariant HistoryModel::data(const QModelIndex &index, int role) const
 }
 
 ///
-/// \brief HistoryModel::setItems
-/// \param items
+/// \brief Replaces all history rows.
+/// \param items New history entries to display.
 ///
 void HistoryModel::setItems(const QVector<HistoryItem> &items)
 {
@@ -96,7 +96,7 @@ void HistoryModel::setItems(const QVector<HistoryItem> &items)
 }
 
 ///
-/// \brief HistoryModel::clear
+/// \brief Removes all history rows.
 ///
 void HistoryModel::clear()
 {
@@ -106,9 +106,9 @@ void HistoryModel::clear()
 }
 
 ///
-/// \brief HistoryModel::setColumnAlignment
-/// \param column
-/// \param alignment
+/// \brief Sets the text alignment for a column.
+/// \param column Column index.
+/// \param alignment Alignment to apply.
 ///
 void HistoryModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {

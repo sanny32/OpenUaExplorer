@@ -12,8 +12,8 @@
 #include "themediconlabel.h"
 
 ///
-/// \brief ThemedIconLabel::ThemedIconLabel
-/// \param parent
+/// \brief Constructs an empty themed icon label.
+/// \param parent Parent widget.
 ///
 ThemedIconLabel::ThemedIconLabel(QWidget *parent)
     : QLabel(parent)
@@ -21,9 +21,9 @@ ThemedIconLabel::ThemedIconLabel(QWidget *parent)
 }
 
 ///
-/// \brief ThemedIconLabel::setIcon
-/// \param name
-/// \param size
+/// \brief Sets the themed icon to display.
+/// \param name Icon resource name.
+/// \param size Desired pixmap size; invalid uses the icon's first available size.
 ///
 void ThemedIconLabel::setIcon(const QString &name, QSize size)
 {
@@ -33,8 +33,8 @@ void ThemedIconLabel::setIcon(const QString &name, QSize size)
 }
 
 ///
-/// \brief ThemedIconLabel::changeEvent
-/// \param event
+/// \brief Re-renders the icon when the palette changes.
+/// \param event Change event being handled.
 ///
 void ThemedIconLabel::changeEvent(QEvent *event)
 {
@@ -48,7 +48,7 @@ void ThemedIconLabel::changeEvent(QEvent *event)
 }
 
 ///
-/// \brief ThemedIconLabel::refreshIcon
+/// \brief Reloads the current icon for the active theme and updates the pixmap.
 ///
 void ThemedIconLabel::refreshIcon()
 {
