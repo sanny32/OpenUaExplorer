@@ -9,7 +9,7 @@
 #include "addressspacemodel.h"
 
 ///
-/// \brief AddressSpaceNode::AddressSpaceNode
+/// \brief Constructs a tree node wrapping OPC UA node info.
 /// \param info OPC UA node information.
 /// \param parent Parent tree node.
 ///
@@ -20,12 +20,12 @@ AddressSpaceNode::AddressSpaceNode(const OpcUaNodeInfo &info, AddressSpaceNode *
 }
 
 ///
-/// \brief AddressSpaceNode::~AddressSpaceNode
+/// \brief Destroys the node and its children.
 ///
 AddressSpaceNode::~AddressSpaceNode() = default;
 
 ///
-/// \brief AddressSpaceNode::appendChild
+/// \brief Appends a child node.
 /// \param child Child node.
 ///
 void AddressSpaceNode::appendChild(std::unique_ptr<AddressSpaceNode> child)
@@ -34,7 +34,7 @@ void AddressSpaceNode::appendChild(std::unique_ptr<AddressSpaceNode> child)
 }
 
 ///
-/// \brief AddressSpaceNode::clearChildren
+/// \brief Removes all child nodes.
 ///
 void AddressSpaceNode::clearChildren()
 {
@@ -42,7 +42,7 @@ void AddressSpaceNode::clearChildren()
 }
 
 ///
-/// \brief AddressSpaceNode::child
+/// \brief Returns the child at a row.
 /// \param row Child row.
 /// \return Child node.
 ///
@@ -54,7 +54,7 @@ AddressSpaceNode *AddressSpaceNode::child(int row) const
 }
 
 ///
-/// \brief AddressSpaceNode::childCount
+/// \brief Returns the number of loaded children.
 /// \return Number of loaded children.
 ///
 int AddressSpaceNode::childCount() const
@@ -63,7 +63,7 @@ int AddressSpaceNode::childCount() const
 }
 
 ///
-/// \brief AddressSpaceNode::row
+/// \brief Returns this node's index within its parent.
 /// \return Row in the parent.
 ///
 int AddressSpaceNode::row() const
@@ -78,7 +78,7 @@ int AddressSpaceNode::row() const
 }
 
 ///
-/// \brief AddressSpaceNode::parent
+/// \brief Returns the parent node.
 /// \return Parent node.
 ///
 AddressSpaceNode *AddressSpaceNode::parent() const
@@ -87,7 +87,7 @@ AddressSpaceNode *AddressSpaceNode::parent() const
 }
 
 ///
-/// \brief AddressSpaceNode::info
+/// \brief Returns the wrapped OPC UA node information.
 /// \return OPC UA node information.
 ///
 const OpcUaNodeInfo &AddressSpaceNode::info() const
@@ -96,7 +96,7 @@ const OpcUaNodeInfo &AddressSpaceNode::info() const
 }
 
 ///
-/// \brief AddressSpaceNode::browseStarted
+/// \brief Reports whether a browse request was issued for this node.
 /// \return True after a browse request was issued.
 ///
 bool AddressSpaceNode::browseStarted() const
@@ -105,7 +105,7 @@ bool AddressSpaceNode::browseStarted() const
 }
 
 ///
-/// \brief AddressSpaceNode::browseComplete
+/// \brief Reports whether browse results were received for this node.
 /// \return True after browse results were received.
 ///
 bool AddressSpaceNode::browseComplete() const
@@ -114,7 +114,7 @@ bool AddressSpaceNode::browseComplete() const
 }
 
 ///
-/// \brief AddressSpaceNode::setBrowseStarted
+/// \brief Sets whether a browse request was issued.
 /// \param value New state.
 ///
 void AddressSpaceNode::setBrowseStarted(bool value)
@@ -123,7 +123,7 @@ void AddressSpaceNode::setBrowseStarted(bool value)
 }
 
 ///
-/// \brief AddressSpaceNode::setBrowseComplete
+/// \brief Sets whether browse results were received.
 /// \param value New state.
 ///
 void AddressSpaceNode::setBrowseComplete(bool value)
@@ -132,7 +132,7 @@ void AddressSpaceNode::setBrowseComplete(bool value)
 }
 
 ///
-/// \brief AddressSpaceModel::AddressSpaceModel
+/// \brief Constructs the model with an empty invisible root.
 /// \param parent Parent object.
 ///
 AddressSpaceModel::AddressSpaceModel(QObject *parent)
@@ -143,12 +143,12 @@ AddressSpaceModel::AddressSpaceModel(QObject *parent)
 }
 
 ///
-/// \brief AddressSpaceModel::~AddressSpaceModel
+/// \brief Destroys the model and its node tree.
 ///
 AddressSpaceModel::~AddressSpaceModel() = default;
 
 ///
-/// \brief AddressSpaceModel::index
+/// \brief Returns the index for a child cell.
 /// \param row Child row.
 /// \param column Child column.
 /// \param parent Parent index.
@@ -163,7 +163,7 @@ QModelIndex AddressSpaceModel::index(int row, int column, const QModelIndex &par
 }
 
 ///
-/// \brief AddressSpaceModel::parent
+/// \brief Returns the parent index of an item.
 /// \param index Child index.
 /// \return Parent index.
 ///
@@ -178,7 +178,7 @@ QModelIndex AddressSpaceModel::parent(const QModelIndex &index) const
 }
 
 ///
-/// \brief AddressSpaceModel::rowCount
+/// \brief Returns the number of loaded children.
 /// \param parent Parent index.
 /// \return Loaded child count.
 ///
@@ -190,7 +190,7 @@ int AddressSpaceModel::rowCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief AddressSpaceModel::columnCount
+/// \brief Returns the single-column count.
 /// \param parent Parent index.
 /// \return Column count.
 ///
@@ -201,7 +201,7 @@ int AddressSpaceModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief AddressSpaceModel::data
+/// \brief Returns display name, tooltip, NodeId, or icon for an item.
 /// \param index Model index.
 /// \param role Data role.
 /// \return Requested data.
@@ -223,7 +223,7 @@ QVariant AddressSpaceModel::data(const QModelIndex &index, int role) const
 }
 
 ///
-/// \brief AddressSpaceModel::hasChildren
+/// \brief Reports whether a node has, or may yet have, children.
 /// \param parent Parent index.
 /// \return True for loaded children or nodes that may be browsed.
 ///
@@ -234,7 +234,7 @@ bool AddressSpaceModel::hasChildren(const QModelIndex &parent) const
 }
 
 ///
-/// \brief AddressSpaceModel::canFetchMore
+/// \brief Reports whether a node still needs browsing.
 /// \param parent Parent index.
 /// \return True when the node still needs browsing.
 ///
@@ -247,7 +247,7 @@ bool AddressSpaceModel::canFetchMore(const QModelIndex &parent) const
 }
 
 ///
-/// \brief AddressSpaceModel::fetchMore
+/// \brief Requests a browse for a node that needs loading.
 /// \param parent Parent index.
 ///
 void AddressSpaceModel::fetchMore(const QModelIndex &parent)
@@ -260,7 +260,7 @@ void AddressSpaceModel::fetchMore(const QModelIndex &parent)
 }
 
 ///
-/// \brief AddressSpaceModel::setRootNode
+/// \brief Sets the single visible root node.
 /// \param root Visible root node.
 ///
 void AddressSpaceModel::setRootNode(const OpcUaNodeInfo &root)
@@ -273,7 +273,7 @@ void AddressSpaceModel::setRootNode(const OpcUaNodeInfo &root)
 }
 
 ///
-/// \brief AddressSpaceModel::setChildren
+/// \brief Applies browse results under a parent node.
 /// \param parentNodeId Parent NodeId.
 /// \param children Browse results.
 ///
@@ -301,7 +301,7 @@ void AddressSpaceModel::setChildren(const QString &parentNodeId,
 }
 
 ///
-/// \brief AddressSpaceModel::setBrowseFailed
+/// \brief Resets the browse state so a failed node can be retried.
 /// \param parentNodeId Parent NodeId.
 ///
 void AddressSpaceModel::setBrowseFailed(const QString &parentNodeId)
@@ -312,7 +312,7 @@ void AddressSpaceModel::setBrowseFailed(const QString &parentNodeId)
 }
 
 ///
-/// \brief AddressSpaceModel::setItems
+/// \brief Builds a synthetic tree from test items.
 /// \param items Test tree items.
 ///
 void AddressSpaceModel::setItems(const QVector<AddressSpaceItem> &items)
@@ -325,7 +325,7 @@ void AddressSpaceModel::setItems(const QVector<AddressSpaceItem> &items)
 }
 
 ///
-/// \brief AddressSpaceModel::clear
+/// \brief Empties the tree.
 ///
 void AddressSpaceModel::clear()
 {
@@ -336,7 +336,7 @@ void AddressSpaceModel::clear()
 }
 
 ///
-/// \brief AddressSpaceModel::nodeInfo
+/// \brief Returns the node information for an index.
 /// \param index Model index.
 /// \return Node information.
 ///
@@ -346,7 +346,7 @@ OpcUaNodeInfo AddressSpaceModel::nodeInfo(const QModelIndex &index) const
 }
 
 ///
-/// \brief AddressSpaceModel::findByNodeId
+/// \brief Finds the index of a node by NodeId.
 /// \param nodeId NodeId to locate.
 /// \return Matching model index.
 ///
@@ -356,7 +356,7 @@ QModelIndex AddressSpaceModel::findByNodeId(const QString &nodeId) const
 }
 
 ///
-/// \brief AddressSpaceModel::findFirst
+/// \brief Finds the first index with a display name.
 /// \param displayName Display name to locate.
 /// \return Matching model index.
 ///
@@ -366,7 +366,7 @@ QModelIndex AddressSpaceModel::findFirst(const QString &displayName) const
 }
 
 ///
-/// \brief AddressSpaceModel::setIconProvider
+/// \brief Sets the callback that supplies node-class icons.
 /// \param provider Icon provider callback.
 ///
 void AddressSpaceModel::setIconProvider(
@@ -376,7 +376,7 @@ void AddressSpaceModel::setIconProvider(
 }
 
 ///
-/// \brief AddressSpaceModel::nodeForIndex
+/// \brief Returns the internal node for an index, or the invisible root.
 /// \param index Model index.
 /// \return Internal node or invisible root.
 ///
@@ -388,7 +388,7 @@ AddressSpaceNode *AddressSpaceModel::nodeForIndex(const QModelIndex &index) cons
 }
 
 ///
-/// \brief AddressSpaceModel::findNode
+/// \brief Recursively searches a subtree for a node by NodeId.
 /// \param node Search root.
 /// \param nodeId NodeId to locate.
 /// \return Matching node.
@@ -408,7 +408,7 @@ AddressSpaceNode *AddressSpaceModel::findNode(AddressSpaceNode *node,
 }
 
 ///
-/// \brief AddressSpaceModel::indexForNode
+/// \brief Returns the model index for an internal node.
 /// \param node Internal node.
 /// \return Matching model index.
 ///
@@ -420,7 +420,7 @@ QModelIndex AddressSpaceModel::indexForNode(AddressSpaceNode *node) const
 }
 
 ///
-/// \brief AddressSpaceModel::findFirstRecursive
+/// \brief Recursively searches for the first node with a display name.
 /// \param node Search root.
 /// \param displayName Display name to locate.
 /// \return Matching model index.
@@ -440,7 +440,7 @@ QModelIndex AddressSpaceModel::findFirstRecursive(AddressSpaceNode *node,
 }
 
 ///
-/// \brief AddressSpaceModel::appendTestItems
+/// \brief Recursively builds synthetic nodes from test items.
 /// \param parent Parent node.
 /// \param items Test items.
 /// \param path Synthetic NodeId prefix.
@@ -472,7 +472,7 @@ void AddressSpaceModel::appendTestItems(AddressSpaceNode *parent,
 }
 
 ///
-/// \brief AddressSpaceModel::iconType
+/// \brief Maps an OPC UA node class to an icon node type.
 /// \param nodeClass OPC UA NodeClass numeric value.
 /// \return Existing application icon type.
 ///

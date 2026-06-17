@@ -15,10 +15,17 @@
 ///
 struct LogItem
 {
+    ///
+    /// \brief Log severity level.
+    ///
     enum class Level { Info, Warning, Error };
 
+    /// \brief Formatted log timestamp.
     QString timestamp;
+    /// \brief Severity level.
     Level   level;
+    /// \brief Log source name.
     QString source;
+    /// \brief Log message text.
     QString message;
 };

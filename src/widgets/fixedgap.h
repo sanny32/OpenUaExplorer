@@ -18,5 +18,10 @@ class FixedGap : public QWidget
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Constructs a spacer of fixed width.
+    /// \param width Fixed width in pixels.
+    /// \param parent Parent widget.
+    ///
     explicit FixedGap(int width, QWidget *parent = nullptr);
 };

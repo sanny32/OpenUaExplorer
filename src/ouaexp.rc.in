@@ -19,10 +19,10 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "OpenUaExplorer contributors\0"
+            VALUE "CompanyName", "@ORGANIZATION_NAME@\0"
             VALUE "FileDescription", "@PROJECT_DESCRIPTION@\0"
             VALUE "FileVersion", "@PROJECT_VERSION@\0"
-            VALUE "LegalCopyright", "Copyright (C) @CURRENT_YEAR@ OpenUaExplorer contributors\0"
+            VALUE "LegalCopyright", "Copyright (C) @CURRENT_YEAR@ @ORGANIZATION_NAME@\0"
             VALUE "OriginalFilename", "@PROJECT_NAME@.exe\0"
             VALUE "ProductName", "@PRODUCT_NAME@\0"
             VALUE "ProductVersion", "@PROJECT_VERSION@\0"

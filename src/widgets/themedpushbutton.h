@@ -18,8 +18,16 @@ class ThemedPushButton : public QPushButton
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Constructs the themed push button.
+    /// \param parent Parent widget.
+    ///
     explicit ThemedPushButton(QWidget *parent = nullptr);
 
+    ///
+    /// \brief Sets the themed icon by resource name.
+    /// \param name Icon resource name.
+    ///
     void setIcon(const QString &name);
 
 protected:

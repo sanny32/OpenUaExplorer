@@ -24,7 +24,15 @@ class DialogAbout : public AppBaseDialog
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Builds the About dialog and fills its content.
+    /// \param parent Parent widget.
+    ///
     explicit DialogAbout(QWidget *parent = nullptr);
+
+    ///
+    /// \brief Destroys the dialog and its generated UI.
+    ///
     ~DialogAbout() override;
 
 private:

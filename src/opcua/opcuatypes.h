@@ -70,11 +70,17 @@ inline bool isWritable(quint8 userAccessLevel)
 /// \brief Connection lifecycle state exposed to the UI.
 ///
 enum class OpcUaConnectionState {
+    /// \brief No OPC UA backend is available.
     Unavailable,
+    /// \brief Client is idle and disconnected.
     Disconnected,
+    /// \brief Endpoint discovery is in progress.
     Discovering,
+    /// \brief A connection attempt is in progress.
     Connecting,
+    /// \brief Client is connected to an endpoint.
     Connected,
+    /// \brief Client is disconnecting from an endpoint.
     Closing
 };
 
@@ -83,14 +89,23 @@ enum class OpcUaConnectionState {
 ///
 struct EndpointInfo
 {
+    /// \brief Original endpoint index in the discovery result.
     int index = -1;
+    /// \brief Endpoint URL advertised by the server.
     QString endpointUrl;
+    /// \brief Security policy URI or display name.
     QString securityPolicy;
+    /// \brief Message security mode display name.
     QString securityMode;
+    /// \brief Message security mode numeric value.
     int securityModeValue = 1;
+    /// \brief Whether anonymous user tokens are supported.
     bool supportsAnonymous = false;
+    /// \brief Whether username user tokens are supported.
     bool supportsUsername = false;
+    /// \brief Whether certificate user tokens are supported.
     bool supportsCertificate = false;
+    /// \brief DER-encoded server certificate.
     QByteArray serverCertificate;
 };
 
@@ -99,11 +114,17 @@ struct EndpointInfo
 ///
 struct OpcUaNodeInfo
 {
+    /// \brief NodeId string.
     QString nodeId;
+    /// \brief BrowseName display text.
     QString browseName;
+    /// \brief DisplayName text.
     QString displayName;
+    /// \brief Reference type that led to this node.
     QString referenceTypeId;
+    /// \brief OPC UA NodeClass numeric value.
     int nodeClass = 0;
+    /// \brief Whether the node may have children.
     bool hasChildren = true;
 };
 
@@ -112,12 +133,19 @@ struct OpcUaNodeInfo
 ///
 struct OpcUaNodeAttribute
 {
+    /// \brief Attribute name.
     QString name;
+    /// \brief Raw attribute value.
     QVariant value;
+    /// \brief Formatted value shown in the UI.
     QString displayValue;
+    /// \brief Status display text.
     QString status;
+    /// \brief Source timestamp, when provided.
     QDateTime sourceTimestamp;
+    /// \brief Server timestamp, when provided.
     QDateTime serverTimestamp;
+    /// \brief Nested attribute details.
     QVector<OpcUaNodeAttribute> children;
 };
 
@@ -126,19 +154,33 @@ struct OpcUaNodeAttribute
 ///
 struct OpcUaNodeDetails
 {
+    /// \brief NodeId string.
     QString nodeId;
+    /// \brief DisplayName text.
     QString displayName;
+    /// \brief OPC UA NodeClass numeric value.
     int nodeClass = 0;
+    /// \brief Current Value attribute.
     QVariant value;
+    /// \brief QOpcUa::Types numeric value.
     int valueType = 0;
+    /// \brief DataType NodeId string.
     QString dataTypeId;
+    /// \brief OPC UA ValueRank.
     int valueRank = -2;
+    /// \brief ArrayDimensions attribute values.
     QList<quint32> arrayDimensions;
+    /// \brief AccessLevel bit mask.
     quint8 accessLevel = 0;
+    /// \brief UserAccessLevel bit mask.
     quint8 userAccessLevel = 0;
+    /// \brief Status display text.
     QString status;
+    /// \brief Source timestamp, when provided.
     QDateTime sourceTimestamp;
+    /// \brief Server timestamp, when provided.
     QDateTime serverTimestamp;
+    /// \brief Full formatted attribute tree.
     QVector<OpcUaNodeAttribute> attributes;
 };
 
@@ -147,14 +189,23 @@ struct OpcUaNodeDetails
 ///
 struct OpcUaDataValue
 {
+    /// \brief NodeId string.
     QString nodeId;
+    /// \brief DisplayName text.
     QString displayName;
+    /// \brief Current Value attribute.
     QVariant value;
+    /// \brief QOpcUa::Types numeric value.
     int valueType = 0;
+    /// \brief DataType NodeId string.
     QString dataTypeId;
+    /// \brief Status display text.
     QString status;
+    /// \brief Source timestamp, when provided.
     QDateTime sourceTimestamp;
+    /// \brief Server timestamp, when provided.
     QDateTime serverTimestamp;
+    /// \brief UserAccessLevel bit mask.
     quint8 userAccessLevel = 0;
 };
 

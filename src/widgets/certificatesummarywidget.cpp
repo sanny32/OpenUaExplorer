@@ -16,7 +16,7 @@
 #include "ui_certificatesummarywidget.h"
 
 ///
-/// \brief CertificateSummaryWidget::CertificateSummaryWidget
+/// \brief Builds the panel, applies the theme, and shows the empty state.
 /// \param parent Owning widget.
 ///
 CertificateSummaryWidget::CertificateSummaryWidget(QWidget *parent)
@@ -39,7 +39,7 @@ CertificateSummaryWidget::CertificateSummaryWidget(QWidget *parent)
 }
 
 ///
-/// \brief CertificateSummaryWidget::~CertificateSummaryWidget
+/// \brief Destroys the widget and its generated UI.
 ///
 CertificateSummaryWidget::~CertificateSummaryWidget()
 {
@@ -47,7 +47,7 @@ CertificateSummaryWidget::~CertificateSummaryWidget()
 }
 
 ///
-/// \brief CertificateSummaryWidget::setTitle
+/// \brief Sets the header caption, hiding the header when empty.
 /// \param title Header caption shown next to the certificate icon.
 ///
 void CertificateSummaryWidget::setTitle(const QString &title)
@@ -60,7 +60,7 @@ void CertificateSummaryWidget::setTitle(const QString &title)
 }
 
 ///
-/// \brief CertificateSummaryWidget::setHint
+/// \brief Sets the message shown instead of the details when no certificate is set.
 /// \param hint Message shown instead of the details when no certificate is set.
 ///
 /// Setting a non-empty hint switches the empty state to "hint mode": the detail
@@ -74,7 +74,7 @@ void CertificateSummaryWidget::setHint(const QString &hint)
 }
 
 ///
-/// \brief CertificateSummaryWidget::setEmptyText
+/// \brief Sets the placeholder shown in the subject field when no certificate is set.
 /// \param text Placeholder shown in the subject field when no certificate is set.
 ///
 /// Used when no hint is configured: the detail grid stays visible and shows this
@@ -87,7 +87,7 @@ void CertificateSummaryWidget::setEmptyText(const QString &text)
 }
 
 ///
-/// \brief CertificateSummaryWidget::setCertificate
+/// \brief Shows a DER certificate, or clears the panel when empty.
 /// \param der DER-encoded certificate, or an empty array to clear the panel.
 ///
 void CertificateSummaryWidget::setCertificate(const QByteArray &der)
@@ -97,7 +97,7 @@ void CertificateSummaryWidget::setCertificate(const QByteArray &der)
 }
 
 ///
-/// \brief CertificateSummaryWidget::clear
+/// \brief Clears the displayed certificate.
 ///
 void CertificateSummaryWidget::clear()
 {
@@ -105,7 +105,7 @@ void CertificateSummaryWidget::clear()
 }
 
 ///
-/// \brief CertificateSummaryWidget::certificate
+/// \brief Returns the certificate currently shown.
 /// \return DER-encoded certificate currently shown, or an empty array.
 ///
 QByteArray CertificateSummaryWidget::certificate() const
@@ -114,7 +114,7 @@ QByteArray CertificateSummaryWidget::certificate() const
 }
 
 ///
-/// \brief CertificateSummaryWidget::applyTheme
+/// \brief Applies the theme-dependent header colour.
 ///
 /// Applies the theme-dependent header colour. Read-only theme access only; the
 /// panel never connects to theme signals so it stays safe under test harnesses.
@@ -130,7 +130,7 @@ void CertificateSummaryWidget::applyTheme()
 }
 
 ///
-/// \brief CertificateSummaryWidget::updateContents
+/// \brief Reflects the current certificate (or empty state) in the panel.
 ///
 /// Reflects the current certificate (or empty state) in the header, hint label
 /// and detail grid.
@@ -168,7 +168,7 @@ void CertificateSummaryWidget::updateContents()
 }
 
 ///
-/// \brief CertificateSummaryWidget::fillCertificateFields
+/// \brief Describes the current certificate in the detail grid.
 ///
 /// Describes the current certificate in the detail grid.
 ///
@@ -221,7 +221,7 @@ void CertificateSummaryWidget::fillCertificateFields()
 }
 
 ///
-/// \brief CertificateSummaryWidget::elideFingerprint
+/// \brief Truncates the fingerprint on a byte boundary to fit the label.
 ///
 /// Truncates the fingerprint on a byte boundary with an ellipsis so it is never
 /// clipped in the middle of a hex pair.
@@ -257,7 +257,7 @@ void CertificateSummaryWidget::elideFingerprint()
 }
 
 ///
-/// \brief CertificateSummaryWidget::eventFilter
+/// \brief Re-elides the fingerprint when its label is resized.
 /// \param watched Watched object.
 /// \param event Event being delivered.
 /// \return True if the event was handled.

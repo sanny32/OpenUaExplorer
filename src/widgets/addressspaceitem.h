@@ -17,9 +17,15 @@
 ///
 struct AddressSpaceItem
 {
+    ///
+    /// \brief Node category used by the sample address space tree.
+    ///
     enum class NodeType { Folder, Node, Variable, Method };
 
+    /// \brief Display name shown in the tree.
     QString  displayName;
+    /// \brief Sample node category.
     NodeType nodeType;
+    /// \brief Child sample nodes.
     QVector<AddressSpaceItem> children;
 };

@@ -23,8 +23,15 @@ class MainToolBar : public QToolBar
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Constructs the toolbar with its endpoint and security selector widgets.
+    /// \param parent Parent widget.
+    ///
     explicit MainToolBar(QWidget *parent = nullptr);
 
+    ///
+    /// \brief Rebuilds the toolbar from its Designer actions, appending the selector widgets.
+    ///
     void setupFromDesignerActions();
 
 private:

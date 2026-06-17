@@ -27,9 +27,21 @@ class LogWidget : public QWidget
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Builds the log widget, installs the message handler, and wires its controls.
+    /// \param parent Parent widget.
+    ///
     explicit LogWidget(QWidget *parent = nullptr);
+
+    ///
+    /// \brief Restores the previous message handler and destroys the widget.
+    ///
     ~LogWidget() override;
 
+    ///
+    /// \brief Appends a log entry unless logging is paused.
+    /// \param item Log entry to add.
+    ///
     void addItem(const LogItem &item);
 
 protected:

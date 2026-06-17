@@ -24,10 +24,27 @@ class ConnectionStatusWidget : public QWidget
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Builds the connection status widget.
+    /// \param parent Parent widget.
+    ///
     explicit ConnectionStatusWidget(QWidget *parent = nullptr);
+
+    ///
+    /// \brief Destroys the widget and its generated UI.
+    ///
     ~ConnectionStatusWidget() override;
 
+    ///
+    /// \brief Sets the status icon.
+    /// \param icon Icon shown next to the status text.
+    ///
     void setIcon(const QIcon &icon);
+
+    ///
+    /// \brief Sets the status text.
+    /// \param text Text to display.
+    ///
     void setStatusText(const QString &text);
 
 private:

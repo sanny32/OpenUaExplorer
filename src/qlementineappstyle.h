@@ -23,6 +23,10 @@ class QModelIndex;
 class QlementineAppStyle : public oclero::qlementine::QlementineStyle
 {
 public:
+    ///
+    /// \brief Builds the style, initialises the icon theme, and tracks app color-scheme changes.
+    /// \param parent Owning QObject.
+    ///
     explicit QlementineAppStyle(QObject* parent = nullptr);
 
 protected:

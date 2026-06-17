@@ -21,6 +21,10 @@ class TrendGraphWidget : public QWidget
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Constructs an expanding trend graph widget.
+    /// \param parent Parent widget.
+    ///
     explicit TrendGraphWidget(QWidget *parent = nullptr);
 
 protected:

@@ -25,7 +25,15 @@ class MainWindow : public QMainWindow, private CertificateTrustDecider
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Builds the window, wires up menus, docks, icons, and the OPC UA client.
+    /// \param parent Parent widget.
+    ///
     explicit MainWindow(QWidget *parent = nullptr);
+
+    ///
+    /// \brief Destroys the window and its generated UI.
+    ///
     ~MainWindow() override;
 
 protected:

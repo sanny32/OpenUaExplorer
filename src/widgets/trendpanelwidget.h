@@ -22,7 +22,15 @@ class TrendPanelWidget : public QWidget
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Builds the trend panel and sets its toolbar icons.
+    /// \param parent Parent widget.
+    ///
     explicit TrendPanelWidget(QWidget *parent = nullptr);
+
+    ///
+    /// \brief Destroys the panel and its generated UI.
+    ///
     ~TrendPanelWidget() override;
 
 private:

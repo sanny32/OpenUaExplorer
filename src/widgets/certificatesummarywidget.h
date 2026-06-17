@@ -29,14 +29,50 @@ class CertificateSummaryWidget : public QWidget
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Builds the panel, applies the theme, and shows the empty state.
+    /// \param parent Owning widget.
+    ///
     explicit CertificateSummaryWidget(QWidget *parent = nullptr);
+
+    ///
+    /// \brief Destroys the widget and its generated UI.
+    ///
     ~CertificateSummaryWidget() override;
 
+    ///
+    /// \brief Sets the header caption, hiding the header when empty.
+    /// \param title Header caption shown next to the certificate icon.
+    ///
     void setTitle(const QString &title);
+
+    ///
+    /// \brief Sets the message shown instead of the details when no certificate is set.
+    /// \param hint Message shown instead of the details when no certificate is set.
+    ///
     void setHint(const QString &hint);
+
+    ///
+    /// \brief Sets the placeholder shown in the subject field when no certificate is set.
+    /// \param text Placeholder shown in the subject field when no certificate is set.
+    ///
     void setEmptyText(const QString &text);
+
+    ///
+    /// \brief Shows a DER certificate, or clears the panel when empty.
+    /// \param der DER-encoded certificate, or an empty array to clear the panel.
+    ///
     void setCertificate(const QByteArray &der);
+
+    ///
+    /// \brief Clears the displayed certificate.
+    ///
     void clear();
+
+    ///
+    /// \brief Returns the certificate currently shown.
+    /// \return DER-encoded certificate currently shown, or an empty array.
+    ///
     QByteArray certificate() const;
 
 signals:

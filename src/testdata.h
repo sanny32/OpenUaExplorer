@@ -24,8 +24,11 @@ namespace TestData {
 /// \brief Log entry for test data — level, source and message without timestamp.
 ///
 struct LogEntry {
+    /// \brief Severity level.
     LogItem::Level level;
+    /// \brief Log source name.
     const char    *source;
+    /// \brief Log message text.
     const char    *message;
 };
 

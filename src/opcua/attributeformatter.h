@@ -24,132 +24,132 @@
 namespace OpcUaFormat {
 
 ///
-/// \brief Checks whether a QVariant contains a sequential value array.
-/// \param value Value to inspect.
-/// \return True for list-like values, excluding scalar strings and byte strings.
+/// \brief Reports whether a value is an array, treating strings and byte arrays as scalars.
+/// \param value Variant to inspect.
+/// \return True when the value should be rendered as a list.
 ///
 bool isValueArray(const QVariant &value);
 
 ///
-/// \brief Formats a QVariant for display without discarding its typed value.
-/// \param value Value to format.
-/// \return Human-readable value.
+/// \brief Renders a value for display, recursing into arrays and hex-encoding byte strings.
+/// \param value Variant to format.
+/// \return Human-readable representation.
 ///
 QString displayValue(const QVariant &value);
 
 ///
-/// \brief Returns the localized security mode name.
-/// \param mode OPC UA message security mode.
-/// \return Display name.
+/// \brief Returns the translated name of a message security mode.
+/// \param mode Security mode to name.
+/// \return Localised mode name.
 ///
 QString securityModeName(QOpcUaEndpointDescription::MessageSecurityMode mode);
 
 ///
-/// \brief Returns a display string for a status code.
-/// \param status OPC UA status code.
-/// \return Status name.
+/// \brief Returns the textual name of an OPC UA status code.
+/// \param status Status code to name.
+/// \return Status code name.
 ///
 QString statusName(QOpcUa::UaStatusCode status);
 
 ///
-/// \brief Formats a status code with its numeric representation.
-/// \param status OPC UA status code.
-/// \return Status name and hexadecimal value.
+/// \brief Formats a status code as name plus zero-padded hexadecimal value.
+/// \param status Status code to format.
+/// \return Combined name and hex representation.
 ///
 QString statusDisplay(QOpcUa::UaStatusCode status);
 
 ///
-/// \brief Formats a timestamp like UaExpert.
+/// \brief Formats a timestamp in local time, or empty when invalid.
 /// \param timestamp Timestamp to format.
-/// \return Localized timestamp text.
+/// \return Localised timestamp string.
 ///
 QString timestampDisplay(const QDateTime &timestamp);
 
 ///
-/// \brief Returns the symbolic name of an OPC UA value type.
-/// \param type OPC UA value type.
-/// \return Symbolic type name.
+/// \brief Returns the enum-key name of an OPC UA value type.
+/// \param type Value type to name.
+/// \return Type name, or "Unknown" when unrecognised.
 ///
 QString valueTypeName(QOpcUa::Types type);
 
 ///
-/// \brief Returns the symbolic name of an OPC UA node class.
-/// \param nodeClass OPC UA node class.
-/// \return Symbolic node class name.
+/// \brief Returns the enum-key name of a node class.
+/// \param nodeClass Node class to name.
+/// \return Class name, or its numeric value when unrecognised.
 ///
 QString nodeClassName(QOpcUa::NodeClass nodeClass);
 
 ///
-/// \brief Formats an OPC UA access level mask.
-/// \param accessLevel Access level mask.
-/// \return Set flag names separated by vertical bars.
+/// \brief Decodes an access-level bitmask into a pipe-separated list of flag names.
+/// \param accessLevel Access-level bits.
+/// \return Flag names, or "None" when no bits are set.
 ///
 QString accessLevelDisplay(quint32 accessLevel);
 
 ///
-/// \brief Formats an OPC UA write mask.
-/// \param writeMask Write mask.
-/// \return Set flag names or zero.
+/// \brief Decodes a write-mask bitmask into a pipe-separated list of flag names.
+/// \param writeMask Write-mask bits.
+/// \return Flag names, or the numeric value when no known bits match.
 ///
 QString writeMaskDisplay(quint32 writeMask);
 
 ///
-/// \brief Formats an OPC UA value rank.
-/// \param valueRank Value rank.
-/// \return Numeric rank with its symbolic meaning.
+/// \brief Formats a value rank with its symbolic name for the well-known ranks.
+/// \param valueRank Value rank to format.
+/// \return Rank with description, or the bare number for custom ranks.
 ///
 QString valueRankDisplay(int valueRank);
 
 ///
-/// \brief Returns the textual name of a NodeId identifier type.
-/// \param identifierType OPC UA NodeId identifier type marker.
-/// \return Identifier type name.
+/// \brief Names a NodeId identifier type from its single-character code.
+/// \param identifierType Code: 'i', 's', 'g', or 'b'.
+/// \return Identifier-type name, or "Unknown".
 ///
 QString identifierTypeName(char identifierType);
 
 ///
-/// \brief Creates a child row.
-/// \param name Row name.
-/// \param displayValue Display value.
-/// \return Child attribute row.
+/// \brief Builds a leaf attribute row with a name and display value.
+/// \param name Attribute name.
+/// \param displayValue Pre-formatted display value.
+/// \return The constructed attribute.
 ///
 OpcUaNodeAttribute childAttribute(const QString &name, const QString &displayValue);
 
 ///
-/// \brief Adds parsed NodeId fields to an attribute row.
-/// \param attribute Attribute row to populate.
-/// \param nodeId OPC UA NodeId string.
+/// \brief Appends namespace index, identifier type, and identifier child rows for a NodeId.
+/// \param attribute Parent attribute to extend; unchanged when the NodeId cannot be split.
+/// \param nodeId NodeId string to decompose.
 ///
 void addNodeIdChildren(OpcUaNodeAttribute *attribute, const QString &nodeId);
 
 ///
-/// \brief Formats a NodeId and adds its parsed fields.
-/// \param attribute Attribute row to populate.
-/// \param nodeId OPC UA NodeId string.
+/// \brief Sets a NodeId attribute's display value and expands its components as children.
+/// \param attribute Attribute to populate.
+/// \param nodeId NodeId string.
 ///
 void formatNodeIdAttribute(OpcUaNodeAttribute *attribute, const QString &nodeId);
 
 ///
-/// \brief Formats a DataType NodeId using its built-in type name when possible.
-/// \param attribute Attribute row to populate.
-/// \param nodeId DataType NodeId.
+/// \brief Sets a DataType attribute to the resolved type name (or NodeId) plus component children.
+/// \param attribute Attribute to populate.
+/// \param nodeId DataType NodeId string.
 ///
 void formatDataTypeAttribute(OpcUaNodeAttribute *attribute, const QString &nodeId);
 
 ///
-/// \brief Formats a QVariant as a tree value.
-/// \param value Value to format.
-/// \param type OPC UA value type.
-/// \return Root row containing scalar or array entries.
+/// \brief Builds the Value attribute, expanding arrays into indexed child rows.
+/// \param value Node value.
+/// \param type Declared value type, used to label arrays.
+/// \return The constructed Value attribute.
 ///
 OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type);
 
 ///
-/// \brief Formats an attribute value and creates expandable child rows.
-/// \param attribute Attribute row to populate.
-/// \param nodeAttribute OPC UA attribute identifier.
-/// \param value Attribute value.
-/// \param valueType Variable value type.
+/// \brief Fills an attribute's display value (and children) using the rules for its attribute id.
+/// \param attribute Attribute to populate.
+/// \param nodeAttribute Which OPC UA attribute is being formatted.
+/// \param value Raw attribute value.
+/// \param valueType Value type, used when formatting the Value attribute.
 ///
 void formatAttribute(OpcUaNodeAttribute *attribute,
                      QOpcUa::NodeAttribute nodeAttribute,
@@ -157,18 +157,18 @@ void formatAttribute(OpcUaNodeAttribute *attribute,
                      QOpcUa::Types valueType);
 
 ///
-/// \brief Checks whether an attribute is defined for a node class.
-/// \param attribute OPC UA attribute.
-/// \param nodeClass OPC UA node class.
-/// \return True if the attribute applies to the node class.
+/// \brief Reports whether an attribute is meaningful for a given node class.
+/// \param attribute Attribute to test.
+/// \param nodeClass Node class to test against.
+/// \return True when the attribute applies; class-agnostic attributes always return true.
 ///
 bool attributeAppliesToNodeClass(QOpcUa::NodeAttribute attribute,
                                  QOpcUa::NodeClass nodeClass);
 
 ///
-/// \brief Maps a namespace zero DataType NodeId to QOpcUa::Types.
-/// \param nodeId OPC UA DataType NodeId.
-/// \return Matching Qt OPC UA type.
+/// \brief Maps a namespace-0 built-in DataType NodeId to its OPC UA value type.
+/// \param nodeId DataType NodeId, expected as "ns=0;i=...".
+/// \return Matching value type, or Undefined for non-builtin or unparsable ids.
 ///
 QOpcUa::Types valueTypeForDataType(const QString &nodeId);
 

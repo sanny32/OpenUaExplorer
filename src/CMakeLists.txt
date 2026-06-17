@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 set(PRODUCT_NAME "Open UaExplorer")
-set(ORGANIZATION_NAME "OpenUaExplorer")
+set(ORGANIZATION_NAME "OpenUaExplorer contributers")
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/qt.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/qlementine.cmake")

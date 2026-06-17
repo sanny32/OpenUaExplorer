@@ -10,8 +10,16 @@
 
 #include <QPalette>
 
+///
+/// \brief Builds light and dark Fusion palettes for the application.
+///
 class FusionStyle
 {
 public:
+    ///
+    /// \brief Builds a Fusion-style palette tuned for a light or dark appearance.
+    /// \param darkAppearance True to create a dark appearance palette.
+    /// \return Palette configured for the Fusion style.
+    ///
     static QPalette palette(bool darkAppearance);
 };

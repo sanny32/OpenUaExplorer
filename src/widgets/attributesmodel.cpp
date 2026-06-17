@@ -23,7 +23,7 @@ struct AttributesModel::Item
 };
 
 ///
-/// \brief AttributesModel::AttributesModel
+/// \brief Constructs an empty attributes tree model.
 /// \param parent Parent object.
 ///
 AttributesModel::AttributesModel(QObject *parent)
@@ -33,12 +33,12 @@ AttributesModel::AttributesModel(QObject *parent)
 }
 
 ///
-/// \brief AttributesModel::~AttributesModel
+/// \brief Destroys the model and its item tree.
 ///
 AttributesModel::~AttributesModel() = default;
 
 ///
-/// \brief AttributesModel::index
+/// \brief Returns the index for a child item.
 /// \param row Child row.
 /// \param column Model column.
 /// \param parent Parent index.
@@ -55,7 +55,7 @@ QModelIndex AttributesModel::index(int row, int column, const QModelIndex &paren
 }
 
 ///
-/// \brief AttributesModel::parent
+/// \brief Returns the parent index of an item.
 /// \param child Child index.
 /// \return Parent index or an invalid index for top-level items.
 ///
@@ -78,7 +78,7 @@ QModelIndex AttributesModel::parent(const QModelIndex &child) const
 }
 
 ///
-/// \brief AttributesModel::rowCount
+/// \brief Returns the number of child rows.
 /// \param parent Parent index.
 /// \return Number of child rows.
 ///
@@ -91,7 +91,7 @@ int AttributesModel::rowCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief AttributesModel::columnCount
+/// \brief Returns the fixed column count.
 /// \param parent Parent index.
 /// \return Number of columns.
 ///
@@ -102,7 +102,7 @@ int AttributesModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief AttributesModel::headerData
+/// \brief Returns the Attribute/Value column titles.
 /// \param section Header section.
 /// \param orientation Header orientation.
 /// \param role Data role.
@@ -121,7 +121,7 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation orientation, i
 }
 
 ///
-/// \brief AttributesModel::data
+/// \brief Returns attribute/value text, alignment, and status colour for a cell.
 /// \param index Model index.
 /// \param role Data role.
 /// \return Item data.
@@ -153,7 +153,7 @@ QVariant AttributesModel::data(const QModelIndex &index, int role) const
 }
 
 ///
-/// \brief AttributesModel::setAttributes
+/// \brief Rebuilds the tree from structured OPC UA attributes.
 /// \param attributes Structured OPC UA attributes.
 ///
 void AttributesModel::setAttributes(const QVector<OpcUaNodeAttribute> &attributes)
@@ -166,7 +166,7 @@ void AttributesModel::setAttributes(const QVector<OpcUaNodeAttribute> &attribute
 }
 
 ///
-/// \brief AttributesModel::setItems
+/// \brief Builds a flat attribute tree from name/value pairs.
 /// \param items Flat attribute rows used by UI sample data.
 ///
 void AttributesModel::setItems(const QVector<QPair<QString, QString>> &items)
@@ -183,7 +183,7 @@ void AttributesModel::setItems(const QVector<QPair<QString, QString>> &items)
 }
 
 ///
-/// \brief AttributesModel::clear
+/// \brief Empties the attribute tree.
 ///
 void AttributesModel::clear()
 {
@@ -191,7 +191,7 @@ void AttributesModel::clear()
 }
 
 ///
-/// \brief AttributesModel::setColumnAlignment
+/// \brief Sets the text alignment for a column and refreshes it.
 /// \param column Model column.
 /// \param alignment Text alignment.
 ///
@@ -205,7 +205,7 @@ void AttributesModel::setColumnAlignment(int column, Qt::Alignment alignment)
 }
 
 ///
-/// \brief AttributesModel::appendAttribute
+/// \brief Recursively appends an attribute and its children to a parent item.
 /// \param parent Parent tree item.
 /// \param attribute Attribute to append.
 ///
@@ -222,7 +222,7 @@ void AttributesModel::appendAttribute(Item *parent, const OpcUaNodeAttribute &at
 }
 
 ///
-/// \brief AttributesModel::itemForIndex
+/// \brief Returns the item for an index, or the root item.
 /// \param index Model index.
 /// \return Associated tree item or the root item.
 ///

@@ -27,12 +27,39 @@ class ConnectionDialog : public AppBaseDialog
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Builds the dialog and initialises its history, certificate panels, and controls.
+    /// \param parent Parent widget.
+    ///
     explicit ConnectionDialog(QWidget *parent = nullptr);
+
+    ///
+    /// \brief Saves the last endpoint URL and destroys the dialog.
+    ///
     ~ConnectionDialog() override;
 
+    ///
+    /// \brief Sets the client service used for discovery and subscribes to its results.
+    /// \param service OPC UA client service.
+    ///
     void setClientService(class OpcUaClientService *service);
+
+    ///
+    /// \brief Builds a connection profile from the dialog's current selections.
+    /// \return Connection settings selected by the user.
+    ///
     ConnectionProfile profile() const;
+
+    ///
+    /// \brief Returns the entered username password.
+    /// \return Username password.
+    ///
     QString password() const;
+
+    ///
+    /// \brief Returns the password for the imported private key.
+    /// \return Imported private key password.
+    ///
     QString privateKeyPassword() const;
 
 private slots:

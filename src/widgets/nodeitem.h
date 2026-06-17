@@ -17,7 +17,9 @@
 ///
 struct NodeInfoItem
 {
+    /// \brief Label shown in the first column.
     QString label;
+    /// \brief Value shown in the second column.
     QString value;
 };
 
@@ -26,6 +28,8 @@ struct NodeInfoItem
 ///
 struct ReferenceItem
 {
+    /// \brief Reference type display text.
     QString reference;
+    /// \brief Target node display text.
     QString target;
 };

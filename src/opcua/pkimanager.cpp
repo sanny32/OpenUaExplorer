@@ -215,7 +215,7 @@ QString openSslError()
 } // namespace
 
 ///
-/// \brief PkiManager::applicationUri
+/// \brief Returns the application URI used in generated certificates.
 /// \return Application URI matching the four-part format expected by Qt OPC UA.
 ///
 QString PkiManager::applicationUri()
@@ -225,7 +225,7 @@ QString PkiManager::applicationUri()
 }
 
 ///
-/// \brief PkiManager::clientCertificateCommonName
+/// \brief Returns the common name for the auto-generated client certificate.
 /// \return Common name used by the auto-generated client certificate.
 ///
 QString PkiManager::clientCertificateCommonName()
@@ -234,7 +234,7 @@ QString PkiManager::clientCertificateCommonName()
 }
 
 ///
-/// \brief PkiManager::paths
+/// \brief Returns the absolute paths of the application PKI tree.
 /// \return Absolute paths of the application PKI tree.
 ///
 PkiManager::Paths PkiManager::paths() const
@@ -255,7 +255,7 @@ PkiManager::Paths PkiManager::paths() const
 }
 
 ///
-/// \brief PkiManager::ensureDirectories
+/// \brief Creates the PKI directories if they do not exist.
 /// \param error Receives an error message.
 /// \return True when every PKI directory exists.
 ///
@@ -282,7 +282,7 @@ bool PkiManager::ensureDirectories(QString *error) const
 }
 
 ///
-/// \brief PkiManager::existingClientCertificate
+/// \brief Reports whether a matching auto-generated client certificate already exists.
 /// \param certificateFile Receives the existing DER certificate path.
 /// \param privateKeyFile Receives the existing PEM private key path.
 /// \return True when the generated key pair exists and has the current application URI.
@@ -319,7 +319,7 @@ bool PkiManager::existingClientCertificate(QString *certificateFile,
 }
 
 ///
-/// \brief PkiManager::generateClientCertificate
+/// \brief Generates a self-signed client key pair and certificate.
 /// \param commonName Certificate common name.
 /// \param applicationUri OPC UA application URI.
 /// \param certificateFile Receives the generated DER certificate path.
@@ -433,7 +433,7 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
 }
 
 ///
-/// \brief PkiManager::trustServerCertificate
+/// \brief Stores a server certificate in the trust list.
 /// \param certificate DER-encoded server certificate.
 /// \param error Receives an error message.
 /// \return True when the certificate was stored in the trust list.

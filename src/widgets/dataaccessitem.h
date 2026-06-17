@@ -17,16 +17,28 @@
 ///
 struct DataAccessItem
 {
+    /// \brief NodeId string.
     QString nodeId;
+    /// \brief DisplayName text.
     QString displayName;
+    /// \brief Formatted value shown in the table.
     QString value;
+    /// \brief Formatted data type name.
     QString dataType;
+    /// \brief Formatted source timestamp.
     QString sourceTimestamp;
+    /// \brief Status display text.
     QString status;
+    /// \brief Assigned subscription name.
     QString subscriptionName;
+    /// \brief Raw typed value used by writes.
     QVariant typedValue;
+    /// \brief QOpcUa::Types numeric value.
     int valueType = 0;
+    /// \brief DataType NodeId string.
     QString dataTypeId;
+    /// \brief Server timestamp.
     QDateTime serverTimestamp;
+    /// \brief UserAccessLevel bit mask.
     quint8 userAccessLevel = 0;
 };

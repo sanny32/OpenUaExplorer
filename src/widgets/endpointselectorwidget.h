@@ -24,9 +24,21 @@ class EndpointSelectorWidget : public QWidget
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Builds the selector with a default localhost endpoint.
+    /// \param parent Parent widget.
+    ///
     explicit EndpointSelectorWidget(QWidget *parent = nullptr);
+
+    ///
+    /// \brief Destroys the widget and its generated UI.
+    ///
     ~EndpointSelectorWidget() override;
 
+    ///
+    /// \brief Returns the selected endpoint URL.
+    /// \return Current endpoint text.
+    ///
     QString currentEndpoint() const;
 
 private:

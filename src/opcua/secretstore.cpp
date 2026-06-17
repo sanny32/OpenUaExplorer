@@ -17,7 +17,7 @@ const char serviceName[] = "OpenUaExplorer";
 }
 
 ///
-/// \brief SecretStore::SecretStore
+/// \brief Constructs the store and registers the Secret metatype.
 /// \param parent Parent object.
 ///
 SecretStore::SecretStore(QObject *parent)
@@ -27,7 +27,7 @@ SecretStore::SecretStore(QObject *parent)
 }
 
 ///
-/// \brief SecretStore::isAvailable
+/// \brief Reports whether the credential store is usable.
 /// \return True because QtKeychain is a required dependency.
 ///
 bool SecretStore::isAvailable() const
@@ -36,7 +36,7 @@ bool SecretStore::isAvailable() const
 }
 
 ///
-/// \brief SecretStore::read
+/// \brief Asynchronously reads a profile secret; the result arrives via readFinished().
 /// \param profileId Profile identifier.
 /// \param secret Secret kind.
 ///
@@ -53,7 +53,7 @@ void SecretStore::read(const QString &profileId, Secret secret)
 }
 
 ///
-/// \brief SecretStore::write
+/// \brief Asynchronously stores a profile secret; completion arrives via writeFinished().
 /// \param profileId Profile identifier.
 /// \param secret Secret kind.
 /// \param value Secret value.
@@ -72,7 +72,7 @@ void SecretStore::write(const QString &profileId, Secret secret, const QString &
 }
 
 ///
-/// \brief SecretStore::remove
+/// \brief Asynchronously deletes a profile secret; completion arrives via writeFinished().
 /// \param profileId Profile identifier.
 /// \param secret Secret kind.
 ///
@@ -89,7 +89,7 @@ void SecretStore::remove(const QString &profileId, Secret secret)
 }
 
 ///
-/// \brief SecretStore::key
+/// \brief Builds the stable keychain key for a profile secret.
 /// \param profileId Profile identifier.
 /// \param secret Secret kind.
 /// \return Stable keychain key.

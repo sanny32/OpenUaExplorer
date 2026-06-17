@@ -20,20 +20,47 @@ class AppTheme : public QObject
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Available application color-scheme states.
+    ///
     enum class ColorScheme {
         Unknown,
         Light,
         Dark
     };
 
+    ///
+    /// \brief Constructs the theme manager and wires up system color-scheme detection.
+    /// \param parent Owning QObject.
+    ///
     explicit AppTheme(QObject *parent = nullptr);
 
+    ///
+    /// \brief Reports whether the dark scheme is active.
+    /// \return True if the current color scheme is dark.
+    ///
     bool isDark() const;
+
+    ///
+    /// \brief Reports whether the user may switch schemes manually.
+    /// \return True if the user can manually toggle the color scheme.
+    ///
     bool isManualToggleSupported() const;
+
+    ///
+    /// \brief Switches between light and dark, marking the scheme as manually overridden.
+    ///
     void toggle();
+
+    ///
+    /// \brief Applies the startup color scheme from the portal, Qt API, or light fallback.
+    ///
     void applyInitialScheme();
 
 signals:
+    ///
+    /// \brief Emitted when the active color scheme changes.
+    ///
     void colorSchemeChanged();
 
 private:

@@ -23,15 +23,31 @@ public:
     /// \brief Color set used to paint button states.
     ///
     struct Colors {
+        /// \brief Normal-state background color.
         QColor base;
+        /// \brief Hover-state background color.
         QColor hover;
+        /// \brief Pressed-state background color.
         QColor pressed;
+        /// \brief Text color.
         QColor text = Qt::white;
     };
 
+    ///
+    /// \brief Constructs an uncoloured button that paints like a standard push button.
+    /// \param parent Parent widget.
+    ///
     explicit ColoredPushButton(QWidget *parent = nullptr);
 
+    ///
+    /// \brief Enables custom colouring, deriving the dark variant from the given light colours.
+    /// \param colors Light-theme colour set.
+    ///
     void setColors(const Colors &colors);
+
+    ///
+    /// \brief Disables custom colouring and restores the application palette.
+    ///
     void clearColors();
 
 protected:

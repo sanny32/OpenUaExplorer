@@ -28,14 +28,45 @@ class EndpointDiscoveryWidget : public QWidget
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Builds the endpoint table with its custom row delegates and hover tracking.
+    /// \param parent Owning widget.
+    ///
     explicit EndpointDiscoveryWidget(QWidget *parent = nullptr);
 
+    ///
+    /// \brief Shows the discovered endpoints, updating the count and selecting the first row.
+    /// \param endpoints Discovered endpoints to display.
+    ///
     void setEndpoints(const QList<EndpointInfo> &endpoints);
+
+    ///
+    /// \brief Removes all endpoints.
+    ///
     void clear();
 
+    ///
+    /// \brief Returns how many endpoints are shown.
+    /// \return Number of discovered endpoints.
+    ///
     int endpointCount() const;
+
+    ///
+    /// \brief Returns the selected row index.
+    /// \return Selected endpoint row, or -1 when none is selected.
+    ///
     int currentRow() const;
+
+    ///
+    /// \brief Reports whether a valid endpoint is selected.
+    /// \return True when a valid endpoint row is selected.
+    ///
     bool hasSelection() const;
+
+    ///
+    /// \brief Returns the selected endpoint.
+    /// \return Endpoint for the selected row.
+    ///
     EndpointInfo currentEndpoint() const;
 
 signals:

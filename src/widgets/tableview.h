@@ -20,8 +20,16 @@ class TableView : public QTableView
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Constructs the table view with a wrapped header.
+    /// \param parent Parent widget.
+    ///
     explicit TableView(QWidget *parent = nullptr);
 
+    ///
+    /// \brief Returns the custom horizontal header.
+    /// \return The header view, or nullptr when not set.
+    ///
     HeaderView *headerView() const;
 
 protected:

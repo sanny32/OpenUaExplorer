@@ -20,5 +20,10 @@ class MainToolButton : public ThemedToolButton
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Builds a fixed-width text-under-icon button bound to an action.
+    /// \param action Default action driving the button; its text becomes the tooltip.
+    /// \param parent Parent widget.
+    ///
     explicit MainToolButton(QAction *action, QWidget *parent = nullptr);
 };

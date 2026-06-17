@@ -15,7 +15,7 @@ const char profilesGroup[] = "opcua/profiles";
 }
 
 ///
-/// \brief ConnectionProfileStore::profiles
+/// \brief Returns the saved connection profiles.
 /// \return Saved connection profiles.
 ///
 QList<ConnectionProfile> ConnectionProfileStore::profiles() const
@@ -53,7 +53,7 @@ QList<ConnectionProfile> ConnectionProfileStore::profiles() const
 }
 
 ///
-/// \brief ConnectionProfileStore::save
+/// \brief Persists a connection profile, replacing any with the same id.
 /// \param profile Profile to persist.
 /// \return True when the profile identifier is valid.
 ///
@@ -86,7 +86,7 @@ bool ConnectionProfileStore::save(const ConnectionProfile &profile)
 }
 
 ///
-/// \brief ConnectionProfileStore::remove
+/// \brief Removes a stored profile by id.
 /// \param id Profile identifier.
 /// \return True when the settings backend completed successfully.
 ///

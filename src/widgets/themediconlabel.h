@@ -19,8 +19,17 @@ class ThemedIconLabel : public QLabel
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Constructs an empty themed icon label.
+    /// \param parent Parent widget.
+    ///
     explicit ThemedIconLabel(QWidget *parent = nullptr);
 
+    ///
+    /// \brief Sets the themed icon to display.
+    /// \param name Icon resource name.
+    /// \param size Desired pixmap size; invalid uses the icon's first available size.
+    ///
     void setIcon(const QString &name, QSize size = QSize());
 
 protected:

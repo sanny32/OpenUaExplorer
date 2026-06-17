@@ -26,10 +26,26 @@ class AttributesWidget : public QWidget
     Q_OBJECT
 
 public:
+    ///
+    /// \brief Builds the attributes widget and its tree view.
+    /// \param parent Parent widget.
+    ///
     explicit AttributesWidget(QWidget *parent = nullptr);
+
+    ///
+    /// \brief Destroys the widget and its generated UI.
+    ///
     ~AttributesWidget() override;
 
+    ///
+    /// \brief Shows the attributes of the selected node, expanding the top level.
+    /// \param details Selected node details.
+    ///
     void setNodeDetails(const OpcUaNodeDetails &details);
+
+    ///
+    /// \brief Clears the attributes view.
+    ///
     void clear();
 
 private:
