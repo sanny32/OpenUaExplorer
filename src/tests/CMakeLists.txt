@@ -68,7 +68,6 @@ function(ouaexp_add_test test_name source_file)
     )
     ouaexp_copy_qtopcua_runtime(${test_name})
     ouaexp_apply_coverage(${test_name})
-    set_target_properties(${test_name} PROPERTIES FOLDER "Tests")
     add_test(NAME ${test_name} COMMAND ${test_name})
     set_tests_properties(${test_name} PROPERTIES LABELS "ouaexp")
     ouaexp_configure_test_environment(${test_name})
@@ -79,8 +78,6 @@ function(ouaexp_add_ui_test test_name source_file)
     ouaexp_add_test(${test_name} ${source_file})
     target_link_libraries(${test_name} PRIVATE ouaexp_ui)
 endfunction()
-
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 include("${PROJECT_SOURCE_DIR}/cmake/tests_unit.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/tests_ui.cmake")
@@ -102,4 +99,3 @@ add_custom_target(ouaexp_check
     DEPENDS ${test_targets}
     USES_TERMINAL
 )
-set_target_properties(ouaexp_check PROPERTIES FOLDER "Tests")
