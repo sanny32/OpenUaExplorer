@@ -23,6 +23,7 @@ set(UI_FILES
 )
 
 add_library(ouaexp_ui STATIC
+    appcolors.h
     appicons.h
     application.cpp
     application.h

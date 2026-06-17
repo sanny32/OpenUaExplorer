@@ -11,6 +11,7 @@
 #include <QFontMetrics>
 #include <QToolButton>
 
+#include "appcolors.h"
 #include "appicons.h"
 #include "certificatesummarywidget.h"
 #include "opcua/certificateinfo.h"
@@ -28,8 +29,9 @@ CertificateSummaryWidget::CertificateSummaryWidget(QWidget *parent)
 
     ui->headerIcon->setIcon(QStringLiteral("certificate"), QSize(18, 18));
     ui->validIcon->setIcon(QStringLiteral("check-circle"), QSize(18, 18));
-    ui->detailsWidget->setStyleSheet(QStringLiteral(
-        "QLabel[certCaption=\"true\"] { color: #6b7280; }"));
+    ui->detailsWidget->setStyleSheet(
+        QStringLiteral("QLabel[certCaption=\"true\"] { color: %1; }")
+            .arg(AppColors::caption().name()));
     ui->serialNumberEdit->installEventFilter(this);
 
     connect(ui->viewDetailsButton, &QToolButton::clicked,
@@ -123,12 +125,10 @@ QByteArray CertificateSummaryWidget::certificate() const
 ///
 void CertificateSummaryWidget::applyTheme()
 {
-    const bool darkTheme = AppIcons::isDarkTheme();
     ui->headerLabel->setStyleSheet(QStringLiteral(
         "QLabel { color: %1; font-weight: 600; }"
         "QLabel:disabled { color: %2; }")
-        .arg(darkTheme ? QStringLiteral("#60a5fa") : QStringLiteral("#2563eb"),
-             darkTheme ? QStringLiteral("#5b626b") : QStringLiteral("#9aa0a6")));
+        .arg(AppColors::header().name(), AppColors::hint().name()));
 }
 
 ///
@@ -201,17 +201,17 @@ void CertificateSummaryWidget::fillCertificateFields()
     bool valid = false;
     if (info.status == CertificateInfo::Status::NotYetValid) {
         badgeText = tr("Not yet valid");
-        color = QColor(0xc0, 0x7d, 0x00);
+        color = AppColors::statusWarning();
     } else if (info.status == CertificateInfo::Status::Expired) {
         badgeText = tr("Expired");
-        color = QColor(0xd1, 0x34, 0x38);
+        color = AppColors::statusError();
     } else if (info.status == CertificateInfo::Status::Valid) {
         badgeText = tr("Valid");
-        color = QColor(0x2e, 0x9e, 0x44);
+        color = AppColors::statusSuccess();
         valid = true;
     } else {
         badgeText = tr("Invalid");
-        color = QColor(0xd1, 0x34, 0x38);
+        color = AppColors::statusError();
     }
 
     ui->validIcon->setVisible(valid);

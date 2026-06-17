@@ -20,6 +20,7 @@
 #include <QSslKey>
 #include <QVariant>
 
+#include "appcolors.h"
 #include "appicons.h"
 #include "certificatedetailsdialog.h"
 #include "opcua/certificateinfo.h"
@@ -163,13 +164,13 @@ CertificateDetailsDialog::CertificateDetailsDialog(QWidget *parent)
     ui->setupUi(this);
 
     ui->statusIcon->setIcon(QStringLiteral("shield-trusted.svg"), QSize(22, 22));
-    ui->closeButton->setColors({ QColor(0x0a74d1), QColor(0x1682df), QColor(0x075ca7) });
+    ui->closeButton->setColors(
+        { AppColors::accent(), AppColors::accentHover(), AppColors::accentPressed() });
 
     // Render the field labels in the muted steel-blue used across the application
     // and measure the widest one so both sections share a single value-column grid line.
-    const QColor labelColor = AppIcons::isDarkTheme()
-        ? QColor(0x8aaace) : QColor(0x4a6f96);
-    const QString labelStyle = QStringLiteral("color: %1;").arg(labelColor.name());
+    const QString labelStyle =
+        QStringLiteral("color: %1;").arg(AppColors::fieldLabel().name());
     int labelColumnWidth = 0;
     for (QLabel *label : findChildren<QLabel *>()) {
         if (label->objectName().endsWith(QStringLiteral("Label"))) {
@@ -339,5 +340,5 @@ void CertificateDetailsDialog::setSummaryStatus(const QString &text, bool valid)
     ui->statusIcon->setVisible(valid);
     ui->statusValue->setStyleSheet(
         QStringLiteral("color: %1; font-weight: 600;")
-            .arg(valid ? QStringLiteral("#16a34a") : QStringLiteral("#d13438")));
+            .arg(valid ? AppColors::statusSuccess().name() : AppColors::statusError().name()));
 }

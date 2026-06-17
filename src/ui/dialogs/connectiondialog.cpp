@@ -26,6 +26,7 @@
 #include <QStyle>
 #include <QUuid>
 
+#include "appcolors.h"
 #include "appicons.h"
 #include "certificatedetailsdialog.h"
 #include "connectiondialog.h"
@@ -134,12 +135,11 @@ void ConnectionDialog::setupCertificatePanels()
 void ConnectionDialog::setupControls()
 {
     ui->statusIconLabel->setIcon(QStringLiteral("disconnected"), QSize(16, 16));
-    ui->connectButton->setColors({ QColor(0x0a74d1), QColor(0x1682df), QColor(0x075ca7) });
+    ui->connectButton->setColors(
+        { AppColors::accent(), AppColors::accentHover(), AppColors::accentPressed() });
     ui->getEndpointsButton->setIcon(QStringLiteral("search.svg"));
 
-    const bool darkTheme = AppIcons::isDarkTheme();
-    const QString hintStyle = QStringLiteral("color: %1;")
-        .arg(darkTheme ? QStringLiteral("#7c828b") : QStringLiteral("#9aa0a6"));
+    const QString hintStyle = QStringLiteral("color: %1;").arg(AppColors::hint().name());
     ui->usernameHintLabel->setStyleSheet(hintStyle);
     ui->passwordHintLabel->setStyleSheet(hintStyle);
 
