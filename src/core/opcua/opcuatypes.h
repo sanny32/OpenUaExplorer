@@ -42,11 +42,6 @@ enum AccessLevel : quint8 {
 };
 
 ///
-/// \brief Well-known NodeId of the standard Objects folder (browse root).
-///
-inline constexpr char kObjectsFolderId[] = "ns=0;i=84";
-
-///
 /// \brief Returns true when a NodeClass mask denotes a Variable node.
 ///
 inline bool isVariable(int nodeClass) { return (nodeClass & Variable) != 0; }

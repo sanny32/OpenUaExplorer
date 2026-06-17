@@ -6,12 +6,40 @@
 /// \brief Implements the main status bar widget.
 ///
 
+#include <QDateTime>
+#include <QTimer>
 #include <QWidget>
 
 #include "mainstatusbarwidget.h"
 #include "opcua/connectioncontroller.h"
 #include "opcua/opcuaclientservice.h"
+#include "opcua/standardnodeid.h"
 #include "ui_mainstatusbarwidget.h"
+
+namespace {
+
+///
+/// \brief Formats the UTC offset of a local time as a compact "UTC+H[:MM]" suffix.
+/// \param dateTime Local date-time whose offset should be described.
+/// \return Offset label such as "UTC", "UTC+3", or "UTC-05:30".
+///
+QString utcOffsetLabel(const QDateTime &dateTime)
+{
+    const int offsetSeconds = dateTime.offsetFromUtc();
+    if (offsetSeconds == 0)
+        return QStringLiteral("UTC");
+
+    const int totalMinutes = qAbs(offsetSeconds) / 60;
+    const QChar sign = offsetSeconds > 0 ? QLatin1Char('+') : QLatin1Char('-');
+    if (totalMinutes % 60 == 0)
+        return QStringLiteral("UTC%1%2").arg(sign).arg(totalMinutes / 60);
+    return QStringLiteral("UTC%1%2:%3")
+        .arg(sign)
+        .arg(totalMinutes / 60, 2, 10, QLatin1Char('0'))
+        .arg(totalMinutes % 60, 2, 10, QLatin1Char('0'));
+}
+
+}
 
 ///
 /// \brief Builds the status bar and shows the disconnected state.
@@ -25,6 +53,55 @@ MainStatusBarWidget::MainStatusBarWidget(QWidget *parent)
     ui->setupUi(content);
     setConnectionState(OpcUaConnectionState::Disconnected);
     addWidget(content, 1);
+
+    auto *clock = new QTimer(this);
+    clock->setInterval(1000);
+    connect(clock, &QTimer::timeout, this, &MainStatusBarWidget::updateClocks);
+    clock->start();
+    updateClocks();
+}
+
+///
+/// \brief Refreshes the local- and server-time labels every tick.
+///
+void MainStatusBarWidget::updateClocks()
+{
+    const QDateTime now = QDateTime::currentDateTime();
+    ui->localTimeLabel->setText(tr("Local Time: %1 %2")
+        .arg(now.toString(QStringLiteral("HH:mm:ss")), utcOffsetLabel(now)));
+
+    if (_serverTimeKnown) {
+        const QDateTime serverNow =
+            now.toUTC().addMSecs(_serverTimeOffsetMs);
+        ui->serverTimeLabel->setText(
+            tr("Server Time: %1 UTC").arg(serverNow.toString(QStringLiteral("HH:mm:ss"))));
+    }
+}
+
+///
+/// \brief Captures the server clock from a read of the CurrentTime node.
+/// \param values Read results.
+/// \param error Read error, empty on success.
+///
+void MainStatusBarWidget::handleServerTime(const QVector<OpcUaDataValue> &values,
+                                           const QString &error)
+{
+    if (!error.isEmpty())
+        return;
+    for (const OpcUaDataValue &value : values) {
+        if (value.nodeId != StandardNodeId::serverCurrentTime())
+            continue;
+        const QDateTime serverTime = value.value.toDateTime().isValid()
+            ? value.value.toDateTime()
+            : value.serverTimestamp;
+        if (!serverTime.isValid())
+            return;
+        _serverTimeOffsetMs =
+            QDateTime::currentDateTimeUtc().msecsTo(serverTime.toUTC());
+        _serverTimeKnown = true;
+        updateClocks();
+        return;
+    }
 }
 
 namespace {
@@ -61,6 +138,8 @@ void MainStatusBarWidget::setConnectionController(ConnectionController *controll
     _controller = controller;
     connect(controller->clientService(), &OpcUaClientService::stateChanged,
             this, &MainStatusBarWidget::updateConnectionState);
+    connect(controller->clientService(), &OpcUaClientService::dataValuesReady,
+            this, &MainStatusBarWidget::handleServerTime);
     updateConnectionState(controller->clientService()->state());
 }
 
@@ -77,6 +156,13 @@ void MainStatusBarWidget::updateConnectionState(OpcUaConnectionState state)
                        active ? profile.securityPolicy : QString(),
                        active ? profile.securityMode : 0,
                        connected ? profile.sessionName : QString());
+
+    if (connected) {
+        _controller->clientService()->readValues(
+            { StandardNodeId::serverCurrentTime() });
+    } else {
+        _serverTimeKnown = false;
+    }
 }
 
 ///

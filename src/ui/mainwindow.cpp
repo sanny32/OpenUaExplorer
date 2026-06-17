@@ -23,6 +23,7 @@
 #include "mainwindow.h"
 #include "opcua/connectioncontroller.h"
 #include "opcua/opcuaclientservice.h"
+#include "opcua/standardnodeid.h"
 #include "ui_mainwindow.h"
 #include "widgets/addressspacewidget.h"
 #include "widgets/attributeswidget.h"
@@ -390,7 +391,7 @@ void MainWindow::onClientError(const QString &message)
 void MainWindow::browseNodeOrRoot(const QString &nodeId)
 {
     _clientService->browse(nodeId.isEmpty()
-        ? QString::fromLatin1(OpcUa::kObjectsFolderId) : nodeId);
+        ? QString::fromLatin1(StandardNodeId::ObjectsFolder) : nodeId);
 }
 
 ///
@@ -504,7 +505,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
 void MainWindow::initializeAddressSpace()
 {
     OpcUaNodeInfo root;
-    root.nodeId = QString::fromLatin1(OpcUa::kObjectsFolderId);
+    root.nodeId = QString::fromLatin1(StandardNodeId::ObjectsFolder);
     root.browseName = tr("Root");
     root.displayName = tr("Root");
     root.nodeClass = 1;

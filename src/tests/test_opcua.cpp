@@ -20,6 +20,7 @@
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuaclientservice.h"
 #include "opcua/pkimanager.h"
+#include "opcua/standardnodeid.h"
 #include "models/addressspacemodel.h"
 #include "models/attributesmodel.h"
 
@@ -158,7 +159,7 @@ void TestOpcUa::lazyModelRequestsAndAppliesBrowse()
 {
     AddressSpaceModel model;
     OpcUaNodeInfo root;
-    root.nodeId = QString::fromLatin1(OpcUa::kObjectsFolderId);
+    root.nodeId = QString::fromLatin1(StandardNodeId::ObjectsFolder);
     root.displayName = QStringLiteral("Root");
     root.nodeClass = 1;
     root.hasChildren = true;

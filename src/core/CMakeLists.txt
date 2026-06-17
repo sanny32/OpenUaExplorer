@@ -26,6 +26,7 @@ add_library(ouaexp_core STATIC
     opcua/qtopcuabackend.h
     opcua/secretstore.cpp
     opcua/secretstore.h
+    opcua/standardnodeid.h
 
     models/addressspaceitem.h
     models/addressspacemodel.cpp

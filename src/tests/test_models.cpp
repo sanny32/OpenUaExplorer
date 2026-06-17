@@ -14,6 +14,7 @@
 
 #include "testdata.h"
 #include "opcua/opcuatypes.h"
+#include "opcua/standardnodeid.h"
 #include "models/addressspacemodel.h"
 #include "models/attributesmodel.h"
 #include "models/dataaccessmodel.h"
@@ -286,7 +287,7 @@ void TestModels::logLevelAndSearchCombine()
 static OpcUaNodeInfo makeRoot()
 {
     OpcUaNodeInfo root;
-    root.nodeId = QString::fromLatin1(OpcUa::kObjectsFolderId);
+    root.nodeId = QString::fromLatin1(StandardNodeId::ObjectsFolder);
     root.displayName = QStringLiteral("Root");
     root.nodeClass = 1;
     root.hasChildren = true;

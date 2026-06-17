@@ -44,6 +44,8 @@ public:
 
 private slots:
     void updateConnectionState(OpcUaConnectionState state);
+    void updateClocks();
+    void handleServerTime(const QVector<OpcUaDataValue> &values, const QString &error);
 
 private:
     void setConnectionState(OpcUaConnectionState state,
@@ -54,4 +56,6 @@ private:
 
     Ui::MainStatusBarWidget *ui;
     ConnectionController *_controller = nullptr;
+    bool _serverTimeKnown = false;
+    qint64 _serverTimeOffsetMs = 0;
 };
