@@ -149,6 +149,7 @@ void TestConnectionData::corruptCertificateIsReportedAsInvalid()
         CertificateInfo::fromDer(QByteArrayLiteral("not-a-certificate"));
     QVERIFY(!info.readable);
     QCOMPARE(info.status, CertificateInfo::Status::Invalid);
+    QVERIFY(info.serialNumber.isEmpty());
     QVERIFY(!info.fingerprint.isEmpty());
 }
 

@@ -16,6 +16,7 @@
 #include <QOpcUaPkiConfiguration>
 #include <QSslCertificate>
 
+#include "opcua/certificateinfo.h"
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuaclientservice.h"
 #include "opcua/pkimanager.h"
@@ -130,6 +131,8 @@ void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
     QCOMPARE(generated.subjectInfo(QSslCertificate::CommonName), QStringList({commonName}));
     QCOMPARE(generated.issuerInfo(QSslCertificate::CommonName), QStringList({commonName}));
     QVERIFY(generated.isSelfSigned());
+    QCOMPARE(CertificateInfo::fromDer(certificateData).serialNumber,
+             QString::fromLatin1(generated.serialNumber()).toUpper());
 
     QOpcUaPkiConfiguration configuration;
     configuration.setClientCertificateFile(certificateFile);

@@ -7,15 +7,13 @@
 ///
 
 #include <QLabel>
-#include <QPushButton>
-#include <QSignalSpy>
 #include <QTest>
 #include <QWidget>
 
 #include "widgets/certificatesummarywidget.h"
 
 ///
-/// \brief Tests the panel's hint/inline empty states and view-request signal.
+/// \brief Tests the panel's hint/inline empty states and populated details.
 ///
 class TestCertificateSummaryWidget : public QObject
 {
@@ -25,7 +23,6 @@ private slots:
     void hintModeHidesDetailsWhenEmpty();
     void inlineModeShowsPlaceholderWhenEmpty();
     void unreadableCertificateFillsDetails();
-    void viewButtonEmitsViewRequested();
 };
 
 void TestCertificateSummaryWidget::hintModeHidesDetailsWhenEmpty()
@@ -37,14 +34,12 @@ void TestCertificateSummaryWidget::hintModeHidesDetailsWhenEmpty()
 
     auto *hintLabel = widget.findChild<QLabel *>(QStringLiteral("hintLabel"));
     auto *detailsWidget = widget.findChild<QWidget *>(QStringLiteral("detailsWidget"));
-    auto *viewButton = widget.findChild<QPushButton *>(QStringLiteral("viewButton"));
     QVERIFY(hintLabel);
     QVERIFY(detailsWidget);
-    QVERIFY(viewButton);
 
     QVERIFY(!hintLabel->isHidden());
     QVERIFY(detailsWidget->isHidden());
-    QVERIFY(!viewButton->isEnabled());
+    QVERIFY(!widget.findChild<QWidget *>(QStringLiteral("viewButton")));
     QVERIFY(widget.certificate().isEmpty());
 }
 
@@ -81,32 +76,15 @@ void TestCertificateSummaryWidget::unreadableCertificateFillsDetails()
 
     auto *subjectEdit = widget.findChild<QLabel *>(QStringLiteral("subjectEdit"));
     auto *validEdit = widget.findChild<QLabel *>(QStringLiteral("validEdit"));
-    auto *fingerprintEdit = widget.findChild<QLabel *>(QStringLiteral("fingerprintEdit"));
-    auto *viewButton = widget.findChild<QPushButton *>(QStringLiteral("viewButton"));
+    auto *serialNumberEdit = widget.findChild<QLabel *>(QStringLiteral("serialNumberEdit"));
     QVERIFY(subjectEdit);
     QVERIFY(validEdit);
-    QVERIFY(fingerprintEdit);
-    QVERIFY(viewButton);
+    QVERIFY(serialNumberEdit);
 
     QCOMPARE(subjectEdit->text(), QStringLiteral("Unable to read certificate"));
     QCOMPARE(validEdit->text(), QStringLiteral("%1 bytes").arg(garbage.size()));
-    QVERIFY(!fingerprintEdit->text().isEmpty());
-    QVERIFY(viewButton->isEnabled());
+    QCOMPARE(serialNumberEdit->text(), QStringLiteral("Unavailable"));
     QCOMPARE(widget.certificate(), garbage);
-}
-
-void TestCertificateSummaryWidget::viewButtonEmitsViewRequested()
-{
-    CertificateSummaryWidget widget;
-    widget.setCertificate(QByteArrayLiteral("not a certificate"));
-
-    auto *viewButton = widget.findChild<QPushButton *>(QStringLiteral("viewButton"));
-    QVERIFY(viewButton);
-    QVERIFY(viewButton->isEnabled());
-
-    QSignalSpy spy(&widget, &CertificateSummaryWidget::viewRequested);
-    viewButton->click();
-    QCOMPARE(spy.count(), 1);
 }
 
 QTEST_MAIN(TestCertificateSummaryWidget)

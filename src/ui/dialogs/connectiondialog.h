@@ -70,8 +70,6 @@ private slots:
     void chooseClientCertificate();
     void generateClientCertificate();
     void handleClientCertificateAction();
-    void viewServerCertificate();
-    void viewClientCertificate();
     void validateAndAccept();
 
 private:

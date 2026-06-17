@@ -30,6 +30,8 @@ struct CertificateInfo
     QString subject;
     /// \brief Issuer display text.
     QString issuer;
+    /// \brief Certificate serial number display text.
+    QString serialNumber;
     /// \brief SHA-256 fingerprint display text.
     QString fingerprint;
     /// \brief Start of the certificate validity window.
@@ -40,7 +42,7 @@ struct CertificateInfo
     Status status = Status::Invalid;
 
     ///
-    /// \brief Parses a DER certificate into display fields, fingerprint, and validity status.
+    /// \brief Parses a DER certificate into display fields, serial number, fingerprint, and validity status.
     /// \param der Certificate bytes in DER encoding.
     /// \param now Reference time used to classify validity.
     /// \return Populated info; the fingerprint is set even when the certificate cannot be parsed.

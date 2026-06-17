@@ -17,12 +17,10 @@ class CertificateSummaryWidget;
 }
 
 ///
-/// \brief Shows a certificate's subject, issuer, validity and fingerprint.
+/// \brief Shows a certificate's subject, issuer, validity, and serial number.
 ///
-/// Bundles the header, the detail grid (Subject / Issuer / Valid-until + status
-/// badge / SHA-256 fingerprint) and the "View..." button so a dialog can treat
-/// a certificate panel as a single control. The panel reads a DER-encoded
-/// certificate through setCertificate() and elides the fingerprint on resize.
+/// The panel reads a DER-encoded certificate through setCertificate() and
+/// elides the serial number on resize.
 ///
 class CertificateSummaryWidget : public QWidget
 {
@@ -75,12 +73,6 @@ public:
     ///
     QByteArray certificate() const;
 
-signals:
-    ///
-    /// \brief Emitted when the user requests the full certificate view.
-    ///
-    void viewRequested();
-
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
@@ -88,11 +80,11 @@ private:
     void applyTheme();
     void updateContents();
     void fillCertificateFields();
-    void elideFingerprint();
+    void elideSerialNumber();
 
     Ui::CertificateSummaryWidget *ui;
     QByteArray _certificate;
-    QString _fingerprint;
+    QString _serialNumber;
     QString _hint;
     QString _emptyText;
 };

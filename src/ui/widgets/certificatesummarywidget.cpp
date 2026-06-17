@@ -29,10 +29,7 @@ CertificateSummaryWidget::CertificateSummaryWidget(QWidget *parent)
     ui->validIcon->setIcon(QStringLiteral("check-circle"), QSize(18, 18));
     ui->detailsWidget->setStyleSheet(QStringLiteral(
         "QLabel[certCaption=\"true\"] { color: #6b7280; }"));
-    ui->fingerprintEdit->installEventFilter(this);
-
-    connect(ui->viewButton, &QPushButton::clicked,
-            this, &CertificateSummaryWidget::viewRequested);
+    ui->serialNumberEdit->installEventFilter(this);
 
     applyTheme();
     updateContents();
@@ -139,23 +136,19 @@ void CertificateSummaryWidget::updateContents()
 {
     const bool available = !_certificate.isEmpty();
     const bool hintMode = !_hint.isEmpty();
-    ui->viewButton->setEnabled(available);
-
-    // In hint mode the header dims when empty; otherwise it stays active and the
-    // grid shows an inline placeholder.
     const bool headerActive = available || !hintMode;
     ui->headerIcon->setEnabled(headerActive);
     ui->headerLabel->setEnabled(headerActive);
 
     if (!available) {
-        _fingerprint.clear();
+        _serialNumber.clear();
         ui->hintLabel->setVisible(hintMode);
         ui->detailsWidget->setVisible(!hintMode);
         if (!hintMode) {
             ui->subjectEdit->setText(_emptyText);
             ui->issuerEdit->clear();
             ui->validEdit->clear();
-            ui->fingerprintEdit->clear();
+            ui->serialNumberEdit->clear();
             ui->validIcon->setVisible(false);
             ui->validBadge->clear();
         }
@@ -175,9 +168,10 @@ void CertificateSummaryWidget::updateContents()
 void CertificateSummaryWidget::fillCertificateFields()
 {
     const CertificateInfo info = CertificateInfo::fromDer(_certificate);
-    _fingerprint = info.fingerprint;
-    ui->fingerprintEdit->setToolTip(tr("SHA-256: %1").arg(_fingerprint));
-    elideFingerprint();
+    _serialNumber = info.serialNumber;
+    ui->serialNumberEdit->setToolTip(
+        _serialNumber.isEmpty() ? QString() : tr("Serial number: %1").arg(_serialNumber));
+    elideSerialNumber();
 
     if (!info.readable) {
         ui->subjectEdit->setText(tr("Unable to read certificate"));
@@ -221,28 +215,30 @@ void CertificateSummaryWidget::fillCertificateFields()
 }
 
 ///
-/// \brief Truncates the fingerprint on a byte boundary to fit the label.
+/// \brief Truncates the serial number on a byte boundary to fit the label.
 ///
-/// Truncates the fingerprint on a byte boundary with an ellipsis so it is never
-/// clipped in the middle of a hex pair.
-///
-void CertificateSummaryWidget::elideFingerprint()
+void CertificateSummaryWidget::elideSerialNumber()
 {
-    QLabel *label = ui->fingerprintEdit;
-    if (_fingerprint.isEmpty()) {
-        label->clear();
+    QLabel *label = ui->serialNumberEdit;
+    if (_serialNumber.isEmpty()) {
+        label->setText(tr("Unavailable"));
         return;
     }
 
     const QFontMetrics metrics(label->font());
     const int available = label->contentsRect().width();
-    if (available <= 0 || metrics.horizontalAdvance(_fingerprint) <= available) {
-        label->setText(_fingerprint);
+    if (available <= 0 || metrics.horizontalAdvance(_serialNumber) <= available) {
+        label->setText(_serialNumber);
         return;
     }
 
-    const QStringList bytes = _fingerprint.split(QLatin1Char(':'));
-    const QString ellipsis = QStringLiteral("…");
+    const QStringList bytes = _serialNumber.split(QLatin1Char(':'));
+    if (bytes.size() == 1) {
+        label->setText(metrics.elidedText(_serialNumber, Qt::ElideRight, available));
+        return;
+    }
+
+    const QString ellipsis = QStringLiteral("...");
     QString shown;
     for (const QString &part : bytes) {
         const QString candidate = shown.isEmpty()
@@ -257,14 +253,14 @@ void CertificateSummaryWidget::elideFingerprint()
 }
 
 ///
-/// \brief Re-elides the fingerprint when its label is resized.
+/// \brief Re-elides the serial number when its label is resized.
 /// \param watched Watched object.
 /// \param event Event being delivered.
 /// \return True if the event was handled.
 ///
 bool CertificateSummaryWidget::eventFilter(QObject *watched, QEvent *event)
 {
-    if (watched == ui->fingerprintEdit && event->type() == QEvent::Resize)
-        elideFingerprint();
+    if (watched == ui->serialNumberEdit && event->type() == QEvent::Resize)
+        elideSerialNumber();
     return QWidget::eventFilter(watched, event);
 }

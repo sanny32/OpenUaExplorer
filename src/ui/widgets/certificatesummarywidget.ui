@@ -262,12 +262,12 @@
        </widget>
       </item>
       <item row="6" column="0">
-       <widget class="QLabel" name="fingerprintCaption">
+       <widget class="QLabel" name="serialNumberCaption">
         <property name="certCaption" stdset="0">
          <bool>true</bool>
         </property>
         <property name="text">
-         <string>SHA-256:</string>
+         <string>Serial number:</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -275,37 +275,20 @@
        </widget>
       </item>
       <item row="6" column="1">
-       <layout class="QHBoxLayout" name="fingerprintLayout">
-        <property name="spacing">
-         <number>8</number>
+       <widget class="QLabel" name="serialNumberEdit">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+          <horstretch>1</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <item>
-         <widget class="QLabel" name="fingerprintEdit">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
-            <horstretch>1</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-          <property name="textInteractionFlags">
-           <set>Qt::TextSelectableByMouse</set>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="ThemedPushButton" name="viewButton">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="text">
-           <string>View...</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="textInteractionFlags">
+         <set>Qt::TextSelectableByMouse</set>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -313,11 +296,6 @@
   </layout>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>ThemedPushButton</class>
-   <extends>QPushButton</extends>
-   <header>widgets/themedpushbutton.h</header>
-  </customwidget>
   <customwidget>
    <class>ThemedIconLabel</class>
    <extends>QLabel</extends>

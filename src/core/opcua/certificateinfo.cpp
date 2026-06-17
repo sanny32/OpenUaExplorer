@@ -19,7 +19,7 @@ QString firstValue(const QStringList &values)
 }
 
 ///
-/// \brief Parses a DER certificate into display fields, fingerprint, and validity status.
+/// \brief Parses a DER certificate into display fields, serial number, fingerprint, and validity status.
 /// \param der Certificate bytes in DER encoding.
 /// \param now Reference time used to classify validity.
 /// \return Populated info; the fingerprint is set even when the certificate cannot be parsed.
@@ -37,6 +37,7 @@ CertificateInfo CertificateInfo::fromDer(const QByteArray &der, const QDateTime 
 
     const QSslCertificate certificate = chain.constFirst();
     result.readable = true;
+    result.serialNumber = QString::fromLatin1(certificate.serialNumber()).toUpper();
     result.subject = firstValue(
         certificate.subjectInfo(QSslCertificate::CommonName));
     if (result.subject.isEmpty()) {

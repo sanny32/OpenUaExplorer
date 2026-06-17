@@ -27,13 +27,11 @@
 #include <QUuid>
 
 #include "appicons.h"
-#include "certificatetrustdialog.h"
 #include "connectiondialog.h"
 #include "opcua/opcuaclientservice.h"
 #include "opcua/connectionprofilevalidator.h"
 #include "opcua/pkimanager.h"
 #include "ui_connectiondialog.h"
-#include "widgets/certificatesummarywidget.h"
 #include "widgets/coloredpushbutton.h"
 #include "widgets/endpointdiscoverywidget.h"
 
@@ -191,10 +189,6 @@ void ConnectionDialog::setupConnections()
             this, &ConnectionDialog::updateClientCertificateAction);
     connect(ui->clientCertificateViewButton, &QPushButton::clicked,
             this, &ConnectionDialog::handleClientCertificateAction);
-    connect(ui->clientCertificateWidget, &CertificateSummaryWidget::viewRequested,
-            this, &ConnectionDialog::viewClientCertificate);
-    connect(ui->serverCertificateWidget, &CertificateSummaryWidget::viewRequested,
-            this, &ConnectionDialog::viewServerCertificate);
     connect(ui->trustListManageButton, &QPushButton::clicked,
             this, &ConnectionDialog::generateClientCertificate);
 }
@@ -458,23 +452,6 @@ void ConnectionDialog::handleClientCertificateAction()
 }
 
 ///
-/// \brief Opens a read-only view of the selected endpoint's server certificate.
-///
-void ConnectionDialog::viewServerCertificate()
-{
-    const QByteArray certificate = ui->serverCertificateWidget->certificate();
-    if (certificate.isEmpty())
-        return;
-
-    CertificateTrustDialog dialog(this);
-    dialog.setViewOnly(true);
-    dialog.setCertificate(
-        certificate,
-        tr("Certificate advertised by the selected OPC UA endpoint."));
-    dialog.exec();
-}
-
-///
 /// \brief Validates the profile (discovering or generating a certificate first) before accepting.
 ///
 void ConnectionDialog::validateAndAccept()
@@ -545,20 +522,4 @@ void ConnectionDialog::updateClientCertificateAction()
 {
     ui->clientCertificateViewButton->setText(
         ui->clientCertificateComboBox->currentIndex() == 0 ? tr("Generate...") : tr("Import..."));
-}
-
-///
-/// \brief Opens a read-only view of the configured client certificate.
-///
-void ConnectionDialog::viewClientCertificate()
-{
-    const QByteArray certificate = ui->clientCertificateWidget->certificate();
-    if (certificate.isEmpty())
-        return;
-
-    CertificateTrustDialog dialog(this);
-    dialog.setViewOnly(true);
-    dialog.setCertificate(certificate,
-                          tr("Certificate presented by this application to the server."));
-    dialog.exec();
 }
