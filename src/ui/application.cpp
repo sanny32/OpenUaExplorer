@@ -8,6 +8,8 @@
 
 #include "appstyle.h"
 #include "application.h"
+#include "loggingcategories.h"
+#include "opcua/pkimanager.h"
 
 #if defined(HAVE_QLEMENTINE_APP_STYLE) && defined(Q_OS_MAC)
 #include "macappstyle.h"
@@ -32,6 +34,7 @@ Application::Application(int &argc, char **argv)
     setStyle(new AppStyle());
 #endif
     _theme.applyInitialScheme();
+    ensureClientCertificate();
 }
 
 ///
@@ -50,4 +53,27 @@ AppTheme& Application::theme()
 Application *Application::instance()
 {
     return static_cast<Application *>(QApplication::instance());
+}
+
+///
+/// \brief Generates the application client certificate when the auto-generated pair is absent.
+///
+void Application::ensureClientCertificate()
+{
+    PkiManager pki;
+    QString certificateFile;
+    QString privateKeyFile;
+    if (pki.existingClientCertificate(&certificateFile, &privateKeyFile))
+        return;
+
+    QString error;
+    if (!pki.generateClientCertificate(
+            PkiManager::clientCertificateCommonName(),
+            PkiManager::applicationUri(),
+            &certificateFile,
+            &privateKeyFile,
+            &error)) {
+        qCWarning(lcApp).noquote()
+            << tr("Could not generate the client certificate: %1").arg(error);
+    }
 }

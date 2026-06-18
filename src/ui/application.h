@@ -37,6 +37,8 @@ public:
     static Application *instance();
 
 private:
+    void ensureClientCertificate();
+
     AppTheme _theme;
 };
 
