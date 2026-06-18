@@ -246,7 +246,6 @@ void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
         ? tr("Session: -")
         : tr("Session: %1").arg(sessionName));
     ui->serverTimeLabel->setText(tr("Server Time: -"));
-    ui->publishingIntervalLabel->setText(tr("Publishing Interval: -"));
 }
 
 ///

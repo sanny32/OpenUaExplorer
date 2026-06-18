@@ -119,20 +119,6 @@
     </widget>
    </item>
    <item>
-    <widget class="Line" name="line5">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="publishingIntervalLabel">
-     <property name="text">
-      <string>Publishing Interval: 1000 ms</string>
-     </property>
-    </widget>
-   </item>
-   <item>
     <spacer name="horizontalSpacer">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
