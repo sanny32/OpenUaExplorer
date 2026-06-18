@@ -86,7 +86,6 @@ private:
     void resetDiscovery();
     void updateClientCertificate();
     void updateClientCertificateAction();
-    void syncCertificateAuthFields();
     void showCertificateDetails(const QByteArray &certificate);
 
     Ui::ConnectionDialog *ui;

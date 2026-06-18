@@ -139,9 +139,8 @@ void ConnectionDialog::setupControls()
         { AppColors::accent(), AppColors::accentHover(), AppColors::accentPressed() });
     ui->getEndpointsButton->setIcon(QStringLiteral("search.svg"));
 
-    const QString hintStyle = QStringLiteral("color: %1;").arg(AppColors::hint().name());
-    ui->usernameHintLabel->setStyleSheet(hintStyle);
-    ui->passwordHintLabel->setStyleSheet(hintStyle);
+    ui->authenticationLayout->setAlignment(ui->certificateBrowseButton, Qt::AlignLeft);
+    ui->authenticationLayout->setAlignment(ui->privateKeyBrowseButton, Qt::AlignLeft);
 
     QAction *passwordToggle = ui->passwordEdit->addAction(
         AppIcons::themed(QStringLiteral("eye.svg")), QLineEdit::TrailingPosition);
@@ -398,8 +397,17 @@ void ConnectionDialog::updateAuthenticationFields()
     ui->passwordEdit->setVisible(!certificate);
     ui->usernameEdit->setEnabled(username);
     ui->passwordEdit->setEnabled(username);
-    ui->usernameHintLabel->setVisible(!certificate && !username);
-    ui->passwordHintLabel->setVisible(!certificate && !username);
+    ui->usernameHintLabel->setVisible(!certificate);
+    ui->passwordHintLabel->setVisible(!certificate);
+    const bool showHintText = !certificate && !username;
+    const QString hintStyle = showHintText
+        ? QStringLiteral("color: %1;").arg(AppColors::hint().name())
+        : QStringLiteral("color: transparent;");
+    ui->usernameHintLabel->setStyleSheet(hintStyle);
+    ui->passwordHintLabel->setStyleSheet(hintStyle);
+    ui->authenticationLayout->setColumnMinimumWidth(
+        2, qMax(ui->usernameHintLabel->sizeHint().width(),
+                ui->passwordHintLabel->sizeHint().width()));
 
     ui->certificateLabel->setVisible(certificate);
     ui->certificateEdit->setVisible(certificate);
@@ -407,8 +415,6 @@ void ConnectionDialog::updateAuthenticationFields()
     ui->privateKeyLabel->setVisible(certificate);
     ui->privateKeyEdit->setVisible(certificate);
     ui->privateKeyBrowseButton->setVisible(certificate);
-    if (certificate)
-        syncCertificateAuthFields();
 
     // The client certificate stays available regardless of the security mode
     // (it can still be imported, generated or inspected). Only the server
@@ -448,7 +454,6 @@ void ConnectionDialog::chooseClientCertificate()
     ui->clientCertificateComboBox->setCurrentIndex(1);
     ui->clientCertificateComboBox->setItemText(1, QFileInfo(certificate).fileName());
     updateClientCertificate();
-    syncCertificateAuthFields();
 }
 
 ///
@@ -501,7 +506,6 @@ void ConnectionDialog::generateClientCertificate()
     ui->clientCertificateComboBox->setCurrentIndex(0);
     updateClientCertificateAction();
     updateClientCertificate();
-    syncCertificateAuthFields();
 }
 
 ///
@@ -593,17 +597,6 @@ void ConnectionDialog::updateClientCertificate()
         chain = QSslCertificate::fromData(data, QSsl::Pem);
     ui->clientCertificateWidget->setCertificate(
         chain.isEmpty() ? QByteArray() : chain.constFirst().toDer());
-}
-
-///
-/// \brief Mirrors the selected certificate and private key paths into the certificate auth fields.
-///
-void ConnectionDialog::syncCertificateAuthFields()
-{
-    const QSignalBlocker certificateBlocker(ui->certificateEdit);
-    const QSignalBlocker privateKeyBlocker(ui->privateKeyEdit);
-    ui->certificateEdit->setText(_clientCertificateFile);
-    ui->privateKeyEdit->setText(_privateKeyFile);
 }
 
 ///
