@@ -157,7 +157,7 @@ CertificateDetailsWidget::CertificateDetailsWidget(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->statusIcon->setIcon(QStringLiteral("shield-trusted.svg"), QSize(22, 22));
+    ui->statusIcon->setIcon(QStringLiteral("shield-trusted"), QSize(22, 22));
 
     const QString labelStyle =
         QStringLiteral("color: %1;").arg(AppColors::fieldLabel().name());

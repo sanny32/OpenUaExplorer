@@ -95,6 +95,8 @@ add_library(ouaexp_ui STATIC
     widgets/subscriptiondelegate.h
     widgets/tableview.cpp
     widgets/tableview.h
+    widgets/themedaction.cpp
+    widgets/themedaction.h
     widgets/themediconlabel.cpp
     widgets/themediconlabel.h
     widgets/themedpushbutton.cpp

@@ -212,7 +212,7 @@ void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
                                              const QString &sessionName)
 {
     QString text;
-    QString icon = QStringLiteral("disconnected.svg");
+    QString icon = QStringLiteral("disconnected");
     switch (state) {
     case OpcUaConnectionState::Unavailable:
         text = tr("OPC UA unavailable");
@@ -222,15 +222,15 @@ void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
         break;
     case OpcUaConnectionState::Connecting:
         text = tr("Connecting: %1").arg(endpoint);
-        icon = QStringLiteral("connect.svg");
+        icon = QStringLiteral("connect");
         break;
     case OpcUaConnectionState::Connected:
         text = tr("Connected: %1").arg(endpoint);
-        icon = QStringLiteral("connected.svg");
+        icon = QStringLiteral("connected");
         break;
     case OpcUaConnectionState::Closing:
         text = tr("Disconnecting");
-        icon = QStringLiteral("disconnect.svg");
+        icon = QStringLiteral("disconnect");
         break;
     case OpcUaConnectionState::Disconnected:
         text = tr("Disconnected");

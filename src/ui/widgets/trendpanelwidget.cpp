@@ -19,9 +19,9 @@ TrendPanelWidget::TrendPanelWidget(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->fitButton->setIcon(QStringLiteral("fit.svg"));
-    ui->exportButton->setIcon(QStringLiteral("export.svg"));
-    ui->settingsButton->setIcon(QStringLiteral("settings.svg"));
+    ui->fitButton->setIcon(QStringLiteral("fit"));
+    ui->exportButton->setIcon(QStringLiteral("export"));
+    ui->settingsButton->setIcon(QStringLiteral("settings"));
 }
 
 ///

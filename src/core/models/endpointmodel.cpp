@@ -14,11 +14,11 @@ QString securityIconName(int securityMode)
 {
     switch (securityMode) {
     case 2:
-        return QStringLiteral("shield-check.svg");
+        return QStringLiteral("shield-check");
     case 3:
-        return QStringLiteral("lock.svg");
+        return QStringLiteral("lock");
     default:
-        return QStringLiteral("unlock.svg");
+        return QStringLiteral("unlock");
     }
 }
 

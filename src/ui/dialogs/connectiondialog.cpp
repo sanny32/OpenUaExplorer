@@ -137,7 +137,7 @@ void ConnectionDialog::setupControls()
     ui->statusIconLabel->setIcon(QStringLiteral("disconnected"), QSize(16, 16));
     ui->connectButton->setColors(
         { AppColors::accent(), AppColors::accentHover(), AppColors::accentPressed() });
-    ui->getEndpointsButton->setIcon(QStringLiteral("search.svg"));
+    ui->getEndpointsButton->setIcon(QStringLiteral("search"));
 
     ui->certificateLayout->setAlignment(ui->certificateBrowseButton, Qt::AlignLeft);
     ui->certificateLayout->setAlignment(ui->privateKeyBrowseButton, Qt::AlignLeft);
@@ -145,13 +145,13 @@ void ConnectionDialog::setupControls()
     ui->privateKeyBrowseButton->setFixedHeight(ui->privateKeyEdit->sizeHint().height());
 
     QAction *passwordToggle = ui->passwordEdit->addAction(
-        AppIcons::themed(QStringLiteral("eye.svg")), QLineEdit::TrailingPosition);
+        AppIcons::themed(QStringLiteral("eye")), QLineEdit::TrailingPosition);
     passwordToggle->setCheckable(true);
     auto refreshPasswordToggle = [this, passwordToggle] {
         const bool shown = passwordToggle->isChecked();
         ui->passwordEdit->setEchoMode(shown ? QLineEdit::Normal : QLineEdit::Password);
         passwordToggle->setIcon(AppIcons::themed(
-            shown ? QStringLiteral("eye-off.svg") : QStringLiteral("eye.svg")));
+            shown ? QStringLiteral("eye-off") : QStringLiteral("eye")));
         passwordToggle->setToolTip(shown ? tr("Hide password") : tr("Show password"));
     };
     refreshPasswordToggle();

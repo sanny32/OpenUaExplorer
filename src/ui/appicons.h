@@ -32,7 +32,8 @@ inline bool isDarkTheme()
 ///
 inline QIcon themed(const QString &icon)
 {
-    return QIcon(QString(":/icons/%1/%2").arg(isDarkTheme() ? "dark" : "light", icon));
+    const QString name = icon.contains(QLatin1Char('.')) ? icon : icon + QStringLiteral(".svg");
+    return QIcon(QString(":/icons/%1/%2").arg(isDarkTheme() ? "dark" : "light", name));
 }
 
 ///

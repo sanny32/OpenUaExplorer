@@ -27,6 +27,7 @@
 #include "headerview.h"
 #include "loggingcategories.h"
 #include "logwidget.h"
+#include "themedaction.h"
 #include "models/logmodel.h"
 #include "tableview.h"
 #include "ui_logwidget.h"
@@ -110,15 +111,16 @@ LogWidget::LogWidget(QWidget *parent)
     ui->sourceCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     ui->sourceCombo->view()->setTextElideMode(Qt::ElideNone);
 
-    _searchIconAction = ui->searchEdit->addAction(QIcon(), QLineEdit::LeadingPosition);
+    _searchIconAction = new ThemedAction(QStringLiteral("search"), QString(), this);
+    ui->searchEdit->addAction(_searchIconAction, QLineEdit::LeadingPosition);
 
-    _copyAction = new QAction(tr("Copy"), this);
+    _copyAction = new ThemedAction(QStringLiteral("copy"), tr("Copy"), this);
     _copyAction->setShortcut(QKeySequence::Copy);
     _copyAction->setShortcutContext(Qt::WidgetShortcut);
     connect(_copyAction, &QAction::triggered, this, &LogWidget::copySelection);
     ui->logTable->addAction(_copyAction);
 
-    _copyAllAction = new QAction(tr("Copy All"), this);
+    _copyAllAction = new ThemedAction(QStringLiteral("copy"), tr("Copy All"), this);
     connect(_copyAllAction, &QAction::triggered, this, &LogWidget::copyAll);
     ui->logTable->addAction(_copyAllAction);
 
@@ -147,7 +149,7 @@ LogWidget::LogWidget(QWidget *parent)
 
     connect(ui->pauseButton, &QPushButton::toggled, this, [this](bool checked) {
         _paused = checked;
-        ui->pauseButton->setIcon(checked ? QStringLiteral("resume.svg") : QStringLiteral("pause.svg"));
+        ui->pauseButton->setIcon(checked ? QStringLiteral("resume") : QStringLiteral("pause"));
         ui->pauseButton->setText(checked ? tr("Resume") : tr("Pause"));
     });
 
@@ -265,12 +267,9 @@ void LogWidget::setupLogView()
 void LogWidget::refreshIcons()
 {
     const bool paused = ui->pauseButton->isChecked();
-    _searchIconAction->setIcon(AppIcons::themed("search.svg"));
-    _copyAction->setIcon(AppIcons::themed("copy.svg"));
-    _copyAllAction->setIcon(AppIcons::themed("copy.svg"));
-    ui->pauseButton->setIcon(paused ? QStringLiteral("resume.svg") : QStringLiteral("pause.svg"));
-    ui->clearButton->setIcon(QStringLiteral("trash.svg"));
-    ui->exportButton->setIcon(QStringLiteral("export.svg"));
+    ui->pauseButton->setIcon(paused ? QStringLiteral("resume") : QStringLiteral("pause"));
+    ui->clearButton->setIcon(QStringLiteral("trash"));
+    ui->exportButton->setIcon(QStringLiteral("export"));
 }
 
 ///

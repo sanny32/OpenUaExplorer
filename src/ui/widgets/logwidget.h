@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include <QAction>
 #include <QSet>
 #include <QWidget>
 
@@ -19,6 +18,7 @@ class LogWidget;
 }
 
 class LogModel;
+class ThemedAction;
 
 ///
 /// \brief Widget that displays, filters and searches application activity log messages.
@@ -61,9 +61,9 @@ private:
 
     Ui::LogWidget *ui;
     LogModel      *_model;
-    QAction       *_searchIconAction = nullptr;
-    QAction       *_copyAction = nullptr;
-    QAction       *_copyAllAction = nullptr;
+    ThemedAction  *_searchIconAction = nullptr;
+    ThemedAction  *_copyAction = nullptr;
+    ThemedAction  *_copyAllAction = nullptr;
     bool           _paused = false;
     QSet<QString>  _knownSources;
 };

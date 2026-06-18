@@ -46,8 +46,8 @@ void TestCertificateDetailsDialog::forwardsCertificateAndCopiesWidgetText()
 
     QCOMPARE(detailsWidget->certificate(), certificate);
     QVERIFY(detailsWidget->detailsText().contains(QDir::toNativeSeparators(certificatePath)));
-    QCOMPARE(copyButton->iconName(), QStringLiteral("copy.svg"));
-    QCOMPARE(exportButton->iconName(), QStringLiteral("export.svg"));
+    QCOMPARE(copyButton->iconName(), QStringLiteral("copy"));
+    QCOMPARE(exportButton->iconName(), QStringLiteral("export"));
 
     copyButton->click();
     QCOMPARE(QApplication::clipboard()->text(), detailsWidget->detailsText());

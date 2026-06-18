@@ -47,17 +47,17 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
 
     _treeModel->setIconProvider([this](AddressSpaceItem::NodeType type) {
         switch (type) {
-        case AddressSpaceItem::NodeType::Folder:   return AppIcons::themed("folder.svg");
-        case AddressSpaceItem::NodeType::Node:     return AppIcons::themed("node.svg");
-        case AddressSpaceItem::NodeType::Variable: return AppIcons::themed("variable.svg");
-        case AddressSpaceItem::NodeType::Method:   return AppIcons::themed("method.svg");
+        case AddressSpaceItem::NodeType::Folder:   return AppIcons::themed("folder");
+        case AddressSpaceItem::NodeType::Node:     return AppIcons::themed("node");
+        case AddressSpaceItem::NodeType::Variable: return AppIcons::themed("variable");
+        case AddressSpaceItem::NodeType::Method:   return AppIcons::themed("method");
         }
         return QIcon();
     });
 
     ui->addressTree->expandAll();
 
-    ui->refreshButton->setIcon(QStringLiteral("refresh.svg"));
+    ui->refreshButton->setIcon(QStringLiteral("refresh"));
     ui->refreshButton->setToolTip(QStringLiteral("Refresh"));
     ui->refreshButton->setText(QString());
     ui->splitter->setSizes({455, 255});

@@ -28,7 +28,7 @@ DialogAbout::DialogAbout(QWidget *parent)
     , ui(new Ui::DialogAbout)
 {
     ui->setupUi(this);
-    ui->logoLabel->setIcon("app.svg", QSize(128, 128));
+    ui->logoLabel->setIcon("app", QSize(128, 128));
     ui->illustrationLabel->setIcon("automation.png", QSize(360, 180));
 
     setupContent();
@@ -57,13 +57,13 @@ void DialogAbout::setupContent()
 
     ui->copyrightLabel->setText(tr("Copyright 2026 Alexandr Ananev"));
 
-    ui->websiteIconLabel->setIcon("website.svg", QSize(16, 16));
+    ui->websiteIconLabel->setIcon("website", QSize(16, 16));
     ui->websiteLinkLabel->setText(QStringLiteral("<a href=\"https://ananev.org\">Website</a>"));
     ui->websiteLinkLabel->setTextFormat(Qt::RichText);
     ui->websiteLinkLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
     ui->websiteLinkLabel->setOpenExternalLinks(true);
 
-    ui->githubIconLabel->setIcon("github.svg", QSize(16, 16));
+    ui->githubIconLabel->setIcon("github", QSize(16, 16));
     ui->githubLinkLabel->setText(
         QStringLiteral("<a href=\"https://github.com/sanny32/OpenUaExplorer\">GitHub</a>"));
     ui->githubLinkLabel->setTextFormat(Qt::RichText);

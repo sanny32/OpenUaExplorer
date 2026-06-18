@@ -85,7 +85,7 @@ void TestConnectionData::endpointModelExposesSelectionRoles()
     QCOMPARE(model.data(index, EndpointModel::ModeRole).toString(),
              endpoint.securityMode);
     QCOMPARE(model.data(index, EndpointModel::IconRole).toString(),
-             QStringLiteral("lock.svg"));
+             QStringLiteral("lock"));
     QCOMPARE(model.endpointAt(0).endpointUrl, endpoint.endpointUrl);
 }
 

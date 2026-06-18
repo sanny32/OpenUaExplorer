@@ -598,14 +598,14 @@ void MainWindow::rebuildRecentConnections()
 void MainWindow::bindIcons()
 {
     setWindowIcon(AppIcons::themed("app.ico"));
-    AppIcons::bindIcon(ui->actionConnect,     "connect.svg");
-    AppIcons::bindIcon(ui->actionDisconnect,  "disconnect.svg");
-    AppIcons::bindIcon(ui->actionBrowse,      "browse.svg");
-    AppIcons::bindIcon(ui->actionRefresh,     "refresh.svg");
-    AppIcons::bindIcon(ui->actionRead,        "read.svg");
-    AppIcons::bindIcon(ui->actionWrite,       "write.svg");
-    AppIcons::bindIcon(ui->actionSubscribe,   "subscribe.svg");
-    AppIcons::bindIcon(ui->actionUnsubscribe, "unsubscribe.svg");
-    AppIcons::bindIcon(ui->actionSettings,    "settings.svg");
-    AppIcons::bindIcon(ui->actionTheme,       "theme.svg");
+    AppIcons::bindIcon(ui->actionConnect,     "connect");
+    AppIcons::bindIcon(ui->actionDisconnect,  "disconnect");
+    AppIcons::bindIcon(ui->actionBrowse,      "browse");
+    AppIcons::bindIcon(ui->actionRefresh,     "refresh");
+    AppIcons::bindIcon(ui->actionRead,        "read");
+    AppIcons::bindIcon(ui->actionWrite,       "write");
+    AppIcons::bindIcon(ui->actionSubscribe,   "subscribe");
+    AppIcons::bindIcon(ui->actionUnsubscribe, "unsubscribe");
+    AppIcons::bindIcon(ui->actionSettings,    "settings");
+    AppIcons::bindIcon(ui->actionTheme,       "theme");
 }
