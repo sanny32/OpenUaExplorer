@@ -240,7 +240,8 @@ QString PkiManager::clientCertificateCommonName()
 PkiManager::Paths PkiManager::paths() const
 {
     const QString root =
-        QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+        QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+        + QLatin1Char('/') + QString::fromUtf8(APP_PRODUCT_NAME)
         + QStringLiteral("/pki");
     return {
         root,
