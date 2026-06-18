@@ -6,7 +6,9 @@
 /// \brief Tests OPC UA profiles, PKI paths and lazy address-space behavior.
 ///
 
+#include <QCoreApplication>
 #include <QFile>
+#include <QFileInfo>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
@@ -134,6 +136,10 @@ void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
     QVERIFY(generated.isSelfSigned());
     QCOMPARE(CertificateInfo::fromDer(certificateData).serialNumber,
              QString::fromLatin1(generated.serialNumber()).toUpper());
+    const QString executableBaseName =
+        QFileInfo(QCoreApplication::applicationFilePath()).completeBaseName();
+    QCOMPARE(QFileInfo(certificateFile).completeBaseName(), executableBaseName);
+    QCOMPARE(QFileInfo(privateKeyFile).completeBaseName(), executableBaseName);
 
     QOpcUaPkiConfiguration configuration;
     configuration.setClientCertificateFile(certificateFile);

@@ -123,8 +123,7 @@ void ConnectionDialog::setupCertificatePanels()
 
     PkiManager pki;
     if (pki.existingClientCertificate(&_clientCertificateFile, &_privateKeyFile)) {
-        ui->clientCertificateComboBox->setItemText(
-            0, tr("Auto-generated (%1)").arg(QFileInfo(_clientCertificateFile).fileName()));
+        selectGeneratedClientCertificate();
     }
     updateClientCertificateAction();
     updateClientCertificate();
@@ -503,9 +502,7 @@ void ConnectionDialog::generateClientCertificate()
         return;
     }
     _privateKeyPassword.clear();
-    ui->clientCertificateComboBox->setCurrentIndex(0);
-    updateClientCertificateAction();
-    updateClientCertificate();
+    selectGeneratedClientCertificate();
 }
 
 ///
@@ -578,6 +575,20 @@ void ConnectionDialog::saveLastEndpointUrl()
     ui->discoveryUrlComboBox->addItems(endpointHistory);
     ui->discoveryUrlComboBox->setEditText(endpointUrl);
     updatePopupWidth(ui->discoveryUrlComboBox);
+}
+
+///
+/// \brief Selects the generated client certificate and mirrors its paths into the dialog.
+///
+void ConnectionDialog::selectGeneratedClientCertificate()
+{
+    ui->clientCertificateComboBox->setItemText(
+        0, tr("Auto-generated (%1)").arg(QFileInfo(_clientCertificateFile).fileName()));
+    ui->clientCertificateComboBox->setCurrentIndex(0);
+    ui->certificateEdit->setText(_clientCertificateFile);
+    ui->privateKeyEdit->setText(_privateKeyFile);
+    updateClientCertificateAction();
+    updateClientCertificate();
 }
 
 ///

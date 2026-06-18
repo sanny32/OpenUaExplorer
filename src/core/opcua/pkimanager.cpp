@@ -7,6 +7,7 @@
 ///
 
 #include <QCryptographicHash>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -79,6 +80,26 @@ QString utf8Prefix(const QString &value, int maximumBytes)
 QString productNameWithoutSpaces()
 {
     return withoutSpaces(QString::fromUtf8(APP_PRODUCT_NAME));
+}
+
+///
+/// \brief Returns the current executable base name, falling back to the product name.
+/// \return Executable base name without the file suffix.
+///
+QString executableBaseName()
+{
+    const QString filePath = QCoreApplication::applicationFilePath();
+    const QString baseName = QFileInfo(filePath).completeBaseName().trimmed();
+    return baseName.isEmpty() ? productNameWithoutSpaces() : baseName;
+}
+
+///
+/// \brief Returns the file base used for the auto-generated key pair.
+/// \return File base name for generated certificate and key files.
+///
+QString generatedClientCertificateBaseName()
+{
+    return executableBaseName();
 }
 
 ///
@@ -292,8 +313,11 @@ bool PkiManager::existingClientCertificate(QString *certificateFile,
                                            QString *privateKeyFile) const
 {
     const Paths p = paths();
-    const QString certPath = p.ownCertificates + QStringLiteral("/openuaexplorer.der");
-    const QString keyPath = p.ownPrivate + QStringLiteral("/openuaexplorer.pem");
+    const QString fileBaseName = generatedClientCertificateBaseName();
+    const QString certPath = p.ownCertificates + QLatin1Char('/') + fileBaseName
+        + QStringLiteral(".der");
+    const QString keyPath = p.ownPrivate + QLatin1Char('/') + fileBaseName
+        + QStringLiteral(".pem");
     if (!QFileInfo::exists(certPath) || !QFileInfo::exists(keyPath))
         return false;
 
@@ -404,8 +428,11 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
                             QByteArrayLiteral("keyid:always,issuer:always"));
 
         const Paths p = paths();
-        const QString keyPath = p.ownPrivate + QStringLiteral("/openuaexplorer.pem");
-        const QString certPath = p.ownCertificates + QStringLiteral("/openuaexplorer.der");
+        const QString fileBaseName = generatedClientCertificateBaseName();
+        const QString keyPath = p.ownPrivate + QLatin1Char('/') + fileBaseName
+            + QStringLiteral(".pem");
+        const QString certPath = p.ownCertificates + QLatin1Char('/') + fileBaseName
+            + QStringLiteral(".der");
         BIO *keyBio = BIO_new_file(QFile::encodeName(keyPath).constData(), "wb");
         BIO *certBio = BIO_new_file(QFile::encodeName(certPath).constData(), "wb");
         success = certificateInitialized && subjectInitialized && extensionsAdded

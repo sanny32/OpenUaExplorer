@@ -9,13 +9,16 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QFile>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QPushButton>
 #include <QSettings>
 #include <QSizePolicy>
 #include <QSpinBox>
 #include <QStandardPaths>
+#include <QSslCertificate>
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTest>
@@ -24,6 +27,7 @@
 #include "opcua/opcuabackend.h"
 #include "opcua/opcuaclientservice.h"
 #include "opcua/pkimanager.h"
+#include "widgets/certificatesummarywidget.h"
 
 ///
 /// \brief Minimal OPC UA backend double that only counts discovery calls.
@@ -182,8 +186,15 @@ void TestConnectionDialog::clientCertificateActionFollowsSelection()
         QStringLiteral("clientCertificateComboBox"));
     auto *certificateAction = dialog.findChild<QPushButton *>(
         QStringLiteral("clientCertificateViewButton"));
+    auto *certificateEdit = dialog.findChild<QLineEdit *>(QStringLiteral("certificateEdit"));
+    auto *privateKeyEdit = dialog.findChild<QLineEdit *>(QStringLiteral("privateKeyEdit"));
+    auto *certificateWidget = dialog.findChild<CertificateSummaryWidget *>(
+        QStringLiteral("clientCertificateWidget"));
     QVERIFY(certificateMode);
     QVERIFY(certificateAction);
+    QVERIFY(certificateEdit);
+    QVERIFY(privateKeyEdit);
+    QVERIFY(certificateWidget);
 
     certificateMode->setCurrentIndex(0);
     QCOMPARE(certificateAction->text(), QStringLiteral("Generate..."));
@@ -209,6 +220,21 @@ void TestConnectionDialog::clientCertificateActionFollowsSelection()
     const ConnectionProfile profile = dialog.profile();
     QVERIFY(QFile::exists(profile.clientCertificateFile));
     QVERIFY(QFile::exists(profile.privateKeyFile));
+    QCOMPARE(certificateMode->currentIndex(), 0);
+    QCOMPARE(certificateMode->itemText(0),
+             QStringLiteral("Auto-generated (%1)")
+                 .arg(QFileInfo(profile.clientCertificateFile).fileName()));
+    QCOMPARE(certificateEdit->text(), profile.clientCertificateFile);
+    QCOMPARE(privateKeyEdit->text(), profile.privateKeyFile);
+
+    QFile generatedCertificate(profile.clientCertificateFile);
+    QVERIFY(generatedCertificate.open(QIODevice::ReadOnly));
+    const QList<QSslCertificate> chain =
+        QSslCertificate::fromData(generatedCertificate.readAll(), QSsl::Der);
+    generatedCertificate.close();
+    QVERIFY(!chain.isEmpty());
+    QCOMPARE(certificateWidget->certificate(), chain.constFirst().toDer());
+
     QVERIFY(QFile::remove(profile.clientCertificateFile));
     QVERIFY(QFile::remove(profile.privateKeyFile));
 }

@@ -84,6 +84,7 @@ private:
     int currentAuthentication() const;
     void saveLastEndpointUrl();
     void resetDiscovery();
+    void selectGeneratedClientCertificate();
     void updateClientCertificate();
     void updateClientCertificateAction();
     void showCertificateDetails(const QByteArray &certificate);
