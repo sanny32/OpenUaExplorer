@@ -22,6 +22,7 @@
 #include <QScreen>
 #include <QSignalBlocker>
 #include <QSizePolicy>
+#include <QStackedWidget>
 #include <QStringList>
 #include <QStyle>
 #include <QUuid>
@@ -139,8 +140,10 @@ void ConnectionDialog::setupControls()
         { AppColors::accent(), AppColors::accentHover(), AppColors::accentPressed() });
     ui->getEndpointsButton->setIcon(QStringLiteral("search.svg"));
 
-    ui->authenticationLayout->setAlignment(ui->certificateBrowseButton, Qt::AlignLeft);
-    ui->authenticationLayout->setAlignment(ui->privateKeyBrowseButton, Qt::AlignLeft);
+    ui->certificateLayout->setAlignment(ui->certificateBrowseButton, Qt::AlignLeft);
+    ui->certificateLayout->setAlignment(ui->privateKeyBrowseButton, Qt::AlignLeft);
+    ui->certificateBrowseButton->setFixedHeight(ui->certificateEdit->sizeHint().height());
+    ui->privateKeyBrowseButton->setFixedHeight(ui->privateKeyEdit->sizeHint().height());
 
     QAction *passwordToggle = ui->passwordEdit->addAction(
         AppIcons::themed(QStringLiteral("eye.svg")), QLineEdit::TrailingPosition);
@@ -391,30 +394,27 @@ void ConnectionDialog::updateAuthenticationFields()
         == static_cast<int>(ConnectionProfile::Authentication::Username);
     const bool certificate = authentication
         == static_cast<int>(ConnectionProfile::Authentication::Certificate);
-    ui->usernameLabel->setVisible(!certificate);
-    ui->usernameEdit->setVisible(!certificate);
-    ui->passwordLabel->setVisible(!certificate);
-    ui->passwordEdit->setVisible(!certificate);
+    ui->authStack->setCurrentWidget(certificate ? ui->certificatePanel : ui->usernamePanel);
+
     ui->usernameEdit->setEnabled(username);
     ui->passwordEdit->setEnabled(username);
-    ui->usernameHintLabel->setVisible(!certificate);
-    ui->passwordHintLabel->setVisible(!certificate);
+
     const bool showHintText = !certificate && !username;
     const QString hintStyle = showHintText
         ? QStringLiteral("color: %1;").arg(AppColors::hint().name())
         : QStringLiteral("color: transparent;");
     ui->usernameHintLabel->setStyleSheet(hintStyle);
     ui->passwordHintLabel->setStyleSheet(hintStyle);
-    ui->authenticationLayout->setColumnMinimumWidth(
-        2, qMax(ui->usernameHintLabel->sizeHint().width(),
-                ui->passwordHintLabel->sizeHint().width()));
 
-    ui->certificateLabel->setVisible(certificate);
-    ui->certificateEdit->setVisible(certificate);
-    ui->certificateBrowseButton->setVisible(certificate);
-    ui->privateKeyLabel->setVisible(certificate);
-    ui->privateKeyEdit->setVisible(certificate);
-    ui->privateKeyBrowseButton->setVisible(certificate);
+    const int labelColumn = ui->authenticationLabel->sizeHint().width();
+    const int hintColumn = qMax(ui->usernameHintLabel->sizeHint().width(),
+                                ui->passwordHintLabel->sizeHint().width());
+    ui->authenticationLayout->setColumnMinimumWidth(0, labelColumn);
+    ui->authenticationLayout->setColumnMinimumWidth(2, hintColumn);
+    ui->usernameLayout->setColumnMinimumWidth(0, labelColumn);
+    ui->usernameLayout->setColumnMinimumWidth(2, hintColumn);
+    ui->certificateLayout->setColumnMinimumWidth(0, labelColumn);
+    ui->certificateLayout->setColumnMinimumWidth(2, hintColumn);
 
     // The client certificate stays available regardless of the security mode
     // (it can still be imported, generated or inspected). Only the server
