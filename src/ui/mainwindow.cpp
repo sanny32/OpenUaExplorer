@@ -379,8 +379,6 @@ void MainWindow::setupOpcUaClient()
 {
     connect(_clientService, &OpcUaClientService::stateChanged,
             this, &MainWindow::updateClientUi);
-    connect(_clientService, &OpcUaClientService::errorOccurred,
-            this, &MainWindow::onClientError);
     connect(_clientService, &OpcUaClientService::browseFinished,
             ui->addressSpaceWidget, &AddressSpaceWidget::setBrowseChildren);
     connect(_clientService, &OpcUaClientService::referencesBrowseFinished,
@@ -415,8 +413,12 @@ void MainWindow::setupOpcUaClient()
 }
 
 ///
-/// \brief Logs an error reported by the client service.
-/// \param message Error reported by the OPC UA client service.
+/// \brief Logs an error reported by the connection controller.
+///
+/// Backend and client-service errors are already logged at their source in
+/// QtOpcUaBackend::setError(); this slot covers controller-level errors only.
+///
+/// \param message Error reported by the connection controller.
 ///
 void MainWindow::onClientError(const QString &message)
 {
