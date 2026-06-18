@@ -56,6 +56,8 @@ private slots:
     void on_actionAbout_triggered();
     void on_actionViewAddressSpace_toggled(bool checked);
     void on_addressSpaceDock_visibilityChanged(bool visible);
+    void on_actionViewNodeDetails_toggled(bool checked);
+    void on_nodeDetailsDock_visibilityChanged(bool visible);
     void on_actionViewActivity_toggled(bool checked);
     void on_logDock_visibilityChanged(bool visible);
     void on_actionViewDataAccess_triggered();

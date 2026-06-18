@@ -87,6 +87,12 @@ public:
     ///
     OpcUaNodeInfo selectedNode() const;
 
+    ///
+    /// \brief Detaches the node details panel so MainWindow can host it in a dock.
+    /// \return Node details panel.
+    ///
+    QWidget *takeNodeDetailsPanel();
+
 signals:
     ///
     /// \brief Emitted when a node's children must be browsed.

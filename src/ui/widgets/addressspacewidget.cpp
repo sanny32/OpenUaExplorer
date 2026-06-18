@@ -153,6 +153,17 @@ OpcUaNodeInfo AddressSpaceWidget::selectedNode() const
 }
 
 ///
+/// \brief Detaches the node details panel so MainWindow can host it in a dock.
+/// \return Node details panel.
+///
+QWidget *AddressSpaceWidget::takeNodeDetailsPanel()
+{
+    ui->nodeInfoPanel->setParent(nullptr);
+    ui->splitter->setSizes({1});
+    return ui->nodeInfoPanel;
+}
+
+///
 /// \brief Destroys the widget and its generated UI.
 ///
 AddressSpaceWidget::~AddressSpaceWidget()

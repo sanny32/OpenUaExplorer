@@ -41,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
     , _clientService(_connectionController->clientService())
 {
     ui->setupUi(this);
+    ui->nodeDetailsDock->setWidget(ui->addressSpaceWidget->takeNodeDetailsPanel());
 
     const bool manualThemeSupported = theApp()->theme().isManualToggleSupported();
     ui->actionTheme->setVisible(manualThemeSupported);
@@ -123,7 +124,10 @@ void MainWindow::on_actionBrowseAddressSpace_triggered()
 ///
 void MainWindow::on_actionRefresh_triggered()
 {
-    browseNodeOrRoot(ui->addressSpaceWidget->selectedNode().nodeId);
+    const QString nodeId = ui->addressSpaceWidget->selectedNode().nodeId;
+    browseNodeOrRoot(nodeId);
+    if (!nodeId.isEmpty())
+        _clientService->browseReferences(nodeId);
 }
 
 ///
@@ -208,13 +212,34 @@ void MainWindow::on_actionViewAddressSpace_toggled(bool checked)
 }
 
 ///
-/// \brief Keeps the address-space view action in sync with the dock's visibility.
-/// \param visible Current dock visibility.
+/// \brief Keeps the address-space view action in sync with the dock's hidden state.
+/// \param visible Dock visibility signal value.
 ///
 void MainWindow::on_addressSpaceDock_visibilityChanged(bool visible)
 {
+    Q_UNUSED(visible)
     if (!ui) return;
-    ui->actionViewAddressSpace->setChecked(visible);
+    ui->actionViewAddressSpace->setChecked(!ui->addressSpaceDock->isHidden());
+}
+
+///
+/// \brief Shows or hides the node-details dock.
+/// \param checked True to show the dock.
+///
+void MainWindow::on_actionViewNodeDetails_toggled(bool checked)
+{
+    ui->nodeDetailsDock->setVisible(checked);
+}
+
+///
+/// \brief Keeps the node-details view action in sync with the dock's hidden state.
+/// \param visible Dock visibility signal value.
+///
+void MainWindow::on_nodeDetailsDock_visibilityChanged(bool visible)
+{
+    Q_UNUSED(visible)
+    if (!ui) return;
+    ui->actionViewNodeDetails->setChecked(!ui->nodeDetailsDock->isHidden());
 }
 
 ///
@@ -227,12 +252,13 @@ void MainWindow::on_actionViewActivity_toggled(bool checked)
 }
 
 ///
-/// \brief Keeps the activity view action in sync with the log dock's visibility.
-/// \param visible Current dock visibility.
+/// \brief Keeps the activity view action in sync with the log dock's hidden state.
+/// \param visible Dock visibility signal value.
 ///
 void MainWindow::on_logDock_visibilityChanged(bool visible)
 {
-    ui->actionViewActivity->setChecked(visible);
+    Q_UNUSED(visible)
+    ui->actionViewActivity->setChecked(!ui->logDock->isHidden());
 }
 
 ///
@@ -299,6 +325,7 @@ void MainWindow::openConnectionDialog()
 void MainWindow::setupMainMenu()
 {
     ui->actionViewAddressSpace->setChecked(!ui->addressSpaceDock->isHidden());
+    ui->actionViewNodeDetails->setChecked(!ui->nodeDetailsDock->isHidden());
     ui->actionViewActivity->setChecked(!ui->logDock->isHidden());
 }
 
@@ -317,16 +344,24 @@ void MainWindow::setupDockOptions()
 void MainWindow::resetLayout()
 {
     ui->addressSpaceDock->show();
+    ui->nodeDetailsDock->show();
     ui->attributesDock->show();
     ui->logDock->show();
 
     addDockWidget(Qt::LeftDockWidgetArea, ui->addressSpaceDock);
+    addDockWidget(Qt::LeftDockWidgetArea, ui->nodeDetailsDock);
+    splitDockWidget(ui->addressSpaceDock, ui->nodeDetailsDock, Qt::Vertical);
     addDockWidget(Qt::RightDockWidgetArea, ui->attributesDock);
     addDockWidget(Qt::BottomDockWidgetArea, ui->logDock);
 
     ui->centralSplitter->setSizes({360, 310});
     resizeDocks({ui->addressSpaceDock, ui->attributesDock}, {300, 390}, Qt::Horizontal);
+    resizeDocks({ui->addressSpaceDock, ui->nodeDetailsDock}, {520, 360}, Qt::Vertical);
     resizeDocks({ui->logDock}, {245}, Qt::Vertical);
+
+    ui->actionViewAddressSpace->setChecked(true);
+    ui->actionViewNodeDetails->setChecked(true);
+    ui->actionViewActivity->setChecked(true);
 }
 
 ///

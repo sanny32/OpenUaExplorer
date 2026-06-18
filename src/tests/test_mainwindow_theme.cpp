@@ -7,7 +7,9 @@
 ///
 
 #include <QAction>
+#include <QDockWidget>
 #include <QMenu>
+#include <QTableView>
 #include <QTest>
 #include <QtGlobal>
 
@@ -23,6 +25,7 @@ class TestMainWindowTheme : public QObject
 
 private slots:
     void themeControlsFollowManualThemeSupport();
+    void nodeDetailsDockFollowsViewAction();
 };
 
 void TestMainWindowTheme::themeControlsFollowManualThemeSupport()
@@ -45,6 +48,32 @@ void TestMainWindowTheme::themeControlsFollowManualThemeSupport()
 
     QVERIFY(!theApp()->theme().isDark());
 #endif
+}
+
+///
+/// \brief Verifies the selected-node details panel lives in a dock controlled by View.
+///
+void TestMainWindowTheme::nodeDetailsDockFollowsViewAction()
+{
+    MainWindow window;
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+    auto *dock = window.findChild<QDockWidget *>(QStringLiteral("nodeDetailsDock"));
+    auto *action = window.findChild<QAction *>(QStringLiteral("actionViewNodeDetails"));
+    QVERIFY(dock);
+    QVERIFY(action);
+    QVERIFY(dock->widget());
+    QVERIFY(dock->widget()->findChild<QTableView *>(QStringLiteral("nodeInfoTable")));
+    QVERIFY(dock->widget()->findChild<QTableView *>(QStringLiteral("referencesTable")));
+
+    QVERIFY(action->isChecked());
+    dock->hide();
+    QVERIFY(!action->isChecked());
+    action->setChecked(true);
+    QVERIFY(!dock->isHidden());
+    action->setChecked(false);
+    QVERIFY(dock->isHidden());
 }
 
 ///

@@ -72,6 +72,7 @@
      <string>View</string>
     </property>
     <addaction name="actionViewAddressSpace"/>
+    <addaction name="actionViewNodeDetails"/>
     <addaction name="actionViewDataAccess"/>
     <addaction name="actionViewSubscriptions"/>
     <addaction name="actionViewEvents"/>
@@ -210,6 +211,24 @@
     <number>1</number>
    </attribute>
    <widget class="AddressSpaceWidget" name="addressSpaceWidget"/>
+  </widget>
+  <widget class="QDockWidget" name="nodeDetailsDock">
+   <property name="minimumSize">
+    <size>
+     <width>300</width>
+     <height>180</height>
+    </size>
+   </property>
+   <property name="features">
+    <set>QDockWidget::DockWidgetFeature::DockWidgetClosable|QDockWidget::DockWidgetFeature::DockWidgetFloatable</set>
+   </property>
+   <property name="windowTitle">
+    <string>Node Details</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="nodeDetailsDockContents"/>
   </widget>
   <widget class="QDockWidget" name="attributesDock">
    <property name="minimumSize">
@@ -377,6 +396,14 @@
    </property>
    <property name="text">
     <string>Address Space</string>
+   </property>
+  </action>
+  <action name="actionViewNodeDetails">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Node Details</string>
    </property>
   </action>
   <action name="actionViewDataAccess">
