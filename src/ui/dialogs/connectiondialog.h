@@ -67,6 +67,8 @@ private slots:
     void handleEndpoints(QList<EndpointInfo> endpoints, const QString &error);
     void updateEndpointSelection();
     void updateAuthenticationFields();
+    void browseCertificateAuthCertificate();
+    void browseCertificateAuthPrivateKey();
     void chooseClientCertificate();
     void generateClientCertificate();
     void handleClientCertificateAction();
@@ -84,6 +86,7 @@ private:
     void resetDiscovery();
     void updateClientCertificate();
     void updateClientCertificateAction();
+    void syncCertificateAuthFields();
     void showCertificateDetails(const QByteArray &certificate);
 
     Ui::ConnectionDialog *ui;

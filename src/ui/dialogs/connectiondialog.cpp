@@ -186,6 +186,17 @@ void ConnectionDialog::setupConnections()
     connect(ui->authenticationComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ConnectionDialog::updateAuthenticationFields);
+    connect(ui->certificateBrowseButton, &QPushButton::clicked,
+            this, &ConnectionDialog::browseCertificateAuthCertificate);
+    connect(ui->privateKeyBrowseButton, &QPushButton::clicked,
+            this, &ConnectionDialog::browseCertificateAuthPrivateKey);
+    connect(ui->certificateEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
+        _clientCertificateFile = text;
+        updateClientCertificate();
+    });
+    connect(ui->privateKeyEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
+        _privateKeyFile = text;
+    });
     connect(ui->clientCertificateComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ConnectionDialog::updateClientCertificateAction);
@@ -381,10 +392,23 @@ void ConnectionDialog::updateAuthenticationFields()
         == static_cast<int>(ConnectionProfile::Authentication::Username);
     const bool certificate = authentication
         == static_cast<int>(ConnectionProfile::Authentication::Certificate);
+    ui->usernameLabel->setVisible(!certificate);
+    ui->usernameEdit->setVisible(!certificate);
+    ui->passwordLabel->setVisible(!certificate);
+    ui->passwordEdit->setVisible(!certificate);
     ui->usernameEdit->setEnabled(username);
     ui->passwordEdit->setEnabled(username);
-    ui->usernameHintLabel->setVisible(!username);
-    ui->passwordHintLabel->setVisible(!username);
+    ui->usernameHintLabel->setVisible(!certificate && !username);
+    ui->passwordHintLabel->setVisible(!certificate && !username);
+
+    ui->certificateLabel->setVisible(certificate);
+    ui->certificateEdit->setVisible(certificate);
+    ui->certificateBrowseButton->setVisible(certificate);
+    ui->privateKeyLabel->setVisible(certificate);
+    ui->privateKeyEdit->setVisible(certificate);
+    ui->privateKeyBrowseButton->setVisible(certificate);
+    if (certificate)
+        syncCertificateAuthFields();
 
     // The client certificate stays available regardless of the security mode
     // (it can still be imported, generated or inspected). Only the server
@@ -424,6 +448,39 @@ void ConnectionDialog::chooseClientCertificate()
     ui->clientCertificateComboBox->setCurrentIndex(1);
     ui->clientCertificateComboBox->setItemText(1, QFileInfo(certificate).fileName());
     updateClientCertificate();
+    syncCertificateAuthFields();
+}
+
+///
+/// \brief Browses for the certificate used by certificate authentication.
+///
+void ConnectionDialog::browseCertificateAuthCertificate()
+{
+    const QString certificate = QFileDialog::getOpenFileName(
+        this, tr("Select Client Certificate"), _clientCertificateFile,
+        tr("Certificates (*.der *.pem *.crt);;All Files (*)"));
+    if (certificate.isEmpty())
+        return;
+    ui->certificateEdit->setText(certificate);
+}
+
+///
+/// \brief Browses for the private key used by certificate authentication and asks for its password.
+///
+void ConnectionDialog::browseCertificateAuthPrivateKey()
+{
+    const QString key = QFileDialog::getOpenFileName(
+        this, tr("Select Private Key"), _privateKeyFile,
+        tr("Private Keys (*.pem *.key);;All Files (*)"));
+    if (key.isEmpty())
+        return;
+    ui->privateKeyEdit->setText(key);
+    bool ok = false;
+    const QString password = QInputDialog::getText(
+        this, tr("Private Key Password"),
+        tr("Password (leave empty for an unencrypted key):"),
+        QLineEdit::Password, QString(), &ok);
+    _privateKeyPassword = ok ? password : QString();
 }
 
 ///
@@ -444,6 +501,7 @@ void ConnectionDialog::generateClientCertificate()
     ui->clientCertificateComboBox->setCurrentIndex(0);
     updateClientCertificateAction();
     updateClientCertificate();
+    syncCertificateAuthFields();
 }
 
 ///
@@ -535,6 +593,17 @@ void ConnectionDialog::updateClientCertificate()
         chain = QSslCertificate::fromData(data, QSsl::Pem);
     ui->clientCertificateWidget->setCertificate(
         chain.isEmpty() ? QByteArray() : chain.constFirst().toDer());
+}
+
+///
+/// \brief Mirrors the selected certificate and private key paths into the certificate auth fields.
+///
+void ConnectionDialog::syncCertificateAuthFields()
+{
+    const QSignalBlocker certificateBlocker(ui->certificateEdit);
+    const QSignalBlocker privateKeyBlocker(ui->privateKeyEdit);
+    ui->certificateEdit->setText(_clientCertificateFile);
+    ui->privateKeyEdit->setText(_privateKeyFile);
 }
 
 ///
