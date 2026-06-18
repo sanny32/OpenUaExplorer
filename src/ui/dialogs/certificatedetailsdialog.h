@@ -39,8 +39,10 @@ public:
     ///
     /// \brief Shows a DER certificate in the details grid.
     /// \param certificate DER-encoded certificate.
+    /// \param certificatePath Path of the source certificate file, or empty when unavailable.
     ///
-    void setCertificate(const QByteArray &certificate);
+    void setCertificate(const QByteArray &certificate,
+                        const QString &certificatePath = QString());
 
 private slots:
     void copyDetails();

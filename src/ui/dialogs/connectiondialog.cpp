@@ -521,7 +521,7 @@ void ConnectionDialog::handleClientCertificateAction()
 ///
 void ConnectionDialog::viewClientCertificateDetails()
 {
-    showCertificateDetails(ui->clientCertificateWidget->certificate());
+    showCertificateDetails(ui->clientCertificateWidget->certificate(), _clientCertificateFile);
 }
 
 ///
@@ -622,13 +622,15 @@ void ConnectionDialog::updateClientCertificateAction()
 ///
 /// \brief Opens a read-only certificate details dialog.
 /// \param certificate DER-encoded certificate to show.
+/// \param certificatePath Path of the source certificate file, or empty when unavailable.
 ///
-void ConnectionDialog::showCertificateDetails(const QByteArray &certificate)
+void ConnectionDialog::showCertificateDetails(const QByteArray &certificate,
+                                              const QString &certificatePath)
 {
     if (certificate.isEmpty())
         return;
 
     CertificateDetailsDialog dialog(this);
-    dialog.setCertificate(certificate);
+    dialog.setCertificate(certificate, certificatePath);
     dialog.exec();
 }

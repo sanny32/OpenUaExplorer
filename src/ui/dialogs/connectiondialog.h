@@ -87,7 +87,8 @@ private:
     void selectGeneratedClientCertificate();
     void updateClientCertificate();
     void updateClientCertificateAction();
-    void showCertificateDetails(const QByteArray &certificate);
+    void showCertificateDetails(const QByteArray &certificate,
+                                const QString &certificatePath = QString());
 
     Ui::ConnectionDialog *ui;
     class OpcUaClientService *_service = nullptr;

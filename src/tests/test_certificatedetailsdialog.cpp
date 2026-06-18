@@ -8,6 +8,7 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QDir>
 #include <QFile>
 #include <QLabel>
 #include <QPushButton>
@@ -60,13 +61,16 @@ void TestCertificateDetailsDialog::invalidCertificateShowsInvalidStatus()
 
     auto *statusValue = dialog.findChild<QLabel *>(QStringLiteral("statusValue"));
     auto *nameValue = dialog.findChild<QLabel *>(QStringLiteral("nameValue"));
+    auto *certificatePathValue = dialog.findChild<QLabel *>(QStringLiteral("certificatePathValue"));
     auto *serialNumberValue = dialog.findChild<QLabel *>(QStringLiteral("serialNumberValue"));
     QVERIFY(statusValue);
     QVERIFY(nameValue);
+    QVERIFY(certificatePathValue);
     QVERIFY(serialNumberValue);
 
     QCOMPARE(statusValue->text(), QStringLiteral("Invalid"));
     QCOMPARE(nameValue->text(), QStringLiteral("Unavailable"));
+    QVERIFY(certificatePathValue->isHidden());
     QCOMPARE(serialNumberValue->text(), QStringLiteral("Unavailable"));
 }
 
@@ -91,17 +95,19 @@ void TestCertificateDetailsDialog::generatedCertificateFillsDetailsAndCopiesText
     file.close();
 
     CertificateDetailsDialog dialog;
-    dialog.setCertificate(certificate);
+    dialog.setCertificate(certificate, certificateFile);
 
     auto *statusValue = dialog.findChild<QLabel *>(QStringLiteral("statusValue"));
     auto *nameValue = dialog.findChild<QLabel *>(QStringLiteral("nameValue"));
     auto *keySizeValue = dialog.findChild<QLabel *>(QStringLiteral("keySizeValue"));
+    auto *certificatePathValue = dialog.findChild<QLabel *>(QStringLiteral("certificatePathValue"));
     auto *serialNumberValue = dialog.findChild<QLabel *>(QStringLiteral("serialNumberValue"));
     auto *copyButton = dialog.findChild<ThemedPushButton *>(QStringLiteral("copyButton"));
     auto *exportButton = dialog.findChild<ThemedPushButton *>(QStringLiteral("exportButton"));
     QVERIFY(statusValue);
     QVERIFY(nameValue);
     QVERIFY(keySizeValue);
+    QVERIFY(certificatePathValue);
     QVERIFY(serialNumberValue);
     QVERIFY(copyButton);
     QVERIFY(exportButton);
@@ -109,13 +115,31 @@ void TestCertificateDetailsDialog::generatedCertificateFillsDetailsAndCopiesText
     QCOMPARE(statusValue->text(), QStringLiteral("Trusted"));
     QCOMPARE(nameValue->text(), commonName);
     QCOMPARE(keySizeValue->text(), QStringLiteral("2048"));
+    QVERIFY(!certificatePathValue->isHidden());
+    QCOMPARE(certificatePathValue->text(), QDir::toNativeSeparators(certificateFile));
     QVERIFY(serialNumberValue->text() != QStringLiteral("Unavailable"));
     QCOMPARE(copyButton->iconName(), QStringLiteral("copy.svg"));
     QCOMPARE(exportButton->iconName(), QStringLiteral("export.svg"));
 
     copyButton->click();
-    QVERIFY(QApplication::clipboard()->text().contains(commonName));
-    QVERIFY(QApplication::clipboard()->text().contains(QStringLiteral("Serial Number:")));
+    const QString copiedText = QApplication::clipboard()->text();
+    QVERIFY(copiedText.contains(commonName));
+    QVERIFY(copiedText.contains(QStringLiteral("Certificate Path:")));
+    QVERIFY(copiedText.contains(QDir::toNativeSeparators(certificateFile)));
+    QVERIFY(copiedText.contains(QStringLiteral("Serial Number:")));
+
+    CertificateDetailsDialog dialogWithoutPath;
+    dialogWithoutPath.setCertificate(certificate);
+    auto *pathWithoutValue =
+        dialogWithoutPath.findChild<QLabel *>(QStringLiteral("certificatePathValue"));
+    auto *copyWithoutPath =
+        dialogWithoutPath.findChild<ThemedPushButton *>(QStringLiteral("copyButton"));
+    QVERIFY(pathWithoutValue);
+    QVERIFY(copyWithoutPath);
+    QVERIFY(pathWithoutValue->isHidden());
+
+    copyWithoutPath->click();
+    QVERIFY(!QApplication::clipboard()->text().contains(QStringLiteral("Certificate Path:")));
 
     QVERIFY(QFile::remove(certificateFile));
     QVERIFY(QFile::remove(privateKeyFile));

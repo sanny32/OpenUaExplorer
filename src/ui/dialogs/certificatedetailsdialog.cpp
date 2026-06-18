@@ -10,6 +10,7 @@
 #include <QClipboard>
 #include <QColor>
 #include <QCryptographicHash>
+#include <QDir>
 #include <QFileDialog>
 #include <QLabel>
 #include <QMessageBox>
@@ -201,11 +202,17 @@ CertificateDetailsDialog::~CertificateDetailsDialog()
 ///
 /// \brief Shows a DER certificate in the details grid.
 /// \param certificate DER-encoded certificate.
+/// \param certificatePath Path of the source certificate file, or empty when unavailable.
 ///
-void CertificateDetailsDialog::setCertificate(const QByteArray &certificate)
+void CertificateDetailsDialog::setCertificate(const QByteArray &certificate,
+                                              const QString &certificatePath)
 {
     _certificate = certificate;
     clearDetails();
+    const QString displayedCertificatePath = QDir::toNativeSeparators(certificatePath);
+    ui->certificatePathLabel->setVisible(!displayedCertificatePath.isEmpty());
+    ui->certificatePathValue->setVisible(!displayedCertificatePath.isEmpty());
+    ui->certificatePathValue->setText(displayedCertificatePath);
 
     const CertificateInfo info = CertificateInfo::fromDer(certificate);
     const QList<QSslCertificate> chain = QSslCertificate::fromData(certificate, QSsl::Der);
@@ -213,11 +220,14 @@ void CertificateDetailsDialog::setCertificate(const QByteArray &certificate)
         ui->nameValue->setText(unavailable());
         ui->serialNumberValue->setText(unavailable());
         setSummaryStatus(tr("Invalid"), false);
-        _detailsText = detailsText({
+        QList<QPair<QString, QString>> rows = {
             {tr("Status:"), ui->statusValue->text()},
             {tr("Name:"), ui->nameValue->text()},
             {tr("Serial Number:"), ui->serialNumberValue->text()},
-        });
+        };
+        if (!displayedCertificatePath.isEmpty())
+            rows.insert(2, {tr("Certificate Path:"), ui->certificatePathValue->text()});
+        _detailsText = detailsText(rows);
         return;
     }
 
@@ -259,7 +269,7 @@ void CertificateDetailsDialog::setCertificate(const QByteArray &certificate)
     }
     setSummaryStatus(statusText, valid);
 
-    _detailsText = detailsText({
+    QList<QPair<QString, QString>> rows = {
         {tr("Status:"), ui->statusValue->text()},
         {tr("Name:"), ui->nameValue->text()},
         {tr("Signed By:"), ui->signedByValue->text()},
@@ -273,7 +283,10 @@ void CertificateDetailsDialog::setCertificate(const QByteArray &certificate)
         {tr("Subject:"), ui->subjectValue->text()},
         {tr("Subject Alternative Name:"), ui->subjectAlternativeNameValue->text()},
         {tr("Thumbprint:"), ui->thumbprintValue->text()},
-    });
+    };
+    if (!displayedCertificatePath.isEmpty())
+        rows.insert(7, {tr("Certificate Path:"), ui->certificatePathValue->text()});
+    _detailsText = detailsText(rows);
 }
 
 ///
@@ -319,6 +332,9 @@ void CertificateDetailsDialog::clearDetails()
     ui->validToValue->setText(unavailable());
     ui->applicationUriValue->setText(unavailable());
     ui->keySizeValue->setText(unavailable());
+    ui->certificatePathLabel->setVisible(false);
+    ui->certificatePathValue->setVisible(false);
+    ui->certificatePathValue->clear();
     ui->serialNumberValue->setText(unavailable());
     ui->signatureAlgorithmValue->setText(unavailable());
     ui->issuerValue->setText(unavailable());
