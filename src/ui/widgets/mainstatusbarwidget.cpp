@@ -176,7 +176,7 @@ void MainStatusBarWidget::updateConnectionState(OpcUaConnectionState state)
     if (connected) {
         _controller->clientService()->readValues(
             { StandardNodeId::serverCurrentTime() });
-        // When no name was entered in the dialog, fall back to the server-assigned one.
+       
         if (profile.sessionName.isEmpty())
             _controller->clientService()->readServerSessionName();
     } else {
