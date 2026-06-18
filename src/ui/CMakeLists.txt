@@ -12,6 +12,7 @@ set(UI_FILES
 
     widgets/addressspacewidget.ui
     widgets/attributeswidget.ui
+    widgets/certificatedetailswidget.ui
     widgets/certificatesummarywidget.ui
     widgets/connectionstatuswidget.ui
     widgets/dataaccesswidget.ui
@@ -62,6 +63,8 @@ add_library(ouaexp_ui STATIC
     widgets/addressspacewidget.h
     widgets/attributeswidget.cpp
     widgets/attributeswidget.h
+    widgets/certificatedetailswidget.cpp
+    widgets/certificatedetailswidget.h
     widgets/certificatesummarywidget.cpp
     widgets/certificatesummarywidget.h
     widgets/coloredpushbutton.cpp

@@ -49,10 +49,5 @@ private slots:
     void exportCertificate();
 
 private:
-    void clearDetails();
-    void setSummaryStatus(const QString &text, bool valid);
-
     Ui::CertificateDetailsDialog *ui;
-    QByteArray _certificate;
-    QString _detailsText;
 };
