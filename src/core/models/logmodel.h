@@ -95,6 +95,12 @@ public:
     void setSearchFilter(const QString &text);
 
     ///
+    /// \brief Filters log rows to those originating from a single source.
+    /// \param source Exact source to show; empty clears the filter.
+    ///
+    void setSourceFilter(const QString &source);
+
+    ///
     /// \brief Sets the text alignment for a column.
     /// \param column Column index.
     /// \param alignment Alignment to apply.
@@ -119,5 +125,6 @@ private:
     LogItem::Level            _filterLevel;
     bool                      _filtered = false;
     QString                   _searchText;
+    QString                   _sourceFilter;
     ColumnAlignmentStore     _columnAlignments;
 };

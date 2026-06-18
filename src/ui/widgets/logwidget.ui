@@ -57,6 +57,22 @@
       </widget>
      </item>
      <item>
+      <widget class="QLabel" name="sourceLabel">
+       <property name="text">
+        <string>Source:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="sourceCombo">
+       <item>
+        <property name="text">
+         <string>All</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
       <widget class="QLineEdit" name="searchEdit">
        <property name="placeholderText">
         <string>Search in messages...</string>

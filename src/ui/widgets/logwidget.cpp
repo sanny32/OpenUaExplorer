@@ -7,10 +7,13 @@
 ///
 
 #include <atomic>
+#include <QAbstractItemView>
+#include <QComboBox>
 #include <QDateTime>
 #include <QEvent>
 #include <QMetaObject>
 #include <QPointer>
+#include <QSignalBlocker>
 
 #include "appicons.h"
 #include "headerview.h"
@@ -26,7 +29,22 @@ static QtMessageHandler s_prevHandler = nullptr;
 static std::atomic<quint64> s_logEpoch { 0 };
 
 ///
-/// \brief Qt message handler that forwards "ouaexp.*" log messages to the active LogWidget.
+/// \brief Derives the Source column label from a forwarded log category.
+/// \param category Full logging category name.
+/// \return Short source label, or an empty string for categories that are not forwarded.
+///
+static QString sourceForCategory(const QString &category)
+{
+    const QLatin1String appPrefix("ouaexp.");
+    if (category.startsWith(appPrefix))
+        return category.mid(appPrefix.size());
+    if (category.startsWith(QLatin1String("qt.opcua")))
+        return category.section(QLatin1Char('.'), -1);
+    return QString();
+}
+
+///
+/// \brief Qt message handler that forwards application and Qt OPC UA log messages to the active LogWidget.
 /// \param type Qt message severity.
 /// \param ctx Log context carrying the category.
 /// \param msg Message text.
@@ -34,9 +52,11 @@ static std::atomic<quint64> s_logEpoch { 0 };
 static void appMessageHandler(QtMsgType type, const QMessageLogContext &ctx, const QString &msg)
 {
     if (s_prevHandler) s_prevHandler(type, ctx, msg);
-    const QLatin1String prefix("ouaexp.");
-    const QLatin1String category(ctx.category ? ctx.category : "");
-    if (!s_instance || !category.startsWith(prefix)) return;
+    if (!s_instance) return;
+
+    const QString category = QString::fromLatin1(ctx.category ? ctx.category : "");
+    const QString source = sourceForCategory(category);
+    if (source.isEmpty()) return;
 
     LogItem::Level level;
     switch (type) {
@@ -49,8 +69,6 @@ static void appMessageHandler(QtMsgType type, const QMessageLogContext &ctx, con
     QString text = msg;
     if (text.length() >= 2 && text.startsWith('"') && text.endsWith('"'))
         text = text.mid(1, text.length() - 2);
-
-    const QString source = QString(category).mid(prefix.size());
 
     LogItem item;
     item.timestamp = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss.zzz"));
@@ -79,6 +97,10 @@ LogWidget::LogWidget(QWidget *parent)
     ui->setupUi(this);
     setupLogView();
 
+    ui->sourceCombo->setMinimumContentsLength(14);
+    ui->sourceCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    ui->sourceCombo->view()->setTextElideMode(Qt::ElideNone);
+
     _searchIconAction = ui->searchEdit->addAction(QIcon(), QLineEdit::LeadingPosition);
     refreshIcons();
 
@@ -88,6 +110,11 @@ LogWidget::LogWidget(QWidget *parent)
     connect(ui->clearButton, &QPushButton::clicked, this, [this]() {
         s_logEpoch.fetch_add(1, std::memory_order_relaxed);
         _model->clear();
+        _knownSources.clear();
+        const QSignalBlocker blocker(ui->sourceCombo);
+        ui->sourceCombo->clear();
+        ui->sourceCombo->addItem(tr("All"));
+        _model->setSourceFilter(QString());
     });
 
     connect(ui->pauseButton, &QPushButton::toggled, this, [this](bool checked) {
@@ -108,6 +135,10 @@ LogWidget::LogWidget(QWidget *parent)
 
     connect(ui->searchEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
         _model->setSearchFilter(text);
+    });
+
+    connect(ui->sourceCombo, &QComboBox::currentTextChanged, this, [this](const QString &text) {
+        _model->setSourceFilter(ui->sourceCombo->currentIndex() <= 0 ? QString() : text);
     });
 
     connect(_model, &LogModel::rowsInserted, this, [this]() {
@@ -133,8 +164,29 @@ LogWidget::~LogWidget()
 ///
 void LogWidget::addItem(const LogItem &item)
 {
-    if (!_paused)
-        _model->addItem(item);
+    if (_paused)
+        return;
+    registerSource(item.source);
+    _model->addItem(item);
+}
+
+///
+/// \brief Adds a newly seen source to the source filter combo, keeping the list sorted.
+/// \param source Source label to register.
+///
+void LogWidget::registerSource(const QString &source)
+{
+    if (source.isEmpty() || _knownSources.contains(source))
+        return;
+    _knownSources.insert(source);
+
+    int row = 1;
+    while (row < ui->sourceCombo->count()
+           && ui->sourceCombo->itemText(row).compare(source, Qt::CaseInsensitive) < 0)
+        ++row;
+
+    const QSignalBlocker blocker(ui->sourceCombo);
+    ui->sourceCombo->insertItem(row, source);
 }
 
 ///
@@ -166,9 +218,9 @@ void LogWidget::setupLogView()
             });
 
     header->setStretchLastSection(false);
-    header->setSectionResizeMode(LogModel::ColTimestamp, QHeaderView::Fixed);
-    header->setSectionResizeMode(LogModel::ColLevel,     QHeaderView::Fixed);
-    header->setSectionResizeMode(LogModel::ColSource,    QHeaderView::Fixed);
+    header->setSectionResizeMode(LogModel::ColTimestamp, QHeaderView::Interactive);
+    header->setSectionResizeMode(LogModel::ColLevel,     QHeaderView::Interactive);
+    header->setSectionResizeMode(LogModel::ColSource,    QHeaderView::Interactive);
     header->setSectionResizeMode(LogModel::ColMessage,   QHeaderView::Stretch);
 
     header->setSectionAlignment(LogModel::ColLevel,  Qt::AlignCenter);
@@ -176,7 +228,7 @@ void LogWidget::setupLogView()
 
     ui->logTable->setColumnWidth(LogModel::ColTimestamp, 95);
     ui->logTable->setColumnWidth(LogModel::ColLevel,     80);
-    ui->logTable->setColumnWidth(LogModel::ColSource,    60);
+    ui->logTable->setColumnWidth(LogModel::ColSource,    110);
 }
 
 ///

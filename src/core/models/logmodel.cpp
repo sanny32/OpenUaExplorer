@@ -140,7 +140,8 @@ void LogModel::addItem(const LogItem &item)
     const bool levelOk  = !_filtered || item.level == _filterLevel;
     const bool searchOk = _searchText.isEmpty()
                           || item.message.contains(_searchText, Qt::CaseInsensitive);
-    if (levelOk && searchOk) {
+    const bool sourceOk = _sourceFilter.isEmpty() || item.source == _sourceFilter;
+    if (levelOk && searchOk && sourceOk) {
         const int row = visibleItems().size();
         beginInsertRows(QModelIndex(), row, row);
         _items.append(item);
@@ -203,6 +204,17 @@ void LogModel::setSearchFilter(const QString &text)
 }
 
 ///
+/// \brief Filters log rows to those originating from a single source.
+/// \param source Exact source to show; empty clears the filter.
+///
+void LogModel::setSourceFilter(const QString &source)
+{
+    beginResetModel();
+    _sourceFilter = source;
+    endResetModel();
+}
+
+///
 /// \brief Sets the text alignment for a column.
 /// \param column Column index.
 /// \param alignment Alignment to apply.
@@ -224,6 +236,8 @@ QVector<LogItem> LogModel::visibleItems() const
         if (_filtered && item.level != _filterLevel)
             continue;
         if (!_searchText.isEmpty() && !item.message.contains(_searchText, Qt::CaseInsensitive))
+            continue;
+        if (!_sourceFilter.isEmpty() && item.source != _sourceFilter)
             continue;
         result.append(item);
     }

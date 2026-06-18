@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QAction>
+#include <QSet>
 #include <QWidget>
 
 #include "models/logitem.h"
@@ -51,9 +52,11 @@ private:
     void setupLogView();
     void refreshIcons();
     void scrollToBottom();
+    void registerSource(const QString &source);
 
     Ui::LogWidget *ui;
     LogModel      *_model;
     QAction       *_searchIconAction = nullptr;
     bool           _paused = false;
+    QSet<QString>  _knownSources;
 };

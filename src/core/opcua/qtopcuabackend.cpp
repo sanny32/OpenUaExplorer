@@ -45,6 +45,49 @@
 
 using namespace OpcUaFormat;
 
+namespace {
+
+///
+/// \brief Returns a human-readable description of a Qt OPC UA client error.
+/// \param error Client error reported by QOpcUaClient.
+/// \return Translated, descriptive error message.
+///
+QString clientErrorName(QOpcUaClient::ClientError error)
+{
+    switch (error) {
+    case QOpcUaClient::NoError:         return QtOpcUaBackend::tr("No error.");
+    case QOpcUaClient::InvalidUrl:      return QtOpcUaBackend::tr("Invalid server URL.");
+    case QOpcUaClient::AccessDenied:    return QtOpcUaBackend::tr("Access denied: authentication failed.");
+    case QOpcUaClient::ConnectionError: return QtOpcUaBackend::tr("Connection error.");
+    case QOpcUaClient::UnknownError:    return QtOpcUaBackend::tr("Unknown client error.");
+    }
+    return QtOpcUaBackend::tr("Unknown client error (%1).").arg(static_cast<int>(error));
+}
+
+///
+/// \brief Returns a human-readable name for a connection step.
+/// \param step Connection step reported by QOpcUaErrorState.
+/// \return Translated connection step name.
+///
+QString connectionStepName(QOpcUaErrorState::ConnectionStep step)
+{
+    switch (step) {
+    case QOpcUaErrorState::ConnectionStep::Unknown:
+        return QtOpcUaBackend::tr("Unknown");
+    case QOpcUaErrorState::ConnectionStep::CertificateValidation:
+        return QtOpcUaBackend::tr("Certificate validation");
+    case QOpcUaErrorState::ConnectionStep::OpenSecureChannel:
+        return QtOpcUaBackend::tr("Open secure channel");
+    case QOpcUaErrorState::ConnectionStep::CreateSession:
+        return QtOpcUaBackend::tr("Create session");
+    case QOpcUaErrorState::ConnectionStep::ActivateSession:
+        return QtOpcUaBackend::tr("Activate session");
+    }
+    return QtOpcUaBackend::tr("Step %1").arg(static_cast<int>(step));
+}
+
+} // namespace
+
 
 ///
 /// \brief Private implementation holding the Qt OPC UA client and request bookkeeping.
@@ -172,14 +215,14 @@ public:
         QObject::connect(client, &QOpcUaClient::errorChanged, q,
                          [this](QOpcUaClient::ClientError clientError) {
             if (clientError != QOpcUaClient::NoError)
-                setError(QtOpcUaBackend::tr("OPC UA client error %1.")
-                             .arg(static_cast<int>(clientError)));
+                setError(QtOpcUaBackend::tr("OPC UA client error: %1")
+                             .arg(clientErrorName(clientError)));
         });
         QObject::connect(client, &QOpcUaClient::connectError, q,
                          [this](QOpcUaErrorState *state) {
             QString message = QtOpcUaBackend::tr(
-                "Connection step %1 failed: %2")
-                .arg(static_cast<int>(state->connectionStep()))
+                "Connection step '%1' failed: %2")
+                .arg(connectionStepName(state->connectionStep()))
                 .arg(statusName(state->errorCode()));
             if (state->errorCode() == QOpcUa::UaStatusCode::BadCertificateInvalid) {
                 message += QtOpcUaBackend::tr(
