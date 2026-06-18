@@ -8,10 +8,14 @@
 
 #pragma once
 
+#include <QHash>
 #include <QWidget>
 
 #include "models/addressspaceitem.h"
+#include "models/nodeitem.h"
 #include "opcua/opcuatypes.h"
+
+class QModelIndex;
 
 namespace Ui {
 class AddressSpaceWidget;
@@ -47,7 +51,7 @@ public:
     void setRootNode(const OpcUaNodeInfo &root);
 
     ///
-    /// \brief Applies browse results to the tree and refreshes the references view if selected.
+    /// \brief Applies browse results to the tree.
     /// \param parentNodeId Parent NodeId.
     /// \param children Browse result.
     /// \param error Browse error.
@@ -55,6 +59,16 @@ public:
     void setBrowseChildren(const QString &parentNodeId,
                            const QVector<OpcUaNodeInfo> &children,
                            const QString &error);
+
+    ///
+    /// \brief Applies reference browse results to the references view if selected.
+    /// \param sourceNodeId Source NodeId.
+    /// \param references Reference browse result.
+    /// \param error Browse error.
+    ///
+    void setBrowseReferences(const QString &sourceNodeId,
+                             const QVector<OpcUaNodeInfo> &references,
+                             const QString &error);
 
     ///
     /// \brief Populates the node-info table from the selected node's details.
@@ -81,6 +95,12 @@ signals:
     void browseRequested(QString nodeId);
 
     ///
+    /// \brief Emitted when a node's references must be browsed.
+    /// \param nodeId NodeId to browse.
+    ///
+    void referencesRequested(QString nodeId);
+
+    ///
     /// \brief Emitted when the user selects a node in the tree.
     /// \param node Selected node.
     ///
@@ -96,10 +116,15 @@ private:
     void setupTreeView();
     void setupNodeInfoView();
     void setupReferencesView();
+    void onCurrentNodeChanged(const QModelIndex &current);
+    void updateReferencesForNode(const QString &nodeId);
+    QVector<ReferenceItem> referencesFromChildren(const QVector<OpcUaNodeInfo> &children) const;
+    QString referenceTypeDisplayName(const QString &referenceTypeId) const;
 
     Ui::AddressSpaceWidget *ui;
     AddressSpaceModel      *_treeModel;
     NodeInfoModel          *_nodeInfoModel;
     ReferencesModel        *_referencesModel;
     QString                 _selectedNodeId;
+    QHash<QString, QVector<ReferenceItem>> _referencesByNodeId;
 };

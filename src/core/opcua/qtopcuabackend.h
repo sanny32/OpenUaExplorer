@@ -86,6 +86,13 @@ public:
     void browse(const QString &nodeId, int timeoutMs) override;
 
     ///
+    /// \brief Browses a node's forward references, emitting referencesBrowseFinished().
+    /// \param nodeId Node to browse.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void browseReferences(const QString &nodeId, int timeoutMs) override;
+
+    ///
     /// \brief Reads a node's full attribute set, emitting nodeDetailsReady() with the formatted result.
     /// \param nodeId Node to read.
     /// \param timeoutMs Request timeout in milliseconds.

@@ -56,6 +56,7 @@ public:
                            const QString &) override {}
     void disconnectFromEndpoint() override {}
     void browse(const QString &, int) override {}
+    void browseReferences(const QString &, int) override {}
     void readNode(const QString &, int) override {}
     void readValues(const QStringList &, int) override {}
     void writeValue(const QString &, const QVariant &, int, int) override {}

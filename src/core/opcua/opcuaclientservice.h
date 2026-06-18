@@ -112,6 +112,12 @@ public:
     void browse(const QString &nodeId);
 
     ///
+    /// \brief Browses the forward references of a node using the cached request timeout.
+    /// \param nodeId Node to browse.
+    ///
+    void browseReferences(const QString &nodeId);
+
+    ///
     /// \brief Reads a node's attributes using the cached request timeout.
     /// \param nodeId Node to read.
     ///
@@ -163,6 +169,15 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void browseFinished(QString parentNodeId, QVector<OpcUaNodeInfo> children, QString error);
+
+    ///
+    /// \brief Emitted when a reference browse finishes.
+    /// \param sourceNodeId Browsed node.
+    /// \param references Forward reference targets.
+    /// \param error Error description, empty on success.
+    ///
+    void referencesBrowseFinished(QString sourceNodeId, QVector<OpcUaNodeInfo> references,
+                                  QString error);
 
     ///
     /// \brief Emitted when a node read finishes.

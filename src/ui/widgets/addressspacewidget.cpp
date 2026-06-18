@@ -38,14 +38,11 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     connect(_treeModel, &AddressSpaceModel::browseRequested,
             this, &AddressSpaceWidget::browseRequested);
     connect(ui->addressTree->selectionModel(), &QItemSelectionModel::currentChanged,
-            this, [this](const QModelIndex &current) {
-        const OpcUaNodeInfo info = _treeModel->nodeInfo(current);
-        _selectedNodeId = info.nodeId;
-        if (!info.nodeId.isEmpty())
-            emit nodeSelected(info);
-    });
+            this, &AddressSpaceWidget::onCurrentNodeChanged);
     connect(ui->refreshButton, &QPushButton::clicked, this, [this]() {
         emit refreshRequested(_selectedNodeId);
+        if (!_selectedNodeId.isEmpty())
+            emit referencesRequested(_selectedNodeId);
     });
 
     _treeModel->setIconProvider([this](AddressSpaceItem::NodeType type) {
@@ -72,6 +69,8 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
 ///
 void AddressSpaceWidget::setRootNode(const OpcUaNodeInfo &root)
 {
+    _referencesByNodeId.clear();
+    _referencesModel->clear();
     _treeModel->setRootNode(root);
     const QModelIndex rootIndex = _treeModel->index(0, 0);
     ui->addressTree->setCurrentIndex(rootIndex);
@@ -79,7 +78,7 @@ void AddressSpaceWidget::setRootNode(const OpcUaNodeInfo &root)
 }
 
 ///
-/// \brief Applies browse results to the tree and refreshes the references view if selected.
+/// \brief Applies browse results to the tree.
 /// \param parentNodeId Parent NodeId.
 /// \param children Browse result.
 /// \param error Browse error.
@@ -93,13 +92,27 @@ void AddressSpaceWidget::setBrowseChildren(const QString &parentNodeId,
         return;
     }
     _treeModel->setChildren(parentNodeId, children);
-    if (_selectedNodeId == parentNodeId) {
-        QVector<ReferenceItem> references;
-        references.reserve(children.size());
-        for (const OpcUaNodeInfo &child : children)
-            references.append({child.referenceTypeId, child.displayName});
-        _referencesModel->setItems(references);
+}
+
+///
+/// \brief Applies reference browse results to the references view if selected.
+/// \param sourceNodeId Source NodeId.
+/// \param references Reference browse result.
+/// \param error Browse error.
+///
+void AddressSpaceWidget::setBrowseReferences(const QString &sourceNodeId,
+                                             const QVector<OpcUaNodeInfo> &references,
+                                             const QString &error)
+{
+    if (!error.isEmpty()) {
+        _referencesByNodeId.remove(sourceNodeId);
+        if (_selectedNodeId == sourceNodeId)
+            _referencesModel->clear();
+        return;
     }
+    _referencesByNodeId.insert(sourceNodeId, referencesFromChildren(references));
+    if (_selectedNodeId == sourceNodeId)
+        updateReferencesForNode(sourceNodeId);
 }
 
 ///
@@ -124,6 +137,7 @@ void AddressSpaceWidget::setNodeDetails(const OpcUaNodeDetails &details)
 void AddressSpaceWidget::clear()
 {
     _selectedNodeId.clear();
+    _referencesByNodeId.clear();
     _treeModel->clear();
     _nodeInfoModel->clear();
     _referencesModel->clear();
@@ -177,4 +191,83 @@ void AddressSpaceWidget::setupReferencesView()
     ui->referencesTable->verticalHeader()->hide();
     ui->referencesTable->horizontalHeader()->setStretchLastSection(true);
     ui->referencesTable->setColumnWidth(ReferencesModel::ColReference, 150);
+}
+
+///
+/// \brief Applies the newly selected tree node to the detail views.
+/// \param current Selected tree index.
+///
+void AddressSpaceWidget::onCurrentNodeChanged(const QModelIndex &current)
+{
+    const OpcUaNodeInfo info = _treeModel->nodeInfo(current);
+    _selectedNodeId = info.nodeId;
+    updateReferencesForNode(info.nodeId);
+    if (!info.nodeId.isEmpty()) {
+        emit referencesRequested(info.nodeId);
+        emit nodeSelected(info);
+    }
+}
+
+///
+/// \brief Shows cached browse references for a node or clears stale rows.
+/// \param nodeId Selected node NodeId.
+///
+void AddressSpaceWidget::updateReferencesForNode(const QString &nodeId)
+{
+    const auto references = _referencesByNodeId.constFind(nodeId);
+    if (references == _referencesByNodeId.constEnd()) {
+        _referencesModel->clear();
+        return;
+    }
+    _referencesModel->setItems(*references);
+}
+
+///
+/// \brief Converts browse children to reference table rows.
+/// \param children Browse result children.
+/// \return Reference rows preserving duplicate targets with different reference types.
+///
+QVector<ReferenceItem> AddressSpaceWidget::referencesFromChildren(
+    const QVector<OpcUaNodeInfo> &children) const
+{
+    QVector<ReferenceItem> references;
+    references.reserve(children.size());
+    for (const OpcUaNodeInfo &child : children) {
+        QString target = child.displayName;
+        if (target.isEmpty())
+            target = child.browseName;
+        if (target.isEmpty())
+            target = child.nodeId;
+        references.append({referenceTypeDisplayName(child.referenceTypeId), target});
+    }
+    return references;
+}
+
+///
+/// \brief Returns a standard OPC UA reference type name when known.
+/// \param referenceTypeId Reference type NodeId.
+/// \return Display name or the original NodeId.
+///
+QString AddressSpaceWidget::referenceTypeDisplayName(const QString &referenceTypeId) const
+{
+    static const QHash<QString, QString> names = {
+        {QStringLiteral("ns=0;i=31"), QStringLiteral("References")},
+        {QStringLiteral("ns=0;i=32"), QStringLiteral("NonHierarchicalReferences")},
+        {QStringLiteral("ns=0;i=33"), QStringLiteral("HierarchicalReferences")},
+        {QStringLiteral("ns=0;i=34"), QStringLiteral("HasChild")},
+        {QStringLiteral("ns=0;i=35"), QStringLiteral("Organizes")},
+        {QStringLiteral("ns=0;i=36"), QStringLiteral("HasEventSource")},
+        {QStringLiteral("ns=0;i=37"), QStringLiteral("HasModellingRule")},
+        {QStringLiteral("ns=0;i=38"), QStringLiteral("HasEncoding")},
+        {QStringLiteral("ns=0;i=39"), QStringLiteral("HasDescription")},
+        {QStringLiteral("ns=0;i=40"), QStringLiteral("HasTypeDefinition")},
+        {QStringLiteral("ns=0;i=41"), QStringLiteral("GeneratesEvent")},
+        {QStringLiteral("ns=0;i=44"), QStringLiteral("Aggregates")},
+        {QStringLiteral("ns=0;i=45"), QStringLiteral("HasSubtype")},
+        {QStringLiteral("ns=0;i=46"), QStringLiteral("HasProperty")},
+        {QStringLiteral("ns=0;i=47"), QStringLiteral("HasComponent")},
+        {QStringLiteral("ns=0;i=48"), QStringLiteral("HasNotifier")},
+        {QStringLiteral("ns=0;i=49"), QStringLiteral("HasOrderedComponent")},
+    };
+    return names.value(referenceTypeId, referenceTypeId);
 }

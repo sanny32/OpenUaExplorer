@@ -348,8 +348,12 @@ void MainWindow::setupOpcUaClient()
             this, &MainWindow::onClientError);
     connect(_clientService, &OpcUaClientService::browseFinished,
             ui->addressSpaceWidget, &AddressSpaceWidget::setBrowseChildren);
+    connect(_clientService, &OpcUaClientService::referencesBrowseFinished,
+            ui->addressSpaceWidget, &AddressSpaceWidget::setBrowseReferences);
     connect(ui->addressSpaceWidget, &AddressSpaceWidget::browseRequested,
             _clientService, &OpcUaClientService::browse);
+    connect(ui->addressSpaceWidget, &AddressSpaceWidget::referencesRequested,
+            _clientService, &OpcUaClientService::browseReferences);
     connect(ui->addressSpaceWidget, &AddressSpaceWidget::refreshRequested,
             this, &MainWindow::browseNodeOrRoot);
     connect(ui->addressSpaceWidget, &AddressSpaceWidget::nodeSelected,

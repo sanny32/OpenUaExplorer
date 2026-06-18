@@ -58,6 +58,10 @@ public:
     {
         browseTimeout = timeoutMs;
     }
+    void browseReferences(const QString &, int timeoutMs) override
+    {
+        referencesBrowseTimeout = timeoutMs;
+    }
     void readNode(const QString &, int) override {}
     void readValues(const QStringList &, int) override {}
     void writeValue(const QString &, const QVariant &, int, int) override {}
@@ -76,6 +80,7 @@ public:
     int connectCalls = 0;
     int disconnectCalls = 0;
     int browseTimeout = 0;
+    int referencesBrowseTimeout = 0;
     ConnectionProfile connectedProfile;
     QString connectedPassword;
     QString connectedPrivateKeyPassword;
@@ -181,8 +186,10 @@ void TestConnectionController::serviceUsesProfileRequestTimeout()
 
     service.connectToEndpoint(profile);
     service.browse(QStringLiteral("ns=0;i=85"));
+    service.browseReferences(QStringLiteral("ns=0;i=85"));
 
     QCOMPARE(backend.browseTimeout, profile.requestTimeoutMs);
+    QCOMPARE(backend.referencesBrowseTimeout, profile.requestTimeoutMs);
 }
 
 void TestConnectionController::savedProfileWithoutSecretsDiscoversThenConnects()

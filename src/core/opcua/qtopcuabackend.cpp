@@ -18,6 +18,7 @@
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaAuthenticationInformation>
 #include <QOpcUaBinaryDataEncoding>
+#include <QOpcUaBrowseRequest>
 #include <QOpcUaClient>
 #include <QOpcUaExtensionObject>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
@@ -97,6 +98,7 @@ public:
     {
         ++discoveryGeneration;
         ++browseGeneration;
+        ++referencesBrowseGeneration;
         ++nodeReadGeneration;
         ++valueReadGeneration;
         ++writeGeneration;
@@ -384,6 +386,7 @@ public:
     quint64 generation = 0;
     quint64 discoveryGeneration = 0;
     quint64 browseGeneration = 0;
+    quint64 referencesBrowseGeneration = 0;
     quint64 nodeReadGeneration = 0;
     quint64 valueReadGeneration = 0;
     quint64 writeGeneration = 0;
@@ -653,6 +656,77 @@ void QtOpcUaBackend::browse(const QString &nodeId, int timeoutMs)
         ++_d->browseGeneration;
         node->deleteLater();
         emit browseFinished(nodeId, {}, tr("The backend rejected the browse request."));
+    }
+}
+
+///
+/// \brief Browses a node's forward references, emitting referencesBrowseFinished().
+/// \param nodeId Node to browse.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::browseReferences(const QString &nodeId, int timeoutMs)
+{
+    if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
+        emit referencesBrowseFinished(nodeId, {},
+                                      tr("The OPC UA client is not connected."));
+        return;
+    }
+    QOpcUaNode *node = _d->client->node(nodeId);
+    if (!node) {
+        emit referencesBrowseFinished(nodeId, {},
+                                      tr("Could not create node %1.").arg(nodeId));
+        return;
+    }
+
+    QOpcUaBrowseRequest request;
+    request.setBrowseDirection(QOpcUaBrowseRequest::BrowseDirection::Forward);
+    request.setReferenceTypeId(QOpcUa::ReferenceTypeId::References);
+    request.setIncludeSubtypes(true);
+
+    const quint64 requestGeneration = _d->generation;
+    const quint64 operationGeneration = ++_d->referencesBrowseGeneration;
+    QTimer::singleShot(qMax(1000, timeoutMs), this,
+                       [this, node, nodeId, operationGeneration]() {
+        if (operationGeneration != _d->referencesBrowseGeneration)
+            return;
+        ++_d->referencesBrowseGeneration;
+        node->deleteLater();
+        emit referencesBrowseFinished(nodeId, {}, tr("Browse request timed out."));
+    });
+    connect(node, &QOpcUaNode::browseFinished, this,
+            [this, node, nodeId, requestGeneration, operationGeneration](
+                const QVector<QOpcUaReferenceDescription> &references,
+                QOpcUa::UaStatusCode status) {
+        QVector<OpcUaNodeInfo> nodes;
+        QString error;
+        if (requestGeneration != _d->generation
+            || operationGeneration != _d->referencesBrowseGeneration) {
+            node->deleteLater();
+            return;
+        }
+        ++_d->referencesBrowseGeneration;
+        if (QOpcUa::isSuccessStatus(status)) {
+            nodes.reserve(references.size());
+            for (const QOpcUaReferenceDescription &reference : references) {
+                OpcUaNodeInfo info;
+                info.nodeId = reference.targetNodeId().nodeId();
+                info.browseName = reference.browseName().name();
+                info.displayName = reference.displayName().text();
+                info.referenceTypeId = reference.refTypeId();
+                info.nodeClass = static_cast<int>(reference.nodeClass());
+                nodes.append(info);
+            }
+        } else {
+            error = tr("Browse failed for %1: %2").arg(nodeId, statusName(status));
+        }
+        emit referencesBrowseFinished(nodeId, nodes, error);
+        node->deleteLater();
+    });
+    if (!node->browse(request)) {
+        ++_d->referencesBrowseGeneration;
+        node->deleteLater();
+        emit referencesBrowseFinished(nodeId, {},
+                                      tr("The backend rejected the browse request."));
     }
 }
 

@@ -35,6 +35,8 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::endpointsDiscovered);
     connect(_backend, &OpcUaBackend::browseFinished,
             this, &OpcUaClientService::browseFinished);
+    connect(_backend, &OpcUaBackend::referencesBrowseFinished,
+            this, &OpcUaClientService::referencesBrowseFinished);
     connect(_backend, &OpcUaBackend::nodeDetailsReady,
             this, &OpcUaClientService::nodeDetailsReady);
     connect(_backend, &OpcUaBackend::dataValuesReady,
@@ -151,6 +153,15 @@ void OpcUaClientService::disconnectFromEndpoint()
 void OpcUaClientService::browse(const QString &nodeId)
 {
     _backend->browse(nodeId, _requestTimeoutMs);
+}
+
+///
+/// \brief Browses the forward references of a node using the cached request timeout.
+/// \param nodeId Node to browse.
+///
+void OpcUaClientService::browseReferences(const QString &nodeId)
+{
+    _backend->browseReferences(nodeId, _requestTimeoutMs);
 }
 
 ///

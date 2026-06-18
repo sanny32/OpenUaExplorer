@@ -95,6 +95,13 @@ public:
     virtual void browse(const QString &nodeId, int timeoutMs) = 0;
 
     ///
+    /// \brief Browses a node's forward references.
+    /// \param nodeId Node to browse.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    virtual void browseReferences(const QString &nodeId, int timeoutMs) = 0;
+
+    ///
     /// \brief Reads a node's attributes.
     /// \param nodeId Node to read.
     /// \param timeoutMs Request timeout in milliseconds.
@@ -154,6 +161,15 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void browseFinished(QString parentNodeId, QVector<OpcUaNodeInfo> children, QString error);
+
+    ///
+    /// \brief Emitted when a reference browse finishes.
+    /// \param sourceNodeId Browsed node.
+    /// \param references Forward reference targets.
+    /// \param error Error description, empty on success.
+    ///
+    void referencesBrowseFinished(QString sourceNodeId, QVector<OpcUaNodeInfo> references,
+                                  QString error);
 
     ///
     /// \brief Emitted when a node read finishes.
