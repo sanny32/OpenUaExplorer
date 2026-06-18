@@ -7,7 +7,6 @@
 ///
 
 #include <QCryptographicHash>
-#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -27,6 +26,7 @@
 #include <openssl/x509v3.h>
 
 #include "pkimanager.h"
+#include "utils.h"
 
 namespace {
 
@@ -74,42 +74,13 @@ QString utf8Prefix(const QString &value, int maximumBytes)
 }
 
 ///
-/// \brief Returns the product name with spaces stripped.
-/// \return Compact product name.
-///
-QString productNameWithoutSpaces()
-{
-    return withoutSpaces(QString::fromUtf8(APP_PRODUCT_NAME));
-}
-
-///
-/// \brief Returns the current executable base name, falling back to the product name.
-/// \return Executable base name without the file suffix.
-///
-QString executableBaseName()
-{
-    const QString filePath = QCoreApplication::applicationFilePath();
-    const QString baseName = QFileInfo(filePath).completeBaseName().trimmed();
-    return baseName.isEmpty() ? productNameWithoutSpaces() : baseName;
-}
-
-///
-/// \brief Returns the file base used for the auto-generated key pair.
-/// \return File base name for generated certificate and key files.
-///
-QString generatedClientCertificateBaseName()
-{
-    return executableBaseName();
-}
-
-///
 /// \brief Builds the client-certificate common name, hash-truncating it to the 64-byte limit.
 /// \param host Host the certificate identifies.
 /// \return "product@host" name, shortened with a host hash suffix when it would overflow.
 ///
 QString clientCertificateCommonNameForHost(const QString &host)
 {
-    const QString productName = productNameWithoutSpaces();
+    const QString productName = withoutSpaces(QString::fromUtf8(APP_PRODUCT_NAME));
     const QString normalizedHost = withoutSpaces(host);
     const QString commonName = QStringLiteral("%1@%2").arg(productName, normalizedHost);
     if (commonName.toUtf8().size() <= maximumCommonNameBytes)
@@ -241,7 +212,7 @@ QString openSslError()
 ///
 QString PkiManager::applicationUri()
 {
-    const QString productName = productNameWithoutSpaces();
+    const QString productName = withoutSpaces(QString::fromUtf8(APP_PRODUCT_NAME));
     return QStringLiteral("urn:%1:%2:%2").arg(hostName().toLower(), productName);
 }
 
@@ -313,7 +284,7 @@ bool PkiManager::existingClientCertificate(QString *certificateFile,
                                            QString *privateKeyFile) const
 {
     const Paths p = paths();
-    const QString fileBaseName = generatedClientCertificateBaseName();
+    const QString fileBaseName = Utils::executableBaseName();
     const QString certPath = p.ownCertificates + QLatin1Char('/') + fileBaseName
         + QStringLiteral(".der");
     const QString keyPath = p.ownPrivate + QLatin1Char('/') + fileBaseName
@@ -428,7 +399,7 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
                             QByteArrayLiteral("keyid:always,issuer:always"));
 
         const Paths p = paths();
-        const QString fileBaseName = generatedClientCertificateBaseName();
+        const QString fileBaseName = Utils::executableBaseName();
         const QString keyPath = p.ownPrivate + QLatin1Char('/') + fileBaseName
             + QStringLiteral(".pem");
         const QString certPath = p.ownCertificates + QLatin1Char('/') + fileBaseName

@@ -1,6 +1,8 @@
 add_library(ouaexp_core STATIC
     loggingcategories.cpp
     loggingcategories.h
+    utils.cpp
+    utils.h
 
     opcua/attributeformatter.cpp
     opcua/attributeformatter.h

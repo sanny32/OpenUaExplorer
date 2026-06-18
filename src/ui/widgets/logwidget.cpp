@@ -6,14 +6,22 @@
 /// \brief Implements the activity log widget.
 ///
 
+#include <algorithm>
 #include <atomic>
 #include <QAbstractItemView>
+#include <QClipboard>
 #include <QComboBox>
 #include <QDateTime>
 #include <QEvent>
+#include <QFile>
+#include <QFileDialog>
+#include <QGuiApplication>
+#include <QMenu>
+#include <QMessageBox>
 #include <QMetaObject>
 #include <QPointer>
 #include <QSignalBlocker>
+#include <QTextStream>
 
 #include "appicons.h"
 #include "headerview.h"
@@ -22,6 +30,7 @@
 #include "models/logmodel.h"
 #include "tableview.h"
 #include "ui_logwidget.h"
+#include "utils.h"
 
 namespace {
 static LogWidget*       s_instance    = nullptr;
@@ -102,6 +111,21 @@ LogWidget::LogWidget(QWidget *parent)
     ui->sourceCombo->view()->setTextElideMode(Qt::ElideNone);
 
     _searchIconAction = ui->searchEdit->addAction(QIcon(), QLineEdit::LeadingPosition);
+
+    _copyAction = new QAction(tr("Copy"), this);
+    _copyAction->setShortcut(QKeySequence::Copy);
+    _copyAction->setShortcutContext(Qt::WidgetShortcut);
+    connect(_copyAction, &QAction::triggered, this, &LogWidget::copySelection);
+    ui->logTable->addAction(_copyAction);
+
+    _copyAllAction = new QAction(tr("Copy All"), this);
+    connect(_copyAllAction, &QAction::triggered, this, &LogWidget::copyAll);
+    ui->logTable->addAction(_copyAllAction);
+
+    ui->logTable->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->logTable, &QWidget::customContextMenuRequested,
+            this, &LogWidget::showContextMenu);
+
     refreshIcons();
 
     s_instance = this;
@@ -115,6 +139,10 @@ LogWidget::LogWidget(QWidget *parent)
         ui->sourceCombo->clear();
         ui->sourceCombo->addItem(tr("All"));
         _model->setSourceFilter(QString());
+    });
+
+    connect(ui->exportButton, &QPushButton::clicked, this, [this]() {
+        exportLog();
     });
 
     connect(ui->pauseButton, &QPushButton::toggled, this, [this](bool checked) {
@@ -238,8 +266,11 @@ void LogWidget::refreshIcons()
 {
     const bool paused = ui->pauseButton->isChecked();
     _searchIconAction->setIcon(AppIcons::themed("search.svg"));
+    _copyAction->setIcon(AppIcons::themed("copy.svg"));
+    _copyAllAction->setIcon(AppIcons::themed("copy.svg"));
     ui->pauseButton->setIcon(paused ? QStringLiteral("resume.svg") : QStringLiteral("pause.svg"));
     ui->clearButton->setIcon(QStringLiteral("trash.svg"));
+    ui->exportButton->setIcon(QStringLiteral("export.svg"));
 }
 
 ///
@@ -248,4 +279,105 @@ void LogWidget::refreshIcons()
 void LogWidget::scrollToBottom()
 {
     ui->logTable->scrollToBottom();
+}
+
+///
+/// \brief Writes the currently visible log rows to a user-chosen text file.
+///
+/// Honours the active level, source and search filters, exporting exactly the
+/// rows shown in the table.
+///
+void LogWidget::exportLog()
+{
+    const QString fileName = QFileDialog::getSaveFileName(
+        this, tr("Export Log"),
+        Utils::executableBaseName() + QStringLiteral(".log"),
+        tr("Log files (*.log);;Text files (*.txt);;All files (*)"));
+    if (fileName.isEmpty())
+        return;
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, tr("Export Log"),
+                             tr("Could not open the file for writing:\n%1")
+                                 .arg(file.errorString()));
+        return;
+    }
+
+    QTextStream stream(&file);
+    const int rows = _model->rowCount();
+    for (int row = 0; row < rows; ++row) {
+        stream << _model->index(row, LogModel::ColTimestamp).data().toString() << '\t'
+               << _model->index(row, LogModel::ColLevel).data().toString() << '\t'
+               << _model->index(row, LogModel::ColSource).data().toString() << '\t'
+               << _model->index(row, LogModel::ColMessage).data().toString() << '\n';
+    }
+}
+
+///
+/// \brief Copies the given log rows to the clipboard as tab-separated text.
+/// \param rows Row indices to copy, in the order they should appear.
+///
+void LogWidget::copyRows(const QList<int> &rows)
+{
+    if (rows.isEmpty())
+        return;
+
+    QStringList lines;
+    lines.reserve(rows.size());
+    for (const int row : rows) {
+        const QStringList cells = {
+            _model->index(row, LogModel::ColTimestamp).data().toString(),
+            _model->index(row, LogModel::ColLevel).data().toString(),
+            _model->index(row, LogModel::ColSource).data().toString(),
+            _model->index(row, LogModel::ColMessage).data().toString()
+        };
+        lines.append(cells.join(QLatin1Char('\t')));
+    }
+
+    QGuiApplication::clipboard()->setText(lines.join(QLatin1Char('\n')));
+}
+
+///
+/// \brief Copies the selected log rows to the clipboard.
+///
+void LogWidget::copySelection()
+{
+    QList<int> rows;
+    const QModelIndexList selected = ui->logTable->selectionModel()->selectedRows();
+    rows.reserve(selected.size());
+    for (const QModelIndex &index : selected)
+        rows.append(index.row());
+    std::sort(rows.begin(), rows.end());
+
+    copyRows(rows);
+}
+
+///
+/// \brief Copies every visible log row to the clipboard.
+///
+void LogWidget::copyAll()
+{
+    const int count = _model->rowCount();
+    QList<int> rows;
+    rows.reserve(count);
+    for (int row = 0; row < count; ++row)
+        rows.append(row);
+
+    copyRows(rows);
+}
+
+///
+/// \brief Shows the log table context menu at the requested position.
+/// \param pos Position in the table viewport's coordinates.
+///
+void LogWidget::showContextMenu(const QPoint &pos)
+{
+    _copyAction->setEnabled(ui->logTable->selectionModel()->hasSelection());
+    _copyAllAction->setEnabled(_model->rowCount() > 0);
+
+    QMenu menu(this);
+    menu.addAction(_copyAction);
+    menu.addAction(_copyAllAction);
+    menu.exec(ui->logTable->viewport()->mapToGlobal(pos));
 }

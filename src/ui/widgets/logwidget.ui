@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>502</width>
+    <width>786</width>
     <height>240</height>
    </rect>
   </property>
@@ -103,14 +103,7 @@
       </widget>
      </item>
      <item>
-      <widget class="ThemedPushButton" name="clearButton">
-       <property name="text">
-        <string>Clear</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer">
+      <spacer name="horizontalSpacer_2">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
@@ -121,6 +114,20 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="ThemedPushButton" name="clearButton">
+       <property name="text">
+        <string>Clear</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="ThemedPushButton" name="exportButton">
+       <property name="text">
+        <string>Export</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

@@ -53,10 +53,17 @@ private:
     void refreshIcons();
     void scrollToBottom();
     void registerSource(const QString &source);
+    void exportLog();
+    void copyRows(const QList<int> &rows);
+    void copySelection();
+    void copyAll();
+    void showContextMenu(const QPoint &pos);
 
     Ui::LogWidget *ui;
     LogModel      *_model;
     QAction       *_searchIconAction = nullptr;
+    QAction       *_copyAction = nullptr;
+    QAction       *_copyAllAction = nullptr;
     bool           _paused = false;
     QSet<QString>  _knownSources;
 };
