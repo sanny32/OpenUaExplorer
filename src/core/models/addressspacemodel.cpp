@@ -8,6 +8,35 @@
 
 #include "addressspacemodel.h"
 
+#include <QSet>
+
+namespace {
+
+///
+/// \brief Returns browse results with repeated NodeIds removed.
+/// \param children Browse results.
+/// \return Deduplicated browse results.
+///
+QVector<OpcUaNodeInfo> uniqueChildrenByNodeId(const QVector<OpcUaNodeInfo> &children)
+{
+    QVector<OpcUaNodeInfo> uniqueChildren;
+    uniqueChildren.reserve(children.size());
+
+    QSet<QString> seenNodeIds;
+    for (const OpcUaNodeInfo &child : children) {
+        if (!child.nodeId.isEmpty()) {
+            if (seenNodeIds.contains(child.nodeId))
+                continue;
+            seenNodeIds.insert(child.nodeId);
+        }
+        uniqueChildren.append(child);
+    }
+
+    return uniqueChildren;
+}
+
+} // namespace
+
 ///
 /// \brief Constructs a tree node wrapping OPC UA node info.
 /// \param info OPC UA node information.
@@ -283,15 +312,16 @@ void AddressSpaceModel::setChildren(const QString &parentNodeId,
     AddressSpaceNode *parentNode = findNode(_root.get(), parentNodeId);
     if (!parentNode)
         return;
+    const QVector<OpcUaNodeInfo> uniqueChildren = uniqueChildrenByNodeId(children);
     const QModelIndex parentIndex = indexForNode(parentNode);
     if (parentNode->childCount() > 0) {
         beginRemoveRows(parentIndex, 0, parentNode->childCount() - 1);
         parentNode->clearChildren();
         endRemoveRows();
     }
-    if (!children.isEmpty()) {
-        beginInsertRows(parentIndex, 0, children.size() - 1);
-        for (const OpcUaNodeInfo &child : children)
+    if (!uniqueChildren.isEmpty()) {
+        beginInsertRows(parentIndex, 0, uniqueChildren.size() - 1);
+        for (const OpcUaNodeInfo &child : uniqueChildren)
             parentNode->appendChild(
                 std::make_unique<AddressSpaceNode>(child, parentNode));
         endInsertRows();

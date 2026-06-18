@@ -53,6 +53,7 @@ private slots:
     void addressSpaceBrowseFailedAllowsRetry();
     void addressSpaceLeafDoesNotFetch();
     void addressSpaceFindByNodeIdAndDisplayName();
+    void addressSpaceSetChildrenDeduplicatesNodeIds();
 
     // Header/role/mutator coverage for the simple table & tree models.
     void historyModelHeaderRolesAndMutators();
@@ -367,6 +368,38 @@ void TestModels::addressSpaceFindByNodeIdAndDisplayName()
     QCOMPARE(byName, byId);
 
     QVERIFY(!model.findByNodeId(QStringLiteral("ns=0;i=9999")).isValid());
+}
+
+///
+/// \brief setChildren keeps one sibling for repeated NodeIds.
+///
+void TestModels::addressSpaceSetChildrenDeduplicatesNodeIds()
+{
+    AddressSpaceModel model;
+    model.setRootNode(makeRoot());
+
+    OpcUaNodeInfo first;
+    first.nodeId = QStringLiteral("ns=2;s=MyDevice");
+    first.displayName = QStringLiteral("MyDevice");
+    first.referenceTypeId = QStringLiteral("ns=0;i=47");
+    first.nodeClass = 1;
+
+    OpcUaNodeInfo duplicate = first;
+    duplicate.referenceTypeId = QStringLiteral("ns=0;i=35");
+
+    OpcUaNodeInfo sameNameDifferentNode;
+    sameNameDifferentNode.nodeId = QStringLiteral("ns=2;s=OtherDevice");
+    sameNameDifferentNode.displayName = QStringLiteral("MyDevice");
+    sameNameDifferentNode.nodeClass = 1;
+
+    model.setChildren(makeRoot().nodeId, {first, duplicate, sameNameDifferentNode});
+
+    const QModelIndex rootIndex = model.index(0, 0);
+    QCOMPARE(model.rowCount(rootIndex), 2);
+    QCOMPARE(model.nodeInfo(model.index(0, 0, rootIndex)).referenceTypeId,
+             first.referenceTypeId);
+    QCOMPARE(model.nodeInfo(model.index(1, 0, rootIndex)).nodeId,
+             sameNameDifferentNode.nodeId);
 }
 
 ///
