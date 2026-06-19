@@ -51,11 +51,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="valueEdit">
-        <property name="clearButtonEnabled">
-         <bool>true</bool>
-        </property>
-       </widget>
+       <widget class="ValueLineEdit" name="valueEdit"/>
       </item>
       <item>
        <widget class="QComboBox" name="typeCombo"/>
@@ -77,6 +73,11 @@
    <class>ThemedPushButton</class>
    <extends>QPushButton</extends>
    <header>widgets/themedpushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ValueLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>widgets/valuelineedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

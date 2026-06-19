@@ -218,7 +218,7 @@ void AttributesWidget::setupWriteEditor(int valueType)
 
     const int index = ui->typeCombo->findData(valueType);
     ui->typeCombo->setCurrentIndex(index >= 0 ? index : 0);
-    ui->valueEdit->setText(defaultValueText(valueType));
+    ui->valueEdit->setDefaultValue(defaultValueText(valueType));
 }
 
 ///
@@ -228,7 +228,7 @@ void AttributesWidget::clearWriteEditor()
 {
     _nodeId.clear();
     ui->typeCombo->clear();
-    ui->valueEdit->clear();
+    ui->valueEdit->setDefaultValue(QString());
 }
 
 ///

@@ -75,6 +75,8 @@ add_library(ouaexp_ui STATIC
     widgets/connectionstatuswidget.h
     widgets/dataaccesswidget.cpp
     widgets/dataaccesswidget.h
+    widgets/valuelineedit.cpp
+    widgets/valuelineedit.h
     widgets/endpointdiscoverywidget.cpp
     widgets/endpointdiscoverywidget.h
     widgets/endpointselectorwidget.cpp
