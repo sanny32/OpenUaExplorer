@@ -46,6 +46,8 @@ MainWindow::MainWindow(QWidget *parent)
     , _clientService(_connectionController->clientService())
 {
     ui->setupUi(this);
+    
+    setWindowTitle(QString::fromUtf8(APP_DESCRIPTION));
     ui->nodeDetailsDock->setWidget(ui->addressSpaceWidget->takeNodeDetailsPanel());
 
     const bool manualThemeSupported = theApp()->theme().isManualToggleSupported();
