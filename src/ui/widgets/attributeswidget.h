@@ -72,7 +72,7 @@ signals:
 
 private:
     void setupAttributesView();
-    void setupWriteEditor(int valueType);
+    void setupWriteEditor(int valueType, const QString &dataTypeId);
     void clearWriteEditor();
     void writeCurrentValue();
 

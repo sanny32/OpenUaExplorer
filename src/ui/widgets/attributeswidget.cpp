@@ -62,25 +62,41 @@ QString typeName(int type)
 }
 
 ///
-/// \brief Returns the value types interchangeable with the given node type.
+/// \brief NodeId identifiers of the abstract OPC UA DataTypes in namespace 0.
 ///
-/// Numeric, textual, and NodeId-like types are grouped so the user can pick a
-/// concrete type within the same family (e.g. when the node's DataType is an
-/// abstract Number). Other types stand alone.
+enum AbstractDataType {
+    BaseDataType = 24, Number = 26, Integer = 27, UInteger = 28, Enumeration = 29,
+};
+
 ///
-QVector<int> compatibleTypes(int type)
+/// \brief Returns the concrete value types writable to an abstract DataType node.
+///
+/// A Variable's DataType is fixed by the server, so for a concrete DataType only
+/// that type is accepted. The combo is offered only when the node's DataType is
+/// abstract, in which case any concrete subtype may be written. An empty result
+/// means the DataType is concrete and the type must stay locked to the node's own.
+///
+QVector<int> abstractFamily(const QString &dataTypeId)
 {
-    static const QVector<int> numeric = {SByte, Byte, Int16, UInt16, Int32,
-                                         UInt32, Int64, UInt64, Float, Double};
-    static const QVector<int> text = {String, LocalizedText, XmlElement, QualifiedName};
-    static const QVector<int> nodeIds = {NodeId, ExpandedNodeId};
-    if (numeric.contains(type))
-        return numeric;
-    if (text.contains(type))
-        return text;
-    if (nodeIds.contains(type))
-        return nodeIds;
-    return {type};
+    bool ok = false;
+    const int identifier = dataTypeId.section(QLatin1String("i="), 1).toInt(&ok);
+    if (!ok || !dataTypeId.startsWith(QLatin1String("ns=0;")))
+        return {};
+    switch (identifier) {
+    case Number:
+        return {SByte, Byte, Int16, UInt16, Int32, UInt32, Int64, UInt64, Float, Double};
+    case Integer:
+        return {SByte, Int16, Int32, Int64};
+    case UInteger:
+        return {Byte, UInt16, UInt32, UInt64};
+    case Enumeration:
+        return {Int32};
+    case BaseDataType:
+        return {Boolean, SByte, Byte, Int16, UInt16, Int32, UInt32, Int64, UInt64,
+                Float, Double, String, LocalizedText, DateTime, Guid, ByteString};
+    default:
+        return {};
+    }
 }
 
 ///
@@ -152,7 +168,7 @@ void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
     const bool writable = variable && OpcUa::isWritable(details.userAccessLevel);
     ui->writeValueGroup->setEnabled(writable);
     if (variable)
-        setupWriteEditor(details.valueType);
+        setupWriteEditor(details.valueType, details.dataTypeId);
     else
         clearWriteEditor();
 }
@@ -206,19 +222,32 @@ void AttributesWidget::setupAttributesView()
 }
 
 ///
-/// \brief Fills the type combo with types compatible with the node and seeds a default value.
+/// \brief Configures the type combo and seeds a default value for the node.
 /// \param valueType QOpcUa::Types numeric value of the selected node.
+/// \param dataTypeId DataType NodeId, used to detect abstract DataTypes.
 ///
-void AttributesWidget::setupWriteEditor(int valueType)
+/// For a concrete DataType the combo is locked to the node's own type, since the
+/// server accepts no other. For an abstract DataType the combo lists the concrete
+/// subtypes the user may choose between.
+///
+void AttributesWidget::setupWriteEditor(int valueType, const QString &dataTypeId)
 {
     ui->typeCombo->clear();
-    const QVector<int> types = compatibleTypes(valueType);
-    for (int type : types)
-        ui->typeCombo->addItem(typeName(type), type);
+    const QVector<int> family = abstractFamily(dataTypeId);
+    if (family.isEmpty()) {
+        ui->typeCombo->addItem(typeName(valueType), valueType);
+        ui->typeCombo->setCurrentIndex(0);
+        ui->typeCombo->setEnabled(false);
+        ui->valueEdit->setDefaultValue(defaultValueText(valueType));
+        return;
+    }
 
+    for (int type : family)
+        ui->typeCombo->addItem(typeName(type), type);
     const int index = ui->typeCombo->findData(valueType);
     ui->typeCombo->setCurrentIndex(index >= 0 ? index : 0);
-    ui->valueEdit->setDefaultValue(defaultValueText(valueType));
+    ui->typeCombo->setEnabled(true);
+    ui->valueEdit->setDefaultValue(defaultValueText(ui->typeCombo->currentData().toInt()));
 }
 
 ///
