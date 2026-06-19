@@ -12,27 +12,30 @@
 #include <QWidget>
 
 #include "maintoolbar.h"
-#include "endpointselectorwidget.h"
 #include "fixedgap.h"
 #include "maintoolbutton.h"
-#include "securityselectorwidget.h"
+#include "themedtoolbutton.h"
 
 ///
-/// \brief Constructs the toolbar with its endpoint and security selector widgets.
+/// \brief Constructs the toolbar with its favourites button.
 /// \param parent Parent widget.
 ///
 MainToolBar::MainToolBar(QWidget *parent)
     : QToolBar(parent)
-    , _endpointSelectorWidget(new EndpointSelectorWidget(this))
-    , _securitySelectorWidget(new SecuritySelectorWidget(this))
+    , _favoritesButton(new ThemedToolButton(this))
 {
     setMovable(false);
     setIconSize(QSize(24, 24));
     setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+
+    _favoritesButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    _favoritesButton->setText(tr("Favorites"));
+    _favoritesButton->setToolTip(tr("Connect to a favourite server"));
+    _favoritesButton->setIcon(QStringLiteral("star"));
 }
 
 ///
-/// \brief Rebuilds the toolbar from its Designer actions, appending the selector widgets.
+/// \brief Rebuilds the toolbar from its Designer actions, appending the quick-connect button.
 ///
 void MainToolBar::setupFromDesignerActions()
 {
@@ -51,10 +54,17 @@ void MainToolBar::setupFromDesignerActions()
     toolbarSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
     addWidget(toolbarSpacer);
-    addWidget(_endpointSelectorWidget);
-    addWidget(new FixedGap(18, this));
-    addWidget(_securitySelectorWidget);
+    addWidget(_favoritesButton);
     addWidget(new FixedGap(8, this));
+}
+
+///
+/// \brief Gives access to the favourites button.
+/// \return The favourites button.
+///
+ThemedToolButton *MainToolBar::favoritesButton() const
+{
+    return _favoritesButton;
 }
 
 ///

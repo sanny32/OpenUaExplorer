@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QDateTime>
 #include <QString>
 
 ///
@@ -58,4 +59,6 @@ struct ConnectionProfile
     int requestTimeoutMs = 15000;
     /// \brief Whether the profile should be persisted after connecting.
     bool saveProfile = false;
+    /// \brief Timestamp of the most recent successful use, if any.
+    QDateTime lastUsed;
 };

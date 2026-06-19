@@ -11,12 +11,11 @@
 #include <QToolBar>
 
 class QAction;
-class EndpointSelectorWidget;
 class MainToolButton;
-class SecuritySelectorWidget;
+class ThemedToolButton;
 
 ///
-/// \brief Main application toolbar with themed actions and connection selectors.
+/// \brief Main application toolbar with themed actions and a quick-connect button.
 ///
 class MainToolBar : public QToolBar
 {
@@ -34,9 +33,14 @@ public:
     ///
     void setupFromDesignerActions();
 
+    ///
+    /// \brief Gives access to the favourites button.
+    /// \return The favourites button.
+    ///
+    ThemedToolButton *favoritesButton() const;
+
 private:
     MainToolButton *addMainButton(QAction *action);
 
-    EndpointSelectorWidget *_endpointSelectorWidget;
-    SecuritySelectorWidget *_securitySelectorWidget;
+    ThemedToolButton *_favoritesButton;
 };

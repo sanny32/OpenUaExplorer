@@ -174,6 +174,7 @@ void ConnectionDialog::setupConnections()
             this, [this](int index) {
         resetDiscovery();
         _lastEnteredEndpointUrl = ui->discoveryUrlComboBox->itemText(index);
+        updateFavoriteState();
     });
     connect(ui->discoveryUrlComboBox->lineEdit(), &QLineEdit::textEdited,
             this, [this](const QString &text) {
@@ -266,6 +267,12 @@ ConnectionProfile ConnectionDialog::profile() const
         result.securityPolicy = QStringLiteral("None");
         result.securityMode = 1;
     }
+    for (const ConnectionProfile &favorite : _favorites) {
+        if (favorite.endpointUrl == result.endpointUrl) {
+            result.id = favorite.id;
+            break;
+        }
+    }
     result.authentication =
         static_cast<ConnectionProfile::Authentication>(currentAuthentication());
     result.username = ui->usernameEdit->text();
@@ -278,6 +285,82 @@ ConnectionProfile ConnectionDialog::profile() const
     result.requestTimeoutMs = ui->requestTimeoutSpinBox->value();
     result.saveProfile = ui->saveFavoriteCheckBox->isChecked();
     return result;
+}
+
+///
+/// \brief Supplies the saved favourites so the dialog can reflect and update them.
+/// \param favorites Saved connection profiles.
+///
+void ConnectionDialog::setFavorites(const QList<ConnectionProfile> &favorites)
+{
+    _favorites = favorites;
+    updateFavoriteState();
+}
+
+///
+/// \brief Pre-fills the dialog from a saved profile so a favourite opens ready to connect.
+/// \param profile Profile whose endpoint, authentication, and timeouts are applied.
+///
+void ConnectionDialog::setProfile(const ConnectionProfile &profile)
+{
+    if (profile.endpointUrl.isEmpty())
+        return;
+
+    resetDiscovery();
+    _lastEnteredEndpointUrl = profile.endpointUrl;
+    {
+        const QSignalBlocker blocker(ui->discoveryUrlComboBox);
+        ui->discoveryUrlComboBox->setEditText(profile.endpointUrl);
+        ui->discoveryUrlComboBox->lineEdit()->setCursorPosition(0);
+    }
+
+    const int authIndex =
+        ui->authenticationComboBox->findData(static_cast<int>(profile.authentication));
+    if (authIndex >= 0)
+        ui->authenticationComboBox->setCurrentIndex(authIndex);
+    ui->usernameEdit->setText(profile.username);
+
+    if (profile.sessionTimeoutMs > 0)
+        ui->sessionTimeoutSpinBox->setValue(profile.sessionTimeoutMs);
+    if (profile.connectTimeoutMs > 0)
+        ui->connectTimeoutSpinBox->setValue(profile.connectTimeoutMs);
+    if (profile.secureChannelLifetimeMs > 0)
+        ui->secureChannelLifetimeSpinBox->setValue(profile.secureChannelLifetimeMs);
+    if (profile.endpointTimeoutMs > 0)
+        ui->endpointTimeoutSpinBox->setValue(profile.endpointTimeoutMs);
+    if (profile.requestTimeoutMs > 0)
+        ui->requestTimeoutSpinBox->setValue(profile.requestTimeoutMs);
+
+    updateAuthenticationFields();
+    updateFavoriteState();
+}
+
+///
+/// \brief Returns the endpoint URL the dialog would connect to with its current selection.
+/// \return Effective endpoint URL.
+///
+QString ConnectionDialog::currentEndpointUrl() const
+{
+    if (ui->endpointsWidget->hasSelection())
+        return ui->endpointsWidget->currentEndpoint().endpointUrl;
+    return ui->discoveryUrlComboBox->currentText();
+}
+
+///
+/// \brief Checks the favourite box when the current endpoint is already saved.
+///
+void ConnectionDialog::updateFavoriteState()
+{
+    const QString endpointUrl = currentEndpointUrl();
+    bool isFavorite = false;
+    for (const ConnectionProfile &favorite : _favorites) {
+        if (favorite.endpointUrl == endpointUrl) {
+            isFavorite = true;
+            break;
+        }
+    }
+    const QSignalBlocker blocker(ui->saveFavoriteCheckBox);
+    ui->saveFavoriteCheckBox->setChecked(isFavorite);
 }
 
 ///
@@ -381,6 +464,7 @@ void ConnectionDialog::updateEndpointSelection()
     ui->authenticationComboBox->setCurrentIndex(
         qBound(0, previousAuthentication, ui->authenticationComboBox->count() - 1));
     updateAuthenticationFields();
+    updateFavoriteState();
 }
 
 ///

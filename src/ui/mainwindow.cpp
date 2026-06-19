@@ -6,8 +6,11 @@
 /// \brief Implements the main application window.
 ///
 
+#include <algorithm>
+
 #include <QAction>
 #include <QCloseEvent>
+#include <QDateTime>
 #include <QDockWidget>
 #include <QEvent>
 #include <QList>
@@ -32,7 +35,10 @@
 #include "widgets/addressspacewidget.h"
 #include "widgets/attributeswidget.h"
 #include "widgets/dataaccesswidget.h"
+#include "widgets/favoritespopover.h"
 #include "widgets/logwidget.h"
+#include "widgets/maintoolbar.h"
+#include "widgets/themedtoolbutton.h"
 
 
 ///
@@ -330,16 +336,21 @@ void MainWindow::on_actionResetLayout_triggered()
 ///
 /// \brief Runs the connection dialog and connects (optionally saving) the chosen profile.
 ///
-void MainWindow::openConnectionDialog()
+void MainWindow::openConnectionDialog(const ConnectionProfile *preset)
 {
     ConnectionDialog dialog(this);
     dialog.setClientService(_clientService);
+    dialog.setFavorites(_connectionController->profiles());
+    if (preset)
+        dialog.setProfile(*preset);
     if (dialog.exec() != QDialog::Accepted)
         return;
     const ConnectionProfile profile = dialog.profile();
     if (profile.saveProfile) {
         _connectionController->saveProfile(
             profile, dialog.password(), dialog.privateKeyPassword());
+    } else {
+        _connectionController->removeFavorite(profile.endpointUrl);
     }
     _connectionController->connectNewProfile(
         profile, dialog.password(), dialog.privateKeyPassword());
@@ -494,8 +505,26 @@ void MainWindow::setupOpcUaClient()
             this, &MainWindow::onDataValuesReady);
     connect(_clientService, &OpcUaClientService::writeFinished,
             this, &MainWindow::onWriteFinished);
-    connect(_connectionController, &ConnectionController::profilesChanged,
+    connect(_connectionController, &ConnectionController::recentsChanged,
             this, &MainWindow::rebuildRecentConnections);
+
+    _favoritesPopover = new FavoritesPopover(this);
+    connect(_favoritesPopover, &FavoritesPopover::connectRequested,
+            this, [this](const ConnectionProfile &profile) { openConnectionDialog(&profile); });
+    connect(_favoritesPopover, &FavoritesPopover::editRequested,
+            this, [this](const ConnectionProfile &profile) { openConnectionDialog(&profile); });
+    connect(_favoritesPopover, &FavoritesPopover::removeRequested,
+            this, [this](const QString &endpointUrl) {
+        _connectionController->removeFavorite(endpointUrl);
+    });
+    connect(_favoritesPopover, &FavoritesPopover::addFavoriteRequested,
+            this, &MainWindow::addCurrentToFavorites);
+    connect(_connectionController, &ConnectionController::profilesChanged, this, [this] {
+        if (_favoritesPopover->isVisible())
+            _favoritesPopover->setFavorites(_connectionController->profiles());
+    });
+    connect(ui->mainToolBar->favoritesButton(), &QToolButton::clicked,
+            this, &MainWindow::openFavorites);
     connect(_connectionController, &ConnectionController::errorOccurred,
             this, &MainWindow::onClientError);
     _connectionController->setCertificateTrustDecider(this);
@@ -664,23 +693,54 @@ void MainWindow::showWriteDialog(const QString &nodeId, const QVariant &value,
 }
 
 ///
-/// \brief Rebuilds the Recent Connections menu from the saved profiles.
+/// \brief Rebuilds the Recent Connections menu from the recent-connection history.
 ///
 void MainWindow::rebuildRecentConnections()
 {
     ui->menuRecentConnections->clear();
-    const QList<ConnectionProfile> profiles = _connectionController->profiles();
-    if (profiles.isEmpty()) {
+    const QList<ConnectionProfile> recent = _connectionController->recentConnections();
+    if (recent.isEmpty()) {
         ui->menuRecentConnections->addAction(tr("No Recent Connections"))->setEnabled(false);
         return;
     }
-    for (const ConnectionProfile &profile : profiles) {
+    for (const ConnectionProfile &profile : recent) {
         ui->menuRecentConnections->addAction(
             profile.name.isEmpty() ? profile.endpointUrl : profile.name,
             this, [this, profile]() {
                 _connectionController->connectSavedProfile(profile);
             });
     }
+}
+
+///
+/// \brief Opens the favourites popover beneath the toolbar button.
+///
+void MainWindow::openFavorites()
+{
+    const QList<ConnectionProfile> profiles = _connectionController->profiles();
+    const QString activeUrl = _connectionController->activeProfile().endpointUrl;
+    const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
+    const bool alreadyFavorite = std::any_of(
+        profiles.cbegin(), profiles.cend(), [&activeUrl](const ConnectionProfile &profile) {
+            return profile.endpointUrl == activeUrl;
+        });
+    _favoritesPopover->setCanAddFavorite(connected && !activeUrl.isEmpty() && !alreadyFavorite);
+    _favoritesPopover->showFor(profiles, ui->mainToolBar->favoritesButton());
+}
+
+///
+/// \brief Saves the current connection as a favourite, or opens the dialog if none is active.
+///
+void MainWindow::addCurrentToFavorites()
+{
+    ConnectionProfile profile = _connectionController->activeProfile();
+    if (profile.endpointUrl.isEmpty()) {
+        openConnectionDialog();
+        return;
+    }
+    profile.saveProfile = true;
+    profile.lastUsed = QDateTime::currentDateTime();
+    _connectionController->saveProfile(profile, QString(), QString());
 }
 
 ///

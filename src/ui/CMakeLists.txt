@@ -16,10 +16,9 @@ set(UI_FILES
     widgets/certificatesummarywidget.ui
     widgets/connectionstatuswidget.ui
     widgets/dataaccesswidget.ui
-    widgets/endpointselectorwidget.ui
+    widgets/favoritespopover.ui
     widgets/logwidget.ui
     widgets/mainstatusbarwidget.ui
-    widgets/securityselectorwidget.ui
     widgets/trendpanelwidget.ui
 )
 
@@ -79,8 +78,6 @@ add_library(ouaexp_ui STATIC
     widgets/valuelineedit.h
     widgets/endpointdiscoverywidget.cpp
     widgets/endpointdiscoverywidget.h
-    widgets/endpointselectorwidget.cpp
-    widgets/endpointselectorwidget.h
     widgets/fixedgap.cpp
     widgets/fixedgap.h
     widgets/headerview.cpp
@@ -91,10 +88,10 @@ add_library(ouaexp_ui STATIC
     widgets/mainstatusbarwidget.h
     widgets/maintoolbar.cpp
     widgets/maintoolbar.h
+    widgets/favoritespopover.cpp
+    widgets/favoritespopover.h
     widgets/maintoolbutton.cpp
     widgets/maintoolbutton.h
-    widgets/securityselectorwidget.cpp
-    widgets/securityselectorwidget.h
     widgets/subscriptiondelegate.cpp
     widgets/subscriptiondelegate.h
     widgets/tableview.cpp

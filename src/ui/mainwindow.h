@@ -17,6 +17,8 @@ namespace Ui {
 class MainWindow;
 }
 
+struct ConnectionProfile;
+
 ///
 /// \brief Main application window that coordinates docks, toolbar and theme actions.
 ///
@@ -69,7 +71,8 @@ private slots:
     void on_actionResetLayout_triggered();
 
 private:
-    void openConnectionDialog();
+    void openConnectionDialog(const ConnectionProfile *preset = nullptr);
+    void addCurrentToFavorites();
     void openSettingsDialog();
     void setupMainMenu();
     void setupDockOptions();
@@ -84,6 +87,7 @@ private:
     void showWriteDialog(const QString &nodeId, const QVariant &value, int valueType,
                          const QString &dataTypeId, bool writable);
     void rebuildRecentConnections();
+    void openFavorites();
 
     // OPC UA client signal handlers (wired up in setupOpcUaClient).
     void onClientError(const QString &message);
@@ -99,5 +103,6 @@ private:
     Ui::MainWindow *ui;
     class ConnectionController *_connectionController;
     class OpcUaClientService *_clientService;
+    class FavoritesPopover *_favoritesPopover = nullptr;
     OpcUaNodeDetails _selectedNodeDetails;
 };

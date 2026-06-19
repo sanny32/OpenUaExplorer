@@ -6,6 +6,8 @@
 /// \brief Unit tests for ConnectionController and OpcUaClientService using fake dependencies.
 ///
 
+#include <algorithm>
+
 #include <QHash>
 #include <QSignalSpy>
 #include <QTest>
@@ -14,6 +16,7 @@
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/opcuaclientservice.h"
+#include "opcua/recentconnectionstore.h"
 
 ///
 /// \brief In-memory OPC UA backend double that records calls and drives discovery manually.
@@ -138,14 +141,46 @@ public:
     {
         if (!saveSucceeds)
             return false;
-        storedProfiles = {profile};
+        remove(profile.id);
+        storedProfiles.append(profile);
         return true;
     }
 
-    bool remove(const QString &) override { return true; }
+    bool remove(const QString &id) override
+    {
+        storedProfiles.erase(std::remove_if(storedProfiles.begin(), storedProfiles.end(),
+                                            [&id](const ConnectionProfile &existing) {
+                                                return existing.id == id;
+                                            }),
+                             storedProfiles.end());
+        return true;
+    }
 
     bool saveSucceeds = true;
     QList<ConnectionProfile> storedProfiles;
+};
+
+///
+/// \brief Recent-connection store double that keeps the history in memory.
+///
+class FakeRecentStore : public RecentConnectionStore
+{
+public:
+    QList<ConnectionProfile> connections() const override { return recent; }
+
+    void record(const ConnectionProfile &profile) override
+    {
+        recent.erase(std::remove_if(recent.begin(), recent.end(),
+                                    [&profile](const ConnectionProfile &existing) {
+                                        return existing.endpointUrl == profile.endpointUrl;
+                                    }),
+                     recent.end());
+        recent.prepend(profile);
+        while (recent.size() > RecentConnectionStore::maximumSize)
+            recent.removeLast();
+    }
+
+    QList<ConnectionProfile> recent;
 };
 
 ///
@@ -162,6 +197,9 @@ private slots:
     void savedProfileLoadsBothSecrets();
     void discoveryFailureDoesNotConnect();
     void savePersistsProfileAndSecrets();
+    void savingSameEndpointReplacesFavorite();
+    void removeFavoriteDeletesProfileAndSecrets();
+    void connectingRecordsRecentConnection();
 };
 
 void TestConnectionController::serviceForwardsBackendState()
@@ -198,7 +236,8 @@ void TestConnectionController::savedProfileWithoutSecretsDiscoversThenConnects()
     OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
-    ConnectionController controller(&service, &secrets, &profiles);
+    FakeRecentStore recents;
+    ConnectionController controller(&service, &secrets, &profiles, &recents);
 
     ConnectionProfile profile;
     profile.id = QStringLiteral("anonymous");
@@ -221,7 +260,8 @@ void TestConnectionController::savedProfileLoadsBothSecrets()
     OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
-    ConnectionController controller(&service, &secrets, &profiles);
+    FakeRecentStore recents;
+    ConnectionController controller(&service, &secrets, &profiles, &recents);
 
     ConnectionProfile profile;
     profile.id = QStringLiteral("secured");
@@ -248,7 +288,8 @@ void TestConnectionController::discoveryFailureDoesNotConnect()
     OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
-    ConnectionController controller(&service, &secrets, &profiles);
+    FakeRecentStore recents;
+    ConnectionController controller(&service, &secrets, &profiles, &recents);
     QSignalSpy errorSpy(&controller, &ConnectionController::errorOccurred);
 
     ConnectionProfile profile;
@@ -267,7 +308,8 @@ void TestConnectionController::savePersistsProfileAndSecrets()
     OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
-    ConnectionController controller(&service, &secrets, &profiles);
+    FakeRecentStore recents;
+    ConnectionController controller(&service, &secrets, &profiles, &recents);
     QSignalSpy changedSpy(&controller, &ConnectionController::profilesChanged);
 
     ConnectionProfile profile;
@@ -283,6 +325,87 @@ void TestConnectionController::savePersistsProfileAndSecrets()
                  profile.id, SecretStore::Secret::PrivateKeyPassword)),
              QStringLiteral("key-password"));
     QCOMPARE(changedSpy.size(), 1);
+}
+
+void TestConnectionController::savingSameEndpointReplacesFavorite()
+{
+    FakeOpcUaBackend backend;
+    OpcUaClientService service(&backend);
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    ConnectionController controller(&service, &secrets, &profiles, &recents);
+
+    ConnectionProfile first;
+    first.id = QStringLiteral("first");
+    first.endpointUrl = QStringLiteral("opc.tcp://host:4840");
+    controller.saveProfile(first, QStringLiteral("pw1"), QString());
+
+    ConnectionProfile second;
+    second.id = QStringLiteral("second");
+    second.endpointUrl = QStringLiteral("opc.tcp://host:4840");
+    controller.saveProfile(second, QString(), QString());
+
+    QCOMPARE(profiles.storedProfiles.size(), 1);
+    QCOMPARE(profiles.storedProfiles.first().id, QStringLiteral("second"));
+    QVERIFY(!secrets.values.contains(
+        FakeSecretStore::key(QStringLiteral("first"), SecretStore::Secret::Password)));
+}
+
+void TestConnectionController::removeFavoriteDeletesProfileAndSecrets()
+{
+    FakeOpcUaBackend backend;
+    OpcUaClientService service(&backend);
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    ConnectionController controller(&service, &secrets, &profiles, &recents);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("fav");
+    profile.endpointUrl = QStringLiteral("opc.tcp://host:4840");
+    controller.saveProfile(profile, QStringLiteral("pw"), QString());
+    QCOMPARE(profiles.storedProfiles.size(), 1);
+
+    QSignalSpy changedSpy(&controller, &ConnectionController::profilesChanged);
+    controller.removeFavorite(QStringLiteral("opc.tcp://host:4840"));
+
+    QVERIFY(profiles.storedProfiles.isEmpty());
+    QVERIFY(!secrets.values.contains(
+        FakeSecretStore::key(QStringLiteral("fav"), SecretStore::Secret::Password)));
+    QCOMPARE(changedSpy.size(), 1);
+}
+
+void TestConnectionController::connectingRecordsRecentConnection()
+{
+    FakeOpcUaBackend backend;
+    OpcUaClientService service(&backend);
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    QSignalSpy recentsSpy(&controller, &ConnectionController::recentsChanged);
+
+    ConnectionProfile first;
+    first.id = QStringLiteral("a");
+    first.endpointUrl = QStringLiteral("opc.tcp://a:4840");
+    controller.connectNewProfile(first, QString(), QString());
+
+    ConnectionProfile second;
+    second.id = QStringLiteral("b");
+    second.endpointUrl = QStringLiteral("opc.tcp://b:4840");
+    controller.connectNewProfile(second, QString(), QString());
+
+    const QList<ConnectionProfile> recent = controller.recentConnections();
+    QCOMPARE(recent.size(), 2);
+    QCOMPARE(recent.first().endpointUrl, second.endpointUrl);
+    QCOMPARE(recent.last().endpointUrl, first.endpointUrl);
+    QCOMPARE(recentsSpy.size(), 2);
+
+    controller.connectNewProfile(first, QString(), QString());
+    const QList<ConnectionProfile> reordered = controller.recentConnections();
+    QCOMPARE(reordered.size(), 2);
+    QCOMPARE(reordered.first().endpointUrl, first.endpointUrl);
 }
 
 QTEST_GUILESS_MAIN(TestConnectionController)

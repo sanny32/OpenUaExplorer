@@ -1,4 +1,4 @@
-set(PROJECT_BETARELEASE "" CACHE STRING "Beta release suffix, e.g. beta1")
+set(PROJECT_PRERELEASE "" CACHE STRING "pre-release suffix, e.g. beta1, rc1")
 
 string(REPLACE "." ";" VERSION_LIST ${PROJECT_VERSION})
 list(GET VERSION_LIST 0 VERSION_MAJOR)
@@ -30,7 +30,7 @@ function(ouaexp_apply_project_version_suffix)
 
     if(DEFINED GIT_BRANCH AND "${GIT_BRANCH}" MATCHES "^(dev|release/.*)$")
         set(PROJECT_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}-dev" PARENT_SCOPE)
-    elseif(PROJECT_BETARELEASE)
-        set(PROJECT_VERSION "${PROJECT_VERSION}-${PROJECT_BETARELEASE}" PARENT_SCOPE)
+    elseif(PROJECT_PRERELEASE)
+        set(PROJECT_VERSION "${PROJECT_VERSION}-${PROJECT_PRERELEASE}" PARENT_SCOPE)
     endif()
 endfunction()

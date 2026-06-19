@@ -26,6 +26,8 @@ add_library(ouaexp_core STATIC
     opcua/opcuatypes.h
     opcua/pkimanager.cpp
     opcua/pkimanager.h
+    opcua/recentconnectionstore.cpp
+    opcua/recentconnectionstore.h
     opcua/qtopcuabackend.cpp
     opcua/qtopcuabackend.h
     opcua/secretstore.cpp

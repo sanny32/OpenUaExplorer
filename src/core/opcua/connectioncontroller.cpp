@@ -3,17 +3,22 @@
 
 #include "connectioncontroller.h"
 
+#include <QDateTime>
+
 #include "connectionprofilestore.h"
 #include "opcuaclientservice.h"
+#include "recentconnectionstore.h"
 
 ///
-/// \brief Constructs the controller owning freshly created client, secret, and profile stores.
+/// \brief Constructs the controller owning freshly created client, secret, profile,
+///        and recent-connection stores.
 /// \param parent Owning QObject.
 ///
 ConnectionController::ConnectionController(QObject *parent)
     : ConnectionController(new OpcUaClientService,
                            new SecretStore,
                            new ConnectionProfileStore,
+                           new RecentConnectionStore,
                            parent)
 {
     _clientService->setParent(this);
@@ -26,21 +31,25 @@ ConnectionController::ConnectionController(QObject *parent)
 /// \param clientService OPC UA client service.
 /// \param secretStore Secret store for profile passwords.
 /// \param profileStore Persistent profile store.
+/// \param recentStore Persistent recent-connection store.
 /// \param parent Owning QObject.
 ///
 ConnectionController::ConnectionController(OpcUaClientService *clientService,
                                            SecretStore *secretStore,
                                            ConnectionProfileStore *profileStore,
+                                           RecentConnectionStore *recentStore,
                                            QObject *parent)
     : QObject(parent)
     , _clientService(clientService)
     , _secretStore(secretStore)
     , _profileStore(profileStore)
+    , _recentStore(recentStore)
     , _ownsDependencies(false)
 {
     Q_ASSERT(_clientService);
     Q_ASSERT(_secretStore);
     Q_ASSERT(_profileStore);
+    Q_ASSERT(_recentStore);
     connect(_secretStore, &SecretStore::readFinished,
             this, &ConnectionController::handleSecretRead);
     connect(_clientService, &OpcUaClientService::endpointsDiscovered,
@@ -48,12 +57,14 @@ ConnectionController::ConnectionController(OpcUaClientService *clientService,
 }
 
 ///
-/// \brief Destroys the controller, deleting the profile store only when it was self-created.
+/// \brief Destroys the controller, deleting the owned stores only when self-created.
 ///
 ConnectionController::~ConnectionController()
 {
-    if (_ownsDependencies)
+    if (_ownsDependencies) {
         delete _profileStore;
+        delete _recentStore;
+    }
 }
 
 ///
@@ -72,6 +83,15 @@ OpcUaClientService *ConnectionController::clientService() const
 QList<ConnectionProfile> ConnectionController::profiles() const
 {
     return _profileStore->profiles();
+}
+
+///
+/// \brief Returns the most recent connections, most-recent first.
+/// \return Recent connection profiles.
+///
+QList<ConnectionProfile> ConnectionController::recentConnections() const
+{
+    return _recentStore->connections();
 }
 
 ///
@@ -104,6 +124,9 @@ void ConnectionController::connectNewProfile(const ConnectionProfile &profile,
 {
     _waitingForDiscovery = false;
     _activeProfile = profile;
+    _recentStore->record(profile);
+    emit recentsChanged();
+    touchFavorite(profile);
     _clientService->connectToEndpoint(profile, password, privateKeyPassword);
 }
 
@@ -118,6 +141,10 @@ void ConnectionController::connectSavedProfile(const ConnectionProfile &profile)
     _pendingPrivateKeyPassword.clear();
     _pendingSecretReads = 0;
     _waitingForDiscovery = false;
+
+    _recentStore->record(profile);
+    emit recentsChanged();
+    touchFavorite(profile);
 
     const bool needsPassword =
         profile.authentication == ConnectionProfile::Authentication::Username;
@@ -145,6 +172,12 @@ void ConnectionController::saveProfile(const ConnectionProfile &profile,
                                        const QString &password,
                                        const QString &privateKeyPassword)
 {
+    const QList<ConnectionProfile> existing = _profileStore->profiles();
+    for (const ConnectionProfile &other : existing) {
+        if (other.endpointUrl == profile.endpointUrl && other.id != profile.id)
+            forgetProfile(other.id);
+    }
+
     if (!_profileStore->save(profile)) {
         emit errorOccurred(tr("Could not save the connection profile."));
         return;
@@ -156,6 +189,55 @@ void ConnectionController::saveProfile(const ConnectionProfile &profile,
                             privateKeyPassword);
     }
     emit profilesChanged();
+}
+
+///
+/// \brief Removes any saved profile matching an endpoint URL, along with its secrets.
+/// \param endpointUrl Endpoint URL whose favourites should be removed.
+///
+void ConnectionController::removeFavorite(const QString &endpointUrl)
+{
+    bool removed = false;
+    const QList<ConnectionProfile> existing = _profileStore->profiles();
+    for (const ConnectionProfile &profile : existing) {
+        if (profile.endpointUrl == endpointUrl) {
+            forgetProfile(profile.id);
+            removed = true;
+        }
+    }
+    if (removed)
+        emit profilesChanged();
+}
+
+///
+/// \brief Deletes a stored profile and its secrets without emitting change notifications.
+/// \param id Profile identifier.
+///
+void ConnectionController::forgetProfile(const QString &id)
+{
+    _profileStore->remove(id);
+    _secretStore->remove(id, SecretStore::Secret::Password);
+    _secretStore->remove(id, SecretStore::Secret::PrivateKeyPassword);
+}
+
+///
+/// \brief Stamps the matching saved favourite with the current time as its last use.
+/// \param profile Profile being connected; matched against favourites by endpoint URL.
+///
+void ConnectionController::touchFavorite(const ConnectionProfile &profile)
+{
+    if (profile.endpointUrl.isEmpty())
+        return;
+
+    const QList<ConnectionProfile> existing = _profileStore->profiles();
+    for (ConnectionProfile favorite : existing) {
+        if (favorite.endpointUrl != profile.endpointUrl)
+            continue;
+        favorite.lastUsed = QDateTime::currentDateTime();
+        if (_profileStore->save(favorite))
+            emit profilesChanged();
+        break;
+    }
 }
 
 ///

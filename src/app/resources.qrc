@@ -85,5 +85,7 @@
         <file alias="icons/dark/copy.svg">res/icons/dark/copy.svg</file>
         <file alias="icons/light/clear.svg">res/icons/light/clear.svg</file>
         <file alias="icons/dark/clear.svg">res/icons/dark/clear.svg</file>
+        <file alias="icons/light/star.svg">res/icons/light/star.svg</file>
+        <file alias="icons/dark/star.svg">res/icons/dark/star.svg</file>
     </qresource>
 </RCC>

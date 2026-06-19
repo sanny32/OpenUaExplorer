@@ -45,6 +45,9 @@ QList<ConnectionProfile> ConnectionProfileStore::profiles() const
             settings.value(QStringLiteral("secureChannelLifetimeMs"), 600000).toInt();
         profile.endpointTimeoutMs = settings.value(QStringLiteral("endpointTimeoutMs"), 10000).toInt();
         profile.requestTimeoutMs = settings.value(QStringLiteral("requestTimeoutMs"), 15000).toInt();
+        const qint64 lastUsedMs = settings.value(QStringLiteral("lastUsed"), 0).toLongLong();
+        if (lastUsedMs > 0)
+            profile.lastUsed = QDateTime::fromMSecsSinceEpoch(lastUsedMs);
         profile.saveProfile = true;
         settings.endGroup();
         result.append(profile);
@@ -81,6 +84,8 @@ bool ConnectionProfileStore::save(const ConnectionProfile &profile)
     settings.setValue(QStringLiteral("secureChannelLifetimeMs"), profile.secureChannelLifetimeMs);
     settings.setValue(QStringLiteral("endpointTimeoutMs"), profile.endpointTimeoutMs);
     settings.setValue(QStringLiteral("requestTimeoutMs"), profile.requestTimeoutMs);
+    settings.setValue(QStringLiteral("lastUsed"),
+                      profile.lastUsed.isValid() ? profile.lastUsed.toMSecsSinceEpoch() : 0);
     settings.endGroup();
     settings.endGroup();
     settings.sync();

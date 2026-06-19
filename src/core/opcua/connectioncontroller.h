@@ -12,6 +12,7 @@
 class CertificateTrustDecider;
 class ConnectionProfileStore;
 class OpcUaClientService;
+class RecentConnectionStore;
 
 ///
 /// \brief Coordinates discovery, secret loading, and persistence for connection profiles.
@@ -32,11 +33,13 @@ public:
     /// \param clientService OPC UA client service.
     /// \param secretStore Secret store for profile passwords.
     /// \param profileStore Persistent profile store.
+    /// \param recentStore Persistent recent-connection store.
     /// \param parent Owning QObject.
     ///
     ConnectionController(OpcUaClientService *clientService,
                          SecretStore *secretStore,
                          ConnectionProfileStore *profileStore,
+                         RecentConnectionStore *recentStore,
                          QObject *parent = nullptr);
 
     ///
@@ -55,6 +58,12 @@ public:
     /// \return All persisted profiles.
     ///
     QList<ConnectionProfile> profiles() const;
+
+    ///
+    /// \brief Returns the most recent connections, most-recent first.
+    /// \return Recent connection profiles.
+    ///
+    QList<ConnectionProfile> recentConnections() const;
 
     ///
     /// \brief Returns the profile of the current or most recent connection attempt.
@@ -94,11 +103,22 @@ public:
                      const QString &password,
                      const QString &privateKeyPassword);
 
+    ///
+    /// \brief Removes any saved profile matching an endpoint URL, along with its secrets.
+    /// \param endpointUrl Endpoint URL whose favourites should be removed.
+    ///
+    void removeFavorite(const QString &endpointUrl);
+
 signals:
     ///
     /// \brief Emitted when the set of saved profiles changes.
     ///
     void profilesChanged();
+
+    ///
+    /// \brief Emitted when the list of recent connections changes.
+    ///
+    void recentsChanged();
 
     ///
     /// \brief Emitted when an operation fails.
@@ -113,10 +133,13 @@ private slots:
 
 private:
     void discoverPendingProfile();
+    void forgetProfile(const QString &id);
+    void touchFavorite(const ConnectionProfile &profile);
 
     OpcUaClientService *_clientService;
     SecretStore *_secretStore;
     ConnectionProfileStore *_profileStore;
+    RecentConnectionStore *_recentStore;
     bool _ownsDependencies;
     ConnectionProfile _activeProfile;
     ConnectionProfile _pendingProfile;
