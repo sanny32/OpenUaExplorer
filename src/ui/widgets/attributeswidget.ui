@@ -52,29 +52,13 @@
       </item>
       <item>
        <widget class="QLineEdit" name="valueEdit">
-        <property name="text">
-         <string>23.45</string>
+        <property name="clearButtonEnabled">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="typeCombo">
-        <item>
-         <property name="text">
-          <string>Double</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Boolean</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>UInt32</string>
-         </property>
-        </item>
-       </widget>
+       <widget class="QComboBox" name="typeCombo"/>
       </item>
       <item>
        <widget class="ThemedPushButton" name="writeButton">

@@ -172,4 +172,13 @@ bool attributeAppliesToNodeClass(QOpcUa::NodeAttribute attribute,
 ///
 QOpcUa::Types valueTypeForDataType(const QString &nodeId);
 
+///
+/// \brief Converts text to a typed scalar, range-checking integral types.
+/// \param text Source text.
+/// \param type Target OPC UA value type.
+/// \param ok Receives the conversion status; must not be null.
+/// \return Converted scalar, or an invalid variant on failure.
+///
+QVariant scalarFromText(const QString &text, QOpcUa::Types type, bool *ok);
+
 } // namespace OpcUaFormat

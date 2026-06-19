@@ -61,9 +61,22 @@ public:
     ///
     void restoreViewState(AppSettings &settings);
 
+signals:
+    ///
+    /// \brief Emitted when the user writes a value to the selected node.
+    /// \param nodeId Node to write.
+    /// \param value Converted value.
+    /// \param valueType Selected QOpcUa::Types numeric value.
+    ///
+    void writeRequested(const QString &nodeId, const QVariant &value, int valueType);
+
 private:
     void setupAttributesView();
+    void setupWriteEditor(int valueType);
+    void clearWriteEditor();
+    void writeCurrentValue();
 
     Ui::AttributesWidget *ui;
     AttributesModel      *_model;
+    QString               _nodeId;
 };
