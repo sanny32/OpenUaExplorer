@@ -11,6 +11,7 @@
 #include <QMenu>
 #include <QPushButton>
 
+#include "appsettings.h"
 #include "dataaccesswidget.h"
 #include "headerview.h"
 #include "models/dataaccessmodel.h"
@@ -60,6 +61,41 @@ DataAccessWidget::~DataAccessWidget()
 void DataAccessWidget::setCurrentPage(Page page)
 {
     ui->mainTabs->setCurrentIndex(static_cast<int>(page));
+}
+
+///
+/// \brief Returns the currently visible tab index.
+/// \return Index of the active page.
+///
+int DataAccessWidget::currentPage() const
+{
+    return ui->mainTabs->currentIndex();
+}
+
+///
+/// \brief Persists the header state of the data, subscriptions, events, and history views.
+/// \param settings Settings store to write to.
+///
+void DataAccessWidget::saveViewState(AppSettings &settings) const
+{
+    settings.setViewState(ui->dataView->objectName(), ui->dataView->headerView()->saveLayout());
+    settings.setViewState(ui->subscriptionsTable->objectName(),
+                          ui->subscriptionsTable->headerView()->saveLayout());
+    settings.setViewState(ui->eventsTable->objectName(), ui->eventsTable->headerView()->saveLayout());
+    settings.setViewState(ui->historyTable->objectName(), ui->historyTable->headerView()->saveLayout());
+}
+
+///
+/// \brief Restores the header state of the data, subscriptions, events, and history views.
+/// \param settings Settings store to read from.
+///
+void DataAccessWidget::restoreViewState(AppSettings &settings)
+{
+    ui->dataView->headerView()->restoreLayout(settings.viewState(ui->dataView->objectName()));
+    ui->subscriptionsTable->headerView()->restoreLayout(
+        settings.viewState(ui->subscriptionsTable->objectName()));
+    ui->eventsTable->headerView()->restoreLayout(settings.viewState(ui->eventsTable->objectName()));
+    ui->historyTable->headerView()->restoreLayout(settings.viewState(ui->historyTable->objectName()));
 }
 
 ///

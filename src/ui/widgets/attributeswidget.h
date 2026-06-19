@@ -16,6 +16,7 @@ namespace Ui {
 class AttributesWidget;
 }
 
+class AppSettings;
 class AttributesModel;
 
 ///
@@ -47,6 +48,18 @@ public:
     /// \brief Clears the attributes view.
     ///
     void clear();
+
+    ///
+    /// \brief Persists the attributes tree header state.
+    /// \param settings Settings store to write to.
+    ///
+    void saveViewState(AppSettings &settings) const;
+
+    ///
+    /// \brief Restores the attributes tree header state.
+    /// \param settings Settings store to read from.
+    ///
+    void restoreViewState(AppSettings &settings);
 
 private:
     void setupAttributesView();

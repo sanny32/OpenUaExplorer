@@ -202,13 +202,49 @@ void AppTheme::toggle()
     default:
         break;
     }
+
+    AppSettings().setThemeMode(_scheme == ColorScheme::Dark
+        ? AppSettings::ThemeMode::Dark : AppSettings::ThemeMode::Light);
 }
 
 ///
-/// \brief Applies the startup color scheme from the portal, Qt API, or light fallback.
+/// \brief Applies and persists a color-scheme preference chosen by the user.
+/// \param mode Light or Dark to override, or System to follow the platform.
+///
+void AppTheme::setColorSchemePreference(AppSettings::ThemeMode mode)
+{
+    AppSettings().setThemeMode(mode);
+
+    switch (mode) {
+    case AppSettings::ThemeMode::Light:
+        _manualSchemeOverriden = true;
+        applyColorScheme(ColorScheme::Light);
+        break;
+    case AppSettings::ThemeMode::Dark:
+        _manualSchemeOverriden = true;
+        applyColorScheme(ColorScheme::Dark);
+        break;
+    case AppSettings::ThemeMode::System:
+        _manualSchemeOverriden = false;
+        applyInitialScheme();
+        break;
+    }
+}
+
+///
+/// \brief Applies the startup color scheme from the saved preference, portal, Qt API, or light fallback.
 ///
 void AppTheme::applyInitialScheme()
 {
+    const AppSettings::ThemeMode preference = AppSettings().themeMode();
+    if (preference != AppSettings::ThemeMode::System && colorSchemeAvailable()) {
+        _manualToggleSupported = true;
+        _manualSchemeOverriden = true;
+        applyColorScheme(preference == AppSettings::ThemeMode::Dark
+            ? ColorScheme::Dark : ColorScheme::Light);
+        return;
+    }
+
     if (applyPortalColorScheme())
         return;
 

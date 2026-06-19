@@ -17,6 +17,7 @@ namespace Ui {
 class LogWidget;
 }
 
+class AppSettings;
 class LogModel;
 class ThemedAction;
 
@@ -44,6 +45,18 @@ public:
     /// \param item Log entry to add.
     ///
     void addItem(const LogItem &item);
+
+    ///
+    /// \brief Persists the log table header state.
+    /// \param settings Settings store to write to.
+    ///
+    void saveViewState(AppSettings &settings) const;
+
+    ///
+    /// \brief Restores the log table header state.
+    /// \param settings Settings store to read from.
+    ///
+    void restoreViewState(AppSettings &settings);
 
 protected:
     void changeEvent(QEvent *event) override;

@@ -6,12 +6,19 @@
 /// \brief Implements the custom wrapped header view.
 ///
 
+#include <QDataStream>
+#include <QIODevice>
 #include <QPainter>
 #include <QRegularExpression>
 #include <QStyle>
 #include <QStyleOptionHeader>
 
 #include "headerview.h"
+
+namespace {
+constexpr quint32 headerLayoutMagic = 0x4F554148; // "OUAH"
+constexpr quint16 headerLayoutVersion = 1;
+}
 
 ///
 /// \brief Constructs the header and clamps sections to their wrapped minimum width.
@@ -71,6 +78,57 @@ void HeaderView::setSectionAlignment(int logicalIndex, Qt::Alignment alignment)
     _sectionAlignments[logicalIndex] = alignment;
     headerDataChanged(orientation(), logicalIndex, logicalIndex);
     emit sectionAlignmentChanged(logicalIndex, alignment);
+}
+
+///
+/// \brief Serialises the base header state together with the per-section alignments.
+/// \return Opaque state blob suitable for restoreLayout().
+///
+QByteArray HeaderView::saveLayout() const
+{
+    QByteArray data;
+    QDataStream stream(&data, QIODevice::WriteOnly);
+    stream << headerLayoutMagic << headerLayoutVersion;
+    stream << QHeaderView::saveState();
+    stream << static_cast<quint32>(_alignment);
+    stream << static_cast<quint32>(_sectionAlignments.size());
+    for (auto it = _sectionAlignments.cbegin(); it != _sectionAlignments.cend(); ++it)
+        stream << static_cast<qint32>(it.key()) << static_cast<quint32>(it.value());
+    return data;
+}
+
+///
+/// \brief Restores the base header state and per-section alignments from a blob.
+/// \param state Blob produced by saveLayout().
+///
+void HeaderView::restoreLayout(const QByteArray &state)
+{
+    if (state.isEmpty())
+        return;
+
+    QDataStream stream(state);
+    quint32 magic = 0;
+    quint16 version = 0;
+    stream >> magic >> version;
+    if (magic != headerLayoutMagic || version != headerLayoutVersion)
+        return;
+
+    QByteArray baseState;
+    stream >> baseState;
+    QHeaderView::restoreState(baseState);
+
+    quint32 defaultAlignment = 0;
+    stream >> defaultAlignment;
+    _alignment = Qt::Alignment(defaultAlignment);
+
+    quint32 count = 0;
+    stream >> count;
+    for (quint32 i = 0; i < count; ++i) {
+        qint32 section = 0;
+        quint32 alignment = 0;
+        stream >> section >> alignment;
+        setSectionAlignment(section, Qt::Alignment(alignment));
+    }
 }
 
 ///

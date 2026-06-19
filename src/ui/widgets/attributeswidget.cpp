@@ -8,6 +8,7 @@
 
 #include <QHeaderView>
 
+#include "appsettings.h"
 #include "attributeswidget.h"
 #include "models/attributesmodel.h"
 #include "ui_attributeswidget.h"
@@ -49,6 +50,27 @@ void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
 void AttributesWidget::clear()
 {
     _model->clear();
+}
+
+///
+/// \brief Persists the attributes tree header state.
+/// \param settings Settings store to write to.
+///
+void AttributesWidget::saveViewState(AppSettings &settings) const
+{
+    settings.setViewState(ui->attributesTree->objectName(),
+                          ui->attributesTree->header()->saveState());
+}
+
+///
+/// \brief Restores the attributes tree header state.
+/// \param settings Settings store to read from.
+///
+void AttributesWidget::restoreViewState(AppSettings &settings)
+{
+    const QByteArray state = settings.viewState(ui->attributesTree->objectName());
+    if (!state.isEmpty())
+        ui->attributesTree->header()->restoreState(state);
 }
 
 ///

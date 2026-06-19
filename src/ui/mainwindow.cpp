@@ -7,17 +7,21 @@
 ///
 
 #include <QAction>
+#include <QCloseEvent>
 #include <QDockWidget>
 #include <QEvent>
 #include <QList>
 #include <QMenu>
 #include <QMessageBox>
+#include <QSplitter>
 
 #include "appicons.h"
 #include "application.h"
+#include "appsettings.h"
 #include "dialogs/certificatetrustdialog.h"
 #include "dialogs/dialogabout.h"
 #include "dialogs/connectiondialog.h"
+#include "dialogs/settingsdialog.h"
 #include "dialogs/writevaluedialog.h"
 #include "loggingcategories.h"
 #include "mainwindow.h"
@@ -28,6 +32,7 @@
 #include "widgets/addressspacewidget.h"
 #include "widgets/attributeswidget.h"
 #include "widgets/dataaccesswidget.h"
+#include "widgets/logwidget.h"
 
 
 ///
@@ -56,6 +61,7 @@ MainWindow::MainWindow(QWidget *parent)
     resetLayout();
     setupOpcUaClient();
     rebuildRecentConnections();
+    restoreSettings();
 }
 
 ///
@@ -77,6 +83,16 @@ void MainWindow::changeEvent(QEvent *event)
     if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
         setWindowIcon(AppIcons::themed("app.ico"));
     }
+}
+
+///
+/// \brief Persists the window layout and element state before the window closes.
+/// \param event Close event being handled.
+///
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    saveSettings();
+    QMainWindow::closeEvent(event);
 }
 
 ///
@@ -183,6 +199,14 @@ void MainWindow::on_actionAddToDataAccess_triggered()
 void MainWindow::on_actionExit_triggered()
 {
     close();
+}
+
+///
+/// \brief Opens the application settings dialog.
+///
+void MainWindow::on_actionSettings_triggered()
+{
+    openSettingsDialog();
 }
 
 ///
@@ -320,6 +344,16 @@ void MainWindow::openConnectionDialog()
 }
 
 ///
+/// \brief Opens the settings dialog and restores the default layout if requested.
+///
+void MainWindow::openSettingsDialog()
+{
+    SettingsDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted && dialog.layoutResetRequested())
+        resetLayout();
+}
+
+///
 /// \brief Initialises the view actions' checked state from the docks.
 ///
 void MainWindow::setupMainMenu()
@@ -362,6 +396,59 @@ void MainWindow::resetLayout()
     ui->actionViewAddressSpace->setChecked(true);
     ui->actionViewNodeDetails->setChecked(true);
     ui->actionViewActivity->setChecked(true);
+}
+
+///
+/// \brief Saves the window geometry, dock layout, splitter, page, and view element state.
+///
+void MainWindow::saveSettings()
+{
+    AppSettings settings;
+    settings.setWindowGeometry(saveGeometry());
+    settings.setWindowState(saveState());
+    settings.setCentralSplitterState(ui->centralSplitter->saveState());
+    settings.setDataAccessPage(ui->dataAccessWidget->currentPage());
+    ui->addressSpaceWidget->saveViewState(settings);
+    ui->attributesWidget->saveViewState(settings);
+    ui->dataAccessWidget->saveViewState(settings);
+    ui->logWidget->saveViewState(settings);
+}
+
+///
+/// \brief Restores the saved window layout and element state over the default layout.
+///
+/// Falls back to the default layout established by resetLayout() when nothing is
+/// stored or the user disabled layout restoration.
+///
+void MainWindow::restoreSettings()
+{
+    AppSettings settings;
+    if (!settings.restoreLayoutOnStartup())
+        return;
+
+    const QByteArray geometry = settings.windowGeometry();
+    if (!geometry.isEmpty())
+        restoreGeometry(geometry);
+
+    const QByteArray state = settings.windowState();
+    if (!state.isEmpty())
+        restoreState(state);
+
+    const QByteArray splitterState = settings.centralSplitterState();
+    if (!splitterState.isEmpty())
+        ui->centralSplitter->restoreState(splitterState);
+
+    ui->dataAccessWidget->setCurrentPage(
+        static_cast<DataAccessWidget::Page>(settings.dataAccessPage()));
+
+    ui->addressSpaceWidget->restoreViewState(settings);
+    ui->attributesWidget->restoreViewState(settings);
+    ui->dataAccessWidget->restoreViewState(settings);
+    ui->logWidget->restoreViewState(settings);
+
+    ui->actionViewAddressSpace->setChecked(!ui->addressSpaceDock->isHidden());
+    ui->actionViewNodeDetails->setChecked(!ui->nodeDetailsDock->isHidden());
+    ui->actionViewActivity->setChecked(!ui->logDock->isHidden());
 }
 
 ///

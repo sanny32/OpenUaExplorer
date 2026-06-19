@@ -21,9 +21,6 @@ int main(int argc, char *argv[])
         "qt.opcua.plugins.open62541.sdk.client.debug=false"));
 
     Application a(argc, argv);
-    a.setOrganizationName(APP_ORGANIZATION_NAME);
-    a.setApplicationName(APP_NAME);
-    a.setApplicationVersion(APP_VERSION);
 
     MainWindow window;
     window.show();

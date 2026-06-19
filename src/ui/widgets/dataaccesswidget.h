@@ -17,6 +17,7 @@ namespace Ui {
 class DataAccessWidget;
 }
 
+class AppSettings;
 class DataAccessModel;
 class SubscriptionsModel;
 class EventsModel;
@@ -56,6 +57,24 @@ public:
     /// \param page Page to show.
     ///
     void setCurrentPage(Page page);
+
+    ///
+    /// \brief Returns the currently visible tab index.
+    /// \return Index of the active page.
+    ///
+    int currentPage() const;
+
+    ///
+    /// \brief Persists the header state of the data, subscriptions, events, and history views.
+    /// \param settings Settings store to write to.
+    ///
+    void saveViewState(AppSettings &settings) const;
+
+    ///
+    /// \brief Restores the header state of the data, subscriptions, events, and history views.
+    /// \param settings Settings store to read from.
+    ///
+    void restoreViewState(AppSettings &settings);
 
     ///
     /// \brief Adds or updates a node row and shows the Data Access page.

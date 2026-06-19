@@ -56,6 +56,8 @@ add_library(ouaexp_ui STATIC
     dialogs/connectiondialog.h
     dialogs/dialogabout.cpp
     dialogs/dialogabout.h
+    dialogs/settingsdialog.cpp
+    dialogs/settingsdialog.h
     dialogs/writevaluedialog.cpp
     dialogs/writevaluedialog.h
 

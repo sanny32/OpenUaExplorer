@@ -38,6 +38,7 @@ public:
 
 protected:
     void changeEvent(QEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void on_actionNewConnection_triggered();
@@ -52,6 +53,7 @@ private slots:
     void on_actionWriteValue_triggered();
     void on_actionAddToDataAccess_triggered();
     void on_actionExit_triggered();
+    void on_actionSettings_triggered();
     void on_actionTheme_triggered();
     void on_actionAbout_triggered();
     void on_actionViewAddressSpace_toggled(bool checked);
@@ -68,9 +70,12 @@ private slots:
 
 private:
     void openConnectionDialog();
+    void openSettingsDialog();
     void setupMainMenu();
     void setupDockOptions();
     void resetLayout();
+    void saveSettings();
+    void restoreSettings();
     void bindIcons();
     void toggleTheme();
     void setupOpcUaClient();

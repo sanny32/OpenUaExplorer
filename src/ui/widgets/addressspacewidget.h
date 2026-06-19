@@ -21,6 +21,7 @@ namespace Ui {
 class AddressSpaceWidget;
 }
 
+class AppSettings;
 class AddressSpaceModel;
 class NodeInfoModel;
 class ReferencesModel;
@@ -92,6 +93,18 @@ public:
     /// \return Node details panel.
     ///
     QWidget *takeNodeDetailsPanel();
+
+    ///
+    /// \brief Persists the tree, node-info, and references header state.
+    /// \param settings Settings store to write to.
+    ///
+    void saveViewState(AppSettings &settings) const;
+
+    ///
+    /// \brief Restores the tree, node-info, and references header state.
+    /// \param settings Settings store to read from.
+    ///
+    void restoreViewState(AppSettings &settings);
 
 signals:
     ///

@@ -52,6 +52,18 @@ public:
     ///
     void setSectionAlignment(int logicalIndex, Qt::Alignment alignment);
 
+    ///
+    /// \brief Serialises the base header state together with the per-section alignments.
+    /// \return Opaque state blob suitable for restoreLayout().
+    ///
+    QByteArray saveLayout() const;
+
+    ///
+    /// \brief Restores the base header state and per-section alignments from a blob.
+    /// \param state Blob produced by saveLayout().
+    ///
+    void restoreLayout(const QByteArray &state);
+
 signals:
     ///
     /// \brief Emitted when a section's alignment changes.

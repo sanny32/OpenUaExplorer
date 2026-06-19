@@ -24,6 +24,7 @@
 #include <QTextStream>
 
 #include "appicons.h"
+#include "appsettings.h"
 #include "headerview.h"
 #include "loggingcategories.h"
 #include "logwidget.h"
@@ -198,6 +199,24 @@ void LogWidget::addItem(const LogItem &item)
         return;
     registerSource(item.source);
     _model->addItem(item);
+}
+
+///
+/// \brief Persists the log table header state.
+/// \param settings Settings store to write to.
+///
+void LogWidget::saveViewState(AppSettings &settings) const
+{
+    settings.setViewState(ui->logTable->objectName(), ui->logTable->headerView()->saveLayout());
+}
+
+///
+/// \brief Restores the log table header state.
+/// \param settings Settings store to read from.
+///
+void LogWidget::restoreViewState(AppSettings &settings)
+{
+    ui->logTable->headerView()->restoreLayout(settings.viewState(ui->logTable->objectName()));
 }
 
 ///

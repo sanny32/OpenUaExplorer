@@ -11,6 +11,8 @@
 #include <QObject>
 #include <QtGlobal>
 
+#include "appsettings.h"
+
 #ifdef HAS_QTDBUS
 #include <QDBusVariant>
 #endif
@@ -53,7 +55,13 @@ public:
     void toggle();
 
     ///
-    /// \brief Applies the startup color scheme from the portal, Qt API, or light fallback.
+    /// \brief Applies and persists a color-scheme preference chosen by the user.
+    /// \param mode Light or Dark to override, or System to follow the platform.
+    ///
+    void setColorSchemePreference(AppSettings::ThemeMode mode);
+
+    ///
+    /// \brief Applies the startup color scheme from the saved preference, portal, Qt API, or light fallback.
     ///
     void applyInitialScheme();
 

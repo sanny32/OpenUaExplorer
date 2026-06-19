@@ -12,6 +12,8 @@
 
 #include "addressspacewidget.h"
 #include "appicons.h"
+#include "appsettings.h"
+#include "headerview.h"
 #include "models/addressspacemodel.h"
 #include "models/nodeinfomodel.h"
 #include "models/referencesmodel.h"
@@ -161,6 +163,33 @@ QWidget *AddressSpaceWidget::takeNodeDetailsPanel()
     ui->nodeInfoPanel->setParent(nullptr);
     ui->splitter->setSizes({1});
     return ui->nodeInfoPanel;
+}
+
+///
+/// \brief Persists the tree, node-info, and references header state.
+/// \param settings Settings store to write to.
+///
+void AddressSpaceWidget::saveViewState(AppSettings &settings) const
+{
+    settings.setViewState(ui->addressTree->objectName(), ui->addressTree->header()->saveState());
+    settings.setViewState(ui->nodeInfoTable->objectName(),
+                          ui->nodeInfoTable->headerView()->saveLayout());
+    settings.setViewState(ui->referencesTable->objectName(),
+                          ui->referencesTable->headerView()->saveLayout());
+}
+
+///
+/// \brief Restores the tree, node-info, and references header state.
+/// \param settings Settings store to read from.
+///
+void AddressSpaceWidget::restoreViewState(AppSettings &settings)
+{
+    const QByteArray treeState = settings.viewState(ui->addressTree->objectName());
+    if (!treeState.isEmpty())
+        ui->addressTree->header()->restoreState(treeState);
+    ui->nodeInfoTable->headerView()->restoreLayout(settings.viewState(ui->nodeInfoTable->objectName()));
+    ui->referencesTable->headerView()->restoreLayout(
+        settings.viewState(ui->referencesTable->objectName()));
 }
 
 ///
