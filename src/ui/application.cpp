@@ -26,8 +26,8 @@ Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
     , _theme(this)
 {
-    setOrganizationName(QStringLiteral(APP_ORGANIZATION_NAME));
-    setApplicationName(QStringLiteral(APP_NAME));
+    setOrganizationName(QStringLiteral(APP_PRODUCT_NAME));
+    setApplicationName(QStringLiteral(APP_VERSION));
     setApplicationVersion(QStringLiteral(APP_VERSION));
 
 #if defined(HAVE_QLEMENTINE_APP_STYLE) && defined(Q_OS_MAC)
