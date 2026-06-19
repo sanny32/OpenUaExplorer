@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QColor>
+#include <QString>
 
 #include "appicons.h"
 
@@ -109,6 +110,119 @@ inline QColor statusWarning()
 inline QColor statusError()
 {
     return QColor(0xd13438);
+}
+
+///
+/// \brief Strong colour for prominent titles and headings.
+/// \return Theme-matching title colour.
+///
+inline QColor titleText()
+{
+    return AppIcons::isDarkTheme() ? QColor(0xffffff) : QColor(0x1a1a1a);
+}
+
+///
+/// \brief Muted colour for secondary descriptions and subtitles.
+/// \return Theme-matching secondary text colour.
+///
+inline QColor subtitleText()
+{
+    return AppIcons::isDarkTheme() ? QColor(0xb8b8b8) : QColor(0x6b7280);
+}
+
+///
+/// \brief Background fill for a warning notice banner.
+/// \return Theme-matching warning banner background.
+///
+inline QColor noticeWarningBackground()
+{
+    return AppIcons::isDarkTheme() ? QColor(0x24211a) : QColor(0xfdf4e7);
+}
+
+///
+/// \brief Border colour for a warning notice banner.
+/// \return Theme-matching warning banner border.
+///
+inline QColor noticeWarningBorder()
+{
+    return AppIcons::isDarkTheme() ? QColor(0x4a3920) : QColor(0xf3e2c2);
+}
+
+///
+/// \brief Translucent tint behind a warning notice icon.
+/// \return Amber tint with low alpha.
+///
+inline QColor noticeWarningIconTint()
+{
+    return QColor(0xf5, 0xb8, 0x2e, 31);
+}
+
+///
+/// \brief Background fill for a neutral notice banner.
+/// \return Theme-matching neutral banner background.
+///
+inline QColor noticeNeutralBackground()
+{
+    return AppIcons::isDarkTheme() ? QColor(0x222a33) : QColor(0xf1f5f9);
+}
+
+///
+/// \brief Border colour for a neutral notice banner.
+/// \return Theme-matching neutral banner border.
+///
+inline QColor noticeNeutralBorder()
+{
+    return AppIcons::isDarkTheme() ? QColor(0x36404c) : QColor(0xe2e8f0);
+}
+
+///
+/// \brief Translucent tint behind a neutral notice icon.
+/// \return Green tint with low alpha.
+///
+inline QColor noticeNeutralIconTint()
+{
+    return QColor(0x2e, 0x9e, 0x44, 31);
+}
+
+///
+/// \brief Background fill for an inline error badge.
+/// \return Theme-matching error badge background.
+///
+inline QColor errorBadgeBackground()
+{
+    return AppIcons::isDarkTheme() ? QColor(0x3a1f23) : QColor(0xfce9e9);
+}
+
+///
+/// \brief Border colour for an inline error badge.
+/// \return Theme-matching error badge border.
+///
+inline QColor errorBadgeBorder()
+{
+    return AppIcons::isDarkTheme() ? QColor(0x7a3038) : QColor(0xf4cdce);
+}
+
+///
+/// \brief Text colour for an inline error badge.
+/// \return Theme-matching error badge text colour.
+///
+inline QColor errorBadgeText()
+{
+    return AppIcons::isDarkTheme() ? QColor(0xff6b6b) : statusError();
+}
+
+///
+/// \brief Formats a colour as a Qt Style Sheet rgba() string, preserving alpha.
+/// \param color Colour to format.
+/// \return CSS rgba() literal.
+///
+inline QString toCss(const QColor &color)
+{
+    return QStringLiteral("rgba(%1, %2, %3, %4)")
+        .arg(color.red())
+        .arg(color.green())
+        .arg(color.blue())
+        .arg(QString::number(color.alphaF(), 'f', 3));
 }
 
 }

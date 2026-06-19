@@ -6,9 +6,9 @@
 /// \brief Implements the server certificate trust decision dialog.
 ///
 
-#include <QCryptographicHash>
 #include <QPushButton>
 
+#include "appcolors.h"
 #include "certificatetrustdialog.h"
 #include "ui_certificatetrustdialog.h"
 
@@ -21,6 +21,23 @@ CertificateTrustDialog::CertificateTrustDialog(QWidget *parent)
     , ui(new Ui::CertificateTrustDialog)
 {
     ui->setupUi(this);
+
+    ui->messageIcon->setIcon(QStringLiteral("alert-circle"), QSize(18, 18));
+
+    ui->headerTitle->setStyleSheet(QStringLiteral("font-size: 19px; font-weight: 700; color: %1;")
+        .arg(AppColors::titleText().name()));
+    ui->headerSubtitle->setStyleSheet(
+        QStringLiteral("color: %1;").arg(AppColors::subtitleText().name()));
+
+    ui->messageFrame->setStyleSheet(QStringLiteral(
+        "#messageFrame { background-color: %1; border: 1px solid %2; border-radius: 8px; }")
+        .arg(AppColors::errorBadgeBackground().name(), AppColors::errorBadgeBorder().name()));
+    ui->messageLabel->setStyleSheet(QStringLiteral(
+        "color: %1; font-weight: 600; background: transparent;")
+        .arg(AppColors::errorBadgeText().name()));
+
+    applyHeader(true);
+
     connect(ui->rejectButton, &QPushButton::clicked, this, [this]() {
         _decision = Reject;
         reject();
@@ -44,7 +61,7 @@ CertificateTrustDialog::~CertificateTrustDialog()
 }
 
 ///
-/// \brief Shows the certificate's fingerprint, size, and validation message.
+/// \brief Shows the certificate's parsed details and validation message.
 /// \param certificate DER-encoded certificate.
 /// \param message Validation error description.
 ///
@@ -52,10 +69,7 @@ void CertificateTrustDialog::setCertificate(const QByteArray &certificate,
                                              const QString &message)
 {
     ui->messageLabel->setText(message);
-    const QByteArray fingerprint =
-        QCryptographicHash::hash(certificate, QCryptographicHash::Sha256).toHex(':').toUpper();
-    ui->fingerprintEdit->setText(QString::fromLatin1(fingerprint));
-    ui->sizeLabel->setText(tr("%1 bytes").arg(certificate.size()));
+    ui->detailsWidget->setCertificate(certificate);
 }
 
 ///
@@ -68,6 +82,39 @@ void CertificateTrustDialog::setViewOnly(bool viewOnly)
     ui->trustPermanentlyButton->setVisible(!viewOnly);
     ui->rejectButton->setText(viewOnly ? tr("Close") : tr("Reject"));
     setWindowTitle(viewOnly ? tr("Server Certificate") : tr("Untrusted Server Certificate"));
+    applyHeader(!viewOnly);
+}
+
+///
+/// \brief Configures the header banner for an untrusted prompt or a plain view.
+/// \param untrusted True for the warning banner, false for a neutral header.
+///
+void CertificateTrustDialog::applyHeader(bool untrusted)
+{
+    ui->headerIcon->setIcon(untrusted ? QStringLiteral("shield-warning")
+                                       : QStringLiteral("shield-trusted"),
+                            QSize(52, 52));
+    ui->headerTitle->setText(untrusted ? tr("Untrusted Server Certificate")
+                                       : tr("Server Certificate"));
+    ui->headerSubtitle->setText(untrusted
+        ? tr("The server presented a certificate that this client does not yet "
+             "trust. Review the certificate details below before deciding whether "
+             "to trust it.")
+        : tr("Details of the server certificate are shown below."));
+    ui->messageFrame->setVisible(untrusted);
+
+    const QColor bannerBg = untrusted ? AppColors::noticeWarningBackground()
+                                      : AppColors::noticeNeutralBackground();
+    const QColor bannerBorder = untrusted ? AppColors::noticeWarningBorder()
+                                          : AppColors::noticeNeutralBorder();
+    const QColor iconTint = untrusted ? AppColors::noticeWarningIconTint()
+                                      : AppColors::noticeNeutralIconTint();
+    ui->headerFrame->setStyleSheet(QStringLiteral(
+        "#headerFrame { background-color: %1; border: 1px solid %2; border-radius: 12px; }")
+        .arg(bannerBg.name(), bannerBorder.name()));
+    ui->headerIcon->setStyleSheet(QStringLiteral(
+        "background-color: %1; border-radius: 38px; padding: 12px;")
+        .arg(AppColors::toCss(iconTint)));
 }
 
 ///

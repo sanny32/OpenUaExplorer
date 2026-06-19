@@ -62,6 +62,12 @@ public:
     Decision decision() const;
 
 private:
+    ///
+    /// \brief Configures the header banner for an untrusted prompt or a plain view.
+    /// \param untrusted True for the warning banner, false for a neutral header.
+    ///
+    void applyHeader(bool untrusted);
+
     Ui::CertificateTrustDialog *ui;
     Decision _decision = Reject;
 };

@@ -242,7 +242,7 @@ void CertificateDetailsWidget::setCertificate(const QByteArray &certificate,
     bool valid = false;
     QString statusText;
     if (info.status == CertificateInfo::Status::Valid) {
-        statusText = tr("Trusted");
+        statusText = tr("Valid");
         valid = true;
     } else if (info.status == CertificateInfo::Status::Expired) {
         statusText = tr("Expired");

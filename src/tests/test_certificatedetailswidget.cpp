@@ -112,7 +112,7 @@ void TestCertificateDetailsWidget::generatedCertificateFillsDetailsAndDetailsTex
     QVERIFY(serialNumberValue);
 
     QCOMPARE(widget.certificate(), certificate);
-    QCOMPARE(statusValue->text(), QStringLiteral("Trusted"));
+    QCOMPARE(statusValue->text(), QStringLiteral("Valid"));
     QCOMPARE(nameValue->text(), commonName);
     QCOMPARE(keySizeValue->text(), QStringLiteral("2048"));
     QVERIFY(!certificatePathValue->isHidden());
