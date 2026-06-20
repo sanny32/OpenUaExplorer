@@ -16,7 +16,7 @@ set(UI_FILES
     widgets/certificatesummarywidget.ui
     widgets/connectionstatuswidget.ui
     widgets/dataaccesswidget.ui
-    widgets/favoritespopover.ui
+    widgets/favoriteswidget.ui
     widgets/logwidget.ui
     widgets/mainstatusbarwidget.ui
     widgets/trendpanelwidget.ui
@@ -88,8 +88,8 @@ add_library(ouaexp_ui STATIC
     widgets/mainstatusbarwidget.h
     widgets/maintoolbar.cpp
     widgets/maintoolbar.h
-    widgets/favoritespopover.cpp
-    widgets/favoritespopover.h
+    widgets/favoriteswidget.cpp
+    widgets/favoriteswidget.h
     widgets/maintoolbutton.cpp
     widgets/maintoolbutton.h
     widgets/subscriptiondelegate.cpp

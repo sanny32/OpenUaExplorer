@@ -103,6 +103,6 @@ private:
     Ui::MainWindow *ui;
     class ConnectionController *_connectionController;
     class OpcUaClientService *_clientService;
-    class FavoritesPopover *_favoritesPopover = nullptr;
+    class FavoritesWidget *_favoritesWidget = nullptr;
     OpcUaNodeDetails _selectedNodeDetails;
 };

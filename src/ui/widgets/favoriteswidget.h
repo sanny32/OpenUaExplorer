@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file favoritespopover.h
-/// \brief Declares the favourites quick-connect popover.
+/// \file favoriteswidget.h
+/// \brief Declares the favourites quick-connect widget.
 ///
 
 #pragma once
@@ -14,32 +14,32 @@
 #include "opcua/connectionprofile.h"
 
 namespace Ui {
-class FavoritesPopover;
+class FavoritesWidget;
 }
 
 ///
 /// \brief Popup listing favourite servers as a searchable card list.
 ///
 /// Opens right-aligned beneath the toolbar's favourites button. Each card shows a saved
-/// server with its last-used time, a Connect action that opens the connection dialog
-/// pre-filled with that server, and a context menu to edit or remove it. A header
+/// server with its security policy and mode, a Connect action that connects to the server
+/// directly with the saved settings, and a context menu to edit or remove it. A header
 /// action adds the current connection to favourites.
 ///
-class FavoritesPopover : public QFrame
+class FavoritesWidget : public QFrame
 {
     Q_OBJECT
 
 public:
     ///
-    /// \brief Builds the popover from its generated UI and applies themed styling.
+    /// \brief Builds the widget from its generated UI and applies themed styling.
     /// \param parent Parent widget.
     ///
-    explicit FavoritesPopover(QWidget *parent = nullptr);
+    explicit FavoritesWidget(QWidget *parent = nullptr);
 
     ///
-    /// \brief Destroys the popover and its generated UI.
+    /// \brief Destroys the widget and its generated UI.
     ///
-    ~FavoritesPopover() override;
+    ~FavoritesWidget() override;
 
     ///
     /// \brief Replaces the displayed favourites, rebuilding the card list.
@@ -54,16 +54,16 @@ public:
     void setCanAddFavorite(bool enabled);
 
     ///
-    /// \brief Populates the favourites and shows the popover right-aligned under a widget.
+    /// \brief Populates the favourites and shows the widget right-aligned under a widget.
     /// \param favorites Saved connection profiles.
-    /// \param anchor Widget the popover is positioned beneath.
+    /// \param anchor Widget the popup is positioned beneath.
     ///
     void showFor(const QList<ConnectionProfile> &favorites, QWidget *anchor);
 
 signals:
     ///
     /// \brief Emitted when the user asks to connect to a favourite.
-    /// \param profile Favourite the connection dialog should be opened with.
+    /// \param profile Favourite to connect to with its saved settings.
     ///
     void connectRequested(const ConnectionProfile &profile);
 
@@ -88,8 +88,8 @@ private:
     void applyStyling();
     void rebuildList();
     QWidget *createCard(const ConnectionProfile &favorite);
-    static QString lastUsedText(const ConnectionProfile &favorite);
+    static QString securityText(const ConnectionProfile &favorite);
 
-    Ui::FavoritesPopover *ui;
+    Ui::FavoritesWidget *ui;
     QList<ConnectionProfile> _favorites;
 };

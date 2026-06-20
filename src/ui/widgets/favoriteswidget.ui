@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>FavoritesPopover</class>
- <widget class="QFrame" name="FavoritesPopover">
+ <class>FavoritesWidget</class>
+ <widget class="QFrame" name="FavoritesWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -130,7 +130,7 @@
         <x>0</x>
         <y>0</y>
         <width>431</width>
-        <height>76</height>
+        <height>112</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="listLayout">
@@ -165,30 +165,6 @@
       </layout>
      </widget>
     </widget>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="footerLayout">
-     <item>
-      <spacer name="footerSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="ThemedPushButton" name="closeButton">
-       <property name="text">
-        <string>Close</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
    </item>
   </layout>
  </widget>

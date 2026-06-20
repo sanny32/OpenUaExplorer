@@ -174,7 +174,6 @@ void ConnectionDialog::setupConnections()
             this, [this](int index) {
         resetDiscovery();
         _lastEnteredEndpointUrl = ui->discoveryUrlComboBox->itemText(index);
-        updateFavoriteState();
     });
     connect(ui->discoveryUrlComboBox->lineEdit(), &QLineEdit::textEdited,
             this, [this](const QString &text) {
@@ -283,7 +282,6 @@ ConnectionProfile ConnectionDialog::profile() const
     result.secureChannelLifetimeMs = ui->secureChannelLifetimeSpinBox->value();
     result.endpointTimeoutMs = ui->endpointTimeoutSpinBox->value();
     result.requestTimeoutMs = ui->requestTimeoutSpinBox->value();
-    result.saveProfile = ui->saveFavoriteCheckBox->isChecked();
     return result;
 }
 
@@ -294,7 +292,6 @@ ConnectionProfile ConnectionDialog::profile() const
 void ConnectionDialog::setFavorites(const QList<ConnectionProfile> &favorites)
 {
     _favorites = favorites;
-    updateFavoriteState();
 }
 
 ///
@@ -332,35 +329,6 @@ void ConnectionDialog::setProfile(const ConnectionProfile &profile)
         ui->requestTimeoutSpinBox->setValue(profile.requestTimeoutMs);
 
     updateAuthenticationFields();
-    updateFavoriteState();
-}
-
-///
-/// \brief Returns the endpoint URL the dialog would connect to with its current selection.
-/// \return Effective endpoint URL.
-///
-QString ConnectionDialog::currentEndpointUrl() const
-{
-    if (ui->endpointsWidget->hasSelection())
-        return ui->endpointsWidget->currentEndpoint().endpointUrl;
-    return ui->discoveryUrlComboBox->currentText();
-}
-
-///
-/// \brief Checks the favourite box when the current endpoint is already saved.
-///
-void ConnectionDialog::updateFavoriteState()
-{
-    const QString endpointUrl = currentEndpointUrl();
-    bool isFavorite = false;
-    for (const ConnectionProfile &favorite : _favorites) {
-        if (favorite.endpointUrl == endpointUrl) {
-            isFavorite = true;
-            break;
-        }
-    }
-    const QSignalBlocker blocker(ui->saveFavoriteCheckBox);
-    ui->saveFavoriteCheckBox->setChecked(isFavorite);
 }
 
 ///
@@ -464,7 +432,6 @@ void ConnectionDialog::updateEndpointSelection()
     ui->authenticationComboBox->setCurrentIndex(
         qBound(0, previousAuthentication, ui->authenticationComboBox->count() - 1));
     updateAuthenticationFields();
-    updateFavoriteState();
 }
 
 ///

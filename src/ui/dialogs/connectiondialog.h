@@ -86,7 +86,6 @@ private slots:
     void handleClientCertificateAction();
     void viewClientCertificateDetails();
     void viewServerCertificateDetails();
-    void updateFavoriteState();
     void validateAndAccept();
 
 private:
@@ -95,7 +94,6 @@ private:
     void setupControls();
     void setupConnections();
     int currentAuthentication() const;
-    QString currentEndpointUrl() const;
     void saveLastEndpointUrl();
     void resetDiscovery();
     void selectGeneratedClientCertificate();

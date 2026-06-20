@@ -35,7 +35,7 @@
 #include "widgets/addressspacewidget.h"
 #include "widgets/attributeswidget.h"
 #include "widgets/dataaccesswidget.h"
-#include "widgets/favoritespopover.h"
+#include "widgets/favoriteswidget.h"
 #include "widgets/logwidget.h"
 #include "widgets/maintoolbar.h"
 #include "widgets/themedtoolbutton.h"
@@ -340,17 +340,21 @@ void MainWindow::openConnectionDialog(const ConnectionProfile *preset)
 {
     ConnectionDialog dialog(this);
     dialog.setClientService(_clientService);
-    dialog.setFavorites(_connectionController->profiles());
+    const QList<ConnectionProfile> favorites = _connectionController->profiles();
+    dialog.setFavorites(favorites);
     if (preset)
         dialog.setProfile(*preset);
     if (dialog.exec() != QDialog::Accepted)
         return;
     const ConnectionProfile profile = dialog.profile();
-    if (profile.saveProfile) {
+    // Update the favourite when this endpoint is already saved; otherwise just connect.
+    const bool isFavorite = std::any_of(
+        favorites.cbegin(), favorites.cend(), [&profile](const ConnectionProfile &favorite) {
+            return favorite.endpointUrl == profile.endpointUrl;
+        });
+    if (isFavorite) {
         _connectionController->saveProfile(
             profile, dialog.password(), dialog.privateKeyPassword());
-    } else {
-        _connectionController->removeFavorite(profile.endpointUrl);
     }
     _connectionController->connectNewProfile(
         profile, dialog.password(), dialog.privateKeyPassword());
@@ -508,20 +512,22 @@ void MainWindow::setupOpcUaClient()
     connect(_connectionController, &ConnectionController::recentsChanged,
             this, &MainWindow::rebuildRecentConnections);
 
-    _favoritesPopover = new FavoritesPopover(this);
-    connect(_favoritesPopover, &FavoritesPopover::connectRequested,
+    _favoritesWidget = new FavoritesWidget(this);
+    connect(_favoritesWidget, &FavoritesWidget::connectRequested,
+            this, [this](const ConnectionProfile &profile) {
+        _connectionController->connectSavedProfile(profile);
+    });
+    connect(_favoritesWidget, &FavoritesWidget::editRequested,
             this, [this](const ConnectionProfile &profile) { openConnectionDialog(&profile); });
-    connect(_favoritesPopover, &FavoritesPopover::editRequested,
-            this, [this](const ConnectionProfile &profile) { openConnectionDialog(&profile); });
-    connect(_favoritesPopover, &FavoritesPopover::removeRequested,
+    connect(_favoritesWidget, &FavoritesWidget::removeRequested,
             this, [this](const QString &endpointUrl) {
         _connectionController->removeFavorite(endpointUrl);
     });
-    connect(_favoritesPopover, &FavoritesPopover::addFavoriteRequested,
+    connect(_favoritesWidget, &FavoritesWidget::addFavoriteRequested,
             this, &MainWindow::addCurrentToFavorites);
     connect(_connectionController, &ConnectionController::profilesChanged, this, [this] {
-        if (_favoritesPopover->isVisible())
-            _favoritesPopover->setFavorites(_connectionController->profiles());
+        if (_favoritesWidget->isVisible())
+            _favoritesWidget->setFavorites(_connectionController->profiles());
     });
     connect(ui->mainToolBar->favoritesButton(), &QToolButton::clicked,
             this, &MainWindow::openFavorites);
@@ -713,7 +719,7 @@ void MainWindow::rebuildRecentConnections()
 }
 
 ///
-/// \brief Opens the favourites popover beneath the toolbar button.
+/// \brief Opens the favourites widget beneath the toolbar button.
 ///
 void MainWindow::openFavorites()
 {
@@ -724,8 +730,8 @@ void MainWindow::openFavorites()
         profiles.cbegin(), profiles.cend(), [&activeUrl](const ConnectionProfile &profile) {
             return profile.endpointUrl == activeUrl;
         });
-    _favoritesPopover->setCanAddFavorite(connected && !activeUrl.isEmpty() && !alreadyFavorite);
-    _favoritesPopover->showFor(profiles, ui->mainToolBar->favoritesButton());
+    _favoritesWidget->setCanAddFavorite(connected && !activeUrl.isEmpty() && !alreadyFavorite);
+    _favoritesWidget->showFor(profiles, ui->mainToolBar->favoritesButton());
 }
 
 ///
