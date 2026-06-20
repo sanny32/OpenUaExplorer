@@ -87,6 +87,7 @@ signals:
 private:
     void applyStyling();
     void rebuildList();
+    void adjustListHeight();
     QWidget *createCard(const ConnectionProfile &favorite);
     static QString securityText(const ConnectionProfile &favorite);
 

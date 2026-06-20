@@ -21,9 +21,9 @@
 #include "ui_favoriteswidget.h"
 
 namespace {
-constexpr int popoverWidth = 560;
+constexpr int widgetWidth = 560;
 constexpr int titleBudget = 320;
-constexpr int maxVisibleCards = 5;
+constexpr int maxVisibleCards = 8;
 }
 
 ///
@@ -112,28 +112,8 @@ void FavoritesWidget::setCanAddFavorite(bool enabled)
 ///
 void FavoritesWidget::showFor(const QList<ConnectionProfile> &favorites, QWidget *anchor)
 {
+    setFixedWidth(widgetWidth);
     setFavorites(favorites);
-
-    setFixedWidth(popoverWidth);
-    adjustSize();
-
-    // Cap the scroll area so it never shows more than maxVisibleCards before scrolling.
-    int cardHeight = 0;
-    for (int i = 0; i < ui->listLayout->count(); ++i) {
-        if (QWidget *card = ui->listLayout->itemAt(i)->widget())
-            cardHeight = qMax(cardHeight, card->sizeHint().height());
-    }
-    if (cardHeight > 0) {
-        const int spacing = ui->listLayout->spacing();
-        const int maxListHeight =
-            maxVisibleCards * cardHeight + (maxVisibleCards - 1) * spacing;
-        ui->scrollArea->setMaximumHeight(maxListHeight);
-    } else {
-        ui->scrollArea->setMaximumHeight(QWIDGETSIZE_MAX);
-    }
-
-    adjustSize();
-    resize(popoverWidth, qBound(220, height(), 520));
 
     if (anchor) {
         const QPoint bottomRight = anchor->mapToGlobal(QPoint(anchor->width(), anchor->height()));
@@ -175,6 +155,35 @@ void FavoritesWidget::rebuildList()
         ++shown;
     }
     ui->emptyLabel->setVisible(shown == 0);
+    adjustListHeight();
+}
+
+///
+/// \brief Sizes the scroll area to the visible cards so the widget tracks the favourite count.
+///
+/// The area is fixed to exactly the shown cards, capped at maxVisibleCards, beyond which it
+/// scrolls. It is hidden entirely when there are no cards so only the empty hint remains.
+///
+void FavoritesWidget::adjustListHeight()
+{
+    ui->listContainer->adjustSize();
+
+    int cardHeight = 0;
+    int cardCount = 0;
+    for (int i = 0; i < ui->listLayout->count(); ++i) {
+        if (QWidget *card = ui->listLayout->itemAt(i)->widget()) {
+            cardHeight = qMax(cardHeight, card->sizeHint().height());
+            ++cardCount;
+        }
+    }
+
+    if (cardCount > 0) {
+        const int spacing = ui->listLayout->spacing();
+        const int visible = qMin(cardCount, maxVisibleCards);
+        ui->scrollArea->setFixedHeight(visible * cardHeight + (visible - 1) * spacing);
+    }
+    ui->scrollArea->setVisible(cardCount > 0);
+    adjustSize();
 }
 
 ///
