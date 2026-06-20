@@ -104,10 +104,10 @@ public:
                      const QString &privateKeyPassword);
 
     ///
-    /// \brief Removes any saved profile matching an endpoint URL, along with its secrets.
-    /// \param endpointUrl Endpoint URL whose favourites should be removed.
+    /// \brief Removes the saved favourite with the given id, along with its secrets.
+    /// \param id Identifier of the favourite to remove.
     ///
-    void removeFavorite(const QString &endpointUrl);
+    void removeFavorite(const QString &id);
 
 signals:
     ///

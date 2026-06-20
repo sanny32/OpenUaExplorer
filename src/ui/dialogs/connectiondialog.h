@@ -45,12 +45,6 @@ public:
     void setClientService(class OpcUaClientService *service);
 
     ///
-    /// \brief Supplies the saved favourites so the dialog can reflect and update them.
-    /// \param favorites Saved connection profiles.
-    ///
-    void setFavorites(const QList<ConnectionProfile> &favorites);
-
-    ///
     /// \brief Pre-fills the dialog from a saved profile so a favourite opens ready to connect.
     /// \param profile Profile whose endpoint, authentication, and timeouts are applied.
     ///
@@ -105,7 +99,7 @@ private:
     Ui::ConnectionDialog *ui;
     class OpcUaClientService *_service = nullptr;
     EndpointHistoryStore _endpointHistoryStore;
-    QList<ConnectionProfile> _favorites;
+    QString _presetId;
     bool _connectAfterDiscovery = false;
     QString _lastEnteredEndpointUrl;
     QString _clientCertificateFile;

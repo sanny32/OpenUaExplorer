@@ -75,9 +75,9 @@ signals:
 
     ///
     /// \brief Emitted when the user removes a favourite.
-    /// \param endpointUrl Endpoint URL of the favourite to remove.
+    /// \param id Identifier of the favourite to remove.
     ///
-    void removeRequested(const QString &endpointUrl);
+    void removeRequested(const QString &id);
 
     ///
     /// \brief Emitted when the user adds the current connection to favourites.

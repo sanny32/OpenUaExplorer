@@ -198,6 +198,7 @@ private slots:
     void discoveryFailureDoesNotConnect();
     void savePersistsProfileAndSecrets();
     void savingSameEndpointReplacesFavorite();
+    void savingSameEndpointDifferentSecurityKeepsBoth();
     void removeFavoriteDeletesProfileAndSecrets();
     void connectingRecordsRecentConnection();
 };
@@ -339,17 +340,47 @@ void TestConnectionController::savingSameEndpointReplacesFavorite()
     ConnectionProfile first;
     first.id = QStringLiteral("first");
     first.endpointUrl = QStringLiteral("opc.tcp://host:4840");
+    first.securityPolicy = QStringLiteral("Basic256Sha256");
+    first.securityMode = 3;
     controller.saveProfile(first, QStringLiteral("pw1"), QString());
 
     ConnectionProfile second;
     second.id = QStringLiteral("second");
     second.endpointUrl = QStringLiteral("opc.tcp://host:4840");
+    second.securityPolicy = QStringLiteral("Basic256Sha256");
+    second.securityMode = 3;
     controller.saveProfile(second, QString(), QString());
 
     QCOMPARE(profiles.storedProfiles.size(), 1);
     QCOMPARE(profiles.storedProfiles.first().id, QStringLiteral("second"));
     QVERIFY(!secrets.values.contains(
         FakeSecretStore::key(QStringLiteral("first"), SecretStore::Secret::Password)));
+}
+
+void TestConnectionController::savingSameEndpointDifferentSecurityKeepsBoth()
+{
+    FakeOpcUaBackend backend;
+    OpcUaClientService service(&backend);
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    ConnectionController controller(&service, &secrets, &profiles, &recents);
+
+    ConnectionProfile signEncrypt;
+    signEncrypt.id = QStringLiteral("sign-encrypt");
+    signEncrypt.endpointUrl = QStringLiteral("opc.tcp://host:4840");
+    signEncrypt.securityPolicy = QStringLiteral("Basic256Sha256");
+    signEncrypt.securityMode = 3;
+    controller.saveProfile(signEncrypt, QString(), QString());
+
+    ConnectionProfile sign;
+    sign.id = QStringLiteral("sign");
+    sign.endpointUrl = QStringLiteral("opc.tcp://host:4840");
+    sign.securityPolicy = QStringLiteral("Aes128_Sha256_RsaOaep");
+    sign.securityMode = 2;
+    controller.saveProfile(sign, QString(), QString());
+
+    QCOMPARE(profiles.storedProfiles.size(), 2);
 }
 
 void TestConnectionController::removeFavoriteDeletesProfileAndSecrets()
@@ -368,7 +399,7 @@ void TestConnectionController::removeFavoriteDeletesProfileAndSecrets()
     QCOMPARE(profiles.storedProfiles.size(), 1);
 
     QSignalSpy changedSpy(&controller, &ConnectionController::profilesChanged);
-    controller.removeFavorite(QStringLiteral("opc.tcp://host:4840"));
+    controller.removeFavorite(QStringLiteral("fav"));
 
     QVERIFY(profiles.storedProfiles.isEmpty());
     QVERIFY(!secrets.values.contains(

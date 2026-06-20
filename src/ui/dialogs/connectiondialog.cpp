@@ -253,7 +253,9 @@ void ConnectionDialog::setClientService(OpcUaClientService *service)
 ConnectionProfile ConnectionDialog::profile() const
 {
     ConnectionProfile result;
-    result.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    result.id = _presetId.isEmpty()
+        ? QUuid::createUuid().toString(QUuid::WithoutBraces)
+        : _presetId;
     if (ui->endpointsWidget->hasSelection()) {
         const EndpointInfo endpoint = ui->endpointsWidget->currentEndpoint();
         result.name = endpoint.endpointUrl;
@@ -265,12 +267,6 @@ ConnectionProfile ConnectionDialog::profile() const
         result.endpointUrl = result.name;
         result.securityPolicy = QStringLiteral("None");
         result.securityMode = 1;
-    }
-    for (const ConnectionProfile &favorite : _favorites) {
-        if (favorite.endpointUrl == result.endpointUrl) {
-            result.id = favorite.id;
-            break;
-        }
     }
     result.authentication =
         static_cast<ConnectionProfile::Authentication>(currentAuthentication());
@@ -286,23 +282,15 @@ ConnectionProfile ConnectionDialog::profile() const
 }
 
 ///
-/// \brief Supplies the saved favourites so the dialog can reflect and update them.
-/// \param favorites Saved connection profiles.
-///
-void ConnectionDialog::setFavorites(const QList<ConnectionProfile> &favorites)
-{
-    _favorites = favorites;
-}
-
-///
 /// \brief Pre-fills the dialog from a saved profile so a favourite opens ready to connect.
-/// \param profile Profile whose endpoint, authentication, and timeouts are applied.
+/// \param profile Profile whose id, endpoint, authentication, and timeouts are applied.
 ///
 void ConnectionDialog::setProfile(const ConnectionProfile &profile)
 {
     if (profile.endpointUrl.isEmpty())
         return;
 
+    _presetId = profile.id;
     resetDiscovery();
     _lastEnteredEndpointUrl = profile.endpointUrl;
     {

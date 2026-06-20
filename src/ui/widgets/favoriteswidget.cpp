@@ -217,7 +217,7 @@ QWidget *FavoritesWidget::createCard(const ConnectionProfile &favorite)
             emit editRequested(favorite);
             close();
         } else if (chosen == removeAction) {
-            emit removeRequested(favorite.endpointUrl);
+            emit removeRequested(favorite.id);
         }
     });
 

@@ -340,19 +340,20 @@ void MainWindow::openConnectionDialog(const ConnectionProfile *preset)
 {
     ConnectionDialog dialog(this);
     dialog.setClientService(_clientService);
-    const QList<ConnectionProfile> favorites = _connectionController->profiles();
-    dialog.setFavorites(favorites);
     if (preset)
         dialog.setProfile(*preset);
     if (dialog.exec() != QDialog::Accepted)
         return;
-    const ConnectionProfile profile = dialog.profile();
-    // Update the favourite when this endpoint is already saved; otherwise just connect.
-    const bool isFavorite = std::any_of(
-        favorites.cbegin(), favorites.cend(), [&profile](const ConnectionProfile &favorite) {
-            return favorite.endpointUrl == profile.endpointUrl;
+
+    // Editing an existing favourite saves the changes back to it; a plain connect does not
+    // touch favourites, so reconnecting a server with different security never overwrites it.
+    const QList<ConnectionProfile> favorites = _connectionController->profiles();
+    const bool editingFavorite = preset && std::any_of(
+        favorites.cbegin(), favorites.cend(), [preset](const ConnectionProfile &favorite) {
+            return favorite.id == preset->id;
         });
-    if (isFavorite) {
+    const ConnectionProfile profile = dialog.profile();
+    if (editingFavorite) {
         _connectionController->saveProfile(
             profile, dialog.password(), dialog.privateKeyPassword());
     }
@@ -520,8 +521,8 @@ void MainWindow::setupOpcUaClient()
     connect(_favoritesWidget, &FavoritesWidget::editRequested,
             this, [this](const ConnectionProfile &profile) { openConnectionDialog(&profile); });
     connect(_favoritesWidget, &FavoritesWidget::removeRequested,
-            this, [this](const QString &endpointUrl) {
-        _connectionController->removeFavorite(endpointUrl);
+            this, [this](const QString &id) {
+        _connectionController->removeFavorite(id);
     });
     connect(_favoritesWidget, &FavoritesWidget::addFavoriteRequested,
             this, &MainWindow::addCurrentToFavorites);
@@ -724,13 +725,18 @@ void MainWindow::rebuildRecentConnections()
 void MainWindow::openFavorites()
 {
     const QList<ConnectionProfile> profiles = _connectionController->profiles();
-    const QString activeUrl = _connectionController->activeProfile().endpointUrl;
+    const ConnectionProfile active = _connectionController->activeProfile();
     const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
+    // The same server may be saved with different security, so a connection only counts as
+    // already favourited when its endpoint, policy, and mode all match a saved profile.
     const bool alreadyFavorite = std::any_of(
-        profiles.cbegin(), profiles.cend(), [&activeUrl](const ConnectionProfile &profile) {
-            return profile.endpointUrl == activeUrl;
+        profiles.cbegin(), profiles.cend(), [&active](const ConnectionProfile &profile) {
+            return profile.endpointUrl == active.endpointUrl
+                && profile.securityPolicy == active.securityPolicy
+                && profile.securityMode == active.securityMode;
         });
-    _favoritesWidget->setCanAddFavorite(connected && !activeUrl.isEmpty() && !alreadyFavorite);
+    _favoritesWidget->setCanAddFavorite(
+        connected && !active.endpointUrl.isEmpty() && !alreadyFavorite);
     _favoritesWidget->showFor(profiles, ui->mainToolBar->favoritesButton());
 }
 

@@ -3,11 +3,30 @@
 
 #include "connectioncontroller.h"
 
+#include <algorithm>
+
 #include <QDateTime>
 
 #include "connectionprofilestore.h"
 #include "opcuaclientservice.h"
 #include "recentconnectionstore.h"
+
+namespace {
+
+///
+/// \brief Tests whether two profiles describe the same favourite endpoint.
+///
+/// A favourite is identified by its endpoint URL together with the security policy and
+/// mode, so the same server can be saved several times with different security settings.
+///
+bool sameEndpoint(const ConnectionProfile &lhs, const ConnectionProfile &rhs)
+{
+    return lhs.endpointUrl == rhs.endpointUrl
+        && lhs.securityPolicy == rhs.securityPolicy
+        && lhs.securityMode == rhs.securityMode;
+}
+
+}
 
 ///
 /// \brief Constructs the controller owning freshly created client, secret, profile,
@@ -174,7 +193,7 @@ void ConnectionController::saveProfile(const ConnectionProfile &profile,
 {
     const QList<ConnectionProfile> existing = _profileStore->profiles();
     for (const ConnectionProfile &other : existing) {
-        if (other.endpointUrl == profile.endpointUrl && other.id != profile.id)
+        if (other.id != profile.id && sameEndpoint(other, profile))
             forgetProfile(other.id);
     }
 
@@ -192,21 +211,19 @@ void ConnectionController::saveProfile(const ConnectionProfile &profile,
 }
 
 ///
-/// \brief Removes any saved profile matching an endpoint URL, along with its secrets.
-/// \param endpointUrl Endpoint URL whose favourites should be removed.
+/// \brief Removes the saved favourite with the given id, along with its secrets.
+/// \param id Identifier of the favourite to remove.
 ///
-void ConnectionController::removeFavorite(const QString &endpointUrl)
+void ConnectionController::removeFavorite(const QString &id)
 {
-    bool removed = false;
     const QList<ConnectionProfile> existing = _profileStore->profiles();
-    for (const ConnectionProfile &profile : existing) {
-        if (profile.endpointUrl == endpointUrl) {
-            forgetProfile(profile.id);
-            removed = true;
-        }
-    }
-    if (removed)
-        emit profilesChanged();
+    const bool present = std::any_of(
+        existing.cbegin(), existing.cend(),
+        [&id](const ConnectionProfile &profile) { return profile.id == id; });
+    if (!present)
+        return;
+    forgetProfile(id);
+    emit profilesChanged();
 }
 
 ///
@@ -231,7 +248,7 @@ void ConnectionController::touchFavorite(const ConnectionProfile &profile)
 
     const QList<ConnectionProfile> existing = _profileStore->profiles();
     for (ConnectionProfile favorite : existing) {
-        if (favorite.endpointUrl != profile.endpointUrl)
+        if (!sameEndpoint(favorite, profile))
             continue;
         favorite.lastUsed = QDateTime::currentDateTime();
         if (_profileStore->save(favorite))
