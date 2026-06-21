@@ -105,8 +105,15 @@ protected:
     ///
     bool eventFilter(QObject *watched, QEvent *event) override;
 
+    ///
+    /// \brief Re-applies theme-aware styling and icons when the palette changes.
+    /// \param event Change event being handled.
+    ///
+    void changeEvent(QEvent *event) override;
+
 private:
     void applyStyling();
+    void updateDropIndicatorStyle();
     void rebuildList();
     void adjustListHeight();
     QWidget *createCard(const ConnectionProfile &favorite);
@@ -122,6 +129,7 @@ private:
     Ui::FavoritesWidget *ui;
     QList<ConnectionProfile> _favorites;
 
+    bool _refreshingTheme = false;
     QWidget *_dropIndicator = nullptr;
     QPoint _dragStartPos;
     QString _dragId;

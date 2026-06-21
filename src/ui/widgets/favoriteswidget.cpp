@@ -25,6 +25,7 @@
 #include "appicons.h"
 #include "favoriteswidget.h"
 #include "coloredpushbutton.h"
+#include "themedaction.h"
 #include "ui_favoriteswidget.h"
 
 namespace {
@@ -64,7 +65,7 @@ FavoritesWidget::FavoritesWidget(QWidget *parent)
     applyStyling();
 
     ui->starIcon->setIcon(QStringLiteral("star"), QSize(20, 20));
-    ui->searchEdit->addAction(AppIcons::themed(QStringLiteral("search")),
+    ui->searchEdit->addAction(new ThemedAction(QStringLiteral("search"), QString(), ui->searchEdit),
                               QLineEdit::LeadingPosition);
     connect(ui->searchEdit, &QLineEdit::textChanged, this, [this] { rebuildList(); });
     connect(ui->addButton, &QPushButton::clicked, this, &FavoritesWidget::addFavoriteRequested);
@@ -74,8 +75,7 @@ FavoritesWidget::FavoritesWidget(QWidget *parent)
     ui->listContainer->installEventFilter(this);
     _dropIndicator = new QWidget(ui->listContainer);
     _dropIndicator->setFixedHeight(2);
-    _dropIndicator->setStyleSheet(
-        QStringLiteral("background: %1; border-radius: 1px;").arg(AppColors::accent().name()));
+    updateDropIndicatorStyle();
     _dropIndicator->hide();
 }
 
@@ -116,6 +116,36 @@ void FavoritesWidget::applyStyling()
              AppColors::toCss(AppColors::noticeNeutralBorder()),
              AppColors::toCss(AppColors::noticeNeutralBorder()),
              AppColors::hint().name()));
+}
+
+///
+/// \brief Styles the drop indicator line with the current accent colour.
+///
+void FavoritesWidget::updateDropIndicatorStyle()
+{
+    _dropIndicator->setStyleSheet(
+        QStringLiteral("background: %1; border-radius: 1px;").arg(AppColors::accent().name()));
+}
+
+///
+/// \brief Re-applies theme-aware styling and icons when the palette changes.
+/// \param event Change event being handled.
+///
+void FavoritesWidget::changeEvent(QEvent *event)
+{
+    QFrame::changeEvent(event);
+
+    // applyStyling() calls setStyleSheet(), which itself posts a PaletteChange back to this
+    // widget; the guard breaks that re-entrancy from turning into infinite recursion.
+    if (!_refreshingTheme
+        && (event->type() == QEvent::PaletteChange
+            || event->type() == QEvent::ApplicationPaletteChange)) {
+        _refreshingTheme = true;
+        applyStyling();
+        updateDropIndicatorStyle();
+        rebuildList();
+        _refreshingTheme = false;
+    }
 }
 
 ///
