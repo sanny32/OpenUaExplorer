@@ -7,6 +7,7 @@
 ///
 
 #include <algorithm>
+#include <functional>
 #include <memory>
 
 #include <QCoreApplication>
@@ -84,6 +85,27 @@ QString connectionStepName(QOpcUaErrorState::ConnectionStep step)
         return QtOpcUaBackend::tr("Activate session");
     }
     return QtOpcUaBackend::tr("Step %1").arg(static_cast<int>(step));
+}
+
+///
+/// \brief Maps browse reference descriptions to the backend's node-info records.
+/// \param references References returned by a browse request.
+/// \return Node-info records carrying the identity and class of each reference target.
+///
+QVector<OpcUaNodeInfo> toNodeInfos(const QVector<QOpcUaReferenceDescription> &references)
+{
+    QVector<OpcUaNodeInfo> nodes;
+    nodes.reserve(references.size());
+    for (const QOpcUaReferenceDescription &reference : references) {
+        OpcUaNodeInfo info;
+        info.nodeId = reference.targetNodeId().nodeId();
+        info.browseName = reference.browseName().name();
+        info.displayName = reference.displayName().text();
+        info.referenceTypeId = reference.refTypeId();
+        info.nodeClass = static_cast<int>(reference.nodeClass());
+        nodes.append(info);
+    }
+    return nodes;
 }
 
 } // namespace
@@ -422,6 +444,54 @@ public:
         return details;
     }
 
+    ///
+    /// \brief Wires the shared lifecycle of a single-node request: completion guard, timeout, cleanup.
+    /// \param node Freshly created node the request runs on; deleted on every settle path.
+    /// \param counter Operation generation counter that supersedes earlier requests of the same kind.
+    /// \param timeoutMs Request timeout in milliseconds (floored at 1000).
+    /// \param signal Node completion signal to await.
+    /// \param onFinished Success handler, run once while the request is still current.
+    /// \param start Starts the underlying request; returns false when the backend rejects it.
+    /// \param onTimeout Failure emitter used when the request times out.
+    /// \param onRejected Failure emitter used when \a start is rejected.
+    ///
+    /// The generation snapshot makes stale completions (after a reconnect or a newer request)
+    /// no-ops, so each request settles exactly once.
+    ///
+    template <typename Signal, typename Finished, typename Start>
+    void runNodeRequest(QOpcUaNode *node, quint64 *counter, int timeoutMs, Signal signal,
+                        Finished onFinished, Start start,
+                        const std::function<void()> &onTimeout,
+                        const std::function<void()> &onRejected)
+    {
+        const quint64 requestGeneration = generation;
+        const quint64 operationGeneration = ++(*counter);
+        QObject::connect(node, signal, q,
+                         [this, node, counter, requestGeneration, operationGeneration, onFinished]
+                         (auto &&...args) {
+            if (requestGeneration != generation || operationGeneration != *counter) {
+                node->deleteLater();
+                return;
+            }
+            ++(*counter);
+            onFinished(std::forward<decltype(args)>(args)...);
+            node->deleteLater();
+        });
+        QTimer::singleShot(qMax(1000, timeoutMs), q,
+                           [node, counter, operationGeneration, onTimeout]() {
+            if (operationGeneration != *counter)
+                return;
+            ++(*counter);
+            node->deleteLater();
+            onTimeout();
+        });
+        if (!start()) {
+            ++(*counter);
+            node->deleteLater();
+            onRejected();
+        }
+    }
+
     QtOpcUaBackend *q;
     OpcUaConnectionState currentState = OpcUaConnectionState::Disconnected;
     QString error;
@@ -656,50 +726,20 @@ void QtOpcUaBackend::browse(const QString &nodeId, int timeoutMs)
         emit browseFinished(nodeId, {}, tr("Could not create node %1.").arg(nodeId));
         return;
     }
-    const quint64 requestGeneration = _d->generation;
-    const quint64 operationGeneration = ++_d->browseGeneration;
-    QTimer::singleShot(qMax(1000, timeoutMs), this,
-                       [this, node, nodeId, operationGeneration]() {
-        if (operationGeneration != _d->browseGeneration)
-            return;
-        ++_d->browseGeneration;
-        node->deleteLater();
-        emit browseFinished(nodeId, {}, tr("Browse request timed out."));
-    });
-    connect(node, &QOpcUaNode::browseFinished, this,
-            [this, node, nodeId, requestGeneration, operationGeneration](
-                const QVector<QOpcUaReferenceDescription> &references,
-                QOpcUa::UaStatusCode status) {
-        QVector<OpcUaNodeInfo> children;
-        QString error;
-        if (requestGeneration != _d->generation
-            || operationGeneration != _d->browseGeneration) {
-            node->deleteLater();
-            return;
-        }
-        ++_d->browseGeneration;
-        if (QOpcUa::isSuccessStatus(status)) {
-            children.reserve(references.size());
-            for (const QOpcUaReferenceDescription &reference : references) {
-                OpcUaNodeInfo info;
-                info.nodeId = reference.targetNodeId().nodeId();
-                info.browseName = reference.browseName().name();
-                info.displayName = reference.displayName().text();
-                info.referenceTypeId = reference.refTypeId();
-                info.nodeClass = static_cast<int>(reference.nodeClass());
-                children.append(info);
-            }
-        } else {
-            error = tr("Browse failed for %1: %2").arg(nodeId, statusName(status));
-        }
-        emit browseFinished(nodeId, children, error);
-        node->deleteLater();
-    });
-    if (!node->browseChildren()) {
-        ++_d->browseGeneration;
-        node->deleteLater();
-        emit browseFinished(nodeId, {}, tr("The backend rejected the browse request."));
-    }
+    _d->runNodeRequest(node, &_d->browseGeneration, timeoutMs, &QOpcUaNode::browseFinished,
+        [this, nodeId](const QVector<QOpcUaReferenceDescription> &references,
+                       QOpcUa::UaStatusCode status) {
+            if (QOpcUa::isSuccessStatus(status))
+                emit browseFinished(nodeId, toNodeInfos(references), QString());
+            else
+                emit browseFinished(nodeId, {},
+                                    tr("Browse failed for %1: %2").arg(nodeId, statusName(status)));
+        },
+        [node]() { return node->browseChildren(); },
+        [this, nodeId]() { emit browseFinished(nodeId, {}, tr("Browse request timed out.")); },
+        [this, nodeId]() {
+            emit browseFinished(nodeId, {}, tr("The backend rejected the browse request."));
+        });
 }
 
 ///
@@ -726,51 +766,21 @@ void QtOpcUaBackend::browseReferences(const QString &nodeId, int timeoutMs)
     request.setReferenceTypeId(QOpcUa::ReferenceTypeId::References);
     request.setIncludeSubtypes(true);
 
-    const quint64 requestGeneration = _d->generation;
-    const quint64 operationGeneration = ++_d->referencesBrowseGeneration;
-    QTimer::singleShot(qMax(1000, timeoutMs), this,
-                       [this, node, nodeId, operationGeneration]() {
-        if (operationGeneration != _d->referencesBrowseGeneration)
-            return;
-        ++_d->referencesBrowseGeneration;
-        node->deleteLater();
-        emit referencesBrowseFinished(nodeId, {}, tr("Browse request timed out."));
-    });
-    connect(node, &QOpcUaNode::browseFinished, this,
-            [this, node, nodeId, requestGeneration, operationGeneration](
-                const QVector<QOpcUaReferenceDescription> &references,
-                QOpcUa::UaStatusCode status) {
-        QVector<OpcUaNodeInfo> nodes;
-        QString error;
-        if (requestGeneration != _d->generation
-            || operationGeneration != _d->referencesBrowseGeneration) {
-            node->deleteLater();
-            return;
-        }
-        ++_d->referencesBrowseGeneration;
-        if (QOpcUa::isSuccessStatus(status)) {
-            nodes.reserve(references.size());
-            for (const QOpcUaReferenceDescription &reference : references) {
-                OpcUaNodeInfo info;
-                info.nodeId = reference.targetNodeId().nodeId();
-                info.browseName = reference.browseName().name();
-                info.displayName = reference.displayName().text();
-                info.referenceTypeId = reference.refTypeId();
-                info.nodeClass = static_cast<int>(reference.nodeClass());
-                nodes.append(info);
-            }
-        } else {
-            error = tr("Browse failed for %1: %2").arg(nodeId, statusName(status));
-        }
-        emit referencesBrowseFinished(nodeId, nodes, error);
-        node->deleteLater();
-    });
-    if (!node->browse(request)) {
-        ++_d->referencesBrowseGeneration;
-        node->deleteLater();
-        emit referencesBrowseFinished(nodeId, {},
-                                      tr("The backend rejected the browse request."));
-    }
+    _d->runNodeRequest(node, &_d->referencesBrowseGeneration, timeoutMs,
+        &QOpcUaNode::browseFinished,
+        [this, nodeId](const QVector<QOpcUaReferenceDescription> &references,
+                       QOpcUa::UaStatusCode status) {
+            if (QOpcUa::isSuccessStatus(status))
+                emit referencesBrowseFinished(nodeId, toNodeInfos(references), QString());
+            else
+                emit referencesBrowseFinished(nodeId, {},
+                                              tr("Browse failed for %1: %2").arg(nodeId, statusName(status)));
+        },
+        [node, request]() { return node->browse(request); },
+        [this, nodeId]() { emit referencesBrowseFinished(nodeId, {}, tr("Browse request timed out.")); },
+        [this, nodeId]() {
+            emit referencesBrowseFinished(nodeId, {}, tr("The backend rejected the browse request."));
+        });
 }
 
 ///
@@ -807,33 +817,13 @@ void QtOpcUaBackend::readNode(const QString &nodeId, int timeoutMs)
         | QOpcUa::NodeAttribute::Historizing
         | QOpcUa::NodeAttribute::Executable
         | QOpcUa::NodeAttribute::UserExecutable;
-    const quint64 requestGeneration = _d->generation;
-    const quint64 operationGeneration = ++_d->nodeReadGeneration;
-    QTimer::singleShot(qMax(1000, timeoutMs), this,
-                       [this, node, operationGeneration]() {
-        if (operationGeneration != _d->nodeReadGeneration)
-            return;
-        ++_d->nodeReadGeneration;
-        node->deleteLater();
-        emit nodeDetailsReady({}, tr("Node read timed out."));
-    });
-    connect(node, &QOpcUaNode::attributeRead, this,
-            [this, node, nodeId, attributes, requestGeneration,
-             operationGeneration](QOpcUa::NodeAttributes) {
-        if (requestGeneration != _d->generation
-            || operationGeneration != _d->nodeReadGeneration) {
-            node->deleteLater();
-            return;
-        }
-        ++_d->nodeReadGeneration;
-        emit nodeDetailsReady(_d->buildNodeDetails(node, nodeId, attributes), QString());
-        node->deleteLater();
-    });
-    if (!node->readAttributes(attributes)) {
-        ++_d->nodeReadGeneration;
-        node->deleteLater();
-        emit nodeDetailsReady({}, tr("The backend rejected the read request."));
-    }
+    _d->runNodeRequest(node, &_d->nodeReadGeneration, timeoutMs, &QOpcUaNode::attributeRead,
+        [this, node, nodeId, attributes](QOpcUa::NodeAttributes) {
+            emit nodeDetailsReady(_d->buildNodeDetails(node, nodeId, attributes), QString());
+        },
+        [node, attributes]() { return node->readAttributes(attributes); },
+        [this]() { emit nodeDetailsReady({}, tr("Node read timed out.")); },
+        [this]() { emit nodeDetailsReady({}, tr("The backend rejected the read request.")); });
 }
 
 ///
@@ -1006,34 +996,15 @@ void QtOpcUaBackend::readServerSessionName(int timeoutMs)
         emit serverSessionNameResolved(QString());
         return;
     }
-    const quint64 requestGeneration = _d->generation;
-    const quint64 operationGeneration = ++_d->sessionNameReadGeneration;
-    QTimer::singleShot(qMax(1000, timeoutMs), this,
-                       [this, node, operationGeneration]() {
-        if (operationGeneration != _d->sessionNameReadGeneration)
-            return;
-        ++_d->sessionNameReadGeneration;
-        node->deleteLater();
-        emit serverSessionNameResolved(QString());
-    });
-    connect(node, &QOpcUaNode::attributeRead, this,
-            [this, node, requestGeneration, operationGeneration](QOpcUa::NodeAttributes) {
-        if (requestGeneration != _d->generation
-            || operationGeneration != _d->sessionNameReadGeneration) {
-            node->deleteLater();
-            return;
-        }
-        ++_d->sessionNameReadGeneration;
-        const QVariant value = node->valueAttribute();
-        node->deleteLater();
-        emit serverSessionNameResolved(
-            resolveOwnSessionName(value, PkiManager::applicationUri()));
-    });
-    if (!node->readAttributes(QOpcUa::NodeAttribute::Value)) {
-        ++_d->sessionNameReadGeneration;
-        node->deleteLater();
-        emit serverSessionNameResolved(QString());
-    }
+    _d->runNodeRequest(node, &_d->sessionNameReadGeneration, timeoutMs,
+        &QOpcUaNode::attributeRead,
+        [this, node](QOpcUa::NodeAttributes) {
+            emit serverSessionNameResolved(
+                resolveOwnSessionName(node->valueAttribute(), PkiManager::applicationUri()));
+        },
+        [node]() { return node->readAttributes(QOpcUa::NodeAttribute::Value); },
+        [this]() { emit serverSessionNameResolved(QString()); },
+        [this]() { emit serverSessionNameResolved(QString()); });
 }
 
 ///
