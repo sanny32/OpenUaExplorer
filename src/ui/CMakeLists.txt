@@ -8,6 +8,7 @@ set(UI_FILES
     dialogs/certificatetrustdialog.ui
     dialogs/connectiondialog.ui
     dialogs/dialogabout.ui
+    dialogs/editfavoritedialog.ui
     dialogs/writevaluedialog.ui
 
     widgets/addressspacewidget.ui
@@ -55,6 +56,8 @@ add_library(ouaexp_ui STATIC
     dialogs/connectiondialog.h
     dialogs/dialogabout.cpp
     dialogs/dialogabout.h
+    dialogs/editfavoritedialog.cpp
+    dialogs/editfavoritedialog.h
     dialogs/settingsdialog.cpp
     dialogs/settingsdialog.h
     dialogs/writevaluedialog.cpp

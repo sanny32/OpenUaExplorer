@@ -24,6 +24,7 @@
 #include "dialogs/certificatetrustdialog.h"
 #include "dialogs/dialogabout.h"
 #include "dialogs/connectiondialog.h"
+#include "dialogs/editfavoritedialog.h"
 #include "dialogs/settingsdialog.h"
 #include "dialogs/writevaluedialog.h"
 #include "loggingcategories.h"
@@ -519,7 +520,7 @@ void MainWindow::setupOpcUaClient()
         _connectionController->connectSavedProfile(profile);
     });
     connect(_favoritesWidget, &FavoritesWidget::editRequested,
-            this, [this](const ConnectionProfile &profile) { openConnectionDialog(&profile); });
+            this, &MainWindow::editFavorite);
     connect(_favoritesWidget, &FavoritesWidget::removeRequested,
             this, [this](const QString &id) {
         _connectionController->removeFavorite(id);
@@ -753,6 +754,19 @@ void MainWindow::addCurrentToFavorites()
     profile.saveProfile = true;
     profile.lastUsed = QDateTime::currentDateTime();
     _connectionController->saveProfile(profile, QString(), QString());
+}
+
+///
+/// \brief Edits a favourite's server URL and security policy/mode, saving the changes.
+/// \param favorite Favourite to edit.
+///
+void MainWindow::editFavorite(const ConnectionProfile &favorite)
+{
+    EditFavoriteDialog dialog(this);
+    dialog.setProfile(favorite);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    _connectionController->saveProfile(dialog.profile(), QString(), QString());
 }
 
 ///
