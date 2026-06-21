@@ -156,7 +156,17 @@ public:
         return true;
     }
 
+    bool setOrder(const QStringList &orderedIds) override
+    {
+        if (!setOrderSucceeds)
+            return false;
+        order = orderedIds;
+        return true;
+    }
+
     bool saveSucceeds = true;
+    bool setOrderSucceeds = true;
+    QStringList order;
     QList<ConnectionProfile> storedProfiles;
 };
 
@@ -200,6 +210,8 @@ private slots:
     void savingSameEndpointReplacesFavorite();
     void savingSameEndpointDifferentSecurityKeepsBoth();
     void removeFavoriteDeletesProfileAndSecrets();
+    void reorderFavoritesPersistsOrderAndNotifies();
+    void reorderFavoritesFailureReportsError();
     void connectingRecordsRecentConnection();
 };
 
@@ -405,6 +417,40 @@ void TestConnectionController::removeFavoriteDeletesProfileAndSecrets()
     QVERIFY(!secrets.values.contains(
         FakeSecretStore::key(QStringLiteral("fav"), SecretStore::Secret::Password)));
     QCOMPARE(changedSpy.size(), 1);
+}
+
+void TestConnectionController::reorderFavoritesPersistsOrderAndNotifies()
+{
+    FakeOpcUaBackend backend;
+    OpcUaClientService service(&backend);
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    QSignalSpy changedSpy(&controller, &ConnectionController::profilesChanged);
+
+    controller.reorderFavorites({QStringLiteral("b"), QStringLiteral("a")});
+
+    QCOMPARE(profiles.order, (QStringList{QStringLiteral("b"), QStringLiteral("a")}));
+    QCOMPARE(changedSpy.size(), 1);
+}
+
+void TestConnectionController::reorderFavoritesFailureReportsError()
+{
+    FakeOpcUaBackend backend;
+    OpcUaClientService service(&backend);
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    profiles.setOrderSucceeds = false;
+    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    QSignalSpy changedSpy(&controller, &ConnectionController::profilesChanged);
+    QSignalSpy errorSpy(&controller, &ConnectionController::errorOccurred);
+
+    controller.reorderFavorites({QStringLiteral("a")});
+
+    QCOMPARE(changedSpy.size(), 0);
+    QCOMPARE(errorSpy.size(), 1);
 }
 
 void TestConnectionController::connectingRecordsRecentConnection()

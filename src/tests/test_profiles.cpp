@@ -30,6 +30,9 @@ private slots:
     void removeUnknownIdIsNoOp();
     void allFieldsRoundTrip();
     void removingProfileClearsSettingsKeys();
+    void setOrderControlsProfileOrder();
+    void unorderedProfilesFollowOrderedOnes();
+    void removingProfilePrunesStoredOrder();
 
 private:
     static ConnectionProfile makeProfile(const QString &id, const QString &name);
@@ -213,6 +216,64 @@ void TestProfiles::removingProfileClearsSettingsKeys()
 
     QSettings settings;
     QVERIFY(settings.allKeys().filter(QStringLiteral("p1")).isEmpty());
+}
+
+///
+/// \brief setOrder() defines the sequence profiles() returns its entries in.
+///
+void TestProfiles::setOrderControlsProfileOrder()
+{
+    ConnectionProfileStore store;
+    QVERIFY(store.save(makeProfile(QStringLiteral("p1"), QStringLiteral("One"))));
+    QVERIFY(store.save(makeProfile(QStringLiteral("p2"), QStringLiteral("Two"))));
+    QVERIFY(store.save(makeProfile(QStringLiteral("p3"), QStringLiteral("Three"))));
+
+    QVERIFY(store.setOrder(
+        {QStringLiteral("p3"), QStringLiteral("p1"), QStringLiteral("p2")}));
+
+    QStringList ids;
+    for (const ConnectionProfile &profile : store.profiles())
+        ids.append(profile.id);
+    QCOMPARE(ids, (QStringList{QStringLiteral("p3"), QStringLiteral("p1"),
+                               QStringLiteral("p2")}));
+}
+
+///
+/// \brief Profiles missing from the order list keep their position and sort last.
+///
+void TestProfiles::unorderedProfilesFollowOrderedOnes()
+{
+    ConnectionProfileStore store;
+    QVERIFY(store.save(makeProfile(QStringLiteral("p1"), QStringLiteral("One"))));
+    QVERIFY(store.save(makeProfile(QStringLiteral("p2"), QStringLiteral("Two"))));
+    QVERIFY(store.save(makeProfile(QStringLiteral("p3"), QStringLiteral("Three"))));
+
+    // Only p3 and p1 are ordered; p2 represents a freshly added favourite.
+    QVERIFY(store.setOrder({QStringLiteral("p3"), QStringLiteral("p1")}));
+
+    const QList<ConnectionProfile> profiles = store.profiles();
+    QCOMPARE(profiles.size(), 3);
+    QCOMPARE(profiles.at(0).id, QStringLiteral("p3"));
+    QCOMPARE(profiles.at(1).id, QStringLiteral("p1"));
+    QCOMPARE(profiles.at(2).id, QStringLiteral("p2"));
+}
+
+///
+/// \brief Removing a profile drops its id from the stored order list.
+///
+void TestProfiles::removingProfilePrunesStoredOrder()
+{
+    ConnectionProfileStore store;
+    QVERIFY(store.save(makeProfile(QStringLiteral("p1"), QStringLiteral("One"))));
+    QVERIFY(store.save(makeProfile(QStringLiteral("p2"), QStringLiteral("Two"))));
+    QVERIFY(store.setOrder({QStringLiteral("p1"), QStringLiteral("p2")}));
+
+    QVERIFY(store.remove(QStringLiteral("p1")));
+
+    QSettings settings;
+    const QStringList order =
+        settings.value(QStringLiteral("opcua/favoritesOrder")).toStringList();
+    QCOMPARE(order, QStringList{QStringLiteral("p2")});
 }
 
 QTEST_MAIN(TestProfiles)
