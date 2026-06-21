@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QList>
+#include <QStringList>
 
 #include "connectionprofile.h"
 
@@ -42,4 +43,11 @@ public:
     /// \return True when the settings backend completed successfully.
     ///
     virtual bool remove(const QString &id);
+
+    ///
+    /// \brief Persists the favourites display order as a list of profile identifiers.
+    /// \param orderedIds Profile identifiers in their desired order.
+    /// \return True when the settings backend completed successfully.
+    ///
+    virtual bool setOrder(const QStringList &orderedIds);
 };

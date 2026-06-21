@@ -109,6 +109,12 @@ public:
     ///
     void removeFavorite(const QString &id);
 
+    ///
+    /// \brief Persists a new favourites display order, emitting profilesChanged() on success.
+    /// \param orderedIds Favourite identifiers in their desired order.
+    ///
+    void reorderFavorites(const QStringList &orderedIds);
+
 signals:
     ///
     /// \brief Emitted when the set of saved profiles changes.

@@ -227,6 +227,18 @@ void ConnectionController::removeFavorite(const QString &id)
 }
 
 ///
+/// \brief Persists a new favourites display order, emitting profilesChanged() on success.
+/// \param orderedIds Favourite identifiers in their desired order.
+///
+void ConnectionController::reorderFavorites(const QStringList &orderedIds)
+{
+    if (_profileStore->setOrder(orderedIds))
+        emit profilesChanged();
+    else
+        emit errorOccurred(tr("Could not save the favourites order."));
+}
+
+///
 /// \brief Deletes a stored profile and its secrets without emitting change notifications.
 /// \param id Profile identifier.
 ///

@@ -10,8 +10,14 @@
 
 #include <QFrame>
 #include <QList>
+#include <QPoint>
+#include <QString>
+#include <QStringList>
 
 #include "opcua/connectionprofile.h"
+
+class QEvent;
+class QObject;
 
 namespace Ui {
 class FavoritesWidget;
@@ -84,6 +90,21 @@ signals:
     ///
     void addFavoriteRequested();
 
+    ///
+    /// \brief Emitted when the user reorders favourites by dragging a card.
+    /// \param orderedIds Favourite identifiers in their new order.
+    ///
+    void reorderRequested(const QStringList &orderedIds);
+
+protected:
+    ///
+    /// \brief Drives card-drag initiation and list-container drop handling.
+    /// \param watched Object the event was sent to.
+    /// \param event Event being filtered.
+    /// \return True when the event is consumed.
+    ///
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private:
     void applyStyling();
     void rebuildList();
@@ -91,6 +112,17 @@ private:
     QWidget *createCard(const ConnectionProfile &favorite);
     static QString securityText(const ConnectionProfile &favorite);
 
+    bool draggingEnabled() const;
+    void startCardDrag(QWidget *card);
+    int dropIndexAt(int y) const;
+    void showDropIndicator(int index);
+    void hideDropIndicator();
+    void moveFavorite(const QString &id, int targetIndex);
+
     Ui::FavoritesWidget *ui;
     QList<ConnectionProfile> _favorites;
+
+    QWidget *_dropIndicator = nullptr;
+    QPoint _dragStartPos;
+    QString _dragId;
 };

@@ -6,11 +6,18 @@
 /// \brief Implements the favourites quick-connect widget.
 ///
 
+#include <QApplication>
+#include <QDrag>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
 #include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMimeData>
+#include <QMouseEvent>
 #include <QPushButton>
 #include <QVBoxLayout>
 
@@ -24,6 +31,25 @@ namespace {
 constexpr int widgetWidth = 560;
 constexpr int titleBudget = 320;
 constexpr int maxVisibleCards = 8;
+
+/// \brief Drag MIME type carrying the dragged favourite's identifier.
+const char favoriteMimeType[] = "application/x-ouaexp-favorite-id";
+
+/// \brief Property name attaching a favourite id to its card widget.
+const char favoriteIdProperty[] = "favoriteId";
+
+///
+/// \brief Returns a drag/drop/mouse event's position, bridging Qt 5 and Qt 6 APIs.
+///
+template <class Event>
+QPoint eventPosition(const Event *event)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    return event->position().toPoint();
+#else
+    return event->pos();
+#endif
+}
 }
 
 ///
@@ -42,6 +68,15 @@ FavoritesWidget::FavoritesWidget(QWidget *parent)
                               QLineEdit::LeadingPosition);
     connect(ui->searchEdit, &QLineEdit::textChanged, this, [this] { rebuildList(); });
     connect(ui->addButton, &QPushButton::clicked, this, &FavoritesWidget::addFavoriteRequested);
+
+    // The list container receives the dropped cards; a thin line previews the insert point.
+    ui->listContainer->setAcceptDrops(true);
+    ui->listContainer->installEventFilter(this);
+    _dropIndicator = new QWidget(ui->listContainer);
+    _dropIndicator->setFixedHeight(2);
+    _dropIndicator->setStyleSheet(
+        QStringLiteral("background: %1; border-radius: 1px;").arg(AppColors::accent().name()));
+    _dropIndicator->hide();
 }
 
 ///
@@ -195,9 +230,12 @@ QWidget *FavoritesWidget::createCard(const ConnectionProfile &favorite)
 {
     auto *card = new QFrame(ui->listContainer);
     card->setObjectName(QStringLiteral("favoriteCard"));
+    card->setProperty(favoriteIdProperty, favorite.id);
+    card->installEventFilter(this);
 
     auto *star = new QLabel(card);
     star->setPixmap(AppIcons::themed(QStringLiteral("star")).pixmap(18, 18));
+    star->setAttribute(Qt::WA_TransparentForMouseEvents);
 
     const QString fullName = favorite.name.isEmpty() ? favorite.endpointUrl : favorite.name;
     auto *name = new QLabel(card);
@@ -205,10 +243,12 @@ QWidget *FavoritesWidget::createCard(const ConnectionProfile &favorite)
     name->setText(name->fontMetrics().elidedText(fullName, Qt::ElideMiddle, titleBudget));
     name->setStyleSheet(QStringLiteral("font-weight: bold; color: %1;")
                             .arg(AppColors::titleText().name()));
+    name->setAttribute(Qt::WA_TransparentForMouseEvents);
 
     auto *subtitle = new QLabel(securityText(favorite), card);
     subtitle->setStyleSheet(QStringLiteral("color: %1; font-size: 11px;")
                                 .arg(AppColors::subtitleText().name()));
+    subtitle->setAttribute(Qt::WA_TransparentForMouseEvents);
 
     auto *textColumn = new QVBoxLayout;
     textColumn->setSpacing(2);
@@ -267,4 +307,189 @@ QString FavoritesWidget::securityText(const ConnectionProfile &favorite)
     default: break; // None / Invalid: the policy name already reads "None".
     }
     return mode.isEmpty() ? policy : QStringLiteral("%1 / %2").arg(policy, mode);
+}
+
+///
+/// \brief Drives card-drag initiation and list-container drop handling.
+/// \param watched Object the event was sent to.
+/// \param event Event being filtered.
+/// \return True when the event is consumed.
+///
+bool FavoritesWidget::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == ui->listContainer) {
+        switch (event->type()) {
+        case QEvent::DragEnter: {
+            auto *dragEvent = static_cast<QDragEnterEvent *>(event);
+            if (dragEvent->mimeData()->hasFormat(QLatin1String(favoriteMimeType))) {
+                dragEvent->acceptProposedAction();
+                return true;
+            }
+            break;
+        }
+        case QEvent::DragMove: {
+            auto *dragEvent = static_cast<QDragMoveEvent *>(event);
+            if (dragEvent->mimeData()->hasFormat(QLatin1String(favoriteMimeType))) {
+                showDropIndicator(dropIndexAt(eventPosition(dragEvent).y()));
+                dragEvent->acceptProposedAction();
+                return true;
+            }
+            break;
+        }
+        case QEvent::DragLeave:
+            hideDropIndicator();
+            return true;
+        case QEvent::Drop: {
+            auto *dropEvent = static_cast<QDropEvent *>(event);
+            if (!dropEvent->mimeData()->hasFormat(QLatin1String(favoriteMimeType)))
+                break;
+            const QString id =
+                QString::fromUtf8(dropEvent->mimeData()->data(QLatin1String(favoriteMimeType)));
+            const int target = dropIndexAt(eventPosition(dropEvent).y());
+            hideDropIndicator();
+            moveFavorite(id, target);
+            dropEvent->acceptProposedAction();
+            return true;
+        }
+        default:
+            break;
+        }
+        return QFrame::eventFilter(watched, event);
+    }
+
+    auto *card = qobject_cast<QWidget *>(watched);
+    if (card && card->property(favoriteIdProperty).isValid()) {
+        if (event->type() == QEvent::MouseButtonPress) {
+            auto *mouseEvent = static_cast<QMouseEvent *>(event);
+            if (mouseEvent->button() == Qt::LeftButton) {
+                _dragStartPos = eventPosition(mouseEvent);
+                _dragId = card->property(favoriteIdProperty).toString();
+            }
+        } else if (event->type() == QEvent::MouseMove) {
+            auto *mouseEvent = static_cast<QMouseEvent *>(event);
+            if ((mouseEvent->buttons() & Qt::LeftButton) && !_dragId.isEmpty()
+                && draggingEnabled()
+                && (eventPosition(mouseEvent) - _dragStartPos).manhattanLength()
+                       >= QApplication::startDragDistance()) {
+                startCardDrag(card);
+            }
+        }
+    }
+    return QFrame::eventFilter(watched, event);
+}
+
+///
+/// \brief Reports whether cards may be reordered: only with several cards and no active filter.
+/// \return True when dragging should be allowed.
+///
+bool FavoritesWidget::draggingEnabled() const
+{
+    return _favorites.size() > 1 && ui->searchEdit->text().trimmed().isEmpty();
+}
+
+///
+/// \brief Starts a move drag for a card, carrying its favourite id and a card preview.
+/// \param card Card being dragged.
+///
+void FavoritesWidget::startCardDrag(QWidget *card)
+{
+    auto *drag = new QDrag(this);
+    auto *mime = new QMimeData;
+    mime->setData(QLatin1String(favoriteMimeType), _dragId.toUtf8());
+    drag->setMimeData(mime);
+    drag->setPixmap(card->grab());
+    drag->setHotSpot(_dragStartPos);
+
+    drag->exec(Qt::MoveAction);
+
+    hideDropIndicator();
+    _dragId.clear();
+}
+
+///
+/// \brief Maps a vertical position in the list to the index a dropped card would take.
+/// \param y Vertical position in list-container coordinates.
+/// \return Insertion index between 0 and the card count.
+///
+int FavoritesWidget::dropIndexAt(int y) const
+{
+    int index = 0;
+    for (int i = 0; i < ui->listLayout->count(); ++i) {
+        QWidget *card = ui->listLayout->itemAt(i)->widget();
+        if (!card)
+            continue;
+        if (y < card->y() + card->height() / 2)
+            return index;
+        ++index;
+    }
+    return index;
+}
+
+///
+/// \brief Shows the insertion line at the gap for the given drop index.
+/// \param index Insertion index between 0 and the card count.
+///
+void FavoritesWidget::showDropIndicator(int index)
+{
+    const int spacing = ui->listLayout->spacing();
+    QList<QWidget *> cards;
+    for (int i = 0; i < ui->listLayout->count(); ++i) {
+        if (QWidget *card = ui->listLayout->itemAt(i)->widget())
+            cards.append(card);
+    }
+    if (cards.isEmpty())
+        return;
+
+    int y = 0;
+    if (index < cards.size())
+        y = cards.at(index)->y() - spacing / 2 - 1;
+    else
+        y = cards.last()->y() + cards.last()->height() + spacing / 2 - 1;
+
+    _dropIndicator->setGeometry(0, qMax(0, y), ui->listContainer->width(), 2);
+    _dropIndicator->show();
+    _dropIndicator->raise();
+}
+
+///
+/// \brief Hides the drop insertion line.
+///
+void FavoritesWidget::hideDropIndicator()
+{
+    if (_dropIndicator)
+        _dropIndicator->hide();
+}
+
+///
+/// \brief Moves a favourite to a new position, rebuilds the list, and reports the new order.
+/// \param id Favourite being moved.
+/// \param targetIndex Insertion index among the current cards.
+///
+void FavoritesWidget::moveFavorite(const QString &id, int targetIndex)
+{
+    int from = -1;
+    for (int i = 0; i < _favorites.size(); ++i) {
+        if (_favorites.at(i).id == id) {
+            from = i;
+            break;
+        }
+    }
+    if (from < 0)
+        return;
+
+    int insert = targetIndex;
+    if (from < insert)
+        --insert;
+    insert = qBound(0, insert, _favorites.size() - 1);
+    if (insert == from)
+        return;
+
+    _favorites.move(from, insert);
+    rebuildList();
+
+    QStringList orderedIds;
+    orderedIds.reserve(_favorites.size());
+    for (const ConnectionProfile &favorite : _favorites)
+        orderedIds.append(favorite.id);
+    emit reorderRequested(orderedIds);
 }

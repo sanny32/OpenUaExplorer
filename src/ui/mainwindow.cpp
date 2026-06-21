@@ -527,6 +527,10 @@ void MainWindow::setupOpcUaClient()
     });
     connect(_favoritesWidget, &FavoritesWidget::addFavoriteRequested,
             this, &MainWindow::addCurrentToFavorites);
+    connect(_favoritesWidget, &FavoritesWidget::reorderRequested,
+            this, [this](const QStringList &orderedIds) {
+        _connectionController->reorderFavorites(orderedIds);
+    });
     connect(_connectionController, &ConnectionController::profilesChanged, this, [this] {
         if (_favoritesWidget->isVisible())
             _favoritesWidget->setFavorites(_connectionController->profiles());

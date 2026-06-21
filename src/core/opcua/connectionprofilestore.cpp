@@ -6,12 +6,16 @@
 /// \brief Implements persistent storage for OPC UA connection profiles.
 ///
 
+#include <algorithm>
+#include <limits>
+
 #include <QSettings>
 
 #include "connectionprofilestore.h"
 
 namespace {
 const char profilesGroup[] = "opcua/profiles";
+const char favoritesOrderKey[] = "opcua/favoritesOrder";
 }
 
 ///
@@ -53,6 +57,19 @@ QList<ConnectionProfile> ConnectionProfileStore::profiles() const
         result.append(profile);
     }
     settings.endGroup();
+
+    // Apply the user-defined drag order. Ids absent from the order list (newly added
+    // favourites) keep their relative position and sort after the ordered ones.
+    const QStringList order = settings.value(QLatin1String(favoritesOrderKey)).toStringList();
+    if (!order.isEmpty()) {
+        std::stable_sort(result.begin(), result.end(),
+                         [&order](const ConnectionProfile &lhs, const ConnectionProfile &rhs) {
+            const int lhsRank = order.indexOf(lhs.id);
+            const int rhsRank = order.indexOf(rhs.id);
+            return (lhsRank < 0 ? std::numeric_limits<int>::max() : lhsRank)
+                 < (rhsRank < 0 ? std::numeric_limits<int>::max() : rhsRank);
+        });
+    }
     return result;
 }
 
@@ -103,6 +120,24 @@ bool ConnectionProfileStore::remove(const QString &id)
     settings.beginGroup(QLatin1String(profilesGroup));
     settings.remove(id);
     settings.endGroup();
+
+    QStringList order = settings.value(QLatin1String(favoritesOrderKey)).toStringList();
+    if (order.removeAll(id) > 0)
+        settings.setValue(QLatin1String(favoritesOrderKey), order);
+
+    settings.sync();
+    return settings.status() == QSettings::NoError;
+}
+
+///
+/// \brief Persists the favourites display order as a list of profile identifiers.
+/// \param orderedIds Profile identifiers in their desired order.
+/// \return True when the settings backend completed successfully.
+///
+bool ConnectionProfileStore::setOrder(const QStringList &orderedIds)
+{
+    QSettings settings;
+    settings.setValue(QLatin1String(favoritesOrderKey), orderedIds);
     settings.sync();
     return settings.status() == QSettings::NoError;
 }
