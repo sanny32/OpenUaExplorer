@@ -180,7 +180,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="cancelButton">
+      <widget class="ThemedPushButton" name="cancelButton">
        <property name="text">
         <string>Cancel</string>
        </property>
@@ -210,6 +210,11 @@
    <class>ThemedIconLabel</class>
    <extends>QLabel</extends>
    <header>widgets/themediconlabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ThemedPushButton</class>
+   <extends>QPushButton</extends>
+   <header>widgets/themedpushbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
