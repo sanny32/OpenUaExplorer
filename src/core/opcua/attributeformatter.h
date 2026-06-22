@@ -94,6 +94,13 @@ QString accessLevelDisplay(quint32 accessLevel);
 QString writeMaskDisplay(quint32 writeMask);
 
 ///
+/// \brief Decodes an event-notifier bitmask into a pipe-separated list of flag names.
+/// \param eventNotifier Event-notifier bits.
+/// \return Flag names, or "None" when no bits are set.
+///
+QString eventNotifierDisplay(quint8 eventNotifier);
+
+///
 /// \brief Formats a value rank with its symbolic name for the well-known ranks.
 /// \param valueRank Value rank to format.
 /// \return Rank with description, or the bare number for custom ranks.

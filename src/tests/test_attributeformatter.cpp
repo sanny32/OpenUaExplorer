@@ -34,6 +34,7 @@ private slots:
     void nodeClassNameKnownAndUnknown();
     void accessLevelDisplayDecodesFlags();
     void writeMaskDisplayDecodesFlags();
+    void eventNotifierDisplayDecodesFlags();
     void valueRankDisplayKnownAndNumeric();
     void identifierTypeNameKnownAndUnknown();
     void childAttributeStoresFields();
@@ -129,6 +130,19 @@ void TestAttributeFormatter::writeMaskDisplayDecodesFlags()
     const quint32 mask =
         static_cast<quint32>(QOpcUa::WriteMaskBit::DisplayName);
     QCOMPARE(writeMaskDisplay(mask), QStringLiteral("DisplayName"));
+}
+
+void TestAttributeFormatter::eventNotifierDisplayDecodesFlags()
+{
+    QCOMPARE(eventNotifierDisplay(0), QStringLiteral("None"));
+    QCOMPARE(eventNotifierDisplay(
+                 static_cast<quint8>(QOpcUa::EventNotifierBit::SubscribeToEvents)),
+             QStringLiteral("SubscribeToEvents"));
+    const quint8 historyReadWrite =
+        static_cast<quint8>(QOpcUa::EventNotifierBit::HistoryRead)
+        | static_cast<quint8>(QOpcUa::EventNotifierBit::HistoryWrite);
+    QCOMPARE(eventNotifierDisplay(historyReadWrite),
+             QStringLiteral("HistoryRead | HistoryWrite"));
 }
 
 void TestAttributeFormatter::valueRankDisplayKnownAndNumeric()

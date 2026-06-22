@@ -166,6 +166,23 @@ QString writeMaskDisplay(quint32 writeMask)
 }
 
 ///
+/// \brief Decodes an event-notifier bitmask into a pipe-separated list of flag names.
+/// \param eventNotifier Event-notifier bits.
+/// \return Flag names, or "None" when no bits are set.
+///
+QString eventNotifierDisplay(quint8 eventNotifier)
+{
+    const QMetaEnum metaEnum = QMetaEnum::fromType<QOpcUa::EventNotifierBit>();
+    QStringList names;
+    for (int index = 0; index < metaEnum.keyCount(); ++index) {
+        const quint8 flag = static_cast<quint8>(metaEnum.value(index));
+        if (flag && (eventNotifier & flag) == flag)
+            names.append(QString::fromLatin1(metaEnum.key(index)));
+    }
+    return names.isEmpty() ? QStringLiteral("None") : names.join(QStringLiteral(" | "));
+}
+
+///
 /// \brief Formats a value rank with its symbolic name for the well-known ranks.
 /// \param valueRank Value rank to format.
 /// \return Rank with description, or the bare number for custom ranks.
@@ -343,6 +360,10 @@ void formatAttribute(OpcUaNodeAttribute *attribute,
     case QOpcUa::NodeAttribute::WriteMask:
     case QOpcUa::NodeAttribute::UserWriteMask:
         attribute->displayValue = writeMaskDisplay(value.toUInt());
+        break;
+    case QOpcUa::NodeAttribute::EventNotifier:
+        attribute->displayValue =
+            eventNotifierDisplay(static_cast<quint8>(value.toUInt()));
         break;
     default:
         attribute->displayValue = displayValue(value);
