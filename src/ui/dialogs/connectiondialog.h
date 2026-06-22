@@ -87,6 +87,8 @@ private:
     void setupCertificatePanels();
     void setupControls();
     void setupConnections();
+    void applySessionDefaults();
+    void saveSessionDefaults();
     int currentAuthentication() const;
     void saveLastEndpointUrl();
     void resetDiscovery();

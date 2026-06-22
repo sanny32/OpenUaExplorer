@@ -23,6 +23,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include "appsettings.h"
 #include "dialogs/connectiondialog.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/opcuaclientservice.h"
@@ -79,6 +80,7 @@ private slots:
     void clientCertificateSelectorFillsRow();
     void certificateStatusRowsAlignBadgeToRight();
     void advancedSettingsControlsAlignToGrid();
+    void advancedSettingsSeedFromStoredDefaults();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -294,6 +296,32 @@ void TestConnectionDialog::advancedSettingsControlsAlignToGrid()
     QCOMPARE(sessionTimeout->y(), endpointTimeout->y());
     QCOMPARE(connectTimeout->y(), requestTimeout->y());
     QCOMPARE(secureChannelLifetime->y(), maxMessageSize->y());
+}
+
+void TestConnectionDialog::advancedSettingsSeedFromStoredDefaults()
+{
+    AppSettings::SessionDefaults defaults;
+    defaults.sessionTimeoutMs = 90000;
+    defaults.endpointTimeoutMs = 7000;
+    defaults.connectTimeoutMs = 12000;
+    defaults.requestTimeoutMs = 4000;
+    defaults.secureChannelLifetimeMs = 300000;
+    defaults.maxMessageSizeBytes = 8388608;
+    AppSettings().setSessionDefaults(defaults);
+
+    ConnectionDialog dialog;
+    QCOMPARE(dialog.findChild<QSpinBox *>(QStringLiteral("sessionTimeoutSpinBox"))->value(),
+             defaults.sessionTimeoutMs);
+    QCOMPARE(dialog.findChild<QSpinBox *>(QStringLiteral("endpointTimeoutSpinBox"))->value(),
+             defaults.endpointTimeoutMs);
+    QCOMPARE(dialog.findChild<QSpinBox *>(QStringLiteral("connectTimeoutSpinBox"))->value(),
+             defaults.connectTimeoutMs);
+    QCOMPARE(dialog.findChild<QSpinBox *>(QStringLiteral("requestTimeoutSpinBox"))->value(),
+             defaults.requestTimeoutMs);
+    QCOMPARE(dialog.findChild<QSpinBox *>(QStringLiteral("secureChannelLifetimeSpinBox"))->value(),
+             defaults.secureChannelLifetimeMs);
+    QCOMPARE(dialog.findChild<QSpinBox *>(QStringLiteral("maxMessageSizeSpinBox"))->value(),
+             defaults.maxMessageSizeBytes);
 }
 
 QTEST_MAIN(TestConnectionDialog)

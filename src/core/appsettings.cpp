@@ -18,6 +18,13 @@ constexpr auto centralSplitterKey = "mainWindow/centralSplitter";
 constexpr auto dataAccessPageKey = "mainWindow/dataAccessPage";
 constexpr auto restoreLayoutKey = "mainWindow/restoreLayout";
 constexpr auto viewStateGroup = "viewState";
+constexpr auto sessionDefaultsGroup = "connectionDialog/sessionDefaults";
+constexpr auto sessionTimeoutKey = "sessionTimeoutMs";
+constexpr auto endpointTimeoutKey = "endpointTimeoutMs";
+constexpr auto connectTimeoutKey = "connectTimeoutMs";
+constexpr auto requestTimeoutKey = "requestTimeoutMs";
+constexpr auto secureChannelLifetimeKey = "secureChannelLifetimeMs";
+constexpr auto maxMessageSizeKey = "maxMessageSizeBytes";
 }
 
 ///
@@ -47,6 +54,46 @@ void AppSettings::setThemeMode(ThemeMode mode)
 {
     QSettings settings;
     settings.setValue(QLatin1String(themeModeKey), static_cast<int>(mode));
+}
+
+///
+/// \brief Returns the stored default session settings for new connections.
+/// \return Saved session defaults, or built-in defaults when none are stored.
+///
+AppSettings::SessionDefaults AppSettings::sessionDefaults() const
+{
+    QSettings settings;
+    settings.beginGroup(QLatin1String(sessionDefaultsGroup));
+    SessionDefaults defaults;
+    defaults.sessionTimeoutMs =
+        settings.value(QLatin1String(sessionTimeoutKey), defaults.sessionTimeoutMs).toInt();
+    defaults.endpointTimeoutMs =
+        settings.value(QLatin1String(endpointTimeoutKey), defaults.endpointTimeoutMs).toInt();
+    defaults.connectTimeoutMs =
+        settings.value(QLatin1String(connectTimeoutKey), defaults.connectTimeoutMs).toInt();
+    defaults.requestTimeoutMs =
+        settings.value(QLatin1String(requestTimeoutKey), defaults.requestTimeoutMs).toInt();
+    defaults.secureChannelLifetimeMs =
+        settings.value(QLatin1String(secureChannelLifetimeKey), defaults.secureChannelLifetimeMs).toInt();
+    defaults.maxMessageSizeBytes =
+        settings.value(QLatin1String(maxMessageSizeKey), defaults.maxMessageSizeBytes).toInt();
+    return defaults;
+}
+
+///
+/// \brief Stores the default session settings for new connections.
+/// \param defaults Session defaults to persist.
+///
+void AppSettings::setSessionDefaults(const SessionDefaults &defaults)
+{
+    QSettings settings;
+    settings.beginGroup(QLatin1String(sessionDefaultsGroup));
+    settings.setValue(QLatin1String(sessionTimeoutKey), defaults.sessionTimeoutMs);
+    settings.setValue(QLatin1String(endpointTimeoutKey), defaults.endpointTimeoutMs);
+    settings.setValue(QLatin1String(connectTimeoutKey), defaults.connectTimeoutMs);
+    settings.setValue(QLatin1String(requestTimeoutKey), defaults.requestTimeoutMs);
+    settings.setValue(QLatin1String(secureChannelLifetimeKey), defaults.secureChannelLifetimeMs);
+    settings.setValue(QLatin1String(maxMessageSizeKey), defaults.maxMessageSizeBytes);
 }
 
 ///

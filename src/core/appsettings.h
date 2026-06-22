@@ -31,6 +31,39 @@ public:
     };
 
     ///
+    /// \brief Default OPC UA session and channel settings for new connections.
+    ///
+    /// Mirrors the Advanced Settings group of the connection dialog so the last
+    /// values a user entered are offered again the next time they open it.
+    ///
+    struct SessionDefaults {
+        /// \brief Session timeout in milliseconds.
+        int sessionTimeoutMs = 60000;
+        /// \brief Endpoint discovery timeout in milliseconds.
+        int endpointTimeoutMs = 10000;
+        /// \brief Connection timeout in milliseconds.
+        int connectTimeoutMs = 10000;
+        /// \brief Read/write request timeout in milliseconds.
+        int requestTimeoutMs = 5000;
+        /// \brief Secure-channel lifetime in milliseconds.
+        int secureChannelLifetimeMs = 600000;
+        /// \brief Maximum message size in bytes.
+        int maxMessageSizeBytes = 4194304;
+    };
+
+    ///
+    /// \brief Returns the stored default session settings for new connections.
+    /// \return Saved session defaults, or built-in defaults when none are stored.
+    ///
+    SessionDefaults sessionDefaults() const;
+
+    ///
+    /// \brief Stores the default session settings for new connections.
+    /// \param defaults Session defaults to persist.
+    ///
+    void setSessionDefaults(const SessionDefaults &defaults);
+
+    ///
     /// \brief Returns the stored color-scheme preference.
     /// \return Saved theme mode, or ThemeMode::System when none is stored.
     ///

@@ -57,6 +57,8 @@ struct ConnectionProfile
     int endpointTimeoutMs = 10000;
     /// \brief Read/write request timeout in milliseconds.
     int requestTimeoutMs = 15000;
+    /// \brief Maximum message size accepted on the connection, in bytes.
+    int maxMessageSizeBytes = 4194304;
     /// \brief Whether the profile should be persisted after connecting.
     bool saveProfile = false;
     /// \brief Timestamp of the most recent successful use, if any.

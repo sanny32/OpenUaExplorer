@@ -174,6 +174,7 @@ void TestProfiles::allFieldsRoundTrip()
     profile.secureChannelLifetimeMs = 300000;
     profile.endpointTimeoutMs = 8000;
     profile.requestTimeoutMs = 20000;
+    profile.maxMessageSizeBytes = 2097152;
 
     ConnectionProfileStore store;
     QVERIFY(store.save(profile));
@@ -197,6 +198,7 @@ void TestProfiles::allFieldsRoundTrip()
     QCOMPARE(read.secureChannelLifetimeMs, profile.secureChannelLifetimeMs);
     QCOMPARE(read.endpointTimeoutMs, profile.endpointTimeoutMs);
     QCOMPARE(read.requestTimeoutMs, profile.requestTimeoutMs);
+    QCOMPARE(read.maxMessageSizeBytes, profile.maxMessageSizeBytes);
 }
 
 ///

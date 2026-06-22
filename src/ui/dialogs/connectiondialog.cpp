@@ -29,6 +29,7 @@
 
 #include "appcolors.h"
 #include "appicons.h"
+#include "appsettings.h"
 #include "certificatedetailsdialog.h"
 #include "connectiondialog.h"
 #include "opcua/opcuaclientservice.h"
@@ -79,7 +80,37 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     setupCertificatePanels();
     setupControls();
     setupConnections();
+    applySessionDefaults();
     updateAuthenticationFields();
+}
+
+///
+/// \brief Seeds the Advanced Settings controls from the application-wide session defaults.
+///
+void ConnectionDialog::applySessionDefaults()
+{
+    const AppSettings::SessionDefaults defaults = AppSettings().sessionDefaults();
+    ui->sessionTimeoutSpinBox->setValue(defaults.sessionTimeoutMs);
+    ui->endpointTimeoutSpinBox->setValue(defaults.endpointTimeoutMs);
+    ui->connectTimeoutSpinBox->setValue(defaults.connectTimeoutMs);
+    ui->requestTimeoutSpinBox->setValue(defaults.requestTimeoutMs);
+    ui->secureChannelLifetimeSpinBox->setValue(defaults.secureChannelLifetimeMs);
+    ui->maxMessageSizeSpinBox->setValue(defaults.maxMessageSizeBytes);
+}
+
+///
+/// \brief Persists the Advanced Settings controls as the application-wide session defaults.
+///
+void ConnectionDialog::saveSessionDefaults()
+{
+    AppSettings::SessionDefaults defaults;
+    defaults.sessionTimeoutMs = ui->sessionTimeoutSpinBox->value();
+    defaults.endpointTimeoutMs = ui->endpointTimeoutSpinBox->value();
+    defaults.connectTimeoutMs = ui->connectTimeoutSpinBox->value();
+    defaults.requestTimeoutMs = ui->requestTimeoutSpinBox->value();
+    defaults.secureChannelLifetimeMs = ui->secureChannelLifetimeSpinBox->value();
+    defaults.maxMessageSizeBytes = ui->maxMessageSizeSpinBox->value();
+    AppSettings().setSessionDefaults(defaults);
 }
 
 ///
@@ -278,6 +309,7 @@ ConnectionProfile ConnectionDialog::profile() const
     result.secureChannelLifetimeMs = ui->secureChannelLifetimeSpinBox->value();
     result.endpointTimeoutMs = ui->endpointTimeoutSpinBox->value();
     result.requestTimeoutMs = ui->requestTimeoutSpinBox->value();
+    result.maxMessageSizeBytes = ui->maxMessageSizeSpinBox->value();
     return result;
 }
 
@@ -315,6 +347,8 @@ void ConnectionDialog::setProfile(const ConnectionProfile &profile)
         ui->endpointTimeoutSpinBox->setValue(profile.endpointTimeoutMs);
     if (profile.requestTimeoutMs > 0)
         ui->requestTimeoutSpinBox->setValue(profile.requestTimeoutMs);
+    if (profile.maxMessageSizeBytes > 0)
+        ui->maxMessageSizeSpinBox->setValue(profile.maxMessageSizeBytes);
 
     updateAuthenticationFields();
 }
@@ -594,6 +628,7 @@ void ConnectionDialog::validateAndAccept()
                              tr("Enter a username for this endpoint."));
         return;
     }
+    saveSessionDefaults();
     accept();
 }
 
