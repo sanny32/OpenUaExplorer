@@ -7,16 +7,12 @@
 ///
 
 #include <QApplication>
-#include <QDrag>
-#include <QDragEnterEvent>
-#include <QDragMoveEvent>
-#include <QDropEvent>
 #include <QFontMetrics>
+#include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
-#include <QMimeData>
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -33,14 +29,14 @@ constexpr int widgetWidth = 560;
 constexpr int titleBudget = 320;
 constexpr int maxVisibleCards = 8;
 
-/// \brief Drag MIME type carrying the dragged favourite's identifier.
-const char favoriteMimeType[] = "application/x-ouaexp-favorite-id";
+/// \brief Space kept below the last card so the end-of-list drop zone stays reachable.
+constexpr int listBottomPadding = 10;
 
 /// \brief Property name attaching a favourite id to its card widget.
 const char favoriteIdProperty[] = "favoriteId";
 
 ///
-/// \brief Returns a drag/drop/mouse event's position, bridging Qt 5 and Qt 6 APIs.
+/// \brief Returns a mouse event's position, bridging Qt 5 and Qt 6 APIs.
 ///
 template <class Event>
 QPoint eventPosition(const Event *event)
@@ -70,9 +66,7 @@ FavoritesWidget::FavoritesWidget(QWidget *parent)
     connect(ui->searchEdit, &QLineEdit::textChanged, this, [this] { rebuildList(); });
     connect(ui->addButton, &QPushButton::clicked, this, &FavoritesWidget::addFavoriteRequested);
 
-    // The list container receives the dropped cards; a thin line previews the insert point.
-    ui->listContainer->setAcceptDrops(true);
-    ui->listContainer->installEventFilter(this);
+    // A thin line previews the insert point while a card is dragged over the list.
     _dropIndicator = new QWidget(ui->listContainer);
     _dropIndicator->setFixedHeight(2);
     updateDropIndicatorStyle();
@@ -245,7 +239,8 @@ void FavoritesWidget::adjustListHeight()
     if (cardCount > 0) {
         const int spacing = ui->listLayout->spacing();
         const int visible = qMin(cardCount, maxVisibleCards);
-        ui->scrollArea->setFixedHeight(visible * cardHeight + (visible - 1) * spacing);
+        ui->scrollArea->setFixedHeight(
+            visible * cardHeight + (visible - 1) * spacing + listBottomPadding);
     }
     ui->scrollArea->setVisible(cardCount > 0);
     adjustSize();
@@ -340,53 +335,13 @@ QString FavoritesWidget::securityText(const ConnectionProfile &favorite)
 }
 
 ///
-/// \brief Drives card-drag initiation and list-container drop handling.
+/// \brief Drives card-drag initiation, tracking, and drop handling.
 /// \param watched Object the event was sent to.
 /// \param event Event being filtered.
 /// \return True when the event is consumed.
 ///
 bool FavoritesWidget::eventFilter(QObject *watched, QEvent *event)
 {
-    if (watched == ui->listContainer) {
-        switch (event->type()) {
-        case QEvent::DragEnter: {
-            auto *dragEvent = static_cast<QDragEnterEvent *>(event);
-            if (dragEvent->mimeData()->hasFormat(QLatin1String(favoriteMimeType))) {
-                dragEvent->acceptProposedAction();
-                return true;
-            }
-            break;
-        }
-        case QEvent::DragMove: {
-            auto *dragEvent = static_cast<QDragMoveEvent *>(event);
-            if (dragEvent->mimeData()->hasFormat(QLatin1String(favoriteMimeType))) {
-                showDropIndicator(dropIndexAt(eventPosition(dragEvent).y()));
-                dragEvent->acceptProposedAction();
-                return true;
-            }
-            break;
-        }
-        case QEvent::DragLeave:
-            hideDropIndicator();
-            return true;
-        case QEvent::Drop: {
-            auto *dropEvent = static_cast<QDropEvent *>(event);
-            if (!dropEvent->mimeData()->hasFormat(QLatin1String(favoriteMimeType)))
-                break;
-            const QString id =
-                QString::fromUtf8(dropEvent->mimeData()->data(QLatin1String(favoriteMimeType)));
-            const int target = dropIndexAt(eventPosition(dropEvent).y());
-            hideDropIndicator();
-            moveFavorite(id, target);
-            dropEvent->acceptProposedAction();
-            return true;
-        }
-        default:
-            break;
-        }
-        return QFrame::eventFilter(watched, event);
-    }
-
     auto *card = qobject_cast<QWidget *>(watched);
     if (card && card->property(favoriteIdProperty).isValid()) {
         if (event->type() == QEvent::MouseButtonPress) {
@@ -394,14 +349,31 @@ bool FavoritesWidget::eventFilter(QObject *watched, QEvent *event)
             if (mouseEvent->button() == Qt::LeftButton) {
                 _dragStartPos = eventPosition(mouseEvent);
                 _dragId = card->property(favoriteIdProperty).toString();
+                if (draggingEnabled()) {
+                    QApplication::setOverrideCursor(Qt::ClosedHandCursor);
+                    _dragCursorActive = true;
+                }
             }
         } else if (event->type() == QEvent::MouseMove) {
             auto *mouseEvent = static_cast<QMouseEvent *>(event);
             if ((mouseEvent->buttons() & Qt::LeftButton) && !_dragId.isEmpty()
-                && draggingEnabled()
-                && (eventPosition(mouseEvent) - _dragStartPos).manhattanLength()
-                       >= QApplication::startDragDistance()) {
-                startCardDrag(card);
+                && draggingEnabled()) {
+                const QPoint globalPos = card->mapToGlobal(eventPosition(mouseEvent));
+                if (!_dragging
+                    && (eventPosition(mouseEvent) - _dragStartPos).manhattanLength()
+                           >= QApplication::startDragDistance()) {
+                    startCardDrag(card);
+                }
+                if (_dragging)
+                    updateCardDrag(globalPos);
+            }
+        } else if (event->type() == QEvent::MouseButtonRelease) {
+            auto *mouseEvent = static_cast<QMouseEvent *>(event);
+            if (mouseEvent->button() == Qt::LeftButton) {
+                if (_dragging)
+                    finishCardDrag(card->mapToGlobal(eventPosition(mouseEvent)));
+                restoreDragCursor();
+                _dragId.clear();
             }
         }
     }
@@ -418,22 +390,80 @@ bool FavoritesWidget::draggingEnabled() const
 }
 
 ///
-/// \brief Starts a move drag for a card, carrying its favourite id and a card preview.
+/// \brief Begins a move drag for a card, raising a floating preview that follows the cursor.
 /// \param card Card being dragged.
+///
+/// The reorder is tracked manually rather than through QDrag so the grab cursor set on press
+/// stays in effect for the whole gesture; a native drag loop would replace it with the
+/// platform move cursor.
 ///
 void FavoritesWidget::startCardDrag(QWidget *card)
 {
-    auto *drag = new QDrag(this);
-    auto *mime = new QMimeData;
-    mime->setData(QLatin1String(favoriteMimeType), _dragId.toUtf8());
-    drag->setMimeData(mime);
-    drag->setPixmap(card->grab());
-    drag->setHotSpot(_dragStartPos);
+    _dragging = true;
 
-    drag->exec(Qt::MoveAction);
+    _dragPreview = new QLabel(this);
+    _dragPreview->setAttribute(Qt::WA_TransparentForMouseEvents);
+    _dragPreview->setPixmap(card->grab());
+    _dragPreview->setFixedSize(card->size());
+    _dragPreview->show();
+    _dragPreview->raise();
 
+    // Fade the source card so the floating preview reads as the one being moved while its
+    // slot stays in place to anchor the insertion line.
+    _dragCard = card;
+    auto *fade = new QGraphicsOpacityEffect(card);
+    fade->setOpacity(0.3);
+    card->setGraphicsEffect(fade);
+}
+
+///
+/// \brief Tracks the dragged card, moving the preview and previewing the insertion point.
+/// \param globalPos Current cursor position in global coordinates.
+///
+void FavoritesWidget::updateCardDrag(const QPoint &globalPos)
+{
+    showDropIndicator(dropIndexAt(ui->listContainer->mapFromGlobal(globalPos).y()));
+    if (_dragPreview)
+        _dragPreview->move(mapFromGlobal(globalPos) - _dragStartPos);
+}
+
+///
+/// \brief Completes a card drag, applying the reorder at the cursor's insertion point.
+/// \param globalPos Cursor position in global coordinates where the card was released.
+///
+void FavoritesWidget::finishCardDrag(const QPoint &globalPos)
+{
+    const int target = dropIndexAt(ui->listContainer->mapFromGlobal(globalPos).y());
+    endCardDrag();
+    moveFavorite(_dragId, target);
+}
+
+///
+/// \brief Tears down the drag preview and insertion line after a drag ends.
+///
+void FavoritesWidget::endCardDrag()
+{
+    _dragging = false;
     hideDropIndicator();
-    _dragId.clear();
+    if (_dragPreview) {
+        _dragPreview->deleteLater();
+        _dragPreview = nullptr;
+    }
+    if (_dragCard) {
+        _dragCard->setGraphicsEffect(nullptr);
+        _dragCard = nullptr;
+    }
+}
+
+///
+/// \brief Restores the default cursor after a card drag or press, if one was overridden.
+///
+void FavoritesWidget::restoreDragCursor()
+{
+    if (_dragCursorActive) {
+        QApplication::restoreOverrideCursor();
+        _dragCursorActive = false;
+    }
 }
 
 ///
@@ -476,7 +506,8 @@ void FavoritesWidget::showDropIndicator(int index)
     else
         y = cards.last()->y() + cards.last()->height() + spacing / 2 - 1;
 
-    _dropIndicator->setGeometry(0, qMax(0, y), ui->listContainer->width(), 2);
+    y = qBound(0, y, ui->listContainer->height() - 2);
+    _dropIndicator->setGeometry(0, y, ui->listContainer->width(), 2);
     _dropIndicator->show();
     _dropIndicator->raise();
 }

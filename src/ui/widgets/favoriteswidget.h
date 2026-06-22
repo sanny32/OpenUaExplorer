@@ -17,6 +17,7 @@
 #include "opcua/connectionprofile.h"
 
 class QEvent;
+class QLabel;
 class QObject;
 
 namespace Ui {
@@ -121,6 +122,10 @@ private:
 
     bool draggingEnabled() const;
     void startCardDrag(QWidget *card);
+    void updateCardDrag(const QPoint &globalPos);
+    void finishCardDrag(const QPoint &globalPos);
+    void endCardDrag();
+    void restoreDragCursor();
     int dropIndexAt(int y) const;
     void showDropIndicator(int index);
     void hideDropIndicator();
@@ -131,6 +136,10 @@ private:
 
     bool _refreshingTheme = false;
     QWidget *_dropIndicator = nullptr;
+    QLabel *_dragPreview = nullptr;
+    QWidget *_dragCard = nullptr;
     QPoint _dragStartPos;
     QString _dragId;
+    bool _dragging = false;
+    bool _dragCursorActive = false;
 };
