@@ -43,6 +43,10 @@ QString displayValue(const QVariant &value)
         return QString();
     if (value.userType() == QMetaType::QByteArray)
         return QString::fromLatin1(value.toByteArray().toHex(' '));
+    if (value.userType() == QMetaType::UChar)
+        return QString::number(value.toUInt());
+    if (value.userType() == QMetaType::SChar || value.userType() == QMetaType::Char)
+        return QString::number(value.toInt());
     if (value.userType() == QMetaType::QDateTime)
         return value.toDateTime().toString(Qt::ISODateWithMs);
     if (isValueArray(value)) {

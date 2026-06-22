@@ -60,6 +60,8 @@ void TestAttributeFormatter::displayValueFormatsScalarsAndArrays()
     QCOMPARE(displayValue(QVariant(42)), QStringLiteral("42"));
     QCOMPARE(displayValue(QVariant(QStringLiteral("abc"))), QStringLiteral("abc"));
     QCOMPARE(displayValue(QVariant(QByteArray("\x01\xAB"))), QStringLiteral("01 ab"));
+    QCOMPARE(displayValue(QVariant::fromValue<quint8>(255)), QStringLiteral("255"));
+    QCOMPARE(displayValue(QVariant::fromValue<qint8>(-7)), QStringLiteral("-7"));
 
     const QDateTime dt(QDate(2024, 1, 2), QTime(3, 4, 5, 6));
     QCOMPARE(displayValue(QVariant(dt)), dt.toString(Qt::ISODateWithMs));
