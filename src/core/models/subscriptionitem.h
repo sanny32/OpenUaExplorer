@@ -17,6 +17,7 @@ struct SubscriptionItem
 {
     /// \brief Subscription name.
     QString name;
+
     /// \brief Publishing interval in milliseconds.
     double publishingInterval = 1000.0;
 };
@@ -28,6 +29,7 @@ struct EventItem
 {
     /// \brief Event time display text.
     QString time;
+
     /// \brief Event message.
     QString message;
 };
@@ -39,6 +41,7 @@ struct HistoryItem
 {
     /// \brief Node display text.
     QString node;
+    
     /// \brief History time range display text.
     QString range;
 };

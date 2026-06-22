@@ -6,7 +6,10 @@
 /// \brief Implements the subscription selection item delegate.
 ///
 
+#include <QAbstractItemView>
 #include <QComboBox>
+#include <QFontMetrics>
+#include <QStyle>
 
 #include "subscriptiondelegate.h"
 
@@ -33,6 +36,18 @@ QWidget *SubscriptionDelegate::createEditor(QWidget *parent, const QStyleOptionV
     combo->addItem(QStringLiteral("—"), QString());
     for (const QString &name : _subscriptionNames)
         combo->addItem(name, name);
+
+    const QFontMetrics metrics(combo->font());
+    int contentWidth = 0;
+    for (int i = 0; i < combo->count(); ++i)
+        contentWidth = qMax(contentWidth, metrics.horizontalAdvance(combo->itemText(i)));
+
+    const QMargins margins = combo->view()->contentsMargins();
+    const int popupWidth = contentWidth + margins.left() + margins.right()
+                           + combo->style()->pixelMetric(QStyle::PM_ScrollBarExtent)
+                           + 24;
+    combo->view()->setMinimumWidth(popupWidth);
+
     return combo;
 }
 
