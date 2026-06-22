@@ -126,6 +126,26 @@ public:
                             int valueType, int timeoutMs) = 0;
 
     ///
+    /// \brief Enables Value monitoring for a node.
+    /// \param nodeId Node to monitor.
+    /// \param publishingInterval Publishing interval in milliseconds.
+    ///
+    virtual void subscribe(const QString &nodeId, double publishingInterval)
+    {
+        Q_UNUSED(publishingInterval)
+        emit monitoringFinished(nodeId, true, false, tr("Monitoring is not supported."));
+    }
+
+    ///
+    /// \brief Disables Value monitoring for a node.
+    /// \param nodeId Monitored node.
+    ///
+    virtual void unsubscribe(const QString &nodeId)
+    {
+        emit monitoringFinished(nodeId, false, false, tr("Monitoring is not supported."));
+    }
+
+    ///
     /// \brief Resolves this client's session name from the server diagnostics.
     ///
     /// Backends that cannot read the server diagnostics may leave the default
@@ -192,6 +212,15 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void writeFinished(QString nodeId, bool success, QString error);
+
+    ///
+    /// \brief Emitted after a monitoring request finishes.
+    /// \param nodeId Affected node.
+    /// \param subscribed True for subscribe and false for unsubscribe.
+    /// \param success Whether the request succeeded.
+    /// \param error Error description, empty on success.
+    ///
+    void monitoringFinished(QString nodeId, bool subscribed, bool success, QString error);
 
     ///
     /// \brief Emitted when the server-assigned session name has been resolved.

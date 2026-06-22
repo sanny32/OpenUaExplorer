@@ -11,12 +11,14 @@
 #include <memory>
 
 #include <QTimer>
+#include <QHash>
 #include <QPointer>
 #include <QUrl>
 
 #include <QOpcUaBrowseRequest>
 #include <QOpcUaClient>
 #include <QOpcUaNode>
+#include <QOpcUaMonitoringParameters>
 #include <QOpcUaReadItem>
 #include <QOpcUaReadResult>
 #include <QOpcUaReferenceDescription>
@@ -50,7 +52,10 @@ public:
         QObject::connect(&connection, &QtOpcUaConnectionManager::errorOccurred,
                          q, &QtOpcUaBackend::errorOccurred);
         QObject::connect(&connection, &QtOpcUaConnectionManager::clientInvalidated,
-                         q, [this]() { cancelRequests(); });
+                         q, [this]() {
+            cancelRequests();
+            clearMonitoredNodes();
+        });
     }
 
     ///
@@ -68,6 +73,15 @@ public:
             QObject::disconnect(signalConnection);
             signalConnection = {};
         }
+    }
+
+    ///
+    /// \brief Deletes all nodes retained for active monitoring.
+    ///
+    void clearMonitoredNodes()
+    {
+        qDeleteAll(monitoredNodes);
+        monitoredNodes.clear();
     }
 
     ///
@@ -165,6 +179,7 @@ public:
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeNodes{};
     std::array<QMetaObject::Connection,
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeConnections{};
+    QHash<QString, QOpcUaNode *> monitoredNodes;
 };
 
 ///
@@ -564,5 +579,90 @@ void QtOpcUaBackend::writeValue(const QString &nodeId, const QVariant &value,
             node->deleteLater();
             emit writeFinished(nodeId, false, tr("The backend rejected the write request."));
         }
+    }
+}
+
+///
+/// \brief Enables Value monitoring for a node.
+/// \param nodeId Node to monitor.
+/// \param publishingInterval Publishing interval in milliseconds.
+///
+void QtOpcUaBackend::subscribe(const QString &nodeId, double publishingInterval)
+{
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit monitoringFinished(nodeId, true, false, tr("The OPC UA client is not connected."));
+        return;
+    }
+    if (_d->monitoredNodes.contains(nodeId)) {
+        emit monitoringFinished(nodeId, true, true, QString());
+        return;
+    }
+    QOpcUaNode *node = _d->connection.client()->node(nodeId);
+    if (!node) {
+        emit monitoringFinished(nodeId, true, false, tr("Could not create node %1.").arg(nodeId));
+        return;
+    }
+    connect(node, &QOpcUaNode::attributeUpdated, this,
+            [this, node, nodeId](QOpcUa::NodeAttribute attribute, const QVariant &value) {
+        if (attribute != QOpcUa::NodeAttribute::Value)
+            return;
+        OpcUaDataValue dataValue;
+        dataValue.nodeId = nodeId;
+        dataValue.value = value;
+        dataValue.status = statusName(node->attributeError(attribute));
+        dataValue.sourceTimestamp = node->sourceTimestamp(attribute);
+        dataValue.serverTimestamp = node->serverTimestamp(attribute);
+        emit dataValuesReady({dataValue}, QString());
+    });
+    connect(node, &QOpcUaNode::enableMonitoringFinished, this,
+            [this, node, nodeId](QOpcUa::NodeAttribute attribute,
+                                QOpcUa::UaStatusCode status) {
+        if (attribute != QOpcUa::NodeAttribute::Value)
+            return;
+        const bool success = QOpcUa::isSuccessStatus(status);
+        if (success) {
+            _d->monitoredNodes.insert(nodeId, node);
+        } else {
+            node->deleteLater();
+        }
+        emit monitoringFinished(nodeId, true, success,
+                                success ? QString() : statusName(status));
+    });
+    const QOpcUaMonitoringParameters parameters(publishingInterval);
+    if (!node->enableMonitoring(QOpcUa::NodeAttribute::Value, parameters)) {
+        node->deleteLater();
+        emit monitoringFinished(nodeId, true, false,
+                                tr("The backend rejected the monitoring request."));
+    }
+}
+
+///
+/// \brief Disables Value monitoring for a node.
+/// \param nodeId Monitored node.
+///
+void QtOpcUaBackend::unsubscribe(const QString &nodeId)
+{
+    QOpcUaNode *node = _d->monitoredNodes.take(nodeId);
+    if (!node) {
+        emit monitoringFinished(nodeId, false, true, QString());
+        return;
+    }
+    connect(node, &QOpcUaNode::disableMonitoringFinished, this,
+            [this, node, nodeId](QOpcUa::NodeAttribute attribute,
+                                QOpcUa::UaStatusCode status) {
+        if (attribute != QOpcUa::NodeAttribute::Value)
+            return;
+        const bool success = QOpcUa::isSuccessStatus(status);
+        if (!success)
+            _d->monitoredNodes.insert(nodeId, node);
+        else
+            node->deleteLater();
+        emit monitoringFinished(nodeId, false, success,
+                                success ? QString() : statusName(status));
+    });
+    if (!node->disableMonitoring(QOpcUa::NodeAttribute::Value)) {
+        _d->monitoredNodes.insert(nodeId, node);
+        emit monitoringFinished(nodeId, false, false,
+                                tr("The backend rejected the unmonitoring request."));
     }
 }

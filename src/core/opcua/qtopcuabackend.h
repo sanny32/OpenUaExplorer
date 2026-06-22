@@ -117,6 +117,19 @@ public:
                     int valueType, int timeoutMs) override;
 
     ///
+    /// \brief Enables Value monitoring for a node.
+    /// \param nodeId Node to monitor.
+    /// \param publishingInterval Publishing interval in milliseconds.
+    ///
+    void subscribe(const QString &nodeId, double publishingInterval) override;
+
+    ///
+    /// \brief Disables Value monitoring for a node.
+    /// \param nodeId Monitored node.
+    ///
+    void unsubscribe(const QString &nodeId) override;
+
+    ///
     /// \brief Reads the SessionDiagnosticsArray and resolves this client's session name.
     /// \param timeoutMs Request timeout in milliseconds.
     ///

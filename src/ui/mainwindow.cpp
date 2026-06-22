@@ -196,6 +196,35 @@ void MainWindow::on_actionWriteValue_triggered()
 }
 
 ///
+/// \brief Starts monitoring the selected variable and adds it to Data Access.
+///
+void MainWindow::on_actionSubscribe_triggered()
+{
+    if (!OpcUa::isVariable(_selectedNodeDetails.nodeClass)
+        || _selectedNodeDetails.nodeId.isEmpty()) {
+        return;
+    }
+    ui->dataAccessWidget->addNode(_selectedNodeDetails);
+    _pendingMonitoringNodeIds.insert(_selectedNodeDetails.nodeId);
+    updateMonitoringActions();
+    _clientService->subscribe(_selectedNodeDetails.nodeId);
+}
+
+///
+/// \brief Stops monitoring the selected variable.
+///
+void MainWindow::on_actionUnsubscribe_triggered()
+{
+    if (_selectedNodeDetails.nodeId.isEmpty()
+        || !_subscribedNodeIds.contains(_selectedNodeDetails.nodeId)) {
+        return;
+    }
+    _pendingMonitoringNodeIds.insert(_selectedNodeDetails.nodeId);
+    updateMonitoringActions();
+    _clientService->unsubscribe(_selectedNodeDetails.nodeId);
+}
+
+///
 /// \brief Adds the selected variable node to the data-access view.
 ///
 void MainWindow::on_actionAddToDataAccess_triggered()
@@ -592,6 +621,8 @@ void MainWindow::setupOpcUaClient()
             this, &MainWindow::onDataValuesReady);
     connect(_clientService, &OpcUaClientService::writeFinished,
             this, &MainWindow::onWriteFinished);
+    connect(_clientService, &OpcUaClientService::monitoringFinished,
+            this, &MainWindow::onMonitoringFinished);
     connect(_connectionController, &ConnectionController::recentsChanged,
             this, &MainWindow::rebuildRecentConnections);
 
@@ -676,6 +707,7 @@ void MainWindow::onNodeDetailsReady(const OpcUaNodeDetails &details, const QStri
     ui->actionWrite->setEnabled(writable);
     ui->actionWriteValue->setEnabled(writable);
     ui->actionAddToDataAccess->setEnabled(variable);
+    updateMonitoringActions();
 }
 
 ///
@@ -703,6 +735,47 @@ void MainWindow::onWriteFinished(const QString &nodeId, bool success, const QStr
     } else {
         QMessageBox::warning(this, tr("Write Failed"), error);
     }
+}
+
+///
+/// \brief Applies the result of a subscribe or unsubscribe request to the UI.
+/// \param nodeId Affected node.
+/// \param subscribed True for subscribe and false for unsubscribe.
+/// \param success Whether the request succeeded.
+/// \param error Error description, empty on success.
+///
+void MainWindow::onMonitoringFinished(const QString &nodeId, bool subscribed,
+                                      bool success, const QString &error)
+{
+    _pendingMonitoringNodeIds.remove(nodeId);
+    if (success) {
+        if (subscribed)
+            _subscribedNodeIds.insert(nodeId);
+        else
+            _subscribedNodeIds.remove(nodeId);
+        ui->dataAccessWidget->setNodeSubscribed(nodeId, subscribed);
+    } else {
+        QMessageBox::warning(this,
+                             subscribed ? tr("Subscribe Failed") : tr("Unsubscribe Failed"),
+                             error);
+    }
+    updateMonitoringActions();
+}
+
+///
+/// \brief Enables the monitoring actions for the selected variable's current state.
+///
+void MainWindow::updateMonitoringActions()
+{
+    const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
+    const bool variable = connected && OpcUa::isVariable(_selectedNodeDetails.nodeClass)
+        && !_selectedNodeDetails.nodeId.isEmpty();
+    const bool subscribed = variable
+        && _subscribedNodeIds.contains(_selectedNodeDetails.nodeId);
+    const bool pending = variable
+        && _pendingMonitoringNodeIds.contains(_selectedNodeDetails.nodeId);
+    ui->actionSubscribe->setEnabled(variable && !subscribed && !pending);
+    ui->actionUnsubscribe->setEnabled(subscribed && !pending);
 }
 
 ///
@@ -743,13 +816,18 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     ui->actionBrowse->setEnabled(connected);
     ui->actionBrowseAddressSpace->setEnabled(connected);
     ui->actionRefresh->setEnabled(connected);
+    updateMonitoringActions();
     if (connected) {
         initializeAddressSpace();
     } else if (state == OpcUaConnectionState::Disconnected
                || state == OpcUaConnectionState::Unavailable) {
         ui->addressSpaceWidget->clear();
         ui->attributesWidget->clear();
+        ui->dataAccessWidget->clearRuntimeData();
         _selectedNodeDetails = {};
+        _subscribedNodeIds.clear();
+        _pendingMonitoringNodeIds.clear();
+        updateMonitoringActions();
     }
 }
 

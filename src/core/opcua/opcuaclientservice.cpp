@@ -43,6 +43,8 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::dataValuesReady);
     connect(_backend, &OpcUaBackend::writeFinished,
             this, &OpcUaClientService::writeFinished);
+    connect(_backend, &OpcUaBackend::monitoringFinished,
+            this, &OpcUaClientService::monitoringFinished);
     connect(_backend, &OpcUaBackend::serverSessionNameResolved,
             this, &OpcUaClientService::serverSessionNameResolved);
 }
@@ -192,6 +194,24 @@ void OpcUaClientService::writeValue(const QString &nodeId, const QVariant &value
                                     int valueType)
 {
     _backend->writeValue(nodeId, value, valueType, _requestTimeoutMs);
+}
+
+///
+/// \brief Enables Value monitoring with the default publishing interval.
+/// \param nodeId Node to monitor.
+///
+void OpcUaClientService::subscribe(const QString &nodeId)
+{
+    _backend->subscribe(nodeId, 1000.0);
+}
+
+///
+/// \brief Disables Value monitoring for a node.
+/// \param nodeId Monitored node.
+///
+void OpcUaClientService::unsubscribe(const QString &nodeId)
+{
+    _backend->unsubscribe(nodeId);
 }
 
 ///

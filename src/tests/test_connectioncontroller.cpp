@@ -68,6 +68,15 @@ public:
     void readNode(const QString &, int) override {}
     void readValues(const QStringList &, int) override {}
     void writeValue(const QString &, const QVariant &, int, int) override {}
+    void subscribe(const QString &nodeId, double publishingInterval) override
+    {
+        subscribedNodeId = nodeId;
+        subscriptionPublishingInterval = publishingInterval;
+    }
+    void unsubscribe(const QString &nodeId) override
+    {
+        unsubscribedNodeId = nodeId;
+    }
 
     void completeDiscovery(const QString &message = {})
     {
@@ -87,6 +96,9 @@ public:
     ConnectionProfile connectedProfile;
     QString connectedPassword;
     QString connectedPrivateKeyPassword;
+    QString subscribedNodeId;
+    QString unsubscribedNodeId;
+    double subscriptionPublishingInterval = 0.0;
 };
 
 ///
@@ -203,6 +215,7 @@ class TestConnectionController : public QObject
 private slots:
     void serviceForwardsBackendState();
     void serviceUsesProfileRequestTimeout();
+    void serviceForwardsMonitoringRequestsAndResults();
     void savedProfileWithoutSecretsDiscoversThenConnects();
     void savedProfileLoadsBothSecrets();
     void discoveryFailureDoesNotConnect();
@@ -241,6 +254,30 @@ void TestConnectionController::serviceUsesProfileRequestTimeout()
 
     QCOMPARE(backend.browseTimeout, profile.requestTimeoutMs);
     QCOMPARE(backend.referencesBrowseTimeout, profile.requestTimeoutMs);
+}
+
+///
+/// \brief Monitoring calls reach the backend and their completion is forwarded.
+///
+void TestConnectionController::serviceForwardsMonitoringRequestsAndResults()
+{
+    FakeOpcUaBackend backend;
+    OpcUaClientService service(&backend);
+    QSignalSpy finishedSpy(&service, &OpcUaClientService::monitoringFinished);
+    const QString nodeId = QStringLiteral("ns=2;s=Temperature");
+
+    service.subscribe(nodeId);
+    QCOMPARE(backend.subscribedNodeId, nodeId);
+    QCOMPARE(backend.subscriptionPublishingInterval, 1000.0);
+
+    emit backend.monitoringFinished(nodeId, true, true, QString());
+    QCOMPARE(finishedSpy.size(), 1);
+    QCOMPARE(finishedSpy.constFirst().at(0).toString(), nodeId);
+    QCOMPARE(finishedSpy.constFirst().at(1).toBool(), true);
+    QCOMPARE(finishedSpy.constFirst().at(2).toBool(), true);
+
+    service.unsubscribe(nodeId);
+    QCOMPARE(backend.unsubscribedNodeId, nodeId);
 }
 
 void TestConnectionController::savedProfileWithoutSecretsDiscoversThenConnects()

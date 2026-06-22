@@ -89,6 +89,13 @@ public:
     void updateValues(const QVector<OpcUaDataValue> &values);
 
     ///
+    /// \brief Updates the subscription shown for a data-access node.
+    /// \param nodeId Affected node.
+    /// \param subscribed Whether the node belongs to the default subscription.
+    ///
+    void setNodeSubscribed(const QString &nodeId, bool subscribed);
+
+    ///
     /// \brief Clears the data, subscriptions, events, and history models.
     ///
     void clearRuntimeData();

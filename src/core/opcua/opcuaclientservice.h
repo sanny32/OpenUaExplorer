@@ -138,6 +138,18 @@ public:
     void writeValue(const QString &nodeId, const QVariant &value, int valueType);
 
     ///
+    /// \brief Enables Value monitoring with the default publishing interval.
+    /// \param nodeId Node to monitor.
+    ///
+    void subscribe(const QString &nodeId);
+
+    ///
+    /// \brief Disables Value monitoring for a node.
+    /// \param nodeId Monitored node.
+    ///
+    void unsubscribe(const QString &nodeId);
+
+    ///
     /// \brief Resolves this client's session name from the server diagnostics.
     ///
     void readServerSessionName();
@@ -200,6 +212,15 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void writeFinished(QString nodeId, bool success, QString error);
+
+    ///
+    /// \brief Emitted after a monitoring request finishes.
+    /// \param nodeId Affected node.
+    /// \param subscribed True for subscribe and false for unsubscribe.
+    /// \param success Whether the request succeeded.
+    /// \param error Error description, empty on success.
+    ///
+    void monitoringFinished(QString nodeId, bool subscribed, bool success, QString error);
 
     ///
     /// \brief Emitted when the server-assigned session name has been resolved.

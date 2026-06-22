@@ -118,6 +118,35 @@ void DataAccessWidget::updateValues(const QVector<OpcUaDataValue> &values)
 }
 
 ///
+/// \brief Updates the subscription shown for a data-access node.
+/// \param nodeId Affected node.
+/// \param subscribed Whether the node belongs to the default subscription.
+///
+void DataAccessWidget::setNodeSubscribed(const QString &nodeId, bool subscribed)
+{
+    for (int row = 0; row < _dataModel->rowCount(); ++row) {
+        if (_dataModel->itemAt(row).nodeId != nodeId)
+            continue;
+        _dataModel->setData(_dataModel->index(row, DataAccessModel::ColSubscription),
+                            subscribed ? QStringLiteral("Default") : QString(), Qt::EditRole);
+        break;
+    }
+
+    bool hasSubscriptions = false;
+    for (int row = 0; row < _dataModel->rowCount(); ++row) {
+        if (!_dataModel->itemAt(row).subscriptionName.isEmpty()) {
+            hasSubscriptions = true;
+            break;
+        }
+    }
+    _subscriptionsModel->setItems(hasSubscriptions
+        ? QVector<SubscriptionItem>{{QStringLiteral("Default"), QStringLiteral("1000 ms")}}
+        : QVector<SubscriptionItem>{});
+    ui->mainTabs->setTabEnabled(SubscriptionsPage, hasSubscriptions);
+    rebuildSubscribeMenu();
+}
+
+///
 /// \brief Clears the data, subscriptions, events, and history models.
 ///
 void DataAccessWidget::clearRuntimeData()

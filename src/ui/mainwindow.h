@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QSet>
 
 #include "appsettings.h"
 #include "opcua/certificatetrustdecider.h"
@@ -54,6 +55,8 @@ private slots:
     void on_actionReadSelected_triggered();
     void on_actionWrite_triggered();
     void on_actionWriteValue_triggered();
+    void on_actionSubscribe_triggered();
+    void on_actionUnsubscribe_triggered();
     void on_actionAddToDataAccess_triggered();
     void on_actionExit_triggered();
     void on_actionSettings_triggered();
@@ -101,6 +104,9 @@ private:
     void onNodeDetailsReady(const OpcUaNodeDetails &details, const QString &error);
     void onDataValuesReady(const QVector<OpcUaDataValue> &values, const QString &error);
     void onWriteFinished(const QString &nodeId, bool success, const QString &error);
+    void onMonitoringFinished(const QString &nodeId, bool subscribed,
+                              bool success, const QString &error);
+    void updateMonitoringActions();
     CertificateTrustDecision decide(const QByteArray &certificate,
                                     const QString &message) override;
 
@@ -110,4 +116,6 @@ private:
     class OpcUaClientService *_clientService;
     class FavoritesWidget *_favoritesWidget = nullptr;
     OpcUaNodeDetails _selectedNodeDetails;
+    QSet<QString> _subscribedNodeIds;
+    QSet<QString> _pendingMonitoringNodeIds;
 };
