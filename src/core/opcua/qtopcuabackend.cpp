@@ -594,7 +594,24 @@ void QtOpcUaBackend::subscribe(const QString &nodeId, double publishingInterval)
         return;
     }
     if (_d->monitoredNodes.contains(nodeId)) {
-        emit monitoringFinished(nodeId, true, true, QString());
+        QOpcUaNode *monitored = _d->monitoredNodes.take(nodeId);
+        connect(monitored, &QOpcUaNode::disableMonitoringFinished, this,
+                [this, monitored, nodeId, publishingInterval](QOpcUa::NodeAttribute attribute,
+                                                              QOpcUa::UaStatusCode status) {
+            if (attribute != QOpcUa::NodeAttribute::Value)
+                return;
+            monitored->deleteLater();
+            if (QOpcUa::isSuccessStatus(status)) {
+                subscribe(nodeId, publishingInterval);
+            } else {
+                emit monitoringFinished(nodeId, true, false, statusName(status));
+            }
+        });
+        if (!monitored->disableMonitoring(QOpcUa::NodeAttribute::Value)) {
+            _d->monitoredNodes.insert(nodeId, monitored);
+            emit monitoringFinished(nodeId, true, false,
+                                    tr("The backend rejected the monitoring update request."));
+        }
         return;
     }
     QOpcUaNode *node = _d->connection.client()->node(nodeId);
@@ -628,7 +645,9 @@ void QtOpcUaBackend::subscribe(const QString &nodeId, double publishingInterval)
         emit monitoringFinished(nodeId, true, success,
                                 success ? QString() : statusName(status));
     });
-    const QOpcUaMonitoringParameters parameters(publishingInterval);
+    QOpcUaMonitoringParameters parameters(publishingInterval);
+   
+    parameters.setSamplingInterval(publishingInterval);
     if (!node->enableMonitoring(QOpcUa::NodeAttribute::Value, parameters)) {
         node->deleteLater();
         emit monitoringFinished(nodeId, true, false,

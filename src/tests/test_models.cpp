@@ -59,6 +59,7 @@ private slots:
     void historyModelHeaderRolesAndMutators();
     void referencesModelHeaderAndEdges();
     void subscriptionsModelHeaderRolesAndReset();
+    void subscriptionsModelEditingAndMutators();
     void logModelColumnsRolesAndFilters();
     void attributesModelHeaderRolesAndMutators();
     void eventsModelHeaderRolesAndMutators();
@@ -470,7 +471,7 @@ void TestModels::referencesModelHeaderAndEdges()
 void TestModels::subscriptionsModelHeaderRolesAndReset()
 {
     SubscriptionsModel model;
-    model.setItems({{QStringLiteral("Sub1"), QStringLiteral("500")}});
+    model.setItems({{QStringLiteral("Sub1"), 500.0}});
 
     QCOMPARE(model.headerData(SubscriptionsModel::ColName, Qt::Horizontal).toString(),
              QStringLiteral("Name"));
@@ -482,14 +483,16 @@ void TestModels::subscriptionsModelHeaderRolesAndReset()
                               Qt::DecorationRole).isValid());
 
     QCOMPARE(model.data(model.index(0, SubscriptionsModel::ColPublishingInterval)).toString(),
-             QStringLiteral("500"));
+             QStringLiteral("500 ms"));
+    QCOMPARE(model.data(model.index(0, SubscriptionsModel::ColPublishingInterval),
+                        Qt::EditRole).toDouble(), 500.0);
     QVERIFY(model.data(model.index(0, SubscriptionsModel::ColName),
                        Qt::TextAlignmentRole).isValid());
 
     // Replacing a non-empty model exercises the remove-then-insert path.
     QSignalSpy removeSpy(&model, &QAbstractItemModel::rowsRemoved);
-    model.setItems({{QStringLiteral("A"), QStringLiteral("100")},
-                    {QStringLiteral("B"), QStringLiteral("200")}});
+    model.setItems({{QStringLiteral("A"), 100.0},
+                    {QStringLiteral("B"), 200.0}});
     QCOMPARE(removeSpy.size(), 1);
     QCOMPARE(model.rowCount(), 2);
 
@@ -502,6 +505,51 @@ void TestModels::subscriptionsModelHeaderRolesAndReset()
     model.clear();
     QCOMPARE(model.rowCount(), 0);
     model.clear(); // already empty: early return
+}
+
+///
+/// \brief SubscriptionsModel: editing flags, setData validation, mutators and lookups.
+///
+void TestModels::subscriptionsModelEditingAndMutators()
+{
+    SubscriptionsModel model;
+    new QAbstractItemModelTester(&model, &model);
+    const int firstRow = model.addSubscription({QStringLiteral("Default"), 1000.0});
+    QCOMPARE(firstRow, 0);
+    model.addSubscription({QStringLiteral("Fast"), 250.0});
+
+    const QModelIndex nameIndex = model.index(0, SubscriptionsModel::ColName);
+    const QModelIndex intervalIndex = model.index(0, SubscriptionsModel::ColPublishingInterval);
+    QVERIFY(model.flags(nameIndex) & Qt::ItemIsEditable);
+    QVERIFY(model.flags(intervalIndex) & Qt::ItemIsEditable);
+
+    // Renaming emits subscriptionRenamed; duplicate and empty names are rejected.
+    QSignalSpy renameSpy(&model, &SubscriptionsModel::subscriptionRenamed);
+    QVERIFY(!model.setData(nameIndex, QStringLiteral("Fast"), Qt::EditRole));
+    QVERIFY(!model.setData(nameIndex, QStringLiteral("   "), Qt::EditRole));
+    QVERIFY(model.setData(nameIndex, QStringLiteral("Slow"), Qt::EditRole));
+    QCOMPARE(renameSpy.size(), 1);
+    QCOMPARE(renameSpy.first().at(0).toString(), QStringLiteral("Default"));
+    QCOMPARE(renameSpy.first().at(1).toString(), QStringLiteral("Slow"));
+
+    // Interval edits emit subscriptionIntervalChanged; non-positive values are rejected.
+    QSignalSpy intervalSpy(&model, &SubscriptionsModel::subscriptionIntervalChanged);
+    QVERIFY(!model.setData(intervalIndex, 0.0, Qt::EditRole));
+    QVERIFY(model.setData(intervalIndex, 2000.0, Qt::EditRole));
+    QCOMPARE(intervalSpy.size(), 1);
+    QCOMPARE(model.intervalFor(QStringLiteral("Slow")), 2000.0);
+    QCOMPARE(model.intervalFor(QStringLiteral("missing")), 1000.0);
+
+    QVERIFY(model.containsName(QStringLiteral("Fast")));
+    QVERIFY(!model.containsName(QStringLiteral("Fast"), 1));
+    QCOMPARE(model.itemAt(1).name, QStringLiteral("Fast"));
+    QVERIFY(model.itemAt(99).name.isEmpty());
+
+    model.removeRow(0);
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(model.names(), QStringList{QStringLiteral("Fast")});
+    model.removeRow(99); // out of range: no-op
+    QCOMPARE(model.rowCount(), 1);
 }
 
 ///

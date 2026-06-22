@@ -138,10 +138,11 @@ public:
     void writeValue(const QString &nodeId, const QVariant &value, int valueType);
 
     ///
-    /// \brief Enables Value monitoring with the default publishing interval.
+    /// \brief Enables Value monitoring, or re-applies the interval to an already monitored node.
     /// \param nodeId Node to monitor.
+    /// \param publishingInterval Publishing interval in milliseconds.
     ///
-    void subscribe(const QString &nodeId);
+    void subscribe(const QString &nodeId, double publishingInterval = 1000.0);
 
     ///
     /// \brief Disables Value monitoring for a node.

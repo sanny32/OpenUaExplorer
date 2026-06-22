@@ -73,6 +73,14 @@ QVariant SubscriptionsModel::data(const QModelIndex &index, int role) const
     if (role == Qt::DisplayRole) {
         switch (index.column()) {
         case ColName:               return item.name;
+        case ColPublishingInterval: return QStringLiteral("%1 ms").arg(item.publishingInterval);
+        default:                    return QVariant();
+        }
+    }
+
+    if (role == Qt::EditRole) {
+        switch (index.column()) {
+        case ColName:               return item.name;
         case ColPublishingInterval: return item.publishingInterval;
         default:                    return QVariant();
         }
@@ -82,6 +90,65 @@ QVariant SubscriptionsModel::data(const QModelIndex &index, int role) const
         return QVariant(_columnAlignments.alignment(index.column()));
 
     return QVariant();
+}
+
+///
+/// \brief Reports that the Name and Publishing Interval cells are editable.
+/// \param index Cell to query.
+/// \return Item flags including Qt::ItemIsEditable for both columns.
+///
+Qt::ItemFlags SubscriptionsModel::flags(const QModelIndex &index) const
+{
+    Qt::ItemFlags flags = QAbstractTableModel::flags(index);
+    if (index.isValid()
+        && (index.column() == ColName || index.column() == ColPublishingInterval)) {
+        flags |= Qt::ItemIsEditable;
+    }
+    return flags;
+}
+
+///
+/// \brief Stores an edited subscription name or publishing interval.
+/// \param index Cell being edited.
+/// \param value New value.
+/// \param role Edit role; other roles are ignored.
+/// \return True when the value was accepted and stored.
+///
+bool SubscriptionsModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (role != Qt::EditRole || !index.isValid())
+        return false;
+    if (index.row() < 0 || index.row() >= _items.size())
+        return false;
+    SubscriptionItem &item = _items[index.row()];
+
+    if (index.column() == ColName) {
+        const QString newName = value.toString().trimmed();
+        if (newName.isEmpty() || containsName(newName, index.row()))
+            return false;
+        const QString oldName = item.name;
+        if (newName == oldName)
+            return true;
+        item.name = newName;
+        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+        emit subscriptionRenamed(oldName, newName);
+        return true;
+    }
+
+    if (index.column() == ColPublishingInterval) {
+        bool ok = false;
+        const double interval = value.toDouble(&ok);
+        if (!ok || interval <= 0.0)
+            return false;
+        if (qFuzzyCompare(interval, item.publishingInterval))
+            return true;
+        item.publishingInterval = interval;
+        emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
+        emit subscriptionIntervalChanged(item.name, interval);
+        return true;
+    }
+
+    return false;
 }
 
 ///
@@ -113,6 +180,76 @@ QStringList SubscriptionsModel::names() const
     for (const SubscriptionItem &item : _items)
         result.append(item.name);
     return result;
+}
+
+///
+/// \brief Appends a subscription row with row-change notifications.
+/// \param item Subscription to add.
+/// \return Row index of the inserted subscription.
+///
+int SubscriptionsModel::addSubscription(const SubscriptionItem &item)
+{
+    const int row = _items.size();
+    beginInsertRows(QModelIndex(), row, row);
+    _items.append(item);
+    endInsertRows();
+    return row;
+}
+
+///
+/// \brief Removes a single subscription row.
+/// \param row Row to remove.
+///
+void SubscriptionsModel::removeRow(int row)
+{
+    if (row < 0 || row >= _items.size())
+        return;
+    beginRemoveRows(QModelIndex(), row, row);
+    _items.removeAt(row);
+    endRemoveRows();
+}
+
+///
+/// \brief Returns the subscription at a row.
+/// \param row Row to read.
+/// \return Subscription, or a default-constructed item for invalid rows.
+///
+SubscriptionItem SubscriptionsModel::itemAt(int row) const
+{
+    if (row < 0 || row >= _items.size())
+        return SubscriptionItem();
+    return _items.at(row);
+}
+
+///
+/// \brief Reports whether a subscription name already exists.
+/// \param name Name to look for.
+/// \param exceptRow Row to ignore in the search, or -1 to check all rows.
+/// \return True when another row carries the name.
+///
+bool SubscriptionsModel::containsName(const QString &name, int exceptRow) const
+{
+    for (int row = 0; row < _items.size(); ++row) {
+        if (row == exceptRow)
+            continue;
+        if (_items.at(row).name == name)
+            return true;
+    }
+    return false;
+}
+
+///
+/// \brief Returns the publishing interval of a named subscription.
+/// \param name Subscription name.
+/// \return Publishing interval in milliseconds, or 1000 when not found.
+///
+double SubscriptionsModel::intervalFor(const QString &name) const
+{
+    for (const SubscriptionItem &item : _items) {
+        if (item.name == name)
+            return item.publishingInterval;
+    }
+    return 1000.0;
 }
 
 ///

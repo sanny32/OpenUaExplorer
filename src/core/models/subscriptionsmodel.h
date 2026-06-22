@@ -51,6 +51,23 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
     ///
+    /// \brief Reports that the Name and Publishing Interval cells are editable.
+    /// \param index Cell to query.
+    /// \return Item flags including Qt::ItemIsEditable for both columns.
+    ///
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
+
+    ///
+    /// \brief Stores an edited subscription name or publishing interval.
+    /// \param index Cell being edited.
+    /// \param value New value.
+    /// \param role Edit role; other roles are ignored.
+    /// \return True when the value was accepted and stored.
+    ///
+    bool setData(const QModelIndex &index, const QVariant &value,
+                 int role = Qt::EditRole) override;
+
+    ///
     /// \brief Returns the Name/Publishing Interval column titles.
     /// \param section Column index.
     /// \param orientation Header orientation.
@@ -78,6 +95,41 @@ public:
     QStringList names() const;
 
     ///
+    /// \brief Appends a subscription row with row-change notifications.
+    /// \param item Subscription to add.
+    /// \return Row index of the inserted subscription.
+    ///
+    int addSubscription(const SubscriptionItem &item);
+
+    ///
+    /// \brief Removes a single subscription row.
+    /// \param row Row to remove.
+    ///
+    void removeRow(int row);
+
+    ///
+    /// \brief Returns the subscription at a row.
+    /// \param row Row to read.
+    /// \return Subscription, or a default-constructed item for invalid rows.
+    ///
+    SubscriptionItem itemAt(int row) const;
+
+    ///
+    /// \brief Reports whether a subscription name already exists.
+    /// \param name Name to look for.
+    /// \param exceptRow Row to ignore in the search, or -1 to check all rows.
+    /// \return True when another row carries the name.
+    ///
+    bool containsName(const QString &name, int exceptRow = -1) const;
+
+    ///
+    /// \brief Returns the publishing interval of a named subscription.
+    /// \param name Subscription name.
+    /// \return Publishing interval in milliseconds, or 1000 when not found.
+    ///
+    double intervalFor(const QString &name) const;
+
+    ///
     /// \brief Sets the text alignment for a column.
     /// \param column Column index.
     /// \param alignment Alignment to apply.
@@ -92,6 +144,21 @@ public:
         ColPublishingInterval = 1,
         ColCount             = 2
     };
+
+signals:
+    ///
+    /// \brief Emitted when a subscription is renamed via inline editing.
+    /// \param oldName Previous subscription name.
+    /// \param newName New subscription name.
+    ///
+    void subscriptionRenamed(QString oldName, QString newName);
+
+    ///
+    /// \brief Emitted when a subscription's publishing interval changes.
+    /// \param name Subscription name.
+    /// \param interval New publishing interval in milliseconds.
+    ///
+    void subscriptionIntervalChanged(QString name, double interval);
 
 private:
     QVector<SubscriptionItem>  _items;

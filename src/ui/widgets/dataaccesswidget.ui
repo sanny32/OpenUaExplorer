@@ -123,6 +123,43 @@
       </attribute>
       <layout class="QVBoxLayout" name="subscriptionsLayout">
        <item>
+        <layout class="QHBoxLayout" name="subscriptionsToolbarLayout">
+         <item>
+          <widget class="ThemedToolButton" name="addSubscriptionButton">
+           <property name="text">
+            <string>Add</string>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonTextBesideIcon</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="ThemedToolButton" name="removeSubscriptionButton">
+           <property name="text">
+            <string>Remove</string>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonTextBesideIcon</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="subscriptionsToolbarSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
         <widget class="TableView" name="subscriptionsTable"/>
        </item>
       </layout>

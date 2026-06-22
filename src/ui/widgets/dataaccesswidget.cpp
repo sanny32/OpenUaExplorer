@@ -6,6 +6,8 @@
 /// \brief Implements the OPC UA data access widget.
 ///
 
+#include <algorithm>
+
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QMenu>
@@ -18,6 +20,7 @@
 #include "models/eventsmodel.h"
 #include "models/historymodel.h"
 #include "models/subscriptionsmodel.h"
+#include "publishingintervaldelegate.h"
 #include "subscriptiondelegate.h"
 #include "tableview.h"
 #include "ui_dataaccesswidget.h"
@@ -44,6 +47,14 @@ DataAccessWidget::DataAccessWidget(QWidget *parent)
             this, &DataAccessWidget::rebuildSubscribeMenu);
     connect(_subscriptionsModel, &QAbstractItemModel::rowsRemoved,
             this, &DataAccessWidget::rebuildSubscribeMenu);
+    connect(_subscriptionsModel, &SubscriptionsModel::subscriptionRenamed,
+            this, [this](const QString &oldName, const QString &newName) {
+                renameSubscriptionAssignments(oldName, newName);
+                rebuildSubscribeMenu();
+            });
+    connect(_subscriptionsModel, &SubscriptionsModel::subscriptionIntervalChanged,
+            this, &DataAccessWidget::reapplySubscriptionInterval);
+    resetSubscriptions();
 }
 
 ///
@@ -127,23 +138,15 @@ void DataAccessWidget::setNodeSubscribed(const QString &nodeId, bool subscribed)
     for (int row = 0; row < _dataModel->rowCount(); ++row) {
         if (_dataModel->itemAt(row).nodeId != nodeId)
             continue;
-        _dataModel->setData(_dataModel->index(row, DataAccessModel::ColSubscription),
-                            subscribed ? QStringLiteral("Default") : QString(), Qt::EditRole);
+        const QModelIndex index = _dataModel->index(row, DataAccessModel::ColSubscription);
+        if (subscribed) {
+            if (_dataModel->itemAt(row).subscriptionName.isEmpty())
+                _dataModel->setData(index, QStringLiteral("Default"), Qt::EditRole);
+        } else {
+            _dataModel->setData(index, QString(), Qt::EditRole);
+        }
         break;
     }
-
-    bool hasSubscriptions = false;
-    for (int row = 0; row < _dataModel->rowCount(); ++row) {
-        if (!_dataModel->itemAt(row).subscriptionName.isEmpty()) {
-            hasSubscriptions = true;
-            break;
-        }
-    }
-    _subscriptionsModel->setItems(hasSubscriptions
-        ? QVector<SubscriptionItem>{{QStringLiteral("Default"), QStringLiteral("1000 ms")}}
-        : QVector<SubscriptionItem>{});
-    ui->mainTabs->setTabEnabled(SubscriptionsPage, hasSubscriptions);
-    rebuildSubscribeMenu();
 }
 
 ///
@@ -152,7 +155,7 @@ void DataAccessWidget::setNodeSubscribed(const QString &nodeId, bool subscribed)
 void DataAccessWidget::clearRuntimeData()
 {
     _dataModel->clear();
-    _subscriptionsModel->clear();
+    resetSubscriptions();
     _eventsModel->setItems({});
     _historyModel->setItems({});
 }
@@ -213,15 +216,28 @@ void DataAccessWidget::setupSubscriptionsView()
 {
     ui->subscriptionsTable->setModel(_subscriptionsModel);
     ui->subscriptionsTable->verticalHeader()->hide();
+    ui->subscriptionsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->subscriptionsTable->setEditTriggers(QAbstractItemView::DoubleClicked
+                                            | QAbstractItemView::SelectedClicked);
+    ui->subscriptionsTable->setItemDelegateForColumn(
+        SubscriptionsModel::ColPublishingInterval, new PublishingIntervalDelegate(this));
 
     auto *subsHeader = ui->subscriptionsTable->headerView();
     connect(subsHeader, &HeaderView::sectionAlignmentChanged, this,
             [this](int logicalIndex, Qt::Alignment alignment) {
                 _subscriptionsModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
             });
-    subsHeader->setSectionResizeMode(SubscriptionsModel::ColName,               QHeaderView::Fixed);
+    subsHeader->setSectionResizeMode(SubscriptionsModel::ColName,               QHeaderView::Interactive);
     subsHeader->setSectionResizeMode(SubscriptionsModel::ColPublishingInterval, QHeaderView::Stretch);
     ui->subscriptionsTable->setColumnWidth(SubscriptionsModel::ColName, 120);
+
+    connect(ui->subscriptionsTable->selectionModel(), &QItemSelectionModel::selectionChanged,
+            this, [this] {
+        const QModelIndexList rows = ui->subscriptionsTable->selectionModel()->selectedRows();
+        const bool defaultSelected = rows.size() == 1
+            && _subscriptionsModel->itemAt(rows.first().row()).name == QStringLiteral("Default");
+        ui->removeSubscriptionButton->setEnabled(!rows.isEmpty() && !defaultSelected);
+    });
 }
 
 ///
@@ -270,10 +286,12 @@ void DataAccessWidget::configureToolbar()
     ui->readButton->setIcon(QStringLiteral("read"));
     ui->writeButton->setIcon(QStringLiteral("write"));
     ui->subscribeButton->setIcon(QStringLiteral("subscribe"));
+    ui->addSubscriptionButton->setIcon(QStringLiteral("add"));
+    ui->removeSubscriptionButton->setIcon(QStringLiteral("remove"));
 
     ui->subscribeButton->setPopupMode(QToolButton::InstantPopup);
     ui->subscribeButton->setEnabled(false);
-    ui->mainTabs->setTabEnabled(SubscriptionsPage, false);
+    ui->removeSubscriptionButton->setEnabled(false);
     ui->mainTabs->setTabEnabled(EventsPage, false);
     ui->mainTabs->setTabEnabled(HistoryPage, false);
 
@@ -293,6 +311,10 @@ void DataAccessWidget::configureToolbar()
         emit writeRequested(item.nodeId, item.typedValue, item.valueType,
                             item.dataTypeId, OpcUa::isWritable(item.userAccessLevel));
     });
+    connect(ui->addSubscriptionButton, &QPushButton::clicked,
+            this, &DataAccessWidget::addSubscription);
+    connect(ui->removeSubscriptionButton, &QPushButton::clicked,
+            this, &DataAccessWidget::removeSelectedSubscriptions);
 }
 
 ///
@@ -325,9 +347,96 @@ void DataAccessWidget::rebuildSubscribeMenu()
 void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionName)
 {
     const QModelIndexList rows = ui->dataView->selectionModel()->selectedRows();
+    const double interval = _subscriptionsModel->intervalFor(subscriptionName);
     for (const QModelIndex &idx : rows) {
+        const QString nodeId = _dataModel->itemAt(idx.row()).nodeId;
         _dataModel->setData(_dataModel->index(idx.row(), DataAccessModel::ColSubscription),
                         subscriptionName, Qt::EditRole);
+        if (subscriptionName.isEmpty())
+            emit monitoringCancelled(nodeId);
+        else
+            emit monitoringRequested(nodeId, interval);
+    }
+}
+
+///
+/// \brief Resets the subscription list to the single built-in Default subscription.
+///
+void DataAccessWidget::resetSubscriptions()
+{
+    _subscriptionsModel->setItems({{QStringLiteral("Default"), 1000.0}});
+}
+
+///
+/// \brief Adds a new subscription with a unique name and opens its name cell for editing.
+///
+void DataAccessWidget::addSubscription()
+{
+    QString name;
+    for (int i = 1; ; ++i) {
+        name = tr("Subscription %1").arg(i);
+        if (!_subscriptionsModel->containsName(name))
+            break;
+    }
+
+    const int row = _subscriptionsModel->addSubscription({name, 1000.0});
+    const QModelIndex nameIndex = _subscriptionsModel->index(row, SubscriptionsModel::ColName);
+    ui->mainTabs->setCurrentIndex(SubscriptionsPage);
+    ui->subscriptionsTable->setCurrentIndex(nameIndex);
+    ui->subscriptionsTable->edit(nameIndex);
+}
+
+///
+/// \brief Removes the selected subscriptions, unassigning and unmonitoring their nodes.
+///
+void DataAccessWidget::removeSelectedSubscriptions()
+{
+    QModelIndexList rows = ui->subscriptionsTable->selectionModel()->selectedRows();
+    std::sort(rows.begin(), rows.end(), [](const QModelIndex &a, const QModelIndex &b) {
+        return a.row() > b.row();
+    });
+    for (const QModelIndex &idx : rows) {
+        const QString name = _subscriptionsModel->itemAt(idx.row()).name;
+        if (name == QStringLiteral("Default"))
+            continue;
+        for (int dataRow = 0; dataRow < _dataModel->rowCount(); ++dataRow) {
+            if (_dataModel->itemAt(dataRow).subscriptionName != name)
+                continue;
+            const QString nodeId = _dataModel->itemAt(dataRow).nodeId;
+            _dataModel->setData(_dataModel->index(dataRow, DataAccessModel::ColSubscription),
+                                QString(), Qt::EditRole);
+            emit monitoringCancelled(nodeId);
+        }
+        _subscriptionsModel->removeRow(idx.row());
+    }
+}
+
+///
+/// \brief Repoints data-access nodes from a renamed subscription to its new name.
+/// \param oldName Previous subscription name.
+/// \param newName New subscription name.
+///
+void DataAccessWidget::renameSubscriptionAssignments(const QString &oldName, const QString &newName)
+{
+    for (int row = 0; row < _dataModel->rowCount(); ++row) {
+        if (_dataModel->itemAt(row).subscriptionName != oldName)
+            continue;
+        _dataModel->setData(_dataModel->index(row, DataAccessModel::ColSubscription),
+                            newName, Qt::EditRole);
+    }
+}
+
+///
+/// \brief Re-establishes monitoring at a new interval for all nodes of a subscription.
+/// \param name Subscription whose interval changed.
+/// \param interval New publishing interval in milliseconds.
+///
+void DataAccessWidget::reapplySubscriptionInterval(const QString &name, double interval)
+{
+    for (int row = 0; row < _dataModel->rowCount(); ++row) {
+        if (_dataModel->itemAt(row).subscriptionName != name)
+            continue;
+        emit monitoringRequested(_dataModel->itemAt(row).nodeId, interval);
     }
 }
 

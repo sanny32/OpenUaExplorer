@@ -95,6 +95,8 @@ add_library(ouaexp_ui STATIC
     widgets/favoriteswidget.h
     widgets/maintoolbutton.cpp
     widgets/maintoolbutton.h
+    widgets/publishingintervaldelegate.cpp
+    widgets/publishingintervaldelegate.h
     widgets/subscriptiondelegate.cpp
     widgets/subscriptiondelegate.h
     widgets/tableview.cpp

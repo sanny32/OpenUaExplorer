@@ -615,6 +615,10 @@ void MainWindow::setupOpcUaClient()
             this, &MainWindow::on_actionAddToDataAccess_triggered);
     connect(ui->dataAccessWidget, &DataAccessWidget::writeRequested,
             this, &MainWindow::showWriteDialog);
+    connect(ui->dataAccessWidget, &DataAccessWidget::monitoringRequested,
+            _clientService, &OpcUaClientService::subscribe);
+    connect(ui->dataAccessWidget, &DataAccessWidget::monitoringCancelled,
+            _clientService, &OpcUaClientService::unsubscribe);
     connect(ui->attributesWidget, &AttributesWidget::writeRequested,
             _clientService, &OpcUaClientService::writeValue);
     connect(_clientService, &OpcUaClientService::dataValuesReady,

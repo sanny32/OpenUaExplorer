@@ -17,8 +17,8 @@ struct SubscriptionItem
 {
     /// \brief Subscription name.
     QString name;
-    /// \brief Publishing interval display text.
-    QString publishingInterval;
+    /// \brief Publishing interval in milliseconds.
+    double publishingInterval = 1000.0;
 };
 
 ///

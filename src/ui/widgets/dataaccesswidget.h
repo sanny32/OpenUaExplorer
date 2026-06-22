@@ -123,6 +123,19 @@ signals:
     void writeRequested(QString nodeId, QVariant currentValue, int valueType,
                         QString dataTypeId, bool writable);
 
+    ///
+    /// \brief Emitted when a node should be monitored at a subscription's publishing interval.
+    /// \param nodeId Node to monitor.
+    /// \param publishingInterval Publishing interval in milliseconds.
+    ///
+    void monitoringRequested(QString nodeId, double publishingInterval);
+
+    ///
+    /// \brief Emitted when monitoring for a node should be cancelled.
+    /// \param nodeId Node to stop monitoring.
+    ///
+    void monitoringCancelled(QString nodeId);
+
 private:
     void setupDataView();
     void setupSubscriptionsView();
@@ -131,6 +144,11 @@ private:
     void configureToolbar();
     void rebuildSubscribeMenu();
     void applySubscriptionToSelection(const QString &subscriptionName);
+    void resetSubscriptions();
+    void addSubscription();
+    void removeSelectedSubscriptions();
+    void renameSubscriptionAssignments(const QString &oldName, const QString &newName);
+    void reapplySubscriptionInterval(const QString &name, double interval);
     QModelIndexList selectedDataRows() const;
 
     Ui::DataAccessWidget *ui;
