@@ -110,6 +110,8 @@ add_library(ouaexp_ui STATIC
     widgets/themedpushbutton.h
     widgets/themedtoolbutton.cpp
     widgets/themedtoolbutton.h
+    widgets/themepreviewbutton.cpp
+    widgets/themepreviewbutton.h
     widgets/trendgraphwidget.cpp
     widgets/trendgraphwidget.h
     widgets/trendpanelwidget.cpp

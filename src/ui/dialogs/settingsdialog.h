@@ -11,6 +11,7 @@
 #include <QHash>
 #include <QString>
 
+#include "appsettings.h"
 #include "dialogs/appbasedialog.h"
 
 class QCheckBox;
@@ -45,9 +46,18 @@ public:
     bool layoutResetRequested() const;
 
 private:
+    void setupThemeControls();
     void setupLogCategories();
     void loadSettings();
     void applyChanges();
+    void acceptChanges();
+    void requestLayoutReset();
+    void syncThemeComboFromCard();
+    void selectThemeCard(int index);
+    void setThemeSelection(AppSettings::ThemeMode mode);
+    AppSettings::ThemeMode selectedThemeMode() const;
+    void markDirty();
+    void setDirty(bool dirty);
 
     Ui::SettingsDialog *ui;
     bool _layoutResetRequested = false;

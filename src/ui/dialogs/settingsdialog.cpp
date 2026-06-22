@@ -6,11 +6,14 @@
 /// \brief Implements the application settings dialog.
 ///
 
+#include <QAbstractButton>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDialogButtonBox>
+#include <QGridLayout>
 #include <QLoggingCategory>
 #include <QPushButton>
-#include <QVBoxLayout>
+#include <QSizePolicy>
 #include <QVector>
 
 #include "application.h"
@@ -30,20 +33,18 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     ui->setupUi(this);
     ui->appearanceGroup->setVisible(theApp()->theme().isManualToggleSupported());
 
+    setupThemeControls();
     setupLogCategories();
     loadSettings();
+    setDirty(false);
 
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, [this] {
-        applyChanges();
-        accept();
-    });
+    connect(ui->buttonBox, &QDialogButtonBox::accepted,
+            this, &SettingsDialog::acceptChanges);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    connect(ui->resetButton, &QPushButton::clicked, this, [this] {
-        _layoutResetRequested = true;
-        applyChanges();
-        AppSettings().clearLayout();
-        accept();
-    });
+    connect(ui->buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked,
+            this, &SettingsDialog::applyChanges);
+    connect(ui->resetButton, &QPushButton::clicked,
+            this, &SettingsDialog::requestLayoutReset);
 }
 
 ///
@@ -64,17 +65,42 @@ bool SettingsDialog::layoutResetRequested() const
 }
 
 ///
+/// \brief Wires the theme combo box and preview cards as one selection control.
+///
+void SettingsDialog::setupThemeControls()
+{
+    connect(ui->lightThemeButton, &QAbstractButton::clicked,
+            this, &SettingsDialog::syncThemeComboFromCard);
+    connect(ui->darkThemeButton, &QAbstractButton::clicked,
+            this, &SettingsDialog::syncThemeComboFromCard);
+    connect(ui->systemThemeButton, &QAbstractButton::clicked,
+            this, &SettingsDialog::syncThemeComboFromCard);
+    connect(ui->themeCombo, qOverload<int>(&QComboBox::currentIndexChanged),
+            this, &SettingsDialog::selectThemeCard);
+    connect(ui->themeCombo, qOverload<int>(&QComboBox::currentIndexChanged),
+            this, &SettingsDialog::markDirty);
+}
+
+///
 /// \brief Creates a checkbox for every configurable open62541 logging category.
 ///
 void SettingsDialog::setupLogCategories()
 {
     const QVector<AppSettings::LogCategory> categories = AppSettings::availableLogCategories();
-    for (const AppSettings::LogCategory &category : categories) {
-        auto *check = new QCheckBox(category.displayName, ui->logGroup);
+    constexpr int rowsPerColumn = 4;
+    for (int index = 0; index < categories.size(); ++index) {
+        const AppSettings::LogCategory &category = categories.at(index);
+        auto *check = new QCheckBox(category.displayName, ui->logCategoriesGroup);
+        check->setObjectName(QStringLiteral("logCategory_%1").arg(category.key));
         check->setToolTip(category.categoryName);
-        ui->logGroupLayout->addWidget(check);
+        check->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+        connect(check, &QCheckBox::toggled, this, &SettingsDialog::markDirty);
+        ui->logGroupLayout->addWidget(check, index % rowsPerColumn,
+                                      index / rowsPerColumn);
         _logCategoryChecks.insert(category.key, check);
     }
+    for (int column = 0; column < 3; ++column)
+        ui->logGroupLayout->setColumnStretch(column, 1);
 }
 
 ///
@@ -83,18 +109,7 @@ void SettingsDialog::setupLogCategories()
 void SettingsDialog::loadSettings()
 {
     AppSettings settings;
-    switch (settings.themeMode()) {
-    case AppSettings::ThemeMode::Light:
-        ui->lightThemeButton->setChecked(true);
-        break;
-    case AppSettings::ThemeMode::Dark:
-        ui->darkThemeButton->setChecked(true);
-        break;
-    case AppSettings::ThemeMode::System:
-        ui->systemThemeButton->setChecked(true);
-        break;
-    }
-    ui->restoreLayoutCheck->setChecked(settings.restoreLayoutOnStartup());
+    setThemeSelection(settings.themeMode());
 
     const QHash<QString, bool> states = settings.logCategoryStates();
     for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
@@ -107,7 +122,6 @@ void SettingsDialog::loadSettings()
 void SettingsDialog::applyChanges()
 {
     AppSettings settings;
-    settings.setRestoreLayoutOnStartup(ui->restoreLayoutCheck->isChecked());
 
     QHash<QString, bool> states;
     for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
@@ -115,12 +129,98 @@ void SettingsDialog::applyChanges()
     settings.setLogCategoryStates(states);
     QLoggingCategory::setFilterRules(settings.logFilterRules());
 
-    if (theApp()->theme().isManualToggleSupported()) {
-        AppSettings::ThemeMode mode = AppSettings::ThemeMode::System;
-        if (ui->lightThemeButton->isChecked())
-            mode = AppSettings::ThemeMode::Light;
-        else if (ui->darkThemeButton->isChecked())
-            mode = AppSettings::ThemeMode::Dark;
-        theApp()->theme().setColorSchemePreference(mode);
-    }
+    if (_layoutResetRequested)
+        settings.clearLayout();
+
+    if (theApp()->theme().isManualToggleSupported())
+        theApp()->theme().setColorSchemePreference(selectedThemeMode());
+
+    setDirty(false);
+}
+
+///
+/// \brief Applies pending changes and closes the dialog successfully.
+///
+void SettingsDialog::acceptChanges()
+{
+    applyChanges();
+    accept();
+}
+
+///
+/// \brief Marks the main-window layout for restoration when changes are accepted.
+///
+void SettingsDialog::requestLayoutReset()
+{
+    _layoutResetRequested = true;
+    markDirty();
+}
+
+///
+/// \brief Updates the combo box after a theme preview card is clicked.
+///
+void SettingsDialog::syncThemeComboFromCard()
+{
+    if (ui->lightThemeButton->isChecked())
+        ui->themeCombo->setCurrentIndex(0);
+    else if (ui->darkThemeButton->isChecked())
+        ui->themeCombo->setCurrentIndex(1);
+    else
+        ui->themeCombo->setCurrentIndex(2);
+}
+
+///
+/// \brief Updates the checked preview card from the combo-box index.
+/// \param index Theme combo-box index.
+///
+void SettingsDialog::selectThemeCard(int index)
+{
+    ui->lightThemeButton->setChecked(index == 0);
+    ui->darkThemeButton->setChecked(index == 1);
+    ui->systemThemeButton->setChecked(index == 2);
+}
+
+///
+/// \brief Selects a stored theme mode in both theme controls.
+/// \param mode Stored theme preference.
+///
+void SettingsDialog::setThemeSelection(AppSettings::ThemeMode mode)
+{
+    int index = 2;
+    if (mode == AppSettings::ThemeMode::Light)
+        index = 0;
+    else if (mode == AppSettings::ThemeMode::Dark)
+        index = 1;
+    ui->themeCombo->setCurrentIndex(index);
+    selectThemeCard(index);
+}
+
+///
+/// \brief Returns the mode selected by the synchronized theme controls.
+/// \return Selected theme preference.
+///
+AppSettings::ThemeMode SettingsDialog::selectedThemeMode() const
+{
+    if (ui->lightThemeButton->isChecked())
+        return AppSettings::ThemeMode::Light;
+    if (ui->darkThemeButton->isChecked())
+        return AppSettings::ThemeMode::Dark;
+    return AppSettings::ThemeMode::System;
+}
+
+///
+/// \brief Enables Apply after a preference or layout action changes.
+///
+void SettingsDialog::markDirty()
+{
+    setDirty(true);
+}
+
+///
+/// \brief Updates whether pending changes can be applied.
+/// \param dirty Whether the dialog differs from the last applied state.
+///
+void SettingsDialog::setDirty(bool dirty)
+{
+    ui->buttonBox->button(QDialogButtonBox::Apply)->setEnabled(dirty);
 }
