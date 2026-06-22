@@ -12,6 +12,7 @@
 #include <QRegularExpression>
 #include <QStyle>
 #include <QStyleOptionHeader>
+#include <QVector>
 
 #include "headerview.h"
 
@@ -115,7 +116,16 @@ void HeaderView::restoreLayout(const QByteArray &state)
 
     QByteArray baseState;
     stream >> baseState;
+
+    QVector<QHeaderView::ResizeMode> modes;
+    modes.reserve(count());
+    for (int i = 0; i < count(); ++i)
+        modes.append(sectionResizeMode(i));
+
     QHeaderView::restoreState(baseState);
+
+    for (int i = 0; i < count() && i < modes.size(); ++i)
+        setSectionResizeMode(i, modes.at(i));
 
     quint32 defaultAlignment = 0;
     stream >> defaultAlignment;

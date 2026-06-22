@@ -176,13 +176,13 @@ void DataAccessWidget::setupDataView()
 
     header->setStretchLastSection(false);
     header->setSectionResizeMode(DataAccessModel::ColNumber,       QHeaderView::Fixed);
-    header->setSectionResizeMode(DataAccessModel::ColNodeId,       QHeaderView::Stretch);
-    header->setSectionResizeMode(DataAccessModel::ColDisplayName,  QHeaderView::Fixed);
-    header->setSectionResizeMode(DataAccessModel::ColValue,        QHeaderView::Fixed);
-    header->setSectionResizeMode(DataAccessModel::ColDataType,     QHeaderView::Fixed);
-    header->setSectionResizeMode(DataAccessModel::ColTimestamp,    QHeaderView::Fixed);
-    header->setSectionResizeMode(DataAccessModel::ColStatus,       QHeaderView::Fixed);
-    header->setSectionResizeMode(DataAccessModel::ColSubscription, QHeaderView::Fixed);
+    header->setSectionResizeMode(DataAccessModel::ColNodeId,       QHeaderView::Interactive);
+    header->setSectionResizeMode(DataAccessModel::ColDisplayName,  QHeaderView::Interactive);
+    header->setSectionResizeMode(DataAccessModel::ColValue,        QHeaderView::Interactive);
+    header->setSectionResizeMode(DataAccessModel::ColDataType,     QHeaderView::Interactive);
+    header->setSectionResizeMode(DataAccessModel::ColTimestamp,    QHeaderView::Interactive);
+    header->setSectionResizeMode(DataAccessModel::ColStatus,       QHeaderView::Interactive);
+    header->setSectionResizeMode(DataAccessModel::ColSubscription, QHeaderView::Interactive);
 
     header->setSectionAlignment(DataAccessModel::ColNumber,     Qt::AlignCenter);
     header->setSectionAlignment(DataAccessModel::ColValue,      Qt::AlignCenter);
@@ -191,6 +191,7 @@ void DataAccessWidget::setupDataView()
     header->setSectionAlignment(DataAccessModel::ColStatus,     Qt::AlignCenter);
 
     ui->dataView->setColumnWidth(DataAccessModel::ColNumber,       36 );
+    ui->dataView->setColumnWidth(DataAccessModel::ColNodeId,       220);
     ui->dataView->setColumnWidth(DataAccessModel::ColDisplayName,  120);
     ui->dataView->setColumnWidth(DataAccessModel::ColValue,        70 );
     ui->dataView->setColumnWidth(DataAccessModel::ColDataType,     82 );
