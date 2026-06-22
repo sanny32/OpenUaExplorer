@@ -175,6 +175,14 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
         hasNode |= child.nodeId == _nodeId;
     QVERIFY2(hasNode, "The test variable was not found while browsing Objects.");
 
+    QSignalSpy referencesSpy(&service, &OpcUaClientService::referencesBrowseFinished);
+    service.browseReferences(_nodeId);
+    QVERIFY(referencesSpy.wait(15000));
+    const QList<QVariant> referencesArgs = referencesSpy.takeFirst();
+    QVERIFY2(referencesArgs.at(2).toString().isEmpty(),
+             qPrintable(referencesArgs.at(2).toString()));
+    QVERIFY(!referencesArgs.at(1).value<QVector<OpcUaNodeInfo>>().isEmpty());
+
     // 3b. Read the full attribute set (drives the readNode formatting path).
     QSignalSpy detailsSpy(&service, &OpcUaClientService::nodeDetailsReady);
     service.readNode(_nodeId);

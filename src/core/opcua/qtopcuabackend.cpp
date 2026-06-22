@@ -6,110 +6,30 @@
 /// \brief Implements the Qt OPC UA transport backend.
 ///
 
-#include <algorithm>
+#include <array>
 #include <functional>
 #include <memory>
 
-#include <QCoreApplication>
-#include <QLoggingCategory>
-#include <QMetaEnum>
 #include <QTimer>
+#include <QPointer>
 #include <QUrl>
 
-#include <QOpcUaApplicationDescription>
-#include <QOpcUaAuthenticationInformation>
-#include <QOpcUaBinaryDataEncoding>
 #include <QOpcUaBrowseRequest>
 #include <QOpcUaClient>
-#include <QOpcUaExtensionObject>
-#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
-#include <QOpcUaConnectionSettings>
-#endif
-#include <QOpcUaEndpointDescription>
-#include <QOpcUaErrorState>
-#include <QOpcUaLocalizedText>
 #include <QOpcUaNode>
-#include <QOpcUaPkiConfiguration>
-#include <QOpcUaProvider>
-#include <QOpcUaQualifiedName>
 #include <QOpcUaReadItem>
 #include <QOpcUaReadResult>
 #include <QOpcUaReferenceDescription>
-#include <QOpcUaUserTokenPolicy>
 
 #include "attributeformatter.h"
-#include "certificatetrustdecider.h"
-#include "loggingcategories.h"
 #include "pkimanager.h"
 #include "qtopcuabackend.h"
+#include "qtopcuaconnectionmanager.h"
+#include "qtopcuarequestcoordinator.h"
+#include "qtopcuatypemapper.h"
 #include "standardnodeid.h"
 
 using namespace OpcUaFormat;
-
-namespace {
-
-///
-/// \brief Returns a human-readable description of a Qt OPC UA client error.
-/// \param error Client error reported by QOpcUaClient.
-/// \return Translated, descriptive error message.
-///
-QString clientErrorName(QOpcUaClient::ClientError error)
-{
-    switch (error) {
-    case QOpcUaClient::NoError:         return QtOpcUaBackend::tr("No error.");
-    case QOpcUaClient::InvalidUrl:      return QtOpcUaBackend::tr("Invalid server URL.");
-    case QOpcUaClient::AccessDenied:    return QtOpcUaBackend::tr("Access denied: authentication failed.");
-    case QOpcUaClient::ConnectionError: return QtOpcUaBackend::tr("Connection error.");
-    case QOpcUaClient::UnknownError:    return QtOpcUaBackend::tr("Unknown client error.");
-    }
-    return QtOpcUaBackend::tr("Unknown client error (%1).").arg(static_cast<int>(error));
-}
-
-///
-/// \brief Returns a human-readable name for a connection step.
-/// \param step Connection step reported by QOpcUaErrorState.
-/// \return Translated connection step name.
-///
-QString connectionStepName(QOpcUaErrorState::ConnectionStep step)
-{
-    switch (step) {
-    case QOpcUaErrorState::ConnectionStep::Unknown:
-        return QtOpcUaBackend::tr("Unknown");
-    case QOpcUaErrorState::ConnectionStep::CertificateValidation:
-        return QtOpcUaBackend::tr("Certificate validation");
-    case QOpcUaErrorState::ConnectionStep::OpenSecureChannel:
-        return QtOpcUaBackend::tr("Open secure channel");
-    case QOpcUaErrorState::ConnectionStep::CreateSession:
-        return QtOpcUaBackend::tr("Create session");
-    case QOpcUaErrorState::ConnectionStep::ActivateSession:
-        return QtOpcUaBackend::tr("Activate session");
-    }
-    return QtOpcUaBackend::tr("Step %1").arg(static_cast<int>(step));
-}
-
-///
-/// \brief Maps browse reference descriptions to the backend's node-info records.
-/// \param references References returned by a browse request.
-/// \return Node-info records carrying the identity and class of each reference target.
-///
-QVector<OpcUaNodeInfo> toNodeInfos(const QVector<QOpcUaReferenceDescription> &references)
-{
-    QVector<OpcUaNodeInfo> nodes;
-    nodes.reserve(references.size());
-    for (const QOpcUaReferenceDescription &reference : references) {
-        OpcUaNodeInfo info;
-        info.nodeId = reference.targetNodeId().nodeId();
-        info.browseName = reference.browseName().name();
-        info.displayName = reference.displayName().text();
-        info.referenceTypeId = reference.refTypeId();
-        info.nodeClass = static_cast<int>(reference.nodeClass());
-        nodes.append(info);
-    }
-    return nodes;
-}
-
-} // namespace
-
 
 ///
 /// \brief Private implementation holding the Qt OPC UA client and request bookkeeping.
@@ -123,37 +43,14 @@ public:
     ///
     explicit Private(QtOpcUaBackend *owner)
         : q(owner)
-        , connectWatchdog(owner)
+        , connection(owner)
     {
-        connectWatchdog.setSingleShot(true);
-        QObject::connect(&connectWatchdog, &QTimer::timeout, q, [this]() {
-            setError(QtOpcUaBackend::tr("The OPC UA connection timed out."));
-            if (client)
-                client->disconnectFromEndpoint();
-        });
-    }
-
-    ///
-    /// \brief Updates the connection state and emits stateChanged() on a real transition.
-    /// \param newState New connection state.
-    ///
-    void setState(OpcUaConnectionState newState)
-    {
-        if (currentState == newState)
-            return;
-        currentState = newState;
-        emit q->stateChanged(currentState);
-    }
-
-    ///
-    /// \brief Records, logs, and emits an error message.
-    /// \param message Error to report.
-    ///
-    void setError(const QString &message)
-    {
-        error = message;
-        qCWarning(lcClient) << message;
-        emit q->errorOccurred(message);
+        QObject::connect(&connection, &QtOpcUaConnectionManager::stateChanged,
+                         q, &QtOpcUaBackend::stateChanged);
+        QObject::connect(&connection, &QtOpcUaConnectionManager::errorOccurred,
+                         q, &QtOpcUaBackend::errorOccurred);
+        QObject::connect(&connection, &QtOpcUaConnectionManager::clientInvalidated,
+                         q, [this]() { cancelRequests(); });
     }
 
     ///
@@ -161,293 +58,56 @@ public:
     ///
     void cancelRequests()
     {
-        ++discoveryGeneration;
-        ++browseGeneration;
-        ++referencesBrowseGeneration;
-        ++nodeReadGeneration;
-        ++valueReadGeneration;
-        ++writeGeneration;
-        ++sessionNameReadGeneration;
+        requests.cancelAll();
+        for (QPointer<QOpcUaNode> &node : activeNodes) {
+            if (node)
+                node->deleteLater();
+            node.clear();
+        }
+        for (QMetaObject::Connection &signalConnection : activeConnections) {
+            QObject::disconnect(signalConnection);
+            signalConnection = {};
+        }
     }
 
     ///
-    /// \brief Creates (or reuses) the client for a backend and wires its state/error/trust signals.
-    /// \param backend Requested backend name; "open62541" is matched case-insensitively.
-    /// \return True when a client is ready, false when the backend is unavailable.
+    /// \brief Starts a client-level request and disconnects its superseded callback.
+    /// \param operation Operation category to start.
+    /// \return Token for the new request.
     ///
-    bool createClient(const QString &backend)
+    QtOpcUaRequestCoordinator::Token beginConnectionRequest(
+        QtOpcUaRequestCoordinator::Operation operation)
     {
-        if (client && activeBackend == backend)
-            return true;
-        if (client) {
-            client->deleteLater();
-            client = nullptr;
-        }
-
-        const QStringList backends = provider.availableBackends();
-        QString selected = backend;
-        if (!backends.contains(selected)) {
-            if (selected == QLatin1String("open62541")) {
-                const auto match = std::find_if(backends.cbegin(), backends.cend(),
-                                                [](const QString &name) {
-                    return name.contains(QLatin1String("open62541"), Qt::CaseInsensitive);
-                });
-                if (match != backends.cend())
-                    selected = *match;
-            }
-        }
-        if (!backends.contains(selected)) {
-            setError(QtOpcUaBackend::tr(
-                "The requested OPC UA backend '%1' is unavailable. Installed backends: %2")
-                .arg(backend, backends.join(QStringLiteral(", "))));
-            setState(OpcUaConnectionState::Unavailable);
-            return false;
-        }
-
-        client = provider.createClient(selected);
-        if (!client) {
-            setError(QtOpcUaBackend::tr("Could not create the OPC UA backend '%1'.").arg(selected));
-            setState(OpcUaConnectionState::Unavailable);
-            return false;
-        }
-        activeBackend = selected;
-
-        QObject::connect(client, &QOpcUaClient::stateChanged, q,
-                         [this](QOpcUaClient::ClientState clientState) {
-            switch (clientState) {
-            case QOpcUaClient::Disconnected:
-                connectWatchdog.stop();
-                ++generation;
-                cancelRequests();
-                setState(OpcUaConnectionState::Disconnected);
-                break;
-            case QOpcUaClient::Connecting:
-                setState(OpcUaConnectionState::Connecting);
-                break;
-            case QOpcUaClient::Connected:
-                connectWatchdog.stop();
-                ++generation;
-                setState(OpcUaConnectionState::Connected);
-                break;
-            case QOpcUaClient::Closing:
-                setState(OpcUaConnectionState::Closing);
-                break;
-            }
-        });
-        QObject::connect(client, &QOpcUaClient::errorChanged, q,
-                         [this](QOpcUaClient::ClientError clientError) {
-            if (clientError != QOpcUaClient::NoError)
-                setError(QtOpcUaBackend::tr("OPC UA client error: %1")
-                             .arg(clientErrorName(clientError)));
-        });
-        QObject::connect(client, &QOpcUaClient::connectError, q,
-                         [this](QOpcUaErrorState *state) {
-            QString message = QtOpcUaBackend::tr(
-                "Connection step '%1' failed: %2")
-                .arg(connectionStepName(state->connectionStep()))
-                .arg(statusName(state->errorCode()));
-            if (state->errorCode() == QOpcUa::UaStatusCode::BadCertificateInvalid) {
-                message += QtOpcUaBackend::tr(
-                    "\nThe server rejected the client certificate. Add this certificate "
-                    "to the server trust list and retry: %1")
-                    .arg(activeClientCertificateFile);
-            }
-            if (state->connectionStep() == QOpcUaErrorState::ConnectionStep::CertificateValidation) {
-                const CertificateTrustDecision decision = trustDecider
-                    ? trustDecider->decide(activeCertificate, message)
-                    : CertificateTrustDecision::Reject;
-                if (decision == CertificateTrustDecision::TrustPermanently) {
-                    QString trustError;
-                    if (!pki.trustServerCertificate(activeCertificate, &trustError)) {
-                        setError(trustError);
-                        state->setIgnoreError(false);
-                        return;
-                    }
-                }
-                state->setIgnoreError(decision != CertificateTrustDecision::Reject);
-            } else {
-                setError(message);
-            }
-        });
-        return true;
+        const std::size_t index = static_cast<std::size_t>(operation);
+        QObject::disconnect(activeConnections.at(index));
+        activeConnections.at(index) = {};
+        return requests.begin(operation);
     }
 
     ///
-    /// \brief Applies authentication, PKI, and timeout settings to the client before connecting.
-    /// \param profile Connection profile to apply.
-    /// \param password Username password, when username auth is selected.
+    /// \brief Stores the temporary callback connection for an active request.
+    /// \param operation Request category.
+    /// \param signalConnection Connection to own until the request settles.
     ///
-    void configureClient(const ConnectionProfile &profile,
-                         const QString &password)
+    void trackConnection(QtOpcUaRequestCoordinator::Operation operation,
+                         const QMetaObject::Connection &signalConnection)
     {
-        QOpcUaAuthenticationInformation authentication;
-        switch (profile.authentication) {
-        case ConnectionProfile::Authentication::Username:
-            authentication.setUsernameAuthentication(profile.username, password);
-            break;
-        case ConnectionProfile::Authentication::Certificate:
-            authentication.setCertificateAuthentication();
-            break;
-        case ConnectionProfile::Authentication::Anonymous:
-            authentication.setAnonymousAuthentication();
-            break;
-        }
-        client->setAuthenticationInformation(authentication);
-
-        if (!profile.clientCertificateFile.isEmpty()) {
-            QString pkiError;
-            pki.ensureDirectories(&pkiError);
-            const PkiManager::Paths paths = pki.paths();
-            QOpcUaPkiConfiguration configuration;
-            configuration.setClientCertificateFile(profile.clientCertificateFile);
-            configuration.setPrivateKeyFile(profile.privateKeyFile);
-            configuration.setTrustListDirectory(paths.trustedCertificates);
-            configuration.setRevocationListDirectory(paths.trustedCrl);
-            configuration.setIssuerListDirectory(paths.issuerCertificates);
-            configuration.setIssuerRevocationListDirectory(paths.issuerCrl);
-            client->setPkiConfiguration(configuration);
-            if (configuration.isKeyAndCertificateFileSet())
-                client->setApplicationIdentity(configuration.applicationIdentity());
-            activeClientCertificateFile = profile.clientCertificateFile;
-        }
-
-#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
-        QOpcUaConnectionSettings settings;
-        settings.setSessionTimeout(std::chrono::milliseconds(profile.sessionTimeoutMs));
-        settings.setConnectTimeout(std::chrono::milliseconds(profile.connectTimeoutMs));
-        settings.setSecureChannelLifeTime(
-            std::chrono::milliseconds(profile.secureChannelLifetimeMs));
-        settings.setRequestTimeout(std::chrono::milliseconds(profile.requestTimeoutMs));
-        client->setConnectionSettings(settings);
-#endif
+        activeConnections.at(static_cast<std::size_t>(operation)) = signalConnection;
     }
 
     ///
-    /// \brief Translates a string in the OpcUaClientService context.
+    /// \brief Releases the temporary callback connection for a settled request.
+    /// \param operation Request category.
     ///
-    /// Lets the helpers below reuse the same translatable strings as the
-    /// surrounding member functions without qualifying every call.
-    ///
-    static QString tr(const char *text)
+    void clearConnection(QtOpcUaRequestCoordinator::Operation operation)
     {
-        return QtOpcUaBackend::tr(text);
-    }
-
-    ///
-    /// \brief Returns the ordered table of node attributes shown to the user.
-    ///
-    static QList<QPair<QString, QOpcUa::NodeAttribute>> attributeFieldTable()
-    {
-        QList<QPair<QString, QOpcUa::NodeAttribute>> fields = {
-            {tr("Node Id"), QOpcUa::NodeAttribute::NodeId},
-            {tr("Node Class"), QOpcUa::NodeAttribute::NodeClass},
-            {tr("Browse Name"), QOpcUa::NodeAttribute::BrowseName},
-            {tr("Display Name"), QOpcUa::NodeAttribute::DisplayName},
-            {tr("Description"), QOpcUa::NodeAttribute::Description},
-            {tr("Is Abstract"), QOpcUa::NodeAttribute::IsAbstract},
-            {tr("Symmetric"), QOpcUa::NodeAttribute::Symmetric},
-            {tr("Inverse Name"), QOpcUa::NodeAttribute::InverseName},
-            {tr("Contains No Loops"), QOpcUa::NodeAttribute::ContainsNoLoops},
-            {tr("Event Notifier"), QOpcUa::NodeAttribute::EventNotifier},
-            {tr("Value"), QOpcUa::NodeAttribute::Value},
-            {tr("Data Type"), QOpcUa::NodeAttribute::DataType},
-            {tr("Value Rank"), QOpcUa::NodeAttribute::ValueRank},
-            {tr("Array Dimensions"), QOpcUa::NodeAttribute::ArrayDimensions},
-            {tr("Access Level"), QOpcUa::NodeAttribute::AccessLevel},
-            {tr("User Access Level"), QOpcUa::NodeAttribute::UserAccessLevel},
-            {tr("Minimum Sampling Interval"),
-             QOpcUa::NodeAttribute::MinimumSamplingInterval},
-            {tr("Historizing"), QOpcUa::NodeAttribute::Historizing},
-            {tr("Executable"), QOpcUa::NodeAttribute::Executable},
-            {tr("User Executable"), QOpcUa::NodeAttribute::UserExecutable},
-            {tr("Write Mask"), QOpcUa::NodeAttribute::WriteMask},
-            {tr("User Write Mask"), QOpcUa::NodeAttribute::UserWriteMask}
-        };
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        fields.append(qMakePair(tr("Role Permissions"),
-                                QOpcUa::NodeAttribute::RolePermissions));
-        fields.append(qMakePair(tr("User Role Permissions"),
-                                QOpcUa::NodeAttribute::UserRolePermissions));
-        fields.append(qMakePair(tr("Access Restrictions"),
-                                QOpcUa::NodeAttribute::AccessRestrictions));
-#endif
-        return fields;
-    }
-
-    ///
-    /// \brief Builds the displayable node details from a freshly read node.
-    /// \param node Node whose attributes were read.
-    /// \param nodeId NodeId of the read node.
-    /// \param attributes Attribute mask that was requested.
-    /// \return Populated node details.
-    ///
-    OpcUaNodeDetails buildNodeDetails(QOpcUaNode *node, const QString &nodeId,
-                                      QOpcUa::NodeAttributes attributes) const
-    {
-        OpcUaNodeDetails details;
-        details.nodeId = nodeId;
-        details.nodeClass = node->attribute(QOpcUa::NodeAttribute::NodeClass).toInt();
-        const auto nodeClass = static_cast<QOpcUa::NodeClass>(details.nodeClass);
-        details.value = node->attribute(QOpcUa::NodeAttribute::Value);
-        details.dataTypeId = node->attribute(QOpcUa::NodeAttribute::DataType).toString();
-        details.valueType = static_cast<int>(valueTypeForDataType(details.dataTypeId));
-        const auto valueType = static_cast<QOpcUa::Types>(details.valueType);
-        details.valueRank = node->attribute(QOpcUa::NodeAttribute::ValueRank).toInt();
-        const QVariant dimensions = node->attribute(QOpcUa::NodeAttribute::ArrayDimensions);
-        for (const QVariant &dimension : dimensions.toList())
-            details.arrayDimensions.append(dimension.toUInt());
-        details.accessLevel = static_cast<quint8>(
-            node->attribute(QOpcUa::NodeAttribute::AccessLevel).toUInt());
-        details.userAccessLevel = static_cast<quint8>(
-            node->attribute(QOpcUa::NodeAttribute::UserAccessLevel).toUInt());
-        details.status = statusName(node->attributeError(QOpcUa::NodeAttribute::Value));
-        details.sourceTimestamp = node->sourceTimestamp(QOpcUa::NodeAttribute::Value);
-        details.serverTimestamp = node->serverTimestamp(QOpcUa::NodeAttribute::Value);
-
-        const QList<QPair<QString, QOpcUa::NodeAttribute>> fields = attributeFieldTable();
-        for (const auto &field : fields) {
-            if (!(attributes & field.second)
-                || !attributeAppliesToNodeClass(field.second, nodeClass)
-                || node->attributeError(field.second)
-                    == QOpcUa::UaStatusCode::BadAttributeIdInvalid) {
-                continue;
-            }
-            const QVariant value = node->attribute(field.second);
-            OpcUaNodeAttribute attribute;
-            attribute.name = field.first;
-            attribute.value = value;
-            attribute.status = statusName(node->attributeError(field.second));
-            attribute.sourceTimestamp = node->sourceTimestamp(field.second);
-            attribute.serverTimestamp = node->serverTimestamp(field.second);
-            formatAttribute(&attribute, field.second, value, valueType);
-            if (field.second == QOpcUa::NodeAttribute::Value) {
-                if (attribute.sourceTimestamp.isValid()) {
-                    attribute.children.append(
-                        childAttribute(tr("Source Timestamp"),
-                                       timestampDisplay(attribute.sourceTimestamp)));
-                }
-                if (attribute.serverTimestamp.isValid()) {
-                    attribute.children.append(
-                        childAttribute(tr("Server Timestamp"),
-                                       timestampDisplay(attribute.serverTimestamp)));
-                }
-                attribute.children.append(
-                    childAttribute(tr("Status Code"),
-                                   statusDisplay(node->attributeError(field.second))));
-                attribute.children.append(valueAttribute(value, valueType));
-            }
-            details.attributes.append(attribute);
-        }
-        const QVariant displayNameValue = node->attribute(QOpcUa::NodeAttribute::DisplayName);
-        if (displayNameValue.canConvert<QOpcUaLocalizedText>())
-            details.displayName = displayNameValue.value<QOpcUaLocalizedText>().text();
-        return details;
+        activeConnections.at(static_cast<std::size_t>(operation)) = {};
     }
 
     ///
     /// \brief Wires the shared lifecycle of a single-node request: completion guard, timeout, cleanup.
     /// \param node Freshly created node the request runs on; deleted on every settle path.
-    /// \param counter Operation generation counter that supersedes earlier requests of the same kind.
+    /// \param operation Operation category that supersedes earlier requests of the same kind.
     /// \param timeoutMs Request timeout in milliseconds (floored at 1000).
     /// \param signal Node completion signal to await.
     /// \param onFinished Success handler, run once while the request is still current.
@@ -459,59 +119,52 @@ public:
     /// no-ops, so each request settles exactly once.
     ///
     template <typename Signal, typename Finished, typename Start>
-    void runNodeRequest(QOpcUaNode *node, quint64 *counter, int timeoutMs, Signal signal,
+    void runNodeRequest(QOpcUaNode *node, QtOpcUaRequestCoordinator::Operation operation,
+                        int timeoutMs, Signal signal,
                         Finished onFinished, Start start,
                         const std::function<void()> &onTimeout,
                         const std::function<void()> &onRejected)
     {
-        const quint64 requestGeneration = generation;
-        const quint64 operationGeneration = ++(*counter);
+        const std::size_t operationIndex = static_cast<std::size_t>(operation);
+        if (activeNodes.at(operationIndex))
+            activeNodes.at(operationIndex)->deleteLater();
+        activeNodes.at(operationIndex) = node;
+        const QtOpcUaRequestCoordinator::Token token = requests.begin(operation);
         QObject::connect(node, signal, q,
-                         [this, node, counter, requestGeneration, operationGeneration, onFinished]
+                         [this, node, token, operationIndex, onFinished]
                          (auto &&...args) {
-            if (requestGeneration != generation || operationGeneration != *counter) {
+            if (!requests.settle(token)) {
                 node->deleteLater();
                 return;
             }
-            ++(*counter);
+            activeNodes.at(operationIndex).clear();
             onFinished(std::forward<decltype(args)>(args)...);
             node->deleteLater();
         });
-        QTimer::singleShot(qMax(1000, timeoutMs), q,
-                           [node, counter, operationGeneration, onTimeout]() {
-            if (operationGeneration != *counter)
+        QTimer::singleShot(QtOpcUaRequestCoordinator::boundedTimeout(timeoutMs), q,
+                           [this, node, token, operationIndex, onTimeout]() {
+            if (!requests.settle(token))
                 return;
-            ++(*counter);
+            activeNodes.at(operationIndex).clear();
             node->deleteLater();
             onTimeout();
         });
         if (!start()) {
-            ++(*counter);
-            node->deleteLater();
-            onRejected();
+            if (requests.settle(token)) {
+                activeNodes.at(operationIndex).clear();
+                node->deleteLater();
+                onRejected();
+            }
         }
     }
 
     QtOpcUaBackend *q;
-    OpcUaConnectionState currentState = OpcUaConnectionState::Disconnected;
-    QString error;
-    QTimer connectWatchdog;
-    quint64 generation = 0;
-    quint64 discoveryGeneration = 0;
-    quint64 browseGeneration = 0;
-    quint64 referencesBrowseGeneration = 0;
-    quint64 nodeReadGeneration = 0;
-    quint64 valueReadGeneration = 0;
-    quint64 writeGeneration = 0;
-    quint64 sessionNameReadGeneration = 0;
-    PkiManager pki;
-    QOpcUaProvider provider;
-    QOpcUaClient *client = nullptr;
-    QString activeBackend;
-    QVector<QOpcUaEndpointDescription> endpointDescriptions;
-    QByteArray activeCertificate;
-    QString activeClientCertificateFile;
-    CertificateTrustDecider *trustDecider = nullptr;
+    QtOpcUaConnectionManager connection;
+    QtOpcUaRequestCoordinator requests;
+    std::array<QPointer<QOpcUaNode>,
+               static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeNodes{};
+    std::array<QMetaObject::Connection,
+               static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeConnections{};
 };
 
 ///
@@ -533,7 +186,6 @@ QtOpcUaBackend::QtOpcUaBackend(QObject *parent)
 ///
 QtOpcUaBackend::~QtOpcUaBackend()
 {
-    delete _d->client;
     delete _d;
 }
 
@@ -543,7 +195,7 @@ QtOpcUaBackend::~QtOpcUaBackend()
 ///
 bool QtOpcUaBackend::isAvailable() const
 {
-    return !_d->provider.availableBackends().isEmpty();
+    return _d->connection.isAvailable();
 }
 
 ///
@@ -552,7 +204,7 @@ bool QtOpcUaBackend::isAvailable() const
 ///
 QStringList QtOpcUaBackend::availableBackends() const
 {
-    return _d->provider.availableBackends();
+    return _d->connection.availableBackends();
 }
 
 ///
@@ -561,7 +213,7 @@ QStringList QtOpcUaBackend::availableBackends() const
 ///
 OpcUaConnectionState QtOpcUaBackend::state() const
 {
-    return _d->currentState;
+    return _d->connection.state();
 }
 
 ///
@@ -570,7 +222,7 @@ OpcUaConnectionState QtOpcUaBackend::state() const
 ///
 QString QtOpcUaBackend::lastError() const
 {
-    return _d->error;
+    return _d->connection.lastError();
 }
 
 ///
@@ -579,7 +231,7 @@ QString QtOpcUaBackend::lastError() const
 ///
 void QtOpcUaBackend::setCertificateTrustDecider(CertificateTrustDecider *decider)
 {
-    _d->trustDecider = decider;
+    _d->connection.setCertificateTrustDecider(decider);
 }
 
 ///
@@ -591,73 +243,57 @@ void QtOpcUaBackend::setCertificateTrustDecider(CertificateTrustDecider *decider
 void QtOpcUaBackend::discoverEndpoints(const QString &url, const QString &backend,
                                        int timeoutMs)
 {
-    if (!_d->createClient(backend)) {
-        emit endpointsDiscovered({}, _d->error);
+    if (!_d->connection.prepareDiscovery(backend)) {
+        emit endpointsDiscovered({}, _d->connection.lastError());
         return;
     }
     const QUrl discoveryUrl(url);
     if (!discoveryUrl.isValid() || discoveryUrl.scheme() != QLatin1String("opc.tcp")) {
         const QString message = tr("Invalid OPC UA endpoint URL: %1").arg(url);
-        _d->setError(message);
+        _d->connection.setError(message);
         emit endpointsDiscovered({}, message);
         return;
     }
-    _d->setState(OpcUaConnectionState::Discovering);
-    const quint64 requestGeneration = ++_d->discoveryGeneration;
+    _d->connection.setState(OpcUaConnectionState::Discovering);
+    constexpr auto operation = QtOpcUaRequestCoordinator::Operation::Discovery;
+    const auto token = _d->beginConnectionRequest(operation);
     auto connection = std::make_shared<QMetaObject::Connection>();
     *connection = connect(
-        _d->client, &QOpcUaClient::endpointsRequestFinished, this,
-        [this, connection, requestGeneration](
+        _d->connection.client(), &QOpcUaClient::endpointsRequestFinished, this,
+        [this, connection, token, operation](
             const QVector<QOpcUaEndpointDescription> &result,
             QOpcUa::UaStatusCode status, const QUrl &) {
         disconnect(*connection);
-        if (requestGeneration != _d->discoveryGeneration)
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
             return;
-        ++_d->discoveryGeneration;
-        QList<EndpointInfo> endpoints;
-        _d->endpointDescriptions = result;
-        if (QOpcUa::isSuccessStatus(status)) {
-            endpoints.reserve(result.size());
-            for (int i = 0; i < result.size(); ++i) {
-                const QOpcUaEndpointDescription &endpoint = result.at(i);
-                EndpointInfo info;
-                info.index = i;
-                info.endpointUrl = endpoint.endpointUrl();
-                info.securityPolicy = endpoint.securityPolicy();
-                info.securityMode = securityModeName(endpoint.securityMode());
-                info.securityModeValue = static_cast<int>(endpoint.securityMode());
-                info.serverCertificate = endpoint.serverCertificate();
-                for (const QOpcUaUserTokenPolicy &token : endpoint.userIdentityTokens()) {
-                    info.supportsAnonymous |= token.tokenType() == QOpcUaUserTokenPolicy::Anonymous;
-                    info.supportsUsername |= token.tokenType() == QOpcUaUserTokenPolicy::Username;
-                    info.supportsCertificate |= token.tokenType() == QOpcUaUserTokenPolicy::Certificate;
-                }
-                endpoints.append(info);
-            }
-        }
+        _d->connection.finishDiscovery(result);
+        const QList<EndpointInfo> endpoints = QOpcUa::isSuccessStatus(status)
+            ? QtOpcUaTypeMapper::endpointInfos(result) : QList<EndpointInfo>();
         const QString message = QOpcUa::isSuccessStatus(status)
             ? QString()
             : tr("Endpoint discovery failed: %1").arg(statusName(status));
-        _d->setState(OpcUaConnectionState::Disconnected);
         emit endpointsDiscovered(endpoints, message);
     });
+    _d->trackConnection(operation, *connection);
     QTimer::singleShot(qMax(1000, timeoutMs), this,
-                       [this, connection, requestGeneration]() {
-        if (requestGeneration != _d->discoveryGeneration)
-            return;
+                       [this, connection, token, operation]() {
         disconnect(*connection);
-        ++_d->discoveryGeneration;
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
+            return;
         const QString message = tr("Endpoint discovery timed out.");
-        _d->setError(message);
-        _d->setState(OpcUaConnectionState::Disconnected);
+        _d->connection.setError(message);
+        _d->connection.finishDiscovery({});
         emit endpointsDiscovered({}, message);
     });
-    if (!_d->client->requestEndpoints(discoveryUrl)) {
+    if (!_d->connection.client()->requestEndpoints(discoveryUrl)) {
         disconnect(*connection);
-        ++_d->discoveryGeneration;
+        _d->clearConnection(operation);
+        _d->requests.settle(token);
         const QString message = tr("The backend rejected the endpoint discovery request.");
-        _d->setError(message);
-        _d->setState(OpcUaConnectionState::Disconnected);
+        _d->connection.setError(message);
+        _d->connection.finishDiscovery({});
         emit endpointsDiscovered({}, message);
     }
 }
@@ -672,32 +308,7 @@ void QtOpcUaBackend::connectToEndpoint(const ConnectionProfile &profile,
                                        const QString &password,
                                        const QString &privateKeyPassword)
 {
-    if (!_d->createClient(profile.backend))
-        return;
-    if (!privateKeyPassword.isEmpty()) {
-        _d->setError(tr("Encrypted private keys are not supported by Qt OPC UA."));
-        return;
-    }
-
-    int endpointIndex = -1;
-    for (int i = 0; i < _d->endpointDescriptions.size(); ++i) {
-        const QOpcUaEndpointDescription &candidate = _d->endpointDescriptions.at(i);
-        if (candidate.endpointUrl() == profile.endpointUrl
-            && candidate.securityPolicy() == profile.securityPolicy
-            && static_cast<int>(candidate.securityMode()) == profile.securityMode) {
-            endpointIndex = i;
-            break;
-        }
-    }
-    if (endpointIndex < 0) {
-        _d->setError(tr("The selected endpoint is no longer available. Run discovery again."));
-        return;
-    }
-
-    _d->configureClient(profile, password);
-    _d->activeCertificate = _d->endpointDescriptions.at(endpointIndex).serverCertificate();
-    _d->connectWatchdog.start(qMax(1000, profile.connectTimeoutMs));
-    _d->client->connectToEndpoint(_d->endpointDescriptions.at(endpointIndex));
+    _d->connection.connectToEndpoint(profile, password, privateKeyPassword);
 }
 
 ///
@@ -705,9 +316,7 @@ void QtOpcUaBackend::connectToEndpoint(const ConnectionProfile &profile,
 ///
 void QtOpcUaBackend::disconnectFromEndpoint()
 {
-    _d->cancelRequests();
-    if (_d->client)
-        _d->client->disconnectFromEndpoint();
+    _d->connection.disconnectFromEndpoint();
 }
 
 ///
@@ -717,20 +326,21 @@ void QtOpcUaBackend::disconnectFromEndpoint()
 ///
 void QtOpcUaBackend::browse(const QString &nodeId, int timeoutMs)
 {
-    if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit browseFinished(nodeId, {}, tr("The OPC UA client is not connected."));
         return;
     }
-    QOpcUaNode *node = _d->client->node(nodeId);
+    QOpcUaNode *node = _d->connection.client()->node(nodeId);
     if (!node) {
         emit browseFinished(nodeId, {}, tr("Could not create node %1.").arg(nodeId));
         return;
     }
-    _d->runNodeRequest(node, &_d->browseGeneration, timeoutMs, &QOpcUaNode::browseFinished,
+    _d->runNodeRequest(node, QtOpcUaRequestCoordinator::Operation::Browse,
+        timeoutMs, &QOpcUaNode::browseFinished,
         [this, nodeId](const QVector<QOpcUaReferenceDescription> &references,
                        QOpcUa::UaStatusCode status) {
             if (QOpcUa::isSuccessStatus(status))
-                emit browseFinished(nodeId, toNodeInfos(references), QString());
+                emit browseFinished(nodeId, QtOpcUaTypeMapper::nodeInfos(references), QString());
             else
                 emit browseFinished(nodeId, {},
                                     tr("Browse failed for %1: %2").arg(nodeId, statusName(status)));
@@ -749,12 +359,12 @@ void QtOpcUaBackend::browse(const QString &nodeId, int timeoutMs)
 ///
 void QtOpcUaBackend::browseReferences(const QString &nodeId, int timeoutMs)
 {
-    if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit referencesBrowseFinished(nodeId, {},
                                       tr("The OPC UA client is not connected."));
         return;
     }
-    QOpcUaNode *node = _d->client->node(nodeId);
+    QOpcUaNode *node = _d->connection.client()->node(nodeId);
     if (!node) {
         emit referencesBrowseFinished(nodeId, {},
                                       tr("Could not create node %1.").arg(nodeId));
@@ -766,12 +376,12 @@ void QtOpcUaBackend::browseReferences(const QString &nodeId, int timeoutMs)
     request.setReferenceTypeId(QOpcUa::ReferenceTypeId::References);
     request.setIncludeSubtypes(true);
 
-    _d->runNodeRequest(node, &_d->referencesBrowseGeneration, timeoutMs,
+    _d->runNodeRequest(node, QtOpcUaRequestCoordinator::Operation::ReferencesBrowse, timeoutMs,
         &QOpcUaNode::browseFinished,
         [this, nodeId](const QVector<QOpcUaReferenceDescription> &references,
                        QOpcUa::UaStatusCode status) {
             if (QOpcUa::isSuccessStatus(status))
-                emit referencesBrowseFinished(nodeId, toNodeInfos(references), QString());
+                emit referencesBrowseFinished(nodeId, QtOpcUaTypeMapper::nodeInfos(references), QString());
             else
                 emit referencesBrowseFinished(nodeId, {},
                                               tr("Browse failed for %1: %2").arg(nodeId, statusName(status)));
@@ -790,36 +400,22 @@ void QtOpcUaBackend::browseReferences(const QString &nodeId, int timeoutMs)
 ///
 void QtOpcUaBackend::readNode(const QString &nodeId, int timeoutMs)
 {
-    if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit nodeDetailsReady({}, tr("The OPC UA client is not connected."));
         return;
     }
-    QOpcUaNode *node = _d->client->node(nodeId);
+    QOpcUaNode *node = _d->connection.client()->node(nodeId);
     if (!node) {
         emit nodeDetailsReady({}, tr("Could not create node %1.").arg(nodeId));
         return;
     }
-    const QOpcUa::NodeAttributes attributes =
-        QOpcUaNode::allBaseAttributes()
-        | QOpcUa::NodeAttribute::IsAbstract
-        | QOpcUa::NodeAttribute::Symmetric
-        | QOpcUa::NodeAttribute::InverseName
-        | QOpcUa::NodeAttribute::ContainsNoLoops
-        | QOpcUa::NodeAttribute::EventNotifier
-        | QOpcUa::NodeAttribute::Description
-        | QOpcUa::NodeAttribute::Value
-        | QOpcUa::NodeAttribute::DataType
-        | QOpcUa::NodeAttribute::ValueRank
-        | QOpcUa::NodeAttribute::ArrayDimensions
-        | QOpcUa::NodeAttribute::AccessLevel
-        | QOpcUa::NodeAttribute::UserAccessLevel
-        | QOpcUa::NodeAttribute::MinimumSamplingInterval
-        | QOpcUa::NodeAttribute::Historizing
-        | QOpcUa::NodeAttribute::Executable
-        | QOpcUa::NodeAttribute::UserExecutable;
-    _d->runNodeRequest(node, &_d->nodeReadGeneration, timeoutMs, &QOpcUaNode::attributeRead,
+    const QOpcUa::NodeAttributes attributes = QtOpcUaTypeMapper::nodeDetailAttributes();
+    _d->runNodeRequest(node, QtOpcUaRequestCoordinator::Operation::NodeRead,
+        timeoutMs, &QOpcUaNode::attributeRead,
         [this, node, nodeId, attributes](QOpcUa::NodeAttributes) {
-            emit nodeDetailsReady(_d->buildNodeDetails(node, nodeId, attributes), QString());
+            emit nodeDetailsReady(QtOpcUaTypeMapper::nodeDetails(
+                node, nodeId, attributes, [this](const char *text) { return tr(text); }),
+                QString());
         },
         [node, attributes]() { return node->readAttributes(attributes); },
         [this]() { emit nodeDetailsReady({}, tr("Node read timed out.")); },
@@ -833,7 +429,7 @@ void QtOpcUaBackend::readNode(const QString &nodeId, int timeoutMs)
 ///
 void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
 {
-    if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit dataValuesReady({}, tr("The OPC UA client is not connected."));
         return;
     }
@@ -841,18 +437,17 @@ void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
     items.reserve(nodeIds.size());
     for (const QString &nodeId : nodeIds)
         items.append(QOpcUaReadItem(nodeId, QOpcUa::NodeAttribute::Value));
-    const quint64 requestGeneration = _d->generation;
-    const quint64 operationGeneration = ++_d->valueReadGeneration;
-    QMetaObject::Connection connection;
-    connection = connect(_d->client, &QOpcUaClient::readNodeAttributesFinished, this,
-                         [this, connection, requestGeneration, operationGeneration](
+    constexpr auto operation = QtOpcUaRequestCoordinator::Operation::ValueRead;
+    const auto token = _d->beginConnectionRequest(operation);
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(_d->connection.client(), &QOpcUaClient::readNodeAttributesFinished, this,
+                         [this, connection, token, operation](
                              const QVector<QOpcUaReadResult> &results,
-                             QOpcUa::UaStatusCode serviceResult) mutable {
-        disconnect(connection);
-        if (requestGeneration != _d->generation
-            || operationGeneration != _d->valueReadGeneration)
+                             QOpcUa::UaStatusCode serviceResult) {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
             return;
-        ++_d->valueReadGeneration;
         QVector<OpcUaDataValue> values;
         values.reserve(results.size());
         for (const QOpcUaReadResult &result : results) {
@@ -869,115 +464,21 @@ void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
             : tr("Read service failed: %1").arg(statusName(serviceResult));
         emit dataValuesReady(values, error);
     });
+    _d->trackConnection(operation, *connection);
     QTimer::singleShot(qMax(1000, timeoutMs), this,
-                       [this, connection, operationGeneration]() {
-        if (operationGeneration != _d->valueReadGeneration)
+                       [this, connection, token, operation]() {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
             return;
-        disconnect(connection);
-        ++_d->valueReadGeneration;
         emit dataValuesReady({}, tr("Value read timed out."));
     });
-    if (!_d->client->readNodeAttributes(items)) {
-        disconnect(connection);
-        ++_d->valueReadGeneration;
+    if (!_d->connection.client()->readNodeAttributes(items)) {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        _d->requests.settle(token);
         emit dataValuesReady({}, tr("The backend rejected the batch read request."));
     }
-}
-
-namespace {
-
-///
-/// \brief Leading fields of a SessionDiagnosticsDataType needed to identify a session.
-///
-struct SessionDiagnostics
-{
-    QString sessionName;
-    QString applicationUri;
-    QDateTime connectionTime;
-    bool valid = false;
-};
-
-///
-/// \brief Decodes the leading fields of a binary SessionDiagnosticsDataType body.
-/// \param object Extension object holding one SessionDiagnosticsDataType.
-/// \return Decoded fields, with valid == false when decoding failed.
-///
-SessionDiagnostics decodeSessionDiagnostics(QOpcUaExtensionObject object)
-{
-    SessionDiagnostics result;
-    QOpcUaBinaryDataEncoding decoder(object);
-    bool step = false;
-    bool ok = true;
-
-    decoder.decode<QString, QOpcUa::Types::NodeId>(step); ok &= step;     // SessionId
-    const QString sessionName = decoder.decode<QString>(step); ok &= step; // SessionName
-    // ClientDescription (ApplicationDescription):
-    const QString applicationUri = decoder.decode<QString>(step); ok &= step; // ApplicationUri
-    decoder.decode<QString>(step); ok &= step;                            // ProductUri
-    decoder.decode<QOpcUaLocalizedText>(step); ok &= step;                // ApplicationName
-    decoder.decode<quint32>(step); ok &= step;                           // ApplicationType
-    decoder.decode<QString>(step); ok &= step;                           // GatewayServerUri
-    decoder.decode<QString>(step); ok &= step;                           // DiscoveryProfileUri
-    decoder.decodeArray<QString>(step); ok &= step;                      // DiscoveryUrls
-    decoder.decode<QString>(step); ok &= step;                          // ServerUri
-    decoder.decode<QString>(step); ok &= step;                          // EndpointUrl
-    decoder.decodeArray<QString>(step); ok &= step;                     // LocaleIds
-    decoder.decode<double>(step); ok &= step;                           // ActualSessionTimeout
-    decoder.decode<quint32>(step); ok &= step;                          // MaxResponseMessageSize
-    const QDateTime connectionTime = decoder.decode<QDateTime>(step); ok &= step; // ClientConnectionTime
-
-    if (!ok)
-        return result;
-    result.sessionName = sessionName;
-    result.applicationUri = applicationUri;
-    result.connectionTime = connectionTime;
-    result.valid = true;
-    return result;
-}
-
-///
-/// \brief Picks this client's session name from a SessionDiagnosticsArray value.
-/// \param value Value of the SessionDiagnosticsArray node (array of extension objects).
-/// \param ownApplicationUri This client's application URI used to match its session.
-/// \return Resolved session name, or empty when none matched.
-///
-QString resolveOwnSessionName(const QVariant &value, const QString &ownApplicationUri)
-{
-    QList<QOpcUaExtensionObject> objects;
-    if (value.canConvert<QList<QOpcUaExtensionObject>>()) {
-        objects = value.value<QList<QOpcUaExtensionObject>>();
-    } else {
-        const QVariantList list = value.toList();
-        for (const QVariant &entry : list)
-            if (entry.canConvert<QOpcUaExtensionObject>())
-                objects.append(entry.value<QOpcUaExtensionObject>());
-    }
-
-    // Prefer the session whose client application URI matches ours; if none match
-    // (e.g. an unsecured connection without an application identity), fall back to
-    // the most recently connected session, which is the one we just opened.
-    QString matchedName;
-    QDateTime matchedTime;
-    QString latestName;
-    QDateTime latestTime;
-    for (const QOpcUaExtensionObject &object : objects) {
-        const SessionDiagnostics diagnostics = decodeSessionDiagnostics(object);
-        if (!diagnostics.valid)
-            continue;
-        if (latestName.isEmpty() || diagnostics.connectionTime > latestTime) {
-            latestName = diagnostics.sessionName;
-            latestTime = diagnostics.connectionTime;
-        }
-        if (ownApplicationUri.isEmpty() || diagnostics.applicationUri != ownApplicationUri)
-            continue;
-        if (matchedName.isEmpty() || diagnostics.connectionTime > matchedTime) {
-            matchedName = diagnostics.sessionName;
-            matchedTime = diagnostics.connectionTime;
-        }
-    }
-    return matchedName.isEmpty() ? latestName : matchedName;
-}
-
 }
 
 ///
@@ -986,21 +487,22 @@ QString resolveOwnSessionName(const QVariant &value, const QString &ownApplicati
 ///
 void QtOpcUaBackend::readServerSessionName(int timeoutMs)
 {
-    if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit serverSessionNameResolved(QString());
         return;
     }
-    QOpcUaNode *node = _d->client->node(
+    QOpcUaNode *node = _d->connection.client()->node(
         QString::fromLatin1(StandardNodeId::SessionDiagnosticsArray));
     if (!node) {
         emit serverSessionNameResolved(QString());
         return;
     }
-    _d->runNodeRequest(node, &_d->sessionNameReadGeneration, timeoutMs,
+    _d->runNodeRequest(node, QtOpcUaRequestCoordinator::Operation::SessionNameRead, timeoutMs,
         &QOpcUaNode::attributeRead,
         [this, node](QOpcUa::NodeAttributes) {
             emit serverSessionNameResolved(
-                resolveOwnSessionName(node->valueAttribute(), PkiManager::applicationUri()));
+                QtOpcUaTypeMapper::ownSessionName(
+                    node->valueAttribute(), PkiManager::applicationUri()));
         },
         [node]() { return node->readAttributes(QOpcUa::NodeAttribute::Value); },
         [this]() { emit serverSessionNameResolved(QString()); },
@@ -1017,34 +519,39 @@ void QtOpcUaBackend::readServerSessionName(int timeoutMs)
 void QtOpcUaBackend::writeValue(const QString &nodeId, const QVariant &value,
                                 int valueType, int timeoutMs)
 {
-    if (!_d->client || _d->currentState != OpcUaConnectionState::Connected) {
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit writeFinished(nodeId, false, tr("The OPC UA client is not connected."));
         return;
     }
-    QOpcUaNode *node = _d->client->node(nodeId);
+    QOpcUaNode *node = _d->connection.client()->node(nodeId);
     if (!node) {
         emit writeFinished(nodeId, false, tr("Could not create node %1.").arg(nodeId));
         return;
     }
-    const quint64 operationGeneration = ++_d->writeGeneration;
-    QTimer::singleShot(qMax(1000, timeoutMs), this,
-                       [this, node, nodeId, operationGeneration]() {
-        if (operationGeneration != _d->writeGeneration)
+    constexpr auto operation = QtOpcUaRequestCoordinator::Operation::Write;
+    const std::size_t operationIndex = static_cast<std::size_t>(operation);
+    if (_d->activeNodes.at(operationIndex))
+        _d->activeNodes.at(operationIndex)->deleteLater();
+    _d->activeNodes.at(operationIndex) = node;
+    const auto token = _d->requests.begin(operation);
+    QTimer::singleShot(QtOpcUaRequestCoordinator::boundedTimeout(timeoutMs), this,
+                       [this, node, nodeId, token, operationIndex]() {
+        if (!_d->requests.settle(token))
             return;
-        ++_d->writeGeneration;
+        _d->activeNodes.at(operationIndex).clear();
         node->deleteLater();
         emit writeFinished(nodeId, false, tr("Write request timed out."));
     });
     connect(node, &QOpcUaNode::attributeWritten, this,
-            [this, node, nodeId, operationGeneration](
+            [this, node, nodeId, token, operationIndex](
                 QOpcUa::NodeAttribute attribute, QOpcUa::UaStatusCode status) {
         if (attribute != QOpcUa::NodeAttribute::Value)
             return;
-        if (operationGeneration != _d->writeGeneration) {
+        if (!_d->requests.settle(token)) {
             node->deleteLater();
             return;
         }
-        ++_d->writeGeneration;
+        _d->activeNodes.at(operationIndex).clear();
         const bool success = QOpcUa::isSuccessStatus(status);
         emit writeFinished(nodeId, success,
                            success ? QString() : statusName(status));
@@ -1052,8 +559,10 @@ void QtOpcUaBackend::writeValue(const QString &nodeId, const QVariant &value,
     });
     const QOpcUa::Types type = static_cast<QOpcUa::Types>(valueType);
     if (!node->writeValueAttribute(value, type)) {
-        ++_d->writeGeneration;
-        node->deleteLater();
-        emit writeFinished(nodeId, false, tr("The backend rejected the write request."));
+        if (_d->requests.settle(token)) {
+            _d->activeNodes.at(operationIndex).clear();
+            node->deleteLater();
+            emit writeFinished(nodeId, false, tr("The backend rejected the write request."));
+        }
     }
 }

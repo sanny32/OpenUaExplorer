@@ -30,6 +30,12 @@ add_library(ouaexp_core STATIC
     opcua/recentconnectionstore.h
     opcua/qtopcuabackend.cpp
     opcua/qtopcuabackend.h
+    opcua/qtopcuaconnectionmanager.cpp
+    opcua/qtopcuaconnectionmanager.h
+    opcua/qtopcuarequestcoordinator.cpp
+    opcua/qtopcuarequestcoordinator.h
+    opcua/qtopcuatypemapper.cpp
+    opcua/qtopcuatypemapper.h
     opcua/secretstore.cpp
     opcua/secretstore.h
     opcua/standardnodeid.h
