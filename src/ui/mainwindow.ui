@@ -544,24 +544,24 @@
    </property>
   </action>
   <action name="actionThemeLight">
-   <property name="enabled">
-    <bool>false</bool>
+   <property name="checkable">
+    <bool>true</bool>
    </property>
    <property name="text">
     <string>Light</string>
    </property>
   </action>
   <action name="actionThemeDark">
-   <property name="enabled">
-    <bool>false</bool>
+   <property name="checkable">
+    <bool>true</bool>
    </property>
    <property name="text">
     <string>Dark</string>
    </property>
   </action>
   <action name="actionThemeSystem">
-   <property name="enabled">
-    <bool>false</bool>
+   <property name="checkable">
+    <bool>true</bool>
    </property>
    <property name="text">
     <string>System</string>

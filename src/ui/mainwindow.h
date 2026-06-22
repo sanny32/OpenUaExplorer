@@ -10,6 +10,7 @@
 
 #include <QMainWindow>
 
+#include "appsettings.h"
 #include "opcua/certificatetrustdecider.h"
 #include "opcua/opcuatypes.h"
 
@@ -81,7 +82,10 @@ private:
     void saveSettings();
     void restoreSettings();
     void bindIcons();
-    void toggleTheme();
+    void setupThemeControls();
+    void updateThemeControls();
+    void cycleTheme();
+    void applyThemeMode(AppSettings::ThemeMode mode);
     void setupOpcUaClient();
     void updateClientUi(OpcUaConnectionState state);
     void initializeAddressSpace();

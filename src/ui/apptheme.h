@@ -26,7 +26,7 @@ public:
     /// \brief Available application color-scheme states.
     ///
     enum class ColorScheme {
-        Unknown,
+        System,
         Light,
         Dark
     };
@@ -87,5 +87,5 @@ private:
 private:
     bool _manualToggleSupported = false;
     bool _manualSchemeOverriden = false;
-    ColorScheme _scheme = ColorScheme::Unknown;
+    ColorScheme _scheme = ColorScheme::System;
 };

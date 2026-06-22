@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include <QAction>
+#include <QActionGroup>
 #include <QCloseEvent>
 #include <QDateTime>
 #include <QDockWidget>
@@ -66,6 +67,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupDockOptions();
     bindIcons();
+    setupThemeControls();
 
     resetLayout();
     setupOpcUaClient();
@@ -219,11 +221,11 @@ void MainWindow::on_actionSettings_triggered()
 }
 
 ///
-/// \brief Toggles between the light and dark colour scheme.
+/// \brief Cycles the toolbar button through the Light, Dark and System schemes.
 ///
 void MainWindow::on_actionTheme_triggered()
 {
-    toggleTheme();
+    cycleTheme();
 }
 
 ///
@@ -471,11 +473,90 @@ void MainWindow::restoreSettings()
 }
 
 ///
-/// \brief Toggles the application colour scheme.
+/// \brief Wires the toolbar button and Theme submenu to the three colour-scheme modes.
 ///
-void MainWindow::toggleTheme()
+void MainWindow::setupThemeControls()
 {
-    theApp()->theme().toggle();
+    QActionGroup *group = new QActionGroup(this);
+    group->setExclusive(true);
+
+    const bool manualThemeSupported = theApp()->theme().isManualToggleSupported();
+    const QList<QAction *> modeActions = {
+        ui->actionThemeLight, ui->actionThemeDark, ui->actionThemeSystem};
+    for (QAction *action : modeActions) {
+        action->setCheckable(true);
+        action->setEnabled(manualThemeSupported);
+        group->addAction(action);
+    }
+
+    connect(ui->actionThemeLight, &QAction::triggered, this,
+            [this] { applyThemeMode(AppSettings::ThemeMode::Light); });
+    connect(ui->actionThemeDark, &QAction::triggered, this,
+            [this] { applyThemeMode(AppSettings::ThemeMode::Dark); });
+    connect(ui->actionThemeSystem, &QAction::triggered, this,
+            [this] { applyThemeMode(AppSettings::ThemeMode::System); });
+
+    connect(&theApp()->theme(), &AppTheme::colorSchemeChanged, this,
+            &MainWindow::updateThemeControls);
+
+    updateThemeControls();
+}
+
+///
+/// \brief Reflects the saved colour-scheme mode in the toolbar icon and Theme submenu.
+///
+void MainWindow::updateThemeControls()
+{
+    if (!ui)
+        return;
+
+    switch (AppSettings().themeMode()) {
+    case AppSettings::ThemeMode::Light:
+        ui->actionTheme->setIcon(AppIcons::themed(QStringLiteral("theme-light")));
+        ui->actionTheme->setToolTip(tr("Theme: Light — click to switch to Dark"));
+        ui->actionThemeLight->setChecked(true);
+        break;
+    case AppSettings::ThemeMode::Dark:
+        ui->actionTheme->setIcon(AppIcons::themed(QStringLiteral("theme-dark")));
+        ui->actionTheme->setToolTip(tr("Theme: Dark — click to switch to System"));
+        ui->actionThemeDark->setChecked(true);
+        break;
+    case AppSettings::ThemeMode::System:
+        ui->actionTheme->setIcon(AppIcons::themed(QStringLiteral("theme-system")));
+        ui->actionTheme->setToolTip(tr("Theme: System — click to switch to Light"));
+        ui->actionThemeSystem->setChecked(true);
+        break;
+    }
+}
+
+///
+/// \brief Advances the colour scheme to the next mode: Light → Dark → System → Light.
+///
+void MainWindow::cycleTheme()
+{
+    AppSettings::ThemeMode next = AppSettings::ThemeMode::Light;
+    switch (AppSettings().themeMode()) {
+    case AppSettings::ThemeMode::Light:
+        next = AppSettings::ThemeMode::Dark;
+        break;
+    case AppSettings::ThemeMode::Dark:
+        next = AppSettings::ThemeMode::System;
+        break;
+    case AppSettings::ThemeMode::System:
+        next = AppSettings::ThemeMode::Light;
+        break;
+    }
+    applyThemeMode(next);
+}
+
+///
+/// \brief Applies and persists a colour-scheme mode, then refreshes the theme controls.
+/// \param mode Light, Dark or System mode to activate.
+///
+void MainWindow::applyThemeMode(AppSettings::ThemeMode mode)
+{
+    theApp()->theme().setColorSchemePreference(mode);
+    updateThemeControls();
 }
 
 ///
@@ -788,5 +869,4 @@ void MainWindow::bindIcons()
     AppIcons::bindIcon(ui->actionSubscribe,   "subscribe");
     AppIcons::bindIcon(ui->actionUnsubscribe, "unsubscribe");
     AppIcons::bindIcon(ui->actionSettings,    "settings");
-    AppIcons::bindIcon(ui->actionTheme,       "theme");
 }
