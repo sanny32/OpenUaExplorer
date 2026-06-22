@@ -8,15 +8,16 @@
 
 #include <QCheckBox>
 #include <QDialogButtonBox>
-#include <QGroupBox>
+#include <QLoggingCategory>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QVBoxLayout>
+#include <QVector>
 
 #include "application.h"
 #include "appsettings.h"
 #include "apptheme.h"
 #include "dialogs/settingsdialog.h"
+#include "ui_settingsdialog.h"
 
 ///
 /// \brief Builds the settings dialog and loads the current preferences.
@@ -24,9 +25,33 @@
 ///
 SettingsDialog::SettingsDialog(QWidget *parent)
     : AppBaseDialog(parent)
+    , ui(new Ui::SettingsDialog)
 {
-    setupUi();
+    ui->setupUi(this);
+    ui->appearanceGroup->setVisible(theApp()->theme().isManualToggleSupported());
+
+    setupLogCategories();
     loadSettings();
+
+    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, [this] {
+        applyChanges();
+        accept();
+    });
+    connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    connect(ui->resetButton, &QPushButton::clicked, this, [this] {
+        _layoutResetRequested = true;
+        applyChanges();
+        AppSettings().clearLayout();
+        accept();
+    });
+}
+
+///
+/// \brief Destroys the dialog and its generated UI.
+///
+SettingsDialog::~SettingsDialog()
+{
+    delete ui;
 }
 
 ///
@@ -39,48 +64,17 @@ bool SettingsDialog::layoutResetRequested() const
 }
 
 ///
-/// \brief Creates the dialog widgets and wires the dialog buttons.
+/// \brief Creates a checkbox for every configurable open62541 logging category.
 ///
-void SettingsDialog::setupUi()
+void SettingsDialog::setupLogCategories()
 {
-    setWindowTitle(tr("Settings"));
-
-    auto *layout = new QVBoxLayout(this);
-
-    auto *appearanceGroup = new QGroupBox(tr("Appearance"), this);
-    auto *appearanceLayout = new QVBoxLayout(appearanceGroup);
-    _systemThemeButton = new QRadioButton(tr("Follow system theme"), appearanceGroup);
-    _lightThemeButton = new QRadioButton(tr("Light"), appearanceGroup);
-    _darkThemeButton = new QRadioButton(tr("Dark"), appearanceGroup);
-    appearanceLayout->addWidget(_systemThemeButton);
-    appearanceLayout->addWidget(_lightThemeButton);
-    appearanceLayout->addWidget(_darkThemeButton);
-    appearanceGroup->setVisible(theApp()->theme().isManualToggleSupported());
-    layout->addWidget(appearanceGroup);
-
-    auto *layoutGroup = new QGroupBox(tr("Window Layout"), this);
-    auto *layoutGroupLayout = new QVBoxLayout(layoutGroup);
-    _restoreLayoutCheck = new QCheckBox(tr("Restore window layout on startup"), layoutGroup);
-    auto *resetButton = new QPushButton(tr("Restore Default Layout"), layoutGroup);
-    layoutGroupLayout->addWidget(_restoreLayoutCheck);
-    layoutGroupLayout->addWidget(resetButton);
-    layout->addWidget(layoutGroup);
-
-    auto *buttonBox = new QDialogButtonBox(
-        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
-    layout->addWidget(buttonBox);
-
-    connect(buttonBox, &QDialogButtonBox::accepted, this, [this] {
-        applyChanges();
-        accept();
-    });
-    connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    connect(resetButton, &QPushButton::clicked, this, [this] {
-        _layoutResetRequested = true;
-        applyChanges();
-        AppSettings().clearLayout();
-        accept();
-    });
+    const QVector<AppSettings::LogCategory> categories = AppSettings::availableLogCategories();
+    for (const AppSettings::LogCategory &category : categories) {
+        auto *check = new QCheckBox(category.displayName, ui->logGroup);
+        check->setToolTip(category.categoryName);
+        ui->logGroupLayout->addWidget(check);
+        _logCategoryChecks.insert(category.key, check);
+    }
 }
 
 ///
@@ -91,16 +85,20 @@ void SettingsDialog::loadSettings()
     AppSettings settings;
     switch (settings.themeMode()) {
     case AppSettings::ThemeMode::Light:
-        _lightThemeButton->setChecked(true);
+        ui->lightThemeButton->setChecked(true);
         break;
     case AppSettings::ThemeMode::Dark:
-        _darkThemeButton->setChecked(true);
+        ui->darkThemeButton->setChecked(true);
         break;
     case AppSettings::ThemeMode::System:
-        _systemThemeButton->setChecked(true);
+        ui->systemThemeButton->setChecked(true);
         break;
     }
-    _restoreLayoutCheck->setChecked(settings.restoreLayoutOnStartup());
+    ui->restoreLayoutCheck->setChecked(settings.restoreLayoutOnStartup());
+
+    const QHash<QString, bool> states = settings.logCategoryStates();
+    for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
+        it.value()->setChecked(states.value(it.key(), true));
 }
 
 ///
@@ -109,13 +107,19 @@ void SettingsDialog::loadSettings()
 void SettingsDialog::applyChanges()
 {
     AppSettings settings;
-    settings.setRestoreLayoutOnStartup(_restoreLayoutCheck->isChecked());
+    settings.setRestoreLayoutOnStartup(ui->restoreLayoutCheck->isChecked());
+
+    QHash<QString, bool> states;
+    for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
+        states.insert(it.key(), it.value()->isChecked());
+    settings.setLogCategoryStates(states);
+    QLoggingCategory::setFilterRules(settings.logFilterRules());
 
     if (theApp()->theme().isManualToggleSupported()) {
         AppSettings::ThemeMode mode = AppSettings::ThemeMode::System;
-        if (_lightThemeButton->isChecked())
+        if (ui->lightThemeButton->isChecked())
             mode = AppSettings::ThemeMode::Light;
-        else if (_darkThemeButton->isChecked())
+        else if (ui->darkThemeButton->isChecked())
             mode = AppSettings::ThemeMode::Dark;
         theApp()->theme().setColorSchemePreference(mode);
     }

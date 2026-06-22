@@ -9,6 +9,7 @@ set(UI_FILES
     dialogs/connectiondialog.ui
     dialogs/dialogabout.ui
     dialogs/editfavoritedialog.ui
+    dialogs/settingsdialog.ui
     dialogs/writevaluedialog.ui
 
     widgets/addressspacewidget.ui

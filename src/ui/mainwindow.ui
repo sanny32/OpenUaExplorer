@@ -328,9 +328,6 @@
    </property>
   </action>
   <action name="actionSettings">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>Settings</string>
    </property>

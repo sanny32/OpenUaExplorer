@@ -9,7 +9,9 @@
 #pragma once
 
 #include <QByteArray>
+#include <QHash>
 #include <QString>
+#include <QVector>
 
 ///
 /// \brief Typed facade over QSettings for application preferences and UI state.
@@ -50,6 +52,44 @@ public:
         /// \brief Maximum message size in bytes.
         int maxMessageSizeBytes = 4194304;
     };
+
+    ///
+    /// \brief Describes one configurable Qt OPC UA / open62541 logging category.
+    ///
+    struct LogCategory {
+        /// \brief Stable settings key and identifier (e.g. "network").
+        QString key;
+        /// \brief Full Qt logging category name used in filter rules.
+        QString categoryName;
+        /// \brief Human-readable label shown in the settings dialog.
+        QString displayName;
+        /// \brief Whether the category is enabled when the user has no stored preference.
+        bool defaultEnabled = true;
+    };
+
+    ///
+    /// \brief Returns the catalogue of configurable open62541 logging categories.
+    /// \return Ordered list of every open62541 category the user can toggle.
+    ///
+    static QVector<LogCategory> availableLogCategories();
+
+    ///
+    /// \brief Returns the enabled state of every open62541 logging category.
+    /// \return Map from category key to enabled state, falling back to per-category defaults.
+    ///
+    QHash<QString, bool> logCategoryStates() const;
+
+    ///
+    /// \brief Stores the enabled state of the open62541 logging categories.
+    /// \param states Map from category key to enabled state.
+    ///
+    void setLogCategoryStates(const QHash<QString, bool> &states);
+
+    ///
+    /// \brief Builds the QLoggingCategory filter rules from the stored preferences.
+    /// \return Newline-separated rule string suitable for QLoggingCategory::setFilterRules().
+    ///
+    QString logFilterRules() const;
 
     ///
     /// \brief Returns the stored default session settings for new connections.

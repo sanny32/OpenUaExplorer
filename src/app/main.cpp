@@ -4,6 +4,7 @@
 #include <QLoggingCategory>
 
 #include "application.h"
+#include "appsettings.h"
 #include "mainwindow.h"
 
 ///
@@ -14,13 +15,9 @@
 ///
 int main(int argc, char *argv[])
 {
-    QLoggingCategory::setFilterRules(QStringLiteral(
-        "ouaexp.*=true\n"
-        "qt.opcua.*=true\n"
-        "qt.opcua.plugins.open62541.sdk.eventloop=false\n"
-        "qt.opcua.plugins.open62541.sdk.client.debug=false"));
-
     Application a(argc, argv);
+
+    QLoggingCategory::setFilterRules(AppSettings().logFilterRules());
 
     MainWindow window;
     window.show();

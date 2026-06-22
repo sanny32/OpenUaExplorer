@@ -8,13 +8,19 @@
 
 #pragma once
 
+#include <QHash>
+#include <QString>
+
 #include "dialogs/appbasedialog.h"
 
 class QCheckBox;
-class QRadioButton;
+
+namespace Ui {
+class SettingsDialog;
+}
 
 ///
-/// \brief Dialog for editing application preferences (theme and window layout).
+/// \brief Dialog for editing application preferences (theme, window layout and logging).
 ///
 class SettingsDialog : public AppBaseDialog
 {
@@ -28,19 +34,22 @@ public:
     explicit SettingsDialog(QWidget *parent = nullptr);
 
     ///
+    /// \brief Destroys the dialog and its generated UI.
+    ///
+    ~SettingsDialog() override;
+
+    ///
     /// \brief Reports whether the user asked to restore the default window layout.
     /// \return True when the default layout should be re-applied.
     ///
     bool layoutResetRequested() const;
 
 private:
-    void setupUi();
+    void setupLogCategories();
     void loadSettings();
     void applyChanges();
 
-    bool          _layoutResetRequested = false;
-    QRadioButton *_systemThemeButton = nullptr;
-    QRadioButton *_lightThemeButton = nullptr;
-    QRadioButton *_darkThemeButton = nullptr;
-    QCheckBox    *_restoreLayoutCheck = nullptr;
+    Ui::SettingsDialog *ui;
+    bool _layoutResetRequested = false;
+    QHash<QString, QCheckBox *> _logCategoryChecks;
 };

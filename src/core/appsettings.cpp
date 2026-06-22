@@ -6,7 +6,9 @@
 /// \brief Implements the central application settings store.
 ///
 
+#include <QObject>
 #include <QSettings>
+#include <QStringList>
 
 #include "appsettings.h"
 
@@ -25,6 +27,7 @@ constexpr auto connectTimeoutKey = "connectTimeoutMs";
 constexpr auto requestTimeoutKey = "requestTimeoutMs";
 constexpr auto secureChannelLifetimeKey = "secureChannelLifetimeMs";
 constexpr auto maxMessageSizeKey = "maxMessageSizeBytes";
+constexpr auto loggingGroup = "logging";
 }
 
 ///
@@ -54,6 +57,79 @@ void AppSettings::setThemeMode(ThemeMode mode)
 {
     QSettings settings;
     settings.setValue(QLatin1String(themeModeKey), static_cast<int>(mode));
+}
+
+///
+/// \brief Returns the catalogue of configurable open62541 logging categories.
+/// \return Ordered list of every open62541 category the user can toggle.
+///
+QVector<AppSettings::LogCategory> AppSettings::availableLogCategories()
+{
+    const auto sdk = [](const char *suffix) {
+        return QStringLiteral("qt.opcua.plugins.open62541.sdk.") + QLatin1String(suffix);
+    };
+    return {
+        { QStringLiteral("plugin"),
+          QStringLiteral("qt.opcua.plugins.open62541"),
+          QObject::tr("Plugin"),         true  },
+        { QStringLiteral("network"),        sdk("network"),        QObject::tr("Network"),         false },
+        { QStringLiteral("securechannel"),  sdk("securechannel"),  QObject::tr("Secure channel"),  false },
+        { QStringLiteral("session"),        sdk("session"),        QObject::tr("Session"),         true  },
+        { QStringLiteral("server"),         sdk("server"),         QObject::tr("Server"),          true  },
+        { QStringLiteral("client"),         sdk("client"),         QObject::tr("Client"),          false },
+        { QStringLiteral("userland"),       sdk("userland"),       QObject::tr("Userland"),        true  },
+        { QStringLiteral("securitypolicy"), sdk("securitypolicy"), QObject::tr("Security policy"), true  },
+        { QStringLiteral("eventloop"),      sdk("eventloop"),      QObject::tr("Event loop"),      false },
+        { QStringLiteral("pubsub"),         sdk("pubsub"),         QObject::tr("PubSub"),          true  },
+        { QStringLiteral("discovery"),      sdk("discovery"),      QObject::tr("Discovery"),       true  }
+    };
+}
+
+///
+/// \brief Returns the enabled state of every open62541 logging category.
+/// \return Map from category key to enabled state, falling back to per-category defaults.
+///
+QHash<QString, bool> AppSettings::logCategoryStates() const
+{
+    QSettings settings;
+    settings.beginGroup(QLatin1String(loggingGroup));
+    QHash<QString, bool> states;
+    const QVector<LogCategory> categories = availableLogCategories();
+    for (const LogCategory &category : categories)
+        states.insert(category.key,
+                      settings.value(category.key, category.defaultEnabled).toBool());
+    return states;
+}
+
+///
+/// \brief Stores the enabled state of the open62541 logging categories.
+/// \param states Map from category key to enabled state.
+///
+void AppSettings::setLogCategoryStates(const QHash<QString, bool> &states)
+{
+    QSettings settings;
+    settings.beginGroup(QLatin1String(loggingGroup));
+    for (auto it = states.cbegin(); it != states.cend(); ++it)
+        settings.setValue(it.key(), it.value());
+}
+
+///
+/// \brief Builds the QLoggingCategory filter rules from the stored preferences.
+/// \return Newline-separated rule string suitable for QLoggingCategory::setFilterRules().
+///
+QString AppSettings::logFilterRules() const
+{
+    const QHash<QString, bool> states = logCategoryStates();
+    QStringList rules;
+    rules << QStringLiteral("ouaexp.*=true");
+    rules << QStringLiteral("qt.opcua.*=true");
+    const QVector<LogCategory> categories = availableLogCategories();
+    for (const LogCategory &category : categories) {
+        const bool enabled = states.value(category.key, category.defaultEnabled);
+        rules << category.categoryName + QLatin1Char('=')
+                     + (enabled ? QStringLiteral("true") : QStringLiteral("false"));
+    }
+    return rules.join(QLatin1Char('\n'));
 }
 
 ///
