@@ -83,7 +83,7 @@ WriteValueDialog::~WriteValueDialog()
 void WriteValueDialog::setValue(const QVariant &value, int valueType,
                                 const QString &dataTypeId, bool writable)
 {
-    ui->dataTypeLabel->setText(dataTypeId);
+    ui->dataTypeLabel->setText(OpcUaFormat::dataTypeDisplay(dataTypeId));
     const int index = ui->typeComboBox->findData(valueType);
     ui->typeComboBox->setCurrentIndex(index >= 0 ? index : ui->typeComboBox->findData(Undefined));
 
