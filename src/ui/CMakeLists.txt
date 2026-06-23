@@ -47,6 +47,23 @@ add_library(ouaexp_ui STATIC
     mainwindow.h
     ${UI_FILES}
 
+    features/addressspacefeature.cpp
+    features/addressspacefeature.h
+    features/attributesfeature.cpp
+    features/attributesfeature.h
+    features/builtinfeatures.cpp
+    features/builtinfeatures.h
+    features/featurehost.cpp
+    features/featurehost.h
+    features/featuremanager.cpp
+    features/featuremanager.h
+    features/featureplugin.cpp
+    features/featureplugin.h
+    features/logfeature.cpp
+    features/logfeature.h
+    features/selectioncontext.cpp
+    features/selectioncontext.h
+
     dialogs/appbasedialog.cpp
     dialogs/appbasedialog.h
     dialogs/certificatedetailsdialog.cpp
@@ -122,6 +139,7 @@ add_library(ouaexp_ui STATIC
 
 target_include_directories(ouaexp_ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/features
     ${CMAKE_CURRENT_SOURCE_DIR}/widgets
 )
 

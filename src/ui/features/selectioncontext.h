@@ -1,0 +1,82 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file selectioncontext.h
+/// \brief Declares the selected-node mediator shared by UI features.
+///
+
+#pragma once
+
+#include <QObject>
+
+#include "opcua/opcuatypes.h"
+
+///
+/// \brief Stores the current node selection and publishes matching node details.
+///
+class SelectionContext : public QObject
+{
+    Q_OBJECT
+
+public:
+    ///
+    /// \brief Constructs an empty selection context.
+    /// \param parent Owning QObject.
+    ///
+    explicit SelectionContext(QObject *parent = nullptr);
+
+    ///
+    /// \brief Returns the currently selected address-space node.
+    /// \return Selected node, or an empty node when nothing is selected.
+    ///
+    OpcUaNodeInfo currentNode() const;
+
+    ///
+    /// \brief Returns the details for the selected node.
+    /// \return Selected node details, or an empty value when none are loaded.
+    ///
+    OpcUaNodeDetails currentDetails() const;
+
+public slots:
+    ///
+    /// \brief Selects a node and requests that listeners refresh their state.
+    /// \param node Node selected by a feature.
+    ///
+    void selectNode(const OpcUaNodeInfo &node);
+
+    ///
+    /// \brief Publishes node details when they belong to the current selection.
+    /// \param details Read node details.
+    /// \param error Read error, empty on success.
+    ///
+    void setDetails(const OpcUaNodeDetails &details, const QString &error);
+
+    ///
+    /// \brief Clears the selected node and its details.
+    ///
+    void clear();
+
+signals:
+    ///
+    /// \brief Emitted when a node becomes the current selection.
+    /// \param node Selected node.
+    ///
+    void nodeSelected(OpcUaNodeInfo node);
+
+    ///
+    /// \brief Emitted when details for the selected node are available.
+    /// \param details Selected node details.
+    /// \param error Read error, empty on success.
+    ///
+    void detailsReady(OpcUaNodeDetails details, QString error);
+
+    ///
+    /// \brief Emitted after the selection has been cleared.
+    ///
+    void cleared();
+
+private:
+    OpcUaNodeInfo _currentNode;
+    OpcUaNodeDetails _currentDetails;
+};

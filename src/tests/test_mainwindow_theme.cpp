@@ -180,8 +180,8 @@ void TestMainWindowTheme::nodeDetailsDockFollowsViewAction()
     QVERIFY(QTest::qWaitForWindowExposed(&window));
 
     auto *dock = window.findChild<QDockWidget *>(QStringLiteral("nodeDetailsDock"));
-    auto *action = window.findChild<QAction *>(QStringLiteral("actionViewNodeDetails"));
     QVERIFY(dock);
+    QAction *action = dock->toggleViewAction();
     QVERIFY(action);
     QVERIFY(dock->widget());
     QVERIFY(dock->widget()->findChild<QTableView *>(QStringLiteral("nodeInfoTable")));
@@ -190,9 +190,9 @@ void TestMainWindowTheme::nodeDetailsDockFollowsViewAction()
     QVERIFY(action->isChecked());
     dock->hide();
     QVERIFY(!action->isChecked());
-    action->setChecked(true);
+    action->trigger();
     QVERIFY(!dock->isHidden());
-    action->setChecked(false);
+    action->trigger();
     QVERIFY(dock->isHidden());
 }
 

@@ -62,12 +62,6 @@ private slots:
     void on_actionSettings_triggered();
     void on_actionTheme_triggered();
     void on_actionAbout_triggered();
-    void on_actionViewAddressSpace_toggled(bool checked);
-    void on_addressSpaceDock_visibilityChanged(bool visible);
-    void on_actionViewNodeDetails_toggled(bool checked);
-    void on_nodeDetailsDock_visibilityChanged(bool visible);
-    void on_actionViewActivity_toggled(bool checked);
-    void on_logDock_visibilityChanged(bool visible);
     void on_actionViewDataAccess_triggered();
     void on_actionViewSubscriptions_triggered();
     void on_actionViewEvents_triggered();
@@ -79,7 +73,6 @@ private:
     void addCurrentToFavorites();
     void editFavorite(const ConnectionProfile &favorite);
     void openSettingsDialog();
-    void setupMainMenu();
     void setupDockOptions();
     void resetLayout();
     void saveSettings();
@@ -101,7 +94,10 @@ private:
 
     // OPC UA client signal handlers (wired up in setupOpcUaClient).
     void onClientError(const QString &message);
+    void onSelectedNodeChanged(const OpcUaNodeInfo &node);
+    void onAttributeDetailsReady(const OpcUaNodeDetails &details, const QString &error);
     void onNodeDetailsReady(const OpcUaNodeDetails &details, const QString &error);
+    void onSelectionCleared();
     void onDataValuesReady(const QVector<OpcUaDataValue> &values, const QString &error);
     void onWriteFinished(const QString &nodeId, bool success, const QString &error);
     void onMonitoringFinished(const QString &nodeId, bool subscribed,
@@ -115,6 +111,8 @@ private:
     class ConnectionController *_connectionController;
     class OpcUaClientService *_clientService;
     class PluginManager *_pluginManager = nullptr;
+    class FeatureManager *_featureManager = nullptr;
+    class SelectionContext *_selectionContext = nullptr;
     class ServerPlugin *_serverPlugin = nullptr;
     class AddressSpacePlugin *_addressSpacePlugin = nullptr;
     class AttributePlugin *_attributePlugin = nullptr;

@@ -12,12 +12,10 @@
 #include <QActionGroup>
 #include <QCloseEvent>
 #include <QDateTime>
-#include <QDockWidget>
 #include <QEvent>
 #include <QList>
 #include <QMenu>
 #include <QMessageBox>
-#include <QSplitter>
 
 #include "appicons.h"
 #include "application.h"
@@ -28,11 +26,14 @@
 #include "dialogs/editfavoritedialog.h"
 #include "dialogs/settingsdialog.h"
 #include "dialogs/writevaluedialog.h"
+#include "features/builtinfeatures.h"
+#include "features/featurehost.h"
+#include "features/featuremanager.h"
+#include "features/selectioncontext.h"
 #include "loggingcategories.h"
 #include "mainwindow.h"
 #include "opcua/connectioncontroller.h"
 #include "opcua/opcuaclientservice.h"
-#include "opcua/standardnodeid.h"
 #include "addressspaceplugin.h"
 #include "attributeplugin.h"
 #include "dataaccessplugin.h"
@@ -41,11 +42,8 @@
 #include "referenceplugin.h"
 #include "serverplugin.h"
 #include "ui_mainwindow.h"
-#include "widgets/addressspacewidget.h"
-#include "widgets/attributeswidget.h"
 #include "widgets/dataaccesswidget.h"
 #include "widgets/favoriteswidget.h"
-#include "widgets/logwidget.h"
 #include "widgets/maintoolbar.h"
 #include "widgets/themedtoolbutton.h"
 
@@ -63,24 +61,23 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     
     setWindowTitle(QString::fromUtf8(APP_DESCRIPTION));
-    ui->nodeDetailsDock->setWidget(ui->addressSpaceWidget->takeNodeDetailsPanel());
 
     const bool manualThemeSupported = theApp()->theme().isManualToggleSupported();
     ui->actionTheme->setVisible(manualThemeSupported);
     ui->menuTheme->menuAction()->setVisible(manualThemeSupported);
 
-    setupMainMenu();
     ui->mainToolBar->setupFromDesignerActions();
 
     setupDockOptions();
     bindIcons();
     setupThemeControls();
 
-    resetLayout();
     setupOpcUaClient();
     setupPlugins();
+    resetLayout();
     rebuildRecentConnections();
     restoreSettings();
+    updateClientUi(_clientService->state());
 }
 
 ///
@@ -159,7 +156,7 @@ void MainWindow::on_actionBrowseAddressSpace_triggered()
 ///
 void MainWindow::on_actionRefresh_triggered()
 {
-    const QString nodeId = ui->addressSpaceWidget->selectedNode().nodeId;
+    const QString nodeId = _selectionContext->currentNode().nodeId;
     _addressSpacePlugin->refresh(nodeId);
     if (!nodeId.isEmpty())
         _referencePlugin->browseReferences(nodeId);
@@ -170,7 +167,7 @@ void MainWindow::on_actionRefresh_triggered()
 ///
 void MainWindow::on_actionRead_triggered()
 {
-    const OpcUaNodeInfo selected = ui->addressSpaceWidget->selectedNode();
+    const OpcUaNodeInfo selected = _selectionContext->currentNode();
     if (!selected.nodeId.isEmpty())
         _attributePlugin->read(selected.nodeId);
 }
@@ -275,65 +272,6 @@ void MainWindow::on_actionAbout_triggered()
 }
 
 ///
-/// \brief Shows or hides the address-space dock.
-/// \param checked True to show the dock.
-///
-void MainWindow::on_actionViewAddressSpace_toggled(bool checked)
-{
-    ui->addressSpaceDock->setVisible(checked);
-}
-
-///
-/// \brief Keeps the address-space view action in sync with the dock's hidden state.
-/// \param visible Dock visibility signal value.
-///
-void MainWindow::on_addressSpaceDock_visibilityChanged(bool visible)
-{
-    Q_UNUSED(visible)
-    if (!ui) return;
-    ui->actionViewAddressSpace->setChecked(!ui->addressSpaceDock->isHidden());
-}
-
-///
-/// \brief Shows or hides the node-details dock.
-/// \param checked True to show the dock.
-///
-void MainWindow::on_actionViewNodeDetails_toggled(bool checked)
-{
-    ui->nodeDetailsDock->setVisible(checked);
-}
-
-///
-/// \brief Keeps the node-details view action in sync with the dock's hidden state.
-/// \param visible Dock visibility signal value.
-///
-void MainWindow::on_nodeDetailsDock_visibilityChanged(bool visible)
-{
-    Q_UNUSED(visible)
-    if (!ui) return;
-    ui->actionViewNodeDetails->setChecked(!ui->nodeDetailsDock->isHidden());
-}
-
-///
-/// \brief Shows or hides the activity-log dock.
-/// \param checked True to show the dock.
-///
-void MainWindow::on_actionViewActivity_toggled(bool checked)
-{
-    ui->logDock->setVisible(checked);
-}
-
-///
-/// \brief Keeps the activity view action in sync with the log dock's hidden state.
-/// \param visible Dock visibility signal value.
-///
-void MainWindow::on_logDock_visibilityChanged(bool visible)
-{
-    Q_UNUSED(visible)
-    ui->actionViewActivity->setChecked(!ui->logDock->isHidden());
-}
-
-///
 /// \brief Switches the data-access widget to the Data Access page.
 ///
 void MainWindow::on_actionViewDataAccess_triggered()
@@ -412,16 +350,6 @@ void MainWindow::openSettingsDialog()
 }
 
 ///
-/// \brief Initialises the view actions' checked state from the docks.
-///
-void MainWindow::setupMainMenu()
-{
-    ui->actionViewAddressSpace->setChecked(!ui->addressSpaceDock->isHidden());
-    ui->actionViewNodeDetails->setChecked(!ui->nodeDetailsDock->isHidden());
-    ui->actionViewActivity->setChecked(!ui->logDock->isHidden());
-}
-
-///
 /// \brief Assigns the window corners to the left dock area.
 ///
 void MainWindow::setupDockOptions()
@@ -435,25 +363,8 @@ void MainWindow::setupDockOptions()
 ///
 void MainWindow::resetLayout()
 {
-    ui->addressSpaceDock->show();
-    ui->nodeDetailsDock->show();
-    ui->attributesDock->show();
-    ui->logDock->show();
-
-    addDockWidget(Qt::LeftDockWidgetArea, ui->addressSpaceDock);
-    addDockWidget(Qt::LeftDockWidgetArea, ui->nodeDetailsDock);
-    splitDockWidget(ui->addressSpaceDock, ui->nodeDetailsDock, Qt::Vertical);
-    addDockWidget(Qt::RightDockWidgetArea, ui->attributesDock);
-    addDockWidget(Qt::BottomDockWidgetArea, ui->logDock);
-
+    _featureManager->resetDockLayout(*this);
     ui->centralSplitter->setSizes({360, 310});
-    resizeDocks({ui->addressSpaceDock, ui->attributesDock}, {300, 390}, Qt::Horizontal);
-    resizeDocks({ui->addressSpaceDock, ui->nodeDetailsDock}, {520, 360}, Qt::Vertical);
-    resizeDocks({ui->logDock}, {245}, Qt::Vertical);
-
-    ui->actionViewAddressSpace->setChecked(true);
-    ui->actionViewNodeDetails->setChecked(true);
-    ui->actionViewActivity->setChecked(true);
 }
 
 ///
@@ -466,10 +377,8 @@ void MainWindow::saveSettings()
     settings.setWindowState(saveState());
     settings.setCentralSplitterState(ui->centralSplitter->saveState());
     settings.setDataAccessPage(ui->dataAccessWidget->currentPage());
-    ui->addressSpaceWidget->saveViewState(settings);
-    ui->attributesWidget->saveViewState(settings);
+    _featureManager->saveState(settings);
     ui->dataAccessWidget->saveViewState(settings);
-    ui->logWidget->saveViewState(settings);
 }
 
 ///
@@ -499,14 +408,8 @@ void MainWindow::restoreSettings()
     ui->dataAccessWidget->setCurrentPage(
         static_cast<DataAccessWidget::Page>(settings.dataAccessPage()));
 
-    ui->addressSpaceWidget->restoreViewState(settings);
-    ui->attributesWidget->restoreViewState(settings);
+    _featureManager->restoreState(settings);
     ui->dataAccessWidget->restoreViewState(settings);
-    ui->logWidget->restoreViewState(settings);
-
-    ui->actionViewAddressSpace->setChecked(!ui->addressSpaceDock->isHidden());
-    ui->actionViewNodeDetails->setChecked(!ui->nodeDetailsDock->isHidden());
-    ui->actionViewActivity->setChecked(!ui->logDock->isHidden());
 }
 
 ///
@@ -639,24 +542,39 @@ void MainWindow::setupOpcUaClient()
             this, &MainWindow::onClientError);
     _connectionController->setCertificateTrustDecider(this);
     ui->statusbar->setConnectionController(_connectionController);
-    updateClientUi(_clientService->state());
 }
 
 ///
-/// \brief Registers the static plugins and wires their data API to the widgets.
-///
-/// Each plugin exposes an API for its slice of server data and logs that area's operations
-/// under its own source. MainWindow is the composition root: it connects widget signals to
-/// plugin API calls and plugin result signals back to the widgets.
+/// \brief Registers data plugins, initializes UI features, and wires shared flows.
 ///
 void MainWindow::setupPlugins()
 {
     _pluginManager = new PluginManager(this);
+    _featureManager = new FeatureManager(this);
+    _selectionContext = new SelectionContext(this);
+
     _serverPlugin = new ServerPlugin;
     _addressSpacePlugin = new AddressSpacePlugin;
     _attributePlugin = new AttributePlugin;
     _referencePlugin = new ReferencePlugin;
     _dataAccessPlugin = new DataAccessPlugin;
+
+    FeatureHost host(this,
+                     ui->menuView,
+                     ui->mainToolBar,
+                     _clientService,
+                     _connectionController,
+                     _pluginManager,
+                     _featureManager,
+                     _selectionContext,
+                     _serverPlugin,
+                     _addressSpacePlugin,
+                     _referencePlugin,
+                     _attributePlugin,
+                     _dataAccessPlugin);
+    registerBuiltinFeatures(*_featureManager);
+    _featureManager->initializeAll(host);
+
     _pluginManager->registerPlugin(_serverPlugin);
     _pluginManager->registerPlugin(_addressSpacePlugin);
     _pluginManager->registerPlugin(_attributePlugin);
@@ -666,24 +584,16 @@ void MainWindow::setupPlugins()
     PluginContext context(_clientService, _connectionController);
     _pluginManager->initializeAll(context);
 
-    connect(ui->addressSpaceWidget, &AddressSpaceWidget::browseRequested,
-            _addressSpacePlugin, &AddressSpacePlugin::browse);
-    connect(ui->addressSpaceWidget, &AddressSpaceWidget::refreshRequested,
-            _addressSpacePlugin, &AddressSpacePlugin::refresh);
-    connect(_addressSpacePlugin, &AddressSpacePlugin::childrenReady,
-            ui->addressSpaceWidget, &AddressSpaceWidget::setBrowseChildren);
-    connect(ui->addressSpaceWidget, &AddressSpaceWidget::nodeSelected,
-            this, [this](const OpcUaNodeInfo &node) { _attributePlugin->read(node.nodeId); });
-
-    connect(ui->addressSpaceWidget, &AddressSpaceWidget::referencesRequested,
-            _referencePlugin, &ReferencePlugin::browseReferences);
-    connect(_referencePlugin, &ReferencePlugin::referencesReady,
-            ui->addressSpaceWidget, &AddressSpaceWidget::setBrowseReferences);
-
-    connect(ui->attributesWidget, &AttributesWidget::writeRequested,
-            _attributePlugin, &AttributePlugin::write);
+    connect(_selectionContext, &SelectionContext::nodeSelected,
+            this, &MainWindow::onSelectedNodeChanged);
     connect(_attributePlugin, &AttributePlugin::attributesReady,
+            _selectionContext, &SelectionContext::setDetails);
+    connect(_attributePlugin, &AttributePlugin::attributesReady,
+            this, &MainWindow::onAttributeDetailsReady);
+    connect(_selectionContext, &SelectionContext::detailsReady,
             this, &MainWindow::onNodeDetailsReady);
+    connect(_selectionContext, &SelectionContext::cleared,
+            this, &MainWindow::onSelectionCleared);
     connect(_attributePlugin, &AttributePlugin::writeFinished,
             this, &MainWindow::onWriteFinished);
 
@@ -713,6 +623,30 @@ void MainWindow::onClientError(const QString &message)
 }
 
 ///
+/// \brief Reads attributes for a newly selected node.
+/// \param node Selected node.
+///
+void MainWindow::onSelectedNodeChanged(const OpcUaNodeInfo &node)
+{
+    if (!node.nodeId.isEmpty())
+        _attributePlugin->read(node.nodeId);
+}
+
+///
+/// \brief Applies raw attribute results that are not tied to the current selection.
+/// \param details Read node details.
+/// \param error Read error, if any.
+///
+void MainWindow::onAttributeDetailsReady(const OpcUaNodeDetails &details, const QString &error)
+{
+    if (!error.isEmpty())
+        return;
+
+    if (_pendingDataAccessNodeIds.remove(details.nodeId) && OpcUa::isVariable(details.nodeClass))
+        ui->dataAccessWidget->addNodeWithDefaultSubscription(details);
+}
+
+///
 /// \brief Shows the read node details and enables the matching actions.
 /// \param details Read node details.
 /// \param error Read error, if any.
@@ -723,21 +657,27 @@ void MainWindow::onNodeDetailsReady(const OpcUaNodeDetails &details, const QStri
         return;
 
     const bool variable = OpcUa::isVariable(details.nodeClass);
-    if (_pendingDataAccessNodeIds.remove(details.nodeId) && variable)
-        ui->dataAccessWidget->addNodeWithDefaultSubscription(details);
-
-    if (details.nodeId != ui->addressSpaceWidget->selectedNode().nodeId)
-        return;
-
     _selectedNodeDetails = details;
-    ui->addressSpaceWidget->setNodeDetails(details);
-    ui->attributesWidget->setNodeDetails(details);
     const bool writable = variable && OpcUa::isWritable(details.userAccessLevel);
     ui->actionRead->setEnabled(variable);
     ui->actionReadSelected->setEnabled(variable);
     ui->actionWrite->setEnabled(writable);
     ui->actionWriteValue->setEnabled(writable);
     ui->actionAddToDataAccess->setEnabled(variable);
+    updateMonitoringActions();
+}
+
+///
+/// \brief Clears selected-node state and disables selected-node actions.
+///
+void MainWindow::onSelectionCleared()
+{
+    _selectedNodeDetails = {};
+    ui->actionRead->setEnabled(false);
+    ui->actionReadSelected->setEnabled(false);
+    ui->actionWrite->setEnabled(false);
+    ui->actionWriteValue->setEnabled(false);
+    ui->actionAddToDataAccess->setEnabled(false);
     updateMonitoringActions();
 }
 
@@ -852,10 +792,9 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
         initializeAddressSpace();
     } else if (state == OpcUaConnectionState::Disconnected
                || state == OpcUaConnectionState::Unavailable) {
-        ui->addressSpaceWidget->clear();
-        ui->attributesWidget->clear();
         ui->dataAccessWidget->clearRuntimeData();
-        _selectedNodeDetails = {};
+        _selectionContext->clear();
+        _featureManager->clearRuntimeState();
         _subscribedNodeIds.clear();
         _pendingMonitoringNodeIds.clear();
         _pendingDataAccessNodeIds.clear();
@@ -868,13 +807,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
 ///
 void MainWindow::initializeAddressSpace()
 {
-    OpcUaNodeInfo root;
-    root.nodeId = QString::fromLatin1(StandardNodeId::ObjectsFolder);
-    root.browseName = tr("Root");
-    root.displayName = tr("Root");
-    root.nodeClass = 1;
-    root.hasChildren = true;
-    ui->addressSpaceWidget->setRootNode(root);
+    _featureManager->triggerCommand(QStringLiteral("addressSpace.browse"));
 }
 
 ///

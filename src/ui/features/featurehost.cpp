@@ -1,0 +1,242 @@
+// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+// SPDX-License-Identifier: MIT
+
+///
+/// \file featurehost.cpp
+/// \brief Implements the host facade passed to UI features.
+///
+
+#include "featurehost.h"
+
+#include <utility>
+
+#include <QAction>
+#include <QDockWidget>
+#include <QMenu>
+
+#include "featuremanager.h"
+
+///
+/// \brief Constructs a facade over the main window composition root.
+/// \param mainWindow Main window receiving feature UI.
+/// \param viewMenu View menu receiving dock toggle actions.
+/// \param toolBar Main toolbar.
+/// \param clientService Shared OPC UA client service.
+/// \param connectionController Shared connection controller.
+/// \param dataPlugins Shared data-plugin registry.
+/// \param features Feature registry receiving contributions.
+/// \param selection Shared selected-node context.
+/// \param serverPlugin Built-in server plugin.
+/// \param addressSpacePlugin Built-in address-space plugin.
+/// \param referencePlugin Built-in reference plugin.
+/// \param attributePlugin Built-in attribute plugin.
+/// \param dataAccessPlugin Built-in data-access plugin.
+///
+FeatureHost::FeatureHost(QMainWindow *mainWindow,
+                         QMenu *viewMenu,
+                         QToolBar *toolBar,
+                         OpcUaClientService *clientService,
+                         ConnectionController *connectionController,
+                         PluginManager *dataPlugins,
+                         FeatureManager *features,
+                         SelectionContext *selection,
+                         ServerPlugin *serverPlugin,
+                         AddressSpacePlugin *addressSpacePlugin,
+                         ReferencePlugin *referencePlugin,
+                         AttributePlugin *attributePlugin,
+                         DataAccessPlugin *dataAccessPlugin)
+    : _mainWindow(mainWindow)
+    , _viewMenu(viewMenu)
+    , _toolBar(toolBar)
+    , _clientService(clientService)
+    , _connectionController(connectionController)
+    , _dataPlugins(dataPlugins)
+    , _features(features)
+    , _selection(selection)
+    , _serverPlugin(serverPlugin)
+    , _addressSpacePlugin(addressSpacePlugin)
+    , _referencePlugin(referencePlugin)
+    , _attributePlugin(attributePlugin)
+    , _dataAccessPlugin(dataAccessPlugin)
+{
+}
+
+///
+/// \brief Returns the main window.
+/// \return Main window.
+///
+QMainWindow *FeatureHost::mainWindow() const
+{
+    return _mainWindow;
+}
+
+///
+/// \brief Returns the View menu.
+/// \return View menu.
+///
+QMenu *FeatureHost::viewMenu() const
+{
+    return _viewMenu;
+}
+
+///
+/// \brief Returns the main toolbar.
+/// \return Main toolbar.
+///
+QToolBar *FeatureHost::toolBar() const
+{
+    return _toolBar;
+}
+
+///
+/// \brief Returns the OPC UA client service.
+/// \return Client service.
+///
+OpcUaClientService *FeatureHost::clientService() const
+{
+    return _clientService;
+}
+
+///
+/// \brief Returns the connection controller.
+/// \return Connection controller.
+///
+ConnectionController *FeatureHost::connectionController() const
+{
+    return _connectionController;
+}
+
+///
+/// \brief Returns the data-plugin registry.
+/// \return Data-plugin registry.
+///
+PluginManager *FeatureHost::dataPlugins() const
+{
+    return _dataPlugins;
+}
+
+///
+/// \brief Returns the feature registry.
+/// \return Feature registry.
+///
+FeatureManager *FeatureHost::features() const
+{
+    return _features;
+}
+
+///
+/// \brief Returns the selected-node context.
+/// \return Selection context.
+///
+SelectionContext *FeatureHost::selection() const
+{
+    return _selection;
+}
+
+///
+/// \brief Returns the built-in server plugin.
+/// \return Server plugin.
+///
+ServerPlugin *FeatureHost::serverPlugin() const
+{
+    return _serverPlugin;
+}
+
+///
+/// \brief Returns the built-in address-space plugin.
+/// \return Address-space plugin.
+///
+AddressSpacePlugin *FeatureHost::addressSpacePlugin() const
+{
+    return _addressSpacePlugin;
+}
+
+///
+/// \brief Returns the built-in reference plugin.
+/// \return Reference plugin.
+///
+ReferencePlugin *FeatureHost::referencePlugin() const
+{
+    return _referencePlugin;
+}
+
+///
+/// \brief Returns the built-in attribute plugin.
+/// \return Attribute plugin.
+///
+AttributePlugin *FeatureHost::attributePlugin() const
+{
+    return _attributePlugin;
+}
+
+///
+/// \brief Returns the built-in data-access plugin.
+/// \return Data-access plugin.
+///
+DataAccessPlugin *FeatureHost::dataAccessPlugin() const
+{
+    return _dataAccessPlugin;
+}
+
+///
+/// \brief Adds a dock to the main window and View menu.
+/// \param area Default dock area.
+/// \param dock Dock widget.
+///
+void FeatureHost::addDock(Qt::DockWidgetArea area, QDockWidget *dock)
+{
+    if (!dock)
+        return;
+    if (!dock->parent())
+        dock->setParent(_mainWindow);
+    _mainWindow->addDockWidget(area, dock);
+    _features->addDock(area, dock);
+    if (_viewMenu)
+        _viewMenu->insertAction(_viewMenu->actions().isEmpty() ? nullptr : _viewMenu->actions().constFirst(),
+                                dock->toggleViewAction());
+}
+
+///
+/// \brief Records a default dock split.
+/// \param first Existing dock.
+/// \param second Dock to split from the first.
+/// \param orientation Split orientation.
+///
+void FeatureHost::splitDock(QDockWidget *first, QDockWidget *second,
+                            Qt::Orientation orientation)
+{
+    _features->splitDock(first, second, orientation);
+}
+
+///
+/// \brief Records a default dock resize.
+/// \param docks Docks to resize.
+/// \param sizes Target sizes.
+/// \param orientation Resize orientation.
+///
+void FeatureHost::resizeDocks(const QList<QDockWidget *> &docks,
+                              const QList<int> &sizes,
+                              Qt::Orientation orientation)
+{
+    _features->resizeDocks(docks, sizes, orientation);
+}
+
+///
+/// \brief Returns a contributed dock by object name.
+/// \param objectName Dock object name.
+/// \return Matching dock, or nullptr.
+///
+QDockWidget *FeatureHost::dock(const QString &objectName) const
+{
+    return _features->dock(objectName);
+}
+
+///
+/// \brief Registers a feature command callable by MainWindow.
+/// \param id Stable command identifier.
+/// \param command Command callback.
+///
+void FeatureHost::registerCommand(const QString &id, std::function<void()> command)
+{
+    _features->registerCommand(id, std::move(command));
+}
