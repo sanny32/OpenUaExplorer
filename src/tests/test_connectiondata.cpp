@@ -9,11 +9,20 @@
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTimeZone>
 
 #include "opcua/certificateinfo.h"
 #include "opcua/connectionprofilevalidator.h"
 #include "opcua/endpointhistorystore.h"
 #include "models/endpointmodel.h"
+
+namespace {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+const QTimeZone kUtc = QTimeZone::UTC;
+#else
+const Qt::TimeSpec kUtc = Qt::UTC;
+#endif
+}
 
 ///
 /// \brief Tests the pure connection-data helpers against a temporary settings store.
@@ -129,7 +138,7 @@ void TestConnectionData::endpointModelSortsByRank()
 
 void TestConnectionData::certificateStatusCoversDateBoundaries()
 {
-    const QDateTime now = QDateTime::fromSecsSinceEpoch(1000, Qt::UTC);
+    const QDateTime now = QDateTime::fromSecsSinceEpoch(1000, kUtc);
     QCOMPARE(CertificateInfo::statusForDates(
                  now.addSecs(1), now.addSecs(10), now),
              CertificateInfo::Status::NotYetValid);

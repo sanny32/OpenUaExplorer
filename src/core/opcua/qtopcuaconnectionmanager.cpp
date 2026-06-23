@@ -38,6 +38,10 @@ QString clientErrorName(QOpcUaClient::ClientError error)
     case QOpcUaClient::AccessDenied:    return backendTr("Access denied: authentication failed.");
     case QOpcUaClient::ConnectionError: return backendTr("Connection error.");
     case QOpcUaClient::UnknownError:    return backendTr("Unknown client error.");
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    case QOpcUaClient::UnsupportedAuthenticationInformation:
+        return backendTr("Unsupported authentication information.");
+#endif
     }
     return backendTr("Unknown client error (%1).").arg(static_cast<int>(error));
 }

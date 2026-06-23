@@ -3,6 +3,7 @@
 
 #include <QTest>
 #include <QSignalSpy>
+#include <QTimeZone>
 
 #include <QOpcUaBinaryDataEncoding>
 #include <QOpcUaEndpointDescription>
@@ -18,6 +19,11 @@
 #include "opcua/qtopcuatypemapper.h"
 
 namespace {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+const QTimeZone kUtc = QTimeZone::UTC;
+#else
+const Qt::TimeSpec kUtc = Qt::UTC;
+#endif
 
 /// \brief Encodes the SessionDiagnostics fields consumed by the mapper.
 QOpcUaExtensionObject sessionDiagnostics(const QString &name, const QString &applicationUri,
@@ -99,8 +105,8 @@ void TestQtOpcUaInternals::mapsEndpointsAndReferences()
 /// \brief Prefers an application match and otherwise the newest session.
 void TestQtOpcUaInternals::resolvesSessionByApplicationAndRecency()
 {
-    const QDateTime older = QDateTime::fromMSecsSinceEpoch(1000, Qt::UTC);
-    const QDateTime newer = QDateTime::fromMSecsSinceEpoch(2000, Qt::UTC);
+    const QDateTime older = QDateTime::fromMSecsSinceEpoch(1000, kUtc);
+    const QDateTime newer = QDateTime::fromMSecsSinceEpoch(2000, kUtc);
     const QList<QOpcUaExtensionObject> sessions = {
         sessionDiagnostics(QStringLiteral("matched"), QStringLiteral("urn:ours"), older),
         sessionDiagnostics(QStringLiteral("latest"), QStringLiteral("urn:other"), newer)
