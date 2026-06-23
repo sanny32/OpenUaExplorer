@@ -46,13 +46,11 @@ public:
     bool layoutResetRequested() const;
 
 private:
-    void setupThemeControls();
     void setupLogCategories();
     void loadSettings();
     void applyChanges();
     void acceptChanges();
     void requestLayoutReset();
-    void syncThemeComboFromCard();
     void selectThemeCard(int index);
     void setThemeSelection(AppSettings::ThemeMode mode);
     AppSettings::ThemeMode selectedThemeMode() const;

@@ -21,6 +21,7 @@
 #include "application.h"
 #include "appsettings.h"
 #include "dialogs/settingsdialog.h"
+#include "widgets/dialogbuttonbox.h"
 #include "widgets/themepreviewbutton.h"
 
 ///
@@ -83,7 +84,7 @@ void TestSettingsDialog::referenceControlsArePresent()
     QVERIFY(dialog.findChild<ThemePreviewButton *>(QStringLiteral("systemThemeButton")));
     QVERIFY(dialog.findChild<QPushButton *>(QStringLiteral("resetButton")));
 
-    auto *buttons = dialog.findChild<QDialogButtonBox *>(QStringLiteral("buttonBox"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
     auto *loggingGrid = dialog.findChild<QGridLayout *>(QStringLiteral("logGroupLayout"));
     QVERIFY(buttons);
     QVERIFY(buttons->button(QDialogButtonBox::Apply));
@@ -129,7 +130,7 @@ void TestSettingsDialog::applyPersistsWithoutClosing()
 {
     SettingsDialog dialog;
     auto *plugin = dialog.findChild<QCheckBox *>(QStringLiteral("logCategory_plugin"));
-    auto *buttons = dialog.findChild<QDialogButtonBox *>(QStringLiteral("buttonBox"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
     QVERIFY(plugin);
     QVERIFY(buttons);
 
@@ -157,7 +158,7 @@ void TestSettingsDialog::layoutResetWaitsForAcceptance()
 
     SettingsDialog accepted;
     accepted.findChild<QPushButton *>(QStringLiteral("resetButton"))->click();
-    auto *buttons = accepted.findChild<QDialogButtonBox *>(QStringLiteral("buttonBox"));
+    auto *buttons = accepted.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
     buttons->button(QDialogButtonBox::Ok)->click();
     QCOMPARE(accepted.result(), static_cast<int>(QDialog::Accepted));
     QVERIFY(accepted.layoutResetRequested());

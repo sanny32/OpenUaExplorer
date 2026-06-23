@@ -31,9 +31,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     , ui(new Ui::SettingsDialog)
 {
     ui->setupUi(this);
-    ui->appearanceGroup->setVisible(theApp()->theme().isManualToggleSupported());
+    ui->themeGroup->setVisible(theApp()->theme().isManualToggleSupported());
 
-    setupThemeControls();
     setupLogCategories();
     loadSettings();
     setDirty(false);
@@ -62,23 +61,6 @@ SettingsDialog::~SettingsDialog()
 bool SettingsDialog::layoutResetRequested() const
 {
     return _layoutResetRequested;
-}
-
-///
-/// \brief Wires the theme combo box and preview cards as one selection control.
-///
-void SettingsDialog::setupThemeControls()
-{
-    connect(ui->lightThemeButton, &QAbstractButton::clicked,
-            this, &SettingsDialog::syncThemeComboFromCard);
-    connect(ui->darkThemeButton, &QAbstractButton::clicked,
-            this, &SettingsDialog::syncThemeComboFromCard);
-    connect(ui->systemThemeButton, &QAbstractButton::clicked,
-            this, &SettingsDialog::syncThemeComboFromCard);
-    connect(ui->themeCombo, qOverload<int>(&QComboBox::currentIndexChanged),
-            this, &SettingsDialog::selectThemeCard);
-    connect(ui->themeCombo, qOverload<int>(&QComboBox::currentIndexChanged),
-            this, &SettingsDialog::markDirty);
 }
 
 ///
@@ -157,19 +139,6 @@ void SettingsDialog::requestLayoutReset()
 }
 
 ///
-/// \brief Updates the combo box after a theme preview card is clicked.
-///
-void SettingsDialog::syncThemeComboFromCard()
-{
-    if (ui->lightThemeButton->isChecked())
-        ui->themeCombo->setCurrentIndex(0);
-    else if (ui->darkThemeButton->isChecked())
-        ui->themeCombo->setCurrentIndex(1);
-    else
-        ui->themeCombo->setCurrentIndex(2);
-}
-
-///
 /// \brief Updates the checked preview card from the combo-box index.
 /// \param index Theme combo-box index.
 ///
@@ -191,7 +160,6 @@ void SettingsDialog::setThemeSelection(AppSettings::ThemeMode mode)
         index = 0;
     else if (mode == AppSettings::ThemeMode::Dark)
         index = 1;
-    ui->themeCombo->setCurrentIndex(index);
     selectThemeCard(index);
 }
 

@@ -6,20 +6,17 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>720</height>
+    <width>603</width>
+    <height>427</height>
    </rect>
-  </property>
-  <property name="minimumSize">
-   <size>
-    <width>720</width>
-    <height>640</height>
-   </size>
   </property>
   <property name="windowTitle">
    <string>Settings</string>
   </property>
   <layout class="QVBoxLayout" name="rootLayout">
+   <property name="spacing">
+    <number>10</number>
+   </property>
    <property name="leftMargin">
     <number>12</number>
    </property>
@@ -32,86 +29,15 @@
    <property name="bottomMargin">
     <number>12</number>
    </property>
-   <property name="spacing">
-    <number>10</number>
-   </property>
    <item>
-    <widget class="QGroupBox" name="appearanceGroup">
+    <widget class="QGroupBox" name="themeGroup">
      <property name="title">
-      <string>Appearance</string>
+      <string>Theme</string>
      </property>
      <layout class="QVBoxLayout" name="appearanceLayout">
       <property name="spacing">
        <number>10</number>
       </property>
-      <item>
-       <layout class="QGridLayout" name="themeHeaderLayout">
-        <property name="horizontalSpacing">
-         <number>16</number>
-        </property>
-        <property name="verticalSpacing">
-         <number>4</number>
-        </property>
-        <item row="0" column="0">
-         <widget class="QLabel" name="themeLabel">
-          <property name="text">
-           <string>Theme</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QComboBox" name="themeCombo">
-          <property name="minimumSize">
-           <size>
-            <width>260</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>320</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <item>
-           <property name="text">
-            <string>Light</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>Dark</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>System</string>
-           </property>
-          </item>
-         </widget>
-        </item>
-        <item row="0" column="2">
-         <spacer name="themeHeaderSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item row="1" column="1" colspan="2">
-         <widget class="QLabel" name="themeDescriptionLabel">
-          <property name="text">
-           <string>Choose how the application should look.</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
       <item>
        <layout class="QHBoxLayout" name="themeCardsLayout">
         <property name="spacing">
@@ -138,7 +64,7 @@
           <property name="text">
            <string>Light</string>
           </property>
-          <property name="previewMode">
+          <property name="previewMode" stdset="0">
            <string>light</string>
           </property>
          </widget>
@@ -148,7 +74,7 @@
           <property name="text">
            <string>Dark</string>
           </property>
-          <property name="previewMode">
+          <property name="previewMode" stdset="0">
            <string>dark</string>
           </property>
          </widget>
@@ -158,7 +84,7 @@
           <property name="text">
            <string>System</string>
           </property>
-          <property name="previewMode">
+          <property name="previewMode" stdset="0">
            <string>system</string>
           </property>
          </widget>
@@ -195,7 +121,7 @@
        </widget>
       </item>
       <item>
-       <spacer name="layoutButtonSpacer">
+       <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
@@ -209,10 +135,16 @@
       </item>
       <item>
        <widget class="ThemedPushButton" name="resetButton">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="text">
          <string>Reset Layout to Default</string>
         </property>
-        <property name="iconName">
+        <property name="iconName" stdset="0">
          <string>refresh</string>
         </property>
        </widget>
@@ -229,22 +161,18 @@
       </sizepolicy>
      </property>
      <property name="title">
-      <string>Logging (open62541)</string>
+      <string>Logging</string>
      </property>
      <layout class="QVBoxLayout" name="loggingSectionLayout">
       <property name="spacing">
        <number>8</number>
       </property>
       <item>
-       <widget class="QLabel" name="loggingDescriptionLabel">
-        <property name="text">
-         <string>Configure logging settings for the open62541 OPC UA stack.</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QWidget" name="logCategoriesGroup" native="true">
         <layout class="QVBoxLayout" name="logCategoriesSectionLayout">
+         <property name="spacing">
+          <number>10</number>
+         </property>
          <property name="leftMargin">
           <number>0</number>
          </property>
@@ -255,27 +183,8 @@
           <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>0</number>
+          <number>4</number>
          </property>
-         <item>
-          <widget class="QLabel" name="logCategoriesTitleLabel">
-           <property name="font">
-            <font>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>Log Categories</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="logCategoriesDescriptionLabel">
-           <property name="text">
-            <string>Choose which open62541 categories are enabled.</string>
-           </property>
-          </widget>
-         </item>
          <item>
           <layout class="QGridLayout" name="logGroupLayout">
            <property name="horizontalSpacing">
@@ -313,7 +222,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QDialogButtonBox" name="buttonBox">
+    <widget class="DialogButtonBox" name="buttonBox">
      <property name="standardButtons">
       <set>QDialogButtonBox::Apply|QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
      </property>
@@ -323,14 +232,19 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ThemePreviewButton</class>
-   <extends>QAbstractButton</extends>
-   <header>themepreviewbutton.h</header>
+   <class>DialogButtonBox</class>
+   <extends>QDialogButtonBox</extends>
+   <header>widgets/dialogbuttonbox.h</header>
   </customwidget>
   <customwidget>
    <class>ThemedPushButton</class>
    <extends>QPushButton</extends>
-   <header>themedpushbutton.h</header>
+   <header>widgets/themedpushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ThemePreviewButton</class>
+   <extends>QAbstractButton</extends>
+   <header>themepreviewbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
