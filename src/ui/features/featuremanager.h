@@ -65,6 +65,11 @@ public:
     explicit FeatureManager(QObject *parent = nullptr);
 
     ///
+    /// \brief Destroys the feature registry and owned feature plugins.
+    ///
+    ~FeatureManager() override;
+
+    ///
     /// \brief Takes ownership of a feature plugin.
     /// \param feature Feature to register.
     ///

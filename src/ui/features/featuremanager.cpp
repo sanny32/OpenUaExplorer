@@ -24,6 +24,11 @@ FeatureManager::FeatureManager(QObject *parent)
 }
 
 ///
+/// \brief Destroys the feature registry and owned feature plugins.
+///
+FeatureManager::~FeatureManager() = default;
+
+///
 /// \brief Takes ownership of a feature plugin.
 /// \param feature Feature to register.
 ///
