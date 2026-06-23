@@ -181,8 +181,8 @@ inline QVector<ReferenceItem> referenceItems()
 inline QVector<SubscriptionItem> subscriptionItems()
 {
     return {
-        {"Default", 500.0},
-        {"Fast",    100.0}
+        {"Default", 500.0, 0},
+        {"Fast",    100.0, 1}
     };
 }
 

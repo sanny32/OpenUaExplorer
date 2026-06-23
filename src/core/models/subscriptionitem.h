@@ -20,6 +20,15 @@ struct SubscriptionItem
 
     /// \brief Publishing interval in milliseconds.
     double publishingInterval = 1000.0;
+
+    /// \brief Stable subscription identifier; 0 is the built-in Default subscription.
+    int id = 0;
+
+    ///
+    /// \brief Reports whether this is the built-in Default subscription.
+    /// \return True for the built-in Default subscription.
+    ///
+    bool isDefault() const { return id == 0; }
 };
 
 ///

@@ -11,6 +11,7 @@
 #include <QModelIndex>
 #include <QWidget>
 
+#include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
 
 namespace Ui {
@@ -83,6 +84,15 @@ public:
     void addNode(const OpcUaNodeDetails &details);
 
     ///
+    /// \brief Adds or updates a node row and assigns it to the Default subscription.
+    /// \param details Variable node details.
+    /// \param subscription Subscription to assign.
+    ///
+    void addNodeWithDefaultSubscription(
+        const OpcUaNodeDetails &details,
+        const SubscriptionItem &subscription = SubscriptionItem());
+
+    ///
     /// \brief Applies read results to the data rows.
     /// \param values Read results.
     ///
@@ -105,6 +115,12 @@ signals:
     /// \brief Emitted when the user asks to add the selected node.
     ///
     void addSelectedNodeRequested();
+
+    ///
+    /// \brief Emitted when an address-space node is dropped onto Data Access.
+    /// \param nodeId Dropped OPC UA node.
+    ///
+    void nodeDropRequested(QString nodeId);
 
     ///
     /// \brief Emitted when the user requests a read of nodes.
@@ -135,6 +151,9 @@ signals:
     /// \param nodeId Node to stop monitoring.
     ///
     void monitoringCancelled(QString nodeId);
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     void setupDataView();

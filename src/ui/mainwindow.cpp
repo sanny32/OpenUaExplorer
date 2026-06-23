@@ -613,6 +613,8 @@ void MainWindow::setupOpcUaClient()
             _clientService, &OpcUaClientService::readValues);
     connect(ui->dataAccessWidget, &DataAccessWidget::addSelectedNodeRequested,
             this, &MainWindow::on_actionAddToDataAccess_triggered);
+    connect(ui->dataAccessWidget, &DataAccessWidget::nodeDropRequested,
+            this, &MainWindow::addNodeToDataAccess);
     connect(ui->dataAccessWidget, &DataAccessWidget::writeRequested,
             this, &MainWindow::showWriteDialog);
     connect(ui->dataAccessWidget, &DataAccessWidget::monitoringRequested,
@@ -701,10 +703,17 @@ void MainWindow::onNodeDetailsReady(const OpcUaNodeDetails &details, const QStri
 {
     if (!error.isEmpty())
         return;
+
+    const bool variable = OpcUa::isVariable(details.nodeClass);
+    if (_pendingDataAccessNodeIds.remove(details.nodeId) && variable)
+        ui->dataAccessWidget->addNodeWithDefaultSubscription(details);
+
+    if (details.nodeId != ui->addressSpaceWidget->selectedNode().nodeId)
+        return;
+
     _selectedNodeDetails = details;
     ui->addressSpaceWidget->setNodeDetails(details);
     ui->attributesWidget->setNodeDetails(details);
-    const bool variable = OpcUa::isVariable(details.nodeClass);
     const bool writable = variable && OpcUa::isWritable(details.userAccessLevel);
     ui->actionRead->setEnabled(variable);
     ui->actionReadSelected->setEnabled(variable);
@@ -831,6 +840,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
         _selectedNodeDetails = {};
         _subscribedNodeIds.clear();
         _pendingMonitoringNodeIds.clear();
+        _pendingDataAccessNodeIds.clear();
         updateMonitoringActions();
     }
 }
@@ -847,6 +857,18 @@ void MainWindow::initializeAddressSpace()
     root.nodeClass = 1;
     root.hasChildren = true;
     ui->addressSpaceWidget->setRootNode(root);
+}
+
+///
+/// \brief Reads a node so it can be added to Data Access after its attributes arrive.
+/// \param nodeId Node to add.
+///
+void MainWindow::addNodeToDataAccess(const QString &nodeId)
+{
+    if (nodeId.isEmpty())
+        return;
+    _pendingDataAccessNodeIds.insert(nodeId);
+    _clientService->readNode(nodeId);
 }
 
 ///

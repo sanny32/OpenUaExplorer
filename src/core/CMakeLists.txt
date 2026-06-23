@@ -41,6 +41,8 @@ add_library(ouaexp_core STATIC
     opcua/standardnodeid.h
 
     models/addressspaceitem.h
+    models/addressspacemimedata.cpp
+    models/addressspacemimedata.h
     models/addressspacemodel.cpp
     models/addressspacemodel.h
     models/attributesmodel.cpp

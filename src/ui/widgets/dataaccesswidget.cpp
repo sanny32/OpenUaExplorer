@@ -8,14 +8,19 @@
 
 #include <algorithm>
 
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QMenu>
+#include <QMimeData>
 #include <QPushButton>
 
 #include "appsettings.h"
 #include "dataaccesswidget.h"
 #include "headerview.h"
+#include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
 #include "models/eventsmodel.h"
 #include "models/historymodel.h"
@@ -24,6 +29,46 @@
 #include "subscriptiondelegate.h"
 #include "tableview.h"
 #include "ui_dataaccesswidget.h"
+
+namespace {
+
+///
+/// \brief Returns the default subscription item, using a fallback label when needed.
+/// \param model Subscription model to inspect.
+/// \param fallbackName Name to use when the default item has no label.
+/// \return Default subscription item.
+///
+SubscriptionItem defaultSubscriptionFrom(const SubscriptionsModel *model,
+                                         const QString &fallbackName)
+{
+    for (int row = 0; row < model->rowCount(); ++row) {
+        SubscriptionItem item = model->itemAt(row);
+        if (!item.isDefault())
+            continue;
+        if (item.name.isEmpty())
+            item.name = fallbackName;
+        return item;
+    }
+
+    SubscriptionItem item;
+    item.name = fallbackName;
+    return item;
+}
+
+///
+/// \brief Reads a dropped variable node from address-space MIME data.
+/// \param mimeData MIME data to read.
+/// \param node Destination for the decoded node.
+/// \return True when the data contains a variable node with a NodeId.
+///
+bool decodeDroppedVariable(const QMimeData *mimeData, OpcUaNodeInfo *node)
+{
+    if (!AddressSpaceMime::decodeNode(mimeData, node))
+        return false;
+    return OpcUa::isVariable(node->nodeClass) && !node->nodeId.isEmpty();
+}
+
+} // namespace
 
 ///
 /// \brief Builds the widget and its data, subscriptions, events, and history views.
@@ -120,6 +165,31 @@ void DataAccessWidget::addNode(const OpcUaNodeDetails &details)
 }
 
 ///
+/// \brief Adds or updates a node row and assigns it to the Default subscription.
+/// \param details Variable node details.
+/// \param subscription Subscription to assign.
+///
+void DataAccessWidget::addNodeWithDefaultSubscription(
+    const OpcUaNodeDetails &details,
+    const SubscriptionItem &subscription)
+{
+    addNode(details);
+
+    SubscriptionItem effectiveSubscription = subscription;
+    if (effectiveSubscription.isDefault() && effectiveSubscription.name.isEmpty())
+        effectiveSubscription = defaultSubscriptionFrom(_subscriptionsModel, tr("Default"));
+
+    for (int row = 0; row < _dataModel->rowCount(); ++row) {
+        if (_dataModel->itemAt(row).nodeId != details.nodeId)
+            continue;
+        _dataModel->setData(_dataModel->index(row, DataAccessModel::ColSubscription),
+                            effectiveSubscription.name, Qt::EditRole);
+        emit monitoringRequested(details.nodeId, effectiveSubscription.publishingInterval);
+        return;
+    }
+}
+
+///
 /// \brief Applies read results to the data rows.
 /// \param values Read results.
 ///
@@ -141,7 +211,9 @@ void DataAccessWidget::setNodeSubscribed(const QString &nodeId, bool subscribed)
         const QModelIndex index = _dataModel->index(row, DataAccessModel::ColSubscription);
         if (subscribed) {
             if (_dataModel->itemAt(row).subscriptionName.isEmpty())
-                _dataModel->setData(index, QStringLiteral("Default"), Qt::EditRole);
+                _dataModel->setData(index,
+                                    defaultSubscriptionFrom(_subscriptionsModel, tr("Default")).name,
+                                    Qt::EditRole);
         } else {
             _dataModel->setData(index, QString(), Qt::EditRole);
         }
@@ -161,11 +233,57 @@ void DataAccessWidget::clearRuntimeData()
 }
 
 ///
+/// \brief Handles address-space node drag/drop events on the data table.
+/// \param watched Object receiving the event.
+/// \param event Event to filter.
+/// \return True when the event was consumed.
+///
+bool DataAccessWidget::eventFilter(QObject *watched, QEvent *event)
+{
+    const bool dataViewTarget = watched == ui->dataView || watched == ui->dataView->viewport();
+    if (!dataViewTarget)
+        return QWidget::eventFilter(watched, event);
+
+    if (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove) {
+        auto *dragEvent = static_cast<QDragMoveEvent *>(event);
+        OpcUaNodeInfo node;
+        if (decodeDroppedVariable(dragEvent->mimeData(), &node)) {
+            dragEvent->setDropAction(Qt::CopyAction);
+            dragEvent->accept();
+            return true;
+        }
+        dragEvent->ignore();
+        return false;
+    }
+
+    if (event->type() == QEvent::Drop) {
+        auto *dropEvent = static_cast<QDropEvent *>(event);
+        OpcUaNodeInfo node;
+        if (decodeDroppedVariable(dropEvent->mimeData(), &node)) {
+            setCurrentPage(DataAccessPage);
+            emit nodeDropRequested(node.nodeId);
+            dropEvent->setDropAction(Qt::CopyAction);
+            dropEvent->accept();
+            return true;
+        }
+        dropEvent->ignore();
+        return false;
+    }
+
+    return QWidget::eventFilter(watched, event);
+}
+
+///
 /// \brief Binds and lays out the data table, including column sizing and selection wiring.
 ///
 void DataAccessWidget::setupDataView()
 {
     ui->dataView->setModel(_dataModel);
+    ui->dataView->setAcceptDrops(true);
+    ui->dataView->viewport()->setAcceptDrops(true);
+    ui->dataView->setDropIndicatorShown(true);
+    ui->dataView->installEventFilter(this);
+    ui->dataView->viewport()->installEventFilter(this);
     ui->dataView->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->dataView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
     ui->dataView->verticalHeader()->hide();
@@ -235,7 +353,7 @@ void DataAccessWidget::setupSubscriptionsView()
             this, [this] {
         const QModelIndexList rows = ui->subscriptionsTable->selectionModel()->selectedRows();
         const bool defaultSelected = rows.size() == 1
-            && _subscriptionsModel->itemAt(rows.first().row()).name == QStringLiteral("Default");
+            && _subscriptionsModel->itemAt(rows.first().row()).isDefault();
         ui->removeSubscriptionButton->setEnabled(!rows.isEmpty() && !defaultSelected);
     });
 }
@@ -364,7 +482,9 @@ void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionN
 ///
 void DataAccessWidget::resetSubscriptions()
 {
-    _subscriptionsModel->setItems({{QStringLiteral("Default"), 1000.0}});
+    SubscriptionItem subscription;
+    subscription.name = tr("Default");
+    _subscriptionsModel->setItems({subscription});
 }
 
 ///
@@ -379,7 +499,11 @@ void DataAccessWidget::addSubscription()
             break;
     }
 
-    const int row = _subscriptionsModel->addSubscription({name, 1000.0});
+    SubscriptionItem subscription;
+    subscription.id = _subscriptionsModel->rowCount();
+    subscription.name = name;
+
+    const int row = _subscriptionsModel->addSubscription(subscription);
     const QModelIndex nameIndex = _subscriptionsModel->index(row, SubscriptionsModel::ColName);
     ui->mainTabs->setCurrentIndex(SubscriptionsPage);
     ui->subscriptionsTable->setCurrentIndex(nameIndex);
@@ -396,9 +520,10 @@ void DataAccessWidget::removeSelectedSubscriptions()
         return a.row() > b.row();
     });
     for (const QModelIndex &idx : rows) {
-        const QString name = _subscriptionsModel->itemAt(idx.row()).name;
-        if (name == QStringLiteral("Default"))
+        const SubscriptionItem subscription = _subscriptionsModel->itemAt(idx.row());
+        if (subscription.isDefault())
             continue;
+        const QString name = subscription.name;
         for (int dataRow = 0; dataRow < _dataModel->rowCount(); ++dataRow) {
             if (_dataModel->itemAt(dataRow).subscriptionName != name)
                 continue;

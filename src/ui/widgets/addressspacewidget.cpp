@@ -6,6 +6,7 @@
 /// \brief Implements the OPC UA address space browser widget.
 ///
 
+#include <QAbstractItemView>
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QPushButton>
@@ -206,6 +207,9 @@ AddressSpaceWidget::~AddressSpaceWidget()
 void AddressSpaceWidget::setupTreeView()
 {
     ui->addressTree->setModel(_treeModel);
+    ui->addressTree->setDragEnabled(true);
+    ui->addressTree->setDragDropMode(QAbstractItemView::DragOnly);
+    ui->addressTree->setDefaultDropAction(Qt::CopyAction);
     ui->addressTree->setHeaderHidden(true);
     ui->addressTree->setUniformRowHeights(true);
 }

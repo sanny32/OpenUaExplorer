@@ -19,6 +19,8 @@
 #include "addressspaceitem.h"
 #include "opcua/opcuatypes.h"
 
+class QMimeData;
+
 ///
 /// \brief Tree node used internally by AddressSpaceModel.
 ///
@@ -170,6 +172,13 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
     ///
+    /// \brief Returns item flags, including drag support for variable nodes.
+    /// \param index Model index.
+    /// \return Item flags.
+    ///
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
+
+    ///
     /// \brief Reports whether a node has, or may yet have, children.
     /// \param parent Parent index.
     /// \return True for loaded children or nodes that may be browsed.
@@ -188,6 +197,25 @@ public:
     /// \param parent Parent index.
     ///
     void fetchMore(const QModelIndex &parent) override;
+
+    ///
+    /// \brief Returns the MIME formats exported by dragged nodes.
+    /// \return Supported MIME formats.
+    ///
+    QStringList mimeTypes() const override;
+
+    ///
+    /// \brief Encodes the dragged variable node.
+    /// \param indexes Dragged model indexes.
+    /// \return MIME data owned by the caller.
+    ///
+    QMimeData *mimeData(const QModelIndexList &indexes) const override;
+
+    ///
+    /// \brief Returns the supported drag action.
+    /// \return Copy action.
+    ///
+    Qt::DropActions supportedDragActions() const override;
 
     ///
     /// \brief Sets the single visible root node.

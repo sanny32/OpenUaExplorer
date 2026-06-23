@@ -92,6 +92,7 @@ private:
     void setupOpcUaClient();
     void updateClientUi(OpcUaConnectionState state);
     void initializeAddressSpace();
+    void addNodeToDataAccess(const QString &nodeId);
     void showWriteDialog(const QString &nodeId, const QVariant &value, int valueType,
                          const QString &dataTypeId, bool writable);
     void rebuildRecentConnections();
@@ -118,4 +119,5 @@ private:
     OpcUaNodeDetails _selectedNodeDetails;
     QSet<QString> _subscribedNodeIds;
     QSet<QString> _pendingMonitoringNodeIds;
+    QSet<QString> _pendingDataAccessNodeIds;
 };

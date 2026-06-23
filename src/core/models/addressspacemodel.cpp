@@ -8,7 +8,10 @@
 
 #include "addressspacemodel.h"
 
+#include <QMimeData>
 #include <QSet>
+
+#include "addressspacemimedata.h"
 
 namespace {
 
@@ -252,6 +255,23 @@ QVariant AddressSpaceModel::data(const QModelIndex &index, int role) const
 }
 
 ///
+/// \brief Returns item flags, including drag support for variable nodes.
+/// \param index Model index.
+/// \return Item flags.
+///
+Qt::ItemFlags AddressSpaceModel::flags(const QModelIndex &index) const
+{
+    Qt::ItemFlags itemFlags = QAbstractItemModel::flags(index);
+    if (!index.isValid())
+        return itemFlags;
+
+    const OpcUaNodeInfo &info = nodeForIndex(index)->info();
+    if (OpcUa::isVariable(info.nodeClass) && !info.nodeId.isEmpty())
+        itemFlags |= Qt::ItemIsDragEnabled;
+    return itemFlags;
+}
+
+///
 /// \brief Reports whether a node has, or may yet have, children.
 /// \param parent Parent index.
 /// \return True for loaded children or nodes that may be browsed.
@@ -286,6 +306,41 @@ void AddressSpaceModel::fetchMore(const QModelIndex &parent)
         return;
     node->setBrowseStarted(true);
     emit browseRequested(node->info().nodeId);
+}
+
+///
+/// \brief Returns the MIME formats exported by dragged nodes.
+/// \return Supported MIME formats.
+///
+QStringList AddressSpaceModel::mimeTypes() const
+{
+    return {AddressSpaceMime::nodeMimeType()};
+}
+
+///
+/// \brief Encodes the dragged variable node.
+/// \param indexes Dragged model indexes.
+/// \return MIME data owned by the caller.
+///
+QMimeData *AddressSpaceModel::mimeData(const QModelIndexList &indexes) const
+{
+    for (const QModelIndex &index : indexes) {
+        if (!index.isValid() || index.column() != 0)
+            continue;
+        const OpcUaNodeInfo info = nodeForIndex(index)->info();
+        if (OpcUa::isVariable(info.nodeClass) && !info.nodeId.isEmpty())
+            return AddressSpaceMime::createNodeMimeData(info);
+    }
+    return new QMimeData;
+}
+
+///
+/// \brief Returns the supported drag action.
+/// \return Copy action.
+///
+Qt::DropActions AddressSpaceModel::supportedDragActions() const
+{
+    return Qt::CopyAction;
 }
 
 ///

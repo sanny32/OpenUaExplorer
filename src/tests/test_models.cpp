@@ -9,12 +9,15 @@
 #include <QAbstractItemModelTester>
 #include <QBrush>
 #include <QColor>
+#include <QMimeData>
+#include <QScopedPointer>
 #include <QSignalSpy>
 #include <QTest>
 
 #include "testdata.h"
 #include "opcua/opcuatypes.h"
 #include "opcua/standardnodeid.h"
+#include "models/addressspacemimedata.h"
 #include "models/addressspacemodel.h"
 #include "models/attributesmodel.h"
 #include "models/dataaccessmodel.h"
@@ -54,6 +57,7 @@ private slots:
     void addressSpaceLeafDoesNotFetch();
     void addressSpaceFindByNodeIdAndDisplayName();
     void addressSpaceSetChildrenDeduplicatesNodeIds();
+    void addressSpaceDragMimeIncludesVariableNode();
 
     // Header/role/mutator coverage for the simple table & tree models.
     void historyModelHeaderRolesAndMutators();
@@ -411,6 +415,46 @@ void TestModels::addressSpaceSetChildrenDeduplicatesNodeIds()
 }
 
 ///
+/// \brief Drag MIME is exported for variables and ignored for non-variable nodes.
+///
+void TestModels::addressSpaceDragMimeIncludesVariableNode()
+{
+    AddressSpaceModel model;
+    model.setRootNode(makeRoot());
+
+    OpcUaNodeInfo variable;
+    variable.nodeId = QStringLiteral("ns=2;s=Temperature");
+    variable.browseName = QStringLiteral("2:Temperature");
+    variable.displayName = QStringLiteral("Temperature");
+    variable.nodeClass = OpcUa::Variable;
+
+    OpcUaNodeInfo object;
+    object.nodeId = QStringLiteral("ns=2;s=Device");
+    object.displayName = QStringLiteral("Device");
+    object.nodeClass = OpcUa::Object;
+
+    model.setChildren(makeRoot().nodeId, {variable, object});
+
+    const QModelIndex root = model.index(0, 0);
+    const QModelIndex variableIndex = model.index(0, 0, root);
+    const QModelIndex objectIndex = model.index(1, 0, root);
+    QVERIFY(model.mimeTypes().contains(AddressSpaceMime::nodeMimeType()));
+    QVERIFY(model.supportedDragActions().testFlag(Qt::CopyAction));
+    QVERIFY(model.flags(variableIndex).testFlag(Qt::ItemIsDragEnabled));
+    QVERIFY(!model.flags(objectIndex).testFlag(Qt::ItemIsDragEnabled));
+
+    QScopedPointer<QMimeData> variableMime(model.mimeData({variableIndex}));
+    OpcUaNodeInfo decoded;
+    QVERIFY(AddressSpaceMime::decodeNode(variableMime.data(), &decoded));
+    QCOMPARE(decoded.nodeId, variable.nodeId);
+    QCOMPARE(decoded.displayName, variable.displayName);
+    QCOMPARE(decoded.nodeClass, variable.nodeClass);
+
+    QScopedPointer<QMimeData> objectMime(model.mimeData({objectIndex}));
+    QVERIFY(!AddressSpaceMime::decodeNode(objectMime.data(), &decoded));
+}
+
+///
 /// \brief HistoryModel: headerData, the range column, alignment and mutators.
 ///
 void TestModels::historyModelHeaderRolesAndMutators()
@@ -498,8 +542,8 @@ void TestModels::subscriptionsModelHeaderRolesAndReset()
 
     // Replacing a non-empty model exercises the remove-then-insert path.
     QSignalSpy removeSpy(&model, &QAbstractItemModel::rowsRemoved);
-    model.setItems({{QStringLiteral("A"), 100.0},
-                    {QStringLiteral("B"), 200.0}});
+    model.setItems({{QStringLiteral("A"), 100.0, 1},
+                    {QStringLiteral("B"), 200.0, 2}});
     QCOMPARE(removeSpy.size(), 1);
     QCOMPARE(model.rowCount(), 2);
 
@@ -521,9 +565,9 @@ void TestModels::subscriptionsModelEditingAndMutators()
 {
     SubscriptionsModel model;
     new QAbstractItemModelTester(&model, &model);
-    const int firstRow = model.addSubscription({QStringLiteral("Default"), 1000.0});
+    const int firstRow = model.addSubscription({QStringLiteral("Default"), 1000.0, 0});
     QCOMPARE(firstRow, 0);
-    model.addSubscription({QStringLiteral("Fast"), 250.0});
+    model.addSubscription({QStringLiteral("Fast"), 250.0, 1});
 
     const QModelIndex nameIndex = model.index(0, SubscriptionsModel::ColName);
     const QModelIndex intervalIndex = model.index(0, SubscriptionsModel::ColPublishingInterval);
