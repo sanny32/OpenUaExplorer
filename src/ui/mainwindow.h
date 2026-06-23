@@ -90,6 +90,7 @@ private:
     void cycleTheme();
     void applyThemeMode(AppSettings::ThemeMode mode);
     void setupOpcUaClient();
+    void setupPlugins();
     void updateClientUi(OpcUaConnectionState state);
     void initializeAddressSpace();
     void addNodeToDataAccess(const QString &nodeId);
@@ -100,8 +101,6 @@ private:
 
     // OPC UA client signal handlers (wired up in setupOpcUaClient).
     void onClientError(const QString &message);
-    void browseNodeOrRoot(const QString &nodeId);
-    void onNodeSelected(const OpcUaNodeInfo &node);
     void onNodeDetailsReady(const OpcUaNodeDetails &details, const QString &error);
     void onDataValuesReady(const QVector<OpcUaDataValue> &values, const QString &error);
     void onWriteFinished(const QString &nodeId, bool success, const QString &error);
@@ -115,6 +114,12 @@ private:
     Ui::MainWindow *ui;
     class ConnectionController *_connectionController;
     class OpcUaClientService *_clientService;
+    class PluginManager *_pluginManager = nullptr;
+    class ServerPlugin *_serverPlugin = nullptr;
+    class AddressSpacePlugin *_addressSpacePlugin = nullptr;
+    class AttributePlugin *_attributePlugin = nullptr;
+    class ReferencePlugin *_referencePlugin = nullptr;
+    class DataAccessPlugin *_dataAccessPlugin = nullptr;
     class FavoritesWidget *_favoritesWidget = nullptr;
     OpcUaNodeDetails _selectedNodeDetails;
     QSet<QString> _subscribedNodeIds;

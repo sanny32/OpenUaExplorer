@@ -125,7 +125,7 @@ target_include_directories(ouaexp_ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/widgets
 )
 
-target_link_libraries(ouaexp_ui PUBLIC ouaexp_core)
+target_link_libraries(ouaexp_ui PUBLIC ouaexp_plugins)
 
 ouaexp_configure_ui_enum_normalization(ouaexp_ui)
 ouaexp_configure_qt_target(ouaexp_ui)

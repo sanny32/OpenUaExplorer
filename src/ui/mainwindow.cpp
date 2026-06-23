@@ -33,6 +33,13 @@
 #include "opcua/connectioncontroller.h"
 #include "opcua/opcuaclientservice.h"
 #include "opcua/standardnodeid.h"
+#include "addressspaceplugin.h"
+#include "attributeplugin.h"
+#include "dataaccessplugin.h"
+#include "plugincontext.h"
+#include "pluginmanager.h"
+#include "referenceplugin.h"
+#include "serverplugin.h"
 #include "ui_mainwindow.h"
 #include "widgets/addressspacewidget.h"
 #include "widgets/attributeswidget.h"
@@ -71,6 +78,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     resetLayout();
     setupOpcUaClient();
+    setupPlugins();
     rebuildRecentConnections();
     restoreSettings();
 }
@@ -152,9 +160,9 @@ void MainWindow::on_actionBrowseAddressSpace_triggered()
 void MainWindow::on_actionRefresh_triggered()
 {
     const QString nodeId = ui->addressSpaceWidget->selectedNode().nodeId;
-    browseNodeOrRoot(nodeId);
+    _addressSpacePlugin->refresh(nodeId);
     if (!nodeId.isEmpty())
-        _clientService->browseReferences(nodeId);
+        _referencePlugin->browseReferences(nodeId);
 }
 
 ///
@@ -164,7 +172,7 @@ void MainWindow::on_actionRead_triggered()
 {
     const OpcUaNodeInfo selected = ui->addressSpaceWidget->selectedNode();
     if (!selected.nodeId.isEmpty())
-        _clientService->readNode(selected.nodeId);
+        _attributePlugin->read(selected.nodeId);
 }
 
 ///
@@ -207,7 +215,7 @@ void MainWindow::on_actionSubscribe_triggered()
     ui->dataAccessWidget->addNode(_selectedNodeDetails);
     _pendingMonitoringNodeIds.insert(_selectedNodeDetails.nodeId);
     updateMonitoringActions();
-    _clientService->subscribe(_selectedNodeDetails.nodeId);
+    _dataAccessPlugin->subscribe(_selectedNodeDetails.nodeId);
 }
 
 ///
@@ -221,7 +229,7 @@ void MainWindow::on_actionUnsubscribe_triggered()
     }
     _pendingMonitoringNodeIds.insert(_selectedNodeDetails.nodeId);
     updateMonitoringActions();
-    _clientService->unsubscribe(_selectedNodeDetails.nodeId);
+    _dataAccessPlugin->unsubscribe(_selectedNodeDetails.nodeId);
 }
 
 ///
@@ -595,40 +603,12 @@ void MainWindow::setupOpcUaClient()
 {
     connect(_clientService, &OpcUaClientService::stateChanged,
             this, &MainWindow::updateClientUi);
-    connect(_clientService, &OpcUaClientService::browseFinished,
-            ui->addressSpaceWidget, &AddressSpaceWidget::setBrowseChildren);
-    connect(_clientService, &OpcUaClientService::referencesBrowseFinished,
-            ui->addressSpaceWidget, &AddressSpaceWidget::setBrowseReferences);
-    connect(ui->addressSpaceWidget, &AddressSpaceWidget::browseRequested,
-            _clientService, &OpcUaClientService::browse);
-    connect(ui->addressSpaceWidget, &AddressSpaceWidget::referencesRequested,
-            _clientService, &OpcUaClientService::browseReferences);
-    connect(ui->addressSpaceWidget, &AddressSpaceWidget::refreshRequested,
-            this, &MainWindow::browseNodeOrRoot);
-    connect(ui->addressSpaceWidget, &AddressSpaceWidget::nodeSelected,
-            this, &MainWindow::onNodeSelected);
-    connect(_clientService, &OpcUaClientService::nodeDetailsReady,
-            this, &MainWindow::onNodeDetailsReady);
-    connect(ui->dataAccessWidget, &DataAccessWidget::readRequested,
-            _clientService, &OpcUaClientService::readValues);
     connect(ui->dataAccessWidget, &DataAccessWidget::addSelectedNodeRequested,
             this, &MainWindow::on_actionAddToDataAccess_triggered);
     connect(ui->dataAccessWidget, &DataAccessWidget::nodeDropRequested,
             this, &MainWindow::addNodeToDataAccess);
     connect(ui->dataAccessWidget, &DataAccessWidget::writeRequested,
             this, &MainWindow::showWriteDialog);
-    connect(ui->dataAccessWidget, &DataAccessWidget::monitoringRequested,
-            _clientService, &OpcUaClientService::subscribe);
-    connect(ui->dataAccessWidget, &DataAccessWidget::monitoringCancelled,
-            _clientService, &OpcUaClientService::unsubscribe);
-    connect(ui->attributesWidget, &AttributesWidget::writeRequested,
-            _clientService, &OpcUaClientService::writeValue);
-    connect(_clientService, &OpcUaClientService::dataValuesReady,
-            this, &MainWindow::onDataValuesReady);
-    connect(_clientService, &OpcUaClientService::writeFinished,
-            this, &MainWindow::onWriteFinished);
-    connect(_clientService, &OpcUaClientService::monitoringFinished,
-            this, &MainWindow::onMonitoringFinished);
     connect(_connectionController, &ConnectionController::recentsChanged,
             this, &MainWindow::rebuildRecentConnections);
 
@@ -663,6 +643,63 @@ void MainWindow::setupOpcUaClient()
 }
 
 ///
+/// \brief Registers the static plugins and wires their data API to the widgets.
+///
+/// Each plugin exposes an API for its slice of server data and logs that area's operations
+/// under its own source. MainWindow is the composition root: it connects widget signals to
+/// plugin API calls and plugin result signals back to the widgets.
+///
+void MainWindow::setupPlugins()
+{
+    _pluginManager = new PluginManager(this);
+    _serverPlugin = new ServerPlugin;
+    _addressSpacePlugin = new AddressSpacePlugin;
+    _attributePlugin = new AttributePlugin;
+    _referencePlugin = new ReferencePlugin;
+    _dataAccessPlugin = new DataAccessPlugin;
+    _pluginManager->registerPlugin(_serverPlugin);
+    _pluginManager->registerPlugin(_addressSpacePlugin);
+    _pluginManager->registerPlugin(_attributePlugin);
+    _pluginManager->registerPlugin(_referencePlugin);
+    _pluginManager->registerPlugin(_dataAccessPlugin);
+
+    PluginContext context(_clientService, _connectionController);
+    _pluginManager->initializeAll(context);
+
+    connect(ui->addressSpaceWidget, &AddressSpaceWidget::browseRequested,
+            _addressSpacePlugin, &AddressSpacePlugin::browse);
+    connect(ui->addressSpaceWidget, &AddressSpaceWidget::refreshRequested,
+            _addressSpacePlugin, &AddressSpacePlugin::refresh);
+    connect(_addressSpacePlugin, &AddressSpacePlugin::childrenReady,
+            ui->addressSpaceWidget, &AddressSpaceWidget::setBrowseChildren);
+    connect(ui->addressSpaceWidget, &AddressSpaceWidget::nodeSelected,
+            this, [this](const OpcUaNodeInfo &node) { _attributePlugin->read(node.nodeId); });
+
+    connect(ui->addressSpaceWidget, &AddressSpaceWidget::referencesRequested,
+            _referencePlugin, &ReferencePlugin::browseReferences);
+    connect(_referencePlugin, &ReferencePlugin::referencesReady,
+            ui->addressSpaceWidget, &AddressSpaceWidget::setBrowseReferences);
+
+    connect(ui->attributesWidget, &AttributesWidget::writeRequested,
+            _attributePlugin, &AttributePlugin::write);
+    connect(_attributePlugin, &AttributePlugin::attributesReady,
+            this, &MainWindow::onNodeDetailsReady);
+    connect(_attributePlugin, &AttributePlugin::writeFinished,
+            this, &MainWindow::onWriteFinished);
+
+    connect(ui->dataAccessWidget, &DataAccessWidget::readRequested,
+            _dataAccessPlugin, &DataAccessPlugin::read);
+    connect(ui->dataAccessWidget, &DataAccessWidget::monitoringRequested,
+            _dataAccessPlugin, &DataAccessPlugin::subscribe);
+    connect(ui->dataAccessWidget, &DataAccessWidget::monitoringCancelled,
+            _dataAccessPlugin, &DataAccessPlugin::unsubscribe);
+    connect(_dataAccessPlugin, &DataAccessPlugin::valuesReady,
+            this, &MainWindow::onDataValuesReady);
+    connect(_dataAccessPlugin, &DataAccessPlugin::monitoringFinished,
+            this, &MainWindow::onMonitoringFinished);
+}
+
+///
 /// \brief Logs an error reported by the connection controller.
 ///
 /// Backend and client-service errors are already logged at their source in
@@ -673,25 +710,6 @@ void MainWindow::setupOpcUaClient()
 void MainWindow::onClientError(const QString &message)
 {
     qCWarning(lcClient) << message;
-}
-
-///
-/// \brief Browses a node, defaulting to the Objects folder when none is given.
-/// \param nodeId Node to browse, or empty to browse the Objects folder.
-///
-void MainWindow::browseNodeOrRoot(const QString &nodeId)
-{
-    _clientService->browse(nodeId.isEmpty()
-        ? QString::fromLatin1(StandardNodeId::ObjectsFolder) : nodeId);
-}
-
-///
-/// \brief Reads the node selected in the address space.
-/// \param node Node selected in the address space.
-///
-void MainWindow::onNodeSelected(const OpcUaNodeInfo &node)
-{
-    _clientService->readNode(node.nodeId);
 }
 
 ///
@@ -743,8 +761,8 @@ void MainWindow::onDataValuesReady(const QVector<OpcUaDataValue> &values, const 
 void MainWindow::onWriteFinished(const QString &nodeId, bool success, const QString &error)
 {
     if (success) {
-        _clientService->readNode(nodeId);
-        _clientService->readValues({nodeId});
+        _attributePlugin->read(nodeId);
+        _dataAccessPlugin->read({nodeId});
     } else {
         QMessageBox::warning(this, tr("Write Failed"), error);
     }
@@ -868,7 +886,7 @@ void MainWindow::addNodeToDataAccess(const QString &nodeId)
     if (nodeId.isEmpty())
         return;
     _pendingDataAccessNodeIds.insert(nodeId);
-    _clientService->readNode(nodeId);
+    _attributePlugin->read(nodeId);
 }
 
 ///
@@ -886,7 +904,7 @@ void MainWindow::showWriteDialog(const QString &nodeId, const QVariant &value,
     WriteValueDialog dialog(this);
     dialog.setValue(value, valueType, dataTypeId, writable);
     if (dialog.exec() == QDialog::Accepted)
-        _clientService->writeValue(nodeId, dialog.value(), dialog.valueType());
+        _attributePlugin->write(nodeId, dialog.value(), dialog.valueType());
 }
 
 ///
