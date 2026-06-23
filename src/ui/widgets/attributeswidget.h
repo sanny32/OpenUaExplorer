@@ -18,6 +18,8 @@ class AttributesWidget;
 
 class AppSettings;
 class AttributesModel;
+class QPoint;
+class ThemedAction;
 
 ///
 /// \brief Widget that displays attributes for the selected OPC UA node.
@@ -72,11 +74,16 @@ signals:
 
 private:
     void setupAttributesView();
+    void copySelectedAttributeCell();
+    void copyAttributeTree();
+    void showAttributesContextMenu(const QPoint &pos);
     void setupWriteEditor(int valueType, const QString &dataTypeId);
     void clearWriteEditor();
     void writeCurrentValue();
 
     Ui::AttributesWidget *ui;
     AttributesModel      *_model;
+    ThemedAction         *_copyCellAction = nullptr;
+    ThemedAction         *_copyTreeAction = nullptr;
     QString               _nodeId;
 };

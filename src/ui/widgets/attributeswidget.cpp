@@ -6,14 +6,19 @@
 /// \brief Implements the selected node attributes widget.
 ///
 
+#include <QClipboard>
 #include <QDateTime>
+#include <QGuiApplication>
 #include <QHeaderView>
+#include <QMenu>
 #include <QMessageBox>
+#include <QStringList>
 #include <QVector>
 
 #include "appsettings.h"
 #include "attributeswidget.h"
 #include "opcua/attributeformatter.h"
+#include "themedaction.h"
 #include "models/attributesmodel.h"
 #include "ui_attributeswidget.h"
 
@@ -129,6 +134,39 @@ QString defaultValueText(int type)
     }
 }
 
+///
+/// \brief Appends one subtree to a tab-separated text dump.
+/// \param model Source model.
+/// \param parent Parent index whose children are appended.
+/// \param depth Tree depth used to indent child attributes.
+/// \param lines Output text lines.
+///
+void appendTreeText(const QAbstractItemModel *model, const QModelIndex &parent,
+                    int depth, QStringList *lines)
+{
+    const int rows = model->rowCount(parent);
+    const QString indent(depth * 2, QLatin1Char(' '));
+    for (int row = 0; row < rows; ++row) {
+        const QModelIndex attribute = model->index(row, AttributesModel::ColAttribute, parent);
+        const QModelIndex value = model->index(row, AttributesModel::ColValue, parent);
+        lines->append(indent + attribute.data().toString()
+                      + QLatin1Char('\t') + value.data().toString());
+        appendTreeText(model, attribute, depth + 1, lines);
+    }
+}
+
+///
+/// \brief Builds tab-separated text for every row in the attributes tree.
+/// \param model Source model.
+/// \return Copyable tree text.
+///
+QString treeText(const QAbstractItemModel *model)
+{
+    QStringList lines;
+    appendTreeText(model, {}, 0, &lines);
+    return lines.join(QLatin1Char('\n'));
+}
+
 } // namespace
 
 ///
@@ -217,8 +255,68 @@ void AttributesWidget::setupAttributesView()
 
     ui->attributesTree->setColumnWidth(AttributesModel::ColAttribute, 165);
 
+    _copyCellAction = new ThemedAction(QStringLiteral("copy"), tr("Copy"), this);
+    _copyCellAction->setObjectName(QStringLiteral("actionCopyAttributeCell"));
+    _copyCellAction->setShortcut(QKeySequence::Copy);
+    _copyCellAction->setShortcutContext(Qt::WidgetShortcut);
+    connect(_copyCellAction, &QAction::triggered,
+            this, &AttributesWidget::copySelectedAttributeCell);
+    ui->attributesTree->addAction(_copyCellAction);
+
+    _copyTreeAction = new ThemedAction(QStringLiteral("copy"), tr("Copy All"), this);
+    _copyTreeAction->setObjectName(QStringLiteral("actionCopyAttributeTree"));
+    connect(_copyTreeAction, &QAction::triggered,
+            this, &AttributesWidget::copyAttributeTree);
+    ui->attributesTree->addAction(_copyTreeAction);
+
+    ui->attributesTree->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->attributesTree, &QWidget::customContextMenuRequested,
+            this, &AttributesWidget::showAttributesContextMenu);
+
     ui->writeValueGroup->setEnabled(false);
     clearWriteEditor();
+}
+
+///
+/// \brief Copies the current attributes tree cell to the clipboard.
+///
+void AttributesWidget::copySelectedAttributeCell()
+{
+    const QModelIndex index = ui->attributesTree->currentIndex();
+    if (!index.isValid())
+        return;
+    QGuiApplication::clipboard()->setText(index.data().toString());
+}
+
+///
+/// \brief Copies the full attributes tree to the clipboard as tab-separated text.
+///
+void AttributesWidget::copyAttributeTree()
+{
+    const QString text = treeText(_model);
+    if (!text.isEmpty())
+        QGuiApplication::clipboard()->setText(text);
+}
+
+///
+/// \brief Shows the attributes tree context menu at the requested position.
+/// \param pos Position in the tree viewport's coordinates.
+///
+void AttributesWidget::showAttributesContextMenu(const QPoint &pos)
+{
+    const QModelIndex index = ui->attributesTree->indexAt(pos);
+    if (!index.isValid() || index.column() != AttributesModel::ColValue)
+        return;
+
+    ui->attributesTree->setCurrentIndex(index);
+
+    _copyCellAction->setEnabled(ui->attributesTree->currentIndex().isValid());
+    _copyTreeAction->setEnabled(_model->rowCount() > 0);
+
+    QMenu menu(this);
+    menu.addAction(_copyCellAction);
+    menu.addAction(_copyTreeAction);
+    menu.exec(ui->attributesTree->viewport()->mapToGlobal(pos));
 }
 
 ///
