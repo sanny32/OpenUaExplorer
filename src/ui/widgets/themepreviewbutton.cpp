@@ -8,6 +8,7 @@
 
 #include "themepreviewbutton.h"
 
+#include <QIcon>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QStyle>
@@ -17,31 +18,30 @@
 namespace {
 
 ///
-/// \brief Paints one half of the miniature application window.
-/// \param painter Painter targeting the card.
-/// \param bounds Half-window bounds.
-/// \param dark Whether to use the dark preview palette.
+/// \brief Resolves the preview artwork for a mode.
+/// \param mode Light, dark, or system.
+/// \return Resource path of the matching window mockup.
 ///
-void paintPreviewHalf(QPainter &painter, const QRectF &bounds, bool dark)
+QString previewResource(const QString &mode)
 {
-    const QColor window = dark ? QColor(38, 38, 38) : QColor(250, 250, 250);
-    const QColor panel = dark ? QColor(48, 48, 48) : QColor(239, 239, 239);
-    const QColor control = dark ? QColor(67, 67, 67) : QColor(218, 218, 218);
-    const qreal sidebarWidth = bounds.width() * 0.38;
+    if (mode == QLatin1String("light"))
+        return QStringLiteral(":/icons/theme-preview-light.svg");
+    if (mode == QLatin1String("dark"))
+        return QStringLiteral(":/icons/theme-preview-dark.svg");
+    return QStringLiteral(":/icons/theme-preview-system.svg");
+}
 
-    painter.fillRect(bounds, window);
-    painter.fillRect(QRectF(bounds.left(), bounds.top(), sidebarWidth, bounds.height()), panel);
-
-    const qreal margin = qMax<qreal>(5.0, bounds.height() * 0.08);
-    const qreal rowHeight = qMax<qreal>(7.0, bounds.height() * 0.14);
-    for (int row = 0; row < 3; ++row) {
-        const qreal y = bounds.top() + margin + row * (rowHeight + margin);
-        painter.fillRect(QRectF(bounds.left() + margin, y,
-                                qMax<qreal>(4.0, sidebarWidth - 2 * margin), rowHeight), control);
-        painter.fillRect(QRectF(bounds.left() + sidebarWidth + margin, y,
-                                qMax<qreal>(4.0, bounds.width() - sidebarWidth - 2 * margin),
-                                rowHeight), control);
-    }
+///
+/// \brief Renders the preview window mockup into the given bounds.
+/// \param painter Painter targeting the card.
+/// \param bounds Window bounds.
+/// \param mode Light, dark, or system.
+///
+void paintPreviewWindow(QPainter &painter, const QRectF &bounds, const QString &mode)
+{
+    const qreal dpr = painter.device()->devicePixelRatioF();
+    const QPixmap pixmap = QIcon(previewResource(mode)).pixmap((bounds.size() * dpr).toSize());
+    painter.drawPixmap(bounds, pixmap, QRectF(pixmap.rect()));
 }
 
 }
@@ -110,19 +110,7 @@ void ThemePreviewButton::paintEvent(QPaintEvent *event)
     painter.drawRoundedRect(cardRect, 5.0, 5.0);
 
     const QRectF previewRect = cardRect.adjusted(22.0, 14.0, -22.0, -42.0);
-    painter.save();
-    painter.setClipRect(previewRect);
-    if (_previewMode == QLatin1String("system")) {
-        QRectF lightHalf = previewRect;
-        lightHalf.setWidth(previewRect.width() / 2.0);
-        QRectF darkHalf = previewRect;
-        darkHalf.setLeft(lightHalf.right());
-        paintPreviewHalf(painter, lightHalf, false);
-        paintPreviewHalf(painter, darkHalf, true);
-    } else {
-        paintPreviewHalf(painter, previewRect, _previewMode == QLatin1String("dark"));
-    }
-    painter.restore();
+    paintPreviewWindow(painter, previewRect, _previewMode);
     painter.setPen(palette().color(QPalette::Mid));
     painter.setBrush(Qt::NoBrush);
     painter.drawRoundedRect(previewRect, 3.0, 3.0);

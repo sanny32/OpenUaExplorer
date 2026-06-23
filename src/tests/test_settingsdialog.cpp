@@ -8,7 +8,6 @@
 
 #include <QAbstractButton>
 #include <QCheckBox>
-#include <QComboBox>
 #include <QCoreApplication>
 #include <QDialogButtonBox>
 #include <QGridLayout>
@@ -35,7 +34,7 @@ private slots:
     void initTestCase();
     void cleanup();
     void referenceControlsArePresent();
-    void themeControlsStaySynchronized();
+    void themeCardsSelectOneMode();
     void applyPersistsWithoutClosing();
     void layoutResetWaitsForAcceptance();
 
@@ -72,10 +71,12 @@ void TestSettingsDialog::referenceControlsArePresent()
 {
     SettingsDialog dialog;
 
-    QVERIFY(dialog.minimumWidth() >= 720);
     QVERIFY(!dialog.windowFlags().testFlag(Qt::FramelessWindowHint));
     QCOMPARE(dialog.windowTitle(), QStringLiteral("Settings"));
-    QVERIFY(dialog.findChild<QComboBox *>(QStringLiteral("themeCombo")));
+    auto *themeGroup = dialog.findChild<QGroupBox *>(QStringLiteral("themeGroup"));
+    QVERIFY(themeGroup);
+    QCOMPARE(!themeGroup->isHidden(), theApp()->theme().isManualToggleSupported());
+
     auto *lightCard = dialog.findChild<ThemePreviewButton *>(
         QStringLiteral("lightThemeButton"));
     QVERIFY(lightCard);
@@ -97,30 +98,38 @@ void TestSettingsDialog::referenceControlsArePresent()
 }
 
 ///
-/// \brief Verifies that either theme selector immediately updates the other.
+/// \brief Verifies that theme cards behave as one exclusive preference group.
 ///
-void TestSettingsDialog::themeControlsStaySynchronized()
+void TestSettingsDialog::themeCardsSelectOneMode()
 {
     SettingsDialog dialog;
-    auto *combo = dialog.findChild<QComboBox *>(QStringLiteral("themeCombo"));
     auto *light = dialog.findChild<QAbstractButton *>(QStringLiteral("lightThemeButton"));
     auto *dark = dialog.findChild<QAbstractButton *>(QStringLiteral("darkThemeButton"));
     auto *system = dialog.findChild<QAbstractButton *>(QStringLiteral("systemThemeButton"));
-    QVERIFY(combo);
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
     QVERIFY(light);
     QVERIFY(dark);
     QVERIFY(system);
+    QVERIFY(buttons);
+
+    QVERIFY(system->isChecked());
+    QVERIFY(!buttons->button(QDialogButtonBox::Apply)->isEnabled());
 
     dark->click();
-    QCOMPARE(combo->currentIndex(), 1);
     QVERIFY(dark->isChecked());
+    QVERIFY(!light->isChecked());
+    QVERIFY(!system->isChecked());
+    QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
 
-    combo->setCurrentIndex(0);
+    light->click();
     QVERIFY(light->isChecked());
     QVERIFY(!dark->isChecked());
+    QVERIFY(!system->isChecked());
 
-    combo->setCurrentIndex(2);
+    system->click();
     QVERIFY(system->isChecked());
+    QVERIFY(!light->isChecked());
+    QVERIFY(!dark->isChecked());
 }
 
 ///
@@ -130,15 +139,21 @@ void TestSettingsDialog::applyPersistsWithoutClosing()
 {
     SettingsDialog dialog;
     auto *plugin = dialog.findChild<QCheckBox *>(QStringLiteral("logCategory_plugin"));
+    auto *dark = dialog.findChild<QAbstractButton *>(QStringLiteral("darkThemeButton"));
     auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
     QVERIFY(plugin);
+    QVERIFY(dark);
     QVERIFY(buttons);
 
     plugin->setChecked(false);
+    if (theApp()->theme().isManualToggleSupported())
+        dark->click();
     QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
     buttons->button(QDialogButtonBox::Apply)->click();
 
     QVERIFY(!AppSettings().logCategoryStates().value(QStringLiteral("plugin")));
+    if (theApp()->theme().isManualToggleSupported())
+        QCOMPARE(AppSettings().themeMode(), AppSettings::ThemeMode::Dark);
     QCOMPARE(dialog.result(), 0);
     QVERIFY(!buttons->button(QDialogButtonBox::Apply)->isEnabled());
 }

@@ -8,7 +8,6 @@
 
 #include <QAbstractButton>
 #include <QCheckBox>
-#include <QComboBox>
 #include <QDialogButtonBox>
 #include <QGridLayout>
 #include <QLoggingCategory>
@@ -44,6 +43,12 @@ SettingsDialog::SettingsDialog(QWidget *parent)
             this, &SettingsDialog::applyChanges);
     connect(ui->resetButton, &QPushButton::clicked,
             this, &SettingsDialog::requestLayoutReset);
+    connect(ui->lightThemeButton, &QAbstractButton::clicked,
+            this, &SettingsDialog::markDirty);
+    connect(ui->darkThemeButton, &QAbstractButton::clicked,
+            this, &SettingsDialog::markDirty);
+    connect(ui->systemThemeButton, &QAbstractButton::clicked,
+            this, &SettingsDialog::markDirty);
 }
 
 ///
@@ -139,8 +144,8 @@ void SettingsDialog::requestLayoutReset()
 }
 
 ///
-/// \brief Updates the checked preview card from the combo-box index.
-/// \param index Theme combo-box index.
+/// \brief Updates the checked preview card from the theme index.
+/// \param index Theme index.
 ///
 void SettingsDialog::selectThemeCard(int index)
 {
@@ -150,7 +155,7 @@ void SettingsDialog::selectThemeCard(int index)
 }
 
 ///
-/// \brief Selects a stored theme mode in both theme controls.
+/// \brief Selects the preview card for a stored theme mode.
 /// \param mode Stored theme preference.
 ///
 void SettingsDialog::setThemeSelection(AppSettings::ThemeMode mode)
