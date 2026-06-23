@@ -68,6 +68,7 @@ AGENTS.md
 # Local build and test commands
 build_with_vs.cmd
 test_with_vs.cmd
+run_test.sh
 
 # Coverage (tools/coverage.py)
 LastCoverageResults.log

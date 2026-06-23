@@ -9,6 +9,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
+#include <QMenu>
 #include <QTimer>
 #include <QTreeView>
 #include <QTest>
@@ -140,9 +141,9 @@ void TestAttributesWidget::contextMenuOnlyUsesValueColumn()
                                       Q_ARG(QPoint, attributePos)));
     QCOMPARE(tree->currentIndex(), current);
 
-    QTimer::singleShot(0, []() {
-        if (QWidget *popup = QApplication::activePopupWidget())
-            popup->close();
+    QTimer::singleShot(0, &widget, [&widget]() {
+        if (QMenu *menu = widget.findChild<QMenu *>())
+            menu->close();
     });
     const QPoint valuePos = tree->visualRect(value).center();
     QVERIFY(QMetaObject::invokeMethod(tree, "customContextMenuRequested",
