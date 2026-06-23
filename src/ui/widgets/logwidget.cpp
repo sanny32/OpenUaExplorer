@@ -49,6 +49,12 @@ static QString sourceForCategory(const QString &category)
     const QLatin1String appPrefix("ouaexp.");
     if (category.startsWith(appPrefix))
         return category.mid(appPrefix.size());
+    const QLatin1String open62541Plugin("qt.opcua.plugins.open62541");
+    if (category == open62541Plugin)
+        return QStringLiteral("open62541");
+    const QLatin1String open62541SdkPrefix("qt.opcua.plugins.open62541.sdk.");
+    if (category.startsWith(open62541SdkPrefix))
+        return QStringLiteral("open62541/") + category.mid(open62541SdkPrefix.size());
     if (category.startsWith(QLatin1String("qt.opcua")))
         return category.section(QLatin1Char('.'), -1);
     return QString();
