@@ -69,25 +69,54 @@ bool SettingsDialog::layoutResetRequested() const
 }
 
 ///
-/// \brief Creates a checkbox for every configurable open62541 logging category.
+/// \brief Creates tabbed checkboxes for application and open62541 logging categories.
 ///
 void SettingsDialog::setupLogCategories()
 {
-    const QVector<AppSettings::LogCategory> categories = AppSettings::availableLogCategories();
+    populateLogCategoryLayout(ui->applicationLogGroupLayout,
+                              AppSettings::availableApplicationLogCategories());
+    QVector<AppSettings::LogCategory> open62541Categories =
+        AppSettings::availableQtOpcUaLogCategories();
+    const QVector<AppSettings::LogCategory> sdkCategories =
+        AppSettings::availableOpen62541LogCategories();
+    for (const AppSettings::LogCategory &category : sdkCategories)
+        open62541Categories.append(category);
+    populateLogCategoryLayout(ui->open62541LogGroupLayout, open62541Categories);
+    for (int column = 0; column < 3; ++column)
+        ui->applicationLogGroupLayout->setColumnStretch(column, 1);
+    for (int column = 0; column < 3; ++column)
+        ui->open62541LogGroupLayout->setColumnStretch(column, 1);
+}
+
+///
+/// \brief Creates one logging-category checkbox and records it for loading and saving.
+/// \param category Logging category to expose.
+/// \return Checkbox bound to the category.
+///
+QCheckBox *SettingsDialog::createLogCategoryCheck(const AppSettings::LogCategory &category)
+{
+    auto *check = new QCheckBox(category.displayName, ui->logCategoriesGroup);
+    check->setObjectName(QStringLiteral("logCategory_%1").arg(category.key));
+    check->setToolTip(category.categoryName);
+    check->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    connect(check, &QCheckBox::toggled, this, &SettingsDialog::markDirty);
+    _logCategoryChecks.insert(category.key, check);
+    return check;
+}
+
+///
+/// \brief Adds logging-category checkboxes to a three-column grid.
+/// \param layout Grid that receives the checkboxes.
+/// \param categories Ordered category list.
+///
+void SettingsDialog::populateLogCategoryLayout(
+    QGridLayout *layout, const QVector<AppSettings::LogCategory> &categories)
+{
     constexpr int rowsPerColumn = 4;
     for (int index = 0; index < categories.size(); ++index) {
-        const AppSettings::LogCategory &category = categories.at(index);
-        auto *check = new QCheckBox(category.displayName, ui->logCategoriesGroup);
-        check->setObjectName(QStringLiteral("logCategory_%1").arg(category.key));
-        check->setToolTip(category.categoryName);
-        check->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-        connect(check, &QCheckBox::toggled, this, &SettingsDialog::markDirty);
-        ui->logGroupLayout->addWidget(check, index % rowsPerColumn,
-                                      index / rowsPerColumn);
-        _logCategoryChecks.insert(category.key, check);
+        QCheckBox *check = createLogCategoryCheck(categories.at(index));
+        layout->addWidget(check, index % rowsPerColumn, index / rowsPerColumn);
     }
-    for (int column = 0; column < 3; ++column)
-        ui->logGroupLayout->setColumnStretch(column, 1);
 }
 
 ///

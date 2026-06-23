@@ -54,7 +54,7 @@ public:
     };
 
     ///
-    /// \brief Describes one configurable Qt OPC UA / open62541 logging category.
+    /// \brief Describes one configurable logging category.
     ///
     struct LogCategory {
         /// \brief Stable settings key and identifier (e.g. "network").
@@ -68,19 +68,37 @@ public:
     };
 
     ///
-    /// \brief Returns the catalogue of configurable open62541 logging categories.
-    /// \return Ordered list of every open62541 category the user can toggle.
+    /// \brief Returns the catalogue of configurable application logging categories.
+    /// \return Ordered list of every application category the user can toggle.
+    ///
+    static QVector<LogCategory> availableApplicationLogCategories();
+
+    ///
+    /// \brief Returns the catalogue of configurable Qt OPC UA plugin logging categories.
+    /// \return Ordered list of every Qt OPC UA plugin category the user can toggle.
+    ///
+    static QVector<LogCategory> availableQtOpcUaLogCategories();
+
+    ///
+    /// \brief Returns the catalogue of configurable open62541 SDK logging categories.
+    /// \return Ordered list of every open62541 SDK category the user can toggle.
+    ///
+    static QVector<LogCategory> availableOpen62541LogCategories();
+
+    ///
+    /// \brief Returns the catalogue of every configurable logging category.
+    /// \return Ordered list of every category the user can toggle.
     ///
     static QVector<LogCategory> availableLogCategories();
 
     ///
-    /// \brief Returns the enabled state of every open62541 logging category.
+    /// \brief Returns the enabled state of every configurable logging category.
     /// \return Map from category key to enabled state, falling back to per-category defaults.
     ///
     QHash<QString, bool> logCategoryStates() const;
 
     ///
-    /// \brief Stores the enabled state of the open62541 logging categories.
+    /// \brief Stores the enabled state of the configurable logging categories.
     /// \param states Map from category key to enabled state.
     ///
     void setLogCategoryStates(const QHash<QString, bool> &states);

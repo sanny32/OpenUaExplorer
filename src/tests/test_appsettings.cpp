@@ -30,6 +30,8 @@ private slots:
     void dataAccessPageRoundTrips();
     void viewStateRoundTrips();
     void clearLayoutKeepsPreferences();
+    void loggingCategoriesAreGrouped();
+    void applicationLoggingCategoryCanBeDisabled();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -159,6 +161,53 @@ void TestAppSettings::clearLayoutKeepsPreferences()
 
     QCOMPARE(AppSettings().themeMode(), AppSettings::ThemeMode::Dark);
     QVERIFY(!AppSettings().restoreLayoutOnStartup());
+}
+
+///
+/// \brief Logging categories expose application, Qt OPC UA plugin and open62541 SDK groups.
+///
+void TestAppSettings::loggingCategoriesAreGrouped()
+{
+    const QVector<AppSettings::LogCategory> application =
+        AppSettings::availableApplicationLogCategories();
+    const QVector<AppSettings::LogCategory> qtOpcUa =
+        AppSettings::availableQtOpcUaLogCategories();
+    const QVector<AppSettings::LogCategory> open62541 =
+        AppSettings::availableOpen62541LogCategories();
+    const QVector<AppSettings::LogCategory> all =
+        AppSettings::availableLogCategories();
+
+    QCOMPARE(application.size(), 8);
+    QCOMPARE(application.first().key, QStringLiteral("application.app"));
+    QCOMPARE(application.first().categoryName, QStringLiteral("ouaexp.App"));
+    QCOMPARE(qtOpcUa.size(), 1);
+    QCOMPARE(qtOpcUa.first().key, QStringLiteral("plugin"));
+    QCOMPARE(qtOpcUa.first().displayName, QStringLiteral("plugin"));
+    QCOMPARE(qtOpcUa.first().categoryName,
+             QStringLiteral("qt.opcua.plugins.open62541"));
+    QVERIFY(!open62541.isEmpty());
+    for (const AppSettings::LogCategory &category : open62541)
+        QVERIFY(category.displayName.at(0).isLower());
+    QVERIFY(open62541.first().categoryName.startsWith(
+        QStringLiteral("qt.opcua.plugins.open62541.sdk.")));
+    QCOMPARE(all.size(), application.size() + qtOpcUa.size() + open62541.size());
+    QCOMPARE(all.first().key, application.first().key);
+    QCOMPARE(all.at(application.size()).key, qtOpcUa.first().key);
+    QCOMPARE(all.at(application.size() + qtOpcUa.size()).key, open62541.first().key);
+}
+
+///
+/// \brief Application logging categories generate specific filter rules.
+///
+void TestAppSettings::applicationLoggingCategoryCanBeDisabled()
+{
+    QHash<QString, bool> states = AppSettings().logCategoryStates();
+    states.insert(QStringLiteral("application.app"), false);
+    AppSettings().setLogCategoryStates(states);
+
+    const QString rules = AppSettings().logFilterRules();
+    QVERIFY(rules.contains(QStringLiteral("ouaexp.*=true")));
+    QVERIFY(rules.contains(QStringLiteral("ouaexp.App=false")));
 }
 
 QTEST_MAIN(TestAppSettings)

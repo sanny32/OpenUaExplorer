@@ -60,33 +60,77 @@ void AppSettings::setThemeMode(ThemeMode mode)
 }
 
 ///
-/// \brief Returns the catalogue of configurable open62541 logging categories.
-/// \return Ordered list of every open62541 category the user can toggle.
+/// \brief Returns the catalogue of configurable application logging categories.
+/// \return Ordered list of every application category the user can toggle.
 ///
-QVector<AppSettings::LogCategory> AppSettings::availableLogCategories()
+QVector<AppSettings::LogCategory> AppSettings::availableApplicationLogCategories()
+{
+    return {
+        { QStringLiteral("application.app"),          QStringLiteral("ouaexp.App"),          QObject::tr("App"),           true },
+        { QStringLiteral("application.addressspace"), QStringLiteral("ouaexp.AddressSpace"), QObject::tr("Address Space"), true },
+        { QStringLiteral("application.attribute"),    QStringLiteral("ouaexp.Attribute"),    QObject::tr("Attribute"),     true },
+        { QStringLiteral("application.client"),       QStringLiteral("ouaexp.Client"),       QObject::tr("Client"),        true },
+        { QStringLiteral("application.dataaccess"),   QStringLiteral("ouaexp.DataAccess"),   QObject::tr("Data Access"),   true },
+        { QStringLiteral("application.reference"),    QStringLiteral("ouaexp.Reference"),    QObject::tr("Reference"),     true },
+        { QStringLiteral("application.server"),       QStringLiteral("ouaexp.Server"),       QObject::tr("Server"),        true },
+        { QStringLiteral("application.session"),      QStringLiteral("ouaexp.Session"),      QObject::tr("Session"),       true }
+    };
+}
+
+///
+/// \brief Returns the catalogue of configurable Qt OPC UA plugin logging categories.
+/// \return Ordered list of every Qt OPC UA plugin category the user can toggle.
+///
+QVector<AppSettings::LogCategory> AppSettings::availableQtOpcUaLogCategories()
+{
+    return {
+        { QStringLiteral("plugin"),
+          QStringLiteral("qt.opcua.plugins.open62541"),
+          QObject::tr("plugin"), true }
+    };
+}
+
+///
+/// \brief Returns the catalogue of configurable open62541 SDK logging categories.
+/// \return Ordered list of every open62541 SDK category the user can toggle.
+///
+QVector<AppSettings::LogCategory> AppSettings::availableOpen62541LogCategories()
 {
     const auto sdk = [](const char *suffix) {
         return QStringLiteral("qt.opcua.plugins.open62541.sdk.") + QLatin1String(suffix);
     };
     return {
-        { QStringLiteral("plugin"),
-          QStringLiteral("qt.opcua.plugins.open62541"),
-          QObject::tr("Plugin"),         true  },
-        { QStringLiteral("network"),        sdk("network"),        QObject::tr("Network"),         false },
-        { QStringLiteral("securechannel"),  sdk("securechannel"),  QObject::tr("Secure channel"),  false },
-        { QStringLiteral("session"),        sdk("session"),        QObject::tr("Session"),         true  },
-        { QStringLiteral("server"),         sdk("server"),         QObject::tr("Server"),          true  },
-        { QStringLiteral("client"),         sdk("client"),         QObject::tr("Client"),          false },
-        { QStringLiteral("userland"),       sdk("userland"),       QObject::tr("Userland"),        true  },
-        { QStringLiteral("securitypolicy"), sdk("securitypolicy"), QObject::tr("Security policy"), true  },
-        { QStringLiteral("eventloop"),      sdk("eventloop"),      QObject::tr("Event loop"),      false },
-        { QStringLiteral("pubsub"),         sdk("pubsub"),         QObject::tr("PubSub"),          true  },
-        { QStringLiteral("discovery"),      sdk("discovery"),      QObject::tr("Discovery"),       true  }
+        { QStringLiteral("network"),        sdk("network"),        QObject::tr("network"),         false },
+        { QStringLiteral("securechannel"),  sdk("securechannel"),  QObject::tr("secure channel"),  false },
+        { QStringLiteral("session"),        sdk("session"),        QObject::tr("session"),         true  },
+        { QStringLiteral("server"),         sdk("server"),         QObject::tr("server"),          true  },
+        { QStringLiteral("client"),         sdk("client"),         QObject::tr("client"),          false },
+        { QStringLiteral("userland"),       sdk("userland"),       QObject::tr("userland"),        true  },
+        { QStringLiteral("securitypolicy"), sdk("securitypolicy"), QObject::tr("security policy"), true  },
+        { QStringLiteral("eventloop"),      sdk("eventloop"),      QObject::tr("event loop"),      false },
+        { QStringLiteral("pubsub"),         sdk("pubsub"),         QObject::tr("pubsub"),          true  },
+        { QStringLiteral("discovery"),      sdk("discovery"),      QObject::tr("discovery"),       true  }
     };
 }
 
 ///
-/// \brief Returns the enabled state of every open62541 logging category.
+/// \brief Returns the catalogue of every configurable logging category.
+/// \return Ordered list of every category the user can toggle.
+///
+QVector<AppSettings::LogCategory> AppSettings::availableLogCategories()
+{
+    QVector<LogCategory> categories = availableApplicationLogCategories();
+    const QVector<LogCategory> qtOpcUaCategories = availableQtOpcUaLogCategories();
+    for (const LogCategory &category : qtOpcUaCategories)
+        categories.append(category);
+    const QVector<LogCategory> open62541Categories = availableOpen62541LogCategories();
+    for (const LogCategory &category : open62541Categories)
+        categories.append(category);
+    return categories;
+}
+
+///
+/// \brief Returns the enabled state of every configurable logging category.
 /// \return Map from category key to enabled state, falling back to per-category defaults.
 ///
 QHash<QString, bool> AppSettings::logCategoryStates() const
@@ -102,7 +146,7 @@ QHash<QString, bool> AppSettings::logCategoryStates() const
 }
 
 ///
-/// \brief Stores the enabled state of the open62541 logging categories.
+/// \brief Stores the enabled state of the configurable logging categories.
 /// \param states Map from category key to enabled state.
 ///
 void AppSettings::setLogCategoryStates(const QHash<QString, bool> &states)

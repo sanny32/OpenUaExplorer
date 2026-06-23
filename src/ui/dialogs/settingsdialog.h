@@ -15,6 +15,7 @@
 #include "dialogs/appbasedialog.h"
 
 class QCheckBox;
+class QGridLayout;
 
 namespace Ui {
 class SettingsDialog;
@@ -47,6 +48,9 @@ public:
 
 private:
     void setupLogCategories();
+    QCheckBox *createLogCategoryCheck(const AppSettings::LogCategory &category);
+    void populateLogCategoryLayout(QGridLayout *layout,
+                                   const QVector<AppSettings::LogCategory> &categories);
     void loadSettings();
     void applyChanges();
     void acceptChanges();

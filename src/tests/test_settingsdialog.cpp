@@ -14,6 +14,7 @@
 #include <QGroupBox>
 #include <QPushButton>
 #include <QSettings>
+#include <QTabWidget>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -65,7 +66,7 @@ void TestSettingsDialog::cleanup()
 }
 
 ///
-/// \brief Verifies the theme cards, action buttons, and three-column logging grid.
+/// \brief Verifies the theme cards, action buttons, and grouped logging grids.
 ///
 void TestSettingsDialog::referenceControlsArePresent()
 {
@@ -86,15 +87,32 @@ void TestSettingsDialog::referenceControlsArePresent()
     QVERIFY(dialog.findChild<QPushButton *>(QStringLiteral("resetButton")));
 
     auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
-    auto *loggingGrid = dialog.findChild<QGridLayout *>(QStringLiteral("logGroupLayout"));
+    auto *loggingTabs = dialog.findChild<QTabWidget *>(QStringLiteral("logCategoryTabs"));
+    auto *applicationGrid = dialog.findChild<QGridLayout *>(QStringLiteral("applicationLogGroupLayout"));
+    auto *open62541Grid = dialog.findChild<QGridLayout *>(QStringLiteral("open62541LogGroupLayout"));
     QVERIFY(buttons);
     QVERIFY(buttons->button(QDialogButtonBox::Apply));
     QVERIFY(!buttons->button(QDialogButtonBox::Apply)->isEnabled());
-    QVERIFY(loggingGrid);
+    QVERIFY(loggingTabs);
+    QCOMPARE(loggingTabs->count(), 2);
+    QCOMPARE(loggingTabs->tabText(0), QStringLiteral("Application"));
+    QCOMPARE(loggingTabs->tabText(1), QStringLiteral("open62541 backend"));
+    QVERIFY(applicationGrid);
+    QVERIFY(open62541Grid);
     QVERIFY(!qobject_cast<QGroupBox *>(
         dialog.findChild<QWidget *>(QStringLiteral("logCategoriesGroup"))));
-    QCOMPARE(loggingGrid->count(), AppSettings::availableLogCategories().size());
-    QCOMPARE(loggingGrid->columnCount(), 3);
+    QCOMPARE(applicationGrid->count(), AppSettings::availableApplicationLogCategories().size());
+    QCOMPARE(open62541Grid->count(),
+             AppSettings::availableQtOpcUaLogCategories().size()
+                 + AppSettings::availableOpen62541LogCategories().size());
+    QCOMPARE(open62541Grid->columnCount(), 3);
+    auto *plugin = dialog.findChild<QCheckBox *>(QStringLiteral("logCategory_plugin"));
+    QVERIFY(plugin);
+    QCOMPARE(plugin->text(), QStringLiteral("plugin"));
+    auto *securityPolicy = dialog.findChild<QCheckBox *>(
+        QStringLiteral("logCategory_securitypolicy"));
+    QVERIFY(securityPolicy);
+    QCOMPARE(securityPolicy->text(), QStringLiteral("security policy"));
 }
 
 ///
@@ -138,19 +156,23 @@ void TestSettingsDialog::themeCardsSelectOneMode()
 void TestSettingsDialog::applyPersistsWithoutClosing()
 {
     SettingsDialog dialog;
+    auto *app = dialog.findChild<QCheckBox *>(QStringLiteral("logCategory_application.app"));
     auto *plugin = dialog.findChild<QCheckBox *>(QStringLiteral("logCategory_plugin"));
     auto *dark = dialog.findChild<QAbstractButton *>(QStringLiteral("darkThemeButton"));
     auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(app);
     QVERIFY(plugin);
     QVERIFY(dark);
     QVERIFY(buttons);
 
+    app->setChecked(false);
     plugin->setChecked(false);
     if (theApp()->theme().isManualToggleSupported())
         dark->click();
     QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
     buttons->button(QDialogButtonBox::Apply)->click();
 
+    QVERIFY(!AppSettings().logCategoryStates().value(QStringLiteral("application.app")));
     QVERIFY(!AppSettings().logCategoryStates().value(QStringLiteral("plugin")));
     if (theApp()->theme().isManualToggleSupported())
         QCOMPARE(AppSettings().themeMode(), AppSettings::ThemeMode::Dark);

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>603</width>
-    <height>427</height>
+    <height>520</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -171,7 +171,7 @@
        <widget class="QWidget" name="logCategoriesGroup" native="true">
         <layout class="QVBoxLayout" name="logCategoriesSectionLayout">
          <property name="spacing">
-          <number>10</number>
+          <number>8</number>
          </property>
          <property name="leftMargin">
           <number>0</number>
@@ -186,32 +186,100 @@
           <number>4</number>
          </property>
          <item>
-          <layout class="QGridLayout" name="logGroupLayout">
-           <property name="horizontalSpacing">
-            <number>24</number>
+          <widget class="QTabWidget" name="logCategoryTabs">
+           <property name="currentIndex">
+            <number>0</number>
            </property>
-           <property name="verticalSpacing">
-            <number>8</number>
-           </property>
-          </layout>
-         </item>
-         <item>
-          <spacer name="loggingVerticalSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>8</height>
-            </size>
-           </property>
-          </spacer>
+           <widget class="QWidget" name="applicationLogPage">
+            <attribute name="title">
+             <string>Application</string>
+            </attribute>
+            <layout class="QVBoxLayout" name="applicationLogPageLayout">
+             <property name="leftMargin">
+              <number>12</number>
+             </property>
+             <property name="topMargin">
+              <number>12</number>
+             </property>
+             <property name="rightMargin">
+              <number>12</number>
+             </property>
+             <property name="bottomMargin">
+              <number>12</number>
+             </property>
+             <item>
+              <layout class="QGridLayout" name="applicationLogGroupLayout">
+               <property name="horizontalSpacing">
+                <number>24</number>
+               </property>
+               <property name="verticalSpacing">
+                <number>8</number>
+               </property>
+              </layout>
+             </item>
+             <item>
+              <spacer name="applicationLogSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>16</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="open62541LogPage">
+            <attribute name="title">
+             <string>open62541 backend</string>
+            </attribute>
+            <layout class="QVBoxLayout" name="open62541LogPageLayout">
+             <property name="leftMargin">
+              <number>12</number>
+             </property>
+             <property name="topMargin">
+              <number>12</number>
+             </property>
+             <property name="rightMargin">
+              <number>12</number>
+             </property>
+             <property name="bottomMargin">
+              <number>12</number>
+             </property>
+             <item>
+              <layout class="QGridLayout" name="open62541LogGroupLayout">
+               <property name="horizontalSpacing">
+                <number>24</number>
+               </property>
+               <property name="verticalSpacing">
+                <number>8</number>
+               </property>
+              </layout>
+             </item>
+             <item>
+              <spacer name="open62541LogSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>16</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </widget>
          </item>
          <item>
           <widget class="QLabel" name="loggingFootnoteLabel">
            <property name="text">
-            <string>These categories correspond to open62541 / Qt OPC UA plugin logging.</string>
+            <string>open62541 entries use Source names such as open62541/securitypolicy.</string>
            </property>
           </widget>
          </item>
