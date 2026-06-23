@@ -60,12 +60,9 @@ function(ouaexp_configure_test_environment test_name)
     endif()
 endfunction()
 
-function(ouaexp_add_test test_name source_file)
+function(ouaexp_register_test test_name source_file)
     add_executable(${test_name} "${CMAKE_CURRENT_SOURCE_DIR}/${source_file}")
-    target_link_libraries(${test_name} PRIVATE
-        ouaexp_core
-        Qt${QT_VERSION_MAJOR}::Test
-    )
+    target_link_libraries(${test_name} PRIVATE Qt${QT_VERSION_MAJOR}::Test)
     ouaexp_copy_qtopcua_runtime(${test_name})
     ouaexp_apply_coverage(${test_name})
     add_test(NAME ${test_name} COMMAND ${test_name})
@@ -74,8 +71,13 @@ function(ouaexp_add_test test_name source_file)
     set_property(GLOBAL APPEND PROPERTY OUAEXP_TEST_TARGETS ${test_name})
 endfunction()
 
+function(ouaexp_add_test test_name source_file)
+    ouaexp_register_test(${test_name} ${source_file})
+    target_link_libraries(${test_name} PRIVATE ouaexp_core)
+endfunction()
+
 function(ouaexp_add_ui_test test_name source_file)
-    ouaexp_add_test(${test_name} ${source_file})
+    ouaexp_register_test(${test_name} ${source_file})
     target_link_libraries(${test_name} PRIVATE ouaexp_ui)
 endfunction()
 
