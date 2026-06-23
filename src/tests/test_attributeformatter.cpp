@@ -31,6 +31,7 @@ private slots:
     void statusFormatting();
     void timestampDisplayRoundTrips();
     void valueTypeNameKnownAndUnknown();
+    void dataTypeDisplayNamesBuiltIns();
     void nodeClassNameKnownAndUnknown();
     void accessLevelDisplayDecodesFlags();
     void writeMaskDisplayDecodesFlags();
@@ -104,6 +105,12 @@ void TestAttributeFormatter::valueTypeNameKnownAndUnknown()
     QCOMPARE(valueTypeName(QOpcUa::Types::Double), QStringLiteral("Double"));
     // An out-of-range value has no enum key and falls back to "Unknown".
     QCOMPARE(valueTypeName(static_cast<QOpcUa::Types>(9999)), QStringLiteral("Unknown"));
+}
+
+void TestAttributeFormatter::dataTypeDisplayNamesBuiltIns()
+{
+    QCOMPARE(dataTypeDisplay(QStringLiteral("ns=0;i=11")), QStringLiteral("Double"));
+    QCOMPARE(dataTypeDisplay(QStringLiteral("ns=3;i=5001")), QStringLiteral("ns=3;i=5001"));
 }
 
 void TestAttributeFormatter::nodeClassNameKnownAndUnknown()

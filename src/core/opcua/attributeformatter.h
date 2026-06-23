@@ -73,6 +73,13 @@ QString timestampDisplay(const QDateTime &timestamp);
 QString valueTypeName(QOpcUa::Types type);
 
 ///
+/// \brief Resolves a DataType NodeId to a built-in OPC UA type name.
+/// \param nodeId DataType NodeId string.
+/// \return Built-in type name, or the original NodeId for custom types.
+///
+QString dataTypeDisplay(const QString &nodeId);
+
+///
 /// \brief Returns the enum-key name of a node class.
 /// \param nodeClass Node class to name.
 /// \return Class name, or its numeric value when unrecognised.

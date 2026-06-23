@@ -15,6 +15,7 @@
 #include <QPalette>
 
 #include "dataaccessmodel.h"
+#include "opcua/attributeformatter.h"
 
 ///
 /// \brief Constructs an empty data-access model.
@@ -51,7 +52,7 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
         item.value = details.value.toString();
         item.valueType = details.valueType;
         item.dataTypeId = details.dataTypeId;
-        item.dataType = details.dataTypeId;
+        item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
         item.status = details.status;
         item.sourceTimestamp = details.sourceTimestamp.toString(Qt::ISODateWithMs);
         item.serverTimestamp = details.serverTimestamp;
@@ -69,7 +70,7 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
     item.value = details.value.toString();
     item.valueType = details.valueType;
     item.dataTypeId = details.dataTypeId;
-    item.dataType = details.dataTypeId;
+    item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
     item.status = details.status;
     item.sourceTimestamp = details.sourceTimestamp.toString(Qt::ISODateWithMs);
     item.serverTimestamp = details.serverTimestamp;

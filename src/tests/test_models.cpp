@@ -148,6 +148,7 @@ void TestModels::dataAccessAddOrUpdateInsertsThenUpdates()
     details.nodeId = QStringLiteral("ns=2;s=Temp");
     details.displayName = QStringLiteral("Temperature");
     details.value = 23.45;
+    details.dataTypeId = QStringLiteral("ns=0;i=11");
     details.status = QStringLiteral("Good");
 
     QSignalSpy insertSpy(&model, &QAbstractItemModel::rowsInserted);
@@ -156,14 +157,20 @@ void TestModels::dataAccessAddOrUpdateInsertsThenUpdates()
     QCOMPARE(insertSpy.size(), 1);
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue)).toString(),
              QStringLiteral("23.45"));
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColDataType)).toString(),
+             QStringLiteral("Double"));
+    QCOMPARE(model.itemAt(0).dataTypeId, QStringLiteral("ns=0;i=11"));
 
     details.value = 99.9;
+    details.dataTypeId = QStringLiteral("ns=0;i=1");
     QSignalSpy changeSpy(&model, &QAbstractItemModel::dataChanged);
     model.addOrUpdate(details);
     QCOMPARE(model.rowCount(), 1); // updated in place, not inserted
     QCOMPARE(changeSpy.size(), 1);
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue)).toString(),
              QStringLiteral("99.9"));
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColDataType)).toString(),
+             QStringLiteral("Boolean"));
 }
 
 ///
@@ -735,7 +742,7 @@ void TestModels::dataAccessHeaderRolesAndHelpers()
     b.nodeId = QStringLiteral("ns=2;s=B");
     b.displayName = QStringLiteral("Beta");
     b.value = 2.0;
-    b.dataTypeId = QStringLiteral("ns=0;i=11");
+    b.dataTypeId = QStringLiteral("ns=3;i=5001");
     b.status = QStringLiteral("Bad");
     model.addOrUpdate(b);
     QCOMPARE(model.rowCount(), 2);
@@ -769,7 +776,9 @@ void TestModels::dataAccessHeaderRolesAndHelpers()
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColDisplayName)).toString(),
              QStringLiteral("Alpha"));
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColDataType)).toString(),
-             QStringLiteral("ns=0;i=11"));
+             QStringLiteral("Double"));
+    QCOMPARE(model.data(model.index(1, DataAccessModel::ColDataType)).toString(),
+             QStringLiteral("ns=3;i=5001"));
     QVERIFY(model.data(model.index(0, DataAccessModel::ColTimestamp)).isValid()
             || model.data(model.index(0, DataAccessModel::ColTimestamp)).toString().isEmpty());
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColSubscription)).toString(),
