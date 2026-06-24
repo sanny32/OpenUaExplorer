@@ -54,7 +54,7 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
         item.dataTypeId = details.dataTypeId;
         item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
         item.status = details.status;
-        item.sourceTimestamp = details.sourceTimestamp.toString(Qt::ISODateWithMs);
+        item.sourceTimestamp = OpcUaFormat::isoTimestampWithZone(details.sourceTimestamp);
         item.serverTimestamp = details.serverTimestamp;
         item.userAccessLevel = details.userAccessLevel;
         emit dataChanged(index(row, 0), index(row, ColCount - 1));
@@ -72,7 +72,7 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
     item.dataTypeId = details.dataTypeId;
     item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
     item.status = details.status;
-    item.sourceTimestamp = details.sourceTimestamp.toString(Qt::ISODateWithMs);
+    item.sourceTimestamp = OpcUaFormat::isoTimestampWithZone(details.sourceTimestamp);
     item.serverTimestamp = details.serverTimestamp;
     item.userAccessLevel = details.userAccessLevel;
     _items.append(item);
@@ -93,7 +93,7 @@ void DataAccessModel::updateValues(const QVector<OpcUaDataValue> &values)
             item.typedValue = value.value;
             item.value = value.value.toString();
             item.status = value.status;
-            item.sourceTimestamp = value.sourceTimestamp.toString(Qt::ISODateWithMs);
+            item.sourceTimestamp = OpcUaFormat::isoTimestampWithZone(value.sourceTimestamp);
             item.serverTimestamp = value.serverTimestamp;
             emit dataChanged(index(row, ColValue), index(row, ColStatus));
             break;

@@ -29,7 +29,7 @@ private slots:
     void displayValueFormatsScalarsAndArrays();
     void securityModeNameCoversAllModes();
     void statusFormatting();
-    void timestampDisplayRoundTrips();
+    void isoTimestampWithZoneRoundTrips();
     void valueTypeNameKnownAndUnknown();
     void dataTypeDisplayNamesBuiltIns();
     void nodeClassNameKnownAndUnknown();
@@ -90,13 +90,14 @@ void TestAttributeFormatter::statusFormatting()
                  .arg(statusName(QOpcUa::UaStatusCode::Good)));
 }
 
-void TestAttributeFormatter::timestampDisplayRoundTrips()
+void TestAttributeFormatter::isoTimestampWithZoneRoundTrips()
 {
-    QCOMPARE(timestampDisplay(QDateTime()), QString());
+    QCOMPARE(isoTimestampWithZone(QDateTime()), QString());
 
-    const QDateTime dt(QDate(2024, 12, 31), QTime(23, 59, 58, 123));
-    QCOMPARE(timestampDisplay(dt),
-             dt.toLocalTime().toString(QStringLiteral("dd.MM.yyyy H:mm:ss.zzz")));
+    const QDateTime dt(QDate(2024, 12, 31), QTime(23, 59, 58, 123), Qt::UTC);
+    const QDateTime local = dt.toLocalTime();
+    QCOMPARE(isoTimestampWithZone(dt),
+             local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs));
 }
 
 void TestAttributeFormatter::valueTypeNameKnownAndUnknown()

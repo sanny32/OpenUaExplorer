@@ -59,11 +59,11 @@ QString statusName(QOpcUa::UaStatusCode status);
 QString statusDisplay(QOpcUa::UaStatusCode status);
 
 ///
-/// \brief Formats a timestamp in local time, or empty when invalid.
+/// \brief Formats a timestamp as local-time ISO 8601 with the UTC offset, or empty when invalid.
 /// \param timestamp Timestamp to format.
-/// \return Localised timestamp string.
+/// \return ISO 8601 string with millisecond precision and trailing time-zone offset.
 ///
-QString timestampDisplay(const QDateTime &timestamp);
+QString isoTimestampWithZone(const QDateTime &timestamp);
 
 ///
 /// \brief Returns the enum-key name of an OPC UA value type.
