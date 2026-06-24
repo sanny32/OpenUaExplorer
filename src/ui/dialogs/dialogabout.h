@@ -8,9 +8,15 @@
 
 #pragma once
 
+#include <QJsonObject>
 #include <QSize>
+#include <QString>
+#include <QUrl>
 
 #include "dialogs/appbasedialog.h"
+
+class QFrame;
+class QWidget;
 
 namespace Ui {
 class DialogAbout;
@@ -38,6 +44,31 @@ public:
 private:
     void setupContent();
     void setupFonts();
+    void setupLayout();
+    void setupAuthors();
+    void setupComponents();
+    QJsonObject aboutData() const;
+    QString authorRoleDescription(const QString &sectionName, const QString &role) const;
+    void addComponent(const QString &title,
+                      const QString &version,
+                      const QString &description,
+                      const QUrl &url,
+                      int *layoutIndex,
+                      int *componentIndex);
+    QWidget *createAuthorRow(const QString &name, const QString &role, const QUrl &url, int index);
+    QWidget *createAuthorContactButton(const QUrl &url, int index);
+    QFrame *createAuthorSeparator(const QString &objectName);
+    QWidget *createComponentRow(const QString &title,
+                                const QString &version,
+                                const QString &description,
+                                const QUrl &url,
+                                int index);
+    QWidget *createComponentContactButton(const QUrl &url, int index);
+    QFrame *createComponentSeparator(const QString &objectName);
+    QString licenseHtml() const;
+    QString licenseStyleSheet() const;
+    void openAuthorUrl();
+    void openComponentUrl();
 
 private:
     Ui::DialogAbout *ui;

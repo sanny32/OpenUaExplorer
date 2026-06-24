@@ -1,6 +1,7 @@
 function(ouaexp_configure_common_ui_tests)
     ouaexp_add_ui_test(ouaexp_tests_application         test_application.cpp)
     ouaexp_add_ui_test(ouaexp_tests_connection_dialog   test_connectiondialog.cpp)
+    ouaexp_add_ui_test(ouaexp_tests_about_dialog        test_dialogabout.cpp)
     ouaexp_add_ui_test(ouaexp_tests_certificate_details_widget
                        test_certificatedetailswidget.cpp)
     ouaexp_add_ui_test(ouaexp_tests_certificate_summary test_certificatesummarywidget.cpp)

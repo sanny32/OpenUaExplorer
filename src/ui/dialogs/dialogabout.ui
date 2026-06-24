@@ -356,10 +356,25 @@
        <string>License</string>
       </attribute>
       <layout class="QVBoxLayout" name="licenseLayout">
+       <property name="leftMargin">
+        <number>24</number>
+       </property>
+       <property name="topMargin">
+        <number>20</number>
+       </property>
+       <property name="rightMargin">
+        <number>24</number>
+       </property>
+       <property name="bottomMargin">
+        <number>20</number>
+       </property>
        <item>
         <widget class="QTextBrowser" name="licenseBrowser">
          <property name="frameShape">
           <enum>QFrame::NoFrame</enum>
+         </property>
+         <property name="lineWrapMode">
+          <enum>QTextEdit::WidgetWidth</enum>
          </property>
          <property name="openExternalLinks">
           <bool>true</bool>
@@ -368,11 +383,11 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="creditsTab">
+     <widget class="QWidget" name="componentsTab">
       <attribute name="title">
-       <string>Credits</string>
+       <string>Components</string>
       </attribute>
-      <layout class="QVBoxLayout" name="creditsLayout">
+      <layout class="QVBoxLayout" name="componentsLayout">
        <property name="leftMargin">
         <number>28</number>
        </property>
@@ -386,9 +401,9 @@
         <number>24</number>
        </property>
        <item>
-        <widget class="QLabel" name="creditsLabel">
+        <widget class="QLabel" name="componentsLabel">
          <property name="text">
-          <string>Credits</string>
+          <string>Components</string>
          </property>
          <property name="textFormat">
           <enum>Qt::TextFormat::RichText</enum>
@@ -399,7 +414,7 @@
         </widget>
        </item>
        <item>
-        <spacer name="creditsSpacer">
+        <spacer name="componentsSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -443,14 +458,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ThemedPushButton</class>
-   <extends>QPushButton</extends>
-   <header>widgets/themedpushbutton.h</header>
-  </customwidget>
-  <customwidget>
    <class>ThemedIconLabel</class>
    <extends>QLabel</extends>
    <header>widgets/themediconlabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ThemedPushButton</class>
+   <extends>QPushButton</extends>
+   <header>widgets/themedpushbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
