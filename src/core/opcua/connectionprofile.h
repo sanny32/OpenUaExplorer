@@ -59,7 +59,7 @@ struct ConnectionProfile
     QString privateKeyFile;
 
     /// \brief Session timeout in milliseconds.
-    int sessionTimeoutMs = 60000;
+    int sessionTimeoutMs = 600000;
 
     /// \brief Connection timeout in milliseconds.
     int connectTimeoutMs = 10000;

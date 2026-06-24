@@ -40,15 +40,20 @@ public:
     ///
     struct SessionDefaults {
         /// \brief Session timeout in milliseconds.
-        int sessionTimeoutMs = 60000;
+        int sessionTimeoutMs = 600000;
+
         /// \brief Endpoint discovery timeout in milliseconds.
         int endpointTimeoutMs = 10000;
+
         /// \brief Connection timeout in milliseconds.
         int connectTimeoutMs = 10000;
+
         /// \brief Read/write request timeout in milliseconds.
         int requestTimeoutMs = 5000;
+
         /// \brief Secure-channel lifetime in milliseconds.
         int secureChannelLifetimeMs = 600000;
+
         /// \brief Maximum message size in bytes.
         int maxMessageSizeBytes = 4194304;
     };
@@ -59,10 +64,13 @@ public:
     struct LogCategory {
         /// \brief Stable settings key and identifier (e.g. "network").
         QString key;
+
         /// \brief Full Qt logging category name used in filter rules.
         QString categoryName;
+
         /// \brief Human-readable label shown in the settings dialog.
         QString displayName;
+        
         /// \brief Whether the category is enabled when the user has no stored preference.
         bool defaultEnabled = true;
     };

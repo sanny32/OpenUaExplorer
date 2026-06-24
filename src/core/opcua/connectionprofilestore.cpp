@@ -43,7 +43,7 @@ QList<ConnectionProfile> ConnectionProfileStore::profiles() const
         profile.username = settings.value(QStringLiteral("username")).toString();
         profile.clientCertificateFile = settings.value(QStringLiteral("clientCertificateFile")).toString();
         profile.privateKeyFile = settings.value(QStringLiteral("privateKeyFile")).toString();
-        profile.sessionTimeoutMs = settings.value(QStringLiteral("sessionTimeoutMs"), 60000).toInt();
+        profile.sessionTimeoutMs = settings.value(QStringLiteral("sessionTimeoutMs"), 600000).toInt();
         profile.connectTimeoutMs = settings.value(QStringLiteral("connectTimeoutMs"), 10000).toInt();
         profile.secureChannelLifetimeMs =
             settings.value(QStringLiteral("secureChannelLifetimeMs"), 600000).toInt();
