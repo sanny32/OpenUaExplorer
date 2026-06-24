@@ -15,33 +15,37 @@
 #include <QStyleOptionButton>
 #include <QStyleOptionFocusRect>
 
+#include "appicons.h"
+
 namespace {
 
+constexpr int kPreviewIconSide = 56;
+
 ///
-/// \brief Resolves the preview artwork for a mode.
+/// \brief Resolves the toolbar icon name for a mode.
 /// \param mode Light, dark, or system.
-/// \return Resource path of the matching window mockup.
+/// \return Theme-action icon resource name shared with the toolbar.
 ///
-QString previewResource(const QString &mode)
+QString previewIconName(const QString &mode)
 {
     if (mode == QLatin1String("light"))
-        return QStringLiteral(":/icons/theme-preview-light.svg");
+        return QStringLiteral("theme-light");
     if (mode == QLatin1String("dark"))
-        return QStringLiteral(":/icons/theme-preview-dark.svg");
-    return QStringLiteral(":/icons/theme-preview-system.svg");
+        return QStringLiteral("theme-dark");
+    return QStringLiteral("theme-system");
 }
 
 ///
-/// \brief Renders the preview window mockup into the given bounds.
+/// \brief Renders the toolbar theme icon centred within the given bounds.
 /// \param painter Painter targeting the card.
-/// \param bounds Window bounds.
+/// \param bounds Preview bounds.
 /// \param mode Light, dark, or system.
 ///
-void paintPreviewWindow(QPainter &painter, const QRectF &bounds, const QString &mode)
+void paintPreviewIcon(QPainter &painter, const QRectF &bounds, const QString &mode)
 {
-    const qreal dpr = painter.device()->devicePixelRatioF();
-    const QPixmap pixmap = QIcon(previewResource(mode)).pixmap((bounds.size() * dpr).toSize());
-    painter.drawPixmap(bounds, pixmap, QRectF(pixmap.rect()));
+    QRect target(0, 0, kPreviewIconSide, kPreviewIconSide);
+    target.moveCenter(bounds.toRect().center());
+    AppIcons::themed(previewIconName(mode)).paint(&painter, target, Qt::AlignCenter);
 }
 
 }
@@ -110,10 +114,7 @@ void ThemePreviewButton::paintEvent(QPaintEvent *event)
     painter.drawRoundedRect(cardRect, 5.0, 5.0);
 
     const QRectF previewRect = cardRect.adjusted(22.0, 14.0, -22.0, -42.0);
-    paintPreviewWindow(painter, previewRect, _previewMode);
-    painter.setPen(palette().color(QPalette::Mid));
-    painter.setBrush(Qt::NoBrush);
-    painter.drawRoundedRect(previewRect, 3.0, 3.0);
+    paintPreviewIcon(painter, previewRect, _previewMode);
 
     QStyleOptionButton radio;
     radio.initFrom(this);
