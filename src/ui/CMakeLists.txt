@@ -6,6 +6,7 @@ set(UI_FILES
 
     dialogs/certificatedetailsdialog.ui
     dialogs/certificatetrustdialog.ui
+    dialogs/connectioncredentialsdialog.ui
     dialogs/connectiondialog.ui
     dialogs/dialogabout.ui
     dialogs/editfavoritedialog.ui
@@ -70,6 +71,8 @@ add_library(ouaexp_ui STATIC
     dialogs/certificatedetailsdialog.h
     dialogs/certificatetrustdialog.cpp
     dialogs/certificatetrustdialog.h
+    dialogs/connectioncredentialsdialog.cpp
+    dialogs/connectioncredentialsdialog.h
     dialogs/connectiondialog.cpp
     dialogs/connectiondialog.h
     dialogs/dialogabout.cpp

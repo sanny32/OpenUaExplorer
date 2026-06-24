@@ -94,6 +94,16 @@ public:
     void connectSavedProfile(const ConnectionProfile &profile);
 
     ///
+    /// \brief Connects a saved profile with user-supplied credentials, skipping the keychain.
+    /// \param profile Saved profile to connect with.
+    /// \param password User password, if any.
+    /// \param privateKeyPassword Private-key password, if any.
+    ///
+    void connectSavedProfileWithCredentials(const ConnectionProfile &profile,
+                                            const QString &password,
+                                            const QString &privateKeyPassword);
+
+    ///
     /// \brief Persists a profile and its secrets, emitting profilesChanged() on success.
     /// \param profile Profile to store.
     /// \param password User password to store, if non-empty.

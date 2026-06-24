@@ -71,6 +71,7 @@ private slots:
 private:
     void openConnectionDialog(const ConnectionProfile *preset = nullptr);
     void addCurrentToFavorites();
+    void connectFavorite(const ConnectionProfile &favorite);
     void editFavorite(const ConnectionProfile &favorite);
     void openSettingsDialog();
     void setupDockOptions();

@@ -22,6 +22,7 @@
 #include "appsettings.h"
 #include "dialogs/certificatetrustdialog.h"
 #include "dialogs/dialogabout.h"
+#include "dialogs/connectioncredentialsdialog.h"
 #include "dialogs/connectiondialog.h"
 #include "dialogs/editfavoritedialog.h"
 #include "dialogs/settingsdialog.h"
@@ -517,9 +518,7 @@ void MainWindow::setupOpcUaClient()
 
     _favoritesWidget = new FavoritesWidget(this);
     connect(_favoritesWidget, &FavoritesWidget::connectRequested,
-            this, [this](const ConnectionProfile &profile) {
-        _connectionController->connectSavedProfile(profile);
-    });
+            this, &MainWindow::connectFavorite);
     connect(_favoritesWidget, &FavoritesWidget::editRequested,
             this, &MainWindow::editFavorite);
     connect(_favoritesWidget, &FavoritesWidget::removeRequested,
@@ -886,6 +885,25 @@ void MainWindow::addCurrentToFavorites()
     profile.saveProfile = true;
     profile.lastUsed = QDateTime::currentDateTime();
     _connectionController->saveProfile(profile, QString(), QString());
+}
+
+///
+/// \brief Connects a favourite, prompting for its credentials when it needs authentication.
+/// \param favorite Favourite to connect to.
+///
+void MainWindow::connectFavorite(const ConnectionProfile &favorite)
+{
+    if (favorite.authentication == ConnectionProfile::Authentication::Anonymous) {
+        _connectionController->connectSavedProfile(favorite);
+        return;
+    }
+
+    ConnectionCredentialsDialog dialog(this);
+    dialog.setProfile(favorite);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    _connectionController->connectSavedProfileWithCredentials(
+        dialog.profile(), dialog.password(), dialog.privateKeyPassword());
 }
 
 ///

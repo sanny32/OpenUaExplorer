@@ -182,6 +182,29 @@ void ConnectionController::connectSavedProfile(const ConnectionProfile &profile)
 }
 
 ///
+/// \brief Connects a saved profile with user-supplied credentials, skipping the keychain.
+/// \param profile Saved profile to connect with.
+/// \param password User password, if any.
+/// \param privateKeyPassword Private-key password, if any.
+///
+void ConnectionController::connectSavedProfileWithCredentials(const ConnectionProfile &profile,
+                                                              const QString &password,
+                                                              const QString &privateKeyPassword)
+{
+    _pendingProfile = profile;
+    _pendingPassword = password;
+    _pendingPrivateKeyPassword = privateKeyPassword;
+    _pendingSecretReads = 0;
+    _waitingForDiscovery = false;
+
+    _recentStore->record(profile);
+    emit recentsChanged();
+    touchFavorite(profile);
+
+    discoverPendingProfile();
+}
+
+///
 /// \brief Persists a profile and its secrets, emitting profilesChanged() on success.
 /// \param profile Profile to store.
 /// \param password User password to store, if non-empty.
