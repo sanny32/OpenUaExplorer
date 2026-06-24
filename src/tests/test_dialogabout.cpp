@@ -123,9 +123,9 @@ void TestDialogAbout::listsComponents()
     QVERIFY(qtDescription->text().contains(QStringLiteral("Cross-platform")));
     QCOMPARE(opcUaTitle->text(), QStringLiteral("Qt OPC UA"));
     QCOMPARE(qtKeychainTitle->text(), QStringLiteral("QtKeychain"));
-    QVERIFY(qtKeychainVersion->text().contains(QStringLiteral(QTKEYCHAIN_VERSION)));
+    QVERIFY(qtKeychainVersion->text().contains(QStringLiteral(APP_QTKEYCHAIN_VERSION)));
     QCOMPARE(openSslTitle->text(), QStringLiteral("OpenSSL"));
-    QVERIFY(openSslVersion->text().contains(QStringLiteral(OPENSSL_VERSION)));
+    QVERIFY(openSslVersion->text().contains(QStringLiteral(APP_OPENSSL_VERSION)));
     QCOMPARE(platformDescription->text(), QStringLiteral("Underlying platform."));
     QVERIFY(qtButton->isVisibleTo(qtButton->parentWidget()));
     QVERIFY(!platformButton->isVisibleTo(platformButton->parentWidget()));

@@ -196,14 +196,14 @@ void DialogAbout::setupComponents()
                  &componentIndex);
 
     addComponent(QStringLiteral("QtKeychain"),
-                 QStringLiteral(QTKEYCHAIN_VERSION),
+                 QStringLiteral(APP_QTKEYCHAIN_VERSION),
                  tr("Secure storage integration for application secrets."),
                  QUrl(QStringLiteral("https://github.com/frankosterfeld/qtkeychain")),
                  &layoutIndex,
                  &componentIndex);
 
     addComponent(QStringLiteral("OpenSSL"),
-                 QStringLiteral(OPENSSL_VERSION),
+                 QStringLiteral(APP_OPENSSL_VERSION),
                  tr("Cryptography and TLS support library."),
                  QUrl(QStringLiteral("https://www.openssl.org")),
                  &layoutIndex,
