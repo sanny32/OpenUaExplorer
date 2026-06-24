@@ -322,9 +322,20 @@ void DataAccessWidget::setupDataView()
 
     connect(ui->dataView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, [this] {
-        ui->subscribeButton->setEnabled(
-            !ui->dataView->selectionModel()->selectedRows().isEmpty());
+        const int selectedCount = ui->dataView->selectionModel()->selectedRows().size();
+        const bool hasSelection = selectedCount > 0;
+        ui->removeButton->setEnabled(hasSelection);
+        ui->readButton->setEnabled(hasSelection);
+        ui->writeButton->setEnabled(selectedCount == 1);
+        ui->subscribeButton->setEnabled(hasSelection);
     });
+
+    auto updateRemoveAll = [this] {
+        ui->removeAllButton->setEnabled(_dataModel->rowCount() > 0);
+    };
+    connect(_dataModel, &QAbstractItemModel::rowsInserted, this, updateRemoveAll);
+    connect(_dataModel, &QAbstractItemModel::rowsRemoved, this, updateRemoveAll);
+    connect(_dataModel, &QAbstractItemModel::modelReset, this, updateRemoveAll);
 }
 
 ///
@@ -401,15 +412,22 @@ void DataAccessWidget::configureToolbar()
 {
     ui->addNodeButton->setIcon(QStringLiteral("add"));
     ui->removeButton->setIcon(QStringLiteral("remove"));
+    ui->removeAllButton->setIcon(QStringLiteral("remove"));
     ui->readButton->setIcon(QStringLiteral("read"));
     ui->writeButton->setIcon(QStringLiteral("write"));
     ui->subscribeButton->setIcon(QStringLiteral("subscribe"));
     ui->addSubscriptionButton->setIcon(QStringLiteral("add"));
     ui->removeSubscriptionButton->setIcon(QStringLiteral("remove"));
+    ui->removeAllSubscriptionsButton->setIcon(QStringLiteral("remove"));
 
     ui->subscribeButton->setPopupMode(QToolButton::InstantPopup);
+    ui->removeButton->setEnabled(false);
+    ui->removeAllButton->setEnabled(false);
+    ui->readButton->setEnabled(false);
+    ui->writeButton->setEnabled(false);
     ui->subscribeButton->setEnabled(false);
     ui->removeSubscriptionButton->setEnabled(false);
+    ui->removeAllSubscriptionsButton->setEnabled(false);
     ui->mainTabs->setTabEnabled(EventsPage, false);
     ui->mainTabs->setTabEnabled(HistoryPage, false);
 
@@ -418,6 +436,8 @@ void DataAccessWidget::configureToolbar()
     connect(ui->removeButton, &QPushButton::clicked, this, [this]() {
         _dataModel->removeRows(selectedDataRows());
     });
+    connect(ui->removeAllButton, &QPushButton::clicked,
+            this, &DataAccessWidget::removeAllNodes);
     connect(ui->readButton, &QPushButton::clicked, this, [this]() {
         emit readRequested(_dataModel->nodeIds(selectedDataRows()));
     });
@@ -433,6 +453,21 @@ void DataAccessWidget::configureToolbar()
             this, &DataAccessWidget::addSubscription);
     connect(ui->removeSubscriptionButton, &QPushButton::clicked,
             this, &DataAccessWidget::removeSelectedSubscriptions);
+    connect(ui->removeAllSubscriptionsButton, &QPushButton::clicked,
+            this, &DataAccessWidget::removeAllSubscriptions);
+}
+
+///
+/// \brief Removes every data-access node, cancelling monitoring for subscribed nodes.
+///
+void DataAccessWidget::removeAllNodes()
+{
+    for (int row = 0; row < _dataModel->rowCount(); ++row) {
+        const DataAccessItem item = _dataModel->itemAt(row);
+        if (!item.subscriptionName.isEmpty())
+            emit monitoringCancelled(item.nodeId);
+    }
+    _dataModel->clear();
 }
 
 ///
@@ -456,6 +491,8 @@ void DataAccessWidget::rebuildSubscribeMenu()
         applySubscriptionToSelection(QString());
     });
     ui->subscribeButton->setMenu(menu);
+
+    ui->removeAllSubscriptionsButton->setEnabled(_subscriptionsModel->rowCount() > 1);
 }
 
 ///
@@ -519,21 +556,38 @@ void DataAccessWidget::removeSelectedSubscriptions()
     std::sort(rows.begin(), rows.end(), [](const QModelIndex &a, const QModelIndex &b) {
         return a.row() > b.row();
     });
-    for (const QModelIndex &idx : rows) {
-        const SubscriptionItem subscription = _subscriptionsModel->itemAt(idx.row());
-        if (subscription.isDefault())
+    for (const QModelIndex &idx : rows)
+        removeSubscriptionRow(idx.row());
+}
+
+///
+/// \brief Removes every non-default subscription, unassigning and unmonitoring their nodes.
+///
+void DataAccessWidget::removeAllSubscriptions()
+{
+    for (int row = _subscriptionsModel->rowCount() - 1; row >= 0; --row)
+        removeSubscriptionRow(row);
+}
+
+///
+/// \brief Removes a single subscription row, unassigning and unmonitoring its nodes.
+/// \param row Subscription row to remove.
+///
+void DataAccessWidget::removeSubscriptionRow(int row)
+{
+    const SubscriptionItem subscription = _subscriptionsModel->itemAt(row);
+    if (subscription.isDefault())
+        return;
+    const QString name = subscription.name;
+    for (int dataRow = 0; dataRow < _dataModel->rowCount(); ++dataRow) {
+        if (_dataModel->itemAt(dataRow).subscriptionName != name)
             continue;
-        const QString name = subscription.name;
-        for (int dataRow = 0; dataRow < _dataModel->rowCount(); ++dataRow) {
-            if (_dataModel->itemAt(dataRow).subscriptionName != name)
-                continue;
-            const QString nodeId = _dataModel->itemAt(dataRow).nodeId;
-            _dataModel->setData(_dataModel->index(dataRow, DataAccessModel::ColSubscription),
-                                QString(), Qt::EditRole);
-            emit monitoringCancelled(nodeId);
-        }
-        _subscriptionsModel->removeRow(idx.row());
+        const QString nodeId = _dataModel->itemAt(dataRow).nodeId;
+        _dataModel->setData(_dataModel->index(dataRow, DataAccessModel::ColSubscription),
+                            QString(), Qt::EditRole);
+        emit monitoringCancelled(nodeId);
     }
+    _subscriptionsModel->removeRow(row);
 }
 
 ///

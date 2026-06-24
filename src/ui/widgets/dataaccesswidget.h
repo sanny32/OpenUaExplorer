@@ -161,11 +161,14 @@ private:
     void setupEventsView();
     void setupHistoryView();
     void configureToolbar();
+    void removeAllNodes();
     void rebuildSubscribeMenu();
     void applySubscriptionToSelection(const QString &subscriptionName);
     void resetSubscriptions();
     void addSubscription();
     void removeSelectedSubscriptions();
+    void removeAllSubscriptions();
+    void removeSubscriptionRow(int row);
     void renameSubscriptionAssignments(const QString &oldName, const QString &newName);
     void reapplySubscriptionInterval(const QString &name, double interval);
     QModelIndexList selectedDataRows() const;
