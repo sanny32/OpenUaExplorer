@@ -91,7 +91,7 @@ void ConnectionCredentialsDialog::setProfile(const ConnectionProfile &profile)
 
     const bool certificate =
         profile.authentication == ConnectionProfile::Authentication::Certificate;
-    ui->authStack->setCurrentWidget(certificate ? ui->certificatePage : ui->usernamePage);
+    showAuthPage(certificate ? ui->certificatePage : ui->usernamePage);
     ui->headerIcon->setIcon(certificate ? QStringLiteral("certificate")
                                          : QStringLiteral("lock"),
                             QSize(20, 20));
@@ -105,6 +105,29 @@ void ConnectionCredentialsDialog::setProfile(const ConnectionProfile &profile)
         ui->usernameEdit->setText(profile.username);
         ui->passwordEdit->setFocus();
     }
+
+    adjustSize();
+}
+
+///
+/// \brief Shows one credential panel and hides the other from the size calculation.
+/// \param page Panel to display.
+///
+/// A QStackedWidget reserves the height of its tallest page, so the shorter
+/// username panel would otherwise inherit the certificate panel's height and
+/// spread its fields apart. Marking the inactive page as ignored lets the stack
+/// size to the visible panel.
+///
+void ConnectionCredentialsDialog::showAuthPage(QWidget *page)
+{
+    for (int i = 0; i < ui->authStack->count(); ++i) {
+        QWidget *candidate = ui->authStack->widget(i);
+        QSizePolicy policy = candidate->sizePolicy();
+        policy.setVerticalPolicy(candidate == page ? QSizePolicy::Preferred
+                                                   : QSizePolicy::Ignored);
+        candidate->setSizePolicy(policy);
+    }
+    ui->authStack->setCurrentWidget(page);
 }
 
 ///

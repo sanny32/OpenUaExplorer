@@ -66,6 +66,7 @@ public:
 private:
     void applyStyling();
     void setupPasswordToggle();
+    void showAuthPage(QWidget *page);
     void browseCertificate();
     void browsePrivateKey();
 
