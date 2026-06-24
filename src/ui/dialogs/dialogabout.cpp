@@ -310,7 +310,7 @@ QWidget *DialogAbout::createAuthorRow(const QString &name,
 {
     auto *row = new QWidget(ui->authorsTab);
     row->setObjectName(QStringLiteral("authorRow%1").arg(index));
-    row->setMinimumHeight(56);
+    row->setFixedHeight(48);
 
     auto *rowLayout = new QHBoxLayout(row);
     rowLayout->setContentsMargins(0, 0, 0, 0);
@@ -408,7 +408,7 @@ QWidget *DialogAbout::createComponentRow(const QString &title,
 {
     auto *row = new QWidget(ui->componentsTab);
     row->setObjectName(QStringLiteral("componentRow%1").arg(index));
-    row->setMinimumHeight(60);
+    row->setFixedHeight(48);
 
     auto *rowLayout = new QHBoxLayout(row);
     rowLayout->setContentsMargins(0, 0, 0, 0);
