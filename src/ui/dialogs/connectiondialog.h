@@ -106,6 +106,5 @@ private:
     QString _lastEnteredEndpointUrl;
     QString _clientCertificateFile;
     QString _privateKeyFile;
-    QString _privateKeyPassword;
     int _selectedSecurityModeValue = 1;
 };

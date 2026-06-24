@@ -14,7 +14,6 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFontMetrics>
-#include <QInputDialog>
 #include <QLineEdit>
 #include <QSslCertificate>
 #include <QMessageBox>
@@ -175,18 +174,20 @@ void ConnectionDialog::setupControls()
     ui->certificateBrowseButton->setFixedHeight(ui->certificateEdit->sizeHint().height());
     ui->privateKeyBrowseButton->setFixedHeight(ui->privateKeyEdit->sizeHint().height());
 
-    QAction *passwordToggle = ui->passwordEdit->addAction(
-        AppIcons::themed(QStringLiteral("eye")), QLineEdit::TrailingPosition);
-    passwordToggle->setCheckable(true);
-    auto refreshPasswordToggle = [this, passwordToggle] {
-        const bool shown = passwordToggle->isChecked();
-        ui->passwordEdit->setEchoMode(shown ? QLineEdit::Normal : QLineEdit::Password);
-        passwordToggle->setIcon(AppIcons::themed(
-            shown ? QStringLiteral("eye-off") : QStringLiteral("eye")));
-        passwordToggle->setToolTip(shown ? tr("Hide password") : tr("Show password"));
-    };
-    refreshPasswordToggle();
-    connect(passwordToggle, &QAction::toggled, this, refreshPasswordToggle);
+    for (QLineEdit *edit : { ui->passwordEdit, ui->privateKeyPasswordEdit }) {
+        QAction *toggle = edit->addAction(
+            AppIcons::themed(QStringLiteral("eye")), QLineEdit::TrailingPosition);
+        toggle->setCheckable(true);
+        auto refreshToggle = [edit, toggle, this] {
+            const bool shown = toggle->isChecked();
+            edit->setEchoMode(shown ? QLineEdit::Normal : QLineEdit::Password);
+            toggle->setIcon(AppIcons::themed(
+                shown ? QStringLiteral("eye-off") : QStringLiteral("eye")));
+            toggle->setToolTip(shown ? tr("Hide password") : tr("Show password"));
+        };
+        refreshToggle();
+        connect(toggle, &QAction::toggled, this, refreshToggle);
+    }
 }
 
 ///
@@ -368,7 +369,7 @@ QString ConnectionDialog::password() const
 ///
 QString ConnectionDialog::privateKeyPassword() const
 {
-    return _privateKeyPassword;
+    return ui->privateKeyPasswordEdit->text();
 }
 
 ///
@@ -516,13 +517,7 @@ void ConnectionDialog::chooseClientCertificate()
         return;
     _clientCertificateFile = certificate;
     _privateKeyFile = key;
-    bool ok = false;
-    _privateKeyPassword = QInputDialog::getText(
-        this, tr("Private Key Password"),
-        tr("Password (leave empty for an unencrypted key):"),
-        QLineEdit::Password, QString(), &ok);
-    if (!ok)
-        _privateKeyPassword.clear();
+    ui->privateKeyPasswordEdit->clear();
     ui->clientCertificateComboBox->setCurrentIndex(1);
     ui->clientCertificateComboBox->setItemText(1, QFileInfo(certificate).fileName());
     updateClientCertificate();
@@ -542,7 +537,7 @@ void ConnectionDialog::browseCertificateAuthCertificate()
 }
 
 ///
-/// \brief Browses for the private key used by certificate authentication and asks for its password.
+/// \brief Browses for the private key used by certificate authentication.
 ///
 void ConnectionDialog::browseCertificateAuthPrivateKey()
 {
@@ -552,12 +547,7 @@ void ConnectionDialog::browseCertificateAuthPrivateKey()
     if (key.isEmpty())
         return;
     ui->privateKeyEdit->setText(key);
-    bool ok = false;
-    const QString password = QInputDialog::getText(
-        this, tr("Private Key Password"),
-        tr("Password (leave empty for an unencrypted key):"),
-        QLineEdit::Password, QString(), &ok);
-    _privateKeyPassword = ok ? password : QString();
+    ui->privateKeyPasswordEdit->clear();
 }
 
 ///
@@ -574,7 +564,7 @@ void ConnectionDialog::generateClientCertificate()
         QMessageBox::critical(this, tr("Certificate Generation Failed"), error);
         return;
     }
-    _privateKeyPassword.clear();
+    ui->privateKeyPasswordEdit->clear();
     selectGeneratedClientCertificate();
 }
 
@@ -659,8 +649,6 @@ void ConnectionDialog::selectGeneratedClientCertificate()
     ui->clientCertificateComboBox->setItemText(
         0, tr("Auto-generated (%1)").arg(QFileInfo(_clientCertificateFile).fileName()));
     ui->clientCertificateComboBox->setCurrentIndex(0);
-    ui->certificateEdit->setText(_clientCertificateFile);
-    ui->privateKeyEdit->setText(_privateKeyFile);
     updateClientCertificateAction();
     updateClientCertificate();
 }

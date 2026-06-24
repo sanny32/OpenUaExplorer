@@ -75,6 +75,7 @@ class TestConnectionDialog : public QObject
 private slots:
     void initTestCase();
     void cleanup();
+    void usernamePasswordDefaultsAreEmpty();
     void discoveryPopulatesEndpointModelAndAuthentication();
     void clientCertificateActionFollowsSelection();
     void clientCertificateSelectorFillsRow();
@@ -136,6 +137,18 @@ void TestConnectionDialog::cleanup()
 {
     QSettings settings;
     settings.clear();
+}
+
+void TestConnectionDialog::usernamePasswordDefaultsAreEmpty()
+{
+    ConnectionDialog dialog;
+    auto *username = dialog.findChild<QLineEdit *>(QStringLiteral("usernameEdit"));
+    auto *password = dialog.findChild<QLineEdit *>(QStringLiteral("passwordEdit"));
+    QVERIFY(username);
+    QVERIFY(password);
+
+    QVERIFY(username->text().isEmpty());
+    QVERIFY(password->text().isEmpty());
 }
 
 void TestConnectionDialog::discoveryPopulatesEndpointModelAndAuthentication()
@@ -227,8 +240,8 @@ void TestConnectionDialog::clientCertificateActionFollowsSelection()
     QCOMPARE(certificateMode->itemText(0),
              QStringLiteral("Auto-generated (%1)")
                  .arg(QFileInfo(profile.clientCertificateFile).fileName()));
-    QCOMPARE(certificateEdit->text(), profile.clientCertificateFile);
-    QCOMPARE(privateKeyEdit->text(), profile.privateKeyFile);
+    QVERIFY(certificateEdit->text().isEmpty());
+    QVERIFY(privateKeyEdit->text().isEmpty());
 
     QFile generatedCertificate(profile.clientCertificateFile);
     QVERIFY(generatedCertificate.open(QIODevice::ReadOnly));
