@@ -28,8 +28,9 @@ class FavoritesWidget;
 /// \brief Popup listing favourite servers as a searchable card list.
 ///
 /// Opens right-aligned beneath the toolbar's favourites button. Each card shows a saved
-/// server with its security policy and mode, a Connect action that connects to the server
-/// directly with the saved settings, and a context menu to edit or remove it. A header
+/// server with its security policy and mode and authentication method, a Connect action
+/// that connects to the server directly with the saved settings, and a context menu to
+/// edit or remove it. A header
 /// action adds the current connection to favourites.
 ///
 class FavoritesWidget : public QFrame
@@ -119,6 +120,7 @@ private:
     void adjustListHeight();
     QWidget *createCard(const ConnectionProfile &favorite);
     static QString securityText(const ConnectionProfile &favorite);
+    static QString authenticationText(const ConnectionProfile &favorite);
 
     bool draggingEnabled() const;
     void startCardDrag(QWidget *card);

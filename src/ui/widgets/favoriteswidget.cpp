@@ -270,7 +270,8 @@ QWidget *FavoritesWidget::createCard(const ConnectionProfile &favorite)
                             .arg(AppColors::titleText().name()));
     name->setAttribute(Qt::WA_TransparentForMouseEvents);
 
-    auto *subtitle = new QLabel(securityText(favorite), card);
+    auto *subtitle = new QLabel(
+        QStringLiteral("%1 · %2").arg(securityText(favorite), authenticationText(favorite)), card);
     subtitle->setStyleSheet(QStringLiteral("color: %1; font-size: 11px;")
                                 .arg(AppColors::subtitleText().name()));
     subtitle->setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -332,6 +333,26 @@ QString FavoritesWidget::securityText(const ConnectionProfile &favorite)
     default: break; // None / Invalid: the policy name already reads "None".
     }
     return mode.isEmpty() ? policy : QStringLiteral("%1 / %2").arg(policy, mode);
+}
+
+///
+/// \brief Formats a favourite's authentication method for display.
+/// \param favorite Favourite whose authentication mode is described.
+/// \return Human-readable authentication label, naming the user for username auth.
+///
+QString FavoritesWidget::authenticationText(const ConnectionProfile &favorite)
+{
+    switch (favorite.authentication) {
+    case ConnectionProfile::Authentication::Username:
+        return favorite.username.isEmpty()
+            ? tr("Username")
+            : QStringLiteral("%1 (%2)").arg(tr("Username"), favorite.username);
+    case ConnectionProfile::Authentication::Certificate:
+        return tr("Certificate");
+    case ConnectionProfile::Authentication::Anonymous:
+        break;
+    }
+    return tr("Anonymous");
 }
 
 ///
