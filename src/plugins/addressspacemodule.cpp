@@ -2,39 +2,39 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file addressspaceplugin.cpp
+/// \file addressspacemodule.cpp
 /// \brief Implements the address-space browse API and logging.
 ///
 
-#include "addressspaceplugin.h"
+#include "addressspacemodule.h"
 
 #include <QLoggingCategory>
 
 #include "opcua/opcuaclientservice.h"
 #include "opcua/standardnodeid.h"
-#include "plugincontext.h"
+#include "servicecontext.h"
 
 namespace {
 Q_LOGGING_CATEGORY(lcAddressSpace, "ouaexp.AddressSpace")
 }
 
-AddressSpacePlugin::AddressSpacePlugin(QObject *parent)
-    : Plugin(parent)
+AddressSpaceModule::AddressSpaceModule(QObject *parent)
+    : ServiceModule(parent)
 {
 }
 
 ///
-/// \brief Returns the plugin name shown in the startup log.
+/// \brief Returns the module name shown in the startup log.
 ///
-QString AddressSpacePlugin::name() const
+QString AddressSpaceModule::name() const
 {
-    return tr("Address Space Plugin");
+    return tr("Address Space Module");
 }
 
 ///
 /// \brief Returns the AddressSpace logging category.
 ///
-const QLoggingCategory &AddressSpacePlugin::logCategory() const
+const QLoggingCategory &AddressSpaceModule::logCategory() const
 {
     return lcAddressSpace();
 }
@@ -43,18 +43,18 @@ const QLoggingCategory &AddressSpacePlugin::logCategory() const
 /// \brief Observes browse completions to log them and republish the children.
 /// \param context Host context providing the client service.
 ///
-void AddressSpacePlugin::initialize(PluginContext &context)
+void AddressSpaceModule::initialize(ServiceContext &context)
 {
     _clientService = context.clientService();
     connect(_clientService, &OpcUaClientService::browseFinished,
-            this, &AddressSpacePlugin::handleBrowseFinished);
+            this, &AddressSpaceModule::handleBrowseFinished);
 }
 
 ///
 /// \brief Browses the children of a node.
 /// \param nodeId Node to browse.
 ///
-void AddressSpacePlugin::browse(const QString &nodeId)
+void AddressSpaceModule::browse(const QString &nodeId)
 {
     _clientService->browse(nodeId);
 }
@@ -63,7 +63,7 @@ void AddressSpacePlugin::browse(const QString &nodeId)
 /// \brief Browses a node, defaulting to the Objects folder when none is given.
 /// \param nodeId Node to browse, or empty for the Objects folder.
 ///
-void AddressSpacePlugin::refresh(const QString &nodeId)
+void AddressSpaceModule::refresh(const QString &nodeId)
 {
     _clientService->browse(nodeId.isEmpty()
         ? QString::fromLatin1(StandardNodeId::ObjectsFolder) : nodeId);
@@ -75,7 +75,7 @@ void AddressSpacePlugin::refresh(const QString &nodeId)
 /// \param children Browse result.
 /// \param error Browse error, empty on success.
 ///
-void AddressSpacePlugin::handleBrowseFinished(const QString &parentNodeId,
+void AddressSpaceModule::handleBrowseFinished(const QString &parentNodeId,
                                               const QVector<OpcUaNodeInfo> &children,
                                               const QString &error)
 {

@@ -18,7 +18,7 @@
 class ConnectionController;
 class FeatureManager;
 class OpcUaClientService;
-class PluginManager;
+class ServiceModuleManager;
 class QDockWidget;
 class QMenu;
 class QToolBar;
@@ -37,11 +37,11 @@ public:
     /// \param toolBar Main toolbar.
     /// \param clientService Shared OPC UA client service.
     /// \param connectionController Shared connection controller.
-    /// \param dataPlugins Shared data-plugin registry.
+    /// \param dataModules Shared data-plugin registry.
     /// \param features Feature registry receiving contributions.
     /// \param selection Shared selected-node context.
     ///
-    /// Features obtain built-in data plugins by type through dataPlugins(), so the
+    /// Features obtain built-in data plugins by type through dataModules(), so the
     /// host stays unaware of any concrete plugin.
     ///
     FeatureHost(QMainWindow *mainWindow,
@@ -49,7 +49,7 @@ public:
                 QToolBar *toolBar,
                 OpcUaClientService *clientService,
                 ConnectionController *connectionController,
-                PluginManager *dataPlugins,
+                ServiceModuleManager *dataModules,
                 FeatureManager *features,
                 SelectionContext *selection);
 
@@ -87,7 +87,7 @@ public:
     /// \brief Returns the data-plugin registry.
     /// \return Data-plugin registry.
     ///
-    PluginManager *dataPlugins() const;
+    ServiceModuleManager *dataModules() const;
 
     ///
     /// \brief Returns the feature registry.
@@ -146,7 +146,7 @@ private:
     QToolBar *_toolBar;
     OpcUaClientService *_clientService;
     ConnectionController *_connectionController;
-    PluginManager *_dataPlugins;
+    ServiceModuleManager *_dataModules;
     FeatureManager *_features;
     SelectionContext *_selection;
 };

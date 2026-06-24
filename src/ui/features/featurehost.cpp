@@ -23,7 +23,7 @@
 /// \param toolBar Main toolbar.
 /// \param clientService Shared OPC UA client service.
 /// \param connectionController Shared connection controller.
-/// \param dataPlugins Shared data-plugin registry.
+/// \param dataModules Shared data-plugin registry.
 /// \param features Feature registry receiving contributions.
 /// \param selection Shared selected-node context.
 ///
@@ -32,7 +32,7 @@ FeatureHost::FeatureHost(QMainWindow *mainWindow,
                          QToolBar *toolBar,
                          OpcUaClientService *clientService,
                          ConnectionController *connectionController,
-                         PluginManager *dataPlugins,
+                         ServiceModuleManager *dataModules,
                          FeatureManager *features,
                          SelectionContext *selection)
     : _mainWindow(mainWindow)
@@ -40,7 +40,7 @@ FeatureHost::FeatureHost(QMainWindow *mainWindow,
     , _toolBar(toolBar)
     , _clientService(clientService)
     , _connectionController(connectionController)
-    , _dataPlugins(dataPlugins)
+    , _dataModules(dataModules)
     , _features(features)
     , _selection(selection)
 {
@@ -95,9 +95,9 @@ ConnectionController *FeatureHost::connectionController() const
 /// \brief Returns the data-plugin registry.
 /// \return Data-plugin registry.
 ///
-PluginManager *FeatureHost::dataPlugins() const
+ServiceModuleManager *FeatureHost::dataModules() const
 {
-    return _dataPlugins;
+    return _dataModules;
 }
 
 ///

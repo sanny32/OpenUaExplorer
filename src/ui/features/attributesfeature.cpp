@@ -12,9 +12,9 @@
 #include <QDockWidget>
 
 #include "appsettings.h"
-#include "attributeplugin.h"
+#include "attributemodule.h"
 #include "featurehost.h"
-#include "pluginmanager.h"
+#include "servicemodulemanager.h"
 #include "selectioncontext.h"
 #include "widgets/attributeswidget.h"
 
@@ -41,11 +41,11 @@ void AttributesFeature::initialize(FeatureHost &host)
     _dock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetFloatable);
     _dock->setWidget(_widget);
 
-    auto *attributePlugin = host.dataPlugins()->plugin<AttributePlugin>();
+    auto *attributePlugin = host.dataModules()->module<AttributeModule>();
     SelectionContext *selection = host.selection();
 
     QObject::connect(_widget, &AttributesWidget::writeRequested,
-                     attributePlugin, &AttributePlugin::write);
+                     attributePlugin, &AttributeModule::write);
     QObject::connect(selection, &SelectionContext::detailsReady,
                      _widget, &AttributesWidget::setNodeDetails);
 
@@ -54,7 +54,7 @@ void AttributesFeature::initialize(FeatureHost &host)
                          if (!node.nodeId.isEmpty())
                              attributePlugin->read(node.nodeId);
                      });
-    QObject::connect(attributePlugin, &AttributePlugin::attributesReady,
+    QObject::connect(attributePlugin, &AttributeModule::attributesReady,
                      selection, &SelectionContext::setDetails);
 
     host.addDock(Qt::RightDockWidgetArea, _dock);

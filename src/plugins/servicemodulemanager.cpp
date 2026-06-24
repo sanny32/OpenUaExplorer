@@ -2,37 +2,37 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file pluginmanager.cpp
-/// \brief Implements the static plugin registry.
+/// \file servicemodulemanager.cpp
+/// \brief Implements the static module registry.
 ///
 
-#include "pluginmanager.h"
+#include "servicemodulemanager.h"
 
 #include "loggingcategories.h"
-#include "plugin.h"
-#include "plugincontext.h"
+#include "servicemodule.h"
+#include "servicecontext.h"
 
-PluginManager::PluginManager(QObject *parent)
+ServiceModuleManager::ServiceModuleManager(QObject *parent)
     : QObject(parent)
 {
 }
 
-void PluginManager::registerPlugin(Plugin *plugin)
+void ServiceModuleManager::registerModule(ServiceModule *module)
 {
-    if (!plugin)
+    if (!module)
         return;
-    plugin->setParent(this);
-    _plugins.append(plugin);
-    qCInfo(lcApp).noquote() << tr("Loaded %1 (Static Plugin)").arg(plugin->name());
+    module->setParent(this);
+    _modules.append(module);
+    qCInfo(lcApp).noquote() << tr("Loaded %1 (Service Module)").arg(module->name());
 }
 
-void PluginManager::initializeAll(PluginContext &context)
+void ServiceModuleManager::initializeAll(ServiceContext &context)
 {
-    for (Plugin *plugin : _plugins)
-        plugin->initialize(context);
+    for (ServiceModule *module : _modules)
+        module->initialize(context);
 }
 
-QList<Plugin *> PluginManager::plugins() const
+QList<ServiceModule *> ServiceModuleManager::modules() const
 {
-    return _plugins;
+    return _modules;
 }

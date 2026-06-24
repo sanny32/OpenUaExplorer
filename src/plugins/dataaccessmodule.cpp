@@ -2,38 +2,38 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file dataaccessplugin.cpp
+/// \file dataaccessmodule.cpp
 /// \brief Implements the data-access read and monitoring API and logging.
 ///
 
-#include "dataaccessplugin.h"
+#include "dataaccessmodule.h"
 
 #include <QLoggingCategory>
 
 #include "opcua/opcuaclientservice.h"
-#include "plugincontext.h"
+#include "servicecontext.h"
 
 namespace {
 Q_LOGGING_CATEGORY(lcDataAccess, "ouaexp.DataAccess")
 }
 
-DataAccessPlugin::DataAccessPlugin(QObject *parent)
-    : Plugin(parent)
+DataAccessModule::DataAccessModule(QObject *parent)
+    : ServiceModule(parent)
 {
 }
 
 ///
-/// \brief Returns the plugin name shown in the startup log.
+/// \brief Returns the module name shown in the startup log.
 ///
-QString DataAccessPlugin::name() const
+QString DataAccessModule::name() const
 {
-    return tr("Data Access Plugin");
+    return tr("Data Access Module");
 }
 
 ///
 /// \brief Returns the DataAccess logging category.
 ///
-const QLoggingCategory &DataAccessPlugin::logCategory() const
+const QLoggingCategory &DataAccessModule::logCategory() const
 {
     return lcDataAccess();
 }
@@ -42,20 +42,20 @@ const QLoggingCategory &DataAccessPlugin::logCategory() const
 /// \brief Observes value reads and monitoring completions to republish and log them.
 /// \param context Host context providing the client service.
 ///
-void DataAccessPlugin::initialize(PluginContext &context)
+void DataAccessModule::initialize(ServiceContext &context)
 {
     _clientService = context.clientService();
     connect(_clientService, &OpcUaClientService::dataValuesReady,
-            this, &DataAccessPlugin::handleValuesReady);
+            this, &DataAccessModule::handleValuesReady);
     connect(_clientService, &OpcUaClientService::monitoringFinished,
-            this, &DataAccessPlugin::handleMonitoringFinished);
+            this, &DataAccessModule::handleMonitoringFinished);
 }
 
 ///
 /// \brief Reads the values of several nodes.
 /// \param nodeIds Nodes to read.
 ///
-void DataAccessPlugin::read(const QStringList &nodeIds)
+void DataAccessModule::read(const QStringList &nodeIds)
 {
     _clientService->readValues(nodeIds);
 }
@@ -65,7 +65,7 @@ void DataAccessPlugin::read(const QStringList &nodeIds)
 /// \param nodeId Node to monitor.
 /// \param publishingInterval Publishing interval in milliseconds.
 ///
-void DataAccessPlugin::subscribe(const QString &nodeId, double publishingInterval)
+void DataAccessModule::subscribe(const QString &nodeId, double publishingInterval)
 {
     qCInfo(lcDataAccess).noquote()
         << tr("Creating monitored item for node '%1' (publishingInterval=%2 ms).")
@@ -77,7 +77,7 @@ void DataAccessPlugin::subscribe(const QString &nodeId, double publishingInterva
 /// \brief Logs and cancels monitoring for a node.
 /// \param nodeId Node to stop monitoring.
 ///
-void DataAccessPlugin::unsubscribe(const QString &nodeId)
+void DataAccessModule::unsubscribe(const QString &nodeId)
 {
     qCInfo(lcDataAccess).noquote() << tr("Disabling monitoring for node '%1'.").arg(nodeId);
     _clientService->unsubscribe(nodeId);
@@ -88,7 +88,7 @@ void DataAccessPlugin::unsubscribe(const QString &nodeId)
 /// \param values Latest values.
 /// \param error Read error, empty on success.
 ///
-void DataAccessPlugin::handleValuesReady(const QVector<OpcUaDataValue> &values, const QString &error)
+void DataAccessModule::handleValuesReady(const QVector<OpcUaDataValue> &values, const QString &error)
 {
     emit valuesReady(values, error);
 }
@@ -100,7 +100,7 @@ void DataAccessPlugin::handleValuesReady(const QVector<OpcUaDataValue> &values, 
 /// \param success Whether the request succeeded.
 /// \param error Error description, empty on success.
 ///
-void DataAccessPlugin::handleMonitoringFinished(const QString &nodeId, bool subscribed,
+void DataAccessModule::handleMonitoringFinished(const QString &nodeId, bool subscribed,
                                                 bool success, const QString &error)
 {
     if (success) {

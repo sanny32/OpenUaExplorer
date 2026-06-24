@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file pluginmanager.h
-/// \brief Declares the registry that owns and initializes the static plugins.
+/// \file servicemodulemanager.h
+/// \brief Declares the registry that owns and initializes the static modules.
 ///
 
 #pragma once
@@ -11,51 +11,51 @@
 #include <QList>
 #include <QObject>
 
-#include "plugin.h"
+#include "servicemodule.h"
 
-class PluginContext;
+class ServiceContext;
 
 ///
-/// \brief Owns the compiled-in plugins, logs their load, and initializes them once.
+/// \brief Owns the compiled-in modules, logs their load, and initializes them once.
 ///
-class PluginManager : public QObject
+class ServiceModuleManager : public QObject
 {
     Q_OBJECT
 
 public:
     ///
-    /// \brief Constructs an empty plugin registry.
+    /// \brief Constructs an empty module registry.
     /// \param parent Owning QObject.
     ///
-    explicit PluginManager(QObject *parent = nullptr);
+    explicit ServiceModuleManager(QObject *parent = nullptr);
 
     ///
-    /// \brief Takes ownership of a plugin and logs that it was loaded.
-    /// \param plugin Plugin to register; reparented to the manager.
+    /// \brief Takes ownership of a module and logs that it was loaded.
+    /// \param module ServiceModule to register; reparented to the manager.
     ///
-    void registerPlugin(Plugin *plugin);
+    void registerModule(ServiceModule *module);
 
     ///
-    /// \brief Initializes every registered plugin with the host context.
-    /// \param context Host context shared with the plugins.
+    /// \brief Initializes every registered module with the host context.
+    /// \param context Host context shared with the modules.
     ///
-    void initializeAll(PluginContext &context);
+    void initializeAll(ServiceContext &context);
 
     ///
-    /// \brief Returns the registered plugins in registration order.
-    /// \return Registered plugins.
+    /// \brief Returns the registered modules in registration order.
+    /// \return Registered modules.
     ///
-    QList<Plugin *> plugins() const;
+    QList<ServiceModule *> modules() const;
 
     ///
-    /// \brief Returns the first registered plugin of a given type.
-    /// \tparam T Concrete plugin type to look up.
-    /// \return Matching plugin, or nullptr when none is registered.
+    /// \brief Returns the first registered module of a given type.
+    /// \tparam T Concrete module type to look up.
+    /// \return Matching module, or nullptr when none is registered.
     ///
     template <class T>
-    T *plugin() const
+    T *module() const
     {
-        for (Plugin *candidate : _plugins) {
+        for (ServiceModule *candidate : _modules) {
             if (auto *typed = qobject_cast<T *>(candidate))
                 return typed;
         }
@@ -63,5 +63,5 @@ public:
     }
 
 private:
-    QList<Plugin *> _plugins;
+    QList<ServiceModule *> _modules;
 };

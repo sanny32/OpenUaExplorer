@@ -1,19 +1,19 @@
 add_library(ouaexp_plugins STATIC
-    plugin.h
-    plugincontext.cpp
-    plugincontext.h
-    pluginmanager.cpp
-    pluginmanager.h
-    serverplugin.cpp
-    serverplugin.h
-    addressspaceplugin.cpp
-    addressspaceplugin.h
-    attributeplugin.cpp
-    attributeplugin.h
-    referenceplugin.cpp
-    referenceplugin.h
-    dataaccessplugin.cpp
-    dataaccessplugin.h
+    servicemodule.h
+    servicecontext.cpp
+    servicecontext.h
+    servicemodulemanager.cpp
+    servicemodulemanager.h
+    servermodule.cpp
+    servermodule.h
+    addressspacemodule.cpp
+    addressspacemodule.h
+    attributemodule.cpp
+    attributemodule.h
+    referencemodule.cpp
+    referencemodule.h
+    dataaccessmodule.cpp
+    dataaccessmodule.h
 )
 
 target_include_directories(ouaexp_plugins PUBLIC

@@ -2,34 +2,34 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file addressspaceplugin.h
-/// \brief Declares the plugin that exposes the address-space browse API.
+/// \file addressspacemodule.h
+/// \brief Declares the module that exposes the address-space browse API.
 ///
 
 #pragma once
 
 #include "opcua/opcuatypes.h"
-#include "plugin.h"
+#include "servicemodule.h"
 
 class OpcUaClientService;
 
 ///
 /// \brief Provides the address-space browse API: request children and deliver them as a signal.
 ///
-class AddressSpacePlugin : public Plugin
+class AddressSpaceModule : public ServiceModule
 {
     Q_OBJECT
 
 public:
     ///
-    /// \brief Constructs the address space plugin.
+    /// \brief Constructs the address space module.
     /// \param parent Owning QObject.
     ///
-    explicit AddressSpacePlugin(QObject *parent = nullptr);
+    explicit AddressSpaceModule(QObject *parent = nullptr);
 
     QString name() const override;
     const QLoggingCategory &logCategory() const override;
-    void initialize(PluginContext &context) override;
+    void initialize(ServiceContext &context) override;
 
 public slots:
     ///

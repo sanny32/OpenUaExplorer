@@ -2,34 +2,34 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file referenceplugin.h
-/// \brief Declares the plugin that exposes the node-reference browse API.
+/// \file referencemodule.h
+/// \brief Declares the module that exposes the node-reference browse API.
 ///
 
 #pragma once
 
 #include "opcua/opcuatypes.h"
-#include "plugin.h"
+#include "servicemodule.h"
 
 class OpcUaClientService;
 
 ///
 /// \brief Provides the reference browse API: request a node's references and deliver them.
 ///
-class ReferencePlugin : public Plugin
+class ReferenceModule : public ServiceModule
 {
     Q_OBJECT
 
 public:
     ///
-    /// \brief Constructs the reference plugin.
+    /// \brief Constructs the reference module.
     /// \param parent Owning QObject.
     ///
-    explicit ReferencePlugin(QObject *parent = nullptr);
+    explicit ReferenceModule(QObject *parent = nullptr);
 
     QString name() const override;
     const QLoggingCategory &logCategory() const override;
-    void initialize(PluginContext &context) override;
+    void initialize(ServiceContext &context) override;
 
 public slots:
     ///

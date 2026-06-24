@@ -2,38 +2,38 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file referenceplugin.cpp
+/// \file referencemodule.cpp
 /// \brief Implements the reference browse API and logging.
 ///
 
-#include "referenceplugin.h"
+#include "referencemodule.h"
 
 #include <QLoggingCategory>
 
 #include "opcua/opcuaclientservice.h"
-#include "plugincontext.h"
+#include "servicecontext.h"
 
 namespace {
 Q_LOGGING_CATEGORY(lcReference, "ouaexp.Reference")
 }
 
-ReferencePlugin::ReferencePlugin(QObject *parent)
-    : Plugin(parent)
+ReferenceModule::ReferenceModule(QObject *parent)
+    : ServiceModule(parent)
 {
 }
 
 ///
-/// \brief Returns the plugin name shown in the startup log.
+/// \brief Returns the module name shown in the startup log.
 ///
-QString ReferencePlugin::name() const
+QString ReferenceModule::name() const
 {
-    return tr("Reference Plugin");
+    return tr("Reference Module");
 }
 
 ///
 /// \brief Returns the Reference logging category.
 ///
-const QLoggingCategory &ReferencePlugin::logCategory() const
+const QLoggingCategory &ReferenceModule::logCategory() const
 {
     return lcReference();
 }
@@ -42,18 +42,18 @@ const QLoggingCategory &ReferencePlugin::logCategory() const
 /// \brief Observes reference browse completions to log them and republish the references.
 /// \param context Host context providing the client service.
 ///
-void ReferencePlugin::initialize(PluginContext &context)
+void ReferenceModule::initialize(ServiceContext &context)
 {
     _clientService = context.clientService();
     connect(_clientService, &OpcUaClientService::referencesBrowseFinished,
-            this, &ReferencePlugin::handleReferencesFinished);
+            this, &ReferenceModule::handleReferencesFinished);
 }
 
 ///
 /// \brief Browses the forward references of a node.
 /// \param nodeId Node to browse.
 ///
-void ReferencePlugin::browseReferences(const QString &nodeId)
+void ReferenceModule::browseReferences(const QString &nodeId)
 {
     _clientService->browseReferences(nodeId);
 }
@@ -64,7 +64,7 @@ void ReferencePlugin::browseReferences(const QString &nodeId)
 /// \param references Reference browse result.
 /// \param error Browse error, empty on success.
 ///
-void ReferencePlugin::handleReferencesFinished(const QString &sourceNodeId,
+void ReferenceModule::handleReferencesFinished(const QString &sourceNodeId,
                                                const QVector<OpcUaNodeInfo> &references,
                                                const QString &error)
 {

@@ -3,7 +3,7 @@
 
 ///
 /// \file test_plugins.cpp
-/// \brief Tests the plugin framework registration and the plugin data API.
+/// \brief Tests the module framework registration and the module data API.
 ///
 
 #include <QLoggingCategory>
@@ -12,17 +12,17 @@
 #include <QString>
 #include <QTest>
 
-#include "addressspaceplugin.h"
-#include "attributeplugin.h"
-#include "dataaccessplugin.h"
+#include "addressspacemodule.h"
+#include "attributemodule.h"
+#include "dataaccessmodule.h"
 #include "opcua/opcuaclientservice.h"
-#include "plugincontext.h"
-#include "pluginmanager.h"
-#include "referenceplugin.h"
-#include "serverplugin.h"
+#include "servicecontext.h"
+#include "servicemodulemanager.h"
+#include "referencemodule.h"
+#include "servermodule.h"
 
 ///
-/// \brief Unit tests for the plugin manager and built-in plugins.
+/// \brief Unit tests for the module manager and built-in modules.
 ///
 class TestPlugins : public QObject
 {
@@ -37,60 +37,60 @@ private slots:
 namespace {
 
 ///
-/// \brief Registers the five built-in plugins with a manager.
+/// \brief Registers the five built-in modules with a manager.
 /// \param manager Manager to populate.
 ///
-void registerBuiltInPlugins(PluginManager &manager)
+void registerBuiltInPlugins(ServiceModuleManager &manager)
 {
-    manager.registerPlugin(new ServerPlugin);
-    manager.registerPlugin(new AddressSpacePlugin);
-    manager.registerPlugin(new AttributePlugin);
-    manager.registerPlugin(new ReferencePlugin);
-    manager.registerPlugin(new DataAccessPlugin);
+    manager.registerModule(new ServerModule);
+    manager.registerModule(new AddressSpaceModule);
+    manager.registerModule(new AttributeModule);
+    manager.registerModule(new ReferenceModule);
+    manager.registerModule(new DataAccessModule);
 }
 
 } // namespace
 
 ///
-/// \brief Every registered plugin is owned by the manager.
+/// \brief Every registered module is owned by the manager.
 ///
 void TestPlugins::registersAllPlugins()
 {
-    PluginManager manager;
+    ServiceModuleManager manager;
     registerBuiltInPlugins(manager);
-    QCOMPARE(manager.plugins().size(), 5);
+    QCOMPARE(manager.modules().size(), 5);
 }
 
 ///
-/// \brief Each plugin exposes a distinct name and logging category.
+/// \brief Each module exposes a distinct name and logging category.
 ///
 void TestPlugins::pluginsHaveDistinctNamesAndCategories()
 {
-    PluginManager manager;
+    ServiceModuleManager manager;
     registerBuiltInPlugins(manager);
 
     QSet<QString> names;
     QSet<QString> categories;
-    for (Plugin *plugin : manager.plugins()) {
-        names.insert(plugin->name());
-        categories.insert(QString::fromLatin1(plugin->logCategory().categoryName()));
+    for (ServiceModule *module : manager.modules()) {
+        names.insert(module->name());
+        categories.insert(QString::fromLatin1(module->logCategory().categoryName()));
     }
     QCOMPARE(names.size(), 5);
     QCOMPARE(categories.size(), 5);
 }
 
 ///
-/// \brief The DataAccessPlugin subscribe API forwards to the client service.
+/// \brief The DataAccessModule subscribe API forwards to the client service.
 ///
 void TestPlugins::subscribeApiReachesClientService()
 {
     OpcUaClientService service;
-    DataAccessPlugin plugin;
-    PluginContext context(&service, nullptr);
-    plugin.initialize(context);
+    DataAccessModule module;
+    ServiceContext context(&service, nullptr);
+    module.initialize(context);
 
-    QSignalSpy spy(&plugin, &DataAccessPlugin::monitoringFinished);
-    plugin.subscribe(QStringLiteral("ns=2;s=Temperature"), 500.0);
+    QSignalSpy spy(&module, &DataAccessModule::monitoringFinished);
+    module.subscribe(QStringLiteral("ns=2;s=Temperature"), 500.0);
     QTRY_COMPARE(spy.count(), 1);
     QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=2;s=Temperature"));
 }

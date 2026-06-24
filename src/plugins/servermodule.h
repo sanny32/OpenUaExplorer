@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file serverplugin.h
-/// \brief Declares the headless plugin that logs the connection lifecycle.
+/// \file servermodule.h
+/// \brief Declares the headless module that logs the connection lifecycle.
 ///
 
 #pragma once
 
 #include "opcua/opcuatypes.h"
-#include "plugin.h"
+#include "servicemodule.h"
 
 class OpcUaClientService;
 class ConnectionController;
@@ -17,20 +17,20 @@ class ConnectionController;
 ///
 /// \brief Logs server connection lifecycle events under the Server source.
 ///
-class ServerPlugin : public Plugin
+class ServerModule : public ServiceModule
 {
     Q_OBJECT
 
 public:
     ///
-    /// \brief Constructs the server plugin.
+    /// \brief Constructs the server module.
     /// \param parent Owning QObject.
     ///
-    explicit ServerPlugin(QObject *parent = nullptr);
+    explicit ServerModule(QObject *parent = nullptr);
 
     QString name() const override;
     const QLoggingCategory &logCategory() const override;
-    void initialize(PluginContext &context) override;
+    void initialize(ServiceContext &context) override;
 
 private:
     void handleStateChanged(OpcUaConnectionState state);

@@ -84,6 +84,7 @@ private:
     void applyThemeMode(AppSettings::ThemeMode mode);
     void setupOpcUaClient();
     void setupPlugins();
+    void setupDataAccessWiring();
     void updateClientUi(OpcUaConnectionState state);
     void initializeAddressSpace();
     void addNodeToDataAccess(const QString &nodeId);
@@ -109,14 +110,14 @@ private:
     Ui::MainWindow *ui;
     class ConnectionController *_connectionController;
     class OpcUaClientService *_clientService;
-    class PluginManager *_pluginManager = nullptr;
+    class ServiceModuleManager *_pluginManager = nullptr;
     class FeatureManager *_featureManager = nullptr;
     class SelectionContext *_selectionContext = nullptr;
-    class ServerPlugin *_serverPlugin = nullptr;
-    class AddressSpacePlugin *_addressSpacePlugin = nullptr;
-    class AttributePlugin *_attributePlugin = nullptr;
-    class ReferencePlugin *_referencePlugin = nullptr;
-    class DataAccessPlugin *_dataAccessPlugin = nullptr;
+    class ServerModule *_serverPlugin = nullptr;
+    class AddressSpaceModule *_addressSpacePlugin = nullptr;
+    class AttributeModule *_attributePlugin = nullptr;
+    class ReferenceModule *_referencePlugin = nullptr;
+    class DataAccessModule *_dataAccessPlugin = nullptr;
     class FavoritesWidget *_favoritesWidget = nullptr;
     OpcUaNodeDetails _selectedNodeDetails;
     QSet<QString> _subscribedNodeIds;

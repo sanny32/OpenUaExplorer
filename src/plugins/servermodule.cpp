@@ -2,18 +2,18 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file serverplugin.cpp
+/// \file servermodule.cpp
 /// \brief Implements connection lifecycle logging.
 ///
 
-#include "serverplugin.h"
+#include "servermodule.h"
 
 #include <QLoggingCategory>
 
 #include "opcua/connectioncontroller.h"
 #include "opcua/connectionprofile.h"
 #include "opcua/opcuaclientservice.h"
-#include "plugincontext.h"
+#include "servicecontext.h"
 
 namespace {
 
@@ -46,23 +46,23 @@ QString authenticationName(ConnectionProfile::Authentication authentication)
 
 } // namespace
 
-ServerPlugin::ServerPlugin(QObject *parent)
-    : Plugin(parent)
+ServerModule::ServerModule(QObject *parent)
+    : ServiceModule(parent)
 {
 }
 
 ///
-/// \brief Returns the plugin name shown in the startup log.
+/// \brief Returns the module name shown in the startup log.
 ///
-QString ServerPlugin::name() const
+QString ServerModule::name() const
 {
-    return tr("Server Plugin");
+    return tr("Server Module");
 }
 
 ///
 /// \brief Returns the Server logging category.
 ///
-const QLoggingCategory &ServerPlugin::logCategory() const
+const QLoggingCategory &ServerModule::logCategory() const
 {
     return lcServer();
 }
@@ -71,19 +71,19 @@ const QLoggingCategory &ServerPlugin::logCategory() const
 /// \brief Subscribes to the client service connection state changes.
 /// \param context Host context providing the client service and controller.
 ///
-void ServerPlugin::initialize(PluginContext &context)
+void ServerModule::initialize(ServiceContext &context)
 {
     _clientService = context.clientService();
     _connectionController = context.connectionController();
     connect(_clientService, &OpcUaClientService::stateChanged,
-            this, &ServerPlugin::handleStateChanged);
+            this, &ServerModule::handleStateChanged);
 }
 
 ///
 /// \brief Logs the endpoint block on connect and every connection state transition.
 /// \param state New connection state.
 ///
-void ServerPlugin::handleStateChanged(OpcUaConnectionState state)
+void ServerModule::handleStateChanged(OpcUaConnectionState state)
 {
     if (state == OpcUaConnectionState::Connecting && _connectionController) {
         const ConnectionProfile &profile = _connectionController->activeProfile();

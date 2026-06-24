@@ -11,12 +11,12 @@
 #include <QCoreApplication>
 #include <QDockWidget>
 
-#include "addressspaceplugin.h"
+#include "addressspacemodule.h"
 #include "appsettings.h"
 #include "featurehost.h"
 #include "opcua/standardnodeid.h"
-#include "pluginmanager.h"
-#include "referenceplugin.h"
+#include "servicemodulemanager.h"
+#include "referencemodule.h"
 #include "selectioncontext.h"
 #include "widgets/addressspacewidget.h"
 
@@ -52,18 +52,18 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
     _nodeDetailsDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetFloatable);
     _nodeDetailsDock->setWidget(_widget->takeNodeDetailsPanel());
 
-    auto *addressSpacePlugin = host.dataPlugins()->plugin<AddressSpacePlugin>();
-    auto *referencePlugin = host.dataPlugins()->plugin<ReferencePlugin>();
+    auto *addressSpacePlugin = host.dataModules()->module<AddressSpaceModule>();
+    auto *referencePlugin = host.dataModules()->module<ReferenceModule>();
 
     QObject::connect(_widget, &AddressSpaceWidget::browseRequested,
-                     addressSpacePlugin, &AddressSpacePlugin::browse);
+                     addressSpacePlugin, &AddressSpaceModule::browse);
     QObject::connect(_widget, &AddressSpaceWidget::refreshRequested,
-                     addressSpacePlugin, &AddressSpacePlugin::refresh);
-    QObject::connect(addressSpacePlugin, &AddressSpacePlugin::childrenReady,
+                     addressSpacePlugin, &AddressSpaceModule::refresh);
+    QObject::connect(addressSpacePlugin, &AddressSpaceModule::childrenReady,
                      _widget, &AddressSpaceWidget::setBrowseChildren);
     QObject::connect(_widget, &AddressSpaceWidget::referencesRequested,
-                     referencePlugin, &ReferencePlugin::browseReferences);
-    QObject::connect(referencePlugin, &ReferencePlugin::referencesReady,
+                     referencePlugin, &ReferenceModule::browseReferences);
+    QObject::connect(referencePlugin, &ReferenceModule::referencesReady,
                      _widget, &AddressSpaceWidget::setBrowseReferences);
     QObject::connect(_widget, &AddressSpaceWidget::nodeSelected,
                      host.selection(), &SelectionContext::selectNode);

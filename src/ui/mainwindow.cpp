@@ -34,13 +34,13 @@
 #include "mainwindow.h"
 #include "opcua/connectioncontroller.h"
 #include "opcua/opcuaclientservice.h"
-#include "addressspaceplugin.h"
-#include "attributeplugin.h"
-#include "dataaccessplugin.h"
-#include "plugincontext.h"
-#include "pluginmanager.h"
-#include "referenceplugin.h"
-#include "serverplugin.h"
+#include "addressspacemodule.h"
+#include "attributemodule.h"
+#include "dataaccessmodule.h"
+#include "servicecontext.h"
+#include "servicemodulemanager.h"
+#include "referencemodule.h"
+#include "servermodule.h"
 #include "ui_mainwindow.h"
 #include "widgets/dataaccesswidget.h"
 #include "widgets/favoriteswidget.h"
@@ -549,21 +549,21 @@ void MainWindow::setupOpcUaClient()
 ///
 void MainWindow::setupPlugins()
 {
-    _pluginManager = new PluginManager(this);
+    _pluginManager = new ServiceModuleManager(this);
     _featureManager = new FeatureManager(this);
     _selectionContext = new SelectionContext(this);
 
-    _serverPlugin = new ServerPlugin;
-    _addressSpacePlugin = new AddressSpacePlugin;
-    _attributePlugin = new AttributePlugin;
-    _referencePlugin = new ReferencePlugin;
-    _dataAccessPlugin = new DataAccessPlugin;
+    _serverPlugin = new ServerModule;
+    _addressSpacePlugin = new AddressSpaceModule;
+    _attributePlugin = new AttributeModule;
+    _referencePlugin = new ReferenceModule;
+    _dataAccessPlugin = new DataAccessModule;
 
-    _pluginManager->registerPlugin(_serverPlugin);
-    _pluginManager->registerPlugin(_addressSpacePlugin);
-    _pluginManager->registerPlugin(_attributePlugin);
-    _pluginManager->registerPlugin(_referencePlugin);
-    _pluginManager->registerPlugin(_dataAccessPlugin);
+    _pluginManager->registerModule(_serverPlugin);
+    _pluginManager->registerModule(_addressSpacePlugin);
+    _pluginManager->registerModule(_attributePlugin);
+    _pluginManager->registerModule(_referencePlugin);
+    _pluginManager->registerModule(_dataAccessPlugin);
 
     FeatureHost host(this,
                      ui->menuView,
@@ -576,27 +576,38 @@ void MainWindow::setupPlugins()
     registerBuiltinFeatures(*_featureManager);
     _featureManager->initializeAll(host);
 
-    PluginContext context(_clientService, _connectionController);
+    ServiceContext context(_clientService, _connectionController);
     _pluginManager->initializeAll(context);
 
-    connect(_attributePlugin, &AttributePlugin::attributesReady,
+    connect(_attributePlugin, &AttributeModule::attributesReady,
             this, &MainWindow::onAttributeDetailsReady);
     connect(_selectionContext, &SelectionContext::detailsReady,
             this, &MainWindow::onNodeDetailsReady);
     connect(_selectionContext, &SelectionContext::cleared,
             this, &MainWindow::onSelectionCleared);
-    connect(_attributePlugin, &AttributePlugin::writeFinished,
+    connect(_attributePlugin, &AttributeModule::writeFinished,
             this, &MainWindow::onWriteFinished);
 
+    setupDataAccessWiring();
+}
+
+///
+/// \brief Connects the data-access view and its plugin for reads and monitoring.
+///
+/// The data-access area is a central-widget monitoring controller, not a dock feature:
+/// this groups its plugin wiring so the coupling stays discoverable in one place.
+///
+void MainWindow::setupDataAccessWiring()
+{
     connect(ui->dataAccessWidget, &DataAccessWidget::readRequested,
-            _dataAccessPlugin, &DataAccessPlugin::read);
+            _dataAccessPlugin, &DataAccessModule::read);
     connect(ui->dataAccessWidget, &DataAccessWidget::monitoringRequested,
-            _dataAccessPlugin, &DataAccessPlugin::subscribe);
+            _dataAccessPlugin, &DataAccessModule::subscribe);
     connect(ui->dataAccessWidget, &DataAccessWidget::monitoringCancelled,
-            _dataAccessPlugin, &DataAccessPlugin::unsubscribe);
-    connect(_dataAccessPlugin, &DataAccessPlugin::valuesReady,
+            _dataAccessPlugin, &DataAccessModule::unsubscribe);
+    connect(_dataAccessPlugin, &DataAccessModule::valuesReady,
             this, &MainWindow::onDataValuesReady);
-    connect(_dataAccessPlugin, &DataAccessPlugin::monitoringFinished,
+    connect(_dataAccessPlugin, &DataAccessModule::monitoringFinished,
             this, &MainWindow::onMonitoringFinished);
 }
 

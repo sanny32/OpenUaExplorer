@@ -2,38 +2,38 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file attributeplugin.cpp
+/// \file attributemodule.cpp
 /// \brief Implements the attribute read/write API and logging.
 ///
 
-#include "attributeplugin.h"
+#include "attributemodule.h"
 
 #include <QLoggingCategory>
 
 #include "opcua/opcuaclientservice.h"
-#include "plugincontext.h"
+#include "servicecontext.h"
 
 namespace {
 Q_LOGGING_CATEGORY(lcAttribute, "ouaexp.Attribute")
 }
 
-AttributePlugin::AttributePlugin(QObject *parent)
-    : Plugin(parent)
+AttributeModule::AttributeModule(QObject *parent)
+    : ServiceModule(parent)
 {
 }
 
 ///
-/// \brief Returns the plugin name shown in the startup log.
+/// \brief Returns the module name shown in the startup log.
 ///
-QString AttributePlugin::name() const
+QString AttributeModule::name() const
 {
-    return tr("Attribute Plugin");
+    return tr("Attribute Module");
 }
 
 ///
 /// \brief Returns the Attribute logging category.
 ///
-const QLoggingCategory &AttributePlugin::logCategory() const
+const QLoggingCategory &AttributeModule::logCategory() const
 {
     return lcAttribute();
 }
@@ -42,20 +42,20 @@ const QLoggingCategory &AttributePlugin::logCategory() const
 /// \brief Observes read and write completions to log them and republish the results.
 /// \param context Host context providing the client service.
 ///
-void AttributePlugin::initialize(PluginContext &context)
+void AttributeModule::initialize(ServiceContext &context)
 {
     _clientService = context.clientService();
     connect(_clientService, &OpcUaClientService::nodeDetailsReady,
-            this, &AttributePlugin::handleNodeDetailsReady);
+            this, &AttributeModule::handleNodeDetailsReady);
     connect(_clientService, &OpcUaClientService::writeFinished,
-            this, &AttributePlugin::handleWriteFinished);
+            this, &AttributeModule::handleWriteFinished);
 }
 
 ///
 /// \brief Reads a node's attribute set.
 /// \param nodeId Node to read.
 ///
-void AttributePlugin::read(const QString &nodeId)
+void AttributeModule::read(const QString &nodeId)
 {
     _clientService->readNode(nodeId);
 }
@@ -66,7 +66,7 @@ void AttributePlugin::read(const QString &nodeId)
 /// \param value Value to write.
 /// \param valueType OPC UA type of the value.
 ///
-void AttributePlugin::write(const QString &nodeId, const QVariant &value, int valueType)
+void AttributeModule::write(const QString &nodeId, const QVariant &value, int valueType)
 {
     _clientService->writeValue(nodeId, value, valueType);
 }
@@ -76,7 +76,7 @@ void AttributePlugin::write(const QString &nodeId, const QVariant &value, int va
 /// \param details Read node details.
 /// \param error Read error, empty on success.
 ///
-void AttributePlugin::handleNodeDetailsReady(const OpcUaNodeDetails &details, const QString &error)
+void AttributeModule::handleNodeDetailsReady(const OpcUaNodeDetails &details, const QString &error)
 {
     if (error.isEmpty())
         qCInfo(lcAttribute).noquote()
@@ -92,7 +92,7 @@ void AttributePlugin::handleNodeDetailsReady(const OpcUaNodeDetails &details, co
 /// \param success Whether the write succeeded.
 /// \param error Write error, empty on success.
 ///
-void AttributePlugin::handleWriteFinished(const QString &nodeId, bool success, const QString &error)
+void AttributeModule::handleWriteFinished(const QString &nodeId, bool success, const QString &error)
 {
     if (success)
         qCInfo(lcAttribute).noquote() << tr("Write to node '%1' succeeded.").arg(nodeId);

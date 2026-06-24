@@ -2,25 +2,25 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file plugincontext.cpp
-/// \brief Implements the plugin host context accessors.
+/// \file servicecontext.cpp
+/// \brief Implements the module host context accessors.
 ///
 
-#include "plugincontext.h"
+#include "servicecontext.h"
 
-PluginContext::PluginContext(OpcUaClientService *clientService,
+ServiceContext::ServiceContext(OpcUaClientService *clientService,
                              ConnectionController *connectionController)
     : _clientService(clientService)
     , _connectionController(connectionController)
 {
 }
 
-OpcUaClientService *PluginContext::clientService() const
+OpcUaClientService *ServiceContext::clientService() const
 {
     return _clientService;
 }
 
-ConnectionController *PluginContext::connectionController() const
+ConnectionController *ServiceContext::connectionController() const
 {
     return _connectionController;
 }

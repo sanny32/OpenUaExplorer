@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file dataaccessplugin.h
-/// \brief Declares the plugin that exposes the data-access and monitoring API.
+/// \file dataaccessmodule.h
+/// \brief Declares the module that exposes the data-access and monitoring API.
 ///
 
 #pragma once
@@ -11,7 +11,7 @@
 #include <QStringList>
 
 #include "opcua/opcuatypes.h"
-#include "plugin.h"
+#include "servicemodule.h"
 
 class OpcUaClientService;
 
@@ -22,20 +22,20 @@ class OpcUaClientService;
 /// widget and the MainWindow toolbar) invoke it directly. Streamed value updates that
 /// arrive through valuesReady() are intentionally not logged.
 ///
-class DataAccessPlugin : public Plugin
+class DataAccessModule : public ServiceModule
 {
     Q_OBJECT
 
 public:
     ///
-    /// \brief Constructs the data access plugin.
+    /// \brief Constructs the data access module.
     /// \param parent Owning QObject.
     ///
-    explicit DataAccessPlugin(QObject *parent = nullptr);
+    explicit DataAccessModule(QObject *parent = nullptr);
 
     QString name() const override;
     const QLoggingCategory &logCategory() const override;
-    void initialize(PluginContext &context) override;
+    void initialize(ServiceContext &context) override;
 
 public slots:
     ///

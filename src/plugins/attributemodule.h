@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file attributeplugin.h
-/// \brief Declares the plugin that exposes the node attribute read/write API.
+/// \file attributemodule.h
+/// \brief Declares the module that exposes the node attribute read/write API.
 ///
 
 #pragma once
@@ -11,27 +11,27 @@
 #include <QVariant>
 
 #include "opcua/opcuatypes.h"
-#include "plugin.h"
+#include "servicemodule.h"
 
 class OpcUaClientService;
 
 ///
 /// \brief Provides the attribute API: read a node's attributes and write its value.
 ///
-class AttributePlugin : public Plugin
+class AttributeModule : public ServiceModule
 {
     Q_OBJECT
 
 public:
     ///
-    /// \brief Constructs the attribute plugin.
+    /// \brief Constructs the attribute module.
     /// \param parent Owning QObject.
     ///
-    explicit AttributePlugin(QObject *parent = nullptr);
+    explicit AttributeModule(QObject *parent = nullptr);
 
     QString name() const override;
     const QLoggingCategory &logCategory() const override;
-    void initialize(PluginContext &context) override;
+    void initialize(ServiceContext &context) override;
 
 public slots:
     ///
