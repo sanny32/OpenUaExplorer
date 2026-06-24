@@ -324,19 +324,6 @@
         <number>24</number>
        </property>
        <item>
-        <widget class="QLabel" name="authorsLabel">
-         <property name="text">
-          <string>Authors</string>
-         </property>
-         <property name="textFormat">
-          <enum>Qt::TextFormat::RichText</enum>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-         </property>
-        </widget>
-       </item>
-       <item>
         <spacer name="authorsSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -374,7 +361,7 @@
           <enum>QFrame::NoFrame</enum>
          </property>
          <property name="lineWrapMode">
-          <enum>QTextEdit::WidgetWidth</enum>
+          <enum>QTextEdit::LineWrapMode::WidgetWidth</enum>
          </property>
          <property name="openExternalLinks">
           <bool>true</bool>
@@ -387,46 +374,73 @@
       <attribute name="title">
        <string>Components</string>
       </attribute>
-      <layout class="QVBoxLayout" name="componentsLayout">
-       <property name="leftMargin">
-        <number>28</number>
-       </property>
-       <property name="topMargin">
-        <number>24</number>
-       </property>
-       <property name="rightMargin">
-        <number>28</number>
-       </property>
-       <property name="bottomMargin">
-        <number>24</number>
-       </property>
-       <item>
-        <widget class="QLabel" name="componentsLabel">
-         <property name="text">
-          <string>Components</string>
-         </property>
-         <property name="textFormat">
-          <enum>Qt::TextFormat::RichText</enum>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="componentsSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
+       <layout class="QVBoxLayout" name="componentsTabLayout">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QScrollArea" name="componentsScrollArea">
+          <property name="frameShape">
+           <enum>QFrame::NoFrame</enum>
+          </property>
+          <property name="sizeAdjustPolicy">
+           <enum>QAbstractScrollArea::AdjustIgnored</enum>
+          </property>
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QWidget" name="componentsScrollAreaContents">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>554</width>
+             <height>200</height>
+            </rect>
+           </property>
+           <layout class="QVBoxLayout" name="componentsLayout">
+            <property name="leftMargin">
+             <number>28</number>
+            </property>
+            <property name="topMargin">
+             <number>24</number>
+            </property>
+            <property name="rightMargin">
+             <number>28</number>
+            </property>
+            <property name="bottomMargin">
+             <number>24</number>
+            </property>
+            <item>
+             <spacer name="componentsSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
      </widget>
     </widget>
    </item>

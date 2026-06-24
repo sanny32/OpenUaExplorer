@@ -148,8 +148,6 @@ void DialogAbout::setupLayout()
 ///
 void DialogAbout::setupAuthors()
 {
-    ui->authorsLabel->hide();
-
     const QJsonObject data = aboutData();
     const QStringList sections = { QStringLiteral("authors"), QStringLiteral("contributors") };
     int authorIndex = 0;
@@ -180,8 +178,6 @@ void DialogAbout::setupAuthors()
 ///
 void DialogAbout::setupComponents()
 {
-    ui->componentsLabel->hide();
-
     int componentIndex = 0;
     int layoutIndex = 0;
 
@@ -191,12 +187,28 @@ void DialogAbout::setupComponents()
                  QUrl(QStringLiteral("https://www.qt.io")),
                  &layoutIndex,
                  &componentIndex);
+
     addComponent(QStringLiteral("Qt OPC UA"),
                  QStringLiteral(QT_VERSION_STR),
                  tr("OPC UA client module with the open62541 backend."),
                  QUrl(QStringLiteral("https://doc.qt.io/qt-6/qtopcua-index.html")),
                  &layoutIndex,
                  &componentIndex);
+
+    addComponent(QStringLiteral("QtKeychain"),
+                 QStringLiteral(QTKEYCHAIN_VERSION),
+                 tr("Secure storage integration for application secrets."),
+                 QUrl(QStringLiteral("https://github.com/frankosterfeld/qtkeychain")),
+                 &layoutIndex,
+                 &componentIndex);
+
+    addComponent(QStringLiteral("OpenSSL"),
+                 QStringLiteral(OPENSSL_VERSION),
+                 tr("Cryptography and TLS support library."),
+                 QUrl(QStringLiteral("https://www.openssl.org")),
+                 &layoutIndex,
+                 &componentIndex);
+
     addComponent(QSysInfo::prettyProductName(),
                  QSysInfo::currentCpuArchitecture(),
                  tr("Underlying platform."),
@@ -211,6 +223,7 @@ void DialogAbout::setupComponents()
                  QUrl(QStringLiteral("https://github.com/oclero/qlementine")),
                  &layoutIndex,
                  &componentIndex);
+
     addComponent(QStringLiteral("Qlementine Icons"),
                  QStringLiteral(QLEMENTINE_ICONS_VERSION),
                  tr("Modern Qt Widgets icon theme."),

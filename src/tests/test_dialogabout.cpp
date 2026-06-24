@@ -14,6 +14,7 @@
 #include <QJsonValue>
 #include <QLabel>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QTabWidget>
 #include <QTextBrowser>
 #include <QTextDocument>
@@ -87,19 +88,31 @@ void TestDialogAbout::listsComponents()
     QVERIFY(tabWidget->tabText(3).contains(QStringLiteral("Components")));
     QVERIFY(!tabWidget->tabText(3).contains(QStringLiteral("Credits")));
 
+    auto *componentsScrollArea = dialog.findChild<QScrollArea *>(QStringLiteral("componentsScrollArea"));
     auto *qtTitle = dialog.findChild<QLabel *>(QStringLiteral("componentTitleLabel0"));
     auto *qtVersion = dialog.findChild<QLabel *>(QStringLiteral("componentVersionLabel0"));
     auto *qtDescription = dialog.findChild<QLabel *>(QStringLiteral("componentDescriptionLabel0"));
     auto *opcUaTitle = dialog.findChild<QLabel *>(QStringLiteral("componentTitleLabel1"));
+    auto *qtKeychainTitle = dialog.findChild<QLabel *>(QStringLiteral("componentTitleLabel2"));
+    auto *qtKeychainVersion = dialog.findChild<QLabel *>(QStringLiteral("componentVersionLabel2"));
+    auto *openSslTitle = dialog.findChild<QLabel *>(QStringLiteral("componentTitleLabel3"));
+    auto *openSslVersion = dialog.findChild<QLabel *>(QStringLiteral("componentVersionLabel3"));
     auto *platformDescription =
-        dialog.findChild<QLabel *>(QStringLiteral("componentDescriptionLabel2"));
+        dialog.findChild<QLabel *>(QStringLiteral("componentDescriptionLabel4"));
     auto *qtButton = dialog.findChild<QPushButton *>(QStringLiteral("componentContactButton0"));
     auto *platformButton =
-        dialog.findChild<QPushButton *>(QStringLiteral("componentContactButton2"));
+        dialog.findChild<QPushButton *>(QStringLiteral("componentContactButton4"));
+    QVERIFY(componentsScrollArea);
+    QVERIFY(componentsScrollArea->widgetResizable());
+    QCOMPARE(componentsScrollArea->frameShape(), QFrame::NoFrame);
     QVERIFY(qtTitle);
     QVERIFY(qtVersion);
     QVERIFY(qtDescription);
     QVERIFY(opcUaTitle);
+    QVERIFY(qtKeychainTitle);
+    QVERIFY(qtKeychainVersion);
+    QVERIFY(openSslTitle);
+    QVERIFY(openSslVersion);
     QVERIFY(platformDescription);
     QVERIFY(qtButton);
     QVERIFY(platformButton);
@@ -109,6 +122,10 @@ void TestDialogAbout::listsComponents()
     QVERIFY(qtVersion->text().contains(QStringLiteral(QT_VERSION_STR)));
     QVERIFY(qtDescription->text().contains(QStringLiteral("Cross-platform")));
     QCOMPARE(opcUaTitle->text(), QStringLiteral("Qt OPC UA"));
+    QCOMPARE(qtKeychainTitle->text(), QStringLiteral("QtKeychain"));
+    QVERIFY(qtKeychainVersion->text().contains(QStringLiteral(QTKEYCHAIN_VERSION)));
+    QCOMPARE(openSslTitle->text(), QStringLiteral("OpenSSL"));
+    QVERIFY(openSslVersion->text().contains(QStringLiteral(OPENSSL_VERSION)));
     QCOMPARE(platformDescription->text(), QStringLiteral("Underlying platform."));
     QVERIFY(qtButton->isVisibleTo(qtButton->parentWidget()));
     QVERIFY(!platformButton->isVisibleTo(platformButton->parentWidget()));
@@ -155,7 +172,7 @@ void TestDialogAbout::resizesTabAreaInsteadOfHeader()
     const int headerHeight = headerWidget->height();
     const int tabHeight = tabWidget->height();
 
-    dialog.resize(600, 700);
+    dialog.resize(dialog.width(), dialog.height() + 200);
     QApplication::processEvents();
 
     QCOMPARE(headerWidget->height(), headerHeight);

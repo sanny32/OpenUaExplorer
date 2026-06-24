@@ -3,6 +3,8 @@ include(FetchContent)
 option(OUAEXP_FETCH_QTKEYCHAIN
     "Fetch and build QtKeychain when it is not installed" ON)
 
+set(QTKEYCHAIN_VERSION "0.16.0")
+
 find_package(Qt${QT_VERSION_MAJOR}Keychain CONFIG QUIET)
 if(NOT TARGET qt${QT_VERSION_MAJOR}keychain AND OUAEXP_FETCH_QTKEYCHAIN)
     set(BUILD_WITH_QT6 OFF CACHE BOOL "Build QtKeychain with Qt 6" FORCE)
@@ -22,7 +24,7 @@ if(NOT TARGET qt${QT_VERSION_MAJOR}keychain AND OUAEXP_FETCH_QTKEYCHAIN)
 
     FetchContent_Declare(qtkeychain
         GIT_REPOSITORY https://github.com/frankosterfeld/qtkeychain.git
-        GIT_TAG 0.16.0
+        GIT_TAG ${QTKEYCHAIN_VERSION}
         GIT_SHALLOW TRUE
     )
     FetchContent_MakeAvailable(qtkeychain)
