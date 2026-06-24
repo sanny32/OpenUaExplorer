@@ -15,6 +15,7 @@
 #include "appsettings.h"
 #include "featurehost.h"
 #include "opcua/standardnodeid.h"
+#include "pluginmanager.h"
 #include "referenceplugin.h"
 #include "selectioncontext.h"
 #include "widgets/addressspacewidget.h"
@@ -51,15 +52,18 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
     _nodeDetailsDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetFloatable);
     _nodeDetailsDock->setWidget(_widget->takeNodeDetailsPanel());
 
+    auto *addressSpacePlugin = host.dataPlugins()->plugin<AddressSpacePlugin>();
+    auto *referencePlugin = host.dataPlugins()->plugin<ReferencePlugin>();
+
     QObject::connect(_widget, &AddressSpaceWidget::browseRequested,
-                     host.addressSpacePlugin(), &AddressSpacePlugin::browse);
+                     addressSpacePlugin, &AddressSpacePlugin::browse);
     QObject::connect(_widget, &AddressSpaceWidget::refreshRequested,
-                     host.addressSpacePlugin(), &AddressSpacePlugin::refresh);
-    QObject::connect(host.addressSpacePlugin(), &AddressSpacePlugin::childrenReady,
+                     addressSpacePlugin, &AddressSpacePlugin::refresh);
+    QObject::connect(addressSpacePlugin, &AddressSpacePlugin::childrenReady,
                      _widget, &AddressSpaceWidget::setBrowseChildren);
     QObject::connect(_widget, &AddressSpaceWidget::referencesRequested,
-                     host.referencePlugin(), &ReferencePlugin::browseReferences);
-    QObject::connect(host.referencePlugin(), &ReferencePlugin::referencesReady,
+                     referencePlugin, &ReferencePlugin::browseReferences);
+    QObject::connect(referencePlugin, &ReferencePlugin::referencesReady,
                      _widget, &AddressSpaceWidget::setBrowseReferences);
     QObject::connect(_widget, &AddressSpaceWidget::nodeSelected,
                      host.selection(), &SelectionContext::selectNode);

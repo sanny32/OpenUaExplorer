@@ -26,11 +26,6 @@
 /// \param dataPlugins Shared data-plugin registry.
 /// \param features Feature registry receiving contributions.
 /// \param selection Shared selected-node context.
-/// \param serverPlugin Built-in server plugin.
-/// \param addressSpacePlugin Built-in address-space plugin.
-/// \param referencePlugin Built-in reference plugin.
-/// \param attributePlugin Built-in attribute plugin.
-/// \param dataAccessPlugin Built-in data-access plugin.
 ///
 FeatureHost::FeatureHost(QMainWindow *mainWindow,
                          QMenu *viewMenu,
@@ -39,12 +34,7 @@ FeatureHost::FeatureHost(QMainWindow *mainWindow,
                          ConnectionController *connectionController,
                          PluginManager *dataPlugins,
                          FeatureManager *features,
-                         SelectionContext *selection,
-                         ServerPlugin *serverPlugin,
-                         AddressSpacePlugin *addressSpacePlugin,
-                         ReferencePlugin *referencePlugin,
-                         AttributePlugin *attributePlugin,
-                         DataAccessPlugin *dataAccessPlugin)
+                         SelectionContext *selection)
     : _mainWindow(mainWindow)
     , _viewMenu(viewMenu)
     , _toolBar(toolBar)
@@ -53,11 +43,6 @@ FeatureHost::FeatureHost(QMainWindow *mainWindow,
     , _dataPlugins(dataPlugins)
     , _features(features)
     , _selection(selection)
-    , _serverPlugin(serverPlugin)
-    , _addressSpacePlugin(addressSpacePlugin)
-    , _referencePlugin(referencePlugin)
-    , _attributePlugin(attributePlugin)
-    , _dataAccessPlugin(dataAccessPlugin)
 {
 }
 
@@ -131,51 +116,6 @@ FeatureManager *FeatureHost::features() const
 SelectionContext *FeatureHost::selection() const
 {
     return _selection;
-}
-
-///
-/// \brief Returns the built-in server plugin.
-/// \return Server plugin.
-///
-ServerPlugin *FeatureHost::serverPlugin() const
-{
-    return _serverPlugin;
-}
-
-///
-/// \brief Returns the built-in address-space plugin.
-/// \return Address-space plugin.
-///
-AddressSpacePlugin *FeatureHost::addressSpacePlugin() const
-{
-    return _addressSpacePlugin;
-}
-
-///
-/// \brief Returns the built-in reference plugin.
-/// \return Reference plugin.
-///
-ReferencePlugin *FeatureHost::referencePlugin() const
-{
-    return _referencePlugin;
-}
-
-///
-/// \brief Returns the built-in attribute plugin.
-/// \return Attribute plugin.
-///
-AttributePlugin *FeatureHost::attributePlugin() const
-{
-    return _attributePlugin;
-}
-
-///
-/// \brief Returns the built-in data-access plugin.
-/// \return Data-access plugin.
-///
-DataAccessPlugin *FeatureHost::dataAccessPlugin() const
-{
-    return _dataAccessPlugin;
 }
 
 ///

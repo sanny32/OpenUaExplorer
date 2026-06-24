@@ -11,7 +11,8 @@
 #include <QList>
 #include <QObject>
 
-class Plugin;
+#include "plugin.h"
+
 class PluginContext;
 
 ///
@@ -45,6 +46,21 @@ public:
     /// \return Registered plugins.
     ///
     QList<Plugin *> plugins() const;
+
+    ///
+    /// \brief Returns the first registered plugin of a given type.
+    /// \tparam T Concrete plugin type to look up.
+    /// \return Matching plugin, or nullptr when none is registered.
+    ///
+    template <class T>
+    T *plugin() const
+    {
+        for (Plugin *candidate : _plugins) {
+            if (auto *typed = qobject_cast<T *>(candidate))
+                return typed;
+        }
+        return nullptr;
+    }
 
 private:
     QList<Plugin *> _plugins;

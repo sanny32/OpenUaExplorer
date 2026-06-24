@@ -15,19 +15,14 @@
 #include <QString>
 #include <Qt>
 
-class AddressSpacePlugin;
-class AttributePlugin;
 class ConnectionController;
-class DataAccessPlugin;
 class FeatureManager;
 class OpcUaClientService;
 class PluginManager;
 class QDockWidget;
 class QMenu;
 class QToolBar;
-class ReferencePlugin;
 class SelectionContext;
-class ServerPlugin;
 
 ///
 /// \brief Provides UI features with shared services and contribution points.
@@ -45,11 +40,9 @@ public:
     /// \param dataPlugins Shared data-plugin registry.
     /// \param features Feature registry receiving contributions.
     /// \param selection Shared selected-node context.
-    /// \param serverPlugin Built-in server plugin.
-    /// \param addressSpacePlugin Built-in address-space plugin.
-    /// \param referencePlugin Built-in reference plugin.
-    /// \param attributePlugin Built-in attribute plugin.
-    /// \param dataAccessPlugin Built-in data-access plugin.
+    ///
+    /// Features obtain built-in data plugins by type through dataPlugins(), so the
+    /// host stays unaware of any concrete plugin.
     ///
     FeatureHost(QMainWindow *mainWindow,
                 QMenu *viewMenu,
@@ -58,12 +51,7 @@ public:
                 ConnectionController *connectionController,
                 PluginManager *dataPlugins,
                 FeatureManager *features,
-                SelectionContext *selection,
-                ServerPlugin *serverPlugin,
-                AddressSpacePlugin *addressSpacePlugin,
-                ReferencePlugin *referencePlugin,
-                AttributePlugin *attributePlugin,
-                DataAccessPlugin *dataAccessPlugin);
+                SelectionContext *selection);
 
     ///
     /// \brief Returns the main window.
@@ -114,36 +102,6 @@ public:
     SelectionContext *selection() const;
 
     ///
-    /// \brief Returns the built-in server plugin.
-    /// \return Server plugin.
-    ///
-    ServerPlugin *serverPlugin() const;
-
-    ///
-    /// \brief Returns the built-in address-space plugin.
-    /// \return Address-space plugin.
-    ///
-    AddressSpacePlugin *addressSpacePlugin() const;
-
-    ///
-    /// \brief Returns the built-in reference plugin.
-    /// \return Reference plugin.
-    ///
-    ReferencePlugin *referencePlugin() const;
-
-    ///
-    /// \brief Returns the built-in attribute plugin.
-    /// \return Attribute plugin.
-    ///
-    AttributePlugin *attributePlugin() const;
-
-    ///
-    /// \brief Returns the built-in data-access plugin.
-    /// \return Data-access plugin.
-    ///
-    DataAccessPlugin *dataAccessPlugin() const;
-
-    ///
     /// \brief Adds a dock to the main window and View menu.
     /// \param area Default dock area.
     /// \param dock Dock widget.
@@ -191,9 +149,4 @@ private:
     PluginManager *_dataPlugins;
     FeatureManager *_features;
     SelectionContext *_selection;
-    ServerPlugin *_serverPlugin;
-    AddressSpacePlugin *_addressSpacePlugin;
-    ReferencePlugin *_referencePlugin;
-    AttributePlugin *_attributePlugin;
-    DataAccessPlugin *_dataAccessPlugin;
 };

@@ -94,7 +94,6 @@ private:
 
     // OPC UA client signal handlers (wired up in setupOpcUaClient).
     void onClientError(const QString &message);
-    void onSelectedNodeChanged(const OpcUaNodeInfo &node);
     void onAttributeDetailsReady(const OpcUaNodeDetails &details, const QString &error);
     void onNodeDetailsReady(const OpcUaNodeDetails &details, const QString &error);
     void onSelectionCleared();

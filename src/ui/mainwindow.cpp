@@ -559,6 +559,12 @@ void MainWindow::setupPlugins()
     _referencePlugin = new ReferencePlugin;
     _dataAccessPlugin = new DataAccessPlugin;
 
+    _pluginManager->registerPlugin(_serverPlugin);
+    _pluginManager->registerPlugin(_addressSpacePlugin);
+    _pluginManager->registerPlugin(_attributePlugin);
+    _pluginManager->registerPlugin(_referencePlugin);
+    _pluginManager->registerPlugin(_dataAccessPlugin);
+
     FeatureHost host(this,
                      ui->menuView,
                      ui->mainToolBar,
@@ -566,28 +572,13 @@ void MainWindow::setupPlugins()
                      _connectionController,
                      _pluginManager,
                      _featureManager,
-                     _selectionContext,
-                     _serverPlugin,
-                     _addressSpacePlugin,
-                     _referencePlugin,
-                     _attributePlugin,
-                     _dataAccessPlugin);
+                     _selectionContext);
     registerBuiltinFeatures(*_featureManager);
     _featureManager->initializeAll(host);
-
-    _pluginManager->registerPlugin(_serverPlugin);
-    _pluginManager->registerPlugin(_addressSpacePlugin);
-    _pluginManager->registerPlugin(_attributePlugin);
-    _pluginManager->registerPlugin(_referencePlugin);
-    _pluginManager->registerPlugin(_dataAccessPlugin);
 
     PluginContext context(_clientService, _connectionController);
     _pluginManager->initializeAll(context);
 
-    connect(_selectionContext, &SelectionContext::nodeSelected,
-            this, &MainWindow::onSelectedNodeChanged);
-    connect(_attributePlugin, &AttributePlugin::attributesReady,
-            _selectionContext, &SelectionContext::setDetails);
     connect(_attributePlugin, &AttributePlugin::attributesReady,
             this, &MainWindow::onAttributeDetailsReady);
     connect(_selectionContext, &SelectionContext::detailsReady,
@@ -620,16 +611,6 @@ void MainWindow::setupPlugins()
 void MainWindow::onClientError(const QString &message)
 {
     qCWarning(lcClient) << message;
-}
-
-///
-/// \brief Reads attributes for a newly selected node.
-/// \param node Selected node.
-///
-void MainWindow::onSelectedNodeChanged(const OpcUaNodeInfo &node)
-{
-    if (!node.nodeId.isEmpty())
-        _attributePlugin->read(node.nodeId);
 }
 
 ///
