@@ -10,13 +10,13 @@
 
 #include <QWidget>
 
+#include "appsettings.h"
 #include "opcua/opcuatypes.h"
 
 namespace Ui {
 class AttributesWidget;
 }
 
-class AppSettings;
 class AttributesModel;
 class QPoint;
 class ThemedAction;
@@ -62,6 +62,13 @@ public:
     /// \param settings Settings store to read from.
     ///
     void restoreViewState(AppSettings &settings);
+
+public slots:
+    ///
+    /// \brief Applies the OPC UA timestamp display mode to the attributes tree.
+    /// \param mode Local time or UTC.
+    ///
+    void setTimestampMode(AppSettings::TimestampMode mode);
 
 signals:
     ///

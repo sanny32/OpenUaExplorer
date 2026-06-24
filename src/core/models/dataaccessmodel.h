@@ -12,6 +12,7 @@
 #include <QStringList>
 #include <QVector>
 
+#include "appsettings.h"
 #include "columnalignmentstore.h"
 #include "dataaccessitem.h"
 #include "opcua/opcuatypes.h"
@@ -135,6 +136,15 @@ public:
     ///
     void setColumnAlignment(int column, Qt::Alignment alignment);
 
+public slots:
+    ///
+    /// \brief Sets the timestamp display mode and repaints the timestamp column.
+    /// \param mode Local time or UTC.
+    ///
+    void setTimestampMode(AppSettings::TimestampMode mode);
+
+public:
+
     ///
     /// \brief Columns exposed by the data-access table.
     ///
@@ -153,4 +163,5 @@ public:
 private:
     QVector<DataAccessItem> _items;
     ColumnAlignmentStore _columnAlignments;
+    AppSettings::TimestampMode _timestampMode;
 };

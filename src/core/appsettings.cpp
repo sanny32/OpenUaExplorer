@@ -14,6 +14,7 @@
 
 namespace {
 constexpr auto themeModeKey = "appearance/themeMode";
+constexpr auto timestampModeKey = "appearance/timestampMode";
 constexpr auto windowGeometryKey = "mainWindow/geometry";
 constexpr auto windowStateKey = "mainWindow/state";
 constexpr auto centralSplitterKey = "mainWindow/centralSplitter";
@@ -57,6 +58,33 @@ void AppSettings::setThemeMode(ThemeMode mode)
 {
     QSettings settings;
     settings.setValue(QLatin1String(themeModeKey), static_cast<int>(mode));
+}
+
+///
+/// \brief Returns the stored OPC UA timestamp display preference.
+/// \return Saved timestamp mode, or TimestampMode::Utc when none is stored.
+///
+AppSettings::TimestampMode AppSettings::timestampMode() const
+{
+    QSettings settings;
+    const int mode = settings.value(QLatin1String(timestampModeKey),
+                                    static_cast<int>(TimestampMode::Utc)).toInt();
+    switch (mode) {
+    case static_cast<int>(TimestampMode::LocalTime):
+        return TimestampMode::LocalTime;
+    default:
+        return TimestampMode::Utc;
+    }
+}
+
+///
+/// \brief Stores the OPC UA timestamp display preference.
+/// \param mode Timestamp mode to persist.
+///
+void AppSettings::setTimestampMode(TimestampMode mode)
+{
+    QSettings settings;
+    settings.setValue(QLatin1String(timestampModeKey), static_cast<int>(mode));
 }
 
 ///

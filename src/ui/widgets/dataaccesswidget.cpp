@@ -233,6 +233,15 @@ void DataAccessWidget::clearRuntimeData()
 }
 
 ///
+/// \brief Applies the OPC UA timestamp display mode to the data-access table.
+/// \param mode Local time or UTC.
+///
+void DataAccessWidget::setTimestampMode(AppSettings::TimestampMode mode)
+{
+    _dataModel->setTimestampMode(mode);
+}
+
+///
 /// \brief Handles address-space node drag/drop events on the data table.
 /// \param watched Object receiving the event.
 /// \param event Event to filter.

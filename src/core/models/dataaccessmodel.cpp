@@ -17,12 +17,22 @@
 #include "dataaccessmodel.h"
 #include "opcua/attributeformatter.h"
 
+namespace {
+OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
+{
+    return mode == AppSettings::TimestampMode::Utc
+        ? OpcUaFormat::TimestampMode::Utc
+        : OpcUaFormat::TimestampMode::LocalTime;
+}
+}
+
 ///
 /// \brief Constructs an empty data-access model.
 /// \param parent Owning QObject.
 ///
 DataAccessModel::DataAccessModel(QObject *parent)
     : QAbstractTableModel(parent)
+    , _timestampMode(AppSettings().timestampMode())
 {
 }
 
@@ -54,7 +64,7 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
         item.dataTypeId = details.dataTypeId;
         item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
         item.status = details.status;
-        item.sourceTimestamp = OpcUaFormat::isoTimestampWithZone(details.sourceTimestamp);
+        item.sourceTimestamp = details.sourceTimestamp;
         item.serverTimestamp = details.serverTimestamp;
         item.userAccessLevel = details.userAccessLevel;
         emit dataChanged(index(row, 0), index(row, ColCount - 1));
@@ -72,7 +82,7 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
     item.dataTypeId = details.dataTypeId;
     item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
     item.status = details.status;
-    item.sourceTimestamp = OpcUaFormat::isoTimestampWithZone(details.sourceTimestamp);
+    item.sourceTimestamp = details.sourceTimestamp;
     item.serverTimestamp = details.serverTimestamp;
     item.userAccessLevel = details.userAccessLevel;
     _items.append(item);
@@ -93,7 +103,7 @@ void DataAccessModel::updateValues(const QVector<OpcUaDataValue> &values)
             item.typedValue = value.value;
             item.value = value.value.toString();
             item.status = value.status;
-            item.sourceTimestamp = OpcUaFormat::isoTimestampWithZone(value.sourceTimestamp);
+            item.sourceTimestamp = value.sourceTimestamp;
             item.serverTimestamp = value.serverTimestamp;
             emit dataChanged(index(row, ColValue), index(row, ColStatus));
             break;
@@ -262,7 +272,8 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
         case ColDisplayName:  return item.displayName;
         case ColValue:        return item.value;
         case ColDataType:     return item.dataType;
-        case ColTimestamp:    return item.sourceTimestamp;
+        case ColTimestamp:    return OpcUaFormat::isoTimestampWithZone(item.sourceTimestamp,
+                                                                       toFormatMode(_timestampMode));
         case ColStatus:       return item.status;
         case ColSubscription: return item.subscriptionName.isEmpty()
                                      ? QStringLiteral("—")
@@ -311,4 +322,18 @@ void DataAccessModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {
     _columnAlignments.setAlignment(column, alignment);
     emit dataChanged(index(0, column), index(rowCount() - 1, column), {Qt::TextAlignmentRole});
+}
+
+///
+/// \brief Sets the timestamp display mode and repaints the timestamp column.
+/// \param mode Local time or UTC.
+///
+void DataAccessModel::setTimestampMode(AppSettings::TimestampMode mode)
+{
+    if (_timestampMode == mode)
+        return;
+    _timestampMode = mode;
+    if (rowCount() > 0)
+        emit dataChanged(index(0, ColTimestamp), index(rowCount() - 1, ColTimestamp),
+                         {Qt::DisplayRole});
 }

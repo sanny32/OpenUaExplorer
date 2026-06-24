@@ -8,6 +8,7 @@
 
 #include <QAbstractButton>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDialogButtonBox>
 #include <QGridLayout>
 #include <QLoggingCategory>
@@ -48,6 +49,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     connect(ui->darkThemeButton, &QAbstractButton::clicked,
             this, &SettingsDialog::markDirty);
     connect(ui->systemThemeButton, &QAbstractButton::clicked,
+            this, &SettingsDialog::markDirty);
+    connect(ui->timestampModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &SettingsDialog::markDirty);
 }
 
@@ -126,6 +129,7 @@ void SettingsDialog::loadSettings()
 {
     AppSettings settings;
     setThemeSelection(settings.themeMode());
+    setTimestampSelection(settings.timestampMode());
 
     const QHash<QString, bool> states = settings.logCategoryStates();
     for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
@@ -150,6 +154,8 @@ void SettingsDialog::applyChanges()
 
     if (theApp()->theme().isManualToggleSupported())
         theApp()->theme().setColorSchemePreference(selectedThemeMode());
+
+    theApp()->setTimestampMode(selectedTimestampMode());
 
     setDirty(false);
 }
@@ -208,6 +214,27 @@ AppSettings::ThemeMode SettingsDialog::selectedThemeMode() const
     if (ui->darkThemeButton->isChecked())
         return AppSettings::ThemeMode::Dark;
     return AppSettings::ThemeMode::System;
+}
+
+///
+/// \brief Selects the combo entry for a stored timestamp mode.
+/// \param mode Stored timestamp preference.
+///
+void SettingsDialog::setTimestampSelection(AppSettings::TimestampMode mode)
+{
+    ui->timestampModeCombo->setCurrentIndex(
+        mode == AppSettings::TimestampMode::Utc ? 1 : 0);
+}
+
+///
+/// \brief Returns the timestamp mode selected in the combo box.
+/// \return Selected timestamp preference.
+///
+AppSettings::TimestampMode SettingsDialog::selectedTimestampMode() const
+{
+    return ui->timestampModeCombo->currentIndex() == 1
+        ? AppSettings::TimestampMode::Utc
+        : AppSettings::TimestampMode::LocalTime;
 }
 
 ///

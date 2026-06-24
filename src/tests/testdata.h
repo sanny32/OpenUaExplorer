@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QDateTime>
 #include <QPair>
 #include <QStringList>
 #include <QVector>
@@ -69,13 +70,14 @@ inline QStringList subscriptionNames()
 ///
 inline QVector<DataAccessItem> dataAccessItems()
 {
+    const QDateTime timestamp(QDate(2024, 1, 1), QTime(12, 15, 23, 250), Qt::UTC);
     return {
-        {"ns=2;s=Device1.Measurements.Temperature", "Temperature", "23.45",  "Double",  "12:15:23.250", "Good", "Default"},
-        {"ns=2;s=Device1.Measurements.Pressure",    "Pressure",    "1.013",  "Double",  "12:15:23.250", "Good", "Default"},
-        {"ns=2;s=Device1.Measurements.Humidity",    "Humidity",    "45.2",   "Double",  "12:15:23.250", "Good", "Fast"},
-        {"ns=2;s=Device1.Measurements.FlowRate",    "FlowRate",    "12.4",   "Double",  "12:15:23.250", "Good", ""},
-        {"ns=2;s=Device1.Status.Running",           "Running",     "true",   "Boolean", "12:15:23.250", "Good", ""},
-        {"ns=2;s=Device1.Status.ErrorCode",         "ErrorCode",   "0",      "UInt32",  "12:15:23.250", "Good", ""}
+        {"ns=2;s=Device1.Measurements.Temperature", "Temperature", "23.45",  "Double",  timestamp, "Good", "Default"},
+        {"ns=2;s=Device1.Measurements.Pressure",    "Pressure",    "1.013",  "Double",  timestamp, "Good", "Default"},
+        {"ns=2;s=Device1.Measurements.Humidity",    "Humidity",    "45.2",   "Double",  timestamp, "Good", "Fast"},
+        {"ns=2;s=Device1.Measurements.FlowRate",    "FlowRate",    "12.4",   "Double",  timestamp, "Good", ""},
+        {"ns=2;s=Device1.Status.Running",           "Running",     "true",   "Boolean", timestamp, "Good", ""},
+        {"ns=2;s=Device1.Status.ErrorCode",         "ErrorCode",   "0",      "UInt32",  timestamp, "Good", ""}
     };
 }
 

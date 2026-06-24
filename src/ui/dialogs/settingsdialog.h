@@ -58,6 +58,8 @@ private:
     void selectThemeCard(int index);
     void setThemeSelection(AppSettings::ThemeMode mode);
     AppSettings::ThemeMode selectedThemeMode() const;
+    void setTimestampSelection(AppSettings::TimestampMode mode);
+    AppSettings::TimestampMode selectedTimestampMode() const;
     void markDirty();
     void setDirty(bool dirty);
 

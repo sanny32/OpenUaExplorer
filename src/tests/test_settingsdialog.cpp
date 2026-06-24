@@ -8,6 +8,7 @@
 
 #include <QAbstractButton>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QCoreApplication>
 #include <QDialogButtonBox>
 #include <QGridLayout>
@@ -37,6 +38,7 @@ private slots:
     void referenceControlsArePresent();
     void themeCardsSelectOneMode();
     void applyPersistsWithoutClosing();
+    void timestampModeComboPersists();
     void layoutResetWaitsForAcceptance();
 
 private:
@@ -178,6 +180,29 @@ void TestSettingsDialog::applyPersistsWithoutClosing()
         QCOMPARE(AppSettings().themeMode(), AppSettings::ThemeMode::Dark);
     QCOMPARE(dialog.result(), 0);
     QVERIFY(!buttons->button(QDialogButtonBox::Apply)->isEnabled());
+}
+
+///
+/// \brief Verifies the timestamp-mode combo reflects and persists the preference.
+///
+void TestSettingsDialog::timestampModeComboPersists()
+{
+    SettingsDialog dialog;
+    auto *combo = dialog.findChild<QComboBox *>(QStringLiteral("timestampModeCombo"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(combo);
+    QVERIFY(buttons);
+
+    // The default preference is UTC (index 1).
+    QCOMPARE(combo->currentIndex(), 1);
+    QVERIFY(!buttons->button(QDialogButtonBox::Apply)->isEnabled());
+
+    combo->setCurrentIndex(0);
+    QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+
+    QCOMPARE(AppSettings().timestampMode(), AppSettings::TimestampMode::LocalTime);
+    QCOMPARE(dialog.result(), 0);
 }
 
 ///

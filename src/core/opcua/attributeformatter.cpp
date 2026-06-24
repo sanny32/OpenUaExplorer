@@ -98,14 +98,17 @@ QString statusDisplay(QOpcUa::UaStatusCode status)
 }
 
 ///
-/// \brief Formats a timestamp as local-time ISO 8601 with the UTC offset, or empty when invalid.
+/// \brief Formats a timestamp as ISO 8601 with a zone indicator, or empty when invalid.
 /// \param timestamp Timestamp to format.
-/// \return ISO 8601 string with millisecond precision and trailing time-zone offset.
+/// \param mode Local time (trailing UTC offset) or UTC (trailing "Z").
+/// \return ISO 8601 string with millisecond precision and a trailing zone indicator.
 ///
-QString isoTimestampWithZone(const QDateTime &timestamp)
+QString isoTimestampWithZone(const QDateTime &timestamp, TimestampMode mode)
 {
     if (!timestamp.isValid())
         return QString();
+    if (mode == TimestampMode::Utc)
+        return timestamp.toUTC().toString(Qt::ISODateWithMs);
     const QDateTime local = timestamp.toLocalTime();
     return local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs);
 }

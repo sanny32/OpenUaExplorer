@@ -33,6 +33,14 @@ public:
     };
 
     ///
+    /// \brief Display mode for OPC UA timestamps.
+    ///
+    enum class TimestampMode {
+        LocalTime,
+        Utc
+    };
+
+    ///
     /// \brief Default OPC UA session and channel settings for new connections.
     ///
     /// Mirrors the Advanced Settings group of the connection dialog so the last
@@ -140,6 +148,18 @@ public:
     /// \param mode Theme mode to persist.
     ///
     void setThemeMode(ThemeMode mode);
+
+    ///
+    /// \brief Returns the stored OPC UA timestamp display preference.
+    /// \return Saved timestamp mode, or TimestampMode::Utc when none is stored.
+    ///
+    TimestampMode timestampMode() const;
+
+    ///
+    /// \brief Stores the OPC UA timestamp display preference.
+    /// \param mode Timestamp mode to persist.
+    ///
+    void setTimestampMode(TimestampMode mode);
 
     ///
     /// \brief Returns the saved top-level window geometry.

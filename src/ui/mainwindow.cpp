@@ -608,6 +608,8 @@ void MainWindow::setupDataAccessWiring()
             this, &MainWindow::onDataValuesReady);
     connect(_dataAccessPlugin, &DataAccessModule::monitoringFinished,
             this, &MainWindow::onMonitoringFinished);
+    connect(theApp(), &Application::timestampModeChanged,
+            ui->dataAccessWidget, &DataAccessWidget::setTimestampMode);
 }
 
 ///

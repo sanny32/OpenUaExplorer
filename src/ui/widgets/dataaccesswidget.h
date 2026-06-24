@@ -11,6 +11,7 @@
 #include <QModelIndex>
 #include <QWidget>
 
+#include "appsettings.h"
 #include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
 
@@ -18,7 +19,6 @@ namespace Ui {
 class DataAccessWidget;
 }
 
-class AppSettings;
 class DataAccessModel;
 class SubscriptionsModel;
 class EventsModel;
@@ -109,6 +109,13 @@ public:
     /// \brief Clears the data, subscriptions, events, and history models.
     ///
     void clearRuntimeData();
+
+public slots:
+    ///
+    /// \brief Applies the OPC UA timestamp display mode to the data-access table.
+    /// \param mode Local time or UTC.
+    ///
+    void setTimestampMode(AppSettings::TimestampMode mode);
 
 signals:
     ///

@@ -60,6 +60,19 @@ Application *Application::instance()
 }
 
 ///
+/// \brief Persists the OPC UA timestamp display preference and notifies listeners.
+/// \param mode Timestamp mode to apply.
+///
+void Application::setTimestampMode(AppSettings::TimestampMode mode)
+{
+    AppSettings settings;
+    if (settings.timestampMode() == mode)
+        return;
+    settings.setTimestampMode(mode);
+    emit timestampModeChanged(mode);
+}
+
+///
 /// \brief Generates the application client certificate when the auto-generated pair is absent.
 ///
 void Application::ensureClientCertificate()

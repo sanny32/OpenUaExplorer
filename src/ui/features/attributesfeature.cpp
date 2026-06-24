@@ -11,6 +11,7 @@
 #include <QCoreApplication>
 #include <QDockWidget>
 
+#include "application.h"
 #include "appsettings.h"
 #include "attributemodule.h"
 #include "featurehost.h"
@@ -56,6 +57,8 @@ void AttributesFeature::initialize(FeatureHost &host)
                      });
     QObject::connect(attributePlugin, &AttributeModule::attributesReady,
                      selection, &SelectionContext::setDetails);
+    QObject::connect(theApp(), &Application::timestampModeChanged,
+                     _widget, &AttributesWidget::setTimestampMode);
 
     host.addDock(Qt::RightDockWidgetArea, _dock);
 }

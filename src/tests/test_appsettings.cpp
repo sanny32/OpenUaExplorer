@@ -25,6 +25,8 @@ private slots:
 
     void themeModeDefaultsToSystem();
     void themeModeRoundTrips();
+    void timestampModeDefaultsToUtc();
+    void timestampModeRoundTrips();
     void windowStateRoundTrips();
     void restoreLayoutDefaultsToTrue();
     void dataAccessPageRoundTrips();
@@ -79,6 +81,27 @@ void TestAppSettings::themeModeRoundTrips()
     QCOMPARE(AppSettings().themeMode(), AppSettings::ThemeMode::Dark);
     settings.setThemeMode(AppSettings::ThemeMode::Light);
     QCOMPARE(AppSettings().themeMode(), AppSettings::ThemeMode::Light);
+}
+
+///
+/// \brief A fresh store reports UTC as the timestamp display mode.
+///
+void TestAppSettings::timestampModeDefaultsToUtc()
+{
+    AppSettings settings;
+    QCOMPARE(settings.timestampMode(), AppSettings::TimestampMode::Utc);
+}
+
+///
+/// \brief The timestamp mode survives a save/load cycle.
+///
+void TestAppSettings::timestampModeRoundTrips()
+{
+    AppSettings settings;
+    settings.setTimestampMode(AppSettings::TimestampMode::LocalTime);
+    QCOMPARE(AppSettings().timestampMode(), AppSettings::TimestampMode::LocalTime);
+    settings.setTimestampMode(AppSettings::TimestampMode::Utc);
+    QCOMPARE(AppSettings().timestampMode(), AppSettings::TimestampMode::Utc);
 }
 
 ///

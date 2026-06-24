@@ -9,11 +9,13 @@
 #include <QAbstractItemModelTester>
 #include <QBrush>
 #include <QColor>
+#include <QDateTime>
 #include <QMimeData>
 #include <QScopedPointer>
 #include <QSignalSpy>
 #include <QTest>
 
+#include "appsettings.h"
 #include "testdata.h"
 #include "opcua/opcuatypes.h"
 #include "opcua/standardnodeid.h"
@@ -45,6 +47,8 @@ private slots:
     void dataAccessUpdateValuesRefreshesValueColumns();
     void dataAccessRemoveRowsDropsSelected();
     void dataAccessSubscriptionColumnIsEditable();
+    void dataAccessTimestampModeReformats();
+    void attributesModelTimestampModeReformats();
 
     // LogModel.
     void logFilterByLevel();
@@ -233,6 +237,64 @@ void TestModels::dataAccessSubscriptionColumnIsEditable()
     QCOMPARE(model.data(subscriptionIndex).toString(), QStringLiteral("Fast"));
     // Editing a non-editable column is rejected.
     QVERIFY(!model.setData(nodeIdIndex, QStringLiteral("x"), Qt::EditRole));
+}
+
+///
+/// \brief Toggling the timestamp mode reformats the source-timestamp column live.
+///
+void TestModels::dataAccessTimestampModeReformats()
+{
+    DataAccessModel model;
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=TS");
+    details.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), Qt::UTC);
+    model.addOrUpdate(details);
+
+    const QModelIndex timestampIndex = model.index(0, DataAccessModel::ColTimestamp);
+
+    model.setTimestampMode(AppSettings::TimestampMode::LocalTime);
+    const QDateTime local = details.sourceTimestamp.toLocalTime();
+    QCOMPARE(model.data(timestampIndex).toString(),
+             local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs));
+
+    QSignalSpy spy(&model, &QAbstractItemModel::dataChanged);
+    model.setTimestampMode(AppSettings::TimestampMode::Utc);
+    QVERIFY(spy.count() >= 1);
+    const QString utc = model.data(timestampIndex).toString();
+    QCOMPARE(utc, details.sourceTimestamp.toUTC().toString(Qt::ISODateWithMs));
+    QVERIFY(utc.endsWith(QLatin1Char('Z')));
+}
+
+///
+/// \brief Toggling the timestamp mode reformats timestamp rows in the attributes tree.
+///
+void TestModels::attributesModelTimestampModeReformats()
+{
+    OpcUaNodeAttribute value;
+    value.name = QStringLiteral("Value");
+    value.displayValue = QStringLiteral("42");
+    OpcUaNodeAttribute timestamp;
+    timestamp.name = QStringLiteral("Source Timestamp");
+    timestamp.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), Qt::UTC);
+    value.children.append(timestamp);
+
+    AttributesModel model;
+    model.setAttributes({value});
+
+    const QModelIndex valueParent = model.index(0, 0);
+    const QModelIndex timestampIndex = model.index(0, AttributesModel::ColValue, valueParent);
+
+    model.setTimestampMode(AppSettings::TimestampMode::LocalTime);
+    const QDateTime local = timestamp.sourceTimestamp.toLocalTime();
+    QCOMPARE(model.data(timestampIndex).toString(),
+             local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs));
+
+    QSignalSpy spy(&model, &QAbstractItemModel::dataChanged);
+    model.setTimestampMode(AppSettings::TimestampMode::Utc);
+    QVERIFY(spy.count() >= 1);
+    const QString utc = model.data(timestampIndex).toString();
+    QCOMPARE(utc, timestamp.sourceTimestamp.toUTC().toString(Qt::ISODateWithMs));
+    QVERIFY(utc.endsWith(QLatin1Char('Z')));
 }
 
 ///

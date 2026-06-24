@@ -93,11 +93,18 @@ void TestAttributeFormatter::statusFormatting()
 void TestAttributeFormatter::isoTimestampWithZoneRoundTrips()
 {
     QCOMPARE(isoTimestampWithZone(QDateTime()), QString());
+    QCOMPARE(isoTimestampWithZone(QDateTime(), TimestampMode::Utc), QString());
 
     const QDateTime dt(QDate(2024, 12, 31), QTime(23, 59, 58, 123), Qt::UTC);
     const QDateTime local = dt.toLocalTime();
     QCOMPARE(isoTimestampWithZone(dt),
              local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs));
+    QCOMPARE(isoTimestampWithZone(dt, TimestampMode::LocalTime),
+             local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs));
+
+    const QString utc = isoTimestampWithZone(dt, TimestampMode::Utc);
+    QCOMPARE(utc, dt.toUTC().toString(Qt::ISODateWithMs));
+    QVERIFY(utc.endsWith(QLatin1Char('Z')));
 }
 
 void TestAttributeFormatter::valueTypeNameKnownAndUnknown()

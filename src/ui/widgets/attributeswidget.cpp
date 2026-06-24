@@ -222,6 +222,15 @@ void AttributesWidget::clear()
 }
 
 ///
+/// \brief Applies the OPC UA timestamp display mode to the attributes tree.
+/// \param mode Local time or UTC.
+///
+void AttributesWidget::setTimestampMode(AppSettings::TimestampMode mode)
+{
+    _model->setTimestampMode(mode);
+}
+
+///
 /// \brief Persists the attributes tree header state.
 /// \param settings Settings store to write to.
 ///

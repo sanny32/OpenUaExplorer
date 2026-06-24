@@ -25,8 +25,8 @@ struct DataAccessItem
     QString value;
     /// \brief Formatted data type name.
     QString dataType;
-    /// \brief Formatted source timestamp.
-    QString sourceTimestamp;
+    /// \brief Raw source timestamp, formatted on demand by the model.
+    QDateTime sourceTimestamp;
     /// \brief Status display text.
     QString status;
     /// \brief Assigned subscription name.

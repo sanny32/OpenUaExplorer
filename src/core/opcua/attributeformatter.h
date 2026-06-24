@@ -24,6 +24,14 @@
 namespace OpcUaFormat {
 
 ///
+/// \brief Display mode for OPC UA timestamps.
+///
+enum class TimestampMode {
+    LocalTime,
+    Utc
+};
+
+///
 /// \brief Reports whether a value is an array, treating strings and byte arrays as scalars.
 /// \param value Variant to inspect.
 /// \return True when the value should be rendered as a list.
@@ -59,11 +67,13 @@ QString statusName(QOpcUa::UaStatusCode status);
 QString statusDisplay(QOpcUa::UaStatusCode status);
 
 ///
-/// \brief Formats a timestamp as local-time ISO 8601 with the UTC offset, or empty when invalid.
+/// \brief Formats a timestamp as ISO 8601 with a zone indicator, or empty when invalid.
 /// \param timestamp Timestamp to format.
-/// \return ISO 8601 string with millisecond precision and trailing time-zone offset.
+/// \param mode Local time (trailing UTC offset) or UTC (trailing "Z").
+/// \return ISO 8601 string with millisecond precision and a trailing zone indicator.
 ///
-QString isoTimestampWithZone(const QDateTime &timestamp);
+QString isoTimestampWithZone(const QDateTime &timestamp,
+                             TimestampMode mode = TimestampMode::LocalTime);
 
 ///
 /// \brief Returns the enum-key name of an OPC UA value type.

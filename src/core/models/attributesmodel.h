@@ -16,6 +16,7 @@
 #include <QString>
 #include <QVector>
 
+#include "appsettings.h"
 #include "columnalignmentstore.h"
 #include "opcua/opcuatypes.h"
 
@@ -111,6 +112,15 @@ public:
     ///
     void setColumnAlignment(int column, Qt::Alignment alignment);
 
+public slots:
+    ///
+    /// \brief Sets the timestamp display mode and reformats timestamp rows in place.
+    /// \param mode Local time or UTC.
+    ///
+    void setTimestampMode(AppSettings::TimestampMode mode);
+
+public:
+
     ///
     /// \brief Columns exposed by the attributes tree.
     ///
@@ -125,7 +135,10 @@ private:
 
     void appendAttribute(Item *parent, const OpcUaNodeAttribute &attribute);
     Item *itemForIndex(const QModelIndex &index) const;
+    QString timestampValue(const Item &item) const;
+    void refreshTimestamps(const QModelIndex &parentIndex);
 
     std::unique_ptr<Item> _root;
     ColumnAlignmentStore _columnAlignments;
+    AppSettings::TimestampMode _timestampMode;
 };

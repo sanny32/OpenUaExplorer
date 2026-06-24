@@ -8,8 +8,19 @@
 
 #include <QBrush>
 #include <QColor>
+#include <QDateTime>
 
 #include "attributesmodel.h"
+#include "opcua/attributeformatter.h"
+
+namespace {
+OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
+{
+    return mode == AppSettings::TimestampMode::Utc
+        ? OpcUaFormat::TimestampMode::Utc
+        : OpcUaFormat::TimestampMode::LocalTime;
+}
+}
 
 ///
 /// \brief One node in the attributes tree.
@@ -18,6 +29,8 @@ struct AttributesModel::Item
 {
     QString attribute;
     QString value;
+    QDateTime sourceTimestamp;
+    QDateTime serverTimestamp;
     Item *parent = nullptr;
     std::vector<std::unique_ptr<Item>> children;
 };
@@ -29,6 +42,7 @@ struct AttributesModel::Item
 AttributesModel::AttributesModel(QObject *parent)
     : QAbstractItemModel(parent)
     , _root(std::make_unique<Item>())
+    , _timestampMode(AppSettings().timestampMode())
 {
 }
 
@@ -213,12 +227,66 @@ void AttributesModel::appendAttribute(Item *parent, const OpcUaNodeAttribute &at
 {
     auto item = std::make_unique<Item>();
     item->attribute = attribute.name;
-    item->value = attribute.displayValue;
+    const bool isTimestamp = attribute.children.isEmpty()
+        && attribute.displayValue.isEmpty()
+        && (attribute.sourceTimestamp.isValid() || attribute.serverTimestamp.isValid());
+    if (isTimestamp) {
+        item->sourceTimestamp = attribute.sourceTimestamp;
+        item->serverTimestamp = attribute.serverTimestamp;
+        item->value = timestampValue(*item);
+    } else {
+        item->value = attribute.displayValue;
+    }
     item->parent = parent;
     Item *itemPointer = item.get();
     parent->children.push_back(std::move(item));
     for (const OpcUaNodeAttribute &child : attribute.children)
         appendAttribute(itemPointer, child);
+}
+
+///
+/// \brief Formats a timestamp item's value using the current display mode.
+/// \param item Tree item carrying a raw source or server timestamp.
+/// \return Formatted timestamp string.
+///
+QString AttributesModel::timestampValue(const Item &item) const
+{
+    const QDateTime &timestamp = item.sourceTimestamp.isValid()
+        ? item.sourceTimestamp
+        : item.serverTimestamp;
+    return OpcUaFormat::isoTimestampWithZone(timestamp, toFormatMode(_timestampMode));
+}
+
+///
+/// \brief Recursively reformats timestamp rows under a parent index and notifies the view.
+/// \param parentIndex Parent model index.
+///
+void AttributesModel::refreshTimestamps(const QModelIndex &parentIndex)
+{
+    Item *parentItem = itemForIndex(parentIndex);
+    if (!parentItem)
+        return;
+    for (int row = 0; row < static_cast<int>(parentItem->children.size()); ++row) {
+        Item *child = parentItem->children.at(row).get();
+        if (child->sourceTimestamp.isValid() || child->serverTimestamp.isValid()) {
+            child->value = timestampValue(*child);
+            const QModelIndex valueIndex = index(row, ColValue, parentIndex);
+            emit dataChanged(valueIndex, valueIndex, {Qt::DisplayRole});
+        }
+        refreshTimestamps(index(row, 0, parentIndex));
+    }
+}
+
+///
+/// \brief Sets the timestamp display mode and reformats timestamp rows in place.
+/// \param mode Local time or UTC.
+///
+void AttributesModel::setTimestampMode(AppSettings::TimestampMode mode)
+{
+    if (_timestampMode == mode)
+        return;
+    _timestampMode = mode;
+    refreshTimestamps(QModelIndex());
 }
 
 ///
