@@ -11,23 +11,6 @@
 #include "opcuaclientservice.h"
 #include "recentconnectionstore.h"
 
-namespace {
-
-///
-/// \brief Tests whether two profiles describe the same favourite endpoint.
-///
-/// A favourite is identified by its endpoint URL together with the security policy and
-/// mode, so the same server can be saved several times with different security settings.
-///
-bool sameEndpoint(const ConnectionProfile &lhs, const ConnectionProfile &rhs)
-{
-    return lhs.endpointUrl == rhs.endpointUrl
-        && lhs.securityPolicy == rhs.securityPolicy
-        && lhs.securityMode == rhs.securityMode;
-}
-
-}
-
 ///
 /// \brief Constructs the controller owning freshly created client, secret, profile,
 ///        and recent-connection stores.
@@ -216,7 +199,7 @@ void ConnectionController::saveProfile(const ConnectionProfile &profile,
 {
     const QList<ConnectionProfile> existing = _profileStore->profiles();
     for (const ConnectionProfile &other : existing) {
-        if (other.id != profile.id && sameEndpoint(other, profile))
+        if (other.id != profile.id && other.isSameEndpoint(profile))
             forgetProfile(other.id);
     }
 
@@ -283,7 +266,7 @@ void ConnectionController::touchFavorite(const ConnectionProfile &profile)
 
     const QList<ConnectionProfile> existing = _profileStore->profiles();
     for (ConnectionProfile favorite : existing) {
-        if (!sameEndpoint(favorite, profile))
+        if (!favorite.isSameEndpoint(profile))
             continue;
         favorite.lastUsed = QDateTime::currentDateTime();
         if (_profileStore->save(favorite))

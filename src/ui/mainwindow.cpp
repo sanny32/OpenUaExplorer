@@ -859,13 +859,9 @@ void MainWindow::openFavorites()
     const QList<ConnectionProfile> profiles = _connectionController->profiles();
     const ConnectionProfile active = _connectionController->activeProfile();
     const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
-    // The same server may be saved with different security, so a connection only counts as
-    // already favourited when its endpoint, policy, and mode all match a saved profile.
     const bool alreadyFavorite = std::any_of(
         profiles.cbegin(), profiles.cend(), [&active](const ConnectionProfile &profile) {
-            return profile.endpointUrl == active.endpointUrl
-                && profile.securityPolicy == active.securityPolicy
-                && profile.securityMode == active.securityMode;
+            return profile.isSameEndpoint(active);
         });
     _favoritesWidget->setCanAddFavorite(
         connected && !active.endpointUrl.isEmpty() && !alreadyFavorite);

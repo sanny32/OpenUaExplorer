@@ -222,6 +222,7 @@ private slots:
     void savePersistsProfileAndSecrets();
     void savingSameEndpointReplacesFavorite();
     void savingSameEndpointDifferentSecurityKeepsBoth();
+    void savingSameEndpointDifferentAuthenticationKeepsBoth();
     void removeFavoriteDeletesProfileAndSecrets();
     void reorderFavoritesPersistsOrderAndNotifies();
     void reorderFavoritesFailureReportsError();
@@ -428,6 +429,34 @@ void TestConnectionController::savingSameEndpointDifferentSecurityKeepsBoth()
     sign.securityPolicy = QStringLiteral("Aes128_Sha256_RsaOaep");
     sign.securityMode = 2;
     controller.saveProfile(sign, QString(), QString());
+
+    QCOMPARE(profiles.storedProfiles.size(), 2);
+}
+
+void TestConnectionController::savingSameEndpointDifferentAuthenticationKeepsBoth()
+{
+    FakeOpcUaBackend backend;
+    OpcUaClientService service(&backend);
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    ConnectionController controller(&service, &secrets, &profiles, &recents);
+
+    ConnectionProfile anonymous;
+    anonymous.id = QStringLiteral("anonymous");
+    anonymous.endpointUrl = QStringLiteral("opc.tcp://host:4840");
+    anonymous.securityPolicy = QStringLiteral("Basic256Sha256");
+    anonymous.securityMode = 3;
+    anonymous.authentication = ConnectionProfile::Authentication::Anonymous;
+    controller.saveProfile(anonymous, QString(), QString());
+
+    ConnectionProfile username;
+    username.id = QStringLiteral("username");
+    username.endpointUrl = QStringLiteral("opc.tcp://host:4840");
+    username.securityPolicy = QStringLiteral("Basic256Sha256");
+    username.securityMode = 3;
+    username.authentication = ConnectionProfile::Authentication::Username;
+    controller.saveProfile(username, QStringLiteral("pw"), QString());
 
     QCOMPARE(profiles.storedProfiles.size(), 2);
 }
