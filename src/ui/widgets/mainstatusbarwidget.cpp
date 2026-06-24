@@ -65,6 +65,7 @@ MainStatusBarWidget::MainStatusBarWidget(QWidget *parent)
 {
     auto *content = new QWidget(this);
     ui->setupUi(content);
+    setupFieldDecorations();
     setConnectionState(OpcUaConnectionState::Disconnected);
     addWidget(content, 1);
 
@@ -73,6 +74,28 @@ MainStatusBarWidget::MainStatusBarWidget(QWidget *parent)
     connect(clock, &QTimer::timeout, this, &MainStatusBarWidget::updateClocks);
     clock->start();
     updateClocks();
+}
+
+///
+/// \brief Assigns the field icons and category tooltips that replace the text prefixes.
+///
+void MainStatusBarWidget::setupFieldDecorations()
+{
+    ui->securityIconLabel->setIcon(QStringLiteral("lock"), QSize(12, 12));
+    ui->authenticationIconLabel->setIcon(QStringLiteral("user"), QSize(12, 12));
+    ui->sessionIconLabel->setIcon(QStringLiteral("keyhole"), QSize(12, 12));
+
+    const auto setFieldTooltip = [](QWidget *icon, QWidget *value, const QString &tip) {
+        icon->setToolTip(tip);
+        value->setToolTip(tip);
+    };
+    setFieldTooltip(ui->statusIconLabel, ui->connectionLabel, tr("Connection"));
+    setFieldTooltip(ui->securityIconLabel, ui->securityLabel, tr("Security policy / mode"));
+    setFieldTooltip(ui->authenticationIconLabel, ui->authenticationLabel,
+                    tr("Authentication method"));
+    setFieldTooltip(ui->sessionIconLabel, ui->sessionLabel, tr("Session"));
+    ui->serverTimeLabel->setToolTip(tr("Server time (UTC)"));
+    ui->localTimeLabel->setToolTip(tr("Local time"));
 }
 
 ///
@@ -141,6 +164,27 @@ QString securitySummary(const QString &securityPolicy, int securityMode)
     return mode.isEmpty() ? policy : QStringLiteral("%1 / %2").arg(policy, mode);
 }
 
+///
+/// \brief Builds the authentication-method text shown in the status bar.
+/// \param profile Active connection profile.
+/// \return Authentication label, naming the user for username authentication.
+///
+QString authenticationSummary(const ConnectionProfile &profile)
+{
+    switch (profile.authentication) {
+    case ConnectionProfile::Authentication::Username:
+        return profile.username.isEmpty()
+            ? MainStatusBarWidget::tr("Username")
+            : QStringLiteral("%1 (%2)").arg(MainStatusBarWidget::tr("Username"),
+                                            profile.username);
+    case ConnectionProfile::Authentication::Certificate:
+        return MainStatusBarWidget::tr("Certificate");
+    case ConnectionProfile::Authentication::Anonymous:
+        break;
+    }
+    return MainStatusBarWidget::tr("Anonymous");
+}
+
 }
 
 ///
@@ -171,7 +215,8 @@ void MainStatusBarWidget::updateConnectionState(OpcUaConnectionState state)
     setConnectionState(state, profile.endpointUrl,
                        active ? profile.securityPolicy : QString(),
                        active ? profile.securityMode : 0,
-                       connected ? profile.sessionName : QString());
+                       connected ? profile.sessionName : QString(),
+                       active ? authenticationSummary(profile) : QString());
 
     if (connected) {
         _controller->clientService()->readValues(
@@ -194,7 +239,7 @@ void MainStatusBarWidget::handleServerSessionName(const QString &sessionName)
         || _controller->clientService()->state() != OpcUaConnectionState::Connected
         || !_controller->activeProfile().sessionName.isEmpty())
         return;
-    ui->sessionLabel->setText(tr("Session: %1").arg(sessionDisplayName(sessionName)));
+    ui->sessionLabel->setText(sessionDisplayName(sessionName));
 }
 
 ///
@@ -204,12 +249,14 @@ void MainStatusBarWidget::handleServerSessionName(const QString &sessionName)
 /// \param securityPolicy Selected security policy URI.
 /// \param securityMode Selected message security mode value.
 /// \param sessionName Active session name.
+/// \param authentication Authentication-method description.
 ///
 void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
                                              const QString &endpoint,
                                              const QString &securityPolicy,
                                              int securityMode,
-                                             const QString &sessionName)
+                                             const QString &sessionName,
+                                             const QString &authentication)
 {
     QString text;
     QString icon = QStringLiteral("disconnected");
@@ -225,7 +272,7 @@ void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
         icon = QStringLiteral("connect");
         break;
     case OpcUaConnectionState::Connected:
-        text = tr("Connected: %1").arg(endpoint);
+        text = endpoint;
         icon = QStringLiteral("connected");
         break;
     case OpcUaConnectionState::Closing:
@@ -239,12 +286,9 @@ void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
     const QString security = securitySummary(securityPolicy, securityMode);
     ui->statusIconLabel->setIcon(icon, QSize(12, 12));
     ui->connectionLabel->setText(text);
-    ui->securityLabel->setText(security.isEmpty()
-        ? tr("Security: -")
-        : tr("Security: %1").arg(security));
-    ui->sessionLabel->setText(sessionName.isEmpty()
-        ? tr("Session: -")
-        : tr("Session: %1").arg(sessionName));
+    ui->securityLabel->setText(security.isEmpty() ? tr("-") : security);
+    ui->authenticationLabel->setText(authentication.isEmpty() ? tr("-") : authentication);
+    ui->sessionLabel->setText(sessionName.isEmpty() ? tr("-") : sessionName);
     ui->serverTimeLabel->setText(tr("Server Time: -"));
 }
 

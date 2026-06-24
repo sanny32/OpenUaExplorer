@@ -35,7 +35,7 @@ struct ConnectionProfile
     QString sessionName;
 
     /// \brief Preferred Qt OPC UA backend.
-    QString backend;
+    QString backend = QStringLiteral("open62541");
 
     /// \brief Endpoint URL.
     QString endpointUrl;

@@ -70,11 +70,83 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="securityLabel">
-     <property name="text">
-      <string>Security: None</string>
+    <layout class="QHBoxLayout" name="securityRow">
+     <property name="spacing">
+      <number>4</number>
+     </property>
+     <item>
+      <widget class="ThemedIconLabel" name="securityIconLabel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>12</width>
+         <height>12</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>12</width>
+         <height>12</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="securityLabel">
+       <property name="text">
+        <string>None</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="Line" name="lineAuthentication">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
      </property>
     </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="authenticationRow">
+     <property name="spacing">
+      <number>4</number>
+     </property>
+     <item>
+      <widget class="ThemedIconLabel" name="authenticationIconLabel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>12</width>
+         <height>12</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>12</width>
+         <height>12</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="authenticationLabel">
+       <property name="text">
+        <string>Anonymous</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="Line" name="line2">
@@ -84,11 +156,40 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="sessionLabel">
-     <property name="text">
-      <string>Session: 0000023A</string>
+    <layout class="QHBoxLayout" name="sessionRow">
+     <property name="spacing">
+      <number>4</number>
      </property>
-    </widget>
+     <item>
+      <widget class="ThemedIconLabel" name="sessionIconLabel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>12</width>
+         <height>12</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>12</width>
+         <height>12</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="sessionLabel">
+       <property name="text">
+        <string>0000023A</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="Line" name="line3">

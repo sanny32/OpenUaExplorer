@@ -91,5 +91,9 @@
         <file alias="icons/dark/clear.svg">res/icons/dark/clear.svg</file>
         <file alias="icons/light/star.svg">res/icons/light/star.svg</file>
         <file alias="icons/dark/star.svg">res/icons/dark/star.svg</file>
+        <file alias="icons/light/user.svg">res/icons/light/user.svg</file>
+        <file alias="icons/dark/user.svg">res/icons/dark/user.svg</file>
+        <file alias="icons/light/keyhole.svg">res/icons/light/keyhole.svg</file>
+        <file alias="icons/dark/keyhole.svg">res/icons/dark/keyhole.svg</file>
     </qresource>
 </RCC>

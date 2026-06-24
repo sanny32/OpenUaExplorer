@@ -49,11 +49,13 @@ private slots:
     void handleServerSessionName(const QString &sessionName);
 
 private:
+    void setupFieldDecorations();
     void setConnectionState(OpcUaConnectionState state,
                             const QString &endpoint = QString(),
                             const QString &securityPolicy = QString(),
                             int securityMode = 0,
-                            const QString &sessionName = QString());
+                            const QString &sessionName = QString(),
+                            const QString &authentication = QString());
 
     Ui::MainStatusBarWidget *ui;
     ConnectionController *_controller = nullptr;
