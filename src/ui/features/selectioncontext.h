@@ -57,6 +57,12 @@ public slots:
     ///
     void clear();
 
+    ///
+    /// \brief Requests a history read for a node selected from a feature.
+    /// \param node Node whose history should be read.
+    ///
+    void requestHistory(const OpcUaNodeInfo &node);
+
 signals:
     ///
     /// \brief Emitted when a node becomes the current selection.
@@ -75,6 +81,12 @@ signals:
     /// \brief Emitted after the selection has been cleared.
     ///
     void cleared();
+
+    ///
+    /// \brief Emitted when a feature requests a history read for a node.
+    /// \param node Node whose history should be read.
+    ///
+    void historyReadRequested(OpcUaNodeInfo node);
 
 private:
     OpcUaNodeInfo _currentNode;

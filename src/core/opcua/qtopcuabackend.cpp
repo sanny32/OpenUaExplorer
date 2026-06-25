@@ -17,6 +17,11 @@
 
 #include <QOpcUaBrowseRequest>
 #include <QOpcUaClient>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 3, 0)
+#include <QOpcUaHistoryData>
+#include <QOpcUaHistoryReadRawRequest>
+#include <QOpcUaHistoryReadResponse>
+#endif
 #include <QOpcUaNode>
 #include <QOpcUaMonitoringParameters>
 #include <QOpcUaReadItem>
@@ -24,6 +29,7 @@
 #include <QOpcUaReferenceDescription>
 
 #include "attributeformatter.h"
+#include "loggingcategories.h"
 #include "pkimanager.h"
 #include "qtopcuabackend.h"
 #include "qtopcuaconnectionmanager.h"
@@ -194,6 +200,7 @@ QtOpcUaBackend::QtOpcUaBackend(QObject *parent)
     qRegisterMetaType<OpcUaNodeInfo>();
     qRegisterMetaType<OpcUaNodeDetails>();
     qRegisterMetaType<OpcUaDataValue>();
+    qRegisterMetaType<OpcUaHistoryValue>();
 }
 
 ///
@@ -495,6 +502,126 @@ void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
         emit dataValuesReady({}, tr("The backend rejected the batch read request."));
     }
 }
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 3, 0)
+namespace {
+///
+/// \brief Maps a Qt history result into transport-neutral history samples.
+/// \param history History result for a single node.
+/// \return Samples in time order.
+///
+QVector<OpcUaHistoryValue> historyValues(const QOpcUaHistoryData &history)
+{
+    QVector<OpcUaHistoryValue> values;
+    const QList<QOpcUaDataValue> results = history.result();
+    values.reserve(results.size());
+    for (const QOpcUaDataValue &result : results) {
+        OpcUaHistoryValue value;
+        value.nodeId = history.nodeId();
+        value.value = result.value();
+        value.status = statusName(result.statusCode());
+        value.sourceTimestamp = result.sourceTimestamp();
+        value.serverTimestamp = result.serverTimestamp();
+        values.append(value);
+    }
+    return values;
+}
+}
+
+///
+/// \brief Reads the raw history of a node's Value, emitting historyDataReady() with the samples.
+/// \param nodeId Node whose history is read.
+/// \param start Inclusive range start.
+/// \param end Inclusive range end.
+/// \param numValuesPerNode Maximum samples to return, or 0 for no limit.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::readHistoryRaw(const QString &nodeId, const QDateTime &start,
+                                    const QDateTime &end, quint32 numValuesPerNode, int timeoutMs)
+{
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit historyDataReady(nodeId, {}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    QOpcUaHistoryReadRawRequest request({ QOpcUaReadItem(nodeId) }, start, end,
+                                        numValuesPerNode, false);
+    request.setTimestampsToReturn(QOpcUa::TimestampsToReturn::Both);
+    qCInfo(lcClient).noquote()
+        << QStringLiteral("HistoryRead request: node=%1 startUtc=%2 endUtc=%3 numValues=%4")
+               .arg(nodeId, start.toUTC().toString(Qt::ISODateWithMs),
+                    end.toUTC().toString(Qt::ISODateWithMs))
+               .arg(numValuesPerNode);
+    QOpcUaHistoryReadResponse *response = _d->connection.client()->readHistoryData(request);
+    if (!response) {
+        emit historyDataReady(nodeId, {}, tr("The backend rejected the history read request."));
+        return;
+    }
+    response->setParent(this);
+    const auto token = _d->requests.begin(QtOpcUaRequestCoordinator::Operation::HistoryRead);
+    connect(response, &QOpcUaHistoryReadResponse::readHistoryDataFinished, this,
+            [this, response, nodeId, token](const QList<QOpcUaHistoryData> &results,
+                                            QOpcUa::UaStatusCode serviceResult) {
+        if (!_d->requests.isCurrent(token)) {
+            response->deleteLater();
+            return;
+        }
+        qCInfo(lcClient).noquote()
+            << QStringLiteral("HistoryRead reply: node=%1 serviceResult=%2 results=%3 "
+                              "nodeStatus=%4 count=%5 state=%6")
+                   .arg(nodeId, statusName(serviceResult))
+                   .arg(results.size())
+                   .arg(results.isEmpty() ? QStringLiteral("-")
+                                          : statusName(results.first().statusCode()))
+                   .arg(results.isEmpty() ? 0 : results.first().count())
+                   .arg(static_cast<int>(response->state()));
+        if (QOpcUa::isSuccessStatus(serviceResult) && response->hasMoreData()
+            && response->readMoreData())
+            return;
+        if (!_d->requests.settle(token)) {
+            response->deleteLater();
+            return;
+        }
+        QString error;
+        QVector<OpcUaHistoryValue> values;
+        if (!QOpcUa::isSuccessStatus(serviceResult)) {
+            error = tr("History read failed: %1").arg(statusName(serviceResult));
+        } else if (!results.isEmpty()) {
+            const QOpcUaHistoryData &nodeResult = results.first();
+            if (nodeResult.count() == 0 && !QOpcUa::isSuccessStatus(nodeResult.statusCode()))
+                error = tr("History read failed: %1").arg(statusName(nodeResult.statusCode()));
+            else
+                values = historyValues(nodeResult);
+        }
+        emit historyDataReady(nodeId, values, error);
+        response->deleteLater();
+    });
+    QTimer::singleShot(QtOpcUaRequestCoordinator::boundedTimeout(timeoutMs), this,
+                       [this, response, nodeId, token]() {
+        if (!_d->requests.settle(token))
+            return;
+        response->deleteLater();
+        emit historyDataReady(nodeId, {}, tr("History read timed out."));
+    });
+}
+#else
+///
+/// \brief Reports that history reads require Qt 6.3 or newer.
+/// \param nodeId Node whose history was requested.
+/// \param start Inclusive range start (unused).
+/// \param end Inclusive range end (unused).
+/// \param numValuesPerNode Maximum samples to return (unused).
+/// \param timeoutMs Request timeout in milliseconds (unused).
+///
+void QtOpcUaBackend::readHistoryRaw(const QString &nodeId, const QDateTime &start,
+                                    const QDateTime &end, quint32 numValuesPerNode, int timeoutMs)
+{
+    Q_UNUSED(start)
+    Q_UNUSED(end)
+    Q_UNUSED(numValuesPerNode)
+    Q_UNUSED(timeoutMs)
+    emit historyDataReady(nodeId, {}, tr("History read requires Qt 6.3 or newer."));
+}
+#endif
 
 ///
 /// \brief Reads the SessionDiagnosticsArray and resolves this client's session name.

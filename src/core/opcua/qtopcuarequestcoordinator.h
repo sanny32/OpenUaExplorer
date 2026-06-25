@@ -17,6 +17,7 @@ public:
         ReferencesBrowse,
         NodeRead,
         ValueRead,
+        HistoryRead,
         Write,
         SessionNameRead,
         Count

@@ -41,6 +41,8 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::nodeDetailsReady);
     connect(_backend, &OpcUaBackend::dataValuesReady,
             this, &OpcUaClientService::dataValuesReady);
+    connect(_backend, &OpcUaBackend::historyDataReady,
+            this, &OpcUaClientService::historyDataReady);
     connect(_backend, &OpcUaBackend::writeFinished,
             this, &OpcUaClientService::writeFinished);
     connect(_backend, &OpcUaBackend::monitoringFinished,
@@ -182,6 +184,19 @@ void OpcUaClientService::readNode(const QString &nodeId)
 void OpcUaClientService::readValues(const QStringList &nodeIds)
 {
     _backend->readValues(nodeIds, _requestTimeoutMs);
+}
+
+///
+/// \brief Reads the raw history of a node's Value using the cached request timeout.
+/// \param nodeId Node whose history is read.
+/// \param start Inclusive range start.
+/// \param end Inclusive range end.
+/// \param numValuesPerNode Maximum samples to return, or 0 for no limit.
+///
+void OpcUaClientService::readHistoryRaw(const QString &nodeId, const QDateTime &start,
+                                        const QDateTime &end, quint32 numValuesPerNode)
+{
+    _backend->readHistoryRaw(nodeId, start, end, numValuesPerNode, _requestTimeoutMs);
 }
 
 ///

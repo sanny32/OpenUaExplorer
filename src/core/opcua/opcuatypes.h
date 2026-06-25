@@ -13,6 +13,7 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
+#include <QtGlobal>
 #include <QVariant>
 #include <QVector>
 
@@ -57,6 +58,14 @@ inline bool isMethod(int nodeClass) { return (nodeClass & Method) != 0; }
 inline bool isWritable(quint8 userAccessLevel)
 {
     return (userAccessLevel & CurrentWrite) != 0;
+}
+
+///
+/// \brief Returns true when Qt OPC UA provides raw HistoryRead APIs.
+///
+inline constexpr bool isHistoryReadSupported()
+{
+    return QT_VERSION >= QT_VERSION_CHECK(6, 3, 0);
 }
 
 } // namespace OpcUa
@@ -204,7 +213,27 @@ struct OpcUaDataValue
     quint8 userAccessLevel = 0;
 };
 
+///
+/// \brief One historical sample returned by a HistoryRead.
+///
+struct OpcUaHistoryValue
+{
+    /// \brief NodeId string.
+    QString nodeId;
+    /// \brief Sampled Value.
+    QVariant value;
+    /// \brief QOpcUa::Types numeric value.
+    int valueType = 0;
+    /// \brief Status display text.
+    QString status;
+    /// \brief Source timestamp, when provided.
+    QDateTime sourceTimestamp;
+    /// \brief Server timestamp, when provided.
+    QDateTime serverTimestamp;
+};
+
 Q_DECLARE_METATYPE(EndpointInfo)
 Q_DECLARE_METATYPE(OpcUaNodeInfo)
 Q_DECLARE_METATYPE(OpcUaNodeDetails)
 Q_DECLARE_METATYPE(OpcUaDataValue)
+Q_DECLARE_METATYPE(OpcUaHistoryValue)

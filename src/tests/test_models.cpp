@@ -98,8 +98,13 @@ void TestModels::simpleModelsAreStructurallyValid()
     new QAbstractItemModelTester(&history, &history);
     history.setItems(TestData::historyItems());
     QCOMPARE(history.rowCount(), TestData::historyItems().size());
-    QCOMPARE(history.data(history.index(0, HistoryModel::ColNode)).toString(),
-             TestData::historyItems().first().node);
+    QCOMPARE(history.columnCount(), int(HistoryModel::ColCount));
+    QCOMPARE(history.data(history.index(0, HistoryModel::ColNumber)).toString(),
+             QStringLiteral("1"));
+    QCOMPARE(history.headerData(HistoryModel::ColValue, Qt::Horizontal).toString(),
+             QStringLiteral("Value"));
+    history.clear();
+    QCOMPARE(history.rowCount(), 0);
 
     SubscriptionsModel subscriptions;
     new QAbstractItemModelTester(&subscriptions, &subscriptions);
@@ -517,33 +522,36 @@ void TestModels::addressSpaceDragMimeIncludesVariableNode()
 }
 
 ///
-/// \brief HistoryModel: headerData, the range column, alignment and mutators.
+/// \brief HistoryModel: headerData, value/status columns, alignment and mutators.
 ///
 void TestModels::historyModelHeaderRolesAndMutators()
 {
     HistoryModel model;
-    model.setItems({{QStringLiteral("Temp"), QStringLiteral("1h")},
-                    {QStringLiteral("Pressure"), QStringLiteral("24h")}});
+    model.setItems(TestData::historyItems());
 
-    QCOMPARE(model.headerData(HistoryModel::ColNode, Qt::Horizontal).toString(),
-             QStringLiteral("Node"));
-    QCOMPARE(model.headerData(HistoryModel::ColRange, Qt::Horizontal).toString(),
-             QStringLiteral("Range"));
+    QCOMPARE(model.headerData(HistoryModel::ColSourceTimestamp, Qt::Horizontal).toString(),
+             QStringLiteral("Source Timestamp"));
+    QCOMPARE(model.headerData(HistoryModel::ColValue, Qt::Horizontal).toString(),
+             QStringLiteral("Value"));
+    QCOMPARE(model.headerData(HistoryModel::ColStatus, Qt::Horizontal).toString(),
+             QStringLiteral("Status"));
     QVERIFY(!model.headerData(99, Qt::Horizontal).isValid());
-    QVERIFY(!model.headerData(HistoryModel::ColNode, Qt::Horizontal,
+    QVERIFY(!model.headerData(HistoryModel::ColValue, Qt::Horizontal,
                               Qt::DecorationRole).isValid());
 
-    QCOMPARE(model.data(model.index(1, HistoryModel::ColRange)).toString(),
-             QStringLiteral("24h"));
-    QVERIFY(model.data(model.index(0, HistoryModel::ColNode),
+    QCOMPARE(model.data(model.index(0, HistoryModel::ColNumber)).toString(),
+             QStringLiteral("1"));
+    QCOMPARE(model.data(model.index(0, HistoryModel::ColStatus)).toString(),
+             QStringLiteral("Good"));
+    QVERIFY(model.data(model.index(0, HistoryModel::ColValue),
                        Qt::TextAlignmentRole).isValid());
     QVERIFY(!model.data(QModelIndex()).isValid());
 
     QSignalSpy spy(&model, &QAbstractItemModel::dataChanged);
-    model.setColumnAlignment(HistoryModel::ColRange,
+    model.setColumnAlignment(HistoryModel::ColValue,
                              Qt::Alignment(Qt::AlignRight | Qt::AlignVCenter));
     QCOMPARE(spy.size(), 1);
-    QCOMPARE(model.data(model.index(0, HistoryModel::ColRange),
+    QCOMPARE(model.data(model.index(0, HistoryModel::ColValue),
                         Qt::TextAlignmentRole).toInt(),
              int(Qt::AlignRight | Qt::AlignVCenter));
 

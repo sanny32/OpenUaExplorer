@@ -8,12 +8,24 @@
 
 #include "historymodel.h"
 
+#include "opcua/attributeformatter.h"
+
+namespace {
+OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
+{
+    return mode == AppSettings::TimestampMode::Utc
+        ? OpcUaFormat::TimestampMode::Utc
+        : OpcUaFormat::TimestampMode::LocalTime;
+}
+}
+
 ///
 /// \brief Constructs an empty history model.
 /// \param parent Owning QObject.
 ///
 HistoryModel::HistoryModel(QObject *parent)
     : QAbstractTableModel(parent)
+    , _timestampMode(AppSettings().timestampMode())
 {
 }
 
@@ -40,7 +52,7 @@ int HistoryModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief Returns the Node/Range column titles.
+/// \brief Returns the column titles.
 /// \param section Column index.
 /// \param orientation Header orientation.
 /// \param role Display role.
@@ -52,14 +64,17 @@ QVariant HistoryModel::headerData(int section, Qt::Orientation orientation, int 
         return QAbstractTableModel::headerData(section, orientation, role);
 
     switch (section) {
-    case ColNode:  return QStringLiteral("Node");
-    case ColRange: return QStringLiteral("Range");
-    default:       return QVariant();
+    case ColNumber:          return QStringLiteral("#");
+    case ColSourceTimestamp: return QStringLiteral("Source Timestamp");
+    case ColServerTimestamp: return QStringLiteral("Server Timestamp");
+    case ColValue:           return QStringLiteral("Value");
+    case ColStatus:          return QStringLiteral("Status");
+    default:                 return QVariant();
     }
 }
 
 ///
-/// \brief Returns the node/range text and column alignment for a history row.
+/// \brief Returns the cell text and column alignment for a history row.
 /// \param index Cell to query.
 /// \param role Requested data role.
 /// \return Value for the role, or an invalid variant.
@@ -68,13 +83,18 @@ QVariant HistoryModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid()) return QVariant();
     if (index.row() < 0 || index.row() >= _items.size()) return QVariant();
-    const HistoryItem &item = _items.at(index.row());
+    const OpcUaHistoryValue &item = _items.at(index.row());
 
     if (role == Qt::DisplayRole) {
         switch (index.column()) {
-        case ColNode:  return item.node;
-        case ColRange: return item.range;
-        default:       return QVariant();
+        case ColNumber:          return index.row() + 1;
+        case ColSourceTimestamp: return OpcUaFormat::isoTimestampWithZone(
+                                            item.sourceTimestamp, toFormatMode(_timestampMode));
+        case ColServerTimestamp: return OpcUaFormat::isoTimestampWithZone(
+                                            item.serverTimestamp, toFormatMode(_timestampMode));
+        case ColValue:           return OpcUaFormat::displayValue(item.value);
+        case ColStatus:          return item.status;
+        default:                 return QVariant();
         }
     }
 
@@ -86,13 +106,27 @@ QVariant HistoryModel::data(const QModelIndex &index, int role) const
 
 ///
 /// \brief Replaces all history rows.
-/// \param items New history entries to display.
+/// \param items New history samples to display.
 ///
-void HistoryModel::setItems(const QVector<HistoryItem> &items)
+void HistoryModel::setItems(const QVector<OpcUaHistoryValue> &items)
 {
     beginResetModel();
     _items = items;
     endResetModel();
+}
+
+///
+/// \brief Appends history rows, preserving the existing ones.
+/// \param items History samples to add.
+///
+void HistoryModel::append(const QVector<OpcUaHistoryValue> &items)
+{
+    if (items.isEmpty())
+        return;
+    const int first = _items.size();
+    beginInsertRows({}, first, first + items.size() - 1);
+    _items += items;
+    endInsertRows();
 }
 
 ///
@@ -114,4 +148,19 @@ void HistoryModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {
     _columnAlignments.setAlignment(column, alignment);
     emit dataChanged(index(0, column), index(rowCount() - 1, column), {Qt::TextAlignmentRole});
+}
+
+///
+/// \brief Applies the timestamp display mode used to render the timestamp columns.
+/// \param mode Local time or UTC.
+///
+void HistoryModel::setTimestampMode(AppSettings::TimestampMode mode)
+{
+    if (_timestampMode == mode)
+        return;
+    _timestampMode = mode;
+    if (_items.isEmpty())
+        return;
+    emit dataChanged(index(0, ColSourceTimestamp), index(rowCount() - 1, ColServerTimestamp),
+                     {Qt::DisplayRole});
 }

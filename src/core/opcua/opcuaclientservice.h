@@ -130,6 +130,16 @@ public:
     void readValues(const QStringList &nodeIds);
 
     ///
+    /// \brief Reads the raw history of a node's Value using the cached request timeout.
+    /// \param nodeId Node whose history is read.
+    /// \param start Inclusive range start.
+    /// \param end Inclusive range end.
+    /// \param numValuesPerNode Maximum samples to return, or 0 for no limit.
+    ///
+    void readHistoryRaw(const QString &nodeId, const QDateTime &start, const QDateTime &end,
+                        quint32 numValuesPerNode);
+
+    ///
     /// \brief Writes a value to a node using the cached request timeout.
     /// \param nodeId Target node.
     /// \param value Value to write.
@@ -205,6 +215,14 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void dataValuesReady(QVector<OpcUaDataValue> values, QString error);
+
+    ///
+    /// \brief Emitted when a raw history read finishes.
+    /// \param nodeId Node whose history was read.
+    /// \param values History samples in time order.
+    /// \param error Error description, empty on success.
+    ///
+    void historyDataReady(QString nodeId, QVector<OpcUaHistoryValue> values, QString error);
 
     ///
     /// \brief Emitted when a write finishes.

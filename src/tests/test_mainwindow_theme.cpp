@@ -16,11 +16,13 @@
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QToolBar>
 #include <QtGlobal>
 
 #include "appsettings.h"
 #include "application.h"
 #include "mainwindow.h"
+#include "opcua/opcuatypes.h"
 
 ///
 /// \brief Verifies the theme action, the Theme submenu and AppTheme's mode switching.
@@ -38,6 +40,7 @@ private slots:
     void colorSchemePreferenceAppliesAndPersists();
     void systemPreferenceFollowsTheCurrentScheme();
     void nodeDetailsDockFollowsViewAction();
+    void historyActionsFollowQtSupport();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -194,6 +197,31 @@ void TestMainWindowTheme::nodeDetailsDockFollowsViewAction()
     QVERIFY(!dock->isHidden());
     action->trigger();
     QVERIFY(dock->isHidden());
+}
+
+///
+/// \brief HistoryRead menu and toolbar actions are visible only with supporting Qt OPC UA APIs.
+///
+void TestMainWindowTheme::historyActionsFollowQtSupport()
+{
+    MainWindow window;
+    auto *readHistory = window.findChild<QAction *>(QStringLiteral("actionReadHistory"));
+    auto *viewHistory = window.findChild<QAction *>(QStringLiteral("actionViewHistory"));
+    auto *dataMenu = window.findChild<QMenu *>(QStringLiteral("menuData"));
+    auto *viewMenu = window.findChild<QMenu *>(QStringLiteral("menuView"));
+    auto *toolbar = window.findChild<QToolBar *>(QStringLiteral("mainToolBar"));
+    QVERIFY(readHistory);
+    QVERIFY(viewHistory);
+    QVERIFY(dataMenu);
+    QVERIFY(viewMenu);
+    QVERIFY(toolbar);
+
+    const bool supported = OpcUa::isHistoryReadSupported();
+    QCOMPARE(readHistory->isVisible(), supported);
+    QCOMPARE(viewHistory->isVisible(), supported);
+    QCOMPARE(dataMenu->actions().contains(readHistory), supported);
+    QCOMPARE(viewMenu->actions().contains(viewHistory), supported);
+    QCOMPARE(toolbar->actions().contains(readHistory), supported);
 }
 
 ///

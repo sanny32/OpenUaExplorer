@@ -107,6 +107,17 @@ public:
     void readValues(const QStringList &nodeIds, int timeoutMs) override;
 
     ///
+    /// \brief Reads the raw history of a node's Value, emitting historyDataReady() with the samples.
+    /// \param nodeId Node whose history is read.
+    /// \param start Inclusive range start.
+    /// \param end Inclusive range end.
+    /// \param numValuesPerNode Maximum samples to return, or 0 for no limit.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void readHistoryRaw(const QString &nodeId, const QDateTime &start, const QDateTime &end,
+                        quint32 numValuesPerNode, int timeoutMs) override;
+
+    ///
     /// \brief Writes a node's Value attribute, emitting writeFinished() with the outcome.
     /// \param nodeId Node to write.
     /// \param value Typed value.

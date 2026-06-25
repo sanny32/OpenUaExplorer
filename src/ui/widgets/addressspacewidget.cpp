@@ -9,6 +9,7 @@
 #include <QAbstractItemView>
 #include <QHeaderView>
 #include <QItemSelectionModel>
+#include <QMenu>
 #include <QPushButton>
 
 #include "addressspacewidget.h"
@@ -212,6 +213,35 @@ void AddressSpaceWidget::setupTreeView()
     ui->addressTree->setDefaultDropAction(Qt::CopyAction);
     ui->addressTree->setHeaderHidden(true);
     ui->addressTree->setUniformRowHeights(true);
+    ui->addressTree->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->addressTree, &QWidget::customContextMenuRequested,
+            this, &AddressSpaceWidget::showTreeContextMenu);
+}
+
+///
+/// \brief Shows the tree context menu with node actions for the clicked node.
+/// \param pos Cursor position in the tree's viewport coordinates.
+///
+void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
+{
+    if (!OpcUa::isHistoryReadSupported())
+        return;
+
+    const QModelIndex index = ui->addressTree->indexAt(pos);
+    if (!index.isValid())
+        return;
+    const OpcUaNodeInfo info = _treeModel->nodeInfo(index);
+    if (info.nodeId.isEmpty())
+        return;
+
+    QMenu menu(this);
+    QAction *historyAction = menu.addAction(AppIcons::themed(QStringLiteral("history")),
+                                            tr("Read History"), this, [this, info] {
+        emit readHistoryRequested(info);
+    });
+    historyAction->setEnabled(OpcUa::isVariable(info.nodeClass));
+
+    menu.exec(ui->addressTree->viewport()->mapToGlobal(pos));
 }
 
 ///

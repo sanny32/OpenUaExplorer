@@ -68,6 +68,12 @@ public:
     int currentPage() const;
 
     ///
+    /// \brief Enables or disables the History page.
+    /// \param available True when the server connection can serve history reads.
+    ///
+    void setHistoryAvailable(bool available);
+
+    ///
     /// \brief Persists the header state of the data, subscriptions, events, and history views.
     /// \param settings Settings store to write to.
     ///
@@ -99,6 +105,19 @@ public:
     /// \param values Read results.
     ///
     void updateValues(const QVector<OpcUaDataValue> &values);
+
+    ///
+    /// \brief Shows history samples in the History table.
+    /// \param values History samples in time order.
+    ///
+    void setHistoryResults(const QVector<OpcUaHistoryValue> &values);
+
+    ///
+    /// \brief Targets a node on the History page and requests its history for the current range.
+    /// \param nodeId Node whose history should be read.
+    /// \param displayName Human-readable name shown in the node field.
+    ///
+    void requestHistoryForNode(const QString &nodeId, const QString &displayName);
 
     ///
     /// \brief Updates the subscription shown for a data-access node.
@@ -138,6 +157,15 @@ signals:
     void readRequested(QStringList nodeIds);
 
     ///
+    /// \brief Emitted when the user requests a raw history read for a node.
+    /// \param nodeId Node whose history should be read.
+    /// \param start Inclusive range start.
+    /// \param end Inclusive range end.
+    /// \param maxValues Maximum samples to return, or 0 for no limit.
+    ///
+    void historyReadRequested(QString nodeId, QDateTime start, QDateTime end, quint32 maxValues);
+
+    ///
     /// \brief Emitted when the user requests a value write.
     /// \param nodeId Target node.
     /// \param currentValue Current value to seed the editor.
@@ -169,6 +197,8 @@ private:
     void setupSubscriptionsView();
     void setupEventsView();
     void setupHistoryView();
+    void requestHistoryRead();
+    void applyHistoryTimestampMode(AppSettings::TimestampMode mode);
     void configureToolbar();
     void showDataContextMenu(const QPoint &pos);
     void removeSelectedNodes();
@@ -193,4 +223,5 @@ private:
     SubscriptionsModel   *_subscriptionsModel;
     EventsModel          *_eventsModel;
     HistoryModel         *_historyModel;
+    QString               _historyNodeId;
 };

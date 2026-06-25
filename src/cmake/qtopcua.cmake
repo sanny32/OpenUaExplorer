@@ -51,6 +51,41 @@ if(NOT qtopcua_POPULATED)
     FetchContent_Populate(qtopcua)
 endif()
 
+# Qt's bundled open62541 backend hard-codes dataEncoding="Default Binary" on every
+# HistoryRead request (qopen62541backend.cpp). Strict UA servers (e.g. Unified
+# Automation) reject that encoding for scalar variables and return an empty result,
+# so HistoryRead silently yields no data; UaExpert and the OPC UA spec send a null
+# dataEncoding instead. Qt exposes no API to override it, so we neutralise the line
+# at configure time. The replacement keys on the code text rather than a line number
+# so it survives across Qt OpcUa point releases; it is idempotent and warns loudly if
+# the upstream source changes, so the workaround is never silently a no-op.
+function(ouaexp_patch_qtopcua_history source_dir)
+    set(backend "${source_dir}/src/plugins/opcua/open62541/qopen62541backend.cpp")
+    if(NOT EXISTS "${backend}")
+        return()
+    endif()
+    file(READ "${backend}" contents)
+    if(contents MATCHES "ouaexp patch: dataEncoding left null")
+        return() # already patched
+    endif()
+    set(needle "uarequest.nodesToRead[i].dataEncoding = UA_QUALIFIEDNAME_ALLOC(0, \"Default Binary\");")
+    string(FIND "${contents}" "${needle}" found)
+    if(found EQUAL -1)
+        message(WARNING
+            "Qt OpcUa HistoryRead dataEncoding workaround did not match qtopcua "
+            "${QTOPCUA_VERSION}; the upstream source changed. Re-check whether the "
+            "HistoryRead dataEncoding fix is still required.")
+        return()
+    endif()
+    string(REPLACE "${needle}"
+        "// ouaexp patch: dataEncoding left null (Default Binary breaks history on strict UA servers)"
+        contents "${contents}")
+    file(WRITE "${backend}" "${contents}")
+    message(STATUS "Applied Qt OpcUa HistoryRead dataEncoding workaround")
+endfunction()
+
+ouaexp_patch_qtopcua_history("${qtopcua_SOURCE_DIR}")
+
 if(QT_VERSION_MAJOR EQUAL 5)
     set(QTOPCUA_QMAKE_EXECUTABLE "${QT_QMAKE_EXECUTABLE}")
     if(CMAKE_HOST_WIN32)

@@ -131,10 +131,17 @@ signals:
     ///
     void refreshRequested(QString nodeId);
 
+    ///
+    /// \brief Emitted when the user requests a history read for a node.
+    /// \param node Node whose history should be read.
+    ///
+    void readHistoryRequested(OpcUaNodeInfo node);
+
 private:
     void setupTreeView();
     void setupNodeInfoView();
     void setupReferencesView();
+    void showTreeContextMenu(const QPoint &pos);
     void onCurrentNodeChanged(const QModelIndex &current);
     void updateReferencesForNode(const QString &nodeId);
     QVector<ReferenceItem> referencesFromChildren(const QVector<OpcUaNodeInfo> &children) const;

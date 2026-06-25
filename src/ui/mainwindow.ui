@@ -107,6 +107,7 @@
     </widget>
     <addaction name="actionReadSelected"/>
     <addaction name="actionWriteValue"/>
+    <addaction name="actionReadHistory"/>
     <addaction name="separator"/>
     <addaction name="actionAddToDataAccess"/>
     <addaction name="actionRemoveFromDataAccess"/>
@@ -183,6 +184,7 @@
    <addaction name="actionBrowse"/>
    <addaction name="separator"/>
    <addaction name="actionRead"/>
+   <addaction name="actionReadHistory"/>
    <addaction name="actionSubscribe"/>
    <addaction name="actionUnsubscribe"/>
    <addaction name="separator"/>
@@ -394,6 +396,17 @@
    </property>
    <property name="text">
     <string>Add to Data Access</string>
+   </property>
+  </action>
+  <action name="actionReadHistory">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Read History</string>
+   </property>
+   <property name="toolTip">
+    <string>Read the history of the selected node</string>
    </property>
   </action>
   <action name="actionRemoveFromDataAccess">

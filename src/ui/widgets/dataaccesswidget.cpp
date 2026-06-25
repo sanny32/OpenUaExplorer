@@ -9,6 +9,8 @@
 #include <algorithm>
 
 #include <QAction>
+#include <QDateTime>
+#include <QDateTimeEdit>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
@@ -118,6 +120,8 @@ DataAccessWidget::~DataAccessWidget()
 ///
 void DataAccessWidget::setCurrentPage(Page page)
 {
+    if (page == HistoryPage && !OpcUa::isHistoryReadSupported())
+        page = DataAccessPage;
     ui->mainTabs->setCurrentIndex(static_cast<int>(page));
 }
 
@@ -128,6 +132,15 @@ void DataAccessWidget::setCurrentPage(Page page)
 int DataAccessWidget::currentPage() const
 {
     return ui->mainTabs->currentIndex();
+}
+
+///
+/// \brief Enables or disables the History page.
+/// \param available True when the server connection can serve history reads.
+///
+void DataAccessWidget::setHistoryAvailable(bool available)
+{
+    ui->mainTabs->setTabEnabled(HistoryPage, available && OpcUa::isHistoryReadSupported());
 }
 
 ///
@@ -231,7 +244,10 @@ void DataAccessWidget::clearRuntimeData()
     _dataModel->clear();
     resetSubscriptions();
     _eventsModel->setItems({});
-    _historyModel->setItems({});
+    _historyModel->clear();
+    _historyNodeId.clear();
+    ui->historyNodeEdit->clear();
+    ui->historyNodeEdit->setToolTip(QString());
 }
 
 ///
@@ -241,6 +257,8 @@ void DataAccessWidget::clearRuntimeData()
 void DataAccessWidget::setTimestampMode(AppSettings::TimestampMode mode)
 {
     _dataModel->setTimestampMode(mode);
+    _historyModel->setTimestampMode(mode);
+    applyHistoryTimestampMode(mode);
 }
 
 ///
@@ -252,7 +270,8 @@ void DataAccessWidget::setTimestampMode(AppSettings::TimestampMode mode)
 bool DataAccessWidget::eventFilter(QObject *watched, QEvent *event)
 {
     const bool dataViewTarget = watched == ui->dataView || watched == ui->dataView->viewport();
-    if (!dataViewTarget)
+    const bool historyNodeTarget = OpcUa::isHistoryReadSupported() && watched == ui->historyNodeEdit;
+    if (!dataViewTarget && !historyNodeTarget)
         return QWidget::eventFilter(watched, event);
 
     if (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove) {
@@ -271,8 +290,17 @@ bool DataAccessWidget::eventFilter(QObject *watched, QEvent *event)
         auto *dropEvent = static_cast<QDropEvent *>(event);
         OpcUaNodeInfo node;
         if (decodeDroppedVariable(dropEvent->mimeData(), &node)) {
-            setCurrentPage(DataAccessPage);
-            emit nodeDropRequested(node.nodeId);
+            if (historyNodeTarget) {
+                _historyNodeId = node.nodeId;
+                const QString label = node.displayName.isEmpty()
+                    ? (node.browseName.isEmpty() ? node.nodeId : node.browseName)
+                    : node.displayName;
+                ui->historyNodeEdit->setText(label);
+                ui->historyNodeEdit->setToolTip(node.nodeId);
+            } else {
+                setCurrentPage(DataAccessPage);
+                emit nodeDropRequested(node.nodeId);
+            }
             dropEvent->setDropAction(Qt::CopyAction);
             dropEvent->accept();
             return true;
@@ -403,6 +431,7 @@ void DataAccessWidget::setupEventsView()
 void DataAccessWidget::setupHistoryView()
 {
     ui->historyTable->setModel(_historyModel);
+    ui->historyTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->historyTable->verticalHeader()->hide();
 
     auto *historyHeader = ui->historyTable->headerView();
@@ -410,9 +439,96 @@ void DataAccessWidget::setupHistoryView()
             [this](int logicalIndex, Qt::Alignment alignment) {
                 _historyModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
             });
-    historyHeader->setSectionResizeMode(HistoryModel::ColNode,  QHeaderView::Fixed);
-    historyHeader->setSectionResizeMode(HistoryModel::ColRange, QHeaderView::Stretch);
-    ui->historyTable->setColumnWidth(HistoryModel::ColNode, 260);
+
+    historyHeader->setStretchLastSection(false);
+    historyHeader->setSectionResizeMode(HistoryModel::ColNumber,          QHeaderView::Fixed);
+    historyHeader->setSectionResizeMode(HistoryModel::ColSourceTimestamp, QHeaderView::Interactive);
+    historyHeader->setSectionResizeMode(HistoryModel::ColServerTimestamp, QHeaderView::Interactive);
+    historyHeader->setSectionResizeMode(HistoryModel::ColValue,           QHeaderView::Stretch);
+    historyHeader->setSectionResizeMode(HistoryModel::ColStatus,          QHeaderView::Interactive);
+
+    historyHeader->setSectionAlignment(HistoryModel::ColNumber,          Qt::AlignCenter);
+    historyHeader->setSectionAlignment(HistoryModel::ColSourceTimestamp, Qt::AlignCenter);
+    historyHeader->setSectionAlignment(HistoryModel::ColServerTimestamp, Qt::AlignCenter);
+    historyHeader->setSectionAlignment(HistoryModel::ColValue,           Qt::AlignCenter);
+    historyHeader->setSectionAlignment(HistoryModel::ColStatus,          Qt::AlignCenter);
+
+    ui->historyTable->setColumnWidth(HistoryModel::ColNumber,          48 );
+    ui->historyTable->setColumnWidth(HistoryModel::ColSourceTimestamp, 200);
+    ui->historyTable->setColumnWidth(HistoryModel::ColServerTimestamp, 200);
+    ui->historyTable->setColumnWidth(HistoryModel::ColStatus,          90 );
+
+    ui->historyNodeEdit->setAcceptDrops(true);
+    ui->historyNodeEdit->installEventFilter(this);
+
+    const QDateTime now = QDateTime::currentDateTime();
+    ui->historyEndEdit->setDateTime(now);
+    ui->historyStartEdit->setDateTime(now.addSecs(-3600));
+    applyHistoryTimestampMode(AppSettings().timestampMode());
+
+    connect(ui->historyReadButton, &QAbstractButton::clicked,
+            this, &DataAccessWidget::requestHistoryRead);
+    connect(ui->historyClearButton, &QAbstractButton::clicked,
+            this, [this] { _historyModel->clear(); });
+}
+
+///
+/// \brief Aligns the history date pickers with the local/UTC timestamp mode.
+/// \param mode Local time or UTC.
+///
+void DataAccessWidget::applyHistoryTimestampMode(AppSettings::TimestampMode mode)
+{
+    const bool utc = mode == AppSettings::TimestampMode::Utc;
+    const Qt::TimeSpec spec = utc ? Qt::UTC : Qt::LocalTime;
+    const QString zone = utc ? tr("UTC") : tr("Local");
+
+    for (QDateTimeEdit *edit : {ui->historyStartEdit, ui->historyEndEdit}) {
+        const QDateTime current = edit->dateTime();
+        edit->setTimeSpec(spec);
+        edit->setDateTime(utc ? current.toUTC() : current.toLocalTime());
+    }
+    ui->historyStartLabel->setText(tr("Start (%1)").arg(zone));
+    ui->historyEndLabel->setText(tr("End (%1)").arg(zone));
+}
+
+///
+/// \brief Requests a history read for the targeted node over the current range.
+///
+void DataAccessWidget::requestHistoryRead()
+{
+    if (!OpcUa::isHistoryReadSupported())
+        return;
+    if (_historyNodeId.isEmpty())
+        return;
+    emit historyReadRequested(_historyNodeId, ui->historyStartEdit->dateTime(),
+                              ui->historyEndEdit->dateTime(),
+                              static_cast<quint32>(ui->historyMaxEdit->value()));
+}
+
+///
+/// \brief Shows history samples in the History table.
+/// \param values History samples in time order.
+///
+void DataAccessWidget::setHistoryResults(const QVector<OpcUaHistoryValue> &values)
+{
+    _historyModel->setItems(values);
+}
+
+///
+/// \brief Targets a node on the History page and requests its history for the current range.
+/// \param nodeId Node whose history should be read.
+///
+void DataAccessWidget::requestHistoryForNode(const QString &nodeId, const QString &displayName)
+{
+    if (!OpcUa::isHistoryReadSupported())
+        return;
+    if (nodeId.isEmpty())
+        return;
+    _historyNodeId = nodeId;
+    ui->historyNodeEdit->setText(displayName.isEmpty() ? nodeId : displayName);
+    ui->historyNodeEdit->setToolTip(nodeId);
+    setCurrentPage(HistoryPage);
+    requestHistoryRead();
 }
 
 ///
@@ -427,6 +543,8 @@ void DataAccessWidget::configureToolbar()
     ui->subscribeButton->setIcon(QStringLiteral("subscribe"));
     ui->addSubscriptionButton->setIcon(QStringLiteral("add"));
     ui->removeSubscriptionButton->setIcon(QStringLiteral("remove"));
+    ui->historyReadButton->setIcon(QStringLiteral("read"));
+    ui->historyClearButton->setIcon(QStringLiteral("clear"));
 
     ui->subscribeButton->setPopupMode(QToolButton::InstantPopup);
     ui->removeButton->setEnabled(false);
@@ -435,6 +553,7 @@ void DataAccessWidget::configureToolbar()
     ui->subscribeButton->setEnabled(false);
     ui->removeSubscriptionButton->setEnabled(false);
     ui->mainTabs->setTabEnabled(EventsPage, false);
+    ui->mainTabs->setTabVisible(HistoryPage, OpcUa::isHistoryReadSupported());
     ui->mainTabs->setTabEnabled(HistoryPage, false);
 
     connect(ui->addNodeButton, &QPushButton::clicked,

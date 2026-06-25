@@ -13,6 +13,7 @@
 #include <QScopedPointer>
 #include <QSignalSpy>
 #include <QTableView>
+#include <QTabWidget>
 #include <QTest>
 
 #include "models/addressspacemimedata.h"
@@ -31,6 +32,7 @@ private slots:
     void addressSpaceObjectDropIsIgnored();
     void addNodeWithDefaultSubscriptionRequestsMonitoring();
     void addNodeWithExplicitSubscriptionRequestsMonitoring();
+    void historyTabFollowsQtSupport();
 };
 
 namespace {
@@ -170,6 +172,19 @@ void TestDataAccessWidget::addNodeWithExplicitSubscriptionRequestsMonitoring()
     QCOMPARE(view->model()->rowCount(), 1);
     QCOMPARE(view->model()->data(view->model()->index(0, DataAccessModel::ColSubscription)).toString(),
              subscription.name);
+}
+
+///
+/// \brief The History page is only visible when Qt OPC UA can perform HistoryRead.
+///
+void TestDataAccessWidget::historyTabFollowsQtSupport()
+{
+    DataAccessWidget widget;
+    auto *tabs = widget.findChild<QTabWidget *>(QStringLiteral("mainTabs"));
+    QVERIFY(tabs);
+
+    QCOMPARE(tabs->isTabVisible(DataAccessWidget::HistoryPage),
+             OpcUa::isHistoryReadSupported());
 }
 
 QTEST_MAIN(TestDataAccessWidget)

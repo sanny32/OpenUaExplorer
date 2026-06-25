@@ -18,6 +18,7 @@
 #include "models/logitem.h"
 #include "models/nodeitem.h"
 #include "models/subscriptionitem.h"
+#include "opcua/opcuatypes.h"
 
 namespace TestData {
 
@@ -203,16 +204,24 @@ inline QVector<EventItem> eventItems()
 }
 
 ///
-/// \brief Returns sample OPC UA history read entries for use in HistoryModel.
-/// \return List of HistoryItem entries.
+/// \brief Returns sample OPC UA history samples for use in HistoryModel.
+/// \return List of OpcUaHistoryValue entries.
 ///
-inline QVector<HistoryItem> historyItems()
+inline QVector<OpcUaHistoryValue> historyItems()
 {
-    return {
-        {"ns=2;s=Device1.Measurements.Temperature", "12:10:00 — 12:15:00"},
-        {"ns=2;s=Device1.Measurements.Pressure",    "12:10:00 — 12:15:00"},
-        {"ns=2;s=Device1.Measurements.Humidity",    "12:10:00 — 12:15:00"}
-    };
+    const QDateTime base(QDate(2026, 6, 25), QTime(12, 10, 0), Qt::UTC);
+    QVector<OpcUaHistoryValue> samples;
+    for (int i = 0; i < 3; ++i) {
+        OpcUaHistoryValue sample;
+        sample.nodeId = QStringLiteral("ns=2;s=Device1.Measurements.Temperature");
+        sample.value = 21.0 + i;
+        sample.valueType = 11;
+        sample.status = QStringLiteral("Good");
+        sample.sourceTimestamp = base.addSecs(i);
+        sample.serverTimestamp = base.addSecs(i);
+        samples.append(sample);
+    }
+    return samples;
 }
 
 } // namespace TestData

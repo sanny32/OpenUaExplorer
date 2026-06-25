@@ -3,7 +3,7 @@
 
 ///
 /// \file subscriptionitem.h
-/// \brief Declares subscription, event and history data types.
+/// \brief Declares subscription and event data types.
 ///
 
 #pragma once
@@ -41,16 +41,4 @@ struct EventItem
 
     /// \brief Event message.
     QString message;
-};
-
-///
-/// \brief Describes an OPC UA history read request entry.
-///
-struct HistoryItem
-{
-    /// \brief Node display text.
-    QString node;
-    
-    /// \brief History time range display text.
-    QString range;
 };

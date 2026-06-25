@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QDateTime>
 #include <QStringList>
 
 #include "opcua/opcuatypes.h"
@@ -45,6 +46,16 @@ public slots:
     void read(const QStringList &nodeIds);
 
     ///
+    /// \brief Reads the raw history of a single node's Value over a time range.
+    /// \param nodeId Node whose history is read.
+    /// \param start Inclusive range start.
+    /// \param end Inclusive range end.
+    /// \param maxValues Maximum samples to return, or 0 for no limit.
+    ///
+    void readHistory(const QString &nodeId, const QDateTime &start, const QDateTime &end,
+                     quint32 maxValues);
+
+    ///
     /// \brief Enables monitoring for a node.
     /// \param nodeId Node to monitor.
     /// \param publishingInterval Publishing interval in milliseconds.
@@ -66,6 +77,14 @@ signals:
     void valuesReady(QVector<OpcUaDataValue> values, QString error);
 
     ///
+    /// \brief Emitted when a raw history read finishes.
+    /// \param nodeId Node whose history was read.
+    /// \param values History samples in time order.
+    /// \param error Read error, empty on success.
+    ///
+    void historyReady(QString nodeId, QVector<OpcUaHistoryValue> values, QString error);
+
+    ///
     /// \brief Emitted when a monitoring request finishes.
     /// \param nodeId Affected node.
     /// \param subscribed True for subscribe and false for unsubscribe.
@@ -76,6 +95,8 @@ signals:
 
 private:
     void handleValuesReady(const QVector<OpcUaDataValue> &values, const QString &error);
+    void handleHistoryReady(const QString &nodeId, const QVector<OpcUaHistoryValue> &values,
+                            const QString &error);
     void handleMonitoringFinished(const QString &nodeId, bool subscribed,
                                   bool success, const QString &error);
 

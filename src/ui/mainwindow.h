@@ -58,6 +58,7 @@ private slots:
     void on_actionSubscribe_triggered();
     void on_actionUnsubscribe_triggered();
     void on_actionAddToDataAccess_triggered();
+    void on_actionReadHistory_triggered();
     void on_actionExit_triggered();
     void on_actionSettings_triggered();
     void on_actionTheme_triggered();
@@ -81,6 +82,7 @@ private:
     void bindIcons();
     void setupThemeControls();
     void updateThemeControls();
+    void configureHistoryUi();
     void cycleTheme();
     void applyThemeMode(AppSettings::ThemeMode mode);
     void setupOpcUaClient();
@@ -100,6 +102,8 @@ private:
     void onNodeDetailsReady(const OpcUaNodeDetails &details, const QString &error);
     void onSelectionCleared();
     void onDataValuesReady(const QVector<OpcUaDataValue> &values, const QString &error);
+    void onHistoryReady(const QString &nodeId, const QVector<OpcUaHistoryValue> &values,
+                        const QString &error);
     void onWriteFinished(const QString &nodeId, bool success, const QString &error);
     void onMonitoringFinished(const QString &nodeId, bool subscribed,
                               bool success, const QString &error);

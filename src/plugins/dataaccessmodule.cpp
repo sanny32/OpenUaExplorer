@@ -47,6 +47,8 @@ void DataAccessModule::initialize(ServiceContext &context)
     _clientService = context.clientService();
     connect(_clientService, &OpcUaClientService::dataValuesReady,
             this, &DataAccessModule::handleValuesReady);
+    connect(_clientService, &OpcUaClientService::historyDataReady,
+            this, &DataAccessModule::handleHistoryReady);
     connect(_clientService, &OpcUaClientService::monitoringFinished,
             this, &DataAccessModule::handleMonitoringFinished);
 }
@@ -58,6 +60,23 @@ void DataAccessModule::initialize(ServiceContext &context)
 void DataAccessModule::read(const QStringList &nodeIds)
 {
     _clientService->readValues(nodeIds);
+}
+
+///
+/// \brief Logs and starts a raw history read for a single node.
+/// \param nodeId Node whose history is read.
+/// \param start Inclusive range start.
+/// \param end Inclusive range end.
+/// \param maxValues Maximum samples to return, or 0 for no limit.
+///
+void DataAccessModule::readHistory(const QString &nodeId, const QDateTime &start,
+                                   const QDateTime &end, quint32 maxValues)
+{
+    qCInfo(lcDataAccess).noquote()
+        << tr("Reading raw history for node '%1' (%2 — %3, max=%4).")
+               .arg(nodeId, start.toString(Qt::ISODate), end.toString(Qt::ISODate))
+               .arg(maxValues);
+    _clientService->readHistoryRaw(nodeId, start, end, maxValues);
 }
 
 ///
@@ -91,6 +110,26 @@ void DataAccessModule::unsubscribe(const QString &nodeId)
 void DataAccessModule::handleValuesReady(const QVector<OpcUaDataValue> &values, const QString &error)
 {
     emit valuesReady(values, error);
+}
+
+///
+/// \brief Logs and republishes the outcome of a raw history read.
+/// \param nodeId Node whose history was read.
+/// \param values History samples in time order.
+/// \param error Read error, empty on success.
+///
+void DataAccessModule::handleHistoryReady(const QString &nodeId,
+                                          const QVector<OpcUaHistoryValue> &values,
+                                          const QString &error)
+{
+    if (error.isEmpty()) {
+        qCInfo(lcDataAccess).noquote()
+            << tr("History read for node '%1' returned %2 sample(s).").arg(nodeId).arg(values.size());
+    } else {
+        qCWarning(lcDataAccess).noquote()
+            << tr("History read for node '%1' failed: %2").arg(nodeId, error);
+    }
+    emit historyReady(nodeId, values, error);
 }
 
 ///

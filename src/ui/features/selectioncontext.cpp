@@ -72,3 +72,12 @@ void SelectionContext::clear()
     _currentDetails = {};
     emit cleared();
 }
+
+///
+/// \brief Requests a history read for a node selected from a feature.
+/// \param node Node whose history should be read.
+///
+void SelectionContext::requestHistory(const OpcUaNodeInfo &node)
+{
+    emit historyReadRequested(node);
+}

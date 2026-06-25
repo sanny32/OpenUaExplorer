@@ -11,11 +11,12 @@
 #include <QAbstractTableModel>
 #include <QVector>
 
+#include "appsettings.h"
 #include "columnalignmentstore.h"
-#include "subscriptionitem.h"
+#include "opcua/opcuatypes.h"
 
 ///
-/// \brief Table model for OPC UA history read entries.
+/// \brief Table model for OPC UA HistoryRead samples.
 ///
 class HistoryModel : public QAbstractTableModel
 {
@@ -43,7 +44,7 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
     ///
-    /// \brief Returns the node/range text and column alignment for a history row.
+    /// \brief Returns the cell text and column alignment for a history row.
     /// \param index Cell to query.
     /// \param role Requested data role.
     /// \return Value for the role, or an invalid variant.
@@ -51,7 +52,7 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
     ///
-    /// \brief Returns the Node/Range column titles.
+    /// \brief Returns the column titles.
     /// \param section Column index.
     /// \param orientation Header orientation.
     /// \param role Display role.
@@ -62,9 +63,15 @@ public:
 
     ///
     /// \brief Replaces all history rows.
-    /// \param items New history entries to display.
+    /// \param items New history samples to display.
     ///
-    void setItems(const QVector<HistoryItem> &items);
+    void setItems(const QVector<OpcUaHistoryValue> &items);
+
+    ///
+    /// \brief Appends history rows, preserving the existing ones.
+    /// \param items History samples to add.
+    ///
+    void append(const QVector<OpcUaHistoryValue> &items);
 
     ///
     /// \brief Removes all history rows.
@@ -79,15 +86,25 @@ public:
     void setColumnAlignment(int column, Qt::Alignment alignment);
 
     ///
+    /// \brief Applies the timestamp display mode used to render the timestamp columns.
+    /// \param mode Local time or UTC.
+    ///
+    void setTimestampMode(AppSettings::TimestampMode mode);
+
+    ///
     /// \brief Columns exposed by the history table.
     ///
     enum Column {
-        ColNode  = 0,
-        ColRange = 1,
-        ColCount = 2
+        ColNumber          = 0,
+        ColSourceTimestamp = 1,
+        ColServerTimestamp = 2,
+        ColValue           = 3,
+        ColStatus          = 4,
+        ColCount           = 5
     };
 
 private:
-    QVector<HistoryItem>       _items;
-    ColumnAlignmentStore _columnAlignments;
+    QVector<OpcUaHistoryValue>     _items;
+    ColumnAlignmentStore           _columnAlignments;
+    AppSettings::TimestampMode     _timestampMode;
 };

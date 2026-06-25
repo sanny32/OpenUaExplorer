@@ -66,6 +66,7 @@ MainWindow::MainWindow(QWidget *parent)
     const bool manualThemeSupported = theApp()->theme().isManualToggleSupported();
     ui->actionTheme->setVisible(manualThemeSupported);
     ui->menuTheme->menuAction()->setVisible(manualThemeSupported);
+    configureHistoryUi();
 
     ui->mainToolBar->setupFromDesignerActions();
 
@@ -240,6 +241,18 @@ void MainWindow::on_actionAddToDataAccess_triggered()
 }
 
 ///
+/// \brief Reads the history of the selected variable node.
+///
+void MainWindow::on_actionReadHistory_triggered()
+{
+    if (!OpcUa::isHistoryReadSupported())
+        return;
+    if (OpcUa::isVariable(_selectedNodeDetails.nodeClass))
+        ui->dataAccessWidget->requestHistoryForNode(_selectedNodeDetails.nodeId,
+                                                    _selectedNodeDetails.displayName);
+}
+
+///
 /// \brief Closes the main window.
 ///
 void MainWindow::on_actionExit_triggered()
@@ -301,6 +314,8 @@ void MainWindow::on_actionViewEvents_triggered()
 ///
 void MainWindow::on_actionViewHistory_triggered()
 {
+    if (!OpcUa::isHistoryReadSupported())
+        return;
     ui->dataAccessWidget->setCurrentPage(DataAccessWidget::HistoryPage);
 }
 
@@ -501,6 +516,22 @@ void MainWindow::applyThemeMode(AppSettings::ThemeMode mode)
 }
 
 ///
+/// \brief Removes HistoryRead entry points when the linked Qt OPC UA API cannot serve them.
+///
+void MainWindow::configureHistoryUi()
+{
+    const bool supported = OpcUa::isHistoryReadSupported();
+    ui->actionReadHistory->setVisible(supported);
+    ui->actionViewHistory->setVisible(supported);
+    if (supported)
+        return;
+
+    ui->menuView->removeAction(ui->actionViewHistory);
+    ui->menuData->removeAction(ui->actionReadHistory);
+    ui->mainToolBar->removeAction(ui->actionReadHistory);
+}
+
+///
 /// \brief Wires the client service and connection controller signals to the UI.
 ///
 void MainWindow::setupOpcUaClient()
@@ -584,6 +615,12 @@ void MainWindow::setupPlugins()
             this, &MainWindow::onNodeDetailsReady);
     connect(_selectionContext, &SelectionContext::cleared,
             this, &MainWindow::onSelectionCleared);
+    if (OpcUa::isHistoryReadSupported()) {
+        connect(_selectionContext, &SelectionContext::historyReadRequested,
+                this, [this](const OpcUaNodeInfo &node) {
+            ui->dataAccessWidget->requestHistoryForNode(node.nodeId, node.displayName);
+        });
+    }
     connect(_attributePlugin, &AttributeModule::writeFinished,
             this, &MainWindow::onWriteFinished);
 
@@ -606,6 +643,12 @@ void MainWindow::setupDataAccessWiring()
             _dataAccessPlugin, &DataAccessModule::unsubscribe);
     connect(_dataAccessPlugin, &DataAccessModule::valuesReady,
             this, &MainWindow::onDataValuesReady);
+    if (OpcUa::isHistoryReadSupported()) {
+        connect(ui->dataAccessWidget, &DataAccessWidget::historyReadRequested,
+                _dataAccessPlugin, &DataAccessModule::readHistory);
+        connect(_dataAccessPlugin, &DataAccessModule::historyReady,
+                this, &MainWindow::onHistoryReady);
+    }
     connect(_dataAccessPlugin, &DataAccessModule::monitoringFinished,
             this, &MainWindow::onMonitoringFinished);
     connect(theApp(), &Application::timestampModeChanged,
@@ -657,6 +700,7 @@ void MainWindow::onNodeDetailsReady(const OpcUaNodeDetails &details, const QStri
     ui->actionWrite->setEnabled(writable);
     ui->actionWriteValue->setEnabled(writable);
     ui->actionAddToDataAccess->setEnabled(variable);
+    ui->actionReadHistory->setEnabled(variable && OpcUa::isHistoryReadSupported());
     updateMonitoringActions();
 }
 
@@ -671,6 +715,7 @@ void MainWindow::onSelectionCleared()
     ui->actionWrite->setEnabled(false);
     ui->actionWriteValue->setEnabled(false);
     ui->actionAddToDataAccess->setEnabled(false);
+    ui->actionReadHistory->setEnabled(false);
     updateMonitoringActions();
 }
 
@@ -683,6 +728,22 @@ void MainWindow::onDataValuesReady(const QVector<OpcUaDataValue> &values, const 
 {
     if (error.isEmpty())
         ui->dataAccessWidget->updateValues(values);
+}
+
+///
+/// \brief Pushes raw history samples into the view, or reports a read failure.
+/// \param nodeId Node whose history was read.
+/// \param values History samples in time order.
+/// \param error Read error, if any.
+///
+void MainWindow::onHistoryReady(const QString &nodeId, const QVector<OpcUaHistoryValue> &values,
+                                const QString &error)
+{
+    Q_UNUSED(nodeId)
+    if (error.isEmpty())
+        ui->dataAccessWidget->setHistoryResults(values);
+    else
+        QMessageBox::warning(this, tr("History Read Failed"), error);
 }
 
 ///
@@ -780,6 +841,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     ui->actionBrowse->setEnabled(connected);
     ui->actionBrowseAddressSpace->setEnabled(connected);
     ui->actionRefresh->setEnabled(connected);
+    ui->dataAccessWidget->setHistoryAvailable(connected);
     updateMonitoringActions();
     if (connected) {
         initializeAddressSpace();
@@ -928,6 +990,7 @@ void MainWindow::bindIcons()
     AppIcons::bindIcon(ui->actionBrowse,      "browse");
     AppIcons::bindIcon(ui->actionRefresh,     "refresh");
     AppIcons::bindIcon(ui->actionRead,        "read");
+    AppIcons::bindIcon(ui->actionReadHistory, "history");
     AppIcons::bindIcon(ui->actionWrite,       "write");
     AppIcons::bindIcon(ui->actionSubscribe,   "subscribe");
     AppIcons::bindIcon(ui->actionUnsubscribe, "unsubscribe");
