@@ -1,5 +1,4 @@
 include("${PROJECT_SOURCE_DIR}/cmake/qlementine.cmake")
-include("${PROJECT_SOURCE_DIR}/cmake/ui_normalization.cmake")
 
 set(UI_FILES
     mainwindow.ui
@@ -151,7 +150,6 @@ target_include_directories(ouaexp_ui PUBLIC
 
 target_link_libraries(ouaexp_ui PUBLIC ouaexp_plugins)
 
-ouaexp_configure_ui_enum_normalization(ouaexp_ui)
 ouaexp_configure_qt_target(ouaexp_ui)
 ouaexp_configure_qlementine_app_style(ouaexp_ui)
 

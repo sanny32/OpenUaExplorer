@@ -82,42 +82,6 @@ target_link_libraries(ouaexp_core PUBLIC
     Qt${QT_VERSION_MAJOR}::OpcUa
 )
 
-if(QT_VERSION_MAJOR EQUAL 5 AND QTOPCUA_OPEN62541_HISTORY_READY)
-    add_library(ouaexp_open62541_history STATIC
-        "${OUAEXP_QTOPCUA_SOURCE_DIR}/src/3rdparty/open62541/open62541.c"
-    )
-    target_include_directories(ouaexp_open62541_history PUBLIC
-        "${OUAEXP_QTOPCUA_SOURCE_DIR}/src/3rdparty/open62541"
-    )
-    target_compile_definitions(ouaexp_open62541_history PUBLIC
-        UA_ENABLE_HISTORIZING
-    )
-    if(QTOPCUA_OPEN62541_ENCRYPTION_AVAILABLE)
-        target_compile_definitions(ouaexp_open62541_history PUBLIC
-            UA_ENABLE_ENCRYPTION
-        )
-        target_include_directories(ouaexp_open62541_history PRIVATE
-            "${QTOPCUA_MBEDTLS_INCLUDE_DIR}"
-        )
-        target_link_libraries(ouaexp_open62541_history PUBLIC
-            ${QTOPCUA_MBEDTLS_LIBRARIES}
-        )
-    endif()
-    if(WIN32)
-        target_link_libraries(ouaexp_open62541_history PUBLIC ws2_32 iphlpapi)
-    endif()
-    target_sources(ouaexp_core PRIVATE
-        opcua/uahistorybackend.cpp
-        opcua/uahistorybackend.h
-    )
-    target_link_libraries(ouaexp_core PRIVATE
-        ouaexp_open62541_history
-    )
-    target_compile_definitions(ouaexp_core PUBLIC
-        OUAEXP_HAS_OPEN62541_HISTORY
-    )
-endif()
-
 ouaexp_configure_dependencies(ouaexp_core)
 ouaexp_apply_coverage(ouaexp_core)
 

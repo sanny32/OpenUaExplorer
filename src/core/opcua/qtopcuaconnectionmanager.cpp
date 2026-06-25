@@ -9,9 +9,7 @@
 #include <QLoggingCategory>
 #include <QOpcUaApplicationIdentity>
 #include <QOpcUaAuthenticationInformation>
-#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
 #include <QOpcUaConnectionSettings>
-#endif
 #include <QOpcUaErrorState>
 #include <QOpcUaPkiConfiguration>
 
@@ -38,10 +36,8 @@ QString clientErrorName(QOpcUaClient::ClientError error)
     case QOpcUaClient::AccessDenied:    return backendTr("Access denied: authentication failed.");
     case QOpcUaClient::ConnectionError: return backendTr("Connection error.");
     case QOpcUaClient::UnknownError:    return backendTr("Unknown client error.");
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     case QOpcUaClient::UnsupportedAuthenticationInformation:
         return backendTr("Unsupported authentication information.");
-#endif
     }
     return backendTr("Unknown client error (%1).").arg(static_cast<int>(error));
 }
@@ -317,14 +313,12 @@ void QtOpcUaConnectionManager::configureClient(const ConnectionProfile &profile,
             _client->setApplicationIdentity(configuration.applicationIdentity());
         _activeClientCertificateFile = profile.clientCertificateFile;
     }
-#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
     QOpcUaConnectionSettings settings;
     settings.setSessionTimeout(std::chrono::milliseconds(profile.sessionTimeoutMs));
     settings.setConnectTimeout(std::chrono::milliseconds(profile.connectTimeoutMs));
     settings.setSecureChannelLifeTime(std::chrono::milliseconds(profile.secureChannelLifetimeMs));
     settings.setRequestTimeout(std::chrono::milliseconds(profile.requestTimeoutMs));
     _client->setConnectionSettings(settings);
-#endif
 }
 
 /// \brief Finds the discovered endpoint selected by a connection profile.

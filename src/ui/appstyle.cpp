@@ -71,12 +71,7 @@ const QStyle *AppStyle::baseStyle()
 bool AppStyle::isFusionStyle()
 {
     const QStyle *base = baseStyle();
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     return base && base->name().compare(QLatin1String("fusion"), Qt::CaseInsensitive) == 0;
-#else
-    return base && QString::fromLatin1(base->metaObject()->className())
-        .contains(QLatin1String("Fusion"), Qt::CaseInsensitive);
-#endif
 }
 
 ///

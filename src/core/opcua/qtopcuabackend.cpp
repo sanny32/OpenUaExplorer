@@ -20,11 +20,9 @@
 #include <QOpcUaBrowseRequest>
 #include <QOpcUaClient>
 #include <QOpcUaEndpointDescription>
-#if QT_VERSION >= QT_VERSION_CHECK(6, 3, 0)
 #include <QOpcUaHistoryData>
 #include <QOpcUaHistoryReadRawRequest>
 #include <QOpcUaHistoryReadResponse>
-#endif
 #include <QOpcUaNode>
 #include <QOpcUaMonitoringParameters>
 #include <QOpcUaReadItem>
@@ -33,9 +31,6 @@
 
 #include "attributeformatter.h"
 #include "loggingcategories.h"
-#if QT_VERSION < QT_VERSION_CHECK(6, 3, 0) && defined(OUAEXP_HAS_OPEN62541_HISTORY)
-#include "uahistorybackend.h"
-#endif
 #include "pkimanager.h"
 #include "qtopcuabackend.h"
 #include "qtopcuaconnectionmanager.h"
@@ -67,7 +62,6 @@ public:
                           q, [this]() {
             cancelRequests();
             clearMonitoredNodes();
-            clearActiveProfile();
         });
     }
 
@@ -95,32 +89,6 @@ public:
     {
         qDeleteAll(monitoredNodes);
         monitoredNodes.clear();
-    }
-
-    ///
-    /// \brief Stores connection data required by the direct Qt5 history reader.
-    /// \param profile Active connection profile.
-    /// \param password Username password.
-    /// \param privateKeyPassword Private key password.
-    ///
-    void rememberActiveProfile(const ConnectionProfile &profile, const QString &password,
-                               const QString &privateKeyPassword)
-    {
-        activeProfile = profile;
-        activePassword = password;
-        activePrivateKeyPassword = privateKeyPassword;
-        hasActiveProfile = true;
-    }
-
-    ///
-    /// \brief Clears connection data retained for the direct Qt5 history reader.
-    ///
-    void clearActiveProfile()
-    {
-        activeProfile = ConnectionProfile();
-        activePassword.clear();
-        activePrivateKeyPassword.clear();
-        hasActiveProfile = false;
     }
 
     ///
@@ -219,10 +187,6 @@ public:
     std::array<QMetaObject::Connection,
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeConnections{};
     QHash<QString, QOpcUaNode *> monitoredNodes;
-    ConnectionProfile activeProfile;
-    QString activePassword;
-    QString activePrivateKeyPassword;
-    bool hasActiveProfile = false;
 };
 
 ///
@@ -393,10 +357,7 @@ void QtOpcUaBackend::connectToEndpoint(const ConnectionProfile &profile,
                                         const QString &password,
                                         const QString &privateKeyPassword)
 {
-    if (_d->connection.connectToEndpoint(profile, password, privateKeyPassword))
-        _d->rememberActiveProfile(profile, password, privateKeyPassword);
-    else
-        _d->clearActiveProfile();
+    _d->connection.connectToEndpoint(profile, password, privateKeyPassword);
 }
 
 ///
@@ -404,7 +365,6 @@ void QtOpcUaBackend::connectToEndpoint(const ConnectionProfile &profile,
 ///
 void QtOpcUaBackend::disconnectFromEndpoint()
 {
-    _d->clearActiveProfile();
     _d->connection.disconnectFromEndpoint();
 }
 
@@ -570,7 +530,6 @@ void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
     }
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 3, 0)
 namespace {
 ///
 /// \brief Maps a Qt history result into transport-neutral history samples.
@@ -670,58 +629,6 @@ void QtOpcUaBackend::readHistoryRaw(const QString &nodeId, const QDateTime &star
         emit historyDataReady(nodeId, {}, tr("History read timed out."));
     });
 }
-#elif defined(OUAEXP_HAS_OPEN62541_HISTORY)
-///
-/// \brief Reads the raw history of a node's Value through bundled open62541.
-/// \param nodeId Node whose history is read.
-/// \param start Inclusive range start.
-/// \param end Inclusive range end.
-/// \param numValuesPerNode Maximum samples to return, or 0 for no limit.
-/// \param timeoutMs Request timeout in milliseconds.
-///
-void QtOpcUaBackend::readHistoryRaw(const QString &nodeId, const QDateTime &start,
-                                    const QDateTime &end, quint32 numValuesPerNode, int timeoutMs)
-{
-    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected
-        || !_d->hasActiveProfile) {
-        emit historyDataReady(nodeId, {}, tr("The OPC UA client is not connected."));
-        return;
-    }
-    qCInfo(lcClient).noquote()
-        << QStringLiteral("HistoryRead request: node=%1 startUtc=%2 endUtc=%3 numValues=%4")
-               .arg(nodeId, start.toUTC().toString(Qt::ISODateWithMs),
-                    end.toUTC().toString(Qt::ISODateWithMs))
-               .arg(numValuesPerNode);
-    UaHistoryBackend historyBackend;
-    const UaHistoryReadResult result = historyBackend.readRaw(
-        _d->activeProfile, _d->activePassword, _d->activePrivateKeyPassword,
-        nodeId, start, end, numValuesPerNode, timeoutMs);
-    qCInfo(lcClient).noquote()
-        << QStringLiteral("HistoryRead reply: node=%1 count=%2 error=%3")
-               .arg(nodeId)
-               .arg(result.values.size())
-               .arg(result.error.isEmpty() ? QStringLiteral("-") : result.error);
-    emit historyDataReady(nodeId, result.values, result.error);
-}
-#else
-///
-/// \brief Reports that history reads require Qt 6.3 or newer.
-/// \param nodeId Node whose history was requested.
-/// \param start Inclusive range start (unused).
-/// \param end Inclusive range end (unused).
-/// \param numValuesPerNode Maximum samples to return (unused).
-/// \param timeoutMs Request timeout in milliseconds (unused).
-///
-void QtOpcUaBackend::readHistoryRaw(const QString &nodeId, const QDateTime &start,
-                                    const QDateTime &end, quint32 numValuesPerNode, int timeoutMs)
-{
-    Q_UNUSED(start)
-    Q_UNUSED(end)
-    Q_UNUSED(numValuesPerNode)
-    Q_UNUSED(timeoutMs)
-    emit historyDataReady(nodeId, {}, tr("History read requires Qt 6.3 or newer."));
-}
-#endif
 
 ///
 /// \brief Reads the SessionDiagnosticsArray and resolves this client's session name.

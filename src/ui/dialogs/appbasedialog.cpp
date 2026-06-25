@@ -8,10 +8,8 @@
 
 #include <QEvent>
 #include <QShowEvent>
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #include <QGuiApplication>
 #include <QStyleHints>
-#endif
 
 #include "appicons.h"
 #include "appbasedialog.h"
@@ -25,10 +23,8 @@ AppBaseDialog::AppBaseDialog(QWidget *parent)
 {
     updateWindowIcon();
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
             this, [this](Qt::ColorScheme) { updateWindowIcon(); });
-#endif
 }
 
 ///

@@ -65,11 +65,7 @@ inline bool isWritable(quint8 userAccessLevel)
 ///
 inline constexpr bool isHistoryReadSupported()
 {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 3, 0) || defined(OUAEXP_HAS_OPEN62541_HISTORY)
     return true;
-#else
-    return false;
-#endif
 }
 
 } // namespace OpcUa

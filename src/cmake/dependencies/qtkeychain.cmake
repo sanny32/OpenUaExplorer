@@ -5,12 +5,9 @@ option(OUAEXP_FETCH_QTKEYCHAIN
 
 set(QTKEYCHAIN_VERSION "0.16.0")
 
-find_package(Qt${QT_VERSION_MAJOR}Keychain CONFIG QUIET)
-if(NOT TARGET qt${QT_VERSION_MAJOR}keychain AND OUAEXP_FETCH_QTKEYCHAIN)
-    set(BUILD_WITH_QT6 OFF CACHE BOOL "Build QtKeychain with Qt 6" FORCE)
-    if(QT_VERSION_MAJOR EQUAL 6)
-        set(BUILD_WITH_QT6 ON CACHE BOOL "Build QtKeychain with Qt 6" FORCE)
-    endif()
+find_package(Qt6Keychain CONFIG QUIET)
+if(NOT TARGET qt6keychain AND OUAEXP_FETCH_QTKEYCHAIN)
+    set(BUILD_WITH_QT6 ON CACHE BOOL "Build QtKeychain with Qt 6" FORCE)
     set(BUILD_TEST_APPLICATION OFF CACHE BOOL
         "Build QtKeychain test application" FORCE)
     # Keep QtKeychain's own autotests out of our CTest run.
@@ -31,9 +28,9 @@ if(NOT TARGET qt${QT_VERSION_MAJOR}keychain AND OUAEXP_FETCH_QTKEYCHAIN)
 endif()
 
 function(ouaexp_configure_qtkeychain target_name)
-    if(NOT TARGET qt${QT_VERSION_MAJOR}keychain)
-        message(FATAL_ERROR "QtKeychain target qt${QT_VERSION_MAJOR}keychain is required.")
+    if(NOT TARGET qt6keychain)
+        message(FATAL_ERROR "QtKeychain target qt6keychain is required.")
     endif()
 
-    target_link_libraries(${target_name} PRIVATE qt${QT_VERSION_MAJOR}keychain)
+    target_link_libraries(${target_name} PRIVATE qt6keychain)
 endfunction()

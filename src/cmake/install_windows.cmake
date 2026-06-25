@@ -39,16 +39,10 @@ if(WINDEPLOYQT_EXECUTABLE)
             --no-system-d3d-compiler
         )
 
-        if(\"${QT_VERSION_MAJOR}\" STREQUAL \"6\")
-            list(APPEND _windeploy_args
-                --no-system-dxc-compiler
-                --skip-plugin-types generic,networkinformation,qmltooling,tls
-                --exclude-plugins qgif,qjpeg,qpdf,qsqlibase,qsqlmimer,qsqloci,qsqlodbc,qsqlpsql)
-        elseif(\"${QT_VERSION_MAJOR}\" STREQUAL \"5\")
-            list(APPEND _windeploy_args
-                --no-angle
-                --no-quick)
-        endif()
+        list(APPEND _windeploy_args
+            --no-system-dxc-compiler
+            --skip-plugin-types generic,networkinformation,qmltooling,tls
+            --exclude-plugins qgif,qjpeg,qpdf,qsqlibase,qsqlmimer,qsqloci,qsqlodbc,qsqlpsql)
 
         list(APPEND _windeploy_args \"\${_installed_exe}\")
 

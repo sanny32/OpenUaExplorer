@@ -471,9 +471,7 @@ QOpcUa::Types valueTypeForDataType(const QString &nodeId)
     case 20: return QOpcUa::Types::QualifiedName;
     case 21: return QOpcUa::Types::LocalizedText;
     case 22: return QOpcUa::Types::ExtensionObject;
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     case 25: return QOpcUa::Types::DiagnosticInfo;
-#endif
     default: return QOpcUa::Types::Undefined;
     }
 }

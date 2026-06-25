@@ -52,11 +52,9 @@ QPalette FusionStyle::palette(bool darkAppearance)
     p.setBrush(QPalette::Active,   QPalette::Highlight,  highlight);
     p.setBrush(QPalette::Inactive, QPalette::Highlight,  highlight);
     p.setBrush(QPalette::Disabled, QPalette::Highlight,  disabledHighlight);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
     p.setBrush(QPalette::Active,   QPalette::Accent,     highlight);
     p.setBrush(QPalette::Inactive, QPalette::Accent,     highlight);
     p.setBrush(QPalette::Disabled, QPalette::Accent,     disabledHighlight);
-#endif
     p.setBrush(QPalette::PlaceholderText, placeholder);
     if (darkAppearance) p.setBrush(QPalette::Link, highlight);
 

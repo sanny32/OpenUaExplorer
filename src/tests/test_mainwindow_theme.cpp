@@ -17,7 +17,10 @@
 #include <QTemporaryDir>
 #include <QTest>
 #include <QToolBar>
+#include <QToolButton>
 #include <QtGlobal>
+
+#include <algorithm>
 
 #include "appsettings.h"
 #include "application.h"
@@ -79,15 +82,6 @@ void TestMainWindowTheme::themeControlsFollowManualThemeSupport()
 
     QCOMPARE(themeAction->isVisible(), theApp()->theme().isManualToggleSupported());
     QCOMPARE(themeMenu->menuAction()->isVisible(), theApp()->theme().isManualToggleSupported());
-
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QVERIFY(!theApp()->theme().isManualToggleSupported());
-    QVERIFY(!theApp()->theme().isDark());
-
-    theApp()->theme().toggle();
-
-    QVERIFY(!theApp()->theme().isDark());
-#endif
 }
 
 ///
@@ -166,11 +160,9 @@ void TestMainWindowTheme::systemPreferenceFollowsTheCurrentScheme()
     theme.setColorSchemePreference(AppSettings::ThemeMode::System);
     QCOMPARE(AppSettings().themeMode(), AppSettings::ThemeMode::System);
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     const bool platformDark =
         QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
     QCOMPARE(theme.isDark(), platformDark);
-#endif
 }
 
 ///
@@ -221,7 +213,13 @@ void TestMainWindowTheme::historyActionsFollowQtSupport()
     QCOMPARE(viewHistory->isVisible(), supported);
     QCOMPARE(dataMenu->actions().contains(readHistory), supported);
     QCOMPARE(viewMenu->actions().contains(viewHistory), supported);
-    QCOMPARE(toolbar->actions().contains(readHistory), supported);
+
+    // The toolbar wraps each action in a MainToolButton (added via addWidget), so the
+    // action is exposed through a button's defaultAction() rather than toolbar->actions().
+    const QList<QToolButton *> buttons = toolbar->findChildren<QToolButton *>();
+    const bool readHistoryInToolbar = std::any_of(buttons.cbegin(), buttons.cend(),
+        [readHistory](const QToolButton *button) { return button->defaultAction() == readHistory; });
+    QCOMPARE(readHistoryInToolbar, supported);
 }
 
 ///

@@ -19,11 +19,7 @@
 #include "opcua/qtopcuatypemapper.h"
 
 namespace {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 const QTimeZone kUtc = QTimeZone::UTC;
-#else
-const Qt::TimeSpec kUtc = Qt::UTC;
-#endif
 
 /// \brief Encodes the SessionDiagnostics fields consumed by the mapper.
 QOpcUaExtensionObject sessionDiagnostics(const QString &name, const QString &applicationUri,

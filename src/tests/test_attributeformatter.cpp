@@ -347,9 +347,7 @@ void TestAttributeFormatter::valueTypeForDataTypeMapping()
         {19, QOpcUa::Types::StatusCode},  {20, QOpcUa::Types::QualifiedName},
         {21, QOpcUa::Types::LocalizedText}, {22, QOpcUa::Types::ExtensionObject}
     };
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     mapping.append({25, QOpcUa::Types::DiagnosticInfo});
-#endif
     for (const auto &entry : mapping) {
         QCOMPARE(valueTypeForDataType(QStringLiteral("ns=0;i=%1").arg(entry.first)),
                  entry.second);
@@ -358,9 +356,6 @@ void TestAttributeFormatter::valueTypeForDataTypeMapping()
     // Unknown identifier, or a non-zero namespace, maps to Undefined.
     QCOMPARE(valueTypeForDataType(QStringLiteral("ns=0;i=9999")), QOpcUa::Types::Undefined);
     QCOMPARE(valueTypeForDataType(QStringLiteral("ns=2;i=6")), QOpcUa::Types::Undefined);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QCOMPARE(valueTypeForDataType(QStringLiteral("ns=0;i=25")), QOpcUa::Types::Undefined);
-#endif
 }
 
 QTEST_GUILESS_MAIN(TestAttributeFormatter)

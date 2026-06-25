@@ -36,16 +36,12 @@ constexpr int listBottomPadding = 10;
 const char favoriteIdProperty[] = "favoriteId";
 
 ///
-/// \brief Returns a mouse event's position, bridging Qt 5 and Qt 6 APIs.
+/// \brief Returns a mouse event's position.
 ///
 template <class Event>
 QPoint eventPosition(const Event *event)
 {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     return event->position().toPoint();
-#else
-    return event->pos();
-#endif
 }
 }
 

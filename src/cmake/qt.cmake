@@ -1,50 +1,20 @@
-option(USE_QT5 "Force Qt5 usage" OFF)
-option(USE_QT6 "Force Qt6 usage" OFF)
-
 set(QT_COMMON_COMPONENTS Core Gui Widgets Svg Network)
 
-if(USE_QT5 AND USE_QT6)
-    message(FATAL_ERROR "USE_QT5 and USE_QT6 are mutually exclusive")
-endif()
+find_package(Qt6 6.6 COMPONENTS ${QT_COMMON_COMPONENTS} REQUIRED)
+set(QT_VERSION_MAJOR 6)
 
-if(USE_QT5)
-    find_package(Qt5 5.15.2 COMPONENTS ${QT_COMMON_COMPONENTS} REQUIRED)
-    set(QT_VERSION_MAJOR 5)
-elseif(USE_QT6)
-    find_package(Qt6 COMPONENTS ${QT_COMMON_COMPONENTS} REQUIRED)
-    set(QT_VERSION_MAJOR 6)
-else()
-    find_package(Qt6 COMPONENTS ${QT_COMMON_COMPONENTS} QUIET)
-    if(Qt6_FOUND)
-        set(QT_VERSION_MAJOR 6)
-    else()
-        find_package(Qt5 5.15.2 COMPONENTS ${QT_COMMON_COMPONENTS} REQUIRED)
-        set(QT_VERSION_MAJOR 5)
-    endif()
-endif()
-
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Test REQUIRED)
+find_package(Qt6 COMPONENTS Test REQUIRED)
 
 if(LINUX)
-    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS DBus QUIET)
+    find_package(Qt6 COMPONENTS DBus QUIET)
 endif()
 
-if(NOT DEFINED QT_VERSION_MAJOR)
-    message(FATAL_ERROR
-        "One or more Qt development packages not found. "
-        "Please install Qt 5.15.2+ or Qt6 development packages.")
-endif()
-
-get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
 get_filename_component(QT_BINARY_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
 
-if(QT_VERSION_MAJOR EQUAL 6)
-    get_filename_component(QT_INSTALL_LIBEXECS "${QT6_INSTALL_LIBEXECS}"
-        ABSOLUTE BASE_DIR "/usr")
-    get_filename_component(QT_LIBEXEC_DIR "${QT_BINARY_DIR}/../libexec" REALPATH)
-else()
-    set(QT_LIBEXEC_DIR "${QT_BINARY_DIR}")
-endif()
+get_filename_component(QT_INSTALL_LIBEXECS "${QT6_INSTALL_LIBEXECS}"
+    ABSOLUTE BASE_DIR "/usr")
+get_filename_component(QT_LIBEXEC_DIR "${QT_BINARY_DIR}/../libexec" REALPATH)
 
 if(WIN32)
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt
@@ -77,7 +47,7 @@ function(ouaexp_configure_qt_target target_name)
 
     target_link_libraries(${target_name} PRIVATE Qt${QT_VERSION_MAJOR}::OpcUa)
 
-    if(LINUX AND (Qt6DBus_FOUND OR Qt5DBus_FOUND))
+    if(LINUX AND Qt6DBus_FOUND)
         target_link_libraries(${target_name} PRIVATE Qt${QT_VERSION_MAJOR}::DBus)
         target_compile_definitions(${target_name} PRIVATE HAS_QTDBUS)
     endif()

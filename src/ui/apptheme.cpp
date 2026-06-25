@@ -30,11 +30,7 @@ namespace {
 ///
 bool qtThemeApiAvailable()
 {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     return true;
-#else
-    return false;
-#endif
 }
 
 ///
@@ -144,7 +140,6 @@ bool AppTheme::setupPortalColorScheme()
 ///
 void AppTheme::readStyleHintsColorScheme()
 {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     const Qt::ColorScheme applicationScheme = QGuiApplication::styleHints()->colorScheme();
     _scheme = applicationScheme == Qt::ColorScheme::Dark
         ? ColorScheme::Dark
@@ -160,11 +155,6 @@ void AppTheme::readStyleHintsColorScheme()
         applyColorScheme(scheme == Qt::ColorScheme::Dark
             ? ColorScheme::Dark : ColorScheme::Light);
     });
-#else
-    _scheme = qApp->palette().color(QPalette::Window).lightness() < 128
-        ? ColorScheme::Dark : ColorScheme::Light;
-    _manualToggleSupported = true;
-#endif
 }
 
 ///
@@ -255,15 +245,11 @@ void AppTheme::applyInitialScheme()
         return;
     }
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
 #ifdef Q_OS_WIN
     QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Unknown);
 #endif
     applyColorScheme(QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark
         ? ColorScheme::Dark : ColorScheme::Light);
-#else
-    applyColorScheme(_scheme);
-#endif
 }
 
 ///
@@ -357,12 +343,10 @@ void AppTheme::applyNativeColorScheme(ColorScheme scheme)
     }
 
 #ifdef Q_OS_WIN
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     QGuiApplication::styleHints()->setColorScheme(
         _manualSchemeOverriden
             ? (scheme == ColorScheme::Dark ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light)
             : Qt::ColorScheme::Unknown);
-#endif
 #else
     applyFusionPalette(scheme);
 #endif
