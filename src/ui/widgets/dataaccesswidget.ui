@@ -48,16 +48,6 @@
           </widget>
          </item>
          <item>
-          <widget class="ThemedToolButton" name="removeAllButton">
-           <property name="text">
-            <string>Remove All</string>
-           </property>
-           <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
           <widget class="ThemedToolButton" name="readButton">
            <property name="text">
             <string>Read</string>
@@ -148,16 +138,6 @@
           <widget class="ThemedToolButton" name="removeSubscriptionButton">
            <property name="text">
             <string>Remove</string>
-           </property>
-           <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="ThemedToolButton" name="removeAllSubscriptionsButton">
-           <property name="text">
-            <string>Remove All</string>
            </property>
            <property name="toolButtonStyle">
             <enum>Qt::ToolButtonTextBesideIcon</enum>

@@ -8,6 +8,7 @@
 
 #include <algorithm>
 
+#include <QAction>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
@@ -17,6 +18,7 @@
 #include <QMimeData>
 #include <QPushButton>
 
+#include "appicons.h"
 #include "appsettings.h"
 #include "dataaccesswidget.h"
 #include "headerview.h"
@@ -296,6 +298,9 @@ void DataAccessWidget::setupDataView()
     ui->dataView->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->dataView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
     ui->dataView->verticalHeader()->hide();
+    ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->dataView, &QWidget::customContextMenuRequested,
+            this, &DataAccessWidget::showDataContextMenu);
 
 
     auto *header = ui->dataView->headerView();
@@ -338,13 +343,6 @@ void DataAccessWidget::setupDataView()
         ui->writeButton->setEnabled(selectedCount == 1);
         ui->subscribeButton->setEnabled(hasSelection);
     });
-
-    auto updateRemoveAll = [this] {
-        ui->removeAllButton->setEnabled(_dataModel->rowCount() > 0);
-    };
-    connect(_dataModel, &QAbstractItemModel::rowsInserted, this, updateRemoveAll);
-    connect(_dataModel, &QAbstractItemModel::rowsRemoved, this, updateRemoveAll);
-    connect(_dataModel, &QAbstractItemModel::modelReset, this, updateRemoveAll);
 }
 
 ///
@@ -359,6 +357,9 @@ void DataAccessWidget::setupSubscriptionsView()
                                             | QAbstractItemView::SelectedClicked);
     ui->subscriptionsTable->setItemDelegateForColumn(
         SubscriptionsModel::ColPublishingInterval, new PublishingIntervalDelegate(this));
+    ui->subscriptionsTable->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->subscriptionsTable, &QWidget::customContextMenuRequested,
+            this, &DataAccessWidget::showSubscriptionsContextMenu);
 
     auto *subsHeader = ui->subscriptionsTable->headerView();
     connect(subsHeader, &HeaderView::sectionAlignmentChanged, this,
@@ -421,49 +422,100 @@ void DataAccessWidget::configureToolbar()
 {
     ui->addNodeButton->setIcon(QStringLiteral("add"));
     ui->removeButton->setIcon(QStringLiteral("remove"));
-    ui->removeAllButton->setIcon(QStringLiteral("remove"));
     ui->readButton->setIcon(QStringLiteral("read"));
     ui->writeButton->setIcon(QStringLiteral("write"));
     ui->subscribeButton->setIcon(QStringLiteral("subscribe"));
     ui->addSubscriptionButton->setIcon(QStringLiteral("add"));
     ui->removeSubscriptionButton->setIcon(QStringLiteral("remove"));
-    ui->removeAllSubscriptionsButton->setIcon(QStringLiteral("remove"));
 
     ui->subscribeButton->setPopupMode(QToolButton::InstantPopup);
     ui->removeButton->setEnabled(false);
-    ui->removeAllButton->setEnabled(false);
     ui->readButton->setEnabled(false);
     ui->writeButton->setEnabled(false);
     ui->subscribeButton->setEnabled(false);
     ui->removeSubscriptionButton->setEnabled(false);
-    ui->removeAllSubscriptionsButton->setEnabled(false);
     ui->mainTabs->setTabEnabled(EventsPage, false);
     ui->mainTabs->setTabEnabled(HistoryPage, false);
 
     connect(ui->addNodeButton, &QPushButton::clicked,
             this, &DataAccessWidget::addSelectedNodeRequested);
-    connect(ui->removeButton, &QPushButton::clicked, this, [this]() {
-        _dataModel->removeRows(selectedDataRows());
-    });
-    connect(ui->removeAllButton, &QPushButton::clicked,
-            this, &DataAccessWidget::removeAllNodes);
-    connect(ui->readButton, &QPushButton::clicked, this, [this]() {
-        emit readRequested(_dataModel->nodeIds(selectedDataRows()));
-    });
-    connect(ui->writeButton, &QPushButton::clicked, this, [this]() {
-        const QModelIndexList rows = selectedDataRows();
-        if (rows.size() != 1)
-            return;
-        const DataAccessItem item = _dataModel->itemAt(rows.first().row());
-        emit writeRequested(item.nodeId, item.typedValue, item.valueType,
-                            item.dataTypeId, OpcUa::isWritable(item.userAccessLevel));
-    });
+    connect(ui->removeButton, &QPushButton::clicked,
+            this, &DataAccessWidget::removeSelectedNodes);
+    connect(ui->readButton, &QPushButton::clicked,
+            this, &DataAccessWidget::readSelectedNodes);
+    connect(ui->writeButton, &QPushButton::clicked,
+            this, &DataAccessWidget::writeSelectedNode);
     connect(ui->addSubscriptionButton, &QPushButton::clicked,
             this, &DataAccessWidget::addSubscription);
     connect(ui->removeSubscriptionButton, &QPushButton::clicked,
             this, &DataAccessWidget::removeSelectedSubscriptions);
-    connect(ui->removeAllSubscriptionsButton, &QPushButton::clicked,
-            this, &DataAccessWidget::removeAllSubscriptions);
+}
+
+///
+/// \brief Shows the data-access context menu mirroring the toolbar actions.
+/// \param pos Cursor position in the data view's viewport coordinates.
+///
+void DataAccessWidget::showDataContextMenu(const QPoint &pos)
+{
+    const int selectedCount = ui->dataView->selectionModel()->selectedRows().size();
+    const bool hasSelection = selectedCount > 0;
+
+    QMenu menu(this);
+    menu.addAction(AppIcons::themed(QStringLiteral("add")), tr("Add Node"),
+                   this, &DataAccessWidget::addSelectedNodeRequested);
+
+    QAction *removeAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove"),
+                                           this, &DataAccessWidget::removeSelectedNodes);
+    removeAction->setEnabled(hasSelection);
+
+    QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
+                                              this, &DataAccessWidget::removeAllNodes);
+    removeAllAction->setEnabled(_dataModel->rowCount() > 0);
+
+    menu.addSeparator();
+
+    QAction *readAction = menu.addAction(AppIcons::themed(QStringLiteral("read")), tr("Read"),
+                                         this, &DataAccessWidget::readSelectedNodes);
+    readAction->setEnabled(hasSelection);
+
+    QAction *writeAction = menu.addAction(AppIcons::themed(QStringLiteral("write")), tr("Write"),
+                                          this, &DataAccessWidget::writeSelectedNode);
+    writeAction->setEnabled(selectedCount == 1);
+
+    QMenu *subscribeMenu = menu.addMenu(AppIcons::themed(QStringLiteral("subscribe")), tr("Subscribe"));
+    populateSubscribeMenu(subscribeMenu);
+    subscribeMenu->menuAction()->setEnabled(hasSelection);
+
+    menu.exec(ui->dataView->viewport()->mapToGlobal(pos));
+}
+
+///
+/// \brief Removes the selected data-access nodes.
+///
+void DataAccessWidget::removeSelectedNodes()
+{
+    _dataModel->removeRows(selectedDataRows());
+}
+
+///
+/// \brief Requests a read of the selected data-access nodes.
+///
+void DataAccessWidget::readSelectedNodes()
+{
+    emit readRequested(_dataModel->nodeIds(selectedDataRows()));
+}
+
+///
+/// \brief Requests a value write for the single selected data-access node.
+///
+void DataAccessWidget::writeSelectedNode()
+{
+    const QModelIndexList rows = selectedDataRows();
+    if (rows.size() != 1)
+        return;
+    const DataAccessItem item = _dataModel->itemAt(rows.first().row());
+    emit writeRequested(item.nodeId, item.typedValue, item.valueType,
+                        item.dataTypeId, OpcUa::isWritable(item.userAccessLevel));
 }
 
 ///
@@ -490,6 +542,17 @@ void DataAccessWidget::rebuildSubscribeMenu()
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, delegate);
 
     QMenu *menu = new QMenu(ui->subscribeButton);
+    populateSubscribeMenu(menu);
+    ui->subscribeButton->setMenu(menu);
+}
+
+///
+/// \brief Fills a menu with one action per subscription plus an Unsubscribe entry.
+/// \param menu Menu to populate.
+///
+void DataAccessWidget::populateSubscribeMenu(QMenu *menu)
+{
+    const QStringList names = _subscriptionsModel->names();
     for (const QString &name : names) {
         menu->addAction(name, this, [this, name] {
             applySubscriptionToSelection(name);
@@ -499,9 +562,6 @@ void DataAccessWidget::rebuildSubscribeMenu()
     menu->addAction(tr("Unsubscribe"), this, [this] {
         applySubscriptionToSelection(QString());
     });
-    ui->subscribeButton->setMenu(menu);
-
-    ui->removeAllSubscriptionsButton->setEnabled(_subscriptionsModel->rowCount() > 1);
 }
 
 ///
@@ -531,6 +591,31 @@ void DataAccessWidget::resetSubscriptions()
     SubscriptionItem subscription;
     subscription.name = tr("Default");
     _subscriptionsModel->setItems({subscription});
+}
+
+///
+/// \brief Shows the subscriptions context menu mirroring the toolbar actions.
+/// \param pos Cursor position in the subscriptions table's viewport coordinates.
+///
+void DataAccessWidget::showSubscriptionsContextMenu(const QPoint &pos)
+{
+    const QModelIndexList rows = ui->subscriptionsTable->selectionModel()->selectedRows();
+    const bool defaultSelected = rows.size() == 1
+        && _subscriptionsModel->itemAt(rows.first().row()).isDefault();
+
+    QMenu menu(this);
+    menu.addAction(AppIcons::themed(QStringLiteral("add")), tr("Add"),
+                   this, &DataAccessWidget::addSubscription);
+
+    QAction *removeAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove"),
+                                           this, &DataAccessWidget::removeSelectedSubscriptions);
+    removeAction->setEnabled(!rows.isEmpty() && !defaultSelected);
+
+    QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
+                                              this, &DataAccessWidget::removeAllSubscriptions);
+    removeAllAction->setEnabled(_subscriptionsModel->rowCount() > 1);
+
+    menu.exec(ui->subscriptionsTable->viewport()->mapToGlobal(pos));
 }
 
 ///

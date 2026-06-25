@@ -15,6 +15,8 @@
 #include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
 
+class QMenu;
+
 namespace Ui {
 class DataAccessWidget;
 }
@@ -168,10 +170,16 @@ private:
     void setupEventsView();
     void setupHistoryView();
     void configureToolbar();
+    void showDataContextMenu(const QPoint &pos);
+    void removeSelectedNodes();
+    void readSelectedNodes();
+    void writeSelectedNode();
     void removeAllNodes();
     void rebuildSubscribeMenu();
+    void populateSubscribeMenu(QMenu *menu);
     void applySubscriptionToSelection(const QString &subscriptionName);
     void resetSubscriptions();
+    void showSubscriptionsContextMenu(const QPoint &pos);
     void addSubscription();
     void removeSelectedSubscriptions();
     void removeAllSubscriptions();
