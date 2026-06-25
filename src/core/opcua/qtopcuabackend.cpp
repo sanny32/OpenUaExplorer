@@ -15,8 +15,11 @@
 #include <QPointer>
 #include <QUrl>
 
+#include <QStringList>
+
 #include <QOpcUaBrowseRequest>
 #include <QOpcUaClient>
+#include <QOpcUaEndpointDescription>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 3, 0)
 #include <QOpcUaHistoryData>
 #include <QOpcUaHistoryReadRawRequest>
@@ -290,6 +293,27 @@ void QtOpcUaBackend::setCertificateTrustDecider(CertificateTrustDecider *decider
     _d->connection.setCertificateTrustDecider(decider);
 }
 
+namespace {
+
+/// \brief Keeps only endpoints whose security policy the active backend can use.
+/// \param endpoints Endpoints returned by the discovery request.
+/// \param supportedPolicies Security policy URIs reported by the backend.
+/// \return Endpoints whose security policy is supported by the backend.
+QVector<QOpcUaEndpointDescription> endpointsWithSupportedPolicy(
+    const QVector<QOpcUaEndpointDescription> &endpoints,
+    const QStringList &supportedPolicies)
+{
+    QVector<QOpcUaEndpointDescription> filtered;
+    filtered.reserve(endpoints.size());
+    for (const QOpcUaEndpointDescription &endpoint : endpoints) {
+        if (supportedPolicies.contains(endpoint.securityPolicy()))
+            filtered.append(endpoint);
+    }
+    return filtered;
+}
+
+}
+
 ///
 /// \brief Requests the server's endpoint list, emitting endpointsDiscovered() with the result.
 /// \param url Discovery URL (must be opc.tcp).
@@ -320,12 +344,17 @@ void QtOpcUaBackend::discoverEndpoints(const QString &url, const QString &backen
             const QVector<QOpcUaEndpointDescription> &result,
             QOpcUa::UaStatusCode status, const QUrl &) {
         disconnect(*connection);
+        QStringList supportedPolicies;
+        if (QOpcUaClient *client = _d->connection.client())
+            supportedPolicies = client->supportedSecurityPolicies();
         _d->clearConnection(operation);
         if (!_d->requests.settle(token))
             return;
-        _d->connection.finishDiscovery(result);
-        const QList<EndpointInfo> endpoints = QOpcUa::isSuccessStatus(status)
-            ? QtOpcUaTypeMapper::endpointInfos(result) : QList<EndpointInfo>();
+        const QVector<QOpcUaEndpointDescription> usable = QOpcUa::isSuccessStatus(status)
+            ? endpointsWithSupportedPolicy(result, supportedPolicies)
+            : QVector<QOpcUaEndpointDescription>();
+        _d->connection.finishDiscovery(usable);
+        const QList<EndpointInfo> endpoints = QtOpcUaTypeMapper::endpointInfos(usable);
         const QString message = QOpcUa::isSuccessStatus(status)
             ? QString()
             : tr("Endpoint discovery failed: %1").arg(statusName(status));
