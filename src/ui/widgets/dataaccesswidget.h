@@ -120,6 +120,12 @@ public:
     void requestHistoryForNode(const QString &nodeId, const QString &displayName);
 
     ///
+    /// \brief Builds the default CSV export file name for the current history query.
+    /// \return Suggested CSV file name.
+    ///
+    QString suggestedHistoryCsvFileName() const;
+
+    ///
     /// \brief Updates the subscription shown for a data-access node.
     /// \param nodeId Affected node.
     /// \param subscribed Whether the node belongs to the default subscription.
@@ -198,6 +204,7 @@ private:
     void setupEventsView();
     void setupHistoryView();
     void requestHistoryRead();
+    void exportHistoryToCsv();
     void applyHistoryTimestampMode(AppSettings::TimestampMode mode);
     void configureToolbar();
     void showDataContextMenu(const QPoint &pos);

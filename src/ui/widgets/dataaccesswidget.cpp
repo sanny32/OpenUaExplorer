@@ -14,11 +14,16 @@
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
+#include <QFileDialog>
 #include <QHeaderView>
 #include <QItemSelectionModel>
+#include <QMessageBox>
 #include <QMenu>
 #include <QMimeData>
 #include <QPushButton>
+#include <QRegularExpression>
+#include <QSaveFile>
+#include <QTextStream>
 
 #include "appicons.h"
 #include "appsettings.h"
@@ -70,6 +75,33 @@ bool decodeDroppedVariable(const QMimeData *mimeData, OpcUaNodeInfo *node)
     if (!AddressSpaceMime::decodeNode(mimeData, node))
         return false;
     return OpcUa::isVariable(node->nodeClass) && !node->nodeId.isEmpty();
+}
+
+///
+/// \brief Makes a string safe for use as one file-name segment.
+/// \param value Segment text.
+/// \param fallback Text used when the segment becomes empty.
+/// \return File-name segment without filesystem separators or control characters.
+///
+QString fileNameSegment(QString value, const QString &fallback)
+{
+    value = value.trimmed();
+    static const QRegularExpression invalidChars(QStringLiteral(R"([<>:"/\\|?*\x00-\x1f]+)"));
+    value.replace(invalidChars, QStringLiteral("_"));
+    value.replace(QRegularExpression(QStringLiteral(R"(\s+)")), QStringLiteral("_"));
+    while (value.endsWith(QLatin1Char('.')) || value.endsWith(QLatin1Char(' ')))
+        value.chop(1);
+    return value.isEmpty() ? fallback : value;
+}
+
+///
+/// \brief Formats a date-time for compact file names.
+/// \param value Date-time value.
+/// \return File-name-safe date-time text.
+///
+QString fileNameDateTime(const QDateTime &value)
+{
+    return value.toString(QStringLiteral("yyyyMMdd_HHmmss"));
 }
 
 } // namespace
@@ -468,8 +500,14 @@ void DataAccessWidget::setupHistoryView()
 
     connect(ui->historyReadButton, &QAbstractButton::clicked,
             this, &DataAccessWidget::requestHistoryRead);
+    connect(ui->historyExportButton, &QAbstractButton::clicked,
+            this, &DataAccessWidget::exportHistoryToCsv);
     connect(ui->historyClearButton, &QAbstractButton::clicked,
             this, [this] { _historyModel->clear(); });
+    connect(_historyModel, &QAbstractItemModel::modelReset, this,
+            [this] { ui->historyExportButton->setEnabled(_historyModel->rowCount() > 0); });
+    connect(_historyModel, &QAbstractItemModel::rowsInserted, this,
+            [this] { ui->historyExportButton->setEnabled(_historyModel->rowCount() > 0); });
 }
 
 ///
@@ -503,6 +541,55 @@ void DataAccessWidget::requestHistoryRead()
     emit historyReadRequested(_historyNodeId, ui->historyStartEdit->dateTime(),
                               ui->historyEndEdit->dateTime(),
                               static_cast<quint32>(ui->historyMaxEdit->value()));
+}
+
+///
+/// \brief Saves the currently displayed history samples as CSV.
+///
+void DataAccessWidget::exportHistoryToCsv()
+{
+    if (_historyModel->rowCount() == 0)
+        return;
+
+    const QString fileName = QFileDialog::getSaveFileName(
+        this, tr("Export History"), suggestedHistoryCsvFileName(),
+        tr("CSV Files (*.csv);;All Files (*)"));
+    if (fileName.isEmpty())
+        return;
+
+    QSaveFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, tr("Export History"),
+                             tr("Could not open '%1' for writing.").arg(fileName));
+        return;
+    }
+
+    QTextStream stream(&file);
+    stream.setEncoding(QStringConverter::Utf8);
+    stream << _historyModel->toCsv();
+    if (!file.commit()) {
+        QMessageBox::warning(this, tr("Export History"),
+                             tr("Could not save '%1'.").arg(fileName));
+    }
+}
+
+///
+/// \brief Builds the default CSV export file name for the current history query.
+/// \return Suggested CSV file name.
+///
+QString DataAccessWidget::suggestedHistoryCsvFileName() const
+{
+    const QString tag = fileNameSegment(
+        ui->historyNodeEdit->text().isEmpty() ? _historyNodeId : ui->historyNodeEdit->text(),
+        QStringLiteral("history"));
+    QStringList parts = {
+        tag,
+        fileNameDateTime(ui->historyStartEdit->dateTime()),
+        fileNameDateTime(ui->historyEndEdit->dateTime())
+    };
+    if (ui->historyMaxEdit->value() > ui->historyMaxEdit->minimum())
+        parts.append(QStringLiteral("max%1").arg(ui->historyMaxEdit->value()));
+    return parts.join(QLatin1Char('_')) + QStringLiteral(".csv");
 }
 
 ///
@@ -544,7 +631,8 @@ void DataAccessWidget::configureToolbar()
     ui->addSubscriptionButton->setIcon(QStringLiteral("add"));
     ui->removeSubscriptionButton->setIcon(QStringLiteral("remove"));
     ui->historyReadButton->setIcon(QStringLiteral("read"));
-    ui->historyClearButton->setIcon(QStringLiteral("clear"));
+    ui->historyExportButton->setIcon(QStringLiteral("export"));
+    ui->historyClearButton->setIcon(QStringLiteral("trash"));
 
     ui->subscribeButton->setPopupMode(QToolButton::InstantPopup);
     ui->removeButton->setEnabled(false);
@@ -552,6 +640,7 @@ void DataAccessWidget::configureToolbar()
     ui->writeButton->setEnabled(false);
     ui->subscribeButton->setEnabled(false);
     ui->removeSubscriptionButton->setEnabled(false);
+    ui->historyExportButton->setEnabled(false);
     ui->mainTabs->setTabEnabled(EventsPage, false);
     ui->mainTabs->setTabVisible(HistoryPage, OpcUa::isHistoryReadSupported());
     ui->mainTabs->setTabEnabled(HistoryPage, false);

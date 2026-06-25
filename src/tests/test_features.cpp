@@ -33,6 +33,7 @@ private slots:
 
     void builtinFeaturesContributeExpectedDocks();
     void selectionContextPublishesOnlyCurrentDetails();
+    void selectionContextRequestsHistoryOnlyForHistorizingNodes();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -133,6 +134,39 @@ void TestFeatures::selectionContextPublishesOnlyCurrentDetails()
     QCOMPARE(clearedSpy.count(), 1);
     QVERIFY(selection.currentNode().nodeId.isEmpty());
     QVERIFY(selection.currentDetails().nodeId.isEmpty());
+}
+
+///
+/// \brief SelectionContext waits for details and requests history only for historizing variables.
+///
+void TestFeatures::selectionContextRequestsHistoryOnlyForHistorizingNodes()
+{
+    SelectionContext selection;
+    QSignalSpy selectedSpy(&selection, &SelectionContext::nodeSelected);
+    QSignalSpy historySpy(&selection, &SelectionContext::historyReadRequested);
+    QVERIFY(selectedSpy.isValid());
+    QVERIFY(historySpy.isValid());
+
+    OpcUaNodeInfo node;
+    node.nodeId = QStringLiteral("ns=2;s=Trend");
+    node.nodeClass = OpcUa::Variable;
+    node.displayName = QStringLiteral("Trend");
+
+    selection.requestHistory(node);
+    QCOMPARE(selectedSpy.count(), 1);
+    QCOMPARE(historySpy.count(), 0);
+
+    OpcUaNodeDetails details;
+    details.nodeId = node.nodeId;
+    details.nodeClass = OpcUa::Variable;
+    selection.setDetails(details, QString());
+    QCOMPARE(historySpy.count(), 0);
+
+    selection.requestHistory(node);
+    details.historizing = true;
+    selection.setDetails(details, QString());
+    QCOMPARE(historySpy.count(), 1);
+    QCOMPARE(historySpy.first().first().value<OpcUaNodeInfo>().nodeId, node.nodeId);
 }
 
 ///

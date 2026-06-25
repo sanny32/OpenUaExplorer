@@ -178,6 +178,8 @@ struct OpcUaNodeDetails
     quint8 accessLevel = 0;
     /// \brief UserAccessLevel bit mask.
     quint8 userAccessLevel = 0;
+    /// \brief Whether the server stores historical values for this node.
+    bool historizing = false;
     /// \brief Status display text.
     QString status;
     /// \brief Source timestamp, when provided.
@@ -187,6 +189,20 @@ struct OpcUaNodeDetails
     /// \brief Full formatted attribute tree.
     QVector<OpcUaNodeAttribute> attributes;
 };
+
+namespace OpcUa {
+
+///
+/// \brief Returns true when a node can be offered for raw HistoryRead.
+/// \param details Selected node details.
+/// \return True for historizing variable nodes when HistoryRead is available.
+///
+inline bool canReadHistory(const OpcUaNodeDetails &details)
+{
+    return isHistoryReadSupported() && isVariable(details.nodeClass) && details.historizing;
+}
+
+} // namespace OpcUa
 
 ///
 /// \brief Current value and metadata for a Data Access row.

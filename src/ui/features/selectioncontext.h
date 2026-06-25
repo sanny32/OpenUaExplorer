@@ -91,4 +91,5 @@ signals:
 private:
     OpcUaNodeInfo _currentNode;
     OpcUaNodeDetails _currentDetails;
+    QString _pendingHistoryNodeId;
 };

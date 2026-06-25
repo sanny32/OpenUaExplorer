@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>DataAccessWidget</class>
  <widget class="QWidget" name="DataAccessWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>817</width>
+    <height>275</height>
+   </rect>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
     <number>0</number>
@@ -33,7 +41,7 @@
             <string>Add Node</string>
            </property>
            <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
+            <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
            </property>
           </widget>
          </item>
@@ -43,7 +51,7 @@
             <string>Remove</string>
            </property>
            <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
+            <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
            </property>
           </widget>
          </item>
@@ -53,7 +61,7 @@
             <string>Read</string>
            </property>
            <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
+            <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
            </property>
           </widget>
          </item>
@@ -63,7 +71,7 @@
             <string>Write</string>
            </property>
            <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
+            <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
            </property>
           </widget>
          </item>
@@ -73,14 +81,14 @@
             <string>Subscribe</string>
            </property>
            <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
+            <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
            </property>
           </widget>
          </item>
          <item>
           <spacer name="toolbarSpacer">
            <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+            <enum>Qt::Orientation::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
@@ -130,7 +138,7 @@
             <string>Add</string>
            </property>
            <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
+            <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
            </property>
           </widget>
          </item>
@@ -140,14 +148,14 @@
             <string>Remove</string>
            </property>
            <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
+            <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
            </property>
           </widget>
          </item>
          <item>
           <spacer name="subscriptionsToolbarSpacer">
            <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+            <enum>Qt::Orientation::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
@@ -200,11 +208,11 @@
          </item>
          <item>
           <widget class="DateTimeEdit" name="historyStartEdit">
-           <property name="calendarPopup">
-            <bool>true</bool>
-           </property>
            <property name="displayFormat">
             <string>yyyy-MM-dd HH:mm:ss</string>
+           </property>
+           <property name="calendarPopup">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -217,11 +225,11 @@
          </item>
          <item>
           <widget class="DateTimeEdit" name="historyEndEdit">
-           <property name="calendarPopup">
-            <bool>true</bool>
-           </property>
            <property name="displayFormat">
             <string>yyyy-MM-dd HH:mm:ss</string>
+           </property>
+           <property name="calendarPopup">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -234,14 +242,14 @@
          </item>
          <item>
           <widget class="QSpinBox" name="historyMaxEdit">
+           <property name="specialValueText">
+            <string>No limit</string>
+           </property>
            <property name="maximum">
             <number>1000000</number>
            </property>
            <property name="value">
             <number>1000</number>
-           </property>
-           <property name="specialValueText">
-            <string>No limit</string>
            </property>
           </widget>
          </item>
@@ -251,24 +259,14 @@
             <string>Read</string>
            </property>
            <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="ThemedToolButton" name="historyClearButton">
-           <property name="text">
-            <string>Clear</string>
-           </property>
-           <property name="toolButtonStyle">
-            <enum>Qt::ToolButtonTextBesideIcon</enum>
+            <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
            </property>
           </widget>
          </item>
          <item>
           <spacer name="historyToolbarSpacer">
            <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+            <enum>Qt::Orientation::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
@@ -277,6 +275,26 @@
             </size>
            </property>
           </spacer>
+         </item>
+         <item>
+          <widget class="ThemedToolButton" name="historyClearButton">
+           <property name="text">
+            <string>Clear</string>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="ThemedToolButton" name="historyExportButton">
+           <property name="text">
+            <string>Export</string>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>

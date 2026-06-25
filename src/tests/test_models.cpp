@@ -64,7 +64,9 @@ private slots:
     void addressSpaceDragMimeIncludesVariableNode();
 
     // Header/role/mutator coverage for the simple table & tree models.
+    void historyReadRequiresHistorizingVariable();
     void historyModelHeaderRolesAndMutators();
+    void historyModelExportsCsv();
     void referencesModelHeaderAndEdges();
     void subscriptionsModelHeaderRolesAndReset();
     void subscriptionsModelEditingAndMutators();
@@ -75,6 +77,23 @@ private slots:
     void dataAccessHeaderRolesAndHelpers();
     void addressSpaceDataRolesAndTreeOps();
 };
+
+///
+/// \brief HistoryRead availability requires a historizing variable node.
+///
+void TestModels::historyReadRequiresHistorizingVariable()
+{
+    OpcUaNodeDetails details;
+    details.nodeClass = OpcUa::Variable;
+
+    QVERIFY(!OpcUa::canReadHistory(details));
+
+    details.historizing = true;
+    QCOMPARE(OpcUa::canReadHistory(details), OpcUa::isHistoryReadSupported());
+
+    details.nodeClass = OpcUa::Object;
+    QVERIFY(!OpcUa::canReadHistory(details));
+}
 
 ///
 /// \brief Runs each simple model through QAbstractItemModelTester after loading
@@ -557,6 +576,27 @@ void TestModels::historyModelHeaderRolesAndMutators()
 
     model.clear();
     QCOMPARE(model.rowCount(), 0);
+}
+
+///
+/// \brief HistoryModel exports displayed values as escaped CSV.
+///
+void TestModels::historyModelExportsCsv()
+{
+    OpcUaHistoryValue value;
+    value.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 6), Qt::UTC);
+    value.serverTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 6, 7), Qt::UTC);
+    value.value = QStringLiteral("12,\"quoted\"\nline");
+    value.status = QStringLiteral("Good,Clamped");
+
+    HistoryModel model;
+    model.setTimestampMode(AppSettings::TimestampMode::Utc);
+    model.setItems({value});
+
+    QCOMPARE(model.toCsv(),
+             QStringLiteral("#,Source Timestamp,Server Timestamp,Value,Status\n"
+                            "1,2024-01-02T03:04:05.006Z,2024-01-02T03:04:06.007Z,"
+                            "\"12,\"\"quoted\"\"\nline\",\"Good,Clamped\"\n"));
 }
 
 ///

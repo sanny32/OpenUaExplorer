@@ -13,6 +13,7 @@
 #include <QTest>
 
 #include "models/logmodel.h"
+#include "widgets/themedpushbutton.h"
 #include "widgets/logwidget.h"
 
 Q_LOGGING_CATEGORY(lcLogWidgetClient, "ouaexp.Client")
@@ -29,6 +30,7 @@ class TestLogWidget : public QObject
 
 private slots:
     void open62541SdkSourcesKeepBackendPrefix();
+    void clearButtonUsesTrashIcon();
 };
 
 ///
@@ -57,6 +59,17 @@ void TestLogWidget::open62541SdkSourcesKeepBackendPrefix()
     QVERIFY(sourceCombo->findText(QStringLiteral("Client")) >= 0);
     QVERIFY(sourceCombo->findText(QStringLiteral("open62541")) >= 0);
     QVERIFY(sourceCombo->findText(QStringLiteral("open62541/client")) >= 0);
+}
+
+///
+/// \brief The log Clear button uses the trash icon.
+///
+void TestLogWidget::clearButtonUsesTrashIcon()
+{
+    LogWidget widget;
+    auto *button = widget.findChild<ThemedPushButton *>(QStringLiteral("clearButton"));
+    QVERIFY(button);
+    QCOMPARE(button->iconName(), QStringLiteral("trash"));
 }
 
 QTEST_MAIN(TestLogWidget)

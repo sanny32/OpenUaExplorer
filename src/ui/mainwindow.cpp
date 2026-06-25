@@ -245,9 +245,7 @@ void MainWindow::on_actionAddToDataAccess_triggered()
 ///
 void MainWindow::on_actionReadHistory_triggered()
 {
-    if (!OpcUa::isHistoryReadSupported())
-        return;
-    if (OpcUa::isVariable(_selectedNodeDetails.nodeClass))
+    if (OpcUa::canReadHistory(_selectedNodeDetails))
         ui->dataAccessWidget->requestHistoryForNode(_selectedNodeDetails.nodeId,
                                                     _selectedNodeDetails.displayName);
 }
@@ -700,7 +698,7 @@ void MainWindow::onNodeDetailsReady(const OpcUaNodeDetails &details, const QStri
     ui->actionWrite->setEnabled(writable);
     ui->actionWriteValue->setEnabled(writable);
     ui->actionAddToDataAccess->setEnabled(variable);
-    ui->actionReadHistory->setEnabled(variable && OpcUa::isHistoryReadSupported());
+    ui->actionReadHistory->setEnabled(OpcUa::canReadHistory(details));
     updateMonitoringActions();
 }
 

@@ -61,6 +61,12 @@ void SelectionContext::setDetails(const OpcUaNodeDetails &details, const QString
     if (error.isEmpty())
         _currentDetails = details;
     emit detailsReady(details, error);
+
+    if (_pendingHistoryNodeId != details.nodeId)
+        return;
+    _pendingHistoryNodeId.clear();
+    if (error.isEmpty() && OpcUa::canReadHistory(details))
+        emit historyReadRequested(_currentNode);
 }
 
 ///
@@ -70,6 +76,7 @@ void SelectionContext::clear()
 {
     _currentNode = {};
     _currentDetails = {};
+    _pendingHistoryNodeId.clear();
     emit cleared();
 }
 
@@ -79,5 +86,12 @@ void SelectionContext::clear()
 ///
 void SelectionContext::requestHistory(const OpcUaNodeInfo &node)
 {
-    emit historyReadRequested(node);
+    if (_currentDetails.nodeId == node.nodeId && OpcUa::canReadHistory(_currentDetails)) {
+        emit historyReadRequested(node);
+        return;
+    }
+
+    _pendingHistoryNodeId = node.nodeId;
+    if (_currentNode.nodeId != node.nodeId || _currentDetails.nodeId != node.nodeId)
+        selectNode(node);
 }

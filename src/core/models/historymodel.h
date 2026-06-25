@@ -92,6 +92,12 @@ public:
     void setTimestampMode(AppSettings::TimestampMode mode);
 
     ///
+    /// \brief Exports the visible history table data as CSV text.
+    /// \return CSV document with a header row.
+    ///
+    QString toCsv() const;
+
+    ///
     /// \brief Columns exposed by the history table.
     ///
     enum Column {

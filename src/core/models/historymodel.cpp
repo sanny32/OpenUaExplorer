@@ -8,9 +8,29 @@
 
 #include "historymodel.h"
 
+#include <QStringList>
+
 #include "opcua/attributeformatter.h"
 
 namespace {
+
+///
+/// \brief Escapes a single CSV field.
+/// \param value Field text.
+/// \return Escaped CSV field text.
+///
+QString csvField(QString value)
+{
+    const bool quote = value.contains(QLatin1Char(','))
+        || value.contains(QLatin1Char('"'))
+        || value.contains(QLatin1Char('\n'))
+        || value.contains(QLatin1Char('\r'));
+    if (!quote)
+        return value;
+    value.replace(QStringLiteral("\""), QStringLiteral("\"\""));
+    return QStringLiteral("\"%1\"").arg(value);
+}
+
 OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
 {
     return mode == AppSettings::TimestampMode::Utc
@@ -163,4 +183,26 @@ void HistoryModel::setTimestampMode(AppSettings::TimestampMode mode)
         return;
     emit dataChanged(index(0, ColSourceTimestamp), index(rowCount() - 1, ColServerTimestamp),
                      {Qt::DisplayRole});
+}
+
+///
+/// \brief Exports the visible history table data as CSV text.
+/// \return CSV document with a header row.
+///
+QString HistoryModel::toCsv() const
+{
+    QStringList lines;
+    QStringList header;
+    for (int column = 0; column < ColCount; ++column)
+        header.append(csvField(headerData(column, Qt::Horizontal).toString()));
+    lines.append(header.join(QLatin1Char(',')));
+
+    for (int row = 0; row < rowCount(); ++row) {
+        QStringList fields;
+        for (int column = 0; column < ColCount; ++column)
+            fields.append(csvField(data(index(row, column)).toString()));
+        lines.append(fields.join(QLatin1Char(',')));
+    }
+
+    return lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
 }

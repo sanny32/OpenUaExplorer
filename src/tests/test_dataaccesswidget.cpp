@@ -7,17 +7,21 @@
 ///
 
 #include <QCoreApplication>
+#include <QDateTimeEdit>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
 #include <QScopedPointer>
 #include <QSignalSpy>
+#include <QSpinBox>
 #include <QTableView>
 #include <QTabWidget>
 #include <QTest>
+#include <QToolButton>
 
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
+#include "widgets/themedtoolbutton.h"
 #include "widgets/dataaccesswidget.h"
 
 ///
@@ -33,6 +37,9 @@ private slots:
     void addNodeWithDefaultSubscriptionRequestsMonitoring();
     void addNodeWithExplicitSubscriptionRequestsMonitoring();
     void historyTabFollowsQtSupport();
+    void historyExportButtonFollowsResults();
+    void historyExportFileNameDescribesQuery();
+    void historyClearButtonUsesTrashIcon();
 };
 
 namespace {
@@ -185,6 +192,71 @@ void TestDataAccessWidget::historyTabFollowsQtSupport()
 
     QCOMPARE(tabs->isTabVisible(DataAccessWidget::HistoryPage),
              OpcUa::isHistoryReadSupported());
+}
+
+///
+/// \brief The history export button is enabled only when there are rows to save.
+///
+void TestDataAccessWidget::historyExportButtonFollowsResults()
+{
+    if (!OpcUa::isHistoryReadSupported())
+        QSKIP("HistoryRead is not supported by this Qt OPC UA build.");
+
+    DataAccessWidget widget;
+    widget.setHistoryAvailable(true);
+    auto *button = widget.findChild<QToolButton *>(QStringLiteral("historyExportButton"));
+    QVERIFY(button);
+    QVERIFY(!button->isEnabled());
+
+    OpcUaHistoryValue value;
+    value.value = 42;
+    widget.setHistoryResults({value});
+    QVERIFY(button->isEnabled());
+
+    widget.setHistoryResults({});
+    QVERIFY(!button->isEnabled());
+}
+
+///
+/// \brief The suggested CSV file name includes tag, interval, and max limit.
+///
+void TestDataAccessWidget::historyExportFileNameDescribesQuery()
+{
+    if (!OpcUa::isHistoryReadSupported())
+        QSKIP("HistoryRead is not supported by this Qt OPC UA build.");
+
+    DataAccessWidget widget;
+    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"),
+                                 QStringLiteral("Area 1/Temperature:PV"));
+
+    auto *startEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyStartEdit"));
+    auto *endEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyEndEdit"));
+    auto *maxEdit = widget.findChild<QSpinBox *>(QStringLiteral("historyMaxEdit"));
+    QVERIFY(startEdit);
+    QVERIFY(endEdit);
+    QVERIFY(maxEdit);
+
+    startEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(12, 41, 36), Qt::UTC));
+    endEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(13, 41, 36), Qt::UTC));
+    maxEdit->setValue(1000);
+
+    QCOMPARE(widget.suggestedHistoryCsvFileName(),
+             QStringLiteral("Area_1_Temperature_PV_20260625_124136_20260625_134136_max1000.csv"));
+
+    maxEdit->setValue(maxEdit->minimum());
+    QCOMPARE(widget.suggestedHistoryCsvFileName(),
+             QStringLiteral("Area_1_Temperature_PV_20260625_124136_20260625_134136.csv"));
+}
+
+///
+/// \brief The history Clear button uses the trash icon.
+///
+void TestDataAccessWidget::historyClearButtonUsesTrashIcon()
+{
+    DataAccessWidget widget;
+    auto *button = widget.findChild<ThemedToolButton *>(QStringLiteral("historyClearButton"));
+    QVERIFY(button);
+    QCOMPARE(button->iconName(), QStringLiteral("trash"));
 }
 
 QTEST_MAIN(TestDataAccessWidget)
