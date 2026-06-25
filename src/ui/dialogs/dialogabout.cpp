@@ -351,6 +351,7 @@ QWidget *DialogAbout::createAuthorContactButton(const QUrl &url, int index)
     auto *button = new QPushButton(ui->authorsTab);
     button->setObjectName(QStringLiteral("authorContactButton%1").arg(index));
     button->setFlat(true);
+    button->setStyleSheet(iconButtonStyleSheet());
     button->setCursor(Qt::PointingHandCursor);
     button->setFixedSize(24, 24);
     button->setProperty("authorUrl", url);
@@ -464,6 +465,7 @@ QWidget *DialogAbout::createComponentContactButton(const QUrl &url, int index)
     auto *button = new QPushButton(ui->componentsTab);
     button->setObjectName(QStringLiteral("componentContactButton%1").arg(index));
     button->setFlat(true);
+    button->setStyleSheet(iconButtonStyleSheet());
     button->setCursor(Qt::PointingHandCursor);
     button->setFixedSize(24, 24);
     button->setIcon(AppIcons::themed(QStringLiteral("website")));
@@ -520,6 +522,18 @@ void DialogAbout::openComponentUrl()
     if (url.isValid() && !url.isEmpty()) {
         QDesktopServices::openUrl(url);
     }
+}
+
+///
+/// \brief Builds the stylesheet for flat icon buttons in the about lists.
+/// \return CSS keeping the button transparent so the panel shows through.
+///
+QString DialogAbout::iconButtonStyleSheet() const
+{
+    return QStringLiteral(
+        "QPushButton { background: transparent; border: none; }"
+        "QPushButton:hover { background-color: palette(midlight); border-radius: 4px; }"
+        "QPushButton:pressed { background-color: palette(mid); border-radius: 4px; }");
 }
 
 ///

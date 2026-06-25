@@ -65,6 +65,7 @@ private:
                                 int index);
     QWidget *createComponentContactButton(const QUrl &url, int index);
     QFrame *createComponentSeparator(const QString &objectName);
+    QString iconButtonStyleSheet() const;
     QString licenseHtml() const;
     QString licenseStyleSheet() const;
     void openAuthorUrl();
