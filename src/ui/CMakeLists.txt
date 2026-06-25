@@ -104,6 +104,10 @@ add_library(ouaexp_ui STATIC
     widgets/valuelineedit.h
     widgets/endpointdiscoverywidget.cpp
     widgets/endpointdiscoverywidget.h
+    widgets/calendarwidget.cpp
+    widgets/calendarwidget.h
+    widgets/datetimeedit.cpp
+    widgets/datetimeedit.h
     widgets/fixedgap.cpp
     widgets/fixedgap.h
     widgets/headerview.cpp

@@ -49,6 +49,10 @@
         <file alias="icons/dark/info.svg">res/icons/dark/info.svg</file>
         <file alias="icons/light/check-circle.svg">res/icons/light/check-circle.svg</file>
         <file alias="icons/dark/check-circle.svg">res/icons/dark/check-circle.svg</file>
+        <file alias="icons/light/chevron-left.svg">res/icons/light/chevron-left.svg</file>
+        <file alias="icons/dark/chevron-left.svg">res/icons/dark/chevron-left.svg</file>
+        <file alias="icons/light/chevron-right.svg">res/icons/light/chevron-right.svg</file>
+        <file alias="icons/dark/chevron-right.svg">res/icons/dark/chevron-right.svg</file>
         <file alias="icons/light/certificate.svg">res/icons/light/certificate.svg</file>
         <file alias="icons/dark/certificate.svg">res/icons/dark/certificate.svg</file>
         <file alias="icons/light/shield-trusted.svg">res/icons/light/shield-trusted.svg</file>

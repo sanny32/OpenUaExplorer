@@ -199,7 +199,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QDateTimeEdit" name="historyStartEdit">
+          <widget class="DateTimeEdit" name="historyStartEdit">
            <property name="calendarPopup">
             <bool>true</bool>
            </property>
@@ -216,7 +216,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QDateTimeEdit" name="historyEndEdit">
+          <widget class="DateTimeEdit" name="historyEndEdit">
            <property name="calendarPopup">
             <bool>true</bool>
            </property>
@@ -299,6 +299,11 @@
    <class>TableView</class>
    <extends>QTableView</extends>
    <header>widgets/tableview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>DateTimeEdit</class>
+   <extends>QDateTimeEdit</extends>
+   <header>widgets/datetimeedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
