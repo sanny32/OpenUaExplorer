@@ -14,7 +14,7 @@
     <item>
      <layout class="QVBoxLayout" name="historyToolbarLayout">
       <item>
-       <widget class="ValueLineEdit" name="historyNodeEdit">
+       <widget class="NodeLineEdit" name="historyNodeEdit">
         <property name="readOnly">
          <bool>true</bool>
         </property>
@@ -148,9 +148,9 @@
    <header>widgets/datetimeedit.h</header>
   </customwidget>
   <customwidget>
-   <class>ValueLineEdit</class>
+   <class>NodeLineEdit</class>
    <extends>QLineEdit</extends>
-   <header>widgets/valuelineedit.h</header>
+   <header>widgets/nodelineedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

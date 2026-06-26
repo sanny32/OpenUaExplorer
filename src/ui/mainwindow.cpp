@@ -659,7 +659,8 @@ void MainWindow::setupDataAccessWiring()
             this, &MainWindow::onMonitoringFinished);
     connect(_selectionContext, &SelectionContext::eventMonitorRequested, this,
             [this](const OpcUaNodeInfo &node) {
-        ui->dataView->requestEventMonitoringForNode(node.nodeId, node.displayName);
+        ui->dataView->requestEventMonitoringForNode(node.nodeId, node.displayName,
+                                                    node.displayPath);
     });
     connect(ui->dataView->events(), &EventsWidget::eventSubscribeRequested,
             _eventsPlugin, &EventsModule::subscribeEvents);

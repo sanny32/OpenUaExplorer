@@ -26,6 +26,7 @@
 #include "historywidget.h"
 #include "models/addressspacemimedata.h"
 #include "models/historymodel.h"
+#include "nodelineedit.h"
 #include "tableview.h"
 #include "ui_historywidget.h"
 
@@ -71,19 +72,6 @@ QString fileNameSegment(QString value, const QString &fallback)
 QString fileNameDateTime(const QDateTime &value)
 {
     return value.toString(QStringLiteral("yyyyMMdd_HHmmss"));
-}
-
-///
-/// \brief Formats the selected node for the History toolbar field.
-/// \param nodeId OPC UA NodeId.
-/// \param displayName Human-readable node name or path.
-/// \return Display name with NodeId when both values are distinct.
-///
-QString historyNodeText(const QString &nodeId, const QString &displayName)
-{
-    if (displayName.isEmpty() || displayName == nodeId)
-        return nodeId;
-    return QStringLiteral("%1 (%2)").arg(displayName, nodeId);
 }
 
 ///
@@ -151,12 +139,7 @@ void HistoryWidget::requestHistoryForNode(const QString &nodeId, const QString &
         return;
     if (nodeId.isEmpty())
         return;
-    _historyNodeId = nodeId;
-    _historyNodeDisplayName = displayName;
-    _historyNodeDisplayPath = displayPath;
-    const QString label = displayPath.isEmpty() ? displayName : displayPath;
-    ui->historyNodeEdit->setText(historyNodeText(nodeId, label));
-    ui->historyNodeEdit->setToolTip(nodeId);
+    ui->historyNodeEdit->setNode(nodeId, displayName, displayPath);
     updateActionButtons();
     requestHistoryRead();
 }
@@ -167,9 +150,11 @@ void HistoryWidget::requestHistoryForNode(const QString &nodeId, const QString &
 ///
 QString HistoryWidget::suggestedHistoryCsvFileName() const
 {
+    const QString displayName = ui->historyNodeEdit->nodeDisplayName();
+    const QString displayPath = ui->historyNodeEdit->nodeDisplayPath();
     const QString tag = fileNameSegment(
-        !_historyNodeDisplayName.isEmpty() ? _historyNodeDisplayName
-        : (_historyNodeDisplayPath.isEmpty() ? _historyNodeId : _historyNodeDisplayPath),
+        !displayName.isEmpty() ? displayName
+        : (displayPath.isEmpty() ? ui->historyNodeEdit->nodeId() : displayPath),
         QStringLiteral("history"));
     QStringList parts = {
         tag,
@@ -245,15 +230,10 @@ bool HistoryWidget::eventFilter(QObject *watched, QEvent *event)
         auto *dropEvent = static_cast<QDropEvent *>(event);
         OpcUaNodeInfo node;
         if (decodeDroppedVariable(dropEvent->mimeData(), &node)) {
-            _historyNodeId = node.nodeId;
             const QString label = node.displayName.isEmpty()
                 ? (node.browseName.isEmpty() ? node.nodeId : node.browseName)
                 : node.displayName;
-            _historyNodeDisplayName = label;
-            _historyNodeDisplayPath = node.displayPath;
-            const QString fieldLabel = node.displayPath.isEmpty() ? label : node.displayPath;
-            ui->historyNodeEdit->setText(historyNodeText(node.nodeId, fieldLabel));
-            ui->historyNodeEdit->setToolTip(node.nodeId);
+            ui->historyNodeEdit->setNode(node.nodeId, label, node.displayPath);
             updateActionButtons();
             dropEvent->setDropAction(Qt::CopyAction);
             dropEvent->accept();
@@ -318,10 +298,8 @@ void HistoryWidget::setupHistoryView()
             this, &HistoryWidget::exportHistoryToCsv);
     connect(ui->historyClearButton, &QAbstractButton::clicked,
             this, [this] { _historyModel->clear(); });
-    connect(ui->historyNodeEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
-        if (text.isEmpty())
-            clearHistoryNode();
-    });
+    connect(ui->historyNodeEdit, &NodeLineEdit::nodeCleared, this,
+            &HistoryWidget::clearHistoryNode);
     connect(_historyModel, &QAbstractItemModel::modelReset, this,
             &HistoryWidget::updateActionButtons);
     connect(_historyModel, &QAbstractItemModel::rowsInserted, this,
@@ -335,7 +313,8 @@ void HistoryWidget::setupHistoryView()
 ///
 void HistoryWidget::updateActionButtons()
 {
-    ui->historyReadButton->setEnabled(OpcUa::isHistoryReadSupported() && !_historyNodeId.isEmpty());
+    ui->historyReadButton->setEnabled(OpcUa::isHistoryReadSupported()
+                                      && ui->historyNodeEdit->hasNode());
     const bool hasSamples = _historyModel->rowCount() > 0;
     ui->historyExportButton->setEnabled(hasSamples);
     ui->historyClearButton->setEnabled(hasSamples);
@@ -346,11 +325,7 @@ void HistoryWidget::updateActionButtons()
 ///
 void HistoryWidget::clearHistoryNode()
 {
-    _historyNodeId.clear();
-    _historyNodeDisplayName.clear();
-    _historyNodeDisplayPath.clear();
-    ui->historyNodeEdit->clear();
-    ui->historyNodeEdit->setToolTip(QString());
+    ui->historyNodeEdit->clearNode();
     _historyModel->clear();
     updateActionButtons();
 }
@@ -362,9 +337,9 @@ void HistoryWidget::requestHistoryRead()
 {
     if (!OpcUa::isHistoryReadSupported())
         return;
-    if (_historyNodeId.isEmpty())
+    if (!ui->historyNodeEdit->hasNode())
         return;
-    emit historyReadRequested(_historyNodeId, ui->historyStartEdit->dateTime(),
+    emit historyReadRequested(ui->historyNodeEdit->nodeId(), ui->historyStartEdit->dateTime(),
                               ui->historyEndEdit->dateTime(),
                               static_cast<quint32>(ui->historyMaxEdit->value()));
 }

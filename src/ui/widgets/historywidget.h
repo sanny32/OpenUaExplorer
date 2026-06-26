@@ -110,7 +110,4 @@ private:
 
     Ui::HistoryWidget *ui;
     HistoryModel      *_historyModel;
-    QString            _historyNodeId;
-    QString            _historyNodeDisplayName;
-    QString            _historyNodeDisplayPath;
 };

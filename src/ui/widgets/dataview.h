@@ -131,15 +131,19 @@ public:
     /// \brief Targets a node on the Events page as the event source and shows the page.
     /// \param nodeId Node to monitor for events.
     /// \param displayName Human-readable name shown in the source field.
+    /// \param displayPath Human-readable path shown in the source field.
     ///
-    void beginEventMonitoring(const QString &nodeId, const QString &displayName);
+    void beginEventMonitoring(const QString &nodeId, const QString &displayName,
+                              const QString &displayPath = {});
 
     ///
     /// \brief Targets a node on the Events page and requests event monitoring.
     /// \param nodeId Node to monitor for events.
     /// \param displayName Human-readable name shown in the source field.
+    /// \param displayPath Human-readable path shown in the source field.
     ///
-    void requestEventMonitoringForNode(const QString &nodeId, const QString &displayName);
+    void requestEventMonitoringForNode(const QString &nodeId, const QString &displayName,
+                                       const QString &displayPath = {});
 
     ///
     /// \brief Appends received events to the Events table.

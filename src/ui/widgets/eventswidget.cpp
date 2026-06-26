@@ -19,6 +19,7 @@
 #include "eventswidget.h"
 #include "headerview.h"
 #include "models/eventsmodel.h"
+#include "nodelineedit.h"
 #include "opcua/attributeformatter.h"
 #include "tableview.h"
 #include "ui_eventswidget.h"
@@ -71,13 +72,13 @@ EventsWidget::~EventsWidget()
 /// \brief Targets a node as the event source and enables subscribing.
 /// \param nodeId Node to monitor for events.
 /// \param displayName Human-readable name shown in the source field.
+/// \param displayPath Human-readable path shown in the source field.
 ///
-void EventsWidget::setEventSource(const QString &nodeId, const QString &displayName)
+void EventsWidget::setEventSource(const QString &nodeId, const QString &displayName,
+                                  const QString &displayPath)
 {
-    _eventsNodeId = nodeId;
     _subscribed = false;
-    ui->eventsNodeEdit->setText(displayName.isEmpty() ? nodeId : displayName);
-    ui->eventsNodeEdit->setToolTip(nodeId);
+    ui->eventsNodeEdit->setNode(nodeId, displayName, displayPath);
     ui->eventsSubscribeButton->setEnabled(!nodeId.isEmpty());
     ui->eventsUnsubscribeButton->setEnabled(false);
     updateActionButtons();
@@ -88,9 +89,9 @@ void EventsWidget::setEventSource(const QString &nodeId, const QString &displayN
 ///
 void EventsWidget::requestEventMonitoring()
 {
-    if (_eventsNodeId.isEmpty() || _subscribed)
+    if (!ui->eventsNodeEdit->hasNode() || _subscribed)
         return;
-    emit eventSubscribeRequested(_eventsNodeId, 1000.0);
+    emit eventSubscribeRequested(ui->eventsNodeEdit->nodeId(), 1000.0);
 }
 
 ///
@@ -99,8 +100,11 @@ void EventsWidget::requestEventMonitoring()
 ///
 QString EventsWidget::suggestedEventsCsvFileName() const
 {
+    const QString displayName = ui->eventsNodeEdit->nodeDisplayName();
+    const QString displayPath = ui->eventsNodeEdit->nodeDisplayPath();
     const QString source = fileNameSegment(
-        ui->eventsNodeEdit->text().isEmpty() ? _eventsNodeId : ui->eventsNodeEdit->text(),
+        !displayName.isEmpty() ? displayName
+        : (displayPath.isEmpty() ? ui->eventsNodeEdit->nodeId() : displayPath),
         QStringLiteral("events"));
     return QStringLiteral("events_%1.csv").arg(source);
 }
@@ -132,10 +136,10 @@ void EventsWidget::appendEvents(const QVector<OpcUaEvent> &events)
 ///
 void EventsWidget::setEventMonitoringState(const QString &nodeId, bool subscribed)
 {
-    if (nodeId != _eventsNodeId)
+    if (nodeId != ui->eventsNodeEdit->nodeId())
         return;
     _subscribed = subscribed;
-    ui->eventsSubscribeButton->setEnabled(!subscribed && !_eventsNodeId.isEmpty());
+    ui->eventsSubscribeButton->setEnabled(!subscribed && ui->eventsNodeEdit->hasNode());
     ui->eventsUnsubscribeButton->setEnabled(subscribed);
 }
 
@@ -208,18 +212,16 @@ void EventsWidget::configureToolbar()
     connect(ui->eventsSubscribeButton, &QAbstractButton::clicked,
             this, &EventsWidget::requestEventMonitoring);
     connect(ui->eventsUnsubscribeButton, &QAbstractButton::clicked, this, [this]() {
-        if (!_eventsNodeId.isEmpty())
-            emit eventUnsubscribeRequested(_eventsNodeId);
+        if (ui->eventsNodeEdit->hasNode())
+            emit eventUnsubscribeRequested(ui->eventsNodeEdit->nodeId());
     });
     connect(ui->eventsClearButton, &QAbstractButton::clicked, this, [this]() {
         _eventsModel->clear();
     });
     connect(ui->eventsExportButton, &QAbstractButton::clicked,
             this, &EventsWidget::exportEventsToCsv);
-    connect(ui->eventsNodeEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
-        if (text.isEmpty())
-            clearEventSource();
-    });
+    connect(ui->eventsNodeEdit, &NodeLineEdit::nodeCleared, this,
+            &EventsWidget::clearEventSource);
     connect(_eventsModel, &QAbstractItemModel::modelReset, this,
             &EventsWidget::updateActionButtons);
     connect(_eventsModel, &QAbstractItemModel::rowsInserted, this,
@@ -243,13 +245,11 @@ void EventsWidget::updateActionButtons()
 ///
 void EventsWidget::clearEventSource()
 {
-    const QString nodeId = _eventsNodeId;
+    const QString nodeId = ui->eventsNodeEdit->nodeId();
     const bool wasSubscribed = _subscribed;
 
-    _eventsNodeId.clear();
     _subscribed = false;
-    ui->eventsNodeEdit->clear();
-    ui->eventsNodeEdit->setToolTip(QString());
+    ui->eventsNodeEdit->clearNode();
     ui->eventsSubscribeButton->setEnabled(false);
     ui->eventsUnsubscribeButton->setEnabled(false);
     _eventsModel->clear();

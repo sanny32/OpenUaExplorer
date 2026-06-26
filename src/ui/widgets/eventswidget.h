@@ -42,8 +42,10 @@ public:
     /// \brief Targets a node as the event source and enables subscribing.
     /// \param nodeId Node to monitor for events.
     /// \param displayName Human-readable name shown in the source field.
+    /// \param displayPath Human-readable path shown in the source field.
     ///
-    void setEventSource(const QString &nodeId, const QString &displayName);
+    void setEventSource(const QString &nodeId, const QString &displayName,
+                        const QString &displayPath = {});
 
     ///
     /// \brief Requests event monitoring for the current source node.
@@ -109,6 +111,5 @@ private:
 
     Ui::EventsWidget *ui;
     EventsModel      *_eventsModel;
-    QString           _eventsNodeId;
     bool              _subscribed = false;
 };

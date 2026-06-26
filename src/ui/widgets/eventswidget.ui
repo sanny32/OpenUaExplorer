@@ -14,12 +14,12 @@
    <item>
     <layout class="QHBoxLayout" name="eventsToolbarLayout">
      <item>
-      <widget class="ValueLineEdit" name="eventsNodeEdit">
+      <widget class="NodeLineEdit" name="eventsNodeEdit">
        <property name="readOnly">
         <bool>true</bool>
        </property>
        <property name="placeholderText">
-        <string>Select a node with events…</string>
+        <string>Drop a node or use Monitor Events…</string>
        </property>
       </widget>
      </item>
@@ -107,9 +107,9 @@
    <header>widgets/tableview.h</header>
   </customwidget>
   <customwidget>
-   <class>ValueLineEdit</class>
+   <class>NodeLineEdit</class>
    <extends>QLineEdit</extends>
-   <header>widgets/valuelineedit.h</header>
+   <header>widgets/nodelineedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

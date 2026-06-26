@@ -134,6 +134,8 @@ add_library(ouaexp_ui STATIC
     widgets/favoriteswidget.h
     widgets/maintoolbutton.cpp
     widgets/maintoolbutton.h
+    widgets/nodelineedit.cpp
+    widgets/nodelineedit.h
     widgets/publishingintervaldelegate.cpp
     widgets/publishingintervaldelegate.h
     widgets/subscriptiondelegate.cpp
