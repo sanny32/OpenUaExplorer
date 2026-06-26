@@ -141,6 +141,19 @@ public:
     void unsubscribe(const QString &nodeId) override;
 
     ///
+    /// \brief Enables event monitoring for a node with an EventNotifier.
+    /// \param nodeId Node to monitor for events.
+    /// \param publishingInterval Publishing interval in milliseconds.
+    ///
+    void subscribeEvents(const QString &nodeId, double publishingInterval) override;
+
+    ///
+    /// \brief Disables event monitoring for a node.
+    /// \param nodeId Node being monitored for events.
+    ///
+    void unsubscribeEvents(const QString &nodeId) override;
+
+    ///
     /// \brief Reads the SessionDiagnosticsArray and resolves this client's session name.
     /// \param timeoutMs Request timeout in milliseconds.
     ///

@@ -23,9 +23,11 @@
 #include <QOpcUaHistoryData>
 #include <QOpcUaHistoryReadRawRequest>
 #include <QOpcUaHistoryReadResponse>
+#include <QOpcUaLocalizedText>
 #include <QOpcUaNode>
 #include <QOpcUaMonitoringParameters>
 #include <QOpcUaReadItem>
+#include <QOpcUaSimpleAttributeOperand>
 #include <QOpcUaReadResult>
 #include <QOpcUaReferenceDescription>
 
@@ -89,6 +91,8 @@ public:
     {
         qDeleteAll(monitoredNodes);
         monitoredNodes.clear();
+        qDeleteAll(monitoredEventNodes);
+        monitoredEventNodes.clear();
     }
 
     ///
@@ -187,6 +191,7 @@ public:
     std::array<QMetaObject::Connection,
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeConnections{};
     QHash<QString, QOpcUaNode *> monitoredNodes;
+    QHash<QString, QOpcUaNode *> monitoredEventNodes;
 };
 
 ///
@@ -201,6 +206,7 @@ QtOpcUaBackend::QtOpcUaBackend(QObject *parent)
     qRegisterMetaType<OpcUaNodeInfo>();
     qRegisterMetaType<OpcUaNodeDetails>();
     qRegisterMetaType<OpcUaDataValue>();
+    qRegisterMetaType<OpcUaEvent>();
     qRegisterMetaType<OpcUaHistoryValue>();
 }
 
@@ -817,5 +823,144 @@ void QtOpcUaBackend::unsubscribe(const QString &nodeId)
         _d->monitoredNodes.insert(nodeId, node);
         emit monitoringFinished(nodeId, false, false,
                                 tr("The backend rejected the unmonitoring request."));
+    }
+}
+
+namespace {
+
+///
+/// \brief Builds the BaseEventType select clause shared by every event subscription.
+/// \return Select clause covering Time, Severity, SourceName, Message and EventType.
+///
+QOpcUaMonitoringParameters::EventFilter baseEventFilter()
+{
+    QOpcUaMonitoringParameters::EventFilter filter;
+    filter << QOpcUaSimpleAttributeOperand(QStringLiteral("Time"))
+           << QOpcUaSimpleAttributeOperand(QStringLiteral("Severity"))
+           << QOpcUaSimpleAttributeOperand(QStringLiteral("SourceName"))
+           << QOpcUaSimpleAttributeOperand(QStringLiteral("Message"))
+           << QOpcUaSimpleAttributeOperand(QStringLiteral("EventType"));
+    return filter;
+}
+
+///
+/// \brief Builds an OpcUaEvent from the select-clause field values of one notification.
+/// \param nodeId Monitored node that produced the event.
+/// \param fields Field values in baseEventFilter() order.
+/// \return Parsed event record.
+///
+OpcUaEvent eventFromFields(const QString &nodeId, const QVariantList &fields)
+{
+    OpcUaEvent event;
+    event.sourceNodeId = nodeId;
+    if (fields.size() > 0)
+        event.time = fields.at(0).toDateTime();
+    if (fields.size() > 1)
+        event.severity = static_cast<quint16>(fields.at(1).toUInt());
+    if (fields.size() > 2)
+        event.sourceName = fields.at(2).toString();
+    if (fields.size() > 3)
+        event.message = fields.at(3).value<QOpcUaLocalizedText>().text();
+    if (fields.size() > 4)
+        event.eventType = fields.at(4).toString();
+    for (const QVariant &field : fields)
+        event.fields.append(displayValue(field));
+    return event;
+}
+
+} // namespace
+
+///
+/// \brief Enables event monitoring for a node with an EventNotifier.
+/// \param nodeId Node to monitor for events.
+/// \param publishingInterval Publishing interval in milliseconds.
+///
+void QtOpcUaBackend::subscribeEvents(const QString &nodeId, double publishingInterval)
+{
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit eventMonitoringFinished(nodeId, true, false, tr("The OPC UA client is not connected."));
+        return;
+    }
+    if (_d->monitoredEventNodes.contains(nodeId)) {
+        QOpcUaNode *monitored = _d->monitoredEventNodes.take(nodeId);
+        connect(monitored, &QOpcUaNode::disableMonitoringFinished, this,
+                [this, monitored, nodeId, publishingInterval](QOpcUa::NodeAttribute attribute,
+                                                              QOpcUa::UaStatusCode status) {
+            if (attribute != QOpcUa::NodeAttribute::EventNotifier)
+                return;
+            monitored->deleteLater();
+            if (QOpcUa::isSuccessStatus(status)) {
+                subscribeEvents(nodeId, publishingInterval);
+            } else {
+                emit eventMonitoringFinished(nodeId, true, false, statusName(status));
+            }
+        });
+        if (!monitored->disableMonitoring(QOpcUa::NodeAttribute::EventNotifier)) {
+            _d->monitoredEventNodes.insert(nodeId, monitored);
+            emit eventMonitoringFinished(nodeId, true, false,
+                                         tr("The backend rejected the monitoring update request."));
+        }
+        return;
+    }
+    QOpcUaNode *node = _d->connection.client()->node(nodeId);
+    if (!node) {
+        emit eventMonitoringFinished(nodeId, true, false, tr("Could not create node %1.").arg(nodeId));
+        return;
+    }
+    connect(node, &QOpcUaNode::eventOccurred, this,
+            [this, nodeId](const QVariantList &eventFields) {
+        emit eventsReady(nodeId, {eventFromFields(nodeId, eventFields)}, QString());
+    });
+    connect(node, &QOpcUaNode::enableMonitoringFinished, this,
+            [this, node, nodeId](QOpcUa::NodeAttribute attribute,
+                                QOpcUa::UaStatusCode status) {
+        if (attribute != QOpcUa::NodeAttribute::EventNotifier)
+            return;
+        const bool success = QOpcUa::isSuccessStatus(status);
+        if (success) {
+            _d->monitoredEventNodes.insert(nodeId, node);
+        } else {
+            node->deleteLater();
+        }
+        emit eventMonitoringFinished(nodeId, true, success,
+                                     success ? QString() : statusName(status));
+    });
+    QOpcUaMonitoringParameters parameters(publishingInterval);
+    parameters.setFilter(baseEventFilter());
+    if (!node->enableMonitoring(QOpcUa::NodeAttribute::EventNotifier, parameters)) {
+        node->deleteLater();
+        emit eventMonitoringFinished(nodeId, true, false,
+                                     tr("The backend rejected the monitoring request."));
+    }
+}
+
+///
+/// \brief Disables event monitoring for a node.
+/// \param nodeId Node being monitored for events.
+///
+void QtOpcUaBackend::unsubscribeEvents(const QString &nodeId)
+{
+    QOpcUaNode *node = _d->monitoredEventNodes.take(nodeId);
+    if (!node) {
+        emit eventMonitoringFinished(nodeId, false, true, QString());
+        return;
+    }
+    connect(node, &QOpcUaNode::disableMonitoringFinished, this,
+            [this, node, nodeId](QOpcUa::NodeAttribute attribute,
+                                QOpcUa::UaStatusCode status) {
+        if (attribute != QOpcUa::NodeAttribute::EventNotifier)
+            return;
+        const bool success = QOpcUa::isSuccessStatus(status);
+        if (!success)
+            _d->monitoredEventNodes.insert(nodeId, node);
+        else
+            node->deleteLater();
+        emit eventMonitoringFinished(nodeId, false, success,
+                                     success ? QString() : statusName(status));
+    });
+    if (!node->disableMonitoring(QOpcUa::NodeAttribute::EventNotifier)) {
+        _d->monitoredEventNodes.insert(nodeId, node);
+        emit eventMonitoringFinished(nodeId, false, false,
+                                     tr("The backend rejected the unmonitoring request."));
     }
 }

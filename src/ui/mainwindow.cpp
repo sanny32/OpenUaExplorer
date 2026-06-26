@@ -38,6 +38,7 @@
 #include "addressspacemodule.h"
 #include "attributemodule.h"
 #include "dataaccessmodule.h"
+#include "eventsmodule.h"
 #include "servicecontext.h"
 #include "servicemodulemanager.h"
 #include "referencemodule.h"
@@ -45,6 +46,7 @@
 #include "ui_mainwindow.h"
 #include "widgets/dataaccesswidget.h"
 #include "widgets/dataview.h"
+#include "widgets/eventswidget.h"
 #include "widgets/historywidget.h"
 #include "widgets/favoriteswidget.h"
 #include "widgets/maintoolbar.h"
@@ -588,12 +590,14 @@ void MainWindow::setupPlugins()
     _attributePlugin = new AttributeModule;
     _referencePlugin = new ReferenceModule;
     _dataAccessPlugin = new DataAccessModule;
+    _eventsPlugin = new EventsModule;
 
     _pluginManager->registerModule(_serverPlugin);
     _pluginManager->registerModule(_addressSpacePlugin);
     _pluginManager->registerModule(_attributePlugin);
     _pluginManager->registerModule(_referencePlugin);
     _pluginManager->registerModule(_dataAccessPlugin);
+    _pluginManager->registerModule(_eventsPlugin);
 
     FeatureHost host(this,
                      ui->menuView,
@@ -651,6 +655,18 @@ void MainWindow::setupDataAccessWiring()
     }
     connect(_dataAccessPlugin, &DataAccessModule::monitoringFinished,
             this, &MainWindow::onMonitoringFinished);
+    connect(_selectionContext, &SelectionContext::eventMonitorRequested, this,
+            [this](const OpcUaNodeInfo &node) {
+        ui->dataView->beginEventMonitoring(node.nodeId, node.displayName);
+    });
+    connect(ui->dataView->events(), &EventsWidget::eventSubscribeRequested,
+            _eventsPlugin, &EventsModule::subscribeEvents);
+    connect(ui->dataView->events(), &EventsWidget::eventUnsubscribeRequested,
+            _eventsPlugin, &EventsModule::unsubscribeEvents);
+    connect(_eventsPlugin, &EventsModule::eventsReady,
+            this, &MainWindow::onEventsReady);
+    connect(_eventsPlugin, &EventsModule::eventMonitoringFinished,
+            this, &MainWindow::onEventMonitoringFinished);
     connect(theApp(), &Application::timestampModeChanged,
             ui->dataView, &DataView::setTimestampMode);
 }
@@ -785,6 +801,40 @@ void MainWindow::onMonitoringFinished(const QString &nodeId, bool subscribed,
                              error);
     }
     updateMonitoringActions();
+}
+
+///
+/// \brief Appends received events to the events view, ignoring delivery errors.
+/// \param nodeId Monitored node that produced the events.
+/// \param events Received events.
+/// \param error Error description, empty on success.
+///
+void MainWindow::onEventsReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
+                               const QString &error)
+{
+    Q_UNUSED(nodeId)
+    if (error.isEmpty())
+        ui->dataView->appendEvents(events);
+}
+
+///
+/// \brief Applies the result of an event subscribe or unsubscribe request to the UI.
+/// \param nodeId Affected node.
+/// \param subscribed True for subscribe and false for unsubscribe.
+/// \param success Whether the request succeeded.
+/// \param error Error description, empty on success.
+///
+void MainWindow::onEventMonitoringFinished(const QString &nodeId, bool subscribed,
+                                           bool success, const QString &error)
+{
+    if (success) {
+        ui->dataView->events()->setEventMonitoringState(nodeId, subscribed);
+    } else {
+        QMessageBox::warning(this,
+                             subscribed ? tr("Event Subscribe Failed")
+                                        : tr("Event Unsubscribe Failed"),
+                             error);
+    }
 }
 
 ///

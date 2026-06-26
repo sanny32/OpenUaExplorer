@@ -162,6 +162,7 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
     details.accessLevel = static_cast<quint8>(node->attribute(QOpcUa::NodeAttribute::AccessLevel).toUInt());
     details.userAccessLevel = static_cast<quint8>(node->attribute(QOpcUa::NodeAttribute::UserAccessLevel).toUInt());
     details.historizing = node->attribute(QOpcUa::NodeAttribute::Historizing).toBool();
+    details.eventNotifier = static_cast<quint8>(node->attribute(QOpcUa::NodeAttribute::EventNotifier).toUInt());
     details.status = statusName(node->attributeError(QOpcUa::NodeAttribute::Value));
     details.sourceTimestamp = node->sourceTimestamp(QOpcUa::NodeAttribute::Value);
     details.serverTimestamp = node->serverTimestamp(QOpcUa::NodeAttribute::Value);

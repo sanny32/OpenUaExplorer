@@ -224,9 +224,6 @@ void AddressSpaceWidget::setupTreeView()
 ///
 void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
 {
-    if (!OpcUa::isHistoryReadSupported())
-        return;
-
     const QModelIndex index = ui->addressTree->indexAt(pos);
     if (!index.isValid())
         return;
@@ -235,11 +232,19 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
         return;
 
     QMenu menu(this);
-    QAction *historyAction = menu.addAction(AppIcons::themed(QStringLiteral("history")),
-                                            tr("Read History"), this, [this, info] {
-        emit readHistoryRequested(info);
+    if (OpcUa::isHistoryReadSupported()) {
+        QAction *historyAction = menu.addAction(AppIcons::themed(QStringLiteral("history")),
+                                                tr("Read History"), this, [this, info] {
+            emit readHistoryRequested(info);
+        });
+        historyAction->setEnabled(OpcUa::isVariable(info.nodeClass));
+    }
+
+    QAction *eventsAction = menu.addAction(AppIcons::themed(QStringLiteral("subscribe")),
+                                           tr("Monitor Events"), this, [this, info] {
+        emit monitorEventsRequested(info);
     });
-    historyAction->setEnabled(OpcUa::isVariable(info.nodeClass));
+    eventsAction->setEnabled(info.nodeClass == OpcUa::Object);
 
     menu.exec(ui->addressTree->viewport()->mapToGlobal(pos));
 }

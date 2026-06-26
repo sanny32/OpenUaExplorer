@@ -196,10 +196,10 @@ inline QVector<SubscriptionItem> subscriptionItems()
 inline QVector<EventItem> eventItems()
 {
     return {
-        {"12:15:01.100", "SystemStatusChangeEventType: Server started"},
-        {"12:15:03.450", "GeneralModelChangeEventType: Node ns=2;s=Device1 modified"},
-        {"12:15:08.900", "AuditWriteUpdateEventType: ns=2;s=Device1.Commands.Start = true"},
-        {"12:15:21.300", "AlarmConditionType: Temperature exceeded threshold (23.45 > 23.0)"}
+        {"12:15:01.100", "100", "Server",  "Server started",                          "SystemStatusChangeEventType"},
+        {"12:15:03.450", "100", "Device1", "Node ns=2;s=Device1 modified",            "GeneralModelChangeEventType"},
+        {"12:15:08.900", "200", "Device1", "ns=2;s=Device1.Commands.Start = true",    "AuditWriteUpdateEventType"},
+        {"12:15:21.300", "700", "Device1", "Temperature exceeded threshold (23.45 > 23.0)", "AlarmConditionType"}
     };
 }
 

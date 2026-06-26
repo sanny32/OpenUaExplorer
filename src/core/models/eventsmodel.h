@@ -67,6 +67,12 @@ public:
     void setItems(const QVector<EventItem> &items);
 
     ///
+    /// \brief Appends streamed events, capping the table at a maximum row count.
+    /// \param items Events to add in arrival order.
+    ///
+    void addEvents(const QVector<EventItem> &items);
+
+    ///
     /// \brief Removes all events.
     ///
     void clear();
@@ -82,9 +88,12 @@ public:
     /// \brief Columns exposed by the events table.
     ///
     enum Column {
-        ColTime    = 0,
-        ColMessage = 1,
-        ColCount   = 2
+        ColTime      = 0,
+        ColSeverity  = 1,
+        ColSource    = 2,
+        ColMessage   = 3,
+        ColEventType = 4,
+        ColCount     = 5
     };
 
 private:

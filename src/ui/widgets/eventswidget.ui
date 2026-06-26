@@ -12,15 +12,88 @@
   </property>
   <layout class="QVBoxLayout" name="eventsLayout">
    <item>
+    <layout class="QHBoxLayout" name="eventsToolbarLayout">
+     <item>
+      <widget class="ValueLineEdit" name="eventsNodeEdit">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+       <property name="placeholderText">
+        <string>Select a node with events…</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="ThemedToolButton" name="eventsSubscribeButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Subscribe</string>
+       </property>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="ThemedToolButton" name="eventsUnsubscribeButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Unsubscribe</string>
+       </property>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="eventsToolbarSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="ThemedToolButton" name="eventsClearButton">
+       <property name="text">
+        <string>Clear</string>
+       </property>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
     <widget class="TableView" name="eventsTable"/>
    </item>
   </layout>
  </widget>
  <customwidgets>
   <customwidget>
+   <class>ThemedToolButton</class>
+   <extends>QToolButton</extends>
+   <header>widgets/themedtoolbutton.h</header>
+  </customwidget>
+  <customwidget>
    <class>TableView</class>
    <extends>QTableView</extends>
    <header>widgets/tableview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ValueLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>widgets/valuelineedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -186,11 +186,20 @@ struct OpcUaNodeDetails
     QDateTime sourceTimestamp;
     /// \brief Server timestamp, when provided.
     QDateTime serverTimestamp;
+    /// \brief EventNotifier bit mask.
+    quint8 eventNotifier = 0;
     /// \brief Full formatted attribute tree.
     QVector<OpcUaNodeAttribute> attributes;
 };
 
 namespace OpcUa {
+
+///
+/// \brief EventNotifier bits (OPC UA Part 3).
+///
+enum EventNotifier : quint8 {
+    SubscribeToEvents = 0x01,
+};
 
 ///
 /// \brief Returns true when a node can be offered for raw HistoryRead.
@@ -200,6 +209,16 @@ namespace OpcUa {
 inline bool canReadHistory(const OpcUaNodeDetails &details)
 {
     return isHistoryReadSupported() && isVariable(details.nodeClass) && details.historizing;
+}
+
+///
+/// \brief Returns true when a node advertises that it emits events.
+/// \param details Selected node details.
+/// \return True when the EventNotifier SubscribeToEvents bit is set.
+///
+inline bool canMonitorEvents(const OpcUaNodeDetails &details)
+{
+    return (details.eventNotifier & SubscribeToEvents) != 0;
 }
 
 } // namespace OpcUa
@@ -230,6 +249,27 @@ struct OpcUaDataValue
 };
 
 ///
+/// \brief One OPC UA event notification delivered for a monitored node.
+///
+struct OpcUaEvent
+{
+    /// \brief Monitored node that produced the event.
+    QString sourceNodeId;
+    /// \brief Event Time field.
+    QDateTime time;
+    /// \brief Event Severity field (1-1000).
+    quint16 severity = 0;
+    /// \brief Event SourceName field.
+    QString sourceName;
+    /// \brief Event Message field text.
+    QString message;
+    /// \brief Event EventType NodeId.
+    QString eventType;
+    /// \brief All select-clause field values in display form.
+    QStringList fields;
+};
+
+///
 /// \brief One historical sample returned by a HistoryRead.
 ///
 struct OpcUaHistoryValue
@@ -252,4 +292,5 @@ Q_DECLARE_METATYPE(EndpointInfo)
 Q_DECLARE_METATYPE(OpcUaNodeInfo)
 Q_DECLARE_METATYPE(OpcUaNodeDetails)
 Q_DECLARE_METATYPE(OpcUaDataValue)
+Q_DECLARE_METATYPE(OpcUaEvent)
 Q_DECLARE_METATYPE(OpcUaHistoryValue)

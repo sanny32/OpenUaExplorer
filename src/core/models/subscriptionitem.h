@@ -39,6 +39,15 @@ struct EventItem
     /// \brief Event time display text.
     QString time;
 
+    /// \brief Event severity display text.
+    QString severity;
+
+    /// \brief Event source name.
+    QString source;
+
     /// \brief Event message.
     QString message;
+
+    /// \brief Event type display text.
+    QString eventType;
 };

@@ -14,6 +14,8 @@ add_library(ouaexp_plugins STATIC
     referencemodule.h
     dataaccessmodule.cpp
     dataaccessmodule.h
+    eventsmodule.cpp
+    eventsmodule.h
 )
 
 target_include_directories(ouaexp_plugins PUBLIC

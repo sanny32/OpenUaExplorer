@@ -164,6 +164,26 @@ public:
     }
 
     ///
+    /// \brief Enables event monitoring for a node with an EventNotifier.
+    /// \param nodeId Node to monitor for events.
+    /// \param publishingInterval Publishing interval in milliseconds.
+    ///
+    virtual void subscribeEvents(const QString &nodeId, double publishingInterval)
+    {
+        Q_UNUSED(publishingInterval)
+        emit eventMonitoringFinished(nodeId, true, false, tr("Event monitoring is not supported."));
+    }
+
+    ///
+    /// \brief Disables event monitoring for a node.
+    /// \param nodeId Node being monitored for events.
+    ///
+    virtual void unsubscribeEvents(const QString &nodeId)
+    {
+        emit eventMonitoringFinished(nodeId, false, false, tr("Event monitoring is not supported."));
+    }
+
+    ///
     /// \brief Resolves this client's session name from the server diagnostics.
     ///
     /// Backends that cannot read the server diagnostics may leave the default
@@ -247,6 +267,23 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void monitoringFinished(QString nodeId, bool subscribed, bool success, QString error);
+
+    ///
+    /// \brief Emitted when events are received for a monitored node.
+    /// \param nodeId Monitored node that produced the events.
+    /// \param events Received events.
+    /// \param error Error description, empty on success.
+    ///
+    void eventsReady(QString nodeId, QVector<OpcUaEvent> events, QString error);
+
+    ///
+    /// \brief Emitted after an event-monitoring request finishes.
+    /// \param nodeId Affected node.
+    /// \param subscribed True for subscribe and false for unsubscribe.
+    /// \param success Whether the request succeeded.
+    /// \param error Error description, empty on success.
+    ///
+    void eventMonitoringFinished(QString nodeId, bool subscribed, bool success, QString error);
 
     ///
     /// \brief Emitted when the server-assigned session name has been resolved.

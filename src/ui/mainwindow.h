@@ -107,6 +107,10 @@ private:
     void onWriteFinished(const QString &nodeId, bool success, const QString &error);
     void onMonitoringFinished(const QString &nodeId, bool subscribed,
                               bool success, const QString &error);
+    void onEventsReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
+                       const QString &error);
+    void onEventMonitoringFinished(const QString &nodeId, bool subscribed,
+                                   bool success, const QString &error);
     void updateMonitoringActions();
     CertificateTrustDecision decide(const QByteArray &certificate,
                                     const QString &message) override;
@@ -123,6 +127,7 @@ private:
     class AttributeModule *_attributePlugin = nullptr;
     class ReferenceModule *_referencePlugin = nullptr;
     class DataAccessModule *_dataAccessPlugin = nullptr;
+    class EventsModule *_eventsPlugin = nullptr;
     class FavoritesWidget *_favoritesWidget = nullptr;
     OpcUaNodeDetails _selectedNodeDetails;
     QSet<QString> _subscribedNodeIds;

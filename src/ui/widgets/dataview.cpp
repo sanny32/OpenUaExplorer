@@ -183,6 +183,26 @@ void DataView::requestHistoryForNode(const QString &nodeId, const QString &displ
 }
 
 ///
+/// \brief Targets a node on the Events page as the event source and shows the page.
+/// \param nodeId Node to monitor for events.
+/// \param displayName Human-readable name shown in the source field.
+///
+void DataView::beginEventMonitoring(const QString &nodeId, const QString &displayName)
+{
+    ui->eventsWidget->setEventSource(nodeId, displayName);
+    setCurrentPage(EventsPage);
+}
+
+///
+/// \brief Appends received events to the Events table.
+/// \param events Events to display.
+///
+void DataView::appendEvents(const QVector<OpcUaEvent> &events)
+{
+    ui->eventsWidget->appendEvents(events);
+}
+
+///
 /// \brief Builds the default CSV export file name for the current history query.
 /// \return Suggested CSV file name.
 ///

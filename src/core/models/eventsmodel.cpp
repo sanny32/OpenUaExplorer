@@ -8,6 +8,10 @@
 
 #include "eventsmodel.h"
 
+namespace {
+constexpr int kMaxEventRows = 1000;
+}
+
 ///
 /// \brief Constructs an empty events model.
 /// \param parent Owning QObject.
@@ -52,9 +56,12 @@ QVariant EventsModel::headerData(int section, Qt::Orientation orientation, int r
         return QAbstractTableModel::headerData(section, orientation, role);
 
     switch (section) {
-    case ColTime:    return QStringLiteral("Time");
-    case ColMessage: return QStringLiteral("Message");
-    default:         return QVariant();
+    case ColTime:      return QStringLiteral("Time");
+    case ColSeverity:  return QStringLiteral("Severity");
+    case ColSource:    return QStringLiteral("Source");
+    case ColMessage:   return QStringLiteral("Message");
+    case ColEventType: return QStringLiteral("Event Type");
+    default:           return QVariant();
     }
 }
 
@@ -72,9 +79,12 @@ QVariant EventsModel::data(const QModelIndex &index, int role) const
 
     if (role == Qt::DisplayRole) {
         switch (index.column()) {
-        case ColTime:    return item.time;
-        case ColMessage: return item.message;
-        default:         return QVariant();
+        case ColTime:      return item.time;
+        case ColSeverity:  return item.severity;
+        case ColSource:    return item.source;
+        case ColMessage:   return item.message;
+        case ColEventType: return item.eventType;
+        default:           return QVariant();
         }
     }
 
@@ -93,6 +103,28 @@ void EventsModel::setItems(const QVector<EventItem> &items)
     beginResetModel();
     _items = items;
     endResetModel();
+}
+
+///
+/// \brief Appends streamed events, capping the table at a maximum row count.
+/// \param items Events to add in arrival order.
+///
+void EventsModel::addEvents(const QVector<EventItem> &items)
+{
+    if (items.isEmpty())
+        return;
+
+    const int first = _items.size();
+    beginInsertRows(QModelIndex(), first, first + items.size() - 1);
+    _items.append(items);
+    endInsertRows();
+
+    if (_items.size() > kMaxEventRows) {
+        const int excess = _items.size() - kMaxEventRows;
+        beginRemoveRows(QModelIndex(), 0, excess - 1);
+        _items.remove(0, excess);
+        endRemoveRows();
+    }
 }
 
 ///

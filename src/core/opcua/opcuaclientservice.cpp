@@ -47,6 +47,10 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::writeFinished);
     connect(_backend, &OpcUaBackend::monitoringFinished,
             this, &OpcUaClientService::monitoringFinished);
+    connect(_backend, &OpcUaBackend::eventsReady,
+            this, &OpcUaClientService::eventsReady);
+    connect(_backend, &OpcUaBackend::eventMonitoringFinished,
+            this, &OpcUaClientService::eventMonitoringFinished);
     connect(_backend, &OpcUaBackend::serverSessionNameResolved,
             this, &OpcUaClientService::serverSessionNameResolved);
 }
@@ -228,6 +232,25 @@ void OpcUaClientService::subscribe(const QString &nodeId, double publishingInter
 void OpcUaClientService::unsubscribe(const QString &nodeId)
 {
     _backend->unsubscribe(nodeId);
+}
+
+///
+/// \brief Enables event monitoring for a node with an EventNotifier.
+/// \param nodeId Node to monitor for events.
+/// \param publishingInterval Publishing interval in milliseconds.
+///
+void OpcUaClientService::subscribeEvents(const QString &nodeId, double publishingInterval)
+{
+    _backend->subscribeEvents(nodeId, publishingInterval);
+}
+
+///
+/// \brief Disables event monitoring for a node.
+/// \param nodeId Node being monitored for events.
+///
+void OpcUaClientService::unsubscribeEvents(const QString &nodeId)
+{
+    _backend->unsubscribeEvents(nodeId);
 }
 
 ///

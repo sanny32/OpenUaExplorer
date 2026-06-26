@@ -65,6 +65,8 @@ private slots:
 
     // Header/role/mutator coverage for the simple table & tree models.
     void historyReadRequiresHistorizingVariable();
+    void eventMonitoringRequiresEventNotifier();
+    void eventsModelAddEventsAppendsAndCaps();
     void historyModelHeaderRolesAndMutators();
     void historyModelExportsCsv();
     void referencesModelHeaderAndEdges();
@@ -93,6 +95,47 @@ void TestModels::historyReadRequiresHistorizingVariable()
 
     details.nodeClass = OpcUa::Object;
     QVERIFY(!OpcUa::canReadHistory(details));
+}
+
+///
+/// \brief Event monitoring availability requires the SubscribeToEvents bit.
+///
+void TestModels::eventMonitoringRequiresEventNotifier()
+{
+    OpcUaNodeDetails details;
+    details.nodeClass = OpcUa::Object;
+
+    QVERIFY(!OpcUa::canMonitorEvents(details));
+
+    details.eventNotifier = OpcUa::SubscribeToEvents;
+    QVERIFY(OpcUa::canMonitorEvents(details));
+}
+
+///
+/// \brief EventsModel::addEvents appends rows and caps the table size.
+///
+void TestModels::eventsModelAddEventsAppendsAndCaps()
+{
+    EventsModel model;
+    model.addEvents({{QStringLiteral("12:00"), QStringLiteral("100"),
+                      QStringLiteral("Server"), QStringLiteral("First"),
+                      QStringLiteral("BaseEventType")}});
+    QCOMPARE(model.rowCount(), 1);
+
+    model.addEvents({{QStringLiteral("12:01"), QStringLiteral("200"),
+                      QStringLiteral("Server"), QStringLiteral("Second"),
+                      QStringLiteral("BaseEventType")}});
+    QCOMPARE(model.rowCount(), 2);
+    QCOMPARE(model.data(model.index(1, EventsModel::ColMessage)).toString(),
+             QStringLiteral("Second"));
+
+    QVector<EventItem> many;
+    for (int i = 0; i < 1100; ++i)
+        many.append({QStringLiteral("t"), QStringLiteral("1"),
+                     QStringLiteral("Server"), QStringLiteral("E%1").arg(i),
+                     QStringLiteral("BaseEventType")});
+    model.addEvents(many);
+    QCOMPARE(model.rowCount(), 1000);
 }
 
 ///
@@ -601,7 +644,7 @@ void TestModels::historyModelExportsCsv()
 
     QCOMPARE(model.toCsv(),
              QStringLiteral("#,Source Timestamp,Server Timestamp,Value,Status\n"
-                            "1,2024-01-02T03:04:05.006Z,2024-01-02T03:04:06.007Z,"
+                            "1,2024-01-02 03:04:05.006Z,2024-01-02 03:04:06.007Z,"
                             "\"12,\"\"quoted\"\"\nline\",\"Good,Clamped\"\n"));
 }
 
@@ -842,19 +885,27 @@ void TestModels::attributesModelHeaderRolesAndMutators()
 void TestModels::eventsModelHeaderRolesAndMutators()
 {
     EventsModel model;
-    model.setItems({{QStringLiteral("12:00"), QStringLiteral("Started")},
-                    {QStringLiteral("12:01"), QStringLiteral("Stopped")}});
+    model.setItems({{QStringLiteral("12:00"), QStringLiteral("100"),
+                     QStringLiteral("Server"), QStringLiteral("Started"),
+                     QStringLiteral("SystemStatusChangeEventType")},
+                    {QStringLiteral("12:01"), QStringLiteral("100"),
+                     QStringLiteral("Server"), QStringLiteral("Stopped"),
+                     QStringLiteral("SystemStatusChangeEventType")}});
 
     QCOMPARE(model.headerData(EventsModel::ColTime, Qt::Horizontal).toString(),
              QStringLiteral("Time"));
     QCOMPARE(model.headerData(EventsModel::ColMessage, Qt::Horizontal).toString(),
              QStringLiteral("Message"));
+    QCOMPARE(model.headerData(EventsModel::ColSeverity, Qt::Horizontal).toString(),
+             QStringLiteral("Severity"));
     QVERIFY(!model.headerData(99, Qt::Horizontal).isValid());
     QVERIFY(!model.headerData(EventsModel::ColTime, Qt::Horizontal,
                               Qt::DecorationRole).isValid());
 
     QCOMPARE(model.data(model.index(0, EventsModel::ColMessage)).toString(),
              QStringLiteral("Started"));
+    QCOMPARE(model.data(model.index(0, EventsModel::ColSource)).toString(),
+             QStringLiteral("Server"));
     QVERIFY(model.data(model.index(0, EventsModel::ColTime),
                        Qt::TextAlignmentRole).isValid());
 
