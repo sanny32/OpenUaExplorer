@@ -104,8 +104,8 @@ HistoryWidget::HistoryWidget(QWidget *parent)
     ui->historyReadButton->setIcon(QStringLiteral("read"));
     ui->historyExportButton->setIcon(QStringLiteral("export"));
     ui->historyClearButton->setIcon(QStringLiteral("trash"));
-    ui->historyExportButton->setEnabled(false);
     setupHistoryView();
+    updateActionButtons();
 }
 
 ///
@@ -139,6 +139,7 @@ void HistoryWidget::requestHistoryForNode(const QString &nodeId, const QString &
     _historyNodeId = nodeId;
     ui->historyNodeEdit->setText(displayName.isEmpty() ? nodeId : displayName);
     ui->historyNodeEdit->setToolTip(nodeId);
+    updateActionButtons();
     requestHistoryRead();
 }
 
@@ -231,6 +232,7 @@ bool HistoryWidget::eventFilter(QObject *watched, QEvent *event)
                 : node.displayName;
             ui->historyNodeEdit->setText(label);
             ui->historyNodeEdit->setToolTip(node.nodeId);
+            updateActionButtons();
             dropEvent->setDropAction(Qt::CopyAction);
             dropEvent->accept();
             return true;
@@ -299,9 +301,22 @@ void HistoryWidget::setupHistoryView()
             clearHistoryNode();
     });
     connect(_historyModel, &QAbstractItemModel::modelReset, this,
-            [this] { ui->historyExportButton->setEnabled(_historyModel->rowCount() > 0); });
+            &HistoryWidget::updateActionButtons);
     connect(_historyModel, &QAbstractItemModel::rowsInserted, this,
-            [this] { ui->historyExportButton->setEnabled(_historyModel->rowCount() > 0); });
+            &HistoryWidget::updateActionButtons);
+    connect(_historyModel, &QAbstractItemModel::rowsRemoved, this,
+            &HistoryWidget::updateActionButtons);
+}
+
+///
+/// \brief Enables the toolbar buttons that depend on the current node and samples.
+///
+void HistoryWidget::updateActionButtons()
+{
+    ui->historyReadButton->setEnabled(OpcUa::isHistoryReadSupported() && !_historyNodeId.isEmpty());
+    const bool hasSamples = _historyModel->rowCount() > 0;
+    ui->historyExportButton->setEnabled(hasSamples);
+    ui->historyClearButton->setEnabled(hasSamples);
 }
 
 ///
@@ -313,6 +328,7 @@ void HistoryWidget::clearHistoryNode()
     ui->historyNodeEdit->clear();
     ui->historyNodeEdit->setToolTip(QString());
     _historyModel->clear();
+    updateActionButtons();
 }
 
 ///

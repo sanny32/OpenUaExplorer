@@ -99,6 +99,7 @@ protected:
 
 private:
     void setupHistoryView();
+    void updateActionButtons();
     void clearHistoryNode();
     void requestHistoryRead();
     void exportHistoryToCsv();
