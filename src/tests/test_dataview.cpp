@@ -8,11 +8,13 @@
 
 #include <QTabWidget>
 #include <QTableView>
+#include <QSignalSpy>
 #include <QTest>
 
 #include "opcua/opcuatypes.h"
 #include "testdata.h"
 #include "widgets/dataview.h"
+#include "widgets/eventswidget.h"
 
 ///
 /// \brief UI tests for DataView.
@@ -24,6 +26,7 @@ class TestDataView : public QObject
 private slots:
     void historyTabFollowsQtSupport();
     void clearRuntimeDataResetsTabs();
+    void eventMonitoringRequestTargetsNodeAndSubscribes();
 };
 
 namespace {
@@ -83,6 +86,23 @@ void TestDataView::clearRuntimeDataResetsTabs()
     }
 
     QCOMPARE(dataTable->model()->rowCount(), 0);
+}
+
+///
+/// \brief Requesting event monitoring opens Events and emits a subscribe request.
+///
+void TestDataView::eventMonitoringRequestTargetsNodeAndSubscribes()
+{
+    DataView view;
+    QSignalSpy spy(view.events(), &EventsWidget::eventSubscribeRequested);
+    QVERIFY(spy.isValid());
+
+    view.requestEventMonitoringForNode(QStringLiteral("ns=0;i=2253"), QStringLiteral("Server"));
+
+    QCOMPARE(view.currentPage(), int(DataView::EventsPage));
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=0;i=2253"));
+    QCOMPARE(spy.first().at(1).toDouble(), 1000.0);
 }
 
 QTEST_MAIN(TestDataView)

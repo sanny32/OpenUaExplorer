@@ -135,6 +135,13 @@ public:
     void beginEventMonitoring(const QString &nodeId, const QString &displayName);
 
     ///
+    /// \brief Targets a node on the Events page and requests event monitoring.
+    /// \param nodeId Node to monitor for events.
+    /// \param displayName Human-readable name shown in the source field.
+    ///
+    void requestEventMonitoringForNode(const QString &nodeId, const QString &displayName);
+
+    ///
     /// \brief Appends received events to the Events table.
     /// \param events Events to display.
     ///

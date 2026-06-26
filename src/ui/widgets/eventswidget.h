@@ -46,6 +46,11 @@ public:
     void setEventSource(const QString &nodeId, const QString &displayName);
 
     ///
+    /// \brief Requests event monitoring for the current source node.
+    ///
+    void requestEventMonitoring();
+
+    ///
     /// \brief Appends received events to the table.
     /// \param events Events to display.
     ///

@@ -55,6 +55,16 @@ void EventsWidget::setEventSource(const QString &nodeId, const QString &displayN
 }
 
 ///
+/// \brief Requests event monitoring for the current source node.
+///
+void EventsWidget::requestEventMonitoring()
+{
+    if (_eventsNodeId.isEmpty() || _subscribed)
+        return;
+    emit eventSubscribeRequested(_eventsNodeId, 1000.0);
+}
+
+///
 /// \brief Appends received events to the table.
 /// \param events Events to display.
 ///
@@ -152,10 +162,8 @@ void EventsWidget::configureToolbar()
     ui->eventsUnsubscribeButton->setIcon(QStringLiteral("unsubscribe"));
     ui->eventsClearButton->setIcon(QStringLiteral("trash"));
 
-    connect(ui->eventsSubscribeButton, &QAbstractButton::clicked, this, [this]() {
-        if (!_eventsNodeId.isEmpty())
-            emit eventSubscribeRequested(_eventsNodeId, 1000.0);
-    });
+    connect(ui->eventsSubscribeButton, &QAbstractButton::clicked,
+            this, &EventsWidget::requestEventMonitoring);
     connect(ui->eventsUnsubscribeButton, &QAbstractButton::clicked, this, [this]() {
         if (!_eventsNodeId.isEmpty())
             emit eventUnsubscribeRequested(_eventsNodeId);

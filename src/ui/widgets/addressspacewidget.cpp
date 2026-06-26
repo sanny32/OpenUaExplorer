@@ -240,7 +240,7 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
         historyAction->setEnabled(OpcUa::isVariable(info.nodeClass));
     }
 
-    QAction *eventsAction = menu.addAction(AppIcons::themed(QStringLiteral("subscribe")),
+    QAction *eventsAction = menu.addAction(AppIcons::themed(QStringLiteral("event")),
                                            tr("Monitor Events"), this, [this, info] {
         emit monitorEventsRequested(info);
     });
