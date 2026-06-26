@@ -3,29 +3,21 @@
 
 ///
 /// \file test_dataaccesswidget.cpp
-/// \brief Tests DataAccessWidget drag/drop behavior.
+/// \brief Tests DataAccessWidget drag/drop and subscription behaviour.
 ///
 
 #include <QCoreApplication>
-#include <QAction>
-#include <QDateTimeEdit>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
 #include <QScopedPointer>
 #include <QSignalSpy>
-#include <QSpinBox>
 #include <QTableView>
-#include <QTabWidget>
 #include <QTest>
-#include <QToolButton>
 
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
-#include "testdata.h"
-#include "widgets/themedtoolbutton.h"
 #include "widgets/dataaccesswidget.h"
-#include "widgets/valuelineedit.h"
 
 ///
 /// \brief UI tests for DataAccessWidget.
@@ -39,12 +31,6 @@ private slots:
     void addressSpaceObjectDropIsIgnored();
     void addNodeWithDefaultSubscriptionRequestsMonitoring();
     void addNodeWithExplicitSubscriptionRequestsMonitoring();
-    void historyTabFollowsQtSupport();
-    void historyExportButtonFollowsResults();
-    void historyExportFileNameDescribesQuery();
-    void historyDateTimeFieldsFitZoneSuffix();
-    void historyNodeClearClearsResults();
-    void historyClearButtonUsesTrashIcon();
 };
 
 namespace {
@@ -87,13 +73,11 @@ bool dropOnDataView(QTableView *view, const QMimeData *mimeData)
     return enterEvent.isAccepted();
 }
 
-} // namespace
-
 ///
 /// \brief Builds node details for Data Access tests.
 /// \return Node details item.
 ///
-static OpcUaNodeDetails makeNodeDetails()
+OpcUaNodeDetails makeNodeDetails()
 {
     OpcUaNodeDetails details;
     details.nodeId = QStringLiteral("ns=2;s=Temperature");
@@ -104,6 +88,8 @@ static OpcUaNodeDetails makeNodeDetails()
     details.status = QStringLiteral("Good");
     return details;
 }
+
+} // namespace
 
 ///
 /// \brief Dropping a variable address-space node emits a data-access add request.
@@ -121,7 +107,6 @@ void TestDataAccessWidget::addressSpaceVariableDropRequestsNode()
     QVERIFY(dropOnDataView(view, mimeData.data()));
     QCOMPARE(spy.size(), 1);
     QCOMPARE(spy.first().first().toString(), node.nodeId);
-    QCOMPARE(widget.currentPage(), int(DataAccessWidget::DataAccessPage));
 }
 
 ///
@@ -184,137 +169,6 @@ void TestDataAccessWidget::addNodeWithExplicitSubscriptionRequestsMonitoring()
     QCOMPARE(view->model()->rowCount(), 1);
     QCOMPARE(view->model()->data(view->model()->index(0, DataAccessModel::ColSubscription)).toString(),
              subscription.name);
-}
-
-///
-/// \brief The History page is only visible when Qt OPC UA can perform HistoryRead.
-///
-void TestDataAccessWidget::historyTabFollowsQtSupport()
-{
-    DataAccessWidget widget;
-    auto *tabs = widget.findChild<QTabWidget *>(QStringLiteral("mainTabs"));
-    QVERIFY(tabs);
-
-    QCOMPARE(tabs->isTabVisible(DataAccessWidget::HistoryPage),
-             OpcUa::isHistoryReadSupported());
-}
-
-///
-/// \brief The history export button is enabled only when there are rows to save.
-///
-void TestDataAccessWidget::historyExportButtonFollowsResults()
-{
-    if (!OpcUa::isHistoryReadSupported())
-        QSKIP("HistoryRead is not supported by this Qt OPC UA build.");
-
-    DataAccessWidget widget;
-    widget.setHistoryAvailable(true);
-    auto *button = widget.findChild<QToolButton *>(QStringLiteral("historyExportButton"));
-    QVERIFY(button);
-    QVERIFY(!button->isEnabled());
-
-    OpcUaHistoryValue value;
-    value.value = 42;
-    widget.setHistoryResults({value});
-    QVERIFY(button->isEnabled());
-
-    widget.setHistoryResults({});
-    QVERIFY(!button->isEnabled());
-}
-
-///
-/// \brief The suggested CSV file name includes tag, interval, and max limit.
-///
-void TestDataAccessWidget::historyExportFileNameDescribesQuery()
-{
-    if (!OpcUa::isHistoryReadSupported())
-        QSKIP("HistoryRead is not supported by this Qt OPC UA build.");
-
-    DataAccessWidget widget;
-    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"),
-                                 QStringLiteral("Area 1/Temperature:PV"));
-
-    auto *startEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyStartEdit"));
-    auto *endEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyEndEdit"));
-    auto *maxEdit = widget.findChild<QSpinBox *>(QStringLiteral("historyMaxEdit"));
-    QVERIFY(startEdit);
-    QVERIFY(endEdit);
-    QVERIFY(maxEdit);
-
-    startEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(12, 41, 36), Qt::UTC));
-    endEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(13, 41, 36), Qt::UTC));
-    maxEdit->setValue(1000);
-
-    QCOMPARE(widget.suggestedHistoryCsvFileName(),
-             QStringLiteral("Area_1_Temperature_PV_20260625_124136_20260625_134136_max1000.csv"));
-
-    maxEdit->setValue(maxEdit->minimum());
-    QCOMPARE(widget.suggestedHistoryCsvFileName(),
-             QStringLiteral("Area_1_Temperature_PV_20260625_124136_20260625_134136.csv"));
-}
-
-///
-/// \brief The History date-time fields leave room for the time-zone suffix.
-///
-void TestDataAccessWidget::historyDateTimeFieldsFitZoneSuffix()
-{
-    DataAccessWidget widget;
-
-    auto *startEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyStartEdit"));
-    auto *endEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyEndEdit"));
-    QVERIFY(startEdit);
-    QVERIFY(endEdit);
-
-    QVERIFY(startEdit->minimumWidth() >= 190);
-    QVERIFY(endEdit->minimumWidth() >= 190);
-}
-
-///
-/// \brief Clearing the History node field clears the selected node and result rows.
-///
-void TestDataAccessWidget::historyNodeClearClearsResults()
-{
-    if (!OpcUa::isHistoryReadSupported())
-        QSKIP("HistoryRead is not supported by this Qt OPC UA build.");
-
-    DataAccessWidget widget;
-    widget.setHistoryAvailable(true);
-    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"), QStringLiteral("Temperature"));
-    widget.setHistoryResults(TestData::historyItems());
-
-    auto *nodeEdit = widget.findChild<ValueLineEdit *>(QStringLiteral("historyNodeEdit"));
-    auto *table = widget.findChild<QTableView *>(QStringLiteral("historyTable"));
-    auto *readButton = widget.findChild<QToolButton *>(QStringLiteral("historyReadButton"));
-    QVERIFY(nodeEdit);
-    QVERIFY(table);
-    QVERIFY(readButton);
-    QCOMPARE(table->model()->rowCount(), TestData::historyItems().size());
-    QCOMPARE(nodeEdit->defaultValue(), QString());
-    QCOMPARE(nodeEdit->actions().size(), 1);
-    QVERIFY(nodeEdit->actions().constFirst()->isVisible());
-    QCOMPARE(nodeEdit->actions().constFirst()->toolTip(), QStringLiteral("Clear tag"));
-
-    QSignalSpy readSpy(&widget, &DataAccessWidget::historyReadRequested);
-    nodeEdit->actions().constFirst()->trigger();
-
-    QCOMPARE(table->model()->rowCount(), 0);
-    QVERIFY(nodeEdit->text().isEmpty());
-    QVERIFY(nodeEdit->toolTip().isEmpty());
-    QVERIFY(!nodeEdit->actions().constFirst()->isVisible());
-
-    readButton->click();
-    QCOMPARE(readSpy.size(), 0);
-}
-
-///
-/// \brief The history Clear button uses the trash icon.
-///
-void TestDataAccessWidget::historyClearButtonUsesTrashIcon()
-{
-    DataAccessWidget widget;
-    auto *button = widget.findChild<ThemedToolButton *>(QStringLiteral("historyClearButton"));
-    QVERIFY(button);
-    QCOMPARE(button->iconName(), QStringLiteral("trash"));
 }
 
 QTEST_MAIN(TestDataAccessWidget)

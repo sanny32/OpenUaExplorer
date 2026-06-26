@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DataView</class>
+ <widget class="QWidget" name="DataView">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>817</width>
+    <height>275</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QTabWidget" name="mainTabs">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="DataAccessWidget" name="dataAccessWidget">
+      <attribute name="title">
+       <string>Data Access</string>
+      </attribute>
+     </widget>
+     <widget class="SubscriptionsWidget" name="subscriptionsWidget">
+      <attribute name="title">
+       <string>Subscriptions</string>
+      </attribute>
+     </widget>
+     <widget class="EventsWidget" name="eventsWidget">
+      <attribute name="title">
+       <string>Events</string>
+      </attribute>
+     </widget>
+     <widget class="HistoryWidget" name="historyWidget">
+      <attribute name="title">
+       <string>History</string>
+      </attribute>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DataAccessWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/dataaccesswidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>SubscriptionsWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/subscriptionswidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>EventsWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/eventswidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>HistoryWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/historywidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

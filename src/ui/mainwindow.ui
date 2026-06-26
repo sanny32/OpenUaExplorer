@@ -32,7 +32,7 @@
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
-      <widget class="DataAccessWidget" name="dataAccessWidget" native="true"/>
+      <widget class="DataView" name="dataView" native="true"/>
       <widget class="TrendPanelWidget" name="trendPanelWidget" native="true"/>
      </widget>
     </item>
@@ -537,9 +537,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>DataAccessWidget</class>
+   <class>DataView</class>
    <extends>QWidget</extends>
-   <header>widgets/dataaccesswidget.h</header>
+   <header>widgets/dataview.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

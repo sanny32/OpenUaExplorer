@@ -44,6 +44,8 @@
 #include "servermodule.h"
 #include "ui_mainwindow.h"
 #include "widgets/dataaccesswidget.h"
+#include "widgets/dataview.h"
+#include "widgets/historywidget.h"
 #include "widgets/favoriteswidget.h"
 #include "widgets/maintoolbar.h"
 #include "widgets/themedtoolbutton.h"
@@ -211,7 +213,7 @@ void MainWindow::on_actionSubscribe_triggered()
         || _selectedNodeDetails.nodeId.isEmpty()) {
         return;
     }
-    ui->dataAccessWidget->addNode(_selectedNodeDetails);
+    ui->dataView->addNode(_selectedNodeDetails);
     _pendingMonitoringNodeIds.insert(_selectedNodeDetails.nodeId);
     updateMonitoringActions();
     _dataAccessPlugin->subscribe(_selectedNodeDetails.nodeId);
@@ -237,7 +239,7 @@ void MainWindow::on_actionUnsubscribe_triggered()
 void MainWindow::on_actionAddToDataAccess_triggered()
 {
     if (OpcUa::isVariable(_selectedNodeDetails.nodeClass))
-        ui->dataAccessWidget->addNode(_selectedNodeDetails);
+        ui->dataView->addNode(_selectedNodeDetails);
 }
 
 ///
@@ -246,8 +248,8 @@ void MainWindow::on_actionAddToDataAccess_triggered()
 void MainWindow::on_actionReadHistory_triggered()
 {
     if (OpcUa::canReadHistory(_selectedNodeDetails))
-        ui->dataAccessWidget->requestHistoryForNode(_selectedNodeDetails.nodeId,
-                                                    _selectedNodeDetails.displayName);
+        ui->dataView->requestHistoryForNode(_selectedNodeDetails.nodeId,
+                                            _selectedNodeDetails.displayName);
 }
 
 ///
@@ -288,7 +290,7 @@ void MainWindow::on_actionAbout_triggered()
 ///
 void MainWindow::on_actionViewDataAccess_triggered()
 {
-    ui->dataAccessWidget->setCurrentPage(DataAccessWidget::DataAccessPage);
+    ui->dataView->setCurrentPage(DataView::DataAccessPage);
 }
 
 ///
@@ -296,7 +298,7 @@ void MainWindow::on_actionViewDataAccess_triggered()
 ///
 void MainWindow::on_actionViewSubscriptions_triggered()
 {
-    ui->dataAccessWidget->setCurrentPage(DataAccessWidget::SubscriptionsPage);
+    ui->dataView->setCurrentPage(DataView::SubscriptionsPage);
 }
 
 ///
@@ -304,7 +306,7 @@ void MainWindow::on_actionViewSubscriptions_triggered()
 ///
 void MainWindow::on_actionViewEvents_triggered()
 {
-    ui->dataAccessWidget->setCurrentPage(DataAccessWidget::EventsPage);
+    ui->dataView->setCurrentPage(DataView::EventsPage);
 }
 
 ///
@@ -314,7 +316,7 @@ void MainWindow::on_actionViewHistory_triggered()
 {
     if (!OpcUa::isHistoryReadSupported())
         return;
-    ui->dataAccessWidget->setCurrentPage(DataAccessWidget::HistoryPage);
+    ui->dataView->setCurrentPage(DataView::HistoryPage);
 }
 
 ///
@@ -390,9 +392,9 @@ void MainWindow::saveSettings()
     settings.setWindowGeometry(saveGeometry());
     settings.setWindowState(saveState());
     settings.setCentralSplitterState(ui->centralSplitter->saveState());
-    settings.setDataAccessPage(ui->dataAccessWidget->currentPage());
+    settings.setDataAccessPage(ui->dataView->currentPage());
     _featureManager->saveState(settings);
-    ui->dataAccessWidget->saveViewState(settings);
+    ui->dataView->saveViewState(settings);
 }
 
 ///
@@ -419,11 +421,11 @@ void MainWindow::restoreSettings()
     if (!splitterState.isEmpty())
         ui->centralSplitter->restoreState(splitterState);
 
-    ui->dataAccessWidget->setCurrentPage(
-        static_cast<DataAccessWidget::Page>(settings.dataAccessPage()));
+    ui->dataView->setCurrentPage(
+        static_cast<DataView::Page>(settings.dataAccessPage()));
 
     _featureManager->restoreState(settings);
-    ui->dataAccessWidget->restoreViewState(settings);
+    ui->dataView->restoreViewState(settings);
 }
 
 ///
@@ -536,11 +538,11 @@ void MainWindow::setupOpcUaClient()
 {
     connect(_clientService, &OpcUaClientService::stateChanged,
             this, &MainWindow::updateClientUi);
-    connect(ui->dataAccessWidget, &DataAccessWidget::addSelectedNodeRequested,
+    connect(ui->dataView->dataAccess(), &DataAccessWidget::addSelectedNodeRequested,
             this, &MainWindow::on_actionAddToDataAccess_triggered);
-    connect(ui->dataAccessWidget, &DataAccessWidget::nodeDropRequested,
+    connect(ui->dataView->dataAccess(), &DataAccessWidget::nodeDropRequested,
             this, &MainWindow::addNodeToDataAccess);
-    connect(ui->dataAccessWidget, &DataAccessWidget::writeRequested,
+    connect(ui->dataView->dataAccess(), &DataAccessWidget::writeRequested,
             this, &MainWindow::showWriteDialog);
     connect(_connectionController, &ConnectionController::recentsChanged,
             this, &MainWindow::rebuildRecentConnections);
@@ -616,7 +618,7 @@ void MainWindow::setupPlugins()
     if (OpcUa::isHistoryReadSupported()) {
         connect(_selectionContext, &SelectionContext::historyReadRequested,
                 this, [this](const OpcUaNodeInfo &node) {
-            ui->dataAccessWidget->requestHistoryForNode(node.nodeId, node.displayName);
+            ui->dataView->requestHistoryForNode(node.nodeId, node.displayName);
         });
     }
     connect(_attributePlugin, &AttributeModule::writeFinished,
@@ -633,16 +635,16 @@ void MainWindow::setupPlugins()
 ///
 void MainWindow::setupDataAccessWiring()
 {
-    connect(ui->dataAccessWidget, &DataAccessWidget::readRequested,
+    connect(ui->dataView->dataAccess(), &DataAccessWidget::readRequested,
             _dataAccessPlugin, &DataAccessModule::read);
-    connect(ui->dataAccessWidget, &DataAccessWidget::monitoringRequested,
+    connect(ui->dataView->dataAccess(), &DataAccessWidget::monitoringRequested,
             _dataAccessPlugin, &DataAccessModule::subscribe);
-    connect(ui->dataAccessWidget, &DataAccessWidget::monitoringCancelled,
+    connect(ui->dataView->dataAccess(), &DataAccessWidget::monitoringCancelled,
             _dataAccessPlugin, &DataAccessModule::unsubscribe);
     connect(_dataAccessPlugin, &DataAccessModule::valuesReady,
             this, &MainWindow::onDataValuesReady);
     if (OpcUa::isHistoryReadSupported()) {
-        connect(ui->dataAccessWidget, &DataAccessWidget::historyReadRequested,
+        connect(ui->dataView->history(), &HistoryWidget::historyReadRequested,
                 _dataAccessPlugin, &DataAccessModule::readHistory);
         connect(_dataAccessPlugin, &DataAccessModule::historyReady,
                 this, &MainWindow::onHistoryReady);
@@ -650,7 +652,7 @@ void MainWindow::setupDataAccessWiring()
     connect(_dataAccessPlugin, &DataAccessModule::monitoringFinished,
             this, &MainWindow::onMonitoringFinished);
     connect(theApp(), &Application::timestampModeChanged,
-            ui->dataAccessWidget, &DataAccessWidget::setTimestampMode);
+            ui->dataView, &DataView::setTimestampMode);
 }
 
 ///
@@ -677,7 +679,7 @@ void MainWindow::onAttributeDetailsReady(const OpcUaNodeDetails &details, const 
         return;
 
     if (_pendingDataAccessNodeIds.remove(details.nodeId) && OpcUa::isVariable(details.nodeClass))
-        ui->dataAccessWidget->addNodeWithDefaultSubscription(details);
+        ui->dataView->addNodeWithDefaultSubscription(details);
 }
 
 ///
@@ -725,7 +727,7 @@ void MainWindow::onSelectionCleared()
 void MainWindow::onDataValuesReady(const QVector<OpcUaDataValue> &values, const QString &error)
 {
     if (error.isEmpty())
-        ui->dataAccessWidget->updateValues(values);
+        ui->dataView->updateValues(values);
 }
 
 ///
@@ -739,7 +741,7 @@ void MainWindow::onHistoryReady(const QString &nodeId, const QVector<OpcUaHistor
 {
     Q_UNUSED(nodeId)
     if (error.isEmpty())
-        ui->dataAccessWidget->setHistoryResults(values);
+        ui->dataView->setHistoryResults(values);
     else
         QMessageBox::warning(this, tr("History Read Failed"), error);
 }
@@ -776,7 +778,7 @@ void MainWindow::onMonitoringFinished(const QString &nodeId, bool subscribed,
             _subscribedNodeIds.insert(nodeId);
         else
             _subscribedNodeIds.remove(nodeId);
-        ui->dataAccessWidget->setNodeSubscribed(nodeId, subscribed);
+        ui->dataView->setNodeSubscribed(nodeId, subscribed);
     } else {
         QMessageBox::warning(this,
                              subscribed ? tr("Subscribe Failed") : tr("Unsubscribe Failed"),
@@ -839,13 +841,12 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     ui->actionBrowse->setEnabled(connected);
     ui->actionBrowseAddressSpace->setEnabled(connected);
     ui->actionRefresh->setEnabled(connected);
-    ui->dataAccessWidget->setHistoryAvailable(connected);
     updateMonitoringActions();
     if (connected) {
         initializeAddressSpace();
     } else if (state == OpcUaConnectionState::Disconnected
                || state == OpcUaConnectionState::Unavailable) {
-        ui->dataAccessWidget->clearRuntimeData();
+        ui->dataView->clearRuntimeData();
         _selectionContext->clear();
         _featureManager->clearRuntimeState();
         _subscribedNodeIds.clear();

@@ -17,7 +17,11 @@ set(UI_FILES
     widgets/certificatedetailswidget.ui
     widgets/certificatesummarywidget.ui
     widgets/connectionstatuswidget.ui
+    widgets/dataview.ui
     widgets/dataaccesswidget.ui
+    widgets/subscriptionswidget.ui
+    widgets/eventswidget.ui
+    widgets/historywidget.ui
     widgets/favoriteswidget.ui
     widgets/logwidget.ui
     widgets/mainstatusbarwidget.ui
@@ -96,8 +100,16 @@ add_library(ouaexp_ui STATIC
     widgets/coloredpushbutton.h
     widgets/connectionstatuswidget.cpp
     widgets/connectionstatuswidget.h
+    widgets/dataview.cpp
+    widgets/dataview.h
     widgets/dataaccesswidget.cpp
     widgets/dataaccesswidget.h
+    widgets/subscriptionswidget.cpp
+    widgets/subscriptionswidget.h
+    widgets/eventswidget.cpp
+    widgets/eventswidget.h
+    widgets/historywidget.cpp
+    widgets/historywidget.h
     widgets/dialogbuttonbox.cpp
     widgets/dialogbuttonbox.h
     widgets/valuelineedit.cpp

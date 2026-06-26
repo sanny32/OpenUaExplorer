@@ -3,19 +3,19 @@
 
 ///
 /// \file dataaccesswidget.h
-/// \brief Declares the OPC UA data access widget.
+/// \brief Declares the OPC UA data access tab widget.
 ///
 
 #pragma once
 
 #include <QModelIndex>
+#include <QVector>
 #include <QWidget>
 
 #include "appsettings.h"
 #include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
 
-class QDateTimeEdit;
 class QMenu;
 
 namespace Ui {
@@ -23,12 +23,9 @@ class DataAccessWidget;
 }
 
 class DataAccessModel;
-class SubscriptionsModel;
-class EventsModel;
-class HistoryModel;
 
 ///
-/// \brief Widget for browsing data access items, subscriptions, events and history.
+/// \brief Tab widget for browsing and monitoring data access items.
 ///
 class DataAccessWidget : public QWidget
 {
@@ -36,17 +33,7 @@ class DataAccessWidget : public QWidget
 
 public:
     ///
-    /// \brief Pages hosted by the data access widget.
-    ///
-    enum Page {
-        DataAccessPage = 0,
-        SubscriptionsPage,
-        EventsPage,
-        HistoryPage
-    };
-
-    ///
-    /// \brief Builds the widget and its data, subscriptions, events, and history views.
+    /// \brief Builds the widget and its data view.
     /// \param parent Parent widget.
     ///
     explicit DataAccessWidget(QWidget *parent = nullptr);
@@ -57,37 +44,7 @@ public:
     ~DataAccessWidget() override;
 
     ///
-    /// \brief Switches the visible tab.
-    /// \param page Page to show.
-    ///
-    void setCurrentPage(Page page);
-
-    ///
-    /// \brief Returns the currently visible tab index.
-    /// \return Index of the active page.
-    ///
-    int currentPage() const;
-
-    ///
-    /// \brief Enables or disables the History page.
-    /// \param available True when the server connection can serve history reads.
-    ///
-    void setHistoryAvailable(bool available);
-
-    ///
-    /// \brief Persists the header state of the data, subscriptions, events, and history views.
-    /// \param settings Settings store to write to.
-    ///
-    void saveViewState(AppSettings &settings) const;
-
-    ///
-    /// \brief Restores the header state of the data, subscriptions, events, and history views.
-    /// \param settings Settings store to read from.
-    ///
-    void restoreViewState(AppSettings &settings);
-
-    ///
-    /// \brief Adds or updates a node row and shows the Data Access page.
+    /// \brief Adds or updates a node row.
     /// \param details Variable node details.
     ///
     void addNode(const OpcUaNodeDetails &details);
@@ -108,25 +65,6 @@ public:
     void updateValues(const QVector<OpcUaDataValue> &values);
 
     ///
-    /// \brief Shows history samples in the History table.
-    /// \param values History samples in time order.
-    ///
-    void setHistoryResults(const QVector<OpcUaHistoryValue> &values);
-
-    ///
-    /// \brief Targets a node on the History page and requests its history for the current range.
-    /// \param nodeId Node whose history should be read.
-    /// \param displayName Human-readable name shown in the node field.
-    ///
-    void requestHistoryForNode(const QString &nodeId, const QString &displayName);
-
-    ///
-    /// \brief Builds the default CSV export file name for the current history query.
-    /// \return Suggested CSV file name.
-    ///
-    QString suggestedHistoryCsvFileName() const;
-
-    ///
     /// \brief Updates the subscription shown for a data-access node.
     /// \param nodeId Affected node.
     /// \param subscribed Whether the node belongs to the default subscription.
@@ -134,9 +72,21 @@ public:
     void setNodeSubscribed(const QString &nodeId, bool subscribed);
 
     ///
-    /// \brief Clears the data, subscriptions, events, and history models.
+    /// \brief Removes all data-access rows.
     ///
-    void clearRuntimeData();
+    void clear();
+
+    ///
+    /// \brief Persists the data view header state.
+    /// \param settings Settings store to write to.
+    ///
+    void saveViewState(AppSettings &settings) const;
+
+    ///
+    /// \brief Restores the data view header state.
+    /// \param settings Settings store to read from.
+    ///
+    void restoreViewState(AppSettings &settings);
 
 public slots:
     ///
@@ -144,6 +94,32 @@ public slots:
     /// \param mode Local time or UTC.
     ///
     void setTimestampMode(AppSettings::TimestampMode mode);
+
+    ///
+    /// \brief Replaces the known subscriptions and rebuilds the subscribe menu.
+    /// \param subscriptions Current subscriptions.
+    ///
+    void setSubscriptions(const QVector<SubscriptionItem> &subscriptions);
+
+    ///
+    /// \brief Repoints data-access nodes from a renamed subscription to its new name.
+    /// \param oldName Previous subscription name.
+    /// \param newName New subscription name.
+    ///
+    void applySubscriptionRename(const QString &oldName, const QString &newName);
+
+    ///
+    /// \brief Re-establishes monitoring at a new interval for a subscription's nodes.
+    /// \param name Subscription whose interval changed.
+    /// \param interval New publishing interval in milliseconds.
+    ///
+    void applySubscriptionInterval(const QString &name, double interval);
+
+    ///
+    /// \brief Unassigns and stops monitoring nodes of a removed subscription.
+    /// \param name Subscription being removed.
+    ///
+    void applySubscriptionRemoval(const QString &name);
 
 signals:
     ///
@@ -162,15 +138,6 @@ signals:
     /// \param nodeIds Nodes to read.
     ///
     void readRequested(QStringList nodeIds);
-
-    ///
-    /// \brief Emitted when the user requests a raw history read for a node.
-    /// \param nodeId Node whose history should be read.
-    /// \param start Inclusive range start.
-    /// \param end Inclusive range end.
-    /// \param maxValues Maximum samples to return, or 0 for no limit.
-    ///
-    void historyReadRequested(QString nodeId, QDateTime start, QDateTime end, quint32 maxValues);
 
     ///
     /// \brief Emitted when the user requests a value write.
@@ -201,14 +168,6 @@ protected:
 
 private:
     void setupDataView();
-    void setupSubscriptionsView();
-    void setupEventsView();
-    void setupHistoryView();
-    void clearHistoryNode();
-    void requestHistoryRead();
-    void exportHistoryToCsv();
-    void applyHistoryTimestampMode(AppSettings::TimestampMode mode);
-    void updateHistoryZoneSuffix(QDateTimeEdit *edit);
     void configureToolbar();
     void showDataContextMenu(const QPoint &pos);
     void removeSelectedNodes();
@@ -218,20 +177,12 @@ private:
     void rebuildSubscribeMenu();
     void populateSubscribeMenu(QMenu *menu);
     void applySubscriptionToSelection(const QString &subscriptionName);
-    void resetSubscriptions();
-    void showSubscriptionsContextMenu(const QPoint &pos);
-    void addSubscription();
-    void removeSelectedSubscriptions();
-    void removeAllSubscriptions();
-    void removeSubscriptionRow(int row);
-    void renameSubscriptionAssignments(const QString &oldName, const QString &newName);
-    void reapplySubscriptionInterval(const QString &name, double interval);
+    QStringList subscriptionNames() const;
+    double intervalFor(const QString &name) const;
+    SubscriptionItem defaultSubscription() const;
     QModelIndexList selectedDataRows() const;
 
-    Ui::DataAccessWidget *ui;
-    DataAccessModel      *_dataModel;
-    SubscriptionsModel   *_subscriptionsModel;
-    EventsModel          *_eventsModel;
-    HistoryModel         *_historyModel;
-    QString               _historyNodeId;
+    Ui::DataAccessWidget      *ui;
+    DataAccessModel           *_dataModel;
+    QVector<SubscriptionItem>  _subscriptions;
 };

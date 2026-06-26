@@ -3,28 +3,18 @@
 
 ///
 /// \file dataaccesswidget.cpp
-/// \brief Implements the OPC UA data access widget.
+/// \brief Implements the OPC UA data access tab widget.
 ///
 
-#include <algorithm>
-
 #include <QAction>
-#include <QDateTime>
-#include <QDateTimeEdit>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
-#include <QFileDialog>
 #include <QHeaderView>
 #include <QItemSelectionModel>
-#include <QLineEdit>
-#include <QMessageBox>
 #include <QMenu>
 #include <QMimeData>
 #include <QPushButton>
-#include <QRegularExpression>
-#include <QSaveFile>
-#include <QTextStream>
 
 #include "appicons.h"
 #include "appsettings.h"
@@ -32,40 +22,11 @@
 #include "headerview.h"
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
-#include "models/eventsmodel.h"
-#include "models/historymodel.h"
-#include "models/subscriptionsmodel.h"
-#include "publishingintervaldelegate.h"
 #include "subscriptiondelegate.h"
 #include "tableview.h"
 #include "ui_dataaccesswidget.h"
 
 namespace {
-
-constexpr int historyDateTimeEditMinimumWidth = 190;
-
-///
-/// \brief Returns the default subscription item, using a fallback label when needed.
-/// \param model Subscription model to inspect.
-/// \param fallbackName Name to use when the default item has no label.
-/// \return Default subscription item.
-///
-SubscriptionItem defaultSubscriptionFrom(const SubscriptionsModel *model,
-                                         const QString &fallbackName)
-{
-    for (int row = 0; row < model->rowCount(); ++row) {
-        SubscriptionItem item = model->itemAt(row);
-        if (!item.isDefault())
-            continue;
-        if (item.name.isEmpty())
-            item.name = fallbackName;
-        return item;
-    }
-
-    SubscriptionItem item;
-    item.name = fallbackName;
-    return item;
-}
 
 ///
 /// \brief Reads a dropped variable node from address-space MIME data.
@@ -80,81 +41,26 @@ bool decodeDroppedVariable(const QMimeData *mimeData, OpcUaNodeInfo *node)
     return OpcUa::isVariable(node->nodeClass) && !node->nodeId.isEmpty();
 }
 
-///
-/// \brief Makes a string safe for use as one file-name segment.
-/// \param value Segment text.
-/// \param fallback Text used when the segment becomes empty.
-/// \return File-name segment without filesystem separators or control characters.
-///
-QString fileNameSegment(QString value, const QString &fallback)
-{
-    value = value.trimmed();
-    static const QRegularExpression invalidChars(QStringLiteral(R"([<>:"/\\|?*\x00-\x1f]+)"));
-    value.replace(invalidChars, QStringLiteral("_"));
-    value.replace(QRegularExpression(QStringLiteral(R"(\s+)")), QStringLiteral("_"));
-    while (value.endsWith(QLatin1Char('.')) || value.endsWith(QLatin1Char(' ')))
-        value.chop(1);
-    return value.isEmpty() ? fallback : value;
-}
-
-///
-/// \brief Formats a date-time for compact file names.
-/// \param value Date-time value.
-/// \return File-name-safe date-time text.
-///
-QString fileNameDateTime(const QDateTime &value)
-{
-    return value.toString(QStringLiteral("yyyyMMdd_HHmmss"));
-}
-
-///
-/// \brief Formats a date-time's UTC offset as a "+HH:mm" zone indicator.
-/// \param dateTime Date-time whose offset is rendered; honours DST for local times.
-/// \return Signed zone offset, e.g. "+03:00".
-///
-QString utcOffsetSuffix(const QDateTime &dateTime)
-{
-    const int offsetSeconds = dateTime.offsetFromUtc();
-    const QChar sign = offsetSeconds < 0 ? QLatin1Char('-') : QLatin1Char('+');
-    const int absSeconds = offsetSeconds < 0 ? -offsetSeconds : offsetSeconds;
-    return QStringLiteral("%1%2:%3")
-        .arg(sign)
-        .arg(absSeconds / 3600, 2, 10, QLatin1Char('0'))
-        .arg(absSeconds % 3600 / 60, 2, 10, QLatin1Char('0'));
-}
-
 } // namespace
 
 ///
-/// \brief Builds the widget and its data, subscriptions, events, and history views.
+/// \brief Builds the widget and its data view.
 /// \param parent Parent widget.
 ///
 DataAccessWidget::DataAccessWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::DataAccessWidget)
     , _dataModel(new DataAccessModel(this))
-    , _subscriptionsModel(new SubscriptionsModel(this))
-    , _eventsModel(new EventsModel(this))
-    , _historyModel(new HistoryModel(this))
 {
     ui->setupUi(this);
+
+    SubscriptionItem defaultSubscription;
+    defaultSubscription.name = tr("Default");
+    _subscriptions = {defaultSubscription};
+
     configureToolbar();
     setupDataView();
-    setupSubscriptionsView();
-    setupEventsView();
-    setupHistoryView();
-    connect(_subscriptionsModel, &QAbstractItemModel::rowsInserted,
-            this, &DataAccessWidget::rebuildSubscribeMenu);
-    connect(_subscriptionsModel, &QAbstractItemModel::rowsRemoved,
-            this, &DataAccessWidget::rebuildSubscribeMenu);
-    connect(_subscriptionsModel, &SubscriptionsModel::subscriptionRenamed,
-            this, [this](const QString &oldName, const QString &newName) {
-                renameSubscriptionAssignments(oldName, newName);
-                rebuildSubscribeMenu();
-            });
-    connect(_subscriptionsModel, &SubscriptionsModel::subscriptionIntervalChanged,
-            this, &DataAccessWidget::reapplySubscriptionInterval);
-    resetSubscriptions();
+    rebuildSubscribeMenu();
 }
 
 ///
@@ -166,68 +72,12 @@ DataAccessWidget::~DataAccessWidget()
 }
 
 ///
-/// \brief Switches the visible tab.
-/// \param page Page to show.
-///
-void DataAccessWidget::setCurrentPage(Page page)
-{
-    if (page == HistoryPage && !OpcUa::isHistoryReadSupported())
-        page = DataAccessPage;
-    ui->mainTabs->setCurrentIndex(static_cast<int>(page));
-}
-
-///
-/// \brief Returns the currently visible tab index.
-/// \return Index of the active page.
-///
-int DataAccessWidget::currentPage() const
-{
-    return ui->mainTabs->currentIndex();
-}
-
-///
-/// \brief Enables or disables the History page.
-/// \param available True when the server connection can serve history reads.
-///
-void DataAccessWidget::setHistoryAvailable(bool available)
-{
-    ui->mainTabs->setTabEnabled(HistoryPage, available && OpcUa::isHistoryReadSupported());
-}
-
-///
-/// \brief Persists the header state of the data, subscriptions, events, and history views.
-/// \param settings Settings store to write to.
-///
-void DataAccessWidget::saveViewState(AppSettings &settings) const
-{
-    settings.setViewState(ui->dataView->objectName(), ui->dataView->headerView()->saveLayout());
-    settings.setViewState(ui->subscriptionsTable->objectName(),
-                          ui->subscriptionsTable->headerView()->saveLayout());
-    settings.setViewState(ui->eventsTable->objectName(), ui->eventsTable->headerView()->saveLayout());
-    settings.setViewState(ui->historyTable->objectName(), ui->historyTable->headerView()->saveLayout());
-}
-
-///
-/// \brief Restores the header state of the data, subscriptions, events, and history views.
-/// \param settings Settings store to read from.
-///
-void DataAccessWidget::restoreViewState(AppSettings &settings)
-{
-    ui->dataView->headerView()->restoreLayout(settings.viewState(ui->dataView->objectName()));
-    ui->subscriptionsTable->headerView()->restoreLayout(
-        settings.viewState(ui->subscriptionsTable->objectName()));
-    ui->eventsTable->headerView()->restoreLayout(settings.viewState(ui->eventsTable->objectName()));
-    ui->historyTable->headerView()->restoreLayout(settings.viewState(ui->historyTable->objectName()));
-}
-
-///
-/// \brief Adds or updates a node row and shows the Data Access page.
+/// \brief Adds or updates a node row.
 /// \param details Variable node details.
 ///
 void DataAccessWidget::addNode(const OpcUaNodeDetails &details)
 {
     _dataModel->addOrUpdate(details);
-    setCurrentPage(DataAccessPage);
 }
 
 ///
@@ -243,7 +93,7 @@ void DataAccessWidget::addNodeWithDefaultSubscription(
 
     SubscriptionItem effectiveSubscription = subscription;
     if (effectiveSubscription.isDefault() && effectiveSubscription.name.isEmpty())
-        effectiveSubscription = defaultSubscriptionFrom(_subscriptionsModel, tr("Default"));
+        effectiveSubscription = defaultSubscription();
 
     for (int row = 0; row < _dataModel->rowCount(); ++row) {
         if (_dataModel->itemAt(row).nodeId != details.nodeId)
@@ -277,9 +127,7 @@ void DataAccessWidget::setNodeSubscribed(const QString &nodeId, bool subscribed)
         const QModelIndex index = _dataModel->index(row, DataAccessModel::ColSubscription);
         if (subscribed) {
             if (_dataModel->itemAt(row).subscriptionName.isEmpty())
-                _dataModel->setData(index,
-                                    defaultSubscriptionFrom(_subscriptionsModel, tr("Default")).name,
-                                    Qt::EditRole);
+                _dataModel->setData(index, defaultSubscription().name, Qt::EditRole);
         } else {
             _dataModel->setData(index, QString(), Qt::EditRole);
         }
@@ -288,17 +136,29 @@ void DataAccessWidget::setNodeSubscribed(const QString &nodeId, bool subscribed)
 }
 
 ///
-/// \brief Clears the data, subscriptions, events, and history models.
+/// \brief Removes all data-access rows.
 ///
-void DataAccessWidget::clearRuntimeData()
+void DataAccessWidget::clear()
 {
     _dataModel->clear();
-    resetSubscriptions();
-    _eventsModel->setItems({});
-    _historyModel->clear();
-    _historyNodeId.clear();
-    ui->historyNodeEdit->clear();
-    ui->historyNodeEdit->setToolTip(QString());
+}
+
+///
+/// \brief Persists the data view header state.
+/// \param settings Settings store to write to.
+///
+void DataAccessWidget::saveViewState(AppSettings &settings) const
+{
+    settings.setViewState(ui->dataView->objectName(), ui->dataView->headerView()->saveLayout());
+}
+
+///
+/// \brief Restores the data view header state.
+/// \param settings Settings store to read from.
+///
+void DataAccessWidget::restoreViewState(AppSettings &settings)
+{
+    ui->dataView->headerView()->restoreLayout(settings.viewState(ui->dataView->objectName()));
 }
 
 ///
@@ -308,8 +168,61 @@ void DataAccessWidget::clearRuntimeData()
 void DataAccessWidget::setTimestampMode(AppSettings::TimestampMode mode)
 {
     _dataModel->setTimestampMode(mode);
-    _historyModel->setTimestampMode(mode);
-    applyHistoryTimestampMode(mode);
+}
+
+///
+/// \brief Replaces the known subscriptions and rebuilds the subscribe menu.
+/// \param subscriptions Current subscriptions.
+///
+void DataAccessWidget::setSubscriptions(const QVector<SubscriptionItem> &subscriptions)
+{
+    _subscriptions = subscriptions;
+    rebuildSubscribeMenu();
+}
+
+///
+/// \brief Repoints data-access nodes from a renamed subscription to its new name.
+/// \param oldName Previous subscription name.
+/// \param newName New subscription name.
+///
+void DataAccessWidget::applySubscriptionRename(const QString &oldName, const QString &newName)
+{
+    for (int row = 0; row < _dataModel->rowCount(); ++row) {
+        if (_dataModel->itemAt(row).subscriptionName != oldName)
+            continue;
+        _dataModel->setData(_dataModel->index(row, DataAccessModel::ColSubscription),
+                            newName, Qt::EditRole);
+    }
+}
+
+///
+/// \brief Re-establishes monitoring at a new interval for a subscription's nodes.
+/// \param name Subscription whose interval changed.
+/// \param interval New publishing interval in milliseconds.
+///
+void DataAccessWidget::applySubscriptionInterval(const QString &name, double interval)
+{
+    for (int row = 0; row < _dataModel->rowCount(); ++row) {
+        if (_dataModel->itemAt(row).subscriptionName != name)
+            continue;
+        emit monitoringRequested(_dataModel->itemAt(row).nodeId, interval);
+    }
+}
+
+///
+/// \brief Unassigns and stops monitoring nodes of a removed subscription.
+/// \param name Subscription being removed.
+///
+void DataAccessWidget::applySubscriptionRemoval(const QString &name)
+{
+    for (int row = 0; row < _dataModel->rowCount(); ++row) {
+        if (_dataModel->itemAt(row).subscriptionName != name)
+            continue;
+        const QString nodeId = _dataModel->itemAt(row).nodeId;
+        _dataModel->setData(_dataModel->index(row, DataAccessModel::ColSubscription),
+                            QString(), Qt::EditRole);
+        emit monitoringCancelled(nodeId);
+    }
 }
 
 ///
@@ -321,8 +234,7 @@ void DataAccessWidget::setTimestampMode(AppSettings::TimestampMode mode)
 bool DataAccessWidget::eventFilter(QObject *watched, QEvent *event)
 {
     const bool dataViewTarget = watched == ui->dataView || watched == ui->dataView->viewport();
-    const bool historyNodeTarget = OpcUa::isHistoryReadSupported() && watched == ui->historyNodeEdit;
-    if (!dataViewTarget && !historyNodeTarget)
+    if (!dataViewTarget)
         return QWidget::eventFilter(watched, event);
 
     if (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove) {
@@ -341,17 +253,7 @@ bool DataAccessWidget::eventFilter(QObject *watched, QEvent *event)
         auto *dropEvent = static_cast<QDropEvent *>(event);
         OpcUaNodeInfo node;
         if (decodeDroppedVariable(dropEvent->mimeData(), &node)) {
-            if (historyNodeTarget) {
-                _historyNodeId = node.nodeId;
-                const QString label = node.displayName.isEmpty()
-                    ? (node.browseName.isEmpty() ? node.nodeId : node.browseName)
-                    : node.displayName;
-                ui->historyNodeEdit->setText(label);
-                ui->historyNodeEdit->setToolTip(node.nodeId);
-            } else {
-                setCurrentPage(DataAccessPage);
-                emit nodeDropRequested(node.nodeId);
-            }
+            emit nodeDropRequested(node.nodeId);
             dropEvent->setDropAction(Qt::CopyAction);
             dropEvent->accept();
             return true;
@@ -380,7 +282,6 @@ void DataAccessWidget::setupDataView()
     ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->dataView, &QWidget::customContextMenuRequested,
             this, &DataAccessWidget::showDataContextMenu);
-
 
     auto *header = ui->dataView->headerView();
     connect(header, &HeaderView::sectionAlignmentChanged, this,
@@ -425,250 +326,6 @@ void DataAccessWidget::setupDataView()
 }
 
 ///
-/// \brief Binds and lays out the subscriptions table.
-///
-void DataAccessWidget::setupSubscriptionsView()
-{
-    ui->subscriptionsTable->setModel(_subscriptionsModel);
-    ui->subscriptionsTable->verticalHeader()->hide();
-    ui->subscriptionsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->subscriptionsTable->setEditTriggers(QAbstractItemView::DoubleClicked
-                                            | QAbstractItemView::SelectedClicked);
-    ui->subscriptionsTable->setItemDelegateForColumn(
-        SubscriptionsModel::ColPublishingInterval, new PublishingIntervalDelegate(this));
-    ui->subscriptionsTable->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(ui->subscriptionsTable, &QWidget::customContextMenuRequested,
-            this, &DataAccessWidget::showSubscriptionsContextMenu);
-
-    auto *subsHeader = ui->subscriptionsTable->headerView();
-    connect(subsHeader, &HeaderView::sectionAlignmentChanged, this,
-            [this](int logicalIndex, Qt::Alignment alignment) {
-                _subscriptionsModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
-            });
-    subsHeader->setSectionResizeMode(SubscriptionsModel::ColName,               QHeaderView::Interactive);
-    subsHeader->setSectionResizeMode(SubscriptionsModel::ColPublishingInterval, QHeaderView::Stretch);
-    ui->subscriptionsTable->setColumnWidth(SubscriptionsModel::ColName, 120);
-
-    connect(ui->subscriptionsTable->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, [this] {
-        const QModelIndexList rows = ui->subscriptionsTable->selectionModel()->selectedRows();
-        const bool defaultSelected = rows.size() == 1
-            && _subscriptionsModel->itemAt(rows.first().row()).isDefault();
-        ui->removeSubscriptionButton->setEnabled(!rows.isEmpty() && !defaultSelected);
-    });
-}
-
-///
-/// \brief Binds and lays out the events table.
-///
-void DataAccessWidget::setupEventsView()
-{
-    ui->eventsTable->setModel(_eventsModel);
-    ui->eventsTable->verticalHeader()->hide();
-
-    auto *eventsHeader = ui->eventsTable->headerView();
-    connect(eventsHeader, &HeaderView::sectionAlignmentChanged, this,
-            [this](int logicalIndex, Qt::Alignment alignment) {
-                _eventsModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
-            });
-    eventsHeader->setSectionResizeMode(EventsModel::ColTime,    QHeaderView::Fixed);
-    eventsHeader->setSectionResizeMode(EventsModel::ColMessage, QHeaderView::Stretch);
-    ui->eventsTable->setColumnWidth(EventsModel::ColTime, 95);
-}
-
-///
-/// \brief Binds and lays out the history table.
-///
-void DataAccessWidget::setupHistoryView()
-{
-    ui->historyTable->setModel(_historyModel);
-    ui->historyTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->historyTable->verticalHeader()->hide();
-
-    auto *historyHeader = ui->historyTable->headerView();
-    connect(historyHeader, &HeaderView::sectionAlignmentChanged, this,
-            [this](int logicalIndex, Qt::Alignment alignment) {
-                _historyModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
-            });
-
-    historyHeader->setStretchLastSection(false);
-    historyHeader->setSectionResizeMode(HistoryModel::ColNumber,          QHeaderView::Fixed);
-    historyHeader->setSectionResizeMode(HistoryModel::ColSourceTimestamp, QHeaderView::Interactive);
-    historyHeader->setSectionResizeMode(HistoryModel::ColServerTimestamp, QHeaderView::Interactive);
-    historyHeader->setSectionResizeMode(HistoryModel::ColValue,           QHeaderView::Stretch);
-    historyHeader->setSectionResizeMode(HistoryModel::ColStatus,          QHeaderView::Interactive);
-
-    historyHeader->setSectionAlignment(HistoryModel::ColNumber,          Qt::AlignCenter);
-    historyHeader->setSectionAlignment(HistoryModel::ColSourceTimestamp, Qt::AlignCenter);
-    historyHeader->setSectionAlignment(HistoryModel::ColServerTimestamp, Qt::AlignCenter);
-    historyHeader->setSectionAlignment(HistoryModel::ColValue,           Qt::AlignCenter);
-    historyHeader->setSectionAlignment(HistoryModel::ColStatus,          Qt::AlignCenter);
-
-    ui->historyTable->setColumnWidth(HistoryModel::ColNumber,          48 );
-    ui->historyTable->setColumnWidth(HistoryModel::ColSourceTimestamp, 200);
-    ui->historyTable->setColumnWidth(HistoryModel::ColServerTimestamp, 200);
-    ui->historyTable->setColumnWidth(HistoryModel::ColStatus,          90 );
-
-    ui->historyNodeEdit->setAcceptDrops(true);
-    ui->historyNodeEdit->installEventFilter(this);
-    ui->historyNodeEdit->setResetToolTip(tr("Clear tag"));
-
-    const QDateTime now = QDateTime::currentDateTime();
-    ui->historyEndEdit->setDateTime(now);
-    ui->historyStartEdit->setDateTime(now.addSecs(-3600));
-    for (QDateTimeEdit *edit : {ui->historyStartEdit, ui->historyEndEdit}) {
-        edit->setMinimumWidth(historyDateTimeEditMinimumWidth);
-        connect(edit, &QDateTimeEdit::dateTimeChanged, this,
-                [this, edit] { updateHistoryZoneSuffix(edit); });
-    }
-    applyHistoryTimestampMode(AppSettings().timestampMode());
-
-    connect(ui->historyReadButton, &QAbstractButton::clicked,
-            this, &DataAccessWidget::requestHistoryRead);
-    connect(ui->historyExportButton, &QAbstractButton::clicked,
-            this, &DataAccessWidget::exportHistoryToCsv);
-    connect(ui->historyClearButton, &QAbstractButton::clicked,
-            this, [this] { _historyModel->clear(); });
-    connect(ui->historyNodeEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
-        if (text.isEmpty())
-            clearHistoryNode();
-    });
-    connect(_historyModel, &QAbstractItemModel::modelReset, this,
-            [this] { ui->historyExportButton->setEnabled(_historyModel->rowCount() > 0); });
-    connect(_historyModel, &QAbstractItemModel::rowsInserted, this,
-            [this] { ui->historyExportButton->setEnabled(_historyModel->rowCount() > 0); });
-}
-
-///
-/// \brief Clears the selected History node and its displayed samples.
-///
-void DataAccessWidget::clearHistoryNode()
-{
-    _historyNodeId.clear();
-    ui->historyNodeEdit->clear();
-    ui->historyNodeEdit->setToolTip(QString());
-    _historyModel->clear();
-}
-
-///
-/// \brief Aligns the history date pickers with the local/UTC timestamp mode.
-/// \param mode Local time or UTC.
-///
-void DataAccessWidget::applyHistoryTimestampMode(AppSettings::TimestampMode mode)
-{
-    const bool utc = mode == AppSettings::TimestampMode::Utc;
-    const Qt::TimeSpec spec = utc ? Qt::UTC : Qt::LocalTime;
-
-    for (QDateTimeEdit *edit : {ui->historyStartEdit, ui->historyEndEdit}) {
-        const QDateTime current = edit->dateTime();
-        edit->setTimeSpec(spec);
-        edit->setDateTime(utc ? current.toUTC() : current.toLocalTime());
-        updateHistoryZoneSuffix(edit);
-    }
-}
-
-///
-/// \brief Appends the field's time zone to its display format as a non-editable suffix.
-/// \param edit Date-time edit to update; "Z" for UTC, otherwise the local offset.
-///
-void DataAccessWidget::updateHistoryZoneSuffix(QDateTimeEdit *edit)
-{
-    const QString zone = edit->timeSpec() == Qt::UTC
-        ? QStringLiteral("Z")
-        : utcOffsetSuffix(edit->dateTime());
-    edit->setDisplayFormat(QStringLiteral("yyyy-MM-dd HH:mm:ss '%1'").arg(zone));
-}
-
-///
-/// \brief Requests a history read for the targeted node over the current range.
-///
-void DataAccessWidget::requestHistoryRead()
-{
-    if (!OpcUa::isHistoryReadSupported())
-        return;
-    if (_historyNodeId.isEmpty())
-        return;
-    emit historyReadRequested(_historyNodeId, ui->historyStartEdit->dateTime(),
-                              ui->historyEndEdit->dateTime(),
-                              static_cast<quint32>(ui->historyMaxEdit->value()));
-}
-
-///
-/// \brief Saves the currently displayed history samples as CSV.
-///
-void DataAccessWidget::exportHistoryToCsv()
-{
-    if (_historyModel->rowCount() == 0)
-        return;
-
-    const QString fileName = QFileDialog::getSaveFileName(
-        this, tr("Export History"), suggestedHistoryCsvFileName(),
-        tr("CSV Files (*.csv);;All Files (*)"));
-    if (fileName.isEmpty())
-        return;
-
-    QSaveFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("Export History"),
-                             tr("Could not open '%1' for writing.").arg(fileName));
-        return;
-    }
-
-    QTextStream stream(&file);
-    stream.setEncoding(QStringConverter::Utf8);
-    stream << _historyModel->toCsv();
-    if (!file.commit()) {
-        QMessageBox::warning(this, tr("Export History"),
-                             tr("Could not save '%1'.").arg(fileName));
-    }
-}
-
-///
-/// \brief Builds the default CSV export file name for the current history query.
-/// \return Suggested CSV file name.
-///
-QString DataAccessWidget::suggestedHistoryCsvFileName() const
-{
-    const QString tag = fileNameSegment(
-        ui->historyNodeEdit->text().isEmpty() ? _historyNodeId : ui->historyNodeEdit->text(),
-        QStringLiteral("history"));
-    QStringList parts = {
-        tag,
-        fileNameDateTime(ui->historyStartEdit->dateTime()),
-        fileNameDateTime(ui->historyEndEdit->dateTime())
-    };
-    if (ui->historyMaxEdit->value() > ui->historyMaxEdit->minimum())
-        parts.append(QStringLiteral("max%1").arg(ui->historyMaxEdit->value()));
-    return parts.join(QLatin1Char('_')) + QStringLiteral(".csv");
-}
-
-///
-/// \brief Shows history samples in the History table.
-/// \param values History samples in time order.
-///
-void DataAccessWidget::setHistoryResults(const QVector<OpcUaHistoryValue> &values)
-{
-    _historyModel->setItems(values);
-}
-
-///
-/// \brief Targets a node on the History page and requests its history for the current range.
-/// \param nodeId Node whose history should be read.
-///
-void DataAccessWidget::requestHistoryForNode(const QString &nodeId, const QString &displayName)
-{
-    if (!OpcUa::isHistoryReadSupported())
-        return;
-    if (nodeId.isEmpty())
-        return;
-    _historyNodeId = nodeId;
-    ui->historyNodeEdit->setText(displayName.isEmpty() ? nodeId : displayName);
-    ui->historyNodeEdit->setToolTip(nodeId);
-    setCurrentPage(HistoryPage);
-    requestHistoryRead();
-}
-
-///
 /// \brief Sets toolbar icons, disables empty-state actions, and wires the toolbar buttons.
 ///
 void DataAccessWidget::configureToolbar()
@@ -678,22 +335,12 @@ void DataAccessWidget::configureToolbar()
     ui->readButton->setIcon(QStringLiteral("read"));
     ui->writeButton->setIcon(QStringLiteral("write"));
     ui->subscribeButton->setIcon(QStringLiteral("subscribe"));
-    ui->addSubscriptionButton->setIcon(QStringLiteral("add"));
-    ui->removeSubscriptionButton->setIcon(QStringLiteral("remove"));
-    ui->historyReadButton->setIcon(QStringLiteral("read"));
-    ui->historyExportButton->setIcon(QStringLiteral("export"));
-    ui->historyClearButton->setIcon(QStringLiteral("trash"));
 
     ui->subscribeButton->setPopupMode(QToolButton::InstantPopup);
     ui->removeButton->setEnabled(false);
     ui->readButton->setEnabled(false);
     ui->writeButton->setEnabled(false);
     ui->subscribeButton->setEnabled(false);
-    ui->removeSubscriptionButton->setEnabled(false);
-    ui->historyExportButton->setEnabled(false);
-    ui->mainTabs->setTabEnabled(EventsPage, false);
-    ui->mainTabs->setTabVisible(HistoryPage, OpcUa::isHistoryReadSupported());
-    ui->mainTabs->setTabEnabled(HistoryPage, false);
 
     connect(ui->addNodeButton, &QPushButton::clicked,
             this, &DataAccessWidget::addSelectedNodeRequested);
@@ -703,10 +350,6 @@ void DataAccessWidget::configureToolbar()
             this, &DataAccessWidget::readSelectedNodes);
     connect(ui->writeButton, &QPushButton::clicked,
             this, &DataAccessWidget::writeSelectedNode);
-    connect(ui->addSubscriptionButton, &QPushButton::clicked,
-            this, &DataAccessWidget::addSubscription);
-    connect(ui->removeSubscriptionButton, &QPushButton::clicked,
-            this, &DataAccessWidget::removeSelectedSubscriptions);
 }
 
 ///
@@ -794,7 +437,7 @@ void DataAccessWidget::removeAllNodes()
 ///
 void DataAccessWidget::rebuildSubscribeMenu()
 {
-    const QStringList names = _subscriptionsModel->names();
+    const QStringList names = subscriptionNames();
 
     auto delegate = new SubscriptionDelegate(names, ui->dataView);
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, delegate);
@@ -810,7 +453,7 @@ void DataAccessWidget::rebuildSubscribeMenu()
 ///
 void DataAccessWidget::populateSubscribeMenu(QMenu *menu)
 {
-    const QStringList names = _subscriptionsModel->names();
+    const QStringList names = subscriptionNames();
     for (const QString &name : names) {
         menu->addAction(name, this, [this, name] {
             applySubscriptionToSelection(name);
@@ -829,7 +472,7 @@ void DataAccessWidget::populateSubscribeMenu(QMenu *menu)
 void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionName)
 {
     const QModelIndexList rows = ui->dataView->selectionModel()->selectedRows();
-    const double interval = _subscriptionsModel->intervalFor(subscriptionName);
+    const double interval = intervalFor(subscriptionName);
     for (const QModelIndex &idx : rows) {
         const QString nodeId = _dataModel->itemAt(idx.row()).nodeId;
         _dataModel->setData(_dataModel->index(idx.row(), DataAccessModel::ColSubscription),
@@ -842,133 +485,49 @@ void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionN
 }
 
 ///
-/// \brief Resets the subscription list to the single built-in Default subscription.
+/// \brief Returns the known subscription names in order.
+/// \return Subscription names.
 ///
-void DataAccessWidget::resetSubscriptions()
+QStringList DataAccessWidget::subscriptionNames() const
 {
-    SubscriptionItem subscription;
-    subscription.name = tr("Default");
-    _subscriptionsModel->setItems({subscription});
+    QStringList names;
+    names.reserve(_subscriptions.size());
+    for (const SubscriptionItem &item : _subscriptions)
+        names.append(item.name);
+    return names;
 }
 
 ///
-/// \brief Shows the subscriptions context menu mirroring the toolbar actions.
-/// \param pos Cursor position in the subscriptions table's viewport coordinates.
+/// \brief Returns the publishing interval of a named subscription.
+/// \param name Subscription name.
+/// \return Publishing interval in milliseconds, or the default when not found.
 ///
-void DataAccessWidget::showSubscriptionsContextMenu(const QPoint &pos)
+double DataAccessWidget::intervalFor(const QString &name) const
 {
-    const QModelIndexList rows = ui->subscriptionsTable->selectionModel()->selectedRows();
-    const bool defaultSelected = rows.size() == 1
-        && _subscriptionsModel->itemAt(rows.first().row()).isDefault();
-
-    QMenu menu(this);
-    menu.addAction(AppIcons::themed(QStringLiteral("add")), tr("Add"),
-                   this, &DataAccessWidget::addSubscription);
-
-    QAction *removeAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove"),
-                                           this, &DataAccessWidget::removeSelectedSubscriptions);
-    removeAction->setEnabled(!rows.isEmpty() && !defaultSelected);
-
-    QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
-                                              this, &DataAccessWidget::removeAllSubscriptions);
-    removeAllAction->setEnabled(_subscriptionsModel->rowCount() > 1);
-
-    menu.exec(ui->subscriptionsTable->viewport()->mapToGlobal(pos));
-}
-
-///
-/// \brief Adds a new subscription with a unique name and opens its name cell for editing.
-///
-void DataAccessWidget::addSubscription()
-{
-    QString name;
-    for (int i = 1; ; ++i) {
-        name = tr("Subscription %1").arg(i);
-        if (!_subscriptionsModel->containsName(name))
-            break;
+    for (const SubscriptionItem &item : _subscriptions) {
+        if (item.name == name)
+            return item.publishingInterval;
     }
-
-    SubscriptionItem subscription;
-    subscription.id = _subscriptionsModel->rowCount();
-    subscription.name = name;
-
-    const int row = _subscriptionsModel->addSubscription(subscription);
-    const QModelIndex nameIndex = _subscriptionsModel->index(row, SubscriptionsModel::ColName);
-    ui->mainTabs->setCurrentIndex(SubscriptionsPage);
-    ui->subscriptionsTable->setCurrentIndex(nameIndex);
-    ui->subscriptionsTable->edit(nameIndex);
+    return SubscriptionItem().publishingInterval;
 }
 
 ///
-/// \brief Removes the selected subscriptions, unassigning and unmonitoring their nodes.
+/// \brief Returns the Default subscription, using a fallback label when needed.
+/// \return Default subscription item.
 ///
-void DataAccessWidget::removeSelectedSubscriptions()
+SubscriptionItem DataAccessWidget::defaultSubscription() const
 {
-    QModelIndexList rows = ui->subscriptionsTable->selectionModel()->selectedRows();
-    std::sort(rows.begin(), rows.end(), [](const QModelIndex &a, const QModelIndex &b) {
-        return a.row() > b.row();
-    });
-    for (const QModelIndex &idx : rows)
-        removeSubscriptionRow(idx.row());
-}
-
-///
-/// \brief Removes every non-default subscription, unassigning and unmonitoring their nodes.
-///
-void DataAccessWidget::removeAllSubscriptions()
-{
-    for (int row = _subscriptionsModel->rowCount() - 1; row >= 0; --row)
-        removeSubscriptionRow(row);
-}
-
-///
-/// \brief Removes a single subscription row, unassigning and unmonitoring its nodes.
-/// \param row Subscription row to remove.
-///
-void DataAccessWidget::removeSubscriptionRow(int row)
-{
-    const SubscriptionItem subscription = _subscriptionsModel->itemAt(row);
-    if (subscription.isDefault())
-        return;
-    const QString name = subscription.name;
-    for (int dataRow = 0; dataRow < _dataModel->rowCount(); ++dataRow) {
-        if (_dataModel->itemAt(dataRow).subscriptionName != name)
+    for (SubscriptionItem item : _subscriptions) {
+        if (!item.isDefault())
             continue;
-        const QString nodeId = _dataModel->itemAt(dataRow).nodeId;
-        _dataModel->setData(_dataModel->index(dataRow, DataAccessModel::ColSubscription),
-                            QString(), Qt::EditRole);
-        emit monitoringCancelled(nodeId);
+        if (item.name.isEmpty())
+            item.name = tr("Default");
+        return item;
     }
-    _subscriptionsModel->removeRow(row);
-}
 
-///
-/// \brief Repoints data-access nodes from a renamed subscription to its new name.
-/// \param oldName Previous subscription name.
-/// \param newName New subscription name.
-///
-void DataAccessWidget::renameSubscriptionAssignments(const QString &oldName, const QString &newName)
-{
-    for (int row = 0; row < _dataModel->rowCount(); ++row) {
-        if (_dataModel->itemAt(row).subscriptionName != oldName)
-            continue;
-        _dataModel->setData(_dataModel->index(row, DataAccessModel::ColSubscription),
-                            newName, Qt::EditRole);
-    }
-}
-
-///
-/// \brief Re-establishes monitoring at a new interval for all nodes of a subscription.
-/// \param name Subscription whose interval changed.
-/// \param interval New publishing interval in milliseconds.
-///
-void DataAccessWidget::reapplySubscriptionInterval(const QString &name, double interval)
-{
-    for (int row = 0; row < _dataModel->rowCount(); ++row) {
-        if (_dataModel->itemAt(row).subscriptionName != name)
-            continue;
-        emit monitoringRequested(_dataModel->itemAt(row).nodeId, interval);
-    }
+    SubscriptionItem item;
+    item.name = tr("Default");
+    return item;
 }
 
 ///
