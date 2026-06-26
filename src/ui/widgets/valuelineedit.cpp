@@ -49,6 +49,15 @@ void ValueLineEdit::setDefaultValue(const QString &value)
 }
 
 ///
+/// \brief Sets the tooltip shown for the reset action.
+/// \param toolTip Tooltip text.
+///
+void ValueLineEdit::setResetToolTip(const QString &toolTip)
+{
+    _resetAction->setToolTip(toolTip);
+}
+
+///
 /// \brief Shows the reset action only while the text differs from the default.
 ///
 void ValueLineEdit::updateResetState()

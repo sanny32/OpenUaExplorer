@@ -7,6 +7,7 @@
 ///
 
 #include <QCoreApplication>
+#include <QAction>
 #include <QDateTimeEdit>
 #include <QDragEnterEvent>
 #include <QDropEvent>
@@ -21,8 +22,10 @@
 
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
+#include "testdata.h"
 #include "widgets/themedtoolbutton.h"
 #include "widgets/dataaccesswidget.h"
+#include "widgets/valuelineedit.h"
 
 ///
 /// \brief UI tests for DataAccessWidget.
@@ -39,6 +42,8 @@ private slots:
     void historyTabFollowsQtSupport();
     void historyExportButtonFollowsResults();
     void historyExportFileNameDescribesQuery();
+    void historyDateTimeFieldsFitZoneSuffix();
+    void historyNodeClearClearsResults();
     void historyClearButtonUsesTrashIcon();
 };
 
@@ -246,6 +251,59 @@ void TestDataAccessWidget::historyExportFileNameDescribesQuery()
     maxEdit->setValue(maxEdit->minimum());
     QCOMPARE(widget.suggestedHistoryCsvFileName(),
              QStringLiteral("Area_1_Temperature_PV_20260625_124136_20260625_134136.csv"));
+}
+
+///
+/// \brief The History date-time fields leave room for the time-zone suffix.
+///
+void TestDataAccessWidget::historyDateTimeFieldsFitZoneSuffix()
+{
+    DataAccessWidget widget;
+
+    auto *startEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyStartEdit"));
+    auto *endEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyEndEdit"));
+    QVERIFY(startEdit);
+    QVERIFY(endEdit);
+
+    QVERIFY(startEdit->minimumWidth() >= 190);
+    QVERIFY(endEdit->minimumWidth() >= 190);
+}
+
+///
+/// \brief Clearing the History node field clears the selected node and result rows.
+///
+void TestDataAccessWidget::historyNodeClearClearsResults()
+{
+    if (!OpcUa::isHistoryReadSupported())
+        QSKIP("HistoryRead is not supported by this Qt OPC UA build.");
+
+    DataAccessWidget widget;
+    widget.setHistoryAvailable(true);
+    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"), QStringLiteral("Temperature"));
+    widget.setHistoryResults(TestData::historyItems());
+
+    auto *nodeEdit = widget.findChild<ValueLineEdit *>(QStringLiteral("historyNodeEdit"));
+    auto *table = widget.findChild<QTableView *>(QStringLiteral("historyTable"));
+    auto *readButton = widget.findChild<QToolButton *>(QStringLiteral("historyReadButton"));
+    QVERIFY(nodeEdit);
+    QVERIFY(table);
+    QVERIFY(readButton);
+    QCOMPARE(table->model()->rowCount(), TestData::historyItems().size());
+    QCOMPARE(nodeEdit->defaultValue(), QString());
+    QCOMPARE(nodeEdit->actions().size(), 1);
+    QVERIFY(nodeEdit->actions().constFirst()->isVisible());
+    QCOMPARE(nodeEdit->actions().constFirst()->toolTip(), QStringLiteral("Clear tag"));
+
+    QSignalSpy readSpy(&widget, &DataAccessWidget::historyReadRequested);
+    nodeEdit->actions().constFirst()->trigger();
+
+    QCOMPARE(table->model()->rowCount(), 0);
+    QVERIFY(nodeEdit->text().isEmpty());
+    QVERIFY(nodeEdit->toolTip().isEmpty());
+    QVERIFY(!nodeEdit->actions().constFirst()->isVisible());
+
+    readButton->click();
+    QCOMPARE(readSpy.size(), 0);
 }
 
 ///

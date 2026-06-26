@@ -190,7 +190,7 @@
        <item>
         <layout class="QHBoxLayout" name="historyToolbarLayout">
          <item>
-          <widget class="QLineEdit" name="historyNodeEdit">
+          <widget class="ValueLineEdit" name="historyNodeEdit">
            <property name="readOnly">
             <bool>true</bool>
            </property>
@@ -322,6 +322,11 @@
    <class>DateTimeEdit</class>
    <extends>QDateTimeEdit</extends>
    <header>widgets/datetimeedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ValueLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>widgets/valuelineedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -15,6 +15,7 @@
 #include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
 
+class QDateTimeEdit;
 class QMenu;
 
 namespace Ui {
@@ -203,9 +204,11 @@ private:
     void setupSubscriptionsView();
     void setupEventsView();
     void setupHistoryView();
+    void clearHistoryNode();
     void requestHistoryRead();
     void exportHistoryToCsv();
     void applyHistoryTimestampMode(AppSettings::TimestampMode mode);
+    void updateHistoryZoneSuffix(QDateTimeEdit *edit);
     void configureToolbar();
     void showDataContextMenu(const QPoint &pos);
     void removeSelectedNodes();

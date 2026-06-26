@@ -17,6 +17,7 @@
 #include <QFileDialog>
 #include <QHeaderView>
 #include <QItemSelectionModel>
+#include <QLineEdit>
 #include <QMessageBox>
 #include <QMenu>
 #include <QMimeData>
@@ -40,6 +41,8 @@
 #include "ui_dataaccesswidget.h"
 
 namespace {
+
+constexpr int historyDateTimeEditMinimumWidth = 190;
 
 ///
 /// \brief Returns the default subscription item, using a fallback label when needed.
@@ -102,6 +105,22 @@ QString fileNameSegment(QString value, const QString &fallback)
 QString fileNameDateTime(const QDateTime &value)
 {
     return value.toString(QStringLiteral("yyyyMMdd_HHmmss"));
+}
+
+///
+/// \brief Formats a date-time's UTC offset as a "+HH:mm" zone indicator.
+/// \param dateTime Date-time whose offset is rendered; honours DST for local times.
+/// \return Signed zone offset, e.g. "+03:00".
+///
+QString utcOffsetSuffix(const QDateTime &dateTime)
+{
+    const int offsetSeconds = dateTime.offsetFromUtc();
+    const QChar sign = offsetSeconds < 0 ? QLatin1Char('-') : QLatin1Char('+');
+    const int absSeconds = offsetSeconds < 0 ? -offsetSeconds : offsetSeconds;
+    return QStringLiteral("%1%2:%3")
+        .arg(sign)
+        .arg(absSeconds / 3600, 2, 10, QLatin1Char('0'))
+        .arg(absSeconds % 3600 / 60, 2, 10, QLatin1Char('0'));
 }
 
 } // namespace
@@ -492,10 +511,16 @@ void DataAccessWidget::setupHistoryView()
 
     ui->historyNodeEdit->setAcceptDrops(true);
     ui->historyNodeEdit->installEventFilter(this);
+    ui->historyNodeEdit->setResetToolTip(tr("Clear tag"));
 
     const QDateTime now = QDateTime::currentDateTime();
     ui->historyEndEdit->setDateTime(now);
     ui->historyStartEdit->setDateTime(now.addSecs(-3600));
+    for (QDateTimeEdit *edit : {ui->historyStartEdit, ui->historyEndEdit}) {
+        edit->setMinimumWidth(historyDateTimeEditMinimumWidth);
+        connect(edit, &QDateTimeEdit::dateTimeChanged, this,
+                [this, edit] { updateHistoryZoneSuffix(edit); });
+    }
     applyHistoryTimestampMode(AppSettings().timestampMode());
 
     connect(ui->historyReadButton, &QAbstractButton::clicked,
@@ -504,10 +529,25 @@ void DataAccessWidget::setupHistoryView()
             this, &DataAccessWidget::exportHistoryToCsv);
     connect(ui->historyClearButton, &QAbstractButton::clicked,
             this, [this] { _historyModel->clear(); });
+    connect(ui->historyNodeEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
+        if (text.isEmpty())
+            clearHistoryNode();
+    });
     connect(_historyModel, &QAbstractItemModel::modelReset, this,
             [this] { ui->historyExportButton->setEnabled(_historyModel->rowCount() > 0); });
     connect(_historyModel, &QAbstractItemModel::rowsInserted, this,
             [this] { ui->historyExportButton->setEnabled(_historyModel->rowCount() > 0); });
+}
+
+///
+/// \brief Clears the selected History node and its displayed samples.
+///
+void DataAccessWidget::clearHistoryNode()
+{
+    _historyNodeId.clear();
+    ui->historyNodeEdit->clear();
+    ui->historyNodeEdit->setToolTip(QString());
+    _historyModel->clear();
 }
 
 ///
@@ -518,15 +558,25 @@ void DataAccessWidget::applyHistoryTimestampMode(AppSettings::TimestampMode mode
 {
     const bool utc = mode == AppSettings::TimestampMode::Utc;
     const Qt::TimeSpec spec = utc ? Qt::UTC : Qt::LocalTime;
-    const QString zone = utc ? tr("UTC") : tr("Local");
 
     for (QDateTimeEdit *edit : {ui->historyStartEdit, ui->historyEndEdit}) {
         const QDateTime current = edit->dateTime();
         edit->setTimeSpec(spec);
         edit->setDateTime(utc ? current.toUTC() : current.toLocalTime());
+        updateHistoryZoneSuffix(edit);
     }
-    ui->historyStartLabel->setText(tr("Start (%1)").arg(zone));
-    ui->historyEndLabel->setText(tr("End (%1)").arg(zone));
+}
+
+///
+/// \brief Appends the field's time zone to its display format as a non-editable suffix.
+/// \param edit Date-time edit to update; "Z" for UTC, otherwise the local offset.
+///
+void DataAccessWidget::updateHistoryZoneSuffix(QDateTimeEdit *edit)
+{
+    const QString zone = edit->timeSpec() == Qt::UTC
+        ? QStringLiteral("Z")
+        : utcOffsetSuffix(edit->dateTime());
+    edit->setDisplayFormat(QStringLiteral("yyyy-MM-dd HH:mm:ss '%1'").arg(zone));
 }
 
 ///
