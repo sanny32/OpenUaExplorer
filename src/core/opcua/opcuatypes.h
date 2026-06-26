@@ -130,6 +130,10 @@ struct OpcUaNodeInfo
     QString referenceTypeId;
     /// \brief OPC UA NodeClass numeric value.
     int nodeClass = 0;
+    /// \brief EventNotifier bit mask (Object/View nodes only; 0 otherwise).
+    quint8 eventNotifier = 0;
+    /// \brief Whether the server stores historical values (Variable nodes only).
+    bool historizing = false;
     /// \brief Whether the node may have children.
     bool hasChildren = true;
 };
@@ -232,6 +236,36 @@ inline bool canMonitorEvents(const OpcUaNodeDetails &details)
 inline bool canReadEventHistory(const OpcUaNodeDetails &details)
 {
     return isHistoryReadSupported() && (details.eventNotifier & HistoryRead) != 0;
+}
+
+///
+/// \brief Returns true when a browsed node can be offered for raw HistoryRead.
+/// \param node Browsed node carrying its NodeClass and Historizing flag.
+/// \return True for historizing variable nodes when HistoryRead is available.
+///
+inline bool canReadHistory(const OpcUaNodeInfo &node)
+{
+    return isHistoryReadSupported() && isVariable(node.nodeClass) && node.historizing;
+}
+
+///
+/// \brief Returns true when a browsed node advertises that it emits events.
+/// \param node Browsed node carrying its EventNotifier bits.
+/// \return True when the EventNotifier SubscribeToEvents bit is set.
+///
+inline bool canMonitorEvents(const OpcUaNodeInfo &node)
+{
+    return (node.eventNotifier & SubscribeToEvents) != 0;
+}
+
+///
+/// \brief Returns true when a browsed node can be offered for event HistoryRead.
+/// \param node Browsed node carrying its EventNotifier bits.
+/// \return True when the EventNotifier HistoryRead bit is set and HistoryRead is available.
+///
+inline bool canReadEventHistory(const OpcUaNodeInfo &node)
+{
+    return isHistoryReadSupported() && (node.eventNotifier & HistoryRead) != 0;
 }
 
 } // namespace OpcUa

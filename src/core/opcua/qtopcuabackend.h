@@ -171,6 +171,19 @@ public:
     void readServerSessionName(int timeoutMs) override;
 
 private:
+    ///
+    /// \brief Reads EventNotifier/Historizing of browsed children, then emits browseFinished().
+    /// \param parentNodeId Browsed node whose children are being delivered.
+    /// \param nodes Browsed children to enrich with event-source and history-read capability.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    /// Browse references omit EventNotifier (Object) and Historizing (Variable), so a follow-up
+    /// batch read fills them in. Enrichment is best-effort: the children are still delivered if
+    /// the read fails or times out.
+    ///
+    void enrichAndFinishBrowse(const QString &parentNodeId,
+                               QVector<OpcUaNodeInfo> nodes, int timeoutMs);
+
     class Private;
     Private *_d;
 };

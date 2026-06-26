@@ -38,6 +38,7 @@ OpcUaNodeInfo makeEventSourceNode(const QString &nodeId, const QString &displayN
     node.browseName = displayName;
     node.displayName = displayName;
     node.nodeClass = OpcUa::Object;
+    node.eventNotifier = OpcUa::SubscribeToEvents;
     return node;
 }
 

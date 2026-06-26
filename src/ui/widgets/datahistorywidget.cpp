@@ -218,7 +218,7 @@ void DataHistoryWidget::setupDataHistoryView()
     ui->dataHistoryTable->setColumnWidth(HistoryModel::ColStatus,          90 );
 
     ui->dataHistoryNodeEdit->setNodeAcceptor([](const OpcUaNodeInfo &node) {
-        return OpcUa::isHistoryReadSupported() && OpcUa::isVariable(node.nodeClass);
+        return OpcUa::canReadHistory(node);
     });
     connect(ui->dataHistoryNodeEdit, &NodeLineEdit::nodeDropped, this,
             [this] { updateActionButtons(); });

@@ -393,10 +393,10 @@ void QtOpcUaBackend::browse(const QString &nodeId, int timeoutMs)
     }
     _d->runNodeRequest(node, QtOpcUaRequestCoordinator::Operation::Browse,
         timeoutMs, &QOpcUaNode::browseFinished,
-        [this, nodeId](const QVector<QOpcUaReferenceDescription> &references,
-                       QOpcUa::UaStatusCode status) {
+        [this, nodeId, timeoutMs](const QVector<QOpcUaReferenceDescription> &references,
+                                  QOpcUa::UaStatusCode status) {
             if (QOpcUa::isSuccessStatus(status))
-                emit browseFinished(nodeId, QtOpcUaTypeMapper::nodeInfos(references), QString());
+                enrichAndFinishBrowse(nodeId, QtOpcUaTypeMapper::nodeInfos(references), timeoutMs);
             else
                 emit browseFinished(nodeId, {},
                                     tr("Browse failed for %1: %2").arg(nodeId, statusName(status)));
@@ -406,6 +406,93 @@ void QtOpcUaBackend::browse(const QString &nodeId, int timeoutMs)
         [this, nodeId]() {
             emit browseFinished(nodeId, {}, tr("The backend rejected the browse request."));
         });
+}
+
+namespace {
+
+/// \brief Fills browsed children with EventNotifier/Historizing values from a batch read.
+/// \param nodes Children to update in place, addressed by NodeId.
+/// \param results Read results carrying each node's requested attribute.
+void applyBrowseAttributeResults(QVector<OpcUaNodeInfo> &nodes,
+                                 const QVector<QOpcUaReadResult> &results)
+{
+    QHash<QString, quint8> eventNotifiers;
+    QHash<QString, bool> historizing;
+    for (const QOpcUaReadResult &result : results) {
+        if (!QOpcUa::isSuccessStatus(result.statusCode()))
+            continue;
+        if (result.attribute() == QOpcUa::NodeAttribute::EventNotifier)
+            eventNotifiers.insert(result.nodeId(), static_cast<quint8>(result.value().toUInt()));
+        else if (result.attribute() == QOpcUa::NodeAttribute::Historizing)
+            historizing.insert(result.nodeId(), result.value().toBool());
+    }
+    for (OpcUaNodeInfo &node : nodes) {
+        if (const auto it = eventNotifiers.constFind(node.nodeId); it != eventNotifiers.constEnd())
+            node.eventNotifier = it.value();
+        if (const auto it = historizing.constFind(node.nodeId); it != historizing.constEnd())
+            node.historizing = it.value();
+    }
+}
+
+} // namespace
+
+///
+/// \brief Reads EventNotifier/Historizing of browsed children, then emits browseFinished().
+/// \param parentNodeId Browsed node whose children are being delivered.
+/// \param nodes Browsed children to enrich with event-source and history-read capability.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::enrichAndFinishBrowse(const QString &parentNodeId,
+                                           QVector<OpcUaNodeInfo> nodes, int timeoutMs)
+{
+    // Browse references omit EventNotifier (Object) and Historizing (Variable); read them so
+    // drop targets can filter on event-source and history-read capability.
+    QVector<QOpcUaReadItem> items;
+    for (const OpcUaNodeInfo &node : nodes) {
+        if (node.nodeClass == OpcUa::Object)
+            items.append(QOpcUaReadItem(node.nodeId, QOpcUa::NodeAttribute::EventNotifier));
+        else if (OpcUa::isVariable(node.nodeClass))
+            items.append(QOpcUaReadItem(node.nodeId, QOpcUa::NodeAttribute::Historizing));
+    }
+    if (items.isEmpty() || !_d->connection.client()) {
+        emit browseFinished(parentNodeId, nodes, QString());
+        return;
+    }
+
+    constexpr auto operation = QtOpcUaRequestCoordinator::Operation::BrowseAttributeRead;
+    const auto token = _d->beginConnectionRequest(operation);
+    auto enriched = std::make_shared<QVector<OpcUaNodeInfo>>(std::move(nodes));
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(_d->connection.client(), &QOpcUaClient::readNodeAttributesFinished, this,
+                         [this, connection, token, operation, parentNodeId, enriched](
+                             const QVector<QOpcUaReadResult> &results, QOpcUa::UaStatusCode) {
+        // readNodeAttributesFinished is connection-wide; value reads carry the Value attribute,
+        // this enrichment never does, so use that to ignore other readers' completions.
+        if (!results.isEmpty() && results.constFirst().attribute() == QOpcUa::NodeAttribute::Value)
+            return;
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
+            return;
+        applyBrowseAttributeResults(*enriched, results);
+        emit browseFinished(parentNodeId, *enriched, QString());
+    });
+    _d->trackConnection(operation, *connection);
+    QTimer::singleShot(QtOpcUaRequestCoordinator::boundedTimeout(timeoutMs), this,
+                       [this, connection, token, operation, parentNodeId, enriched]() {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
+            return;
+        // Best-effort enrichment: still deliver the children without the extra attributes.
+        emit browseFinished(parentNodeId, *enriched, QString());
+    });
+    if (!_d->connection.client()->readNodeAttributes(items)) {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (_d->requests.settle(token))
+            emit browseFinished(parentNodeId, *enriched, QString());
+    }
 }
 
 ///
@@ -500,6 +587,10 @@ void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
                          [this, connection, token, operation](
                              const QVector<QOpcUaReadResult> &results,
                              QOpcUa::UaStatusCode serviceResult) {
+        // readNodeAttributesFinished is connection-wide; ignore completions of other reads
+        // (e.g. browse-time EventNotifier reads) that target a different attribute.
+        if (!results.isEmpty() && results.constFirst().attribute() != QOpcUa::NodeAttribute::Value)
+            return;
         disconnect(*connection);
         _d->clearConnection(operation);
         if (!_d->requests.settle(token))

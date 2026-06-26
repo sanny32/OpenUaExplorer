@@ -226,7 +226,7 @@ void EventsHistoryWidget::setupEventsHistoryView()
     ui->eventsHistoryTable->setColumnWidth(EventsModel::ColEventType, 180);
 
     ui->eventsHistoryNodeEdit->setNodeAcceptor([](const OpcUaNodeInfo &node) {
-        return node.nodeClass == OpcUa::Object;
+        return OpcUa::canReadEventHistory(node);
     });
     connect(ui->eventsHistoryNodeEdit, &NodeLineEdit::nodeDropped, this,
             [this] { updateActionButtons(); });

@@ -98,6 +98,16 @@ void TestModels::historyReadRequiresHistorizingVariable()
 
     details.nodeClass = OpcUa::Object;
     QVERIFY(!OpcUa::canReadHistory(details));
+
+    OpcUaNodeInfo node;
+    node.nodeClass = OpcUa::Variable;
+    QVERIFY(!OpcUa::canReadHistory(node));
+
+    node.historizing = true;
+    QCOMPARE(OpcUa::canReadHistory(node), OpcUa::isHistoryReadSupported());
+
+    node.nodeClass = OpcUa::Object;
+    QVERIFY(!OpcUa::canReadHistory(node));
 }
 
 ///
@@ -112,6 +122,13 @@ void TestModels::eventMonitoringRequiresEventNotifier()
 
     details.eventNotifier = OpcUa::SubscribeToEvents;
     QVERIFY(OpcUa::canMonitorEvents(details));
+
+    OpcUaNodeInfo node;
+    node.nodeClass = OpcUa::Object;
+    QVERIFY(!OpcUa::canMonitorEvents(node));
+
+    node.eventNotifier = OpcUa::SubscribeToEvents;
+    QVERIFY(OpcUa::canMonitorEvents(node));
 }
 
 ///
@@ -129,6 +146,14 @@ void TestModels::eventHistoryReadRequiresHistoryReadNotifier()
 
     details.eventNotifier = OpcUa::HistoryRead;
     QCOMPARE(OpcUa::canReadEventHistory(details), OpcUa::isHistoryReadSupported());
+
+    OpcUaNodeInfo node;
+    node.nodeClass = OpcUa::Object;
+    node.eventNotifier = OpcUa::SubscribeToEvents;
+    QVERIFY(!OpcUa::canReadEventHistory(node));
+
+    node.eventNotifier = OpcUa::HistoryRead;
+    QCOMPARE(OpcUa::canReadEventHistory(node), OpcUa::isHistoryReadSupported());
 }
 
 ///
@@ -583,11 +608,13 @@ void TestModels::addressSpaceDragMimeIncludesNodesWithNodeId()
     variable.browseName = QStringLiteral("2:Temperature");
     variable.displayName = QStringLiteral("Temperature");
     variable.nodeClass = OpcUa::Variable;
+    variable.historizing = true;
 
     OpcUaNodeInfo object;
     object.nodeId = QStringLiteral("ns=2;s=Device");
     object.displayName = QStringLiteral("Device");
     object.nodeClass = OpcUa::Object;
+    object.eventNotifier = OpcUa::SubscribeToEvents | OpcUa::HistoryRead;
 
     model.setChildren(makeRoot().nodeId, {variable, object});
 
@@ -606,11 +633,13 @@ void TestModels::addressSpaceDragMimeIncludesNodesWithNodeId()
     QCOMPARE(decoded.displayName, variable.displayName);
     QCOMPARE(decoded.displayPath, QStringLiteral("Root/Temperature"));
     QCOMPARE(decoded.nodeClass, variable.nodeClass);
+    QCOMPARE(decoded.historizing, variable.historizing);
 
     QScopedPointer<QMimeData> objectMime(model.mimeData({objectIndex}));
     QVERIFY(AddressSpaceMime::decodeNode(objectMime.data(), &decoded));
     QCOMPARE(decoded.nodeId, object.nodeId);
     QCOMPARE(decoded.nodeClass, object.nodeClass);
+    QCOMPARE(decoded.eventNotifier, object.eventNotifier);
 }
 
 ///

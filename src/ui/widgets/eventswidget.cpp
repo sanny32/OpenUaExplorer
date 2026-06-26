@@ -225,7 +225,7 @@ void EventsWidget::configureToolbar()
     connect(ui->eventsNodeEdit, &NodeLineEdit::nodeCleared, this,
             &EventsWidget::clearEventSource);
     ui->eventsNodeEdit->setNodeAcceptor([](const OpcUaNodeInfo &node) {
-        return node.nodeClass == OpcUa::Object;
+        return OpcUa::canMonitorEvents(node);
     });
     connect(ui->eventsNodeEdit, &NodeLineEdit::nodeDropped, this,
             [this](const OpcUaNodeInfo &node) {

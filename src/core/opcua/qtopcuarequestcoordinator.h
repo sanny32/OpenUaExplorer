@@ -14,6 +14,7 @@ public:
     enum class Operation {
         Discovery,
         Browse,
+        BrowseAttributeRead,
         ReferencesBrowse,
         NodeRead,
         ValueRead,

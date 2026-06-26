@@ -12,12 +12,6 @@
 #include <QIODevice>
 #include <QMimeData>
 
-namespace {
-
-constexpr quint32 addressSpaceNodeMimeVersion = 1;
-
-} // namespace
-
 ///
 /// \brief Returns the MIME type used for an OPC UA address-space node.
 /// \return MIME type string.
@@ -36,13 +30,14 @@ QMimeData *AddressSpaceMime::createNodeMimeData(const OpcUaNodeInfo &node)
 {
     QByteArray payload;
     QDataStream stream(&payload, QIODevice::WriteOnly);
-    stream << addressSpaceNodeMimeVersion
-           << node.nodeId
+    stream << node.nodeId
            << node.browseName
            << node.displayName
            << node.displayPath
            << node.referenceTypeId
            << node.nodeClass
+           << node.eventNotifier
+           << node.historizing
            << node.hasChildren;
 
     auto *mimeData = new QMimeData;
@@ -64,19 +59,19 @@ bool AddressSpaceMime::decodeNode(const QMimeData *mimeData, OpcUaNodeInfo *node
     const QByteArray payload = mimeData->data(nodeMimeType());
     QDataStream stream(payload);
 
-    quint32 version = 0;
     OpcUaNodeInfo decoded;
-    stream >> version
-           >> decoded.nodeId
+    stream >> decoded.nodeId
            >> decoded.browseName
            >> decoded.displayName
            >> decoded.displayPath
            >> decoded.referenceTypeId
            >> decoded.nodeClass
+           >> decoded.eventNotifier
+           >> decoded.historizing
            >> decoded.hasChildren;
-    if (version != addressSpaceNodeMimeVersion || stream.status() != QDataStream::Ok) 
+    if (stream.status() != QDataStream::Ok)
         return false;
-    
+
     *node = decoded;
     return true;
 }
