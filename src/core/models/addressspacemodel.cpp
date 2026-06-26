@@ -302,7 +302,7 @@ Qt::ItemFlags AddressSpaceModel::flags(const QModelIndex &index) const
         return itemFlags;
 
     const OpcUaNodeInfo &info = nodeForIndex(index)->info();
-    if (OpcUa::isVariable(info.nodeClass) && !info.nodeId.isEmpty())
+    if (!info.nodeId.isEmpty())
         itemFlags |= Qt::ItemIsDragEnabled;
     return itemFlags;
 }
@@ -354,7 +354,7 @@ QStringList AddressSpaceModel::mimeTypes() const
 }
 
 ///
-/// \brief Encodes the dragged variable node.
+/// \brief Encodes the dragged node.
 /// \param indexes Dragged model indexes.
 /// \return MIME data owned by the caller.
 ///
@@ -364,7 +364,7 @@ QMimeData *AddressSpaceModel::mimeData(const QModelIndexList &indexes) const
         if (!index.isValid() || index.column() != 0)
             continue;
         const OpcUaNodeInfo info = nodeForIndex(index)->info();
-        if (OpcUa::isVariable(info.nodeClass) && !info.nodeId.isEmpty())
+        if (!info.nodeId.isEmpty())
             return AddressSpaceMime::createNodeMimeData(info);
     }
     return new QMimeData;

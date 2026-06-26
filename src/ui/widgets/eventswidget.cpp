@@ -78,6 +78,7 @@ void EventsWidget::setEventSource(const QString &nodeId, const QString &displayN
                                   const QString &displayPath)
 {
     _subscribed = false;
+    _subscribedNodeId.clear();
     ui->eventsNodeEdit->setNode(nodeId, displayName, displayPath);
     ui->eventsSubscribeButton->setEnabled(!nodeId.isEmpty());
     ui->eventsUnsubscribeButton->setEnabled(false);
@@ -139,6 +140,7 @@ void EventsWidget::setEventMonitoringState(const QString &nodeId, bool subscribe
     if (nodeId != ui->eventsNodeEdit->nodeId())
         return;
     _subscribed = subscribed;
+    _subscribedNodeId = subscribed ? nodeId : QString();
     ui->eventsSubscribeButton->setEnabled(!subscribed && ui->eventsNodeEdit->hasNode());
     ui->eventsUnsubscribeButton->setEnabled(subscribed);
 }
@@ -222,6 +224,21 @@ void EventsWidget::configureToolbar()
             this, &EventsWidget::exportEventsToCsv);
     connect(ui->eventsNodeEdit, &NodeLineEdit::nodeCleared, this,
             &EventsWidget::clearEventSource);
+    ui->eventsNodeEdit->setNodeAcceptor([](const OpcUaNodeInfo &node) {
+        return node.nodeClass == OpcUa::Object;
+    });
+    connect(ui->eventsNodeEdit, &NodeLineEdit::nodeDropped, this,
+            [this](const OpcUaNodeInfo &node) {
+        if (_subscribed && _subscribedNodeId == node.nodeId)
+            return;
+        if (_subscribed)
+            emit eventUnsubscribeRequested(_subscribedNodeId);
+        _subscribed = false;
+        _subscribedNodeId.clear();
+        ui->eventsSubscribeButton->setEnabled(ui->eventsNodeEdit->hasNode());
+        ui->eventsUnsubscribeButton->setEnabled(false);
+        updateActionButtons();
+    });
     connect(_eventsModel, &QAbstractItemModel::modelReset, this,
             &EventsWidget::updateActionButtons);
     connect(_eventsModel, &QAbstractItemModel::rowsInserted, this,
@@ -249,6 +266,7 @@ void EventsWidget::clearEventSource()
     const bool wasSubscribed = _subscribed;
 
     _subscribed = false;
+    _subscribedNodeId.clear();
     ui->eventsNodeEdit->clearNode();
     ui->eventsSubscribeButton->setEnabled(false);
     ui->eventsUnsubscribeButton->setEnabled(false);

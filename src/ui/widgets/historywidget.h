@@ -96,9 +96,6 @@ signals:
     ///
     void historyReadRequested(QString nodeId, QDateTime start, QDateTime end, quint32 maxValues);
 
-protected:
-    bool eventFilter(QObject *watched, QEvent *event) override;
-
 private:
     void setupHistoryView();
     void updateActionButtons();

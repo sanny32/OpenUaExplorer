@@ -61,7 +61,7 @@ private slots:
     void addressSpaceLeafDoesNotFetch();
     void addressSpaceFindByNodeIdAndDisplayName();
     void addressSpaceSetChildrenDeduplicatesNodeIds();
-    void addressSpaceDragMimeIncludesVariableNode();
+    void addressSpaceDragMimeIncludesNodesWithNodeId();
 
     // Header/role/mutator coverage for the simple table & tree models.
     void historyReadRequiresHistorizingVariable();
@@ -553,9 +553,9 @@ void TestModels::addressSpaceSetChildrenDeduplicatesNodeIds()
 }
 
 ///
-/// \brief Drag MIME is exported for variables and ignored for non-variable nodes.
+/// \brief Drag MIME is exported for any node that carries a NodeId.
 ///
-void TestModels::addressSpaceDragMimeIncludesVariableNode()
+void TestModels::addressSpaceDragMimeIncludesNodesWithNodeId()
 {
     AddressSpaceModel model;
     model.setRootNode(makeRoot());
@@ -579,7 +579,7 @@ void TestModels::addressSpaceDragMimeIncludesVariableNode()
     QVERIFY(model.mimeTypes().contains(AddressSpaceMime::nodeMimeType()));
     QVERIFY(model.supportedDragActions().testFlag(Qt::CopyAction));
     QVERIFY(model.flags(variableIndex).testFlag(Qt::ItemIsDragEnabled));
-    QVERIFY(!model.flags(objectIndex).testFlag(Qt::ItemIsDragEnabled));
+    QVERIFY(model.flags(objectIndex).testFlag(Qt::ItemIsDragEnabled));
 
     QScopedPointer<QMimeData> variableMime(model.mimeData({variableIndex}));
     OpcUaNodeInfo decoded;
@@ -590,7 +590,9 @@ void TestModels::addressSpaceDragMimeIncludesVariableNode()
     QCOMPARE(decoded.nodeClass, variable.nodeClass);
 
     QScopedPointer<QMimeData> objectMime(model.mimeData({objectIndex}));
-    QVERIFY(!AddressSpaceMime::decodeNode(objectMime.data(), &decoded));
+    QVERIFY(AddressSpaceMime::decodeNode(objectMime.data(), &decoded));
+    QCOMPARE(decoded.nodeId, object.nodeId);
+    QCOMPARE(decoded.nodeClass, object.nodeClass);
 }
 
 ///

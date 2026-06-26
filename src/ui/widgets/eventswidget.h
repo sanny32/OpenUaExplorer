@@ -112,4 +112,5 @@ private:
     Ui::EventsWidget *ui;
     EventsModel      *_eventsModel;
     bool              _subscribed = false;
+    QString           _subscribedNodeId;
 };

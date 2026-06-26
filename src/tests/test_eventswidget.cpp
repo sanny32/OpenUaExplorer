@@ -6,15 +6,62 @@
 /// \brief Tests EventsWidget toolbar behaviour.
 ///
 
+#include <QCoreApplication>
 #include <QDateTime>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
+#include <QScopedPointer>
 #include <QSignalSpy>
 #include <QTableView>
 #include <QTest>
 #include <QToolButton>
 
+#include "models/addressspacemimedata.h"
 #include "widgets/eventswidget.h"
+#include "widgets/nodelineedit.h"
 #include "widgets/themedtoolbutton.h"
 #include "widgets/valuelineedit.h"
+
+namespace {
+
+///
+/// \brief Builds an Object node eligible to be dropped as an event source.
+/// \param nodeId Node's NodeId.
+/// \param displayName Node's display name.
+/// \return Node info item.
+///
+OpcUaNodeInfo makeEventSourceNode(const QString &nodeId, const QString &displayName)
+{
+    OpcUaNodeInfo node;
+    node.nodeId = nodeId;
+    node.browseName = displayName;
+    node.displayName = displayName;
+    node.nodeClass = OpcUa::Object;
+    return node;
+}
+
+///
+/// \brief Sends drag-enter and drop events carrying a node to a widget.
+/// \param target Widget receiving the events.
+/// \param node Node to drop.
+/// \return Whether the drop event was accepted.
+///
+bool dropNodeOn(QWidget *target, const OpcUaNodeInfo &node)
+{
+    QScopedPointer<QMimeData> mimeData(AddressSpaceMime::createNodeMimeData(node));
+
+    QDragEnterEvent enterEvent(QPoint(4, 4), Qt::CopyAction, mimeData.data(),
+                               Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(target, &enterEvent);
+
+    QDropEvent dropEvent(QPointF(4, 4), Qt::CopyAction, mimeData.data(),
+                         Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(target, &dropEvent);
+    return dropEvent.isAccepted();
+}
+
+} // namespace
 
 ///
 /// \brief UI tests for EventsWidget.
@@ -26,6 +73,8 @@ class TestEventsWidget : public QObject
 private slots:
     void exportAndClearButtonsFollowEvents();
     void sourceClearUnsubscribesAndClearsEvents();
+    void dropReplacingMonitoredSourceUnsubscribesPrevious();
+    void dropOfSameMonitoredSourceKeepsSubscription();
     void exportButtonUsesExportIcon();
     void exportFileNameUsesSource();
 };
@@ -99,6 +148,59 @@ void TestEventsWidget::sourceClearUnsubscribesAndClearsEvents()
     QVERIFY(nodeEdit->toolTip().isEmpty());
     QVERIFY(!subscribeButton->isEnabled());
     QVERIFY(!unsubscribeButton->isEnabled());
+}
+
+///
+/// \brief Dropping a different node unsubscribes the previously monitored source.
+///
+void TestEventsWidget::dropReplacingMonitoredSourceUnsubscribesPrevious()
+{
+    EventsWidget widget;
+    widget.setEventSource(QStringLiteral("ns=6;s=DeviceA"), QStringLiteral("DeviceA"));
+    widget.setEventMonitoringState(QStringLiteral("ns=6;s=DeviceA"), true);
+
+    auto *nodeEdit = widget.findChild<NodeLineEdit *>(QStringLiteral("eventsNodeEdit"));
+    auto *subscribeButton = widget.findChild<QToolButton *>(QStringLiteral("eventsSubscribeButton"));
+    auto *unsubscribeButton = widget.findChild<QToolButton *>(QStringLiteral("eventsUnsubscribeButton"));
+    QVERIFY(nodeEdit);
+    QVERIFY(subscribeButton);
+    QVERIFY(unsubscribeButton);
+    QVERIFY(unsubscribeButton->isEnabled());
+
+    QSignalSpy unsubscribeSpy(&widget, &EventsWidget::eventUnsubscribeRequested);
+    QVERIFY(dropNodeOn(nodeEdit, makeEventSourceNode(QStringLiteral("ns=6;s=DeviceB"),
+                                                     QStringLiteral("DeviceB"))));
+
+    QCOMPARE(unsubscribeSpy.size(), 1);
+    QCOMPARE(unsubscribeSpy.first().at(0).toString(), QStringLiteral("ns=6;s=DeviceA"));
+    QCOMPARE(nodeEdit->nodeId(), QStringLiteral("ns=6;s=DeviceB"));
+    QVERIFY(subscribeButton->isEnabled());
+    QVERIFY(!unsubscribeButton->isEnabled());
+}
+
+///
+/// \brief Re-dropping the already-monitored node keeps its subscription intact.
+///
+void TestEventsWidget::dropOfSameMonitoredSourceKeepsSubscription()
+{
+    EventsWidget widget;
+    widget.setEventSource(QStringLiteral("ns=6;s=DeviceA"), QStringLiteral("DeviceA"));
+    widget.setEventMonitoringState(QStringLiteral("ns=6;s=DeviceA"), true);
+
+    auto *nodeEdit = widget.findChild<NodeLineEdit *>(QStringLiteral("eventsNodeEdit"));
+    auto *subscribeButton = widget.findChild<QToolButton *>(QStringLiteral("eventsSubscribeButton"));
+    auto *unsubscribeButton = widget.findChild<QToolButton *>(QStringLiteral("eventsUnsubscribeButton"));
+    QVERIFY(nodeEdit);
+    QVERIFY(subscribeButton);
+    QVERIFY(unsubscribeButton);
+
+    QSignalSpy unsubscribeSpy(&widget, &EventsWidget::eventUnsubscribeRequested);
+    QVERIFY(dropNodeOn(nodeEdit, makeEventSourceNode(QStringLiteral("ns=6;s=DeviceA"),
+                                                     QStringLiteral("DeviceA"))));
+
+    QCOMPARE(unsubscribeSpy.size(), 0);
+    QVERIFY(!subscribeButton->isEnabled());
+    QVERIFY(unsubscribeButton->isEnabled());
 }
 
 ///

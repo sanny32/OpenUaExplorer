@@ -8,7 +8,15 @@
 
 #pragma once
 
+#include <functional>
+
+#include "opcua/opcuatypes.h"
 #include "valuelineedit.h"
+
+class QDragEnterEvent;
+class QDragMoveEvent;
+class QDropEvent;
+class QMimeData;
 
 ///
 /// \brief Read-only line edit that shows a selected OPC UA node.
@@ -18,11 +26,18 @@
 /// and exposes the NodeId as its tooltip. The inherited reset action clears the
 /// node and emits nodeCleared().
 ///
+/// Address-space nodes can be dropped onto the field; an optional acceptor
+/// decides which nodes are eligible, and accepted drops update the field and
+/// emit nodeDropped().
+///
 class NodeLineEdit : public ValueLineEdit
 {
     Q_OBJECT
 
 public:
+    /// \brief Predicate deciding whether a dragged node may be dropped.
+    using NodeAcceptor = std::function<bool(const OpcUaNodeInfo &)>;
+
     ///
     /// \brief Constructs the line edit and wires the clear action.
     /// \param parent Parent widget.
@@ -63,9 +78,23 @@ public:
                  const QString &displayPath = {});
 
     ///
+    /// \brief Displays a node described by browsed address-space information.
+    /// \param node Node to display; the display name falls back to the
+    ///        browse name and then the NodeId.
+    ///
+    void setNode(const OpcUaNodeInfo &node);
+
+    ///
     /// \brief Clears the displayed node without emitting nodeCleared().
     ///
     void clearNode();
+
+    ///
+    /// \brief Restricts which dragged nodes the field accepts.
+    /// \param acceptor Predicate returning true for droppable nodes; an empty
+    ///        acceptor accepts any node with a NodeId.
+    ///
+    void setNodeAcceptor(NodeAcceptor acceptor);
 
 signals:
     ///
@@ -73,10 +102,23 @@ signals:
     ///
     void nodeCleared();
 
+    ///
+    /// \brief Emitted after an accepted node is dropped onto the field.
+    /// \param node The dropped node.
+    ///
+    void nodeDropped(const OpcUaNodeInfo &node);
+
+protected:
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dragMoveEvent(QDragMoveEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
+
 private:
     void updateDisplay();
+    bool acceptsDrag(const QMimeData *mimeData, OpcUaNodeInfo *node) const;
 
-    QString _nodeId;
-    QString _nodeDisplayName;
-    QString _nodeDisplayPath;
+    NodeAcceptor _acceptNode;
+    QString      _nodeId;
+    QString      _nodeDisplayName;
+    QString      _nodeDisplayPath;
 };

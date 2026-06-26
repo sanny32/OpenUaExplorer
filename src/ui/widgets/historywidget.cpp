@@ -9,13 +9,9 @@
 #include <QAbstractButton>
 #include <QDateTime>
 #include <QDateTimeEdit>
-#include <QDragMoveEvent>
-#include <QDropEvent>
 #include <QFileDialog>
 #include <QHeaderView>
-#include <QLineEdit>
 #include <QMessageBox>
-#include <QMimeData>
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QSpinBox>
@@ -24,7 +20,6 @@
 #include "appsettings.h"
 #include "headerview.h"
 #include "historywidget.h"
-#include "models/addressspacemimedata.h"
 #include "models/historymodel.h"
 #include "nodelineedit.h"
 #include "tableview.h"
@@ -33,19 +28,6 @@
 namespace {
 
 constexpr int historyDateTimeEditMinimumWidth = 190;
-
-///
-/// \brief Reads a dropped variable node from address-space MIME data.
-/// \param mimeData MIME data to read.
-/// \param node Destination for the decoded node.
-/// \return True when the data contains a variable node with a NodeId.
-///
-bool decodeDroppedVariable(const QMimeData *mimeData, OpcUaNodeInfo *node)
-{
-    if (!AddressSpaceMime::decodeNode(mimeData, node))
-        return false;
-    return OpcUa::isVariable(node->nodeClass) && !node->nodeId.isEmpty();
-}
 
 ///
 /// \brief Makes a string safe for use as one file-name segment.
@@ -203,50 +185,6 @@ void HistoryWidget::setTimestampMode(AppSettings::TimestampMode mode)
 }
 
 ///
-/// \brief Handles address-space node drag/drop events on the history node field.
-/// \param watched Object receiving the event.
-/// \param event Event to filter.
-/// \return True when the event was consumed.
-///
-bool HistoryWidget::eventFilter(QObject *watched, QEvent *event)
-{
-    const bool historyNodeTarget = OpcUa::isHistoryReadSupported() && watched == ui->historyNodeEdit;
-    if (!historyNodeTarget)
-        return QWidget::eventFilter(watched, event);
-
-    if (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove) {
-        auto *dragEvent = static_cast<QDragMoveEvent *>(event);
-        OpcUaNodeInfo node;
-        if (decodeDroppedVariable(dragEvent->mimeData(), &node)) {
-            dragEvent->setDropAction(Qt::CopyAction);
-            dragEvent->accept();
-            return true;
-        }
-        dragEvent->ignore();
-        return false;
-    }
-
-    if (event->type() == QEvent::Drop) {
-        auto *dropEvent = static_cast<QDropEvent *>(event);
-        OpcUaNodeInfo node;
-        if (decodeDroppedVariable(dropEvent->mimeData(), &node)) {
-            const QString label = node.displayName.isEmpty()
-                ? (node.browseName.isEmpty() ? node.nodeId : node.browseName)
-                : node.displayName;
-            ui->historyNodeEdit->setNode(node.nodeId, label, node.displayPath);
-            updateActionButtons();
-            dropEvent->setDropAction(Qt::CopyAction);
-            dropEvent->accept();
-            return true;
-        }
-        dropEvent->ignore();
-        return false;
-    }
-
-    return QWidget::eventFilter(watched, event);
-}
-
-///
 /// \brief Binds and lays out the history table and wires the toolbar.
 ///
 void HistoryWidget::setupHistoryView()
@@ -279,8 +217,11 @@ void HistoryWidget::setupHistoryView()
     ui->historyTable->setColumnWidth(HistoryModel::ColServerTimestamp, 200);
     ui->historyTable->setColumnWidth(HistoryModel::ColStatus,          90 );
 
-    ui->historyNodeEdit->setAcceptDrops(true);
-    ui->historyNodeEdit->installEventFilter(this);
+    ui->historyNodeEdit->setNodeAcceptor([](const OpcUaNodeInfo &node) {
+        return OpcUa::isHistoryReadSupported() && OpcUa::isVariable(node.nodeClass);
+    });
+    connect(ui->historyNodeEdit, &NodeLineEdit::nodeDropped, this,
+            [this] { updateActionButtons(); });
 
     const QDateTime now = QDateTime::currentDateTime();
     ui->historyEndEdit->setDateTime(now);
