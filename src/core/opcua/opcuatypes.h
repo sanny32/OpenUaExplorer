@@ -124,6 +124,8 @@ struct OpcUaNodeInfo
     QString browseName;
     /// \brief DisplayName text.
     QString displayName;
+    /// \brief Display path built from browsed parent nodes.
+    QString displayPath;
     /// \brief Reference type that led to this node.
     QString referenceTypeId;
     /// \brief OPC UA NodeClass numeric value.

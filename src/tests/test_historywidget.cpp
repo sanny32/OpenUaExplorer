@@ -31,6 +31,7 @@ private slots:
     void exportButtonFollowsResults();
     void exportFileNameDescribesQuery();
     void dateTimeFieldsFitZoneSuffix();
+    void nodeFieldShowsNameAndNodeId();
     void nodeClearClearsResults();
     void clearButtonUsesTrashIcon();
 };
@@ -102,6 +103,31 @@ void TestHistoryWidget::dateTimeFieldsFitZoneSuffix()
 
     QVERIFY(startEdit->minimumWidth() >= 190);
     QVERIFY(endEdit->minimumWidth() >= 190);
+}
+
+///
+/// \brief The selected History node field shows both display name and NodeId.
+///
+void TestHistoryWidget::nodeFieldShowsNameAndNodeId()
+{
+    if (!OpcUa::isHistoryReadSupported())
+        QSKIP("HistoryRead is not supported by this Qt OPC UA build.");
+
+    HistoryWidget widget;
+    auto *nodeEdit = widget.findChild<ValueLineEdit *>(QStringLiteral("historyNodeEdit"));
+    QVERIFY(nodeEdit);
+
+    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"), QStringLiteral("Temperature"));
+    QCOMPARE(nodeEdit->text(), QStringLiteral("Temperature (ns=2;s=Temperature)"));
+    QCOMPARE(nodeEdit->toolTip(), QStringLiteral("ns=2;s=Temperature"));
+
+    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"),
+                                 QStringLiteral("Temperature"),
+                                 QStringLiteral("Objects/Device/Temperature"));
+    QCOMPARE(nodeEdit->text(), QStringLiteral("Objects/Device/Temperature (ns=2;s=Temperature)"));
+
+    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"), QStringLiteral("ns=2;s=Temperature"));
+    QCOMPARE(nodeEdit->text(), QStringLiteral("ns=2;s=Temperature"));
 }
 
 ///

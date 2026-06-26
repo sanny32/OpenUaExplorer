@@ -172,14 +172,16 @@ void DataView::setHistoryResults(const QVector<OpcUaHistoryValue> &values)
 ///
 /// \brief Targets a node on the History page and requests its history for the current range.
 /// \param nodeId Node whose history should be read.
-/// \param displayName Human-readable name shown in the node field.
+/// \param displayName Human-readable node name.
+/// \param displayPath Human-readable path shown in the node field.
 ///
-void DataView::requestHistoryForNode(const QString &nodeId, const QString &displayName)
+void DataView::requestHistoryForNode(const QString &nodeId, const QString &displayName,
+                                     const QString &displayPath)
 {
     if (!OpcUa::isHistoryReadSupported())
         return;
     setCurrentPage(HistoryPage);
-    ui->historyWidget->requestHistoryForNode(nodeId, displayName);
+    ui->historyWidget->requestHistoryForNode(nodeId, displayName, displayPath);
 }
 
 ///

@@ -150,9 +150,11 @@ public:
     ///
     /// \brief Targets a node on the History page and requests its history for the current range.
     /// \param nodeId Node whose history should be read.
-    /// \param displayName Human-readable name shown in the node field.
+    /// \param displayName Human-readable node name.
+    /// \param displayPath Human-readable path shown in the node field.
     ///
-    void requestHistoryForNode(const QString &nodeId, const QString &displayName);
+    void requestHistoryForNode(const QString &nodeId, const QString &displayName,
+                               const QString &displayPath = {});
 
     ///
     /// \brief Builds the default CSV export file name for the current history query.

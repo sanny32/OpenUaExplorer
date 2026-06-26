@@ -74,6 +74,19 @@ QString fileNameDateTime(const QDateTime &value)
 }
 
 ///
+/// \brief Formats the selected node for the History toolbar field.
+/// \param nodeId OPC UA NodeId.
+/// \param displayName Human-readable node name or path.
+/// \return Display name with NodeId when both values are distinct.
+///
+QString historyNodeText(const QString &nodeId, const QString &displayName)
+{
+    if (displayName.isEmpty() || displayName == nodeId)
+        return nodeId;
+    return QStringLiteral("%1 (%2)").arg(displayName, nodeId);
+}
+
+///
 /// \brief Formats a date-time's UTC offset as a "+HH:mm" zone indicator.
 /// \param dateTime Date-time whose offset is rendered; honours DST for local times.
 /// \return Signed zone offset, e.g. "+03:00".
@@ -128,16 +141,21 @@ void HistoryWidget::setHistoryResults(const QVector<OpcUaHistoryValue> &values)
 ///
 /// \brief Targets a node and requests its history for the current range.
 /// \param nodeId Node whose history should be read.
-/// \param displayName Human-readable name shown in the node field.
+/// \param displayName Human-readable node name.
+/// \param displayPath Human-readable path shown in the node field.
 ///
-void HistoryWidget::requestHistoryForNode(const QString &nodeId, const QString &displayName)
+void HistoryWidget::requestHistoryForNode(const QString &nodeId, const QString &displayName,
+                                          const QString &displayPath)
 {
     if (!OpcUa::isHistoryReadSupported())
         return;
     if (nodeId.isEmpty())
         return;
     _historyNodeId = nodeId;
-    ui->historyNodeEdit->setText(displayName.isEmpty() ? nodeId : displayName);
+    _historyNodeDisplayName = displayName;
+    _historyNodeDisplayPath = displayPath;
+    const QString label = displayPath.isEmpty() ? displayName : displayPath;
+    ui->historyNodeEdit->setText(historyNodeText(nodeId, label));
     ui->historyNodeEdit->setToolTip(nodeId);
     updateActionButtons();
     requestHistoryRead();
@@ -150,7 +168,8 @@ void HistoryWidget::requestHistoryForNode(const QString &nodeId, const QString &
 QString HistoryWidget::suggestedHistoryCsvFileName() const
 {
     const QString tag = fileNameSegment(
-        ui->historyNodeEdit->text().isEmpty() ? _historyNodeId : ui->historyNodeEdit->text(),
+        !_historyNodeDisplayName.isEmpty() ? _historyNodeDisplayName
+        : (_historyNodeDisplayPath.isEmpty() ? _historyNodeId : _historyNodeDisplayPath),
         QStringLiteral("history"));
     QStringList parts = {
         tag,
@@ -230,7 +249,10 @@ bool HistoryWidget::eventFilter(QObject *watched, QEvent *event)
             const QString label = node.displayName.isEmpty()
                 ? (node.browseName.isEmpty() ? node.nodeId : node.browseName)
                 : node.displayName;
-            ui->historyNodeEdit->setText(label);
+            _historyNodeDisplayName = label;
+            _historyNodeDisplayPath = node.displayPath;
+            const QString fieldLabel = node.displayPath.isEmpty() ? label : node.displayPath;
+            ui->historyNodeEdit->setText(historyNodeText(node.nodeId, fieldLabel));
             ui->historyNodeEdit->setToolTip(node.nodeId);
             updateActionButtons();
             dropEvent->setDropAction(Qt::CopyAction);
@@ -325,6 +347,8 @@ void HistoryWidget::updateActionButtons()
 void HistoryWidget::clearHistoryNode()
 {
     _historyNodeId.clear();
+    _historyNodeDisplayName.clear();
+    _historyNodeDisplayPath.clear();
     ui->historyNodeEdit->clear();
     ui->historyNodeEdit->setToolTip(QString());
     _historyModel->clear();

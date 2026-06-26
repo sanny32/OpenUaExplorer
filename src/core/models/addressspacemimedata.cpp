@@ -40,6 +40,7 @@ QMimeData *AddressSpaceMime::createNodeMimeData(const OpcUaNodeInfo &node)
            << node.nodeId
            << node.browseName
            << node.displayName
+           << node.displayPath
            << node.referenceTypeId
            << node.nodeClass
            << node.hasChildren;
@@ -69,12 +70,13 @@ bool AddressSpaceMime::decodeNode(const QMimeData *mimeData, OpcUaNodeInfo *node
            >> decoded.nodeId
            >> decoded.browseName
            >> decoded.displayName
+           >> decoded.displayPath
            >> decoded.referenceTypeId
            >> decoded.nodeClass
            >> decoded.hasChildren;
-    if (version != addressSpaceNodeMimeVersion || stream.status() != QDataStream::Ok)
+    if (version != addressSpaceNodeMimeVersion || stream.status() != QDataStream::Ok) 
         return false;
-
+    
     *node = decoded;
     return true;
 }

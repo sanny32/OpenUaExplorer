@@ -511,6 +511,7 @@ void TestModels::addressSpaceFindByNodeIdAndDisplayName()
     const QModelIndex byId = model.findByNodeId(child.nodeId);
     QVERIFY(byId.isValid());
     QCOMPARE(model.nodeInfo(byId).displayName, child.displayName);
+    QCOMPARE(model.nodeInfo(byId).displayPath, QStringLiteral("Root/Objects"));
 
     const QModelIndex byName = model.findFirst(child.displayName);
     QVERIFY(byName.isValid());
@@ -585,6 +586,7 @@ void TestModels::addressSpaceDragMimeIncludesVariableNode()
     QVERIFY(AddressSpaceMime::decodeNode(variableMime.data(), &decoded));
     QCOMPARE(decoded.nodeId, variable.nodeId);
     QCOMPARE(decoded.displayName, variable.displayName);
+    QCOMPARE(decoded.displayPath, QStringLiteral("Root/Temperature"));
     QCOMPARE(decoded.nodeClass, variable.nodeClass);
 
     QScopedPointer<QMimeData> objectMime(model.mimeData({objectIndex}));

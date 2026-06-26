@@ -11,117 +11,121 @@
    </rect>
   </property>
   <layout class="QVBoxLayout" name="historyLayout">
-   <item>
-    <layout class="QHBoxLayout" name="historyToolbarLayout">
-     <item>
-      <widget class="ValueLineEdit" name="historyNodeEdit">
-       <property name="readOnly">
-        <bool>true</bool>
-       </property>
-       <property name="placeholderText">
-        <string>Drop a node or use Read History…</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="historyStartLabel">
-       <property name="text">
-        <string>Start</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="DateTimeEdit" name="historyStartEdit">
-       <property name="displayFormat">
-        <string>yyyy-MM-dd HH:mm:ss</string>
-       </property>
-       <property name="calendarPopup">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="historyEndLabel">
-       <property name="text">
-        <string>End</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="DateTimeEdit" name="historyEndEdit">
-       <property name="displayFormat">
-        <string>yyyy-MM-dd HH:mm:ss</string>
-       </property>
-       <property name="calendarPopup">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="historyMaxLabel">
-       <property name="text">
-        <string>Max</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QSpinBox" name="historyMaxEdit">
-       <property name="specialValueText">
-        <string>No limit</string>
-       </property>
-       <property name="maximum">
-        <number>1000000</number>
-       </property>
-       <property name="value">
-        <number>1000</number>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="ThemedToolButton" name="historyReadButton">
-       <property name="text">
-        <string>Read</string>
-       </property>
-       <property name="toolButtonStyle">
-        <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="historyToolbarSpacer">
-       <property name="orientation">
-        <enum>Qt::Orientation::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="ThemedToolButton" name="historyClearButton">
-       <property name="text">
-        <string>Clear</string>
-       </property>
-       <property name="toolButtonStyle">
-        <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="ThemedToolButton" name="historyExportButton">
-       <property name="text">
-        <string>Export</string>
-       </property>
-       <property name="toolButtonStyle">
-        <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
+    <item>
+     <layout class="QVBoxLayout" name="historyToolbarLayout">
+      <item>
+       <widget class="ValueLineEdit" name="historyNodeEdit">
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="placeholderText">
+         <string>Drop a node or use Read History…</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="historyQueryLayout">
+        <item>
+         <widget class="QLabel" name="historyStartLabel">
+          <property name="text">
+           <string>Start</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="DateTimeEdit" name="historyStartEdit">
+          <property name="displayFormat">
+           <string>yyyy-MM-dd HH:mm:ss</string>
+          </property>
+          <property name="calendarPopup">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="historyEndLabel">
+          <property name="text">
+           <string>End</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="DateTimeEdit" name="historyEndEdit">
+          <property name="displayFormat">
+           <string>yyyy-MM-dd HH:mm:ss</string>
+          </property>
+          <property name="calendarPopup">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="historyMaxLabel">
+          <property name="text">
+           <string>Max</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="historyMaxEdit">
+          <property name="specialValueText">
+           <string>No limit</string>
+          </property>
+          <property name="maximum">
+           <number>1000000</number>
+          </property>
+          <property name="value">
+           <number>1000</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="ThemedToolButton" name="historyReadButton">
+          <property name="text">
+           <string>Read</string>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="historyToolbarSpacer">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="ThemedToolButton" name="historyClearButton">
+          <property name="text">
+           <string>Clear</string>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="ThemedToolButton" name="historyExportButton">
+          <property name="text">
+           <string>Export</string>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
    <item>
     <widget class="TableView" name="historyTable"/>
    </item>

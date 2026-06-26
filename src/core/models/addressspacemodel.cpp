@@ -10,10 +10,44 @@
 
 #include <QMimeData>
 #include <QSet>
+#include <QStringList>
 
 #include "addressspacemimedata.h"
 
 namespace {
+
+///
+/// \brief Returns the user-facing name for an address-space node.
+/// \param node Node metadata.
+/// \return DisplayName, BrowseName, or NodeId.
+///
+QString nodeLabel(const OpcUaNodeInfo &node)
+{
+    if (!node.displayName.isEmpty())
+        return node.displayName;
+    if (!node.browseName.isEmpty())
+        return node.browseName;
+    return node.nodeId;
+}
+
+///
+/// \brief Builds a display path by appending a node label to its parent's path.
+/// \param parent Parent tree node.
+/// \param node Child node metadata.
+/// \return Slash-separated display path.
+///
+QString displayPath(AddressSpaceNode *parent, const OpcUaNodeInfo &node)
+{
+    const QString label = nodeLabel(node);
+    if (label.isEmpty())
+        return {};
+
+    QStringList parts;
+    if (parent && !parent->info().displayPath.isEmpty())
+        parts.append(parent->info().displayPath);
+    parts.append(label);
+    return parts.join(QLatin1Char('/'));
+}
 
 ///
 /// \brief Returns browse results with repeated NodeIds removed.
@@ -49,6 +83,8 @@ AddressSpaceNode::AddressSpaceNode(const OpcUaNodeInfo &info, AddressSpaceNode *
     : _info(info)
     , _parent(parent)
 {
+    if (_info.displayPath.isEmpty())
+        _info.displayPath = displayPath(parent, _info);
 }
 
 ///

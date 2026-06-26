@@ -250,8 +250,10 @@ void MainWindow::on_actionAddToDataAccess_triggered()
 void MainWindow::on_actionReadHistory_triggered()
 {
     if (OpcUa::canReadHistory(_selectedNodeDetails))
-        ui->dataView->requestHistoryForNode(_selectedNodeDetails.nodeId,
-                                            _selectedNodeDetails.displayName);
+        ui->dataView->requestHistoryForNode(
+            _selectedNodeDetails.nodeId,
+            _selectedNodeDetails.displayName,
+            _selectionContext->currentNode().displayPath);
 }
 
 ///
@@ -622,7 +624,7 @@ void MainWindow::setupPlugins()
     if (OpcUa::isHistoryReadSupported()) {
         connect(_selectionContext, &SelectionContext::historyReadRequested,
                 this, [this](const OpcUaNodeInfo &node) {
-            ui->dataView->requestHistoryForNode(node.nodeId, node.displayName);
+            ui->dataView->requestHistoryForNode(node.nodeId, node.displayName, node.displayPath);
         });
     }
     connect(_attributePlugin, &AttributeModule::writeFinished,
