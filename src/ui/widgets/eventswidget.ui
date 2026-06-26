@@ -64,8 +64,24 @@
      </item>
      <item>
       <widget class="ThemedToolButton" name="eventsClearButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
         <string>Clear</string>
+       </property>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="ThemedToolButton" name="eventsExportButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Export</string>
        </property>
        <property name="toolButtonStyle">
         <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>

@@ -51,6 +51,12 @@ public:
     void requestEventMonitoring();
 
     ///
+    /// \brief Builds the default CSV export file name for displayed events.
+    /// \return Suggested CSV file name.
+    ///
+    QString suggestedEventsCsvFileName() const;
+
+    ///
     /// \brief Appends received events to the table.
     /// \param events Events to display.
     ///
@@ -97,6 +103,8 @@ signals:
 private:
     void setupEventsView();
     void configureToolbar();
+    void updateActionButtons();
+    void exportEventsToCsv();
 
     Ui::EventsWidget *ui;
     EventsModel      *_eventsModel;

@@ -69,6 +69,7 @@ private slots:
     void eventsModelAddEventsAppendsAndCaps();
     void historyModelHeaderRolesAndMutators();
     void historyModelExportsCsv();
+    void eventsModelExportsCsv();
     void referencesModelHeaderAndEdges();
     void subscriptionsModelHeaderRolesAndReset();
     void subscriptionsModelEditingAndMutators();
@@ -646,6 +647,24 @@ void TestModels::historyModelExportsCsv()
              QStringLiteral("#,Source Timestamp,Server Timestamp,Value,Status\n"
                             "1,2024-01-02 03:04:05.006Z,2024-01-02 03:04:06.007Z,"
                             "\"12,\"\"quoted\"\"\nline\",\"Good,Clamped\"\n"));
+}
+
+///
+/// \brief EventsModel exports displayed event rows as escaped CSV.
+///
+void TestModels::eventsModelExportsCsv()
+{
+    EventsModel model;
+    model.setItems({{QStringLiteral("2026-06-26 11:05:20.335+03:00"),
+                     QStringLiteral("500"),
+                     QStringLiteral("MyLevel"),
+                     QStringLiteral("Level, \"exceeded\"\nagain"),
+                     QStringLiteral("ns=0;i=9482")}});
+
+    QCOMPARE(model.toCsv(),
+             QStringLiteral("Time,Severity,Source,Message,Event Type\n"
+                            "2026-06-26 11:05:20.335+03:00,500,MyLevel,"
+                            "\"Level, \"\"exceeded\"\"\nagain\",ns=0;i=9482\n"));
 }
 
 ///

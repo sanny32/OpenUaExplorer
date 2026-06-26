@@ -7,8 +7,13 @@
 ///
 
 #include <QAbstractButton>
+#include <QFileDialog>
 #include <QHeaderView>
 #include <QLineEdit>
+#include <QMessageBox>
+#include <QRegularExpression>
+#include <QSaveFile>
+#include <QTextStream>
 
 #include "appsettings.h"
 #include "eventswidget.h"
@@ -17,6 +22,27 @@
 #include "opcua/attributeformatter.h"
 #include "tableview.h"
 #include "ui_eventswidget.h"
+
+namespace {
+
+///
+/// \brief Makes a string safe for use as one file-name segment.
+/// \param value Segment text.
+/// \param fallback Text used when the segment becomes empty.
+/// \return File-name segment without filesystem separators or control characters.
+///
+QString fileNameSegment(QString value, const QString &fallback)
+{
+    value = value.trimmed();
+    static const QRegularExpression invalidChars(QStringLiteral(R"([<>:"/\\|?*\x00-\x1f]+)"));
+    value.replace(invalidChars, QStringLiteral("_"));
+    value.replace(QRegularExpression(QStringLiteral(R"(\s+)")), QStringLiteral("_"));
+    while (value.endsWith(QLatin1Char('.')) || value.endsWith(QLatin1Char(' ')))
+        value.chop(1);
+    return value.isEmpty() ? fallback : value;
+}
+
+} // namespace
 
 ///
 /// \brief Builds the events widget and its table view.
@@ -30,6 +56,7 @@ EventsWidget::EventsWidget(QWidget *parent)
     ui->setupUi(this);
     setupEventsView();
     configureToolbar();
+    updateActionButtons();
 }
 
 ///
@@ -52,6 +79,7 @@ void EventsWidget::setEventSource(const QString &nodeId, const QString &displayN
     ui->eventsNodeEdit->setText(displayName.isEmpty() ? nodeId : displayName);
     ui->eventsSubscribeButton->setEnabled(!nodeId.isEmpty());
     ui->eventsUnsubscribeButton->setEnabled(false);
+    updateActionButtons();
 }
 
 ///
@@ -62,6 +90,18 @@ void EventsWidget::requestEventMonitoring()
     if (_eventsNodeId.isEmpty() || _subscribed)
         return;
     emit eventSubscribeRequested(_eventsNodeId, 1000.0);
+}
+
+///
+/// \brief Builds the default CSV export file name for displayed events.
+/// \return Suggested CSV file name.
+///
+QString EventsWidget::suggestedEventsCsvFileName() const
+{
+    const QString source = fileNameSegment(
+        ui->eventsNodeEdit->text().isEmpty() ? _eventsNodeId : ui->eventsNodeEdit->text(),
+        QStringLiteral("events"));
+    return QStringLiteral("events_%1.csv").arg(source);
 }
 
 ///
@@ -104,6 +144,7 @@ void EventsWidget::setEventMonitoringState(const QString &nodeId, bool subscribe
 void EventsWidget::clear()
 {
     _eventsModel->setItems({});
+    updateActionButtons();
 }
 
 ///
@@ -160,6 +201,7 @@ void EventsWidget::configureToolbar()
 {
     ui->eventsSubscribeButton->setIcon(QStringLiteral("subscribe"));
     ui->eventsUnsubscribeButton->setIcon(QStringLiteral("unsubscribe"));
+    ui->eventsExportButton->setIcon(QStringLiteral("export"));
     ui->eventsClearButton->setIcon(QStringLiteral("trash"));
 
     connect(ui->eventsSubscribeButton, &QAbstractButton::clicked,
@@ -171,4 +213,52 @@ void EventsWidget::configureToolbar()
     connect(ui->eventsClearButton, &QAbstractButton::clicked, this, [this]() {
         _eventsModel->clear();
     });
+    connect(ui->eventsExportButton, &QAbstractButton::clicked,
+            this, &EventsWidget::exportEventsToCsv);
+    connect(_eventsModel, &QAbstractItemModel::modelReset, this,
+            &EventsWidget::updateActionButtons);
+    connect(_eventsModel, &QAbstractItemModel::rowsInserted, this,
+            &EventsWidget::updateActionButtons);
+    connect(_eventsModel, &QAbstractItemModel::rowsRemoved, this,
+            &EventsWidget::updateActionButtons);
+}
+
+///
+/// \brief Enables toolbar actions that depend on displayed events.
+///
+void EventsWidget::updateActionButtons()
+{
+    const bool hasEvents = _eventsModel->rowCount() > 0;
+    ui->eventsExportButton->setEnabled(hasEvents);
+    ui->eventsClearButton->setEnabled(hasEvents);
+}
+
+///
+/// \brief Saves the currently displayed events as CSV.
+///
+void EventsWidget::exportEventsToCsv()
+{
+    if (_eventsModel->rowCount() == 0)
+        return;
+
+    const QString fileName = QFileDialog::getSaveFileName(
+        this, tr("Export Events"), suggestedEventsCsvFileName(),
+        tr("CSV Files (*.csv);;All Files (*)"));
+    if (fileName.isEmpty())
+        return;
+
+    QSaveFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, tr("Export Events"),
+                             tr("Could not open '%1' for writing.").arg(fileName));
+        return;
+    }
+
+    QTextStream stream(&file);
+    stream.setEncoding(QStringConverter::Utf8);
+    stream << _eventsModel->toCsv();
+    if (!file.commit()) {
+        QMessageBox::warning(this, tr("Export Events"),
+                             tr("Could not save '%1'.").arg(fileName));
+    }
 }

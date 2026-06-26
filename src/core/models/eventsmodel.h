@@ -78,6 +78,12 @@ public:
     void clear();
 
     ///
+    /// \brief Exports the visible event table data as CSV text.
+    /// \return CSV document with a header row.
+    ///
+    QString toCsv() const;
+
+    ///
     /// \brief Sets the text alignment for a column.
     /// \param column Column index.
     /// \param alignment Alignment to apply.
