@@ -144,6 +144,24 @@ public:
     }
 
     ///
+    /// \brief Reads historical events for a node over a time range.
+    /// \param nodeId Node whose event history is read.
+    /// \param start Inclusive range start.
+    /// \param end Inclusive range end.
+    /// \param numValuesPerNode Maximum events to return, or 0 for no limit.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    virtual void readHistoryEvents(const QString &nodeId, const QDateTime &start,
+                                   const QDateTime &end, quint32 numValuesPerNode, int timeoutMs)
+    {
+        Q_UNUSED(start)
+        Q_UNUSED(end)
+        Q_UNUSED(numValuesPerNode)
+        Q_UNUSED(timeoutMs)
+        emit historyEventsReady(nodeId, {}, tr("Event history read is not supported."));
+    }
+
+    ///
     /// \brief Enables Value monitoring for a node.
     /// \param nodeId Node to monitor.
     /// \param publishingInterval Publishing interval in milliseconds.
@@ -250,6 +268,14 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void historyDataReady(QString nodeId, QVector<OpcUaHistoryValue> values, QString error);
+
+    ///
+    /// \brief Emitted when an event history read finishes.
+    /// \param nodeId Node whose event history was read.
+    /// \param events Historical events in server order.
+    /// \param error Error description, empty on success.
+    ///
+    void historyEventsReady(QString nodeId, QVector<OpcUaEvent> events, QString error);
 
     ///
     /// \brief Emitted when a write finishes.

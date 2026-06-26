@@ -7,6 +7,7 @@
 ///
 
 #include <QLoggingCategory>
+#include <QDateTime>
 #include <QSet>
 #include <QSignalSpy>
 #include <QString>
@@ -34,6 +35,7 @@ private slots:
     void pluginsHaveDistinctNamesAndCategories();
     void subscribeApiReachesClientService();
     void eventSubscribeApiReachesClientService();
+    void eventHistoryApiReachesClientService();
 };
 
 namespace {
@@ -110,6 +112,25 @@ void TestPlugins::eventSubscribeApiReachesClientService()
 
     QSignalSpy spy(&module, &EventsModule::eventMonitoringFinished);
     module.subscribeEvents(QStringLiteral("ns=0;i=2253"), 500.0);
+    QTRY_COMPARE(spy.count(), 1);
+    QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=0;i=2253"));
+}
+
+///
+/// \brief The EventsModule event history API forwards to the client service.
+///
+void TestPlugins::eventHistoryApiReachesClientService()
+{
+    OpcUaClientService service;
+    EventsModule module;
+    ServiceContext context(&service, nullptr);
+    module.initialize(context);
+
+    QSignalSpy spy(&module, &EventsModule::eventsHistoryReady);
+    module.readHistory(QStringLiteral("ns=0;i=2253"),
+                       QDateTime(QDate(2026, 6, 25), QTime(12, 0), Qt::UTC),
+                       QDateTime(QDate(2026, 6, 25), QTime(13, 0), Qt::UTC),
+                       1000);
     QTRY_COMPARE(spy.count(), 1);
     QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=0;i=2253"));
 }

@@ -35,6 +35,7 @@ private slots:
     void selectionContextPublishesOnlyCurrentDetails();
     void selectionContextRequestsHistoryOnlyForHistorizingNodes();
     void selectionContextRequestsEventMonitorOnlyForEventNotifiers();
+    void selectionContextRequestsEventHistoryOnlyForHistoryReadNotifiers();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -198,6 +199,36 @@ void TestFeatures::selectionContextRequestsEventMonitorOnlyForEventNotifiers()
     selection.setDetails(details, QString());
     QCOMPARE(eventSpy.count(), 1);
     QCOMPARE(eventSpy.first().first().value<OpcUaNodeInfo>().nodeId, node.nodeId);
+}
+
+///
+/// \brief SelectionContext waits for details and requests event history only for HistoryRead notifiers.
+///
+void TestFeatures::selectionContextRequestsEventHistoryOnlyForHistoryReadNotifiers()
+{
+    SelectionContext selection;
+    QSignalSpy eventHistorySpy(&selection, &SelectionContext::eventsHistoryReadRequested);
+    QVERIFY(eventHistorySpy.isValid());
+
+    OpcUaNodeInfo node;
+    node.nodeId = QStringLiteral("ns=0;i=2253");
+    node.nodeClass = OpcUa::Object;
+    node.displayName = QStringLiteral("Server");
+
+    selection.requestEventsHistory(node);
+    QCOMPARE(eventHistorySpy.count(), 0);
+
+    OpcUaNodeDetails details;
+    details.nodeId = node.nodeId;
+    details.nodeClass = OpcUa::Object;
+    selection.setDetails(details, QString());
+    QCOMPARE(eventHistorySpy.count(), 0);
+
+    selection.requestEventsHistory(node);
+    details.eventNotifier = OpcUa::HistoryRead;
+    selection.setDetails(details, QString());
+    QCOMPARE(eventHistorySpy.count(), 1);
+    QCOMPARE(eventHistorySpy.first().first().value<OpcUaNodeInfo>().nodeId, node.nodeId);
 }
 
 ///

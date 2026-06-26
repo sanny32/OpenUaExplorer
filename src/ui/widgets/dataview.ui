@@ -43,12 +43,17 @@
        <string>Events</string>
       </attribute>
      </widget>
-     <widget class="HistoryWidget" name="historyWidget">
-      <attribute name="title">
-       <string>History</string>
-      </attribute>
+      <widget class="DataHistoryWidget" name="dataHistoryWidget">
+       <attribute name="title">
+        <string>Data History</string>
+       </attribute>
+      </widget>
+      <widget class="EventsHistoryWidget" name="eventsHistoryWidget">
+       <attribute name="title">
+        <string>Events History</string>
+       </attribute>
+      </widget>
      </widget>
-    </widget>
    </item>
   </layout>
  </widget>
@@ -71,13 +76,19 @@
    <header>widgets/eventswidget.h</header>
    <container>1</container>
   </customwidget>
-  <customwidget>
-   <class>HistoryWidget</class>
-   <extends>QWidget</extends>
-   <header>widgets/historywidget.h</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
+   <customwidget>
+    <class>DataHistoryWidget</class>
+    <extends>QWidget</extends>
+    <header>widgets/datahistorywidget.h</header>
+    <container>1</container>
+   </customwidget>
+   <customwidget>
+    <class>EventsHistoryWidget</class>
+    <extends>QWidget</extends>
+    <header>widgets/eventshistorywidget.h</header>
+    <container>1</container>
+   </customwidget>
+  </customwidgets>
  <resources/>
  <connections/>
 </ui>

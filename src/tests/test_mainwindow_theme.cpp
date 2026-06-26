@@ -20,8 +20,6 @@
 #include <QToolButton>
 #include <QtGlobal>
 
-#include <algorithm>
-
 #include "appsettings.h"
 #include "application.h"
 #include "mainwindow.h"
@@ -192,34 +190,46 @@ void TestMainWindowTheme::nodeDetailsDockFollowsViewAction()
 }
 
 ///
-/// \brief HistoryRead menu and toolbar actions are visible only with supporting Qt OPC UA APIs.
+/// \brief HistoryRead menu actions are visible only with supporting Qt OPC UA APIs.
 ///
 void TestMainWindowTheme::historyActionsFollowQtSupport()
 {
     MainWindow window;
-    auto *readHistory = window.findChild<QAction *>(QStringLiteral("actionReadHistory"));
-    auto *viewHistory = window.findChild<QAction *>(QStringLiteral("actionViewHistory"));
+    auto *readDataHistory = window.findChild<QAction *>(QStringLiteral("actionReadDataHistory"));
+    auto *readEventsHistory = window.findChild<QAction *>(QStringLiteral("actionReadEventsHistory"));
+    auto *viewDataHistory = window.findChild<QAction *>(QStringLiteral("actionViewDataHistory"));
+    auto *viewEventsHistory = window.findChild<QAction *>(QStringLiteral("actionViewEventsHistory"));
     auto *dataMenu = window.findChild<QMenu *>(QStringLiteral("menuData"));
     auto *viewMenu = window.findChild<QMenu *>(QStringLiteral("menuView"));
     auto *toolbar = window.findChild<QToolBar *>(QStringLiteral("mainToolBar"));
-    QVERIFY(readHistory);
-    QVERIFY(viewHistory);
+    QVERIFY(readDataHistory);
+    QVERIFY(readEventsHistory);
+    QVERIFY(viewDataHistory);
+    QVERIFY(viewEventsHistory);
     QVERIFY(dataMenu);
     QVERIFY(viewMenu);
     QVERIFY(toolbar);
 
     const bool supported = OpcUa::isHistoryReadSupported();
-    QCOMPARE(readHistory->isVisible(), supported);
-    QCOMPARE(viewHistory->isVisible(), supported);
-    QCOMPARE(dataMenu->actions().contains(readHistory), supported);
-    QCOMPARE(viewMenu->actions().contains(viewHistory), supported);
+    QCOMPARE(readDataHistory->isVisible(), supported);
+    QCOMPARE(readEventsHistory->isVisible(), supported);
+    QCOMPARE(viewDataHistory->isVisible(), supported);
+    QCOMPARE(viewEventsHistory->isVisible(), supported);
+    QCOMPARE(dataMenu->actions().contains(readDataHistory), supported);
+    QCOMPARE(dataMenu->actions().contains(readEventsHistory), supported);
+    QCOMPARE(viewMenu->actions().contains(viewDataHistory), supported);
+    QCOMPARE(viewMenu->actions().contains(viewEventsHistory), supported);
 
-    // The toolbar wraps each action in a MainToolButton (added via addWidget), so the
-    // action is exposed through a button's defaultAction() rather than toolbar->actions().
-    const QList<QToolButton *> buttons = toolbar->findChildren<QToolButton *>();
-    const bool readHistoryInToolbar = std::any_of(buttons.cbegin(), buttons.cend(),
-        [readHistory](const QToolButton *button) { return button->defaultAction() == readHistory; });
-    QCOMPARE(readHistoryInToolbar, supported);
+    bool readDataHistoryInToolbar = false;
+    bool readEventsHistoryInToolbar = false;
+    for (const QToolButton *button : toolbar->findChildren<QToolButton *>()) {
+        readDataHistoryInToolbar = readDataHistoryInToolbar
+                                || button->defaultAction() == readDataHistory;
+        readEventsHistoryInToolbar = readEventsHistoryInToolbar
+                                  || button->defaultAction() == readEventsHistory;
+    }
+    QVERIFY(!readDataHistoryInToolbar);
+    QVERIFY(!readEventsHistoryInToolbar);
 }
 
 ///

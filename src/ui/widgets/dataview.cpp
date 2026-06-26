@@ -12,7 +12,8 @@
 #include "dataaccesswidget.h"
 #include "dataview.h"
 #include "eventswidget.h"
-#include "historywidget.h"
+#include "eventshistorywidget.h"
+#include "datahistorywidget.h"
 #include "subscriptionswidget.h"
 #include "ui_dataview.h"
 
@@ -26,7 +27,8 @@ DataView::DataView(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->mainTabs->setTabVisible(HistoryPage, OpcUa::isHistoryReadSupported());
+    ui->mainTabs->setTabVisible(DataHistoryPage, OpcUa::isHistoryReadSupported());
+    ui->mainTabs->setTabVisible(EventsHistoryPage, OpcUa::isHistoryReadSupported());
 
     connect(ui->subscriptionsWidget, &SubscriptionsWidget::subscriptionsChanged,
             ui->dataAccessWidget, &DataAccessWidget::setSubscriptions);
@@ -76,12 +78,21 @@ EventsWidget *DataView::events() const
 }
 
 ///
-/// \brief Returns the history tab widget.
-/// \return History widget.
+/// \brief Returns the data history tab widget.
+/// \return Data history widget.
 ///
-HistoryWidget *DataView::history() const
+DataHistoryWidget *DataView::dataHistory() const
 {
-    return ui->historyWidget;
+    return ui->dataHistoryWidget;
+}
+
+///
+/// \brief Returns the events history tab widget.
+/// \return Events history widget.
+///
+EventsHistoryWidget *DataView::eventsHistory() const
+{
+    return ui->eventsHistoryWidget;
 }
 
 ///
@@ -90,7 +101,7 @@ HistoryWidget *DataView::history() const
 ///
 void DataView::setCurrentPage(Page page)
 {
-    if (page == HistoryPage && !OpcUa::isHistoryReadSupported())
+    if ((page == DataHistoryPage || page == EventsHistoryPage) && !OpcUa::isHistoryReadSupported())
         page = DataAccessPage;
     ui->mainTabs->setCurrentIndex(static_cast<int>(page));
 }
@@ -113,7 +124,8 @@ void DataView::saveViewState(AppSettings &settings) const
     ui->dataAccessWidget->saveViewState(settings);
     ui->subscriptionsWidget->saveViewState(settings);
     ui->eventsWidget->saveViewState(settings);
-    ui->historyWidget->saveViewState(settings);
+    ui->dataHistoryWidget->saveViewState(settings);
+    ui->eventsHistoryWidget->saveViewState(settings);
 }
 
 ///
@@ -125,7 +137,8 @@ void DataView::restoreViewState(AppSettings &settings)
     ui->dataAccessWidget->restoreViewState(settings);
     ui->subscriptionsWidget->restoreViewState(settings);
     ui->eventsWidget->restoreViewState(settings);
-    ui->historyWidget->restoreViewState(settings);
+    ui->dataHistoryWidget->restoreViewState(settings);
+    ui->eventsHistoryWidget->restoreViewState(settings);
 }
 
 ///
@@ -161,27 +174,27 @@ void DataView::updateValues(const QVector<OpcUaDataValue> &values)
 }
 
 ///
-/// \brief Shows history samples in the History table.
-/// \param values History samples in time order.
+/// \brief Shows data history samples in the Data History table.
+/// \param values Data history samples in time order.
 ///
-void DataView::setHistoryResults(const QVector<OpcUaHistoryValue> &values)
+void DataView::setDataHistoryResults(const QVector<OpcUaHistoryValue> &values)
 {
-    ui->historyWidget->setHistoryResults(values);
+    ui->dataHistoryWidget->setDataHistoryResults(values);
 }
 
 ///
-/// \brief Targets a node on the History page and requests its history for the current range.
-/// \param nodeId Node whose history should be read.
+/// \brief Targets a node on the Data History page and requests its history for the current range.
+/// \param nodeId Node whose data history should be read.
 /// \param displayName Human-readable node name.
 /// \param displayPath Human-readable path shown in the node field.
 ///
-void DataView::requestHistoryForNode(const QString &nodeId, const QString &displayName,
+void DataView::requestDataHistoryForNode(const QString &nodeId, const QString &displayName,
                                      const QString &displayPath)
 {
     if (!OpcUa::isHistoryReadSupported())
         return;
-    setCurrentPage(HistoryPage);
-    ui->historyWidget->requestHistoryForNode(nodeId, displayName, displayPath);
+    setCurrentPage(DataHistoryPage);
+    ui->dataHistoryWidget->requestDataHistoryForNode(nodeId, displayName, displayPath);
 }
 
 ///
@@ -220,12 +233,34 @@ void DataView::appendEvents(const QVector<OpcUaEvent> &events)
 }
 
 ///
-/// \brief Builds the default CSV export file name for the current history query.
+/// \brief Shows historical events in the Events History table.
+/// \param events Events to display.
+///
+void DataView::setEventsHistoryResults(const QVector<OpcUaEvent> &events)
+{
+    ui->eventsHistoryWidget->setEventsHistoryResults(events);
+}
+
+///
+/// \brief Targets a node on the Events History page and requests its event history.
+/// \param nodeId Node whose event history should be read.
+/// \param displayName Human-readable node name.
+/// \param displayPath Human-readable path shown in the node field.
+///
+void DataView::requestEventsHistoryForNode(const QString &nodeId, const QString &displayName,
+                                           const QString &displayPath)
+{
+    setCurrentPage(EventsHistoryPage);
+    ui->eventsHistoryWidget->requestEventsHistoryForNode(nodeId, displayName, displayPath);
+}
+
+///
+/// \brief Builds the default CSV export file name for the current data history query.
 /// \return Suggested CSV file name.
 ///
-QString DataView::suggestedHistoryCsvFileName() const
+QString DataView::suggestedDataHistoryCsvFileName() const
 {
-    return ui->historyWidget->suggestedHistoryCsvFileName();
+    return ui->dataHistoryWidget->suggestedDataHistoryCsvFileName();
 }
 
 ///
@@ -239,14 +274,15 @@ void DataView::setNodeSubscribed(const QString &nodeId, bool subscribed)
 }
 
 ///
-/// \brief Clears the data, subscriptions, events, and history tabs.
+/// \brief Clears the data, subscriptions, live events, and history tabs.
 ///
 void DataView::clearRuntimeData()
 {
     ui->dataAccessWidget->clear();
     ui->subscriptionsWidget->reset();
     ui->eventsWidget->clear();
-    ui->historyWidget->clear();
+    ui->dataHistoryWidget->clear();
+    ui->eventsHistoryWidget->clear();
 }
 
 ///
@@ -256,5 +292,6 @@ void DataView::clearRuntimeData()
 void DataView::setTimestampMode(AppSettings::TimestampMode mode)
 {
     ui->dataAccessWidget->setTimestampMode(mode);
-    ui->historyWidget->setTimestampMode(mode);
+    ui->dataHistoryWidget->setTimestampMode(mode);
+    ui->eventsHistoryWidget->setTimestampMode(mode);
 }

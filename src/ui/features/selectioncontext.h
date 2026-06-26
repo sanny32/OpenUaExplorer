@@ -69,6 +69,12 @@ public slots:
     ///
     void requestEventMonitor(const OpcUaNodeInfo &node);
 
+    ///
+    /// \brief Requests an event history read for a node selected from a feature.
+    /// \param node Node whose event history should be read.
+    ///
+    void requestEventsHistory(const OpcUaNodeInfo &node);
+
 signals:
     ///
     /// \brief Emitted when a node becomes the current selection.
@@ -100,9 +106,16 @@ signals:
     ///
     void eventMonitorRequested(OpcUaNodeInfo node);
 
+    ///
+    /// \brief Emitted when a feature requests an event history read for a node.
+    /// \param node Node whose event history should be read.
+    ///
+    void eventsHistoryReadRequested(OpcUaNodeInfo node);
+
 private:
     OpcUaNodeInfo _currentNode;
     OpcUaNodeDetails _currentDetails;
     QString _pendingHistoryNodeId;
     QString _pendingEventNodeId;
+    QString _pendingEventsHistoryNodeId;
 };

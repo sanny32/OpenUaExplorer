@@ -21,6 +21,7 @@
 #include <QOpcUaClient>
 #include <QOpcUaEndpointDescription>
 #include <QOpcUaHistoryData>
+#include <QOpcUaHistoryEvent>
 #include <QOpcUaHistoryReadRawRequest>
 #include <QOpcUaHistoryReadResponse>
 #include <QOpcUaLocalizedText>
@@ -868,7 +869,108 @@ OpcUaEvent eventFromFields(const QString &nodeId, const QVariantList &fields)
     return event;
 }
 
+///
+/// \brief Maps a Qt event-history result into transport-neutral events.
+/// \param history Event-history result for a single node.
+/// \return Events in server order.
+///
+QVector<OpcUaEvent> historyEvents(const QOpcUaHistoryEvent &history)
+{
+    QVector<OpcUaEvent> events;
+    const QList<QVariantList> results = history.events();
+    events.reserve(results.size());
+    for (const QVariantList &fields : results)
+        events.append(eventFromFields(history.nodeId(), fields));
+    return events;
+}
+
 } // namespace
+
+///
+/// \brief Reads historical events for a node, emitting historyEventsReady().
+/// \param nodeId Node whose event history is read.
+/// \param start Inclusive range start.
+/// \param end Inclusive range end.
+/// \param numValuesPerNode Maximum events to return, or 0 for no limit.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::readHistoryEvents(const QString &nodeId, const QDateTime &start,
+                                       const QDateTime &end, quint32 numValuesPerNode,
+                                       int timeoutMs)
+{
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit historyEventsReady(nodeId, {}, tr("The OPC UA client is not connected."));
+        return;
+    }
+
+    QOpcUaNode *node = _d->connection.client()->node(nodeId);
+    if (!node) {
+        emit historyEventsReady(nodeId, {}, tr("Could not create node %1.").arg(nodeId));
+        return;
+    }
+
+    QOpcUaMonitoringParameters::EventFilter filter = baseEventFilter();
+    qCInfo(lcClient).noquote()
+        << QStringLiteral("HistoryReadEvents request: node=%1 startUtc=%2 endUtc=%3 numValues=%4")
+               .arg(nodeId, start.toUTC().toString(Qt::ISODateWithMs),
+                    end.toUTC().toString(Qt::ISODateWithMs))
+               .arg(numValuesPerNode);
+    QOpcUaHistoryReadResponse *response =
+        node->readHistoryEvents(start, end, filter, numValuesPerNode);
+    if (!response) {
+        node->deleteLater();
+        emit historyEventsReady(nodeId, {}, tr("The backend rejected the event history request."));
+        return;
+    }
+
+    response->setParent(this);
+    node->setParent(response);
+    const auto token = _d->requests.begin(QtOpcUaRequestCoordinator::Operation::HistoryEventsRead);
+    connect(response, &QOpcUaHistoryReadResponse::readHistoryEventsFinished, this,
+            [this, response, nodeId, token](const QList<QOpcUaHistoryEvent> &results,
+                                            QOpcUa::UaStatusCode serviceResult) {
+        if (!_d->requests.isCurrent(token)) {
+            response->deleteLater();
+            return;
+        }
+        qCInfo(lcClient).noquote()
+            << QStringLiteral("HistoryReadEvents reply: node=%1 serviceResult=%2 results=%3 "
+                              "nodeStatus=%4 count=%5 state=%6")
+                   .arg(nodeId, statusName(serviceResult))
+                   .arg(results.size())
+                   .arg(results.isEmpty() ? QStringLiteral("-")
+                                          : statusName(results.first().statusCode()))
+                   .arg(results.isEmpty() ? 0 : results.first().count())
+                   .arg(static_cast<int>(response->state()));
+        if (QOpcUa::isSuccessStatus(serviceResult) && response->hasMoreData()
+            && response->readMoreData())
+            return;
+        if (!_d->requests.settle(token)) {
+            response->deleteLater();
+            return;
+        }
+        QString error;
+        QVector<OpcUaEvent> events;
+        if (!QOpcUa::isSuccessStatus(serviceResult)) {
+            error = tr("Event history read failed: %1").arg(statusName(serviceResult));
+        } else if (!results.isEmpty()) {
+            const QOpcUaHistoryEvent &nodeResult = results.first();
+            if (nodeResult.count() == 0 && !QOpcUa::isSuccessStatus(nodeResult.statusCode()))
+                error = tr("Event history read failed: %1").arg(statusName(nodeResult.statusCode()));
+            else
+                events = historyEvents(nodeResult);
+        }
+        emit historyEventsReady(nodeId, events, error);
+        response->deleteLater();
+    });
+    QTimer::singleShot(QtOpcUaRequestCoordinator::boundedTimeout(timeoutMs), this,
+                       [this, response, nodeId, token]() {
+        if (!_d->requests.settle(token))
+            return;
+        response->deleteLater();
+        emit historyEventsReady(nodeId, {}, tr("Event history read timed out."));
+    });
+}
 
 ///
 /// \brief Enables event monitoring for a node with an EventNotifier.

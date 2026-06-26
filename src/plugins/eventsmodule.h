@@ -14,11 +14,10 @@
 class OpcUaClientService;
 
 ///
-/// \brief Provides the event-monitoring API: subscribe to and stream OPC UA events.
+/// \brief Provides the event API: monitor live events and read event history.
 ///
-/// subscribeEvents() is the single logged choke point for event monitoring; the events
-/// widget invokes it directly. Streamed event notifications that arrive through
-/// eventsReady() are intentionally not logged.
+/// subscribeEvents() and readHistory() are the logged choke points for event operations.
+/// Streamed event notifications that arrive through eventsReady() are intentionally not logged.
 ///
 class EventsModule : public ServiceModule
 {
@@ -49,6 +48,16 @@ public slots:
     ///
     void unsubscribeEvents(const QString &nodeId);
 
+    ///
+    /// \brief Reads historical events for a single node over a time range.
+    /// \param nodeId Node whose event history is read.
+    /// \param start Inclusive range start.
+    /// \param end Inclusive range end.
+    /// \param maxValues Maximum events to return, or 0 for no limit.
+    ///
+    void readHistory(const QString &nodeId, const QDateTime &start, const QDateTime &end,
+                     quint32 maxValues);
+
 signals:
     ///
     /// \brief Emitted when events arrive for a monitored node.
@@ -57,6 +66,14 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void eventsReady(QString nodeId, QVector<OpcUaEvent> events, QString error);
+
+    ///
+    /// \brief Emitted when an event history read finishes.
+    /// \param nodeId Node whose event history was read.
+    /// \param events Historical events in server order.
+    /// \param error Read error, empty on success.
+    ///
+    void eventsHistoryReady(QString nodeId, QVector<OpcUaEvent> events, QString error);
 
     ///
     /// \brief Emitted when an event-monitoring request finishes.
@@ -70,6 +87,8 @@ signals:
 private:
     void handleEventsReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
                            const QString &error);
+    void handleEventsHistoryReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
+                                  const QString &error);
     void handleEventMonitoringFinished(const QString &nodeId, bool subscribed,
                                        bool success, const QString &error);
 

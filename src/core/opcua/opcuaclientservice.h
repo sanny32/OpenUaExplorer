@@ -140,6 +140,16 @@ public:
                         quint32 numValuesPerNode);
 
     ///
+    /// \brief Reads historical events for a node using the cached request timeout.
+    /// \param nodeId Node whose event history is read.
+    /// \param start Inclusive range start.
+    /// \param end Inclusive range end.
+    /// \param numValuesPerNode Maximum events to return, or 0 for no limit.
+    ///
+    void readHistoryEvents(const QString &nodeId, const QDateTime &start, const QDateTime &end,
+                           quint32 numValuesPerNode);
+
+    ///
     /// \brief Writes a value to a node using the cached request timeout.
     /// \param nodeId Target node.
     /// \param value Value to write.
@@ -236,6 +246,14 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void historyDataReady(QString nodeId, QVector<OpcUaHistoryValue> values, QString error);
+
+    ///
+    /// \brief Emitted when an event history read finishes.
+    /// \param nodeId Node whose event history was read.
+    /// \param events Historical events in server order.
+    /// \param error Error description, empty on success.
+    ///
+    void historyEventsReady(QString nodeId, QVector<OpcUaEvent> events, QString error);
 
     ///
     /// \brief Emitted when a write finishes.

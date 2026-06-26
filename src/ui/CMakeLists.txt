@@ -21,7 +21,8 @@ set(UI_FILES
     widgets/dataaccesswidget.ui
     widgets/subscriptionswidget.ui
     widgets/eventswidget.ui
-    widgets/historywidget.ui
+    widgets/eventshistorywidget.ui
+    widgets/datahistorywidget.ui
     widgets/favoriteswidget.ui
     widgets/logwidget.ui
     widgets/mainstatusbarwidget.ui
@@ -108,8 +109,10 @@ add_library(ouaexp_ui STATIC
     widgets/subscriptionswidget.h
     widgets/eventswidget.cpp
     widgets/eventswidget.h
-    widgets/historywidget.cpp
-    widgets/historywidget.h
+    widgets/eventshistorywidget.cpp
+    widgets/eventshistorywidget.h
+    widgets/datahistorywidget.cpp
+    widgets/datahistorywidget.h
     widgets/dialogbuttonbox.cpp
     widgets/dialogbuttonbox.h
     widgets/valuelineedit.cpp

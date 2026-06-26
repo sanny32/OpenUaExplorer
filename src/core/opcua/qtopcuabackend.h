@@ -118,6 +118,17 @@ public:
                         quint32 numValuesPerNode, int timeoutMs) override;
 
     ///
+    /// \brief Reads historical events for a node, emitting historyEventsReady().
+    /// \param nodeId Node whose event history is read.
+    /// \param start Inclusive range start.
+    /// \param end Inclusive range end.
+    /// \param numValuesPerNode Maximum events to return, or 0 for no limit.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void readHistoryEvents(const QString &nodeId, const QDateTime &start, const QDateTime &end,
+                           quint32 numValuesPerNode, int timeoutMs) override;
+
+    ///
     /// \brief Writes a node's Value attribute, emitting writeFinished() with the outcome.
     /// \param nodeId Node to write.
     /// \param value Typed value.

@@ -58,7 +58,8 @@ private slots:
     void on_actionSubscribe_triggered();
     void on_actionUnsubscribe_triggered();
     void on_actionAddToDataAccess_triggered();
-    void on_actionReadHistory_triggered();
+    void on_actionReadDataHistory_triggered();
+    void on_actionReadEventsHistory_triggered();
     void on_actionExit_triggered();
     void on_actionSettings_triggered();
     void on_actionTheme_triggered();
@@ -66,7 +67,8 @@ private slots:
     void on_actionViewDataAccess_triggered();
     void on_actionViewSubscriptions_triggered();
     void on_actionViewEvents_triggered();
-    void on_actionViewHistory_triggered();
+    void on_actionViewDataHistory_triggered();
+    void on_actionViewEventsHistory_triggered();
     void on_actionResetLayout_triggered();
 
 private:
@@ -109,6 +111,8 @@ private:
                               bool success, const QString &error);
     void onEventsReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
                        const QString &error);
+    void onEventsHistoryReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
+                              const QString &error);
     void onEventMonitoringFinished(const QString &nodeId, bool subscribed,
                                    bool success, const QString &error);
     void updateMonitoringActions();

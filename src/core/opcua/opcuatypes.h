@@ -201,6 +201,7 @@ namespace OpcUa {
 ///
 enum EventNotifier : quint8 {
     SubscribeToEvents = 0x01,
+    HistoryRead       = 0x04,
 };
 
 ///
@@ -221,6 +222,16 @@ inline bool canReadHistory(const OpcUaNodeDetails &details)
 inline bool canMonitorEvents(const OpcUaNodeDetails &details)
 {
     return (details.eventNotifier & SubscribeToEvents) != 0;
+}
+
+///
+/// \brief Returns true when a node can be offered for event HistoryRead.
+/// \param details Selected node details.
+/// \return True when the EventNotifier HistoryRead bit is set.
+///
+inline bool canReadEventHistory(const OpcUaNodeDetails &details)
+{
+    return isHistoryReadSupported() && (details.eventNotifier & HistoryRead) != 0;
 }
 
 } // namespace OpcUa

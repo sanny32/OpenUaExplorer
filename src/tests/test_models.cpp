@@ -66,6 +66,7 @@ private slots:
     // Header/role/mutator coverage for the simple table & tree models.
     void historyReadRequiresHistorizingVariable();
     void eventMonitoringRequiresEventNotifier();
+    void eventHistoryReadRequiresHistoryReadNotifier();
     void eventsModelAddEventsAppendsAndCaps();
     void historyModelHeaderRolesAndMutators();
     void historyModelExportsCsv();
@@ -111,6 +112,23 @@ void TestModels::eventMonitoringRequiresEventNotifier()
 
     details.eventNotifier = OpcUa::SubscribeToEvents;
     QVERIFY(OpcUa::canMonitorEvents(details));
+}
+
+///
+/// \brief Event history availability requires the EventNotifier HistoryRead bit.
+///
+void TestModels::eventHistoryReadRequiresHistoryReadNotifier()
+{
+    OpcUaNodeDetails details;
+    details.nodeClass = OpcUa::Object;
+
+    QVERIFY(!OpcUa::canReadEventHistory(details));
+
+    details.eventNotifier = OpcUa::SubscribeToEvents;
+    QVERIFY(!OpcUa::canReadEventHistory(details));
+
+    details.eventNotifier = OpcUa::HistoryRead;
+    QCOMPARE(OpcUa::canReadEventHistory(details), OpcUa::isHistoryReadSupported());
 }
 
 ///

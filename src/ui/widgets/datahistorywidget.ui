@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>HistoryWidget</class>
- <widget class="QWidget" name="HistoryWidget">
+ <class>DataHistoryWidget</class>
+ <widget class="QWidget" name="DataHistoryWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -10,30 +10,30 @@
     <height>240</height>
    </rect>
   </property>
-  <layout class="QVBoxLayout" name="historyLayout">
+  <layout class="QVBoxLayout" name="dataHistoryLayout">
     <item>
-     <layout class="QVBoxLayout" name="historyToolbarLayout">
+     <layout class="QVBoxLayout" name="dataHistoryToolbarLayout">
       <item>
-       <widget class="NodeLineEdit" name="historyNodeEdit">
+       <widget class="NodeLineEdit" name="dataHistoryNodeEdit">
         <property name="readOnly">
          <bool>true</bool>
         </property>
         <property name="placeholderText">
-         <string>Drop a node or use Read History…</string>
+         <string>Drop a node or use Read Data History...</string>
         </property>
        </widget>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="historyQueryLayout">
+       <layout class="QHBoxLayout" name="dataHistoryQueryLayout">
         <item>
-         <widget class="QLabel" name="historyStartLabel">
+         <widget class="QLabel" name="dataHistoryStartLabel">
           <property name="text">
            <string>Start</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="DateTimeEdit" name="historyStartEdit">
+         <widget class="DateTimeEdit" name="dataHistoryStartEdit">
           <property name="displayFormat">
            <string>yyyy-MM-dd HH:mm:ss</string>
           </property>
@@ -43,14 +43,14 @@
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="historyEndLabel">
+         <widget class="QLabel" name="dataHistoryEndLabel">
           <property name="text">
            <string>End</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="DateTimeEdit" name="historyEndEdit">
+         <widget class="DateTimeEdit" name="dataHistoryEndEdit">
           <property name="displayFormat">
            <string>yyyy-MM-dd HH:mm:ss</string>
           </property>
@@ -60,14 +60,14 @@
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="historyMaxLabel">
+         <widget class="QLabel" name="dataHistoryMaxLabel">
           <property name="text">
            <string>Max</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QSpinBox" name="historyMaxEdit">
+         <widget class="QSpinBox" name="dataHistoryMaxEdit">
           <property name="specialValueText">
            <string>No limit</string>
           </property>
@@ -80,7 +80,7 @@
          </widget>
         </item>
         <item>
-         <widget class="ThemedToolButton" name="historyReadButton">
+         <widget class="ThemedToolButton" name="dataHistoryReadButton">
           <property name="text">
            <string>Read</string>
           </property>
@@ -90,7 +90,7 @@
          </widget>
         </item>
         <item>
-         <spacer name="historyToolbarSpacer">
+         <spacer name="dataHistoryToolbarSpacer">
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
           </property>
@@ -103,7 +103,7 @@
          </spacer>
         </item>
         <item>
-         <widget class="ThemedToolButton" name="historyClearButton">
+         <widget class="ThemedToolButton" name="dataHistoryClearButton">
           <property name="text">
            <string>Clear</string>
           </property>
@@ -113,7 +113,7 @@
          </widget>
         </item>
         <item>
-         <widget class="ThemedToolButton" name="historyExportButton">
+         <widget class="ThemedToolButton" name="dataHistoryExportButton">
           <property name="text">
            <string>Export</string>
           </property>
@@ -127,7 +127,7 @@
      </layout>
     </item>
    <item>
-    <widget class="TableView" name="historyTable"/>
+    <widget class="TableView" name="dataHistoryTable"/>
    </item>
   </layout>
  </widget>

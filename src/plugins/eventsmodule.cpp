@@ -3,7 +3,7 @@
 
 ///
 /// \file eventsmodule.cpp
-/// \brief Implements the OPC UA event-monitoring API and logging.
+/// \brief Implements the OPC UA event API and logging.
 ///
 
 #include "eventsmodule.h"
@@ -47,6 +47,8 @@ void EventsModule::initialize(ServiceContext &context)
     _clientService = context.clientService();
     connect(_clientService, &OpcUaClientService::eventsReady,
             this, &EventsModule::handleEventsReady);
+    connect(_clientService, &OpcUaClientService::historyEventsReady,
+            this, &EventsModule::handleEventsHistoryReady);
     connect(_clientService, &OpcUaClientService::eventMonitoringFinished,
             this, &EventsModule::handleEventMonitoringFinished);
 }
@@ -75,6 +77,25 @@ void EventsModule::unsubscribeEvents(const QString &nodeId)
 }
 
 ///
+/// \brief Logs and reads event history for a node.
+/// \param nodeId Node whose event history is read.
+/// \param start Inclusive range start.
+/// \param end Inclusive range end.
+/// \param maxValues Maximum events to return, or 0 for no limit.
+///
+void EventsModule::readHistory(const QString &nodeId, const QDateTime &start,
+                               const QDateTime &end, quint32 maxValues)
+{
+    qCInfo(lcEvents).noquote()
+        << tr("Reading event history for node '%1'.").arg(nodeId)
+        << QStringLiteral("startUtc=%1 endUtc=%2 maxValues=%3")
+              .arg(start.toUTC().toString(Qt::ISODateWithMs),
+                   end.toUTC().toString(Qt::ISODateWithMs))
+              .arg(maxValues);
+    _clientService->readHistoryEvents(nodeId, start, end, maxValues);
+}
+
+///
 /// \brief Republishes received events without logging individual notifications.
 /// \param nodeId Monitored node that produced the events.
 /// \param events Received events.
@@ -84,6 +105,19 @@ void EventsModule::handleEventsReady(const QString &nodeId, const QVector<OpcUaE
                                      const QString &error)
 {
     emit eventsReady(nodeId, events, error);
+}
+
+///
+/// \brief Republishes event history results.
+/// \param nodeId Node whose event history was read.
+/// \param events Historical events in server order.
+/// \param error Read error, empty on success.
+///
+void EventsModule::handleEventsHistoryReady(const QString &nodeId,
+                                            const QVector<OpcUaEvent> &events,
+                                            const QString &error)
+{
+    emit eventsHistoryReady(nodeId, events, error);
 }
 
 ///

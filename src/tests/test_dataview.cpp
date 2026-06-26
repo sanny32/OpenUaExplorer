@@ -14,6 +14,7 @@
 #include "opcua/opcuatypes.h"
 #include "testdata.h"
 #include "widgets/dataview.h"
+#include "widgets/eventshistorywidget.h"
 #include "widgets/eventswidget.h"
 
 ///
@@ -24,9 +25,10 @@ class TestDataView : public QObject
     Q_OBJECT
 
 private slots:
-    void historyTabFollowsQtSupport();
+    void historyTabsFollowQtSupport();
     void clearRuntimeDataResetsTabs();
     void eventMonitoringRequestTargetsNodeAndSubscribes();
+    void eventsHistoryRequestTargetsNodeAndReads();
 };
 
 namespace {
@@ -50,15 +52,18 @@ OpcUaNodeDetails makeNodeDetails()
 } // namespace
 
 ///
-/// \brief The History page is only visible when Qt OPC UA can perform HistoryRead.
+/// \brief The history pages are only visible when Qt OPC UA can perform HistoryRead.
 ///
-void TestDataView::historyTabFollowsQtSupport()
+void TestDataView::historyTabsFollowQtSupport()
 {
     DataView view;
     auto *tabs = view.findChild<QTabWidget *>(QStringLiteral("mainTabs"));
     QVERIFY(tabs);
 
-    QCOMPARE(tabs->isTabVisible(DataView::HistoryPage), OpcUa::isHistoryReadSupported());
+    QCOMPARE(tabs->isTabVisible(DataView::DataHistoryPage), OpcUa::isHistoryReadSupported());
+    QCOMPARE(tabs->isTabVisible(DataView::EventsHistoryPage), OpcUa::isHistoryReadSupported());
+    QCOMPARE(tabs->tabText(DataView::DataHistoryPage), QStringLiteral("Data History"));
+    QCOMPARE(tabs->tabText(DataView::EventsHistoryPage), QStringLiteral("Events History"));
 }
 
 ///
@@ -74,13 +79,20 @@ void TestDataView::clearRuntimeDataResetsTabs()
     QCOMPARE(dataTable->model()->rowCount(), 1);
 
     if (OpcUa::isHistoryReadSupported()) {
-        view.setHistoryResults(TestData::historyItems());
-        auto *historyTable = view.findChild<QTableView *>(QStringLiteral("historyTable"));
-        QVERIFY(historyTable);
-        QCOMPARE(historyTable->model()->rowCount(), TestData::historyItems().size());
+        view.setDataHistoryResults(TestData::historyItems());
+        auto *dataHistoryTable = view.findChild<QTableView *>(QStringLiteral("dataHistoryTable"));
+        auto *eventsHistoryTable = view.findChild<QTableView *>(QStringLiteral("eventsHistoryTable"));
+        QVERIFY(dataHistoryTable);
+        QVERIFY(eventsHistoryTable);
+        QCOMPARE(dataHistoryTable->model()->rowCount(), TestData::historyItems().size());
+        view.setEventsHistoryResults({{QStringLiteral("ns=0;i=2253"), QDateTime::currentDateTime(),
+                                       500, QStringLiteral("Server"), QStringLiteral("Started"),
+                                       QStringLiteral("ns=0;i=2132"), {}}});
+        QCOMPARE(eventsHistoryTable->model()->rowCount(), 1);
 
         view.clearRuntimeData();
-        QCOMPARE(historyTable->model()->rowCount(), 0);
+        QCOMPARE(dataHistoryTable->model()->rowCount(), 0);
+        QCOMPARE(eventsHistoryTable->model()->rowCount(), 0);
     } else {
         view.clearRuntimeData();
     }
@@ -103,6 +115,22 @@ void TestDataView::eventMonitoringRequestTargetsNodeAndSubscribes()
     QCOMPARE(spy.count(), 1);
     QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=0;i=2253"));
     QCOMPARE(spy.first().at(1).toDouble(), 1000.0);
+}
+
+///
+/// \brief Requesting event history opens Events History and emits a read request.
+///
+void TestDataView::eventsHistoryRequestTargetsNodeAndReads()
+{
+    DataView view;
+    QSignalSpy spy(view.eventsHistory(), &EventsHistoryWidget::eventsHistoryReadRequested);
+    QVERIFY(spy.isValid());
+
+    view.requestEventsHistoryForNode(QStringLiteral("ns=0;i=2253"), QStringLiteral("Server"));
+
+    QCOMPARE(view.currentPage(), int(DataView::EventsHistoryPage));
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=0;i=2253"));
 }
 
 QTEST_MAIN(TestDataView)

@@ -3,7 +3,7 @@
 
 ///
 /// \file dataview.h
-/// \brief Declares the tabbed data view hosting the data, subscriptions, events and history tabs.
+/// \brief Declares the tabbed data view hosting data, events, and history tabs.
 ///
 
 #pragma once
@@ -21,10 +21,11 @@ class DataView;
 class DataAccessWidget;
 class SubscriptionsWidget;
 class EventsWidget;
-class HistoryWidget;
+class EventsHistoryWidget;
+class DataHistoryWidget;
 
 ///
-/// \brief Tabbed container for the data access, subscriptions, events and history widgets.
+/// \brief Tabbed container for data access, subscriptions, live events, and history widgets.
 ///
 class DataView : public QWidget
 {
@@ -38,7 +39,8 @@ public:
         DataAccessPage = 0,
         SubscriptionsPage,
         EventsPage,
-        HistoryPage
+        DataHistoryPage,
+        EventsHistoryPage
     };
 
     ///
@@ -71,10 +73,16 @@ public:
     EventsWidget *events() const;
 
     ///
-    /// \brief Returns the history tab widget.
-    /// \return History widget.
+    /// \brief Returns the data history tab widget.
+    /// \return Data history widget.
     ///
-    HistoryWidget *history() const;
+    DataHistoryWidget *dataHistory() const;
+
+    ///
+    /// \brief Returns the events history tab widget.
+    /// \return Events history widget.
+    ///
+    EventsHistoryWidget *eventsHistory() const;
 
     ///
     /// \brief Switches the visible tab.
@@ -122,10 +130,10 @@ public:
     void updateValues(const QVector<OpcUaDataValue> &values);
 
     ///
-    /// \brief Shows history samples in the History table.
-    /// \param values History samples in time order.
+    /// \brief Shows data history samples in the Data History table.
+    /// \param values Data history samples in time order.
     ///
-    void setHistoryResults(const QVector<OpcUaHistoryValue> &values);
+    void setDataHistoryResults(const QVector<OpcUaHistoryValue> &values);
 
     ///
     /// \brief Targets a node on the Events page as the event source and shows the page.
@@ -152,19 +160,34 @@ public:
     void appendEvents(const QVector<OpcUaEvent> &events);
 
     ///
-    /// \brief Targets a node on the History page and requests its history for the current range.
-    /// \param nodeId Node whose history should be read.
+    /// \brief Shows historical events in the Events History table.
+    /// \param events Events to display.
+    ///
+    void setEventsHistoryResults(const QVector<OpcUaEvent> &events);
+
+    ///
+    /// \brief Targets a node on the Events History page and requests its event history.
+    /// \param nodeId Node whose event history should be read.
     /// \param displayName Human-readable node name.
     /// \param displayPath Human-readable path shown in the node field.
     ///
-    void requestHistoryForNode(const QString &nodeId, const QString &displayName,
+    void requestEventsHistoryForNode(const QString &nodeId, const QString &displayName,
+                                     const QString &displayPath = {});
+
+    ///
+    /// \brief Targets a node on the Data History page and requests its history for the current range.
+    /// \param nodeId Node whose data history should be read.
+    /// \param displayName Human-readable node name.
+    /// \param displayPath Human-readable path shown in the node field.
+    ///
+    void requestDataHistoryForNode(const QString &nodeId, const QString &displayName,
                                const QString &displayPath = {});
 
     ///
-    /// \brief Builds the default CSV export file name for the current history query.
+    /// \brief Builds the default CSV export file name for the current data history query.
     /// \return Suggested CSV file name.
     ///
-    QString suggestedHistoryCsvFileName() const;
+    QString suggestedDataHistoryCsvFileName() const;
 
     ///
     /// \brief Updates the subscription shown for a data-access node.
@@ -174,7 +197,7 @@ public:
     void setNodeSubscribed(const QString &nodeId, bool subscribed);
 
     ///
-    /// \brief Clears the data, subscriptions, events, and history tabs.
+    /// \brief Clears the data, subscriptions, live events, and history tabs.
     ///
     void clearRuntimeData();
 

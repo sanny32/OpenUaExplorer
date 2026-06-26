@@ -72,10 +72,11 @@
      <string>View</string>
     </property>
     <addaction name="actionViewDataAccess"/>
-    <addaction name="actionViewSubscriptions"/>
-    <addaction name="actionViewEvents"/>
-    <addaction name="actionViewHistory"/>
-    <addaction name="separator"/>
+     <addaction name="actionViewSubscriptions"/>
+     <addaction name="actionViewEvents"/>
+     <addaction name="actionViewDataHistory"/>
+     <addaction name="actionViewEventsHistory"/>
+     <addaction name="separator"/>
     <addaction name="actionResetLayout"/>
    </widget>
    <widget class="QMenu" name="menuServer">
@@ -105,10 +106,11 @@
      <addaction name="actionSetSubscriptionFast"/>
      <addaction name="actionSetSubscriptionCustom"/>
     </widget>
-    <addaction name="actionReadSelected"/>
-    <addaction name="actionWriteValue"/>
-    <addaction name="actionReadHistory"/>
-    <addaction name="separator"/>
+     <addaction name="actionReadSelected"/>
+     <addaction name="actionWriteValue"/>
+     <addaction name="actionReadDataHistory"/>
+     <addaction name="actionReadEventsHistory"/>
+     <addaction name="separator"/>
     <addaction name="actionAddToDataAccess"/>
     <addaction name="actionRemoveFromDataAccess"/>
     <addaction name="separator"/>
@@ -183,9 +185,8 @@
    <addaction name="separator"/>
    <addaction name="actionBrowse"/>
    <addaction name="separator"/>
-   <addaction name="actionRead"/>
-   <addaction name="actionReadHistory"/>
-   <addaction name="actionSubscribe"/>
+    <addaction name="actionRead"/>
+    <addaction name="actionSubscribe"/>
    <addaction name="actionUnsubscribe"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
@@ -332,9 +333,14 @@
     <string>Events</string>
    </property>
   </action>
-  <action name="actionViewHistory">
+  <action name="actionViewDataHistory">
    <property name="text">
-    <string>History</string>
+    <string>Data History</string>
+   </property>
+  </action>
+  <action name="actionViewEventsHistory">
+   <property name="text">
+    <string>Events History</string>
    </property>
   </action>
   <action name="actionResetLayout">
@@ -398,15 +404,26 @@
     <string>Add to Data Access</string>
    </property>
   </action>
-  <action name="actionReadHistory">
+  <action name="actionReadDataHistory">
    <property name="enabled">
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Read History</string>
+    <string>Read Data History</string>
    </property>
    <property name="toolTip">
-    <string>Read the history of the selected node</string>
+    <string>Read the data history of the selected node</string>
+   </property>
+  </action>
+  <action name="actionReadEventsHistory">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Read Events History</string>
+   </property>
+   <property name="toolTip">
+    <string>Read the event history of the selected node</string>
    </property>
   </action>
   <action name="actionRemoveFromDataAccess">

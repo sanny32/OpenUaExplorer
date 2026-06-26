@@ -143,6 +143,12 @@ signals:
     ///
     void monitorEventsRequested(OpcUaNodeInfo node);
 
+    ///
+    /// \brief Emitted when the user requests an event history read for a node.
+    /// \param node Node whose event history should be read.
+    ///
+    void readEventsHistoryRequested(OpcUaNodeInfo node);
+
 private:
     void setupTreeView();
     void setupNodeInfoView();

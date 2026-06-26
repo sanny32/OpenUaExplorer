@@ -43,6 +43,8 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::dataValuesReady);
     connect(_backend, &OpcUaBackend::historyDataReady,
             this, &OpcUaClientService::historyDataReady);
+    connect(_backend, &OpcUaBackend::historyEventsReady,
+            this, &OpcUaClientService::historyEventsReady);
     connect(_backend, &OpcUaBackend::writeFinished,
             this, &OpcUaClientService::writeFinished);
     connect(_backend, &OpcUaBackend::monitoringFinished,
@@ -201,6 +203,19 @@ void OpcUaClientService::readHistoryRaw(const QString &nodeId, const QDateTime &
                                         const QDateTime &end, quint32 numValuesPerNode)
 {
     _backend->readHistoryRaw(nodeId, start, end, numValuesPerNode, _requestTimeoutMs);
+}
+
+///
+/// \brief Reads historical events for a node using the cached request timeout.
+/// \param nodeId Node whose event history is read.
+/// \param start Inclusive range start.
+/// \param end Inclusive range end.
+/// \param numValuesPerNode Maximum events to return, or 0 for no limit.
+///
+void OpcUaClientService::readHistoryEvents(const QString &nodeId, const QDateTime &start,
+                                           const QDateTime &end, quint32 numValuesPerNode)
+{
+    _backend->readHistoryEvents(nodeId, start, end, numValuesPerNode, _requestTimeoutMs);
 }
 
 ///

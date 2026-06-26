@@ -234,11 +234,17 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
     QMenu menu(this);
     if (OpcUa::isHistoryReadSupported()) {
         QAction *historyAction = menu.addAction(AppIcons::themed(QStringLiteral("history")),
-                                                tr("Read History"), this, [this, info] {
+                                                tr("Read Data History"), this, [this, info] {
             emit readHistoryRequested(info);
         });
         historyAction->setEnabled(OpcUa::isVariable(info.nodeClass));
     }
+
+    QAction *eventsHistoryAction = menu.addAction(AppIcons::themed(QStringLiteral("event-history")),
+                                                  tr("Read Events History"), this, [this, info] {
+        emit readEventsHistoryRequested(info);
+    });
+    eventsHistoryAction->setEnabled(info.nodeClass == OpcUa::Object);
 
     QAction *eventsAction = menu.addAction(AppIcons::themed(QStringLiteral("event")),
                                            tr("Monitor Events"), this, [this, info] {

@@ -18,6 +18,7 @@ public:
         NodeRead,
         ValueRead,
         HistoryRead,
+        HistoryEventsRead,
         Write,
         SessionNameRead,
         Count

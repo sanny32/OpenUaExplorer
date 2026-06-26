@@ -46,8 +46,9 @@
 #include "ui_mainwindow.h"
 #include "widgets/dataaccesswidget.h"
 #include "widgets/dataview.h"
+#include "widgets/eventshistorywidget.h"
 #include "widgets/eventswidget.h"
-#include "widgets/historywidget.h"
+#include "widgets/datahistorywidget.h"
 #include "widgets/favoriteswidget.h"
 #include "widgets/maintoolbar.h"
 #include "widgets/themedtoolbutton.h"
@@ -245,12 +246,24 @@ void MainWindow::on_actionAddToDataAccess_triggered()
 }
 
 ///
-/// \brief Reads the history of the selected variable node.
+/// \brief Reads the data history of the selected variable node.
 ///
-void MainWindow::on_actionReadHistory_triggered()
+void MainWindow::on_actionReadDataHistory_triggered()
 {
     if (OpcUa::canReadHistory(_selectedNodeDetails))
-        ui->dataView->requestHistoryForNode(
+        ui->dataView->requestDataHistoryForNode(
+            _selectedNodeDetails.nodeId,
+            _selectedNodeDetails.displayName,
+            _selectionContext->currentNode().displayPath);
+}
+
+///
+/// \brief Reads the event history of the selected node.
+///
+void MainWindow::on_actionReadEventsHistory_triggered()
+{
+    if (OpcUa::canReadEventHistory(_selectedNodeDetails))
+        ui->dataView->requestEventsHistoryForNode(
             _selectedNodeDetails.nodeId,
             _selectedNodeDetails.displayName,
             _selectionContext->currentNode().displayPath);
@@ -314,13 +327,23 @@ void MainWindow::on_actionViewEvents_triggered()
 }
 
 ///
-/// \brief Switches the data-access widget to the History page.
+/// \brief Switches the data-access widget to the Data History page.
 ///
-void MainWindow::on_actionViewHistory_triggered()
+void MainWindow::on_actionViewDataHistory_triggered()
 {
     if (!OpcUa::isHistoryReadSupported())
         return;
-    ui->dataView->setCurrentPage(DataView::HistoryPage);
+    ui->dataView->setCurrentPage(DataView::DataHistoryPage);
+}
+
+///
+/// \brief Switches the data-access widget to the Events History page.
+///
+void MainWindow::on_actionViewEventsHistory_triggered()
+{
+    if (!OpcUa::isHistoryReadSupported())
+        return;
+    ui->dataView->setCurrentPage(DataView::EventsHistoryPage);
 }
 
 ///
@@ -525,14 +548,19 @@ void MainWindow::applyThemeMode(AppSettings::ThemeMode mode)
 void MainWindow::configureHistoryUi()
 {
     const bool supported = OpcUa::isHistoryReadSupported();
-    ui->actionReadHistory->setVisible(supported);
-    ui->actionViewHistory->setVisible(supported);
+    ui->actionReadDataHistory->setVisible(supported);
+    ui->actionReadEventsHistory->setVisible(supported);
+    ui->actionViewDataHistory->setVisible(supported);
+    ui->actionViewEventsHistory->setVisible(supported);
     if (supported)
         return;
 
-    ui->menuView->removeAction(ui->actionViewHistory);
-    ui->menuData->removeAction(ui->actionReadHistory);
-    ui->mainToolBar->removeAction(ui->actionReadHistory);
+    ui->menuView->removeAction(ui->actionViewDataHistory);
+    ui->menuView->removeAction(ui->actionViewEventsHistory);
+    ui->menuData->removeAction(ui->actionReadDataHistory);
+    ui->menuData->removeAction(ui->actionReadEventsHistory);
+    ui->mainToolBar->removeAction(ui->actionReadDataHistory);
+    ui->mainToolBar->removeAction(ui->actionReadEventsHistory);
 }
 
 ///
@@ -624,7 +652,12 @@ void MainWindow::setupPlugins()
     if (OpcUa::isHistoryReadSupported()) {
         connect(_selectionContext, &SelectionContext::historyReadRequested,
                 this, [this](const OpcUaNodeInfo &node) {
-            ui->dataView->requestHistoryForNode(node.nodeId, node.displayName, node.displayPath);
+            ui->dataView->requestDataHistoryForNode(node.nodeId, node.displayName, node.displayPath);
+        });
+        connect(_selectionContext, &SelectionContext::eventsHistoryReadRequested,
+                this, [this](const OpcUaNodeInfo &node) {
+            ui->dataView->requestEventsHistoryForNode(node.nodeId, node.displayName,
+                                                      node.displayPath);
         });
     }
     connect(_attributePlugin, &AttributeModule::writeFinished,
@@ -650,10 +683,14 @@ void MainWindow::setupDataAccessWiring()
     connect(_dataAccessPlugin, &DataAccessModule::valuesReady,
             this, &MainWindow::onDataValuesReady);
     if (OpcUa::isHistoryReadSupported()) {
-        connect(ui->dataView->history(), &HistoryWidget::historyReadRequested,
+        connect(ui->dataView->dataHistory(), &DataHistoryWidget::dataHistoryReadRequested,
                 _dataAccessPlugin, &DataAccessModule::readHistory);
         connect(_dataAccessPlugin, &DataAccessModule::historyReady,
                 this, &MainWindow::onHistoryReady);
+        connect(ui->dataView->eventsHistory(), &EventsHistoryWidget::eventsHistoryReadRequested,
+                _eventsPlugin, &EventsModule::readHistory);
+        connect(_eventsPlugin, &EventsModule::eventsHistoryReady,
+                this, &MainWindow::onEventsHistoryReady);
     }
     connect(_dataAccessPlugin, &DataAccessModule::monitoringFinished,
             this, &MainWindow::onMonitoringFinished);
@@ -719,7 +756,8 @@ void MainWindow::onNodeDetailsReady(const OpcUaNodeDetails &details, const QStri
     ui->actionWrite->setEnabled(writable);
     ui->actionWriteValue->setEnabled(writable);
     ui->actionAddToDataAccess->setEnabled(variable);
-    ui->actionReadHistory->setEnabled(OpcUa::canReadHistory(details));
+    ui->actionReadDataHistory->setEnabled(OpcUa::canReadHistory(details));
+    ui->actionReadEventsHistory->setEnabled(OpcUa::canReadEventHistory(details));
     updateMonitoringActions();
 }
 
@@ -734,7 +772,8 @@ void MainWindow::onSelectionCleared()
     ui->actionWrite->setEnabled(false);
     ui->actionWriteValue->setEnabled(false);
     ui->actionAddToDataAccess->setEnabled(false);
-    ui->actionReadHistory->setEnabled(false);
+    ui->actionReadDataHistory->setEnabled(false);
+    ui->actionReadEventsHistory->setEnabled(false);
     updateMonitoringActions();
 }
 
@@ -750,7 +789,7 @@ void MainWindow::onDataValuesReady(const QVector<OpcUaDataValue> &values, const 
 }
 
 ///
-/// \brief Pushes raw history samples into the view, or reports a read failure.
+/// \brief Pushes raw data history samples into the view, or reports a read failure.
 /// \param nodeId Node whose history was read.
 /// \param values History samples in time order.
 /// \param error Read error, if any.
@@ -760,9 +799,9 @@ void MainWindow::onHistoryReady(const QString &nodeId, const QVector<OpcUaHistor
 {
     Q_UNUSED(nodeId)
     if (error.isEmpty())
-        ui->dataView->setHistoryResults(values);
+        ui->dataView->setDataHistoryResults(values);
     else
-        QMessageBox::warning(this, tr("History Read Failed"), error);
+        QMessageBox::warning(this, tr("Data History Read Failed"), error);
 }
 
 ///
@@ -818,6 +857,22 @@ void MainWindow::onEventsReady(const QString &nodeId, const QVector<OpcUaEvent> 
     Q_UNUSED(nodeId)
     if (error.isEmpty())
         ui->dataView->appendEvents(events);
+}
+
+///
+/// \brief Pushes historical events into the view, or reports a read failure.
+/// \param nodeId Node whose event history was read.
+/// \param events Historical events in server order.
+/// \param error Read error, if any.
+///
+void MainWindow::onEventsHistoryReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
+                                      const QString &error)
+{
+    Q_UNUSED(nodeId)
+    if (error.isEmpty())
+        ui->dataView->setEventsHistoryResults(events);
+    else
+        QMessageBox::warning(this, tr("Events History Read Failed"), error);
 }
 
 ///
@@ -1042,7 +1097,8 @@ void MainWindow::bindIcons()
     AppIcons::bindIcon(ui->actionBrowse,      "browse");
     AppIcons::bindIcon(ui->actionRefresh,     "refresh");
     AppIcons::bindIcon(ui->actionRead,        "read");
-    AppIcons::bindIcon(ui->actionReadHistory, "history");
+    AppIcons::bindIcon(ui->actionReadDataHistory, "history");
+    AppIcons::bindIcon(ui->actionReadEventsHistory, "event-history");
     AppIcons::bindIcon(ui->actionWrite,       "write");
     AppIcons::bindIcon(ui->actionSubscribe,   "subscribe");
     AppIcons::bindIcon(ui->actionUnsubscribe, "unsubscribe");

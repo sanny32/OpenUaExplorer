@@ -71,6 +71,8 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
                      host.selection(), &SelectionContext::requestHistory);
     QObject::connect(_widget, &AddressSpaceWidget::monitorEventsRequested,
                      host.selection(), &SelectionContext::requestEventMonitor);
+    QObject::connect(_widget, &AddressSpaceWidget::readEventsHistoryRequested,
+                     host.selection(), &SelectionContext::requestEventsHistory);
     QObject::connect(host.selection(), &SelectionContext::detailsReady,
                      _widget, &AddressSpaceWidget::setNodeDetails);
 

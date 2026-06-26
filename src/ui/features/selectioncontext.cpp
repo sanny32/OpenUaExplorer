@@ -68,6 +68,12 @@ void SelectionContext::setDetails(const OpcUaNodeDetails &details, const QString
             emit eventMonitorRequested(_currentNode);
     }
 
+    if (_pendingEventsHistoryNodeId == details.nodeId) {
+        _pendingEventsHistoryNodeId.clear();
+        if (error.isEmpty() && OpcUa::canReadEventHistory(details))
+            emit eventsHistoryReadRequested(_currentNode);
+    }
+
     if (_pendingHistoryNodeId != details.nodeId)
         return;
     _pendingHistoryNodeId.clear();
@@ -84,6 +90,7 @@ void SelectionContext::clear()
     _currentDetails = {};
     _pendingHistoryNodeId.clear();
     _pendingEventNodeId.clear();
+    _pendingEventsHistoryNodeId.clear();
     emit cleared();
 }
 
@@ -115,6 +122,22 @@ void SelectionContext::requestEventMonitor(const OpcUaNodeInfo &node)
     }
 
     _pendingEventNodeId = node.nodeId;
+    if (_currentNode.nodeId != node.nodeId || _currentDetails.nodeId != node.nodeId)
+        selectNode(node);
+}
+
+///
+/// \brief Requests an event history read for a node selected from a feature.
+/// \param node Node whose event history should be read.
+///
+void SelectionContext::requestEventsHistory(const OpcUaNodeInfo &node)
+{
+    if (_currentDetails.nodeId == node.nodeId && OpcUa::canReadEventHistory(_currentDetails)) {
+        emit eventsHistoryReadRequested(node);
+        return;
+    }
+
+    _pendingEventsHistoryNodeId = node.nodeId;
     if (_currentNode.nodeId != node.nodeId || _currentDetails.nodeId != node.nodeId)
         selectNode(node);
 }

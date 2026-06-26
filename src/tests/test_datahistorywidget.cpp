@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file test_historywidget.cpp
-/// \brief Tests HistoryWidget query, export and clear behaviour.
+/// \file test_datahistorywidget.cpp
+/// \brief Tests DataHistoryWidget query, export and clear behaviour.
 ///
 
 #include <QAction>
@@ -16,14 +16,14 @@
 
 #include "opcua/opcuatypes.h"
 #include "testdata.h"
-#include "widgets/historywidget.h"
+#include "widgets/datahistorywidget.h"
 #include "widgets/themedtoolbutton.h"
 #include "widgets/valuelineedit.h"
 
 ///
-/// \brief UI tests for HistoryWidget.
+/// \brief UI tests for DataHistoryWidget.
 ///
-class TestHistoryWidget : public QObject
+class TestDataHistoryWidget : public QObject
 {
     Q_OBJECT
 
@@ -37,42 +37,42 @@ private slots:
 };
 
 ///
-/// \brief The history export button is enabled only when there are rows to save.
+/// \brief The data history export button is enabled only when there are rows to save.
 ///
-void TestHistoryWidget::exportButtonFollowsResults()
+void TestDataHistoryWidget::exportButtonFollowsResults()
 {
     if (!OpcUa::isHistoryReadSupported())
         QSKIP("HistoryRead is not supported by this Qt OPC UA build.");
 
-    HistoryWidget widget;
-    auto *button = widget.findChild<QToolButton *>(QStringLiteral("historyExportButton"));
+    DataHistoryWidget widget;
+    auto *button = widget.findChild<QToolButton *>(QStringLiteral("dataHistoryExportButton"));
     QVERIFY(button);
     QVERIFY(!button->isEnabled());
 
     OpcUaHistoryValue value;
     value.value = 42;
-    widget.setHistoryResults({value});
+    widget.setDataHistoryResults({value});
     QVERIFY(button->isEnabled());
 
-    widget.setHistoryResults({});
+    widget.setDataHistoryResults({});
     QVERIFY(!button->isEnabled());
 }
 
 ///
 /// \brief The suggested CSV file name includes tag, interval, and max limit.
 ///
-void TestHistoryWidget::exportFileNameDescribesQuery()
+void TestDataHistoryWidget::exportFileNameDescribesQuery()
 {
     if (!OpcUa::isHistoryReadSupported())
         QSKIP("HistoryRead is not supported by this Qt OPC UA build.");
 
-    HistoryWidget widget;
-    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"),
+    DataHistoryWidget widget;
+    widget.requestDataHistoryForNode(QStringLiteral("ns=2;s=Temperature"),
                                  QStringLiteral("Area 1/Temperature:PV"));
 
-    auto *startEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyStartEdit"));
-    auto *endEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyEndEdit"));
-    auto *maxEdit = widget.findChild<QSpinBox *>(QStringLiteral("historyMaxEdit"));
+    auto *startEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("dataHistoryStartEdit"));
+    auto *endEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("dataHistoryEndEdit"));
+    auto *maxEdit = widget.findChild<QSpinBox *>(QStringLiteral("dataHistoryMaxEdit"));
     QVERIFY(startEdit);
     QVERIFY(endEdit);
     QVERIFY(maxEdit);
@@ -81,23 +81,23 @@ void TestHistoryWidget::exportFileNameDescribesQuery()
     endEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(13, 41, 36), Qt::UTC));
     maxEdit->setValue(1000);
 
-    QCOMPARE(widget.suggestedHistoryCsvFileName(),
+    QCOMPARE(widget.suggestedDataHistoryCsvFileName(),
              QStringLiteral("Area_1_Temperature_PV_20260625_124136_20260625_134136_max1000.csv"));
 
     maxEdit->setValue(maxEdit->minimum());
-    QCOMPARE(widget.suggestedHistoryCsvFileName(),
+    QCOMPARE(widget.suggestedDataHistoryCsvFileName(),
              QStringLiteral("Area_1_Temperature_PV_20260625_124136_20260625_134136.csv"));
 }
 
 ///
-/// \brief The History date-time fields leave room for the time-zone suffix.
+/// \brief The Data History date-time fields leave room for the time-zone suffix.
 ///
-void TestHistoryWidget::dateTimeFieldsFitZoneSuffix()
+void TestDataHistoryWidget::dateTimeFieldsFitZoneSuffix()
 {
-    HistoryWidget widget;
+    DataHistoryWidget widget;
 
-    auto *startEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyStartEdit"));
-    auto *endEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("historyEndEdit"));
+    auto *startEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("dataHistoryStartEdit"));
+    auto *endEdit = widget.findChild<QDateTimeEdit *>(QStringLiteral("dataHistoryEndEdit"));
     QVERIFY(startEdit);
     QVERIFY(endEdit);
 
@@ -106,45 +106,45 @@ void TestHistoryWidget::dateTimeFieldsFitZoneSuffix()
 }
 
 ///
-/// \brief The selected History node field shows both display name and NodeId.
+/// \brief The selected Data History node field shows both display name and NodeId.
 ///
-void TestHistoryWidget::nodeFieldShowsNameAndNodeId()
+void TestDataHistoryWidget::nodeFieldShowsNameAndNodeId()
 {
     if (!OpcUa::isHistoryReadSupported())
         QSKIP("HistoryRead is not supported by this Qt OPC UA build.");
 
-    HistoryWidget widget;
-    auto *nodeEdit = widget.findChild<ValueLineEdit *>(QStringLiteral("historyNodeEdit"));
+    DataHistoryWidget widget;
+    auto *nodeEdit = widget.findChild<ValueLineEdit *>(QStringLiteral("dataHistoryNodeEdit"));
     QVERIFY(nodeEdit);
 
-    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"), QStringLiteral("Temperature"));
+    widget.requestDataHistoryForNode(QStringLiteral("ns=2;s=Temperature"), QStringLiteral("Temperature"));
     QCOMPARE(nodeEdit->text(), QStringLiteral("Temperature (ns=2;s=Temperature)"));
     QCOMPARE(nodeEdit->toolTip(), QStringLiteral("ns=2;s=Temperature"));
 
-    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"),
+    widget.requestDataHistoryForNode(QStringLiteral("ns=2;s=Temperature"),
                                  QStringLiteral("Temperature"),
                                  QStringLiteral("Objects/Device/Temperature"));
     QCOMPARE(nodeEdit->text(), QStringLiteral("Objects/Device/Temperature (ns=2;s=Temperature)"));
 
-    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"), QStringLiteral("ns=2;s=Temperature"));
+    widget.requestDataHistoryForNode(QStringLiteral("ns=2;s=Temperature"), QStringLiteral("ns=2;s=Temperature"));
     QCOMPARE(nodeEdit->text(), QStringLiteral("ns=2;s=Temperature"));
 }
 
 ///
-/// \brief Clearing the History node field clears the selected node and result rows.
+/// \brief Clearing the Data History node field clears the selected node and result rows.
 ///
-void TestHistoryWidget::nodeClearClearsResults()
+void TestDataHistoryWidget::nodeClearClearsResults()
 {
     if (!OpcUa::isHistoryReadSupported())
         QSKIP("HistoryRead is not supported by this Qt OPC UA build.");
 
-    HistoryWidget widget;
-    widget.requestHistoryForNode(QStringLiteral("ns=2;s=Temperature"), QStringLiteral("Temperature"));
-    widget.setHistoryResults(TestData::historyItems());
+    DataHistoryWidget widget;
+    widget.requestDataHistoryForNode(QStringLiteral("ns=2;s=Temperature"), QStringLiteral("Temperature"));
+    widget.setDataHistoryResults(TestData::historyItems());
 
-    auto *nodeEdit = widget.findChild<ValueLineEdit *>(QStringLiteral("historyNodeEdit"));
-    auto *table = widget.findChild<QTableView *>(QStringLiteral("historyTable"));
-    auto *readButton = widget.findChild<QToolButton *>(QStringLiteral("historyReadButton"));
+    auto *nodeEdit = widget.findChild<ValueLineEdit *>(QStringLiteral("dataHistoryNodeEdit"));
+    auto *table = widget.findChild<QTableView *>(QStringLiteral("dataHistoryTable"));
+    auto *readButton = widget.findChild<QToolButton *>(QStringLiteral("dataHistoryReadButton"));
     QVERIFY(nodeEdit);
     QVERIFY(table);
     QVERIFY(readButton);
@@ -153,7 +153,7 @@ void TestHistoryWidget::nodeClearClearsResults()
     QCOMPARE(nodeEdit->actions().size(), 1);
     QVERIFY(nodeEdit->actions().constFirst()->isVisible());
 
-    QSignalSpy readSpy(&widget, &HistoryWidget::historyReadRequested);
+    QSignalSpy readSpy(&widget, &DataHistoryWidget::dataHistoryReadRequested);
     nodeEdit->actions().constFirst()->trigger();
 
     QCOMPARE(table->model()->rowCount(), 0);
@@ -166,16 +166,16 @@ void TestHistoryWidget::nodeClearClearsResults()
 }
 
 ///
-/// \brief The history Clear button uses the trash icon.
+/// \brief The data history Clear button uses the trash icon.
 ///
-void TestHistoryWidget::clearButtonUsesTrashIcon()
+void TestDataHistoryWidget::clearButtonUsesTrashIcon()
 {
-    HistoryWidget widget;
-    auto *button = widget.findChild<ThemedToolButton *>(QStringLiteral("historyClearButton"));
+    DataHistoryWidget widget;
+    auto *button = widget.findChild<ThemedToolButton *>(QStringLiteral("dataHistoryClearButton"));
     QVERIFY(button);
     QCOMPARE(button->iconName(), QStringLiteral("trash"));
 }
 
-QTEST_MAIN(TestHistoryWidget)
+QTEST_MAIN(TestDataHistoryWidget)
 
-#include "test_historywidget.moc"
+#include "test_datahistorywidget.moc"
