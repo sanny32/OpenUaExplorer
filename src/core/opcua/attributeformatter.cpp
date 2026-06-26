@@ -18,6 +18,8 @@
 #include <QOpcUaLocalizedText>
 #include <QOpcUaQualifiedName>
 
+#include <QtOpcUa/qopcuanodeids.h>
+
 namespace OpcUaFormat {
 
 ///
@@ -100,6 +102,29 @@ QString statusDisplay(QOpcUa::UaStatusCode status)
 namespace {
 
 ///
+/// \brief Extracts a namespace-0 numeric NodeId identifier.
+/// \param nodeId NodeId text in expanded or compact string form.
+/// \param identifier Resolved numeric identifier.
+/// \return True when the text denotes a numeric namespace-0 NodeId.
+///
+bool namespace0NumericId(const QString &nodeId, int *identifier)
+{
+    quint16 namespaceIndex = 0;
+    QString numeric;
+    char identifierType = '\0';
+    if (!QOpcUa::nodeIdStringSplit(nodeId.trimmed(), &namespaceIndex, &numeric, &identifierType))
+        return false;
+    if (namespaceIndex != 0 || identifierType != 'i')
+        return false;
+
+    bool ok = false;
+    const int value = numeric.toInt(&ok);
+    if (ok)
+        *identifier = value;
+    return ok;
+}
+
+///
 /// \brief Formats a UTC offset as an ISO 8601 zone suffix ("Z" at zero, otherwise "±HH:mm").
 /// \param offsetSeconds Offset from UTC in seconds.
 /// \return Trailing zone indicator matching Qt::ISODate.
@@ -154,6 +179,22 @@ QString dataTypeDisplay(const QString &nodeId)
 {
     const QOpcUa::Types type = valueTypeForDataType(nodeId);
     return type == QOpcUa::Types::Undefined ? nodeId : valueTypeName(type);
+}
+
+///
+/// \brief Resolves a known namespace-0 NodeId to its BrowseName.
+/// \param nodeId NodeId string.
+/// \return Standard BrowseName, or the original NodeId for custom/unknown nodes.
+///
+QString standardNodeDisplayName(const QString &nodeId)
+{
+    int identifier = 0;
+    if (!namespace0NumericId(nodeId, &identifier))
+        return nodeId;
+
+    const QMetaEnum metaEnum = QMetaEnum::fromType<QOpcUa::NodeIds::Namespace0>();
+    const char *key = metaEnum.valueToKey(identifier);
+    return key ? QString::fromLatin1(key) : nodeId;
 }
 
 ///

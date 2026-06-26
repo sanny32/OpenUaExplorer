@@ -32,6 +32,7 @@ private slots:
     void isoTimestampWithZoneRoundTrips();
     void valueTypeNameKnownAndUnknown();
     void dataTypeDisplayNamesBuiltIns();
+    void standardNodeDisplayNameNamesKnownNodes();
     void nodeClassNameKnownAndUnknown();
     void accessLevelDisplayDecodesFlags();
     void writeMaskDisplayDecodesFlags();
@@ -121,6 +122,18 @@ void TestAttributeFormatter::dataTypeDisplayNamesBuiltIns()
 {
     QCOMPARE(dataTypeDisplay(QStringLiteral("ns=0;i=11")), QStringLiteral("Double"));
     QCOMPARE(dataTypeDisplay(QStringLiteral("ns=3;i=5001")), QStringLiteral("ns=3;i=5001"));
+}
+
+void TestAttributeFormatter::standardNodeDisplayNameNamesKnownNodes()
+{
+    QCOMPARE(standardNodeDisplayName(QStringLiteral("ns=0;i=9482")),
+             QStringLiteral("ExclusiveLevelAlarmType"));
+    QCOMPARE(standardNodeDisplayName(QStringLiteral("i=2041")),
+             QStringLiteral("BaseEventType"));
+    QCOMPARE(standardNodeDisplayName(QStringLiteral("ns=0;i=11")),
+             QStringLiteral("Double"));
+    QCOMPARE(standardNodeDisplayName(QStringLiteral("ns=2;s=CustomAlarmType")),
+             QStringLiteral("ns=2;s=CustomAlarmType"));
 }
 
 void TestAttributeFormatter::nodeClassNameKnownAndUnknown()

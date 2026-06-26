@@ -70,6 +70,7 @@ private slots:
     void historyModelHeaderRolesAndMutators();
     void historyModelExportsCsv();
     void eventsModelExportsCsv();
+    void eventsModelDisplaysKnownEventTypeNames();
     void referencesModelHeaderAndEdges();
     void subscriptionsModelHeaderRolesAndReset();
     void subscriptionsModelEditingAndMutators();
@@ -664,7 +665,26 @@ void TestModels::eventsModelExportsCsv()
     QCOMPARE(model.toCsv(),
              QStringLiteral("Time,Severity,Source,Message,Event Type\n"
                             "2026-06-26 11:05:20.335+03:00,500,MyLevel,"
-                            "\"Level, \"\"exceeded\"\"\nagain\",ns=0;i=9482\n"));
+                            "\"Level, \"\"exceeded\"\"\nagain\",ExclusiveLevelAlarmType\n"));
+}
+
+///
+/// \brief EventsModel shows known namespace-0 EventType NodeIds as BrowseNames.
+///
+void TestModels::eventsModelDisplaysKnownEventTypeNames()
+{
+    EventsModel model;
+    model.setItems({{QStringLiteral("12:00"), QStringLiteral("500"),
+                     QStringLiteral("MyLevel"), QStringLiteral("Level exceeded"),
+                     QStringLiteral("ns=0;i=9482")},
+                    {QStringLiteral("12:01"), QStringLiteral("500"),
+                     QStringLiteral("Custom"), QStringLiteral("Custom event"),
+                     QStringLiteral("ns=2;s=CustomAlarmType")}});
+
+    QCOMPARE(model.data(model.index(0, EventsModel::ColEventType)).toString(),
+             QStringLiteral("ExclusiveLevelAlarmType"));
+    QCOMPARE(model.data(model.index(1, EventsModel::ColEventType)).toString(),
+             QStringLiteral("ns=2;s=CustomAlarmType"));
 }
 
 ///

@@ -8,6 +8,8 @@
 
 #include "eventsmodel.h"
 
+#include "opcua/attributeformatter.h"
+
 #include <QStringList>
 
 namespace {
@@ -102,7 +104,7 @@ QVariant EventsModel::data(const QModelIndex &index, int role) const
         case ColSeverity:  return item.severity;
         case ColSource:    return item.source;
         case ColMessage:   return item.message;
-        case ColEventType: return item.eventType;
+        case ColEventType: return OpcUaFormat::standardNodeDisplayName(item.eventType);
         default:           return QVariant();
         }
     }

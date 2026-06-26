@@ -90,6 +90,13 @@ QString valueTypeName(QOpcUa::Types type);
 QString dataTypeDisplay(const QString &nodeId);
 
 ///
+/// \brief Resolves a known namespace-0 NodeId to its BrowseName.
+/// \param nodeId NodeId string.
+/// \return Standard BrowseName, or the original NodeId for custom/unknown nodes.
+///
+QString standardNodeDisplayName(const QString &nodeId);
+
+///
 /// \brief Returns the enum-key name of a node class.
 /// \param nodeClass Node class to name.
 /// \return Class name, or its numeric value when unrecognised.
