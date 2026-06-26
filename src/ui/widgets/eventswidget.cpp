@@ -77,6 +77,7 @@ void EventsWidget::setEventSource(const QString &nodeId, const QString &displayN
     _eventsNodeId = nodeId;
     _subscribed = false;
     ui->eventsNodeEdit->setText(displayName.isEmpty() ? nodeId : displayName);
+    ui->eventsNodeEdit->setToolTip(nodeId);
     ui->eventsSubscribeButton->setEnabled(!nodeId.isEmpty());
     ui->eventsUnsubscribeButton->setEnabled(false);
     updateActionButtons();
@@ -215,6 +216,10 @@ void EventsWidget::configureToolbar()
     });
     connect(ui->eventsExportButton, &QAbstractButton::clicked,
             this, &EventsWidget::exportEventsToCsv);
+    connect(ui->eventsNodeEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
+        if (text.isEmpty())
+            clearEventSource();
+    });
     connect(_eventsModel, &QAbstractItemModel::modelReset, this,
             &EventsWidget::updateActionButtons);
     connect(_eventsModel, &QAbstractItemModel::rowsInserted, this,
@@ -231,6 +236,27 @@ void EventsWidget::updateActionButtons()
     const bool hasEvents = _eventsModel->rowCount() > 0;
     ui->eventsExportButton->setEnabled(hasEvents);
     ui->eventsClearButton->setEnabled(hasEvents);
+}
+
+///
+/// \brief Clears the selected event source, stopping monitoring and removing displayed events.
+///
+void EventsWidget::clearEventSource()
+{
+    const QString nodeId = _eventsNodeId;
+    const bool wasSubscribed = _subscribed;
+
+    _eventsNodeId.clear();
+    _subscribed = false;
+    ui->eventsNodeEdit->clear();
+    ui->eventsNodeEdit->setToolTip(QString());
+    ui->eventsSubscribeButton->setEnabled(false);
+    ui->eventsUnsubscribeButton->setEnabled(false);
+    _eventsModel->clear();
+    updateActionButtons();
+
+    if (wasSubscribed && !nodeId.isEmpty())
+        emit eventUnsubscribeRequested(nodeId);
 }
 
 ///

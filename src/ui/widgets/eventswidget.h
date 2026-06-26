@@ -104,6 +104,7 @@ private:
     void setupEventsView();
     void configureToolbar();
     void updateActionButtons();
+    void clearEventSource();
     void exportEventsToCsv();
 
     Ui::EventsWidget *ui;
