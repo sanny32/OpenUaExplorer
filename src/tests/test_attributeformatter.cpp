@@ -97,14 +97,16 @@ void TestAttributeFormatter::isoTimestampWithZoneRoundTrips()
 
     const QDateTime dt(QDate(2024, 12, 31), QTime(23, 59, 58, 123), Qt::UTC);
     const QDateTime local = dt.toLocalTime();
-    QCOMPARE(isoTimestampWithZone(dt),
-             local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs));
-    QCOMPARE(isoTimestampWithZone(dt, TimestampMode::LocalTime),
-             local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs));
+    const QString localExpected = local.toOffsetFromUtc(local.offsetFromUtc())
+                                      .toString(Qt::ISODateWithMs)
+                                      .replace(QLatin1Char('T'), QLatin1Char(' '));
+    QCOMPARE(isoTimestampWithZone(dt), localExpected);
+    QCOMPARE(isoTimestampWithZone(dt, TimestampMode::LocalTime), localExpected);
 
     const QString utc = isoTimestampWithZone(dt, TimestampMode::Utc);
-    QCOMPARE(utc, dt.toUTC().toString(Qt::ISODateWithMs));
+    QCOMPARE(utc, dt.toUTC().toString(Qt::ISODateWithMs).replace(QLatin1Char('T'), QLatin1Char(' ')));
     QVERIFY(utc.endsWith(QLatin1Char('Z')));
+    QVERIFY(!utc.contains(QLatin1Char('T')));
 }
 
 void TestAttributeFormatter::valueTypeNameKnownAndUnknown()

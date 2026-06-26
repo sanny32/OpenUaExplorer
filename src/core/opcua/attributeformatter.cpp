@@ -97,20 +97,41 @@ QString statusDisplay(QOpcUa::UaStatusCode status)
         .arg(static_cast<quint32>(status), 8, 16, QLatin1Char('0'));
 }
 
+namespace {
+
 ///
-/// \brief Formats a timestamp as ISO 8601 with a zone indicator, or empty when invalid.
+/// \brief Formats a UTC offset as an ISO 8601 zone suffix ("Z" at zero, otherwise "±HH:mm").
+/// \param offsetSeconds Offset from UTC in seconds.
+/// \return Trailing zone indicator matching Qt::ISODate.
+///
+QString zoneSuffix(int offsetSeconds)
+{
+    if (offsetSeconds == 0)
+        return QStringLiteral("Z");
+    const int minutes = qAbs(offsetSeconds) / 60;
+    return QStringLiteral("%1%2:%3")
+        .arg(offsetSeconds < 0 ? QLatin1Char('-') : QLatin1Char('+'))
+        .arg(minutes / 60, 2, 10, QLatin1Char('0'))
+        .arg(minutes % 60, 2, 10, QLatin1Char('0'));
+}
+
+} // namespace
+
+///
+/// \brief Formats a timestamp as a date-time with a zone indicator, or empty when invalid.
 /// \param timestamp Timestamp to format.
 /// \param mode Local time (trailing UTC offset) or UTC (trailing "Z").
-/// \return ISO 8601 string with millisecond precision and a trailing zone indicator.
+/// \return Space-separated date and time with millisecond precision and a trailing zone indicator.
 ///
 QString isoTimestampWithZone(const QDateTime &timestamp, TimestampMode mode)
 {
     if (!timestamp.isValid())
         return QString();
+    static const QString format = QStringLiteral("yyyy-MM-dd HH:mm:ss.zzz");
     if (mode == TimestampMode::Utc)
-        return timestamp.toUTC().toString(Qt::ISODateWithMs);
+        return timestamp.toUTC().toString(format) + zoneSuffix(0);
     const QDateTime local = timestamp.toLocalTime();
-    return local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs);
+    return local.toString(format) + zoneSuffix(local.offsetFromUtc());
 }
 
 ///

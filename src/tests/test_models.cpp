@@ -279,14 +279,17 @@ void TestModels::dataAccessTimestampModeReformats()
     model.setTimestampMode(AppSettings::TimestampMode::LocalTime);
     const QDateTime local = details.sourceTimestamp.toLocalTime();
     QCOMPARE(model.data(timestampIndex).toString(),
-             local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs));
+             local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs)
+                 .replace(QLatin1Char('T'), QLatin1Char(' ')));
 
     QSignalSpy spy(&model, &QAbstractItemModel::dataChanged);
     model.setTimestampMode(AppSettings::TimestampMode::Utc);
     QVERIFY(spy.count() >= 1);
     const QString utc = model.data(timestampIndex).toString();
-    QCOMPARE(utc, details.sourceTimestamp.toUTC().toString(Qt::ISODateWithMs));
+    QCOMPARE(utc, details.sourceTimestamp.toUTC().toString(Qt::ISODateWithMs)
+                      .replace(QLatin1Char('T'), QLatin1Char(' ')));
     QVERIFY(utc.endsWith(QLatin1Char('Z')));
+    QVERIFY(!utc.contains(QLatin1Char('T')));
 }
 
 ///
@@ -311,14 +314,17 @@ void TestModels::attributesModelTimestampModeReformats()
     model.setTimestampMode(AppSettings::TimestampMode::LocalTime);
     const QDateTime local = timestamp.sourceTimestamp.toLocalTime();
     QCOMPARE(model.data(timestampIndex).toString(),
-             local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs));
+             local.toOffsetFromUtc(local.offsetFromUtc()).toString(Qt::ISODateWithMs)
+                 .replace(QLatin1Char('T'), QLatin1Char(' ')));
 
     QSignalSpy spy(&model, &QAbstractItemModel::dataChanged);
     model.setTimestampMode(AppSettings::TimestampMode::Utc);
     QVERIFY(spy.count() >= 1);
     const QString utc = model.data(timestampIndex).toString();
-    QCOMPARE(utc, timestamp.sourceTimestamp.toUTC().toString(Qt::ISODateWithMs));
+    QCOMPARE(utc, timestamp.sourceTimestamp.toUTC().toString(Qt::ISODateWithMs)
+                      .replace(QLatin1Char('T'), QLatin1Char(' ')));
     QVERIFY(utc.endsWith(QLatin1Char('Z')));
+    QVERIFY(!utc.contains(QLatin1Char('T')));
 }
 
 ///
