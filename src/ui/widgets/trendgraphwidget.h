@@ -203,6 +203,11 @@ signals:
     ///
     void historyReadRequested(QString nodeId, QDateTime start, QDateTime end, quint32 maxValues);
 
+    ///
+    /// \brief Requests that the host open settings for this chart.
+    ///
+    void settingsRequested();
+
 protected:
     void changeEvent(QEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;

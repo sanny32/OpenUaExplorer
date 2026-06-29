@@ -187,6 +187,8 @@ void TrendGraphWidget::buildToolbar(QVBoxLayout *layout)
             [this]() { fit(); });
     connect(exportButton, &QAbstractButton::clicked, this,
             [this]() { exportChart(); });
+    connect(settingsButton, &QAbstractButton::clicked, this,
+            &TrendGraphWidget::settingsRequested);
 }
 
 ///
@@ -543,31 +545,42 @@ bool TrendGraphWidget::dropNode(const QMimeData *mimeData)
 }
 
 ///
-/// \brief Shows a menu to remove individual charted nodes or all of them.
+/// \brief Shows the chart context menu: view actions plus node removal.
+///
+/// Auto Scale, Fit, and Settings are always offered; per-node Remove entries
+/// and Remove All appear only while the chart has series.
+///
 /// \param globalPos Menu position in global screen coordinates.
 ///
 void TrendGraphWidget::showSeriesContextMenu(const QPoint &globalPos)
 {
-    if (_series.isEmpty())
-        return;
-
     QMenu menu(this);
-    QList<TrendSeries> ordered = _series.values();
-    std::sort(ordered.begin(), ordered.end(),
-              [](const TrendSeries &lhs, const TrendSeries &rhs) {
-                  return lhs.label().localeAwareCompare(rhs.label()) < 0;
-              });
 
-    for (const TrendSeries &series : std::as_const(ordered)) {
-        const QString nodeId = series.nodeId();
-        menu.addAction(swatchIcon(series.color()),
-                       tr("Remove %1").arg(series.label()), this,
-                       [this, nodeId]() { removeNode(nodeId); });
+    menu.addAction(tr("Auto Scale"), this, [this]() { autoScale(); });
+    menu.addAction(AppIcons::themed(QStringLiteral("fit")), tr("Fit"), this,
+                   [this]() { fit(); });
+    menu.addAction(AppIcons::themed(QStringLiteral("settings")), tr("Settings"),
+                   this, &TrendGraphWidget::settingsRequested);
+
+    if (!_series.isEmpty()) {
+        menu.addSeparator();
+
+        QList<TrendSeries> ordered = _series.values();
+        std::sort(ordered.begin(), ordered.end(),
+                  [](const TrendSeries &lhs, const TrendSeries &rhs) {
+                      return lhs.label().localeAwareCompare(rhs.label()) < 0;
+                  });
+
+        for (const TrendSeries &series : std::as_const(ordered)) {
+            const QString nodeId = series.nodeId();
+            menu.addAction(swatchIcon(series.color()),
+                           tr("Remove %1").arg(series.label()), this,
+                           [this, nodeId]() { removeNode(nodeId); });
+        }
+
+        menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
+                       this, [this]() { clear(); });
     }
-
-    menu.addSeparator();
-    menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
-                   this, [this]() { clear(); });
 
     menu.exec(globalPos);
 }
