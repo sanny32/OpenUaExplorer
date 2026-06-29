@@ -9,7 +9,6 @@
 #pragma once
 
 #include <QHash>
-#include <QSet>
 #include <QString>
 #include <QVector>
 #include <QWidget>
@@ -22,15 +21,14 @@ class TrendPanelWidget;
 }
 
 class TrendGraphWidget;
-class QButtonGroup;
-class QTimer;
 
 ///
-/// \brief Hosts trend charts and drives their live/historical data flow.
+/// \brief Hosts trend chart tabs and routes their data flow to the session.
 ///
-/// The toolbar's Live / 1m / 10m / 1h / 1d buttons choose the mode: Live streams
-/// subscribed values into a rolling window, while the range buttons read history
-/// for that window. Each tab holds one chart that may carry several series.
+/// Each tab holds one TrendGraphWidget that owns its own Live / 1m / 10m / 1h / 1d
+/// toolbar and mode. The panel manages the tab strip (add, close, last-tab reset),
+/// ref-counts the charts' subscribe / unsubscribe requests so a node monitored from
+/// several tabs is subscribed once, and fans live values and history out to charts.
 ///
 class TrendPanelWidget : public QWidget
 {
@@ -127,36 +125,18 @@ signals:
     void historyReadRequested(QString nodeId, QDateTime start, QDateTime end, quint32 maxValues);
 
 private:
-    enum class Mode {
-        Live,
-        History
-    };
-
     TrendGraphWidget *addChartTab();
     TrendGraphWidget *currentChart() const;
     QList<TrendGraphWidget *> charts() const;
-    QStringList allNodeIds() const;
-    void configureToolbar();
     void handleTabChanged(int index);
-    void enterLiveMode();
-    void enterHistoryMode(qint64 windowMs);
-    void reconcileSubscriptions();
-    void applyWindow();
-    void onNodeAdded(const QString &nodeId);
-    void onNodeRemoved(const QString &nodeId);
-    void subscribeNode(const QString &nodeId);
-    void unsubscribeNode(const QString &nodeId);
-    void requestHistory(const QString &nodeId);
-    void exportCurrentChart();
+    void handleTabCloseRequested(int index);
+    void onChartSubscribe(const QString &nodeId, double publishingInterval);
+    void onChartUnsubscribe(const QString &nodeId);
 
     Ui::TrendPanelWidget *ui;
-    QButtonGroup *_modeGroup = nullptr;
-    QTimer *_liveTimer = nullptr;
     QWidget *_addTab = nullptr;
-    Mode _mode = Mode::Live;
-    qint64 _windowMs = 60000;
     int _chartCounter = 0;
-    QSet<QString> _subscribed;
-    QHash<QString, bool> _pendingHistory;
-    bool _restoring = false;
+    bool _suppressTabChange = false;
+    AppSettings::TimestampMode _timestampMode = AppSettings::TimestampMode::LocalTime;
+    QHash<QString, int> _subscriptionRefs;
 };

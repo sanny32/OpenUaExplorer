@@ -10,11 +10,19 @@
 
 #include <utility>
 
+#include <QAbstractButton>
+#include <QButtonGroup>
 #include <QDateTime>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
+#include <QFileDialog>
+#include <QHBoxLayout>
+#include <QImage>
+#include <QMessageBox>
 #include <QMimeData>
+#include <QSpacerItem>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include "application.h"
@@ -24,8 +32,13 @@
 #include "chartviewfactory.h"
 #include "ichartview.h"
 #include "models/addressspacemimedata.h"
+#include "themedtoolbutton.h"
 
 namespace {
+
+constexpr qint64 kLiveWindowMs = 60000;
+constexpr int kLiveTickMs = 1000;
+constexpr double kPublishingIntervalMs = 1000.0;
 
 const QVector<QColor> kSeriesPalette = {
     QColor(0x00, 0xb4, 0x46),
@@ -53,7 +66,21 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
 
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->addWidget(_chart->widget());
+    buildToolbar(layout);
+
+    QWidget *chartWidget = _chart->widget();
+    layout->addWidget(chartWidget);
+    chartWidget->installEventFilter(this);
+    const QList<QWidget *> chartChildren = chartWidget->findChildren<QWidget *>();
+    for (QWidget *child : chartChildren)
+        child->installEventFilter(this);
+
+    _liveTimer = new QTimer(this);
+    _liveTimer->setInterval(kLiveTickMs);
+    connect(_liveTimer, &QTimer::timeout, this, [this]() {
+        applyWindow();
+        autoScale();
+    });
 
     applyTheme();
 
@@ -61,6 +88,92 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
         connect(&app->theme(), &AppTheme::colorSchemeChanged, this,
                 &TrendGraphWidget::applyTheme);
     }
+
+    enterLiveMode();
+}
+
+///
+/// \brief Builds the per-chart toolbar and wires its buttons.
+/// \param layout Vertical layout to host the toolbar row.
+///
+void TrendGraphWidget::buildToolbar(QVBoxLayout *layout)
+{
+    const auto makeRangeButton = [this](const QString &name, const QString &text) {
+        auto *button = new ThemedToolButton(this);
+        button->setObjectName(name);
+        button->setText(text);
+        button->setCheckable(true);
+        button->setToolButtonStyle(Qt::ToolButtonTextOnly);
+        button->setMinimumWidth(40);
+        return button;
+    };
+
+    _liveButton = makeRangeButton(QStringLiteral("liveButton"), tr("Live"));
+    _liveButton->setChecked(true);
+    _oneMinuteButton = makeRangeButton(QStringLiteral("oneMinuteButton"), tr("1m"));
+    _tenMinutesButton = makeRangeButton(QStringLiteral("tenMinutesButton"), tr("10m"));
+    _oneHourButton = makeRangeButton(QStringLiteral("oneHourButton"), tr("1h"));
+    _oneDayButton = makeRangeButton(QStringLiteral("oneDayButton"), tr("1d"));
+
+    auto *autoScaleButton = new ThemedToolButton(this);
+    autoScaleButton->setObjectName(QStringLiteral("autoScaleButton"));
+    autoScaleButton->setText(tr("Auto Scale"));
+    autoScaleButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
+
+    auto *fitButton = new ThemedToolButton(this);
+    fitButton->setObjectName(QStringLiteral("fitButton"));
+    fitButton->setText(tr("Fit"));
+    fitButton->setIcon(QStringLiteral("fit"));
+    fitButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+
+    auto *exportButton = new ThemedToolButton(this);
+    exportButton->setObjectName(QStringLiteral("exportButton"));
+    exportButton->setSquareIconOnly(true);
+    exportButton->setIcon(QStringLiteral("export"));
+
+    auto *settingsButton = new ThemedToolButton(this);
+    settingsButton->setObjectName(QStringLiteral("settingsButton"));
+    settingsButton->setSquareIconOnly(true);
+    settingsButton->setIcon(QStringLiteral("settings"));
+
+    auto *toolbar = new QHBoxLayout;
+    toolbar->addWidget(_liveButton);
+    toolbar->addWidget(_oneMinuteButton);
+    toolbar->addWidget(_tenMinutesButton);
+    toolbar->addWidget(_oneHourButton);
+    toolbar->addWidget(_oneDayButton);
+    toolbar->addStretch(1);
+    toolbar->addWidget(autoScaleButton);
+    toolbar->addWidget(fitButton);
+    toolbar->addWidget(exportButton);
+    toolbar->addWidget(settingsButton);
+    layout->addLayout(toolbar);
+
+    _modeGroup = new QButtonGroup(this);
+    _modeGroup->setExclusive(true);
+    _modeGroup->addButton(_liveButton);
+    _modeGroup->addButton(_oneMinuteButton);
+    _modeGroup->addButton(_tenMinutesButton);
+    _modeGroup->addButton(_oneHourButton);
+    _modeGroup->addButton(_oneDayButton);
+
+    connect(_liveButton, &QAbstractButton::clicked, this,
+            [this]() { enterLiveMode(); });
+    connect(_oneMinuteButton, &QAbstractButton::clicked, this,
+            [this]() { enterHistoryMode(60000); });
+    connect(_tenMinutesButton, &QAbstractButton::clicked, this,
+            [this]() { enterHistoryMode(600000); });
+    connect(_oneHourButton, &QAbstractButton::clicked, this,
+            [this]() { enterHistoryMode(3600000); });
+    connect(_oneDayButton, &QAbstractButton::clicked, this,
+            [this]() { enterHistoryMode(86400000); });
+
+    connect(autoScaleButton, &QAbstractButton::clicked, this,
+            [this]() { autoScale(); });
+    connect(fitButton, &QAbstractButton::clicked, this,
+            [this]() { fit(); });
+    connect(exportButton, &QAbstractButton::clicked, this,
+            [this]() { exportChart(); });
 }
 
 ///
@@ -92,6 +205,10 @@ bool TrendGraphWidget::addNode(const QString &nodeId, const QString &displayName
     _chart->addSeries(nodeId, series.label(), color);
 
     emit nodeAdded(nodeId, displayName, displayPath);
+    if (_mode == Mode::Live)
+        subscribeNode(nodeId);
+    else
+        requestHistory(nodeId);
     return true;
 }
 
@@ -100,6 +217,8 @@ void TrendGraphWidget::removeNode(const QString &nodeId)
     if (_series.remove(nodeId) == 0)
         return;
     _chart->removeSeries(nodeId);
+    unsubscribeNode(nodeId);
+    _pendingHistory.remove(nodeId);
     emit nodeRemoved(nodeId);
 }
 
@@ -115,6 +234,8 @@ QStringList TrendGraphWidget::chartedNodeIds() const
 
 void TrendGraphWidget::applyLiveValues(const QVector<OpcUaDataValue> &values)
 {
+    if (_mode != Mode::Live)
+        return;
     for (const OpcUaDataValue &value : values) {
         auto it = _series.find(value.nodeId);
         if (it == _series.end())
@@ -159,10 +280,166 @@ QImage TrendGraphWidget::renderToImage(const QSize &size) const
     return _chart->renderToImage(size);
 }
 
+///
+/// \brief Applies history results if this chart requested them for the node.
+/// \param nodeId Node whose history arrived.
+/// \param error Read error, empty on success.
+/// \param values History samples in time order.
+/// \return True when this chart had requested the node's history.
+///
+bool TrendGraphWidget::consumeHistory(const QString &nodeId, const QString &error,
+                                      const QVector<OpcUaHistoryValue> &values)
+{
+    if (!_pendingHistory.contains(nodeId))
+        return false;
+    _pendingHistory.remove(nodeId);
+    if (error.isEmpty() && hasNode(nodeId)) {
+        applyHistory(nodeId, values);
+        autoScale();
+    }
+    return true;
+}
+
 void TrendGraphWidget::clear()
 {
+    const QSet<QString> subscribed = _subscribed;
+    for (const QString &nodeId : subscribed)
+        unsubscribeNode(nodeId);
+    _pendingHistory.clear();
     _series.clear();
     _chart->clearAll();
+}
+
+///
+/// \brief Returns the active mode as an int for persistence.
+/// \return 0 for Live, 1 for History.
+///
+int TrendGraphWidget::modeState() const
+{
+    return static_cast<int>(_mode);
+}
+
+///
+/// \brief Returns the active window length in milliseconds.
+/// \return Window length.
+///
+qint64 TrendGraphWidget::windowState() const
+{
+    return _windowMs;
+}
+
+///
+/// \brief Restores a persisted mode and window.
+/// \param mode 0 for Live, 1 for History.
+/// \param windowMs Window length in milliseconds.
+///
+void TrendGraphWidget::applyModeState(int mode, qint64 windowMs)
+{
+    if (static_cast<Mode>(mode) == Mode::History)
+        enterHistoryMode(windowMs);
+    else
+        enterLiveMode();
+}
+
+///
+/// \brief Switches to live streaming and subscribes the charted nodes.
+///
+void TrendGraphWidget::enterLiveMode()
+{
+    _mode = Mode::Live;
+    _windowMs = kLiveWindowMs;
+    _liveButton->setChecked(true);
+    const QStringList ids = chartedNodeIds();
+    for (const QString &nodeId : ids)
+        subscribeNode(nodeId);
+    applyWindow();
+    if (!_liveTimer->isActive())
+        _liveTimer->start();
+}
+
+///
+/// \brief Switches to historical reads over a rolling window.
+/// \param windowMs Window length in milliseconds.
+///
+void TrendGraphWidget::enterHistoryMode(qint64 windowMs)
+{
+    _mode = Mode::History;
+    _windowMs = windowMs;
+    switch (windowMs) {
+    case 600000:   _tenMinutesButton->setChecked(true); break;
+    case 3600000:  _oneHourButton->setChecked(true); break;
+    case 86400000: _oneDayButton->setChecked(true); break;
+    default:       _oneMinuteButton->setChecked(true); break;
+    }
+    _liveTimer->stop();
+    const QSet<QString> subscribed = _subscribed;
+    for (const QString &nodeId : subscribed)
+        unsubscribeNode(nodeId);
+    applyWindow();
+    const QStringList ids = chartedNodeIds();
+    for (const QString &nodeId : ids)
+        requestHistory(nodeId);
+}
+
+///
+/// \brief Applies the rolling time window to the chart.
+///
+void TrendGraphWidget::applyWindow()
+{
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    setTimeWindow(static_cast<qreal>(now - _windowMs), static_cast<qreal>(now));
+}
+
+///
+/// \brief Subscribes a node once, emitting the request on first reference.
+/// \param nodeId Node to monitor.
+///
+void TrendGraphWidget::subscribeNode(const QString &nodeId)
+{
+    if (_subscribed.contains(nodeId))
+        return;
+    _subscribed.insert(nodeId);
+    emit subscribeRequested(nodeId, kPublishingIntervalMs);
+}
+
+///
+/// \brief Unsubscribes a node, emitting the request when it was monitored.
+/// \param nodeId Node to stop monitoring.
+///
+void TrendGraphWidget::unsubscribeNode(const QString &nodeId)
+{
+    if (_subscribed.remove(nodeId))
+        emit unsubscribeRequested(nodeId);
+}
+
+///
+/// \brief Requests a history read for a node over the active window.
+/// \param nodeId Node whose history is read.
+///
+void TrendGraphWidget::requestHistory(const QString &nodeId)
+{
+    const QDateTime end = QDateTime::currentDateTime();
+    const QDateTime start = end.addMSecs(-_windowMs);
+    _pendingHistory.insert(nodeId);
+    emit historyReadRequested(nodeId, start, end, 0);
+}
+
+///
+/// \brief Saves the chart as a PNG image.
+///
+void TrendGraphWidget::exportChart()
+{
+    const QString fileName = QFileDialog::getSaveFileName(
+        this, tr("Export Trend"), QStringLiteral("trend.png"),
+        tr("PNG Image (*.png);;All Files (*)"));
+    if (fileName.isEmpty())
+        return;
+
+    const QImage image = renderToImage(size() * 2);
+    if (!image.save(fileName)) {
+        QMessageBox::warning(this, tr("Export Trend"),
+                             tr("Could not save '%1'.").arg(fileName));
+    }
 }
 
 ///
@@ -176,6 +453,7 @@ void TrendGraphWidget::setTimestampMode(AppSettings::TimestampMode mode)
     _timestampMode = mode;
     for (const TrendSeries &series : std::as_const(_series))
         refeedSeries(series);
+    applyWindow();
 }
 
 ///
@@ -221,6 +499,73 @@ void TrendGraphWidget::applyTheme()
 }
 
 ///
+/// \brief Reports whether a drag carries a droppable variable node.
+/// \param mimeData Drag MIME data.
+/// \return True when the drag holds a variable node.
+///
+bool TrendGraphWidget::acceptsNodeDrag(const QMimeData *mimeData) const
+{
+    OpcUaNodeInfo node;
+    return AddressSpaceMime::decodeNode(mimeData, &node)
+        && !node.nodeId.isEmpty() && OpcUa::isVariable(node.nodeClass);
+}
+
+///
+/// \brief Adds a dropped variable node as a new series.
+/// \param mimeData Drop MIME data.
+/// \return True when a variable node was added.
+///
+bool TrendGraphWidget::dropNode(const QMimeData *mimeData)
+{
+    OpcUaNodeInfo node;
+    if (!AddressSpaceMime::decodeNode(mimeData, &node)
+        || node.nodeId.isEmpty() || !OpcUa::isVariable(node.nodeClass)) {
+        return false;
+    }
+    const QString label = node.displayName.isEmpty()
+        ? (node.browseName.isEmpty() ? node.nodeId : node.browseName)
+        : node.displayName;
+    addNode(node.nodeId, label, node.displayPath);
+    return true;
+}
+
+///
+/// \brief Routes drags over the chart view (and its viewport) to this widget.
+///
+/// The chart view is a scroll area that accepts drops itself, so drags landing on
+/// it never reach the widget's own drag handlers; this filter intercepts them.
+///
+bool TrendGraphWidget::eventFilter(QObject *watched, QEvent *event)
+{
+    switch (event->type()) {
+    case QEvent::DragEnter:
+    case QEvent::DragMove: {
+        auto *dragEvent = static_cast<QDragMoveEvent *>(event);
+        if (acceptsNodeDrag(dragEvent->mimeData())) {
+            dragEvent->setDropAction(Qt::CopyAction);
+            dragEvent->accept();
+            return true;
+        }
+        dragEvent->ignore();
+        return true;
+    }
+    case QEvent::Drop: {
+        auto *dropEvent = static_cast<QDropEvent *>(event);
+        if (dropNode(dropEvent->mimeData())) {
+            dropEvent->setDropAction(Qt::CopyAction);
+            dropEvent->accept();
+            return true;
+        }
+        dropEvent->ignore();
+        return true;
+    }
+    default:
+        break;
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
+///
 /// \brief Accepts a drag that carries a droppable variable node.
 ///
 void TrendGraphWidget::dragEnterEvent(QDragEnterEvent *event)
@@ -233,9 +578,7 @@ void TrendGraphWidget::dragEnterEvent(QDragEnterEvent *event)
 ///
 void TrendGraphWidget::dragMoveEvent(QDragMoveEvent *event)
 {
-    OpcUaNodeInfo node;
-    if (AddressSpaceMime::decodeNode(event->mimeData(), &node)
-        && !node.nodeId.isEmpty() && OpcUa::isVariable(node.nodeClass)) {
+    if (acceptsNodeDrag(event->mimeData())) {
         event->setDropAction(Qt::CopyAction);
         event->accept();
     } else {
@@ -248,16 +591,10 @@ void TrendGraphWidget::dragMoveEvent(QDragMoveEvent *event)
 ///
 void TrendGraphWidget::dropEvent(QDropEvent *event)
 {
-    OpcUaNodeInfo node;
-    if (!AddressSpaceMime::decodeNode(event->mimeData(), &node)
-        || node.nodeId.isEmpty() || !OpcUa::isVariable(node.nodeClass)) {
+    if (dropNode(event->mimeData())) {
+        event->setDropAction(Qt::CopyAction);
+        event->accept();
+    } else {
         event->ignore();
-        return;
     }
-    const QString label = node.displayName.isEmpty()
-        ? (node.browseName.isEmpty() ? node.nodeId : node.browseName)
-        : node.displayName;
-    addNode(node.nodeId, label, node.displayPath);
-    event->setDropAction(Qt::CopyAction);
-    event->accept();
 }

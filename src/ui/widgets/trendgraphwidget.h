@@ -15,11 +15,18 @@
 #include <QVector>
 #include <QWidget>
 
+#include <QSet>
+
 #include "appsettings.h"
 #include "models/trendseries.h"
 #include "opcua/opcuatypes.h"
 
 class IChartView;
+class ThemedToolButton;
+class QButtonGroup;
+class QTimer;
+class QVBoxLayout;
+class QMimeData;
 
 ///
 /// \brief Plots one or more OPC UA variable nodes as time-series line charts.
@@ -28,6 +35,12 @@ class IChartView;
 /// this widget never depends on a concrete charting backend. It owns the per-node
 /// TrendSeries buffers, accepts dropped nodes, and re-feeds points when the
 /// timestamp display mode changes.
+///
+/// Each chart carries its own Live / 1m / 10m / 1h / 1d toolbar and therefore its
+/// own mode: Live streams subscribed values into a rolling window, while a range
+/// reads history for that window. The widget emits subscribe / unsubscribe /
+/// history requests for its own nodes; the hosting panel ref-counts them across
+/// tabs before forwarding them to the session.
 ///
 class TrendGraphWidget : public QWidget
 {
@@ -112,9 +125,38 @@ public:
     QImage renderToImage(const QSize &size) const;
 
     ///
-    /// \brief Removes all series and their points.
+    /// \brief Applies history results if this chart requested them for the node.
+    /// \param nodeId Node whose history arrived.
+    /// \param error Read error, empty on success.
+    /// \param values History samples in time order.
+    /// \return True when this chart had requested the node's history.
+    ///
+    bool consumeHistory(const QString &nodeId, const QString &error,
+                        const QVector<OpcUaHistoryValue> &values);
+
+    ///
+    /// \brief Removes all series and their points, unsubscribing live nodes.
     ///
     void clear();
+
+    ///
+    /// \brief Returns the active mode as an int for persistence.
+    /// \return 0 for Live, 1 for History.
+    ///
+    int modeState() const;
+
+    ///
+    /// \brief Returns the active window length in milliseconds.
+    /// \return Window length.
+    ///
+    qint64 windowState() const;
+
+    ///
+    /// \brief Restores a persisted mode and window.
+    /// \param mode 0 for Live, 1 for History.
+    /// \param windowMs Window length in milliseconds.
+    ///
+    void applyModeState(int mode, qint64 windowMs);
 
 public slots:
     ///
@@ -138,12 +180,51 @@ signals:
     ///
     void nodeRemoved(QString nodeId);
 
+    ///
+    /// \brief Requests monitoring for a node charted here.
+    /// \param nodeId Node to monitor.
+    /// \param publishingInterval Publishing interval in milliseconds.
+    ///
+    void subscribeRequested(QString nodeId, double publishingInterval);
+
+    ///
+    /// \brief Requests that monitoring stop for a node charted here.
+    /// \param nodeId Node to stop monitoring.
+    ///
+    void unsubscribeRequested(QString nodeId);
+
+    ///
+    /// \brief Requests a raw history read for a node charted here.
+    /// \param nodeId Node whose history is read.
+    /// \param start Inclusive range start.
+    /// \param end Inclusive range end.
+    /// \param maxValues Maximum samples to return, or 0 for no limit.
+    ///
+    void historyReadRequested(QString nodeId, QDateTime start, QDateTime end, quint32 maxValues);
+
 protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
     void dropEvent(QDropEvent *event) override;
 
 private:
+    bool acceptsNodeDrag(const QMimeData *mimeData) const;
+    bool dropNode(const QMimeData *mimeData);
+
+    enum class Mode {
+        Live,
+        History
+    };
+
+    void buildToolbar(QVBoxLayout *layout);
+    void enterLiveMode();
+    void enterHistoryMode(qint64 windowMs);
+    void applyWindow();
+    void subscribeNode(const QString &nodeId);
+    void unsubscribeNode(const QString &nodeId);
+    void requestHistory(const QString &nodeId);
+    void exportChart();
     void applyTheme();
     void refeedSeries(const TrendSeries &series);
     qreal toChartX(qreal epochMs) const;
@@ -152,4 +233,16 @@ private:
     std::unique_ptr<IChartView> _chart;
     QHash<QString, TrendSeries> _series;
     AppSettings::TimestampMode _timestampMode = AppSettings::TimestampMode::LocalTime;
+
+    QButtonGroup *_modeGroup = nullptr;
+    ThemedToolButton *_liveButton = nullptr;
+    ThemedToolButton *_oneMinuteButton = nullptr;
+    ThemedToolButton *_tenMinutesButton = nullptr;
+    ThemedToolButton *_oneHourButton = nullptr;
+    ThemedToolButton *_oneDayButton = nullptr;
+    QTimer *_liveTimer = nullptr;
+    Mode _mode = Mode::Live;
+    qint64 _windowMs = 60000;
+    QSet<QString> _subscribed;
+    QSet<QString> _pendingHistory;
 };
