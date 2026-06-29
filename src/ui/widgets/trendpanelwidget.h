@@ -21,6 +21,7 @@ class TrendPanelWidget;
 }
 
 class TrendGraphWidget;
+class ThemedToolButton;
 
 ///
 /// \brief Hosts trend chart tabs and routes their data flow to the session.
@@ -75,6 +76,18 @@ public:
     /// \brief Clears every chart, stops streaming, and forgets pending reads.
     ///
     void clearRuntimeData();
+
+    ///
+    /// \brief Reports whether the panel is collapsed to its tab strip.
+    /// \return True when only the tab strip is visible.
+    ///
+    bool isCollapsed() const;
+
+    ///
+    /// \brief Collapses the panel to its tab strip or restores its full height.
+    /// \param collapsed True to collapse, false to restore.
+    ///
+    void setCollapsed(bool collapsed);
 
     ///
     /// \brief Persists the active mode.
@@ -132,11 +145,15 @@ private:
     void handleTabCloseRequested(int index);
     void onChartSubscribe(const QString &nodeId, double publishingInterval);
     void onChartUnsubscribe(const QString &nodeId);
+    int collapsedHeight() const;
 
     Ui::TrendPanelWidget *ui;
     QWidget *_addTab = nullptr;
+    ThemedToolButton *_collapseButton = nullptr;
     int _chartCounter = 0;
     bool _suppressTabChange = false;
+    bool _collapsed = false;
+    int _expandedMinHeight = 0;
     AppSettings::TimestampMode _timestampMode = AppSettings::TimestampMode::LocalTime;
     QHash<QString, int> _subscriptionRefs;
 };

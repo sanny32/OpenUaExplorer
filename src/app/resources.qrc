@@ -57,6 +57,10 @@
         <file alias="icons/dark/chevron-left.svg">res/icons/dark/chevron-left.svg</file>
         <file alias="icons/light/chevron-right.svg">res/icons/light/chevron-right.svg</file>
         <file alias="icons/dark/chevron-right.svg">res/icons/dark/chevron-right.svg</file>
+        <file alias="icons/light/chevron-down.svg">res/icons/light/chevron-down.svg</file>
+        <file alias="icons/dark/chevron-down.svg">res/icons/dark/chevron-down.svg</file>
+        <file alias="icons/light/chevron-up.svg">res/icons/light/chevron-up.svg</file>
+        <file alias="icons/dark/chevron-up.svg">res/icons/dark/chevron-up.svg</file>
         <file alias="icons/light/certificate.svg">res/icons/light/certificate.svg</file>
         <file alias="icons/dark/certificate.svg">res/icons/dark/certificate.svg</file>
         <file alias="icons/light/shield-trusted.svg">res/icons/light/shield-trusted.svg</file>

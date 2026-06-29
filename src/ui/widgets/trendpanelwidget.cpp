@@ -9,10 +9,12 @@
 #include "trendpanelwidget.h"
 #include "ui_trendpanelwidget.h"
 
+#include <QAbstractButton>
 #include <QDataStream>
 #include <QIODevice>
 #include <QTabBar>
 
+#include "themedtoolbutton.h"
 #include "trendgraphwidget.h"
 
 namespace {
@@ -31,7 +33,19 @@ TrendPanelWidget::TrendPanelWidget(QWidget *parent)
 {
     ui->setupUi(this);
 
+    _expandedMinHeight = minimumHeight();
+
     ui->trendTabs->setTabsClosable(true);
+
+    _collapseButton = new ThemedToolButton(ui->trendTabs);
+    _collapseButton->setObjectName(QStringLiteral("collapseButton"));
+    _collapseButton->setSquareIconOnly(true);
+    _collapseButton->setAutoRaise(true);
+    _collapseButton->setIcon(QStringLiteral("chevron-down"));
+    _collapseButton->setToolTip(tr("Collapse trend panel"));
+    ui->trendTabs->setCornerWidget(_collapseButton, Qt::TopRightCorner);
+    connect(_collapseButton, &QAbstractButton::clicked, this,
+            [this]() { setCollapsed(!_collapsed); });
 
     _addTab = new QWidget(ui->trendTabs);
     ui->trendTabs->addTab(_addTab, QStringLiteral("+"));
@@ -162,6 +176,7 @@ void TrendPanelWidget::addNode(const QString &nodeId, const QString &displayName
 {
     if (nodeId.isEmpty())
         return;
+    setCollapsed(false);
     TrendGraphWidget *chart = currentChart();
     if (!chart)
         chart = addChartTab();
@@ -236,6 +251,52 @@ void TrendPanelWidget::setTimestampMode(AppSettings::TimestampMode mode)
 }
 
 ///
+/// \brief Reports whether the panel is collapsed to its tab strip.
+/// \return True when only the tab strip is visible.
+///
+bool TrendPanelWidget::isCollapsed() const
+{
+    return _collapsed;
+}
+
+///
+/// \brief Collapses the panel to its tab strip or restores its full height.
+/// \param collapsed True to collapse, false to restore.
+///
+void TrendPanelWidget::setCollapsed(bool collapsed)
+{
+    if (_collapsed == collapsed)
+        return;
+    _collapsed = collapsed;
+
+    if (_collapsed) {
+        const int header = collapsedHeight();
+        setMinimumHeight(header);
+        setMaximumHeight(header);
+    } else {
+        setMinimumHeight(_expandedMinHeight);
+        setMaximumHeight(QWIDGETSIZE_MAX);
+    }
+
+    _collapseButton->setIcon(_collapsed ? QStringLiteral("chevron-up")
+                                        : QStringLiteral("chevron-down"));
+    _collapseButton->setToolTip(_collapsed ? tr("Expand trend panel")
+                                           : tr("Collapse trend panel"));
+}
+
+///
+/// \brief Computes the panel height that keeps only the tab strip visible.
+/// \return Collapsed panel height in pixels.
+///
+int TrendPanelWidget::collapsedHeight() const
+{
+    int header = ui->trendTabs->tabBar()->sizeHint().height();
+    if (_collapseButton)
+        header = qMax(header, _collapseButton->sizeHint().height());
+    return header;
+}
+
+///
 /// \brief Clears every chart, stops streaming, and forgets pending reads.
 ///
 void TrendPanelWidget::clearRuntimeData()
@@ -256,7 +317,7 @@ void TrendPanelWidget::saveViewState(AppSettings &settings) const
         return;
     QByteArray state;
     QDataStream stream(&state, QIODevice::WriteOnly);
-    stream << chart->modeState() << chart->windowState();
+    stream << chart->modeState() << chart->windowState() << _collapsed;
     settings.setViewState(kModeStateKey, state);
 }
 
@@ -279,4 +340,9 @@ void TrendPanelWidget::restoreViewState(AppSettings &settings)
 
     if (TrendGraphWidget *chart = currentChart())
         chart->applyModeState(mode, windowMs);
+
+    bool collapsed = false;
+    stream >> collapsed;
+    if (stream.status() == QDataStream::Ok)
+        setCollapsed(collapsed);
 }
