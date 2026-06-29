@@ -35,6 +35,7 @@
 #include "appicons.h"
 #include "charttypes.h"
 #include "chartviewfactory.h"
+#include "dialogs/trendsettingsdialog.h"
 #include "ichartview.h"
 #include "models/addressspacemimedata.h"
 #include "themedtoolbutton.h"
@@ -96,11 +97,14 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     _liveTimer = new QTimer(this);
     _liveTimer->setInterval(kLiveTickMs);
     connect(_liveTimer, &QTimer::timeout, this, [this]() {
-        applyWindow();
-        autoScale();
+        if (_display.autoScrollLive)
+            applyWindow();
+        if (_display.autoScale)
+            autoScale();
     });
 
     applyTheme();
+    applyDisplaySettings();
 
     enterLiveMode();
 }
@@ -190,7 +194,7 @@ void TrendGraphWidget::buildToolbar(QVBoxLayout *layout)
     connect(exportButton, &QAbstractButton::clicked, this,
             [this]() { exportChart(); });
     connect(settingsButton, &QAbstractButton::clicked, this,
-            &TrendGraphWidget::settingsRequested);
+            [this]() { openSettings(); });
 }
 
 ///
@@ -407,6 +411,100 @@ void TrendGraphWidget::applyModeState(int mode, qint64 windowMs)
 }
 
 ///
+/// \brief Returns the current display, range and auto-scroll settings.
+/// \return Active settings.
+///
+TrendDisplaySettings TrendGraphWidget::displaySettings() const
+{
+    TrendDisplaySettings settings = _display;
+    settings.mode = modeState();
+    settings.windowMs = windowState();
+    return settings;
+}
+
+///
+/// \brief Applies display, range and auto-scroll settings to the chart.
+/// \param settings Settings to apply.
+///
+void TrendGraphWidget::setDisplaySettings(const TrendDisplaySettings &settings)
+{
+    _display = settings;
+    applyDisplaySettings();
+    applyModeState(settings.mode, settings.windowMs);
+    if (_display.autoScale)
+        autoScale();
+}
+
+///
+/// \brief Pushes the display toggles (legend, grid, smoothing) to the chart.
+///
+void TrendGraphWidget::applyDisplaySettings()
+{
+    _chart->setLegendVisible(_display.showLegend);
+    _chart->setGridVisible(_display.showGrid);
+    _chart->setSmoothLines(_display.smoothLines);
+}
+
+///
+/// \brief Returns the charted series with their colours and visibility.
+/// \return Series in legend-label order.
+///
+QVector<TrendSeriesInfo> TrendGraphWidget::seriesInfos() const
+{
+    QList<TrendSeries> ordered = _series.values();
+    std::sort(ordered.begin(), ordered.end(),
+              [](const TrendSeries &lhs, const TrendSeries &rhs) {
+                  return lhs.label().localeAwareCompare(rhs.label()) < 0;
+              });
+
+    QVector<TrendSeriesInfo> result;
+    result.reserve(ordered.size());
+    for (const TrendSeries &series : std::as_const(ordered))
+        result.append({ series.nodeId(), series.label(), series.color(), series.isVisible() });
+    return result;
+}
+
+///
+/// \brief Applies edited per-series colours and visibility.
+/// \param series Series carrying updated colour and visibility.
+///
+void TrendGraphWidget::applySeriesInfos(const QVector<TrendSeriesInfo> &series)
+{
+    for (const TrendSeriesInfo &info : series) {
+        auto it = _series.find(info.nodeId);
+        if (it == _series.end())
+            continue;
+        if (it->color() != info.color) {
+            it->setColor(info.color);
+            _chart->setSeriesColor(info.nodeId, info.color);
+        }
+        if (it->isVisible() != info.visible) {
+            it->setVisible(info.visible);
+            _chart->setSeriesVisible(info.nodeId, info.visible);
+        }
+    }
+    if (_display.autoScale)
+        autoScale();
+}
+
+///
+/// \brief Opens the settings dialog and applies any accepted changes.
+///
+void TrendGraphWidget::openSettings()
+{
+    emit settingsRequested();
+
+    TrendSettingsDialog dialog(this);
+    dialog.setDisplaySettings(displaySettings());
+    dialog.setSeries(seriesInfos());
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    setDisplaySettings(dialog.displaySettings());
+    applySeriesInfos(dialog.series());
+}
+
+///
 /// \brief Switches to live streaming and subscribes the charted nodes.
 ///
 void TrendGraphWidget::enterLiveMode()
@@ -610,7 +708,7 @@ void TrendGraphWidget::showSeriesContextMenu(const QPoint &globalPos)
     menu.addAction(AppIcons::themed(QStringLiteral("fit")), tr("Fit"), this,
                    [this]() { fit(); });
     menu.addAction(AppIcons::themed(QStringLiteral("settings")), tr("Settings"),
-                   this, &TrendGraphWidget::settingsRequested);
+                   this, [this]() { openSettings(); });
 
     if (!_series.isEmpty()) {
         menu.addSeparator();

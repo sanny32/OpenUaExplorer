@@ -97,6 +97,38 @@ public:
     virtual void fit() = 0;
 
     ///
+    /// \brief Shows or hides the chart legend.
+    /// \param visible True to show the legend.
+    ///
+    virtual void setLegendVisible(bool visible) = 0;
+
+    ///
+    /// \brief Shows or hides the axis grid lines.
+    /// \param visible True to show the grid.
+    ///
+    virtual void setGridVisible(bool visible) = 0;
+
+    ///
+    /// \brief Enables or disables antialiased line rendering.
+    /// \param smooth True for smooth (antialiased) lines.
+    ///
+    virtual void setSmoothLines(bool smooth) = 0;
+
+    ///
+    /// \brief Shows or hides a single series.
+    /// \param id Target series.
+    /// \param visible True to draw the series.
+    ///
+    virtual void setSeriesVisible(const ChartSeriesId &id, bool visible) = 0;
+
+    ///
+    /// \brief Recolours a single series.
+    /// \param id Target series.
+    /// \param color New line colour.
+    ///
+    virtual void setSeriesColor(const ChartSeriesId &id, const QColor &color) = 0;
+
+    ///
     /// \brief Applies the application colour theme to the chart.
     /// \param theme Backend-neutral colour set.
     ///

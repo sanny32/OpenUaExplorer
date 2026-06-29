@@ -157,6 +157,8 @@ void QtChartsView::autoScaleY()
     qreal maxY = std::numeric_limits<qreal>::lowest();
     bool any = false;
     for (QLineSeries *series : std::as_const(_series)) {
+        if (!series->isVisible())
+            continue;
         const QList<QPointF> points = series->points();
         for (const QPointF &point : points) {
             minY = qMin(minY, point.y());
@@ -180,6 +182,8 @@ void QtChartsView::fit()
     qreal maxX = std::numeric_limits<qreal>::lowest();
     bool any = false;
     for (QLineSeries *series : std::as_const(_series)) {
+        if (!series->isVisible())
+            continue;
         const QList<QPointF> points = series->points();
         for (const QPointF &point : points) {
             minX = qMin(minX, point.x());
@@ -193,6 +197,37 @@ void QtChartsView::fit()
         setTimeWindow(minX, maxX);
     }
     autoScaleY();
+}
+
+void QtChartsView::setLegendVisible(bool visible)
+{
+    _chart->legend()->setVisible(visible);
+}
+
+void QtChartsView::setGridVisible(bool visible)
+{
+    _axisX->setGridLineVisible(visible);
+    _axisY->setGridLineVisible(visible);
+}
+
+void QtChartsView::setSmoothLines(bool smooth)
+{
+    _view->setRenderHint(QPainter::Antialiasing, smooth);
+}
+
+void QtChartsView::setSeriesVisible(const ChartSeriesId &id, bool visible)
+{
+    if (QLineSeries *series = _series.value(id))
+        series->setVisible(visible);
+}
+
+void QtChartsView::setSeriesColor(const ChartSeriesId &id, const QColor &color)
+{
+    QLineSeries *series = _series.value(id);
+    if (!series || !color.isValid())
+        return;
+    series->setColor(color);
+    series->setPen(QPen(color, 1.6));
 }
 
 void QtChartsView::setTheme(const ChartTheme &theme)

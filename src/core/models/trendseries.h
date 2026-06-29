@@ -63,6 +63,18 @@ public:
     void setColor(const QColor &color);
 
     ///
+    /// \brief Reports whether the series is drawn.
+    /// \return True when visible.
+    ///
+    bool isVisible() const;
+
+    ///
+    /// \brief Sets whether the series is drawn.
+    /// \param visible True to draw the series.
+    ///
+    void setVisible(bool visible);
+
+    ///
     /// \brief Returns the buffered points (x = ms since epoch UTC, y = value).
     /// \return Points in insertion order.
     ///
@@ -107,6 +119,7 @@ private:
     QString _displayName;
     QString _displayPath;
     QColor _color;
+    bool _visible = true;
     QVector<QPointF> _points;
     int _maxPoints = 50000;
 };

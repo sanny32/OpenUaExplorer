@@ -11,6 +11,7 @@ set(UI_FILES
     dialogs/editfavoritedialog.ui
     dialogs/settingsdialog.ui
     dialogs/subscriptionsdialog.ui
+    dialogs/trendsettingsdialog.ui
     dialogs/writevaluedialog.ui
 
     widgets/addressspacewidget.ui
@@ -89,6 +90,8 @@ add_library(ouaexp_ui STATIC
     dialogs/settingsdialog.h
     dialogs/subscriptionsdialog.cpp
     dialogs/subscriptionsdialog.h
+    dialogs/trendsettingsdialog.cpp
+    dialogs/trendsettingsdialog.h
     dialogs/writevaluedialog.cpp
     dialogs/writevaluedialog.h
 
@@ -164,6 +167,7 @@ add_library(ouaexp_ui STATIC
     widgets/trendgraphwidget.h
     widgets/trendpanelwidget.cpp
     widgets/trendpanelwidget.h
+    widgets/trendsettings.h
 )
 
 target_include_directories(ouaexp_ui PUBLIC

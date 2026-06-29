@@ -48,6 +48,11 @@ public:
     void setTimeWindow(qreal startMsEpoch, qreal endMsEpoch) override;
     void autoScaleY() override;
     void fit() override;
+    void setLegendVisible(bool visible) override;
+    void setGridVisible(bool visible) override;
+    void setSmoothLines(bool smooth) override;
+    void setSeriesVisible(const ChartSeriesId &id, bool visible) override;
+    void setSeriesColor(const ChartSeriesId &id, const QColor &color) override;
     void setTheme(const ChartTheme &theme) override;
     QImage renderToImage(const QSize &size) override;
 

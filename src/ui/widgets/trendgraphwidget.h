@@ -20,6 +20,7 @@
 #include "appsettings.h"
 #include "models/trendseries.h"
 #include "opcua/opcuatypes.h"
+#include "trendsettings.h"
 
 class IChartView;
 class ThemedToolButton;
@@ -159,6 +160,30 @@ public:
     ///
     void applyModeState(int mode, qint64 windowMs);
 
+    ///
+    /// \brief Returns the current display, range and auto-scroll settings.
+    /// \return Active settings.
+    ///
+    TrendDisplaySettings displaySettings() const;
+
+    ///
+    /// \brief Applies display, range and auto-scroll settings to the chart.
+    /// \param settings Settings to apply.
+    ///
+    void setDisplaySettings(const TrendDisplaySettings &settings);
+
+    ///
+    /// \brief Returns the charted series with their colours and visibility.
+    /// \return Series in legend-label order.
+    ///
+    QVector<TrendSeriesInfo> seriesInfos() const;
+
+    ///
+    /// \brief Applies edited per-series colours and visibility.
+    /// \param series Series carrying updated colour and visibility.
+    ///
+    void applySeriesInfos(const QVector<TrendSeriesInfo> &series);
+
 public slots:
     ///
     /// \brief Applies the timestamp display mode and re-feeds the chart.
@@ -220,6 +245,8 @@ private:
     bool acceptsNodeDrag(const QMimeData *mimeData) const;
     bool dropNode(const QMimeData *mimeData);
     void showSeriesContextMenu(const QPoint &globalPos);
+    void openSettings();
+    void applyDisplaySettings();
 
     enum class Mode {
         Live,
@@ -252,6 +279,7 @@ private:
     QTimer *_liveTimer = nullptr;
     Mode _mode = Mode::Live;
     qint64 _windowMs = 60000;
+    TrendDisplaySettings _display;
     QSet<QString> _subscribed;
     QSet<QString> _pendingHistory;
 };

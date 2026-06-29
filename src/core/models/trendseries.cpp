@@ -49,6 +49,16 @@ void TrendSeries::setColor(const QColor &color)
     _color = color;
 }
 
+bool TrendSeries::isVisible() const
+{
+    return _visible;
+}
+
+void TrendSeries::setVisible(bool visible)
+{
+    _visible = visible;
+}
+
 const QVector<QPointF> &TrendSeries::points() const
 {
     return _points;
