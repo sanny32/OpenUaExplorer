@@ -66,6 +66,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ matrix.qt }}
+          modules: qtcharts
           cache: true
 
       - name: Set up OpenSSL (Windows)
