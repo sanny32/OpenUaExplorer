@@ -27,6 +27,7 @@ class QButtonGroup;
 class QTimer;
 class QVBoxLayout;
 class QMimeData;
+class QContextMenuEvent;
 
 ///
 /// \brief Plots one or more OPC UA variable nodes as time-series line charts.
@@ -208,10 +209,12 @@ protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
     void dropEvent(QDropEvent *event) override;
+    void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
     bool acceptsNodeDrag(const QMimeData *mimeData) const;
     bool dropNode(const QMimeData *mimeData);
+    void showSeriesContextMenu(const QPoint &globalPos);
 
     enum class Mode {
         Live,

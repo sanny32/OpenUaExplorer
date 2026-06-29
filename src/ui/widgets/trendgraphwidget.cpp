@@ -8,24 +8,31 @@
 
 #include "trendgraphwidget.h"
 
+#include <algorithm>
 #include <utility>
 
 #include <QAbstractButton>
 #include <QButtonGroup>
+#include <QContextMenuEvent>
 #include <QDateTime>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QFileDialog>
 #include <QHBoxLayout>
+#include <QIcon>
 #include <QImage>
+#include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QPainter>
+#include <QPixmap>
 #include <QSpacerItem>
 #include <QTimer>
 #include <QVBoxLayout>
 
 #include "appcolors.h"
+#include "appicons.h"
 #include "charttypes.h"
 #include "chartviewfactory.h"
 #include "ichartview.h"
@@ -48,6 +55,19 @@ const QVector<QColor> kSeriesPalette = {
     QColor(0xdb, 0x27, 0x77),
     QColor(0x65, 0xa3, 0x0d),
 };
+
+QIcon swatchIcon(const QColor &color)
+{
+    QPixmap pixmap(12, 12);
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(color);
+    painter.drawRoundedRect(pixmap.rect(), 3, 3);
+    painter.end();
+    return QIcon(pixmap);
+}
 
 }
 
@@ -523,6 +543,36 @@ bool TrendGraphWidget::dropNode(const QMimeData *mimeData)
 }
 
 ///
+/// \brief Shows a menu to remove individual charted nodes or all of them.
+/// \param globalPos Menu position in global screen coordinates.
+///
+void TrendGraphWidget::showSeriesContextMenu(const QPoint &globalPos)
+{
+    if (_series.isEmpty())
+        return;
+
+    QMenu menu(this);
+    QList<TrendSeries> ordered = _series.values();
+    std::sort(ordered.begin(), ordered.end(),
+              [](const TrendSeries &lhs, const TrendSeries &rhs) {
+                  return lhs.label().localeAwareCompare(rhs.label()) < 0;
+              });
+
+    for (const TrendSeries &series : std::as_const(ordered)) {
+        const QString nodeId = series.nodeId();
+        menu.addAction(swatchIcon(series.color()),
+                       tr("Remove %1").arg(series.label()), this,
+                       [this, nodeId]() { removeNode(nodeId); });
+    }
+
+    menu.addSeparator();
+    menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
+                   this, [this]() { clear(); });
+
+    menu.exec(globalPos);
+}
+
+///
 /// \brief Re-applies the chart theme after the palette has switched.
 ///
 /// The colour-scheme change reaches widgets as a palette change; handling it here
@@ -569,6 +619,12 @@ bool TrendGraphWidget::eventFilter(QObject *watched, QEvent *event)
         dropEvent->ignore();
         return true;
     }
+    case QEvent::ContextMenu: {
+        auto *menuEvent = static_cast<QContextMenuEvent *>(event);
+        showSeriesContextMenu(menuEvent->globalPos());
+        menuEvent->accept();
+        return true;
+    }
     default:
         break;
     }
@@ -607,4 +663,13 @@ void TrendGraphWidget::dropEvent(QDropEvent *event)
     } else {
         event->ignore();
     }
+}
+
+///
+/// \brief Offers the remove menu for right-clicks on the widget's own area.
+///
+void TrendGraphWidget::contextMenuEvent(QContextMenuEvent *event)
+{
+    showSeriesContextMenu(event->globalPos());
+    event->accept();
 }
