@@ -19,6 +19,7 @@
 #include <QtCharts/QValueAxis>
 
 #include <QDateTime>
+#include <QFrame>
 #include <QImage>
 #include <QList>
 #include <QMargins>
@@ -58,6 +59,7 @@ QtChartsView::QtChartsView(QWidget *parent)
 
     _view = new QChartView(_chart, parent);
     _view->setRenderHint(QPainter::Antialiasing, true);
+    _view->setFrameShape(QFrame::NoFrame);
 }
 
 ///
@@ -200,6 +202,7 @@ void QtChartsView::setTheme(const ChartTheme &theme)
     _chart->setBackgroundBrush(theme.background);
     _chart->setPlotAreaBackgroundBrush(theme.background);
     _chart->setPlotAreaBackgroundVisible(true);
+    _view->setBackgroundBrush(theme.background);
     _chart->legend()->setLabelColor(theme.legendText);
 
     _axisY->setGridLineColor(theme.grid);

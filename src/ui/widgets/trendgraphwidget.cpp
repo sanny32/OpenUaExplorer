@@ -150,6 +150,8 @@ void TrendGraphWidget::buildToolbar(QVBoxLayout *layout)
     settingsButton->setIcon(QStringLiteral("settings"));
 
     auto *toolbar = new QHBoxLayout;
+    toolbar->setContentsMargins(9, 9, 9, 9);
+    toolbar->setSpacing(6);
     toolbar->addWidget(_liveButton);
     toolbar->addWidget(_oneMinuteButton);
     toolbar->addWidget(_tenMinutesButton);
@@ -206,6 +208,13 @@ QColor TrendGraphWidget::paletteColor(int index) const
     return kSeriesPalette.at(index % kSeriesPalette.size());
 }
 
+///
+/// \brief Adds a node series if not already present.
+/// \param nodeId Node NodeId.
+/// \param displayName Human-readable node name.
+/// \param displayPath Human-readable node path.
+/// \return True when a new series was added.
+///
 bool TrendGraphWidget::addNode(const QString &nodeId, const QString &displayName,
                                const QString &displayPath)
 {
@@ -227,6 +236,10 @@ bool TrendGraphWidget::addNode(const QString &nodeId, const QString &displayName
     return true;
 }
 
+///
+/// \brief Removes a node series.
+/// \param nodeId Node to remove.
+///
 void TrendGraphWidget::removeNode(const QString &nodeId)
 {
     if (_series.remove(nodeId) == 0)
@@ -237,16 +250,29 @@ void TrendGraphWidget::removeNode(const QString &nodeId)
     emit nodeRemoved(nodeId);
 }
 
+///
+/// \brief Reports whether a node is charted here.
+/// \param nodeId Node to test.
+/// \return True when the node has a series.
+///
 bool TrendGraphWidget::hasNode(const QString &nodeId) const
 {
     return _series.contains(nodeId);
 }
 
+///
+/// \brief Returns the NodeIds of all charted series.
+/// \return Charted NodeIds.
+///
 QStringList TrendGraphWidget::chartedNodeIds() const
 {
     return _series.keys();
 }
 
+///
+/// \brief Appends streamed values to any matching series.
+/// \param values Latest data-access values.
+///
 void TrendGraphWidget::applyLiveValues(const QVector<OpcUaDataValue> &values)
 {
     if (_mode != Mode::Live)
@@ -265,6 +291,11 @@ void TrendGraphWidget::applyLiveValues(const QVector<OpcUaDataValue> &values)
     }
 }
 
+///
+/// \brief Replaces a series' points with history samples.
+/// \param nodeId Node whose history arrived.
+/// \param values History samples in time order.
+///
 void TrendGraphWidget::applyHistory(const QString &nodeId,
                                     const QVector<OpcUaHistoryValue> &values)
 {
@@ -275,21 +306,37 @@ void TrendGraphWidget::applyHistory(const QString &nodeId,
     refeedSeries(*it);
 }
 
+///
+/// \brief Sets the visible time window in milliseconds since the epoch.
+/// \param startMsEpoch Window start.
+/// \param endMsEpoch Window end.
+///
 void TrendGraphWidget::setTimeWindow(qreal startMsEpoch, qreal endMsEpoch)
 {
     _chart->setTimeWindow(toChartX(startMsEpoch), toChartX(endMsEpoch));
 }
 
+///
+/// \brief Scales the value axis to the data.
+///
 void TrendGraphWidget::autoScale()
 {
     _chart->autoScaleY();
 }
 
+///
+/// \brief Fits both axes to the full data extent.
+///
 void TrendGraphWidget::fit()
 {
     _chart->fit();
 }
 
+///
+/// \brief Renders the chart to an image for export.
+/// \param size Target image size.
+/// \return Rendered image.
+///
 QImage TrendGraphWidget::renderToImage(const QSize &size) const
 {
     return _chart->renderToImage(size);
@@ -315,6 +362,9 @@ bool TrendGraphWidget::consumeHistory(const QString &nodeId, const QString &erro
     return true;
 }
 
+///
+/// \brief Removes all series and their points, unsubscribing live nodes.
+///
 void TrendGraphWidget::clear()
 {
     const QSet<QString> subscribed = _subscribed;
