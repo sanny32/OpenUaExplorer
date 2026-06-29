@@ -25,9 +25,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-#include "application.h"
 #include "appcolors.h"
-#include "apptheme.h"
 #include "charttypes.h"
 #include "chartviewfactory.h"
 #include "ichartview.h"
@@ -83,11 +81,6 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     });
 
     applyTheme();
-
-    if (auto *app = qobject_cast<Application *>(qApp)) {
-        connect(&app->theme(), &AppTheme::colorSchemeChanged, this,
-                &TrendGraphWidget::applyTheme);
-    }
 
     enterLiveMode();
 }
@@ -527,6 +520,23 @@ bool TrendGraphWidget::dropNode(const QMimeData *mimeData)
         : node.displayName;
     addNode(node.nodeId, label, node.displayPath);
     return true;
+}
+
+///
+/// \brief Re-applies the chart theme after the palette has switched.
+///
+/// The colour-scheme change reaches widgets as a palette change; handling it here
+/// (rather than on AppTheme::colorSchemeChanged) guarantees palette() already
+/// holds the new colours when applyTheme() reads them.
+///
+void TrendGraphWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+
+    if (event->type() == QEvent::PaletteChange
+        || event->type() == QEvent::ApplicationPaletteChange) {
+        applyTheme();
+    }
 }
 
 ///

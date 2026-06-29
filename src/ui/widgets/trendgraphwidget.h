@@ -203,6 +203,7 @@ signals:
     void historyReadRequested(QString nodeId, QDateTime start, QDateTime end, quint32 maxValues);
 
 protected:
+    void changeEvent(QEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
