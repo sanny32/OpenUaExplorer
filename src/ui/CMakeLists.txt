@@ -173,6 +173,7 @@ target_include_directories(ouaexp_ui PUBLIC
 )
 
 target_link_libraries(ouaexp_ui PUBLIC ouaexp_plugins)
+target_link_libraries(ouaexp_ui PRIVATE ouaexp_charting)
 
 ouaexp_configure_qt_target(ouaexp_ui)
 ouaexp_configure_qlementine_app_style(ouaexp_ui)

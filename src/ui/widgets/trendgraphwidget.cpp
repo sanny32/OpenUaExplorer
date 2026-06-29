@@ -6,98 +6,258 @@
 /// \brief Implements the trend graph widget.
 ///
 
-#include <QPainter>
-#include <QPaintEvent>
-#include <QPalette>
-#include <QPen>
-#include <QSizePolicy>
-#include <QtGlobal>
-#include <QVector>
-
 #include "trendgraphwidget.h"
 
+#include <utility>
+
+#include <QDateTime>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+#include <QMimeData>
+#include <QVBoxLayout>
+
+#include "application.h"
+#include "appcolors.h"
+#include "apptheme.h"
+#include "charttypes.h"
+#include "chartviewfactory.h"
+#include "ichartview.h"
+#include "models/addressspacemimedata.h"
+
+namespace {
+
+const QVector<QColor> kSeriesPalette = {
+    QColor(0x00, 0xb4, 0x46),
+    QColor(0x25, 0x63, 0xeb),
+    QColor(0xc0, 0x7d, 0x00),
+    QColor(0xd1, 0x34, 0x38),
+    QColor(0x8b, 0x5c, 0xf6),
+    QColor(0x08, 0x91, 0xb2),
+    QColor(0xdb, 0x27, 0x77),
+    QColor(0x65, 0xa3, 0x0d),
+};
+
+}
+
 ///
-/// \brief Constructs an expanding trend graph widget.
+/// \brief Builds the chart view and lays it out.
 /// \param parent Parent widget.
 ///
 TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     : QWidget(parent)
+    , _chart(ChartViewFactory::createChartView(this))
 {
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    setAcceptDrops(true);
+
+    auto *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->addWidget(_chart->widget());
+
+    applyTheme();
+
+    if (auto *app = qobject_cast<Application *>(qApp)) {
+        connect(&app->theme(), &AppTheme::colorSchemeChanged, this,
+                &TrendGraphWidget::applyTheme);
+    }
 }
 
 ///
-/// \brief Paints the axes, grid, labels, and the sample trend line.
-/// \param event Paint event (unused).
+/// \brief Destroys the widget and its chart view.
 ///
-void TrendGraphWidget::paintEvent(QPaintEvent *event)
+TrendGraphWidget::~TrendGraphWidget() = default;
+
+///
+/// \brief Returns a distinct palette colour for a series index.
+/// \param index Series index.
+/// \return Cycled palette colour.
+///
+QColor TrendGraphWidget::paletteColor(int index) const
 {
-    Q_UNUSED(event)
+    return kSeriesPalette.at(index % kSeriesPalette.size());
+}
 
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing, true);
+bool TrendGraphWidget::addNode(const QString &nodeId, const QString &displayName,
+                               const QString &displayPath)
+{
+    if (nodeId.isEmpty() || _series.contains(nodeId))
+        return false;
 
-    const QPalette pal = palette();
-    const QColor textColor = pal.color(QPalette::WindowText);
-    const QColor gridColor = pal.color(QPalette::Mid);
-    const QColor axisColor = pal.color(QPalette::Dark);
-    const QColor lineColor(0, 180, 70);
+    TrendSeries series(nodeId, displayName, displayPath);
+    const QColor color = paletteColor(_series.size());
+    series.setColor(color);
+    _series.insert(nodeId, series);
 
-    painter.fillRect(rect(), pal.color(QPalette::Base));
+    _chart->addSeries(nodeId, series.label(), color);
 
-    const QRectF plotRect = rect().adjusted(44, 18, -36, -36);
-    painter.setPen(QPen(gridColor, 1));
-    for (int i = 0; i <= 3; ++i) {
-        const qreal y = plotRect.top() + plotRect.height() * i / 3.0;
-        painter.drawLine(QPointF(plotRect.left(), y), QPointF(plotRect.right(), y));
+    emit nodeAdded(nodeId, displayName, displayPath);
+    return true;
+}
+
+void TrendGraphWidget::removeNode(const QString &nodeId)
+{
+    if (_series.remove(nodeId) == 0)
+        return;
+    _chart->removeSeries(nodeId);
+    emit nodeRemoved(nodeId);
+}
+
+bool TrendGraphWidget::hasNode(const QString &nodeId) const
+{
+    return _series.contains(nodeId);
+}
+
+QStringList TrendGraphWidget::chartedNodeIds() const
+{
+    return _series.keys();
+}
+
+void TrendGraphWidget::applyLiveValues(const QVector<OpcUaDataValue> &values)
+{
+    for (const OpcUaDataValue &value : values) {
+        auto it = _series.find(value.nodeId);
+        if (it == _series.end())
+            continue;
+        const int before = it->points().size();
+        if (!it->appendLive(value))
+            continue;
+        if (it->points().size() == before)
+            continue;
+        const QPointF &point = it->points().constLast();
+        _chart->appendPoint(value.nodeId, toChartX(point.x()), point.y());
     }
+}
 
-    painter.setPen(QPen(axisColor, 1));
-    painter.drawLine(plotRect.bottomLeft(), plotRect.bottomRight());
-    painter.drawLine(plotRect.bottomLeft(), plotRect.topLeft());
+void TrendGraphWidget::applyHistory(const QString &nodeId,
+                                    const QVector<OpcUaHistoryValue> &values)
+{
+    auto it = _series.find(nodeId);
+    if (it == _series.end())
+        return;
+    it->setHistory(values);
+    refeedSeries(*it);
+}
 
-    painter.setPen(textColor);
-    painter.drawText(QRectF(4, plotRect.top() - 8, 34, 18), Qt::AlignRight | Qt::AlignVCenter, "30");
-    painter.drawText(QRectF(4, plotRect.center().y() - 9, 34, 18), Qt::AlignRight | Qt::AlignVCenter, "25");
-    painter.drawText(QRectF(4, plotRect.bottom() - 18, 34, 18), Qt::AlignRight | Qt::AlignVCenter, "15");
-    painter.drawText(QRectF(plotRect.left(), plotRect.bottom() + 8, 80, 18), Qt::AlignLeft, "12:14:30");
-    painter.drawText(QRectF(plotRect.center().x() - 40, plotRect.bottom() + 8, 80, 18), Qt::AlignCenter, "12:15:15");
-    painter.drawText(QRectF(plotRect.right() - 80, plotRect.bottom() + 8, 80, 18), Qt::AlignRight, "12:16:00");
+void TrendGraphWidget::setTimeWindow(qreal startMsEpoch, qreal endMsEpoch)
+{
+    _chart->setTimeWindow(toChartX(startMsEpoch), toChartX(endMsEpoch));
+}
 
-    const QVector<QPointF> points = trendPoints(plotRect);
-    painter.setPen(QPen(lineColor, 1.6));
-    for (int i = 1; i < points.size(); ++i) {
-        painter.drawLine(points.at(i - 1), points.at(i));
-    }
+void TrendGraphWidget::autoScale()
+{
+    _chart->autoScaleY();
+}
 
-    painter.setPen(textColor);
-    painter.drawText(QRectF(plotRect.right() - 120, plotRect.top() - 2, 120, 20), Qt::AlignRight, "Temperature");
-    painter.setPen(QPen(lineColor, 1.6));
-    painter.drawLine(QPointF(plotRect.right() - 116, plotRect.top() + 8), QPointF(plotRect.right() - 98, plotRect.top() + 8));
+void TrendGraphWidget::fit()
+{
+    _chart->fit();
+}
+
+QImage TrendGraphWidget::renderToImage(const QSize &size) const
+{
+    return _chart->renderToImage(size);
+}
+
+void TrendGraphWidget::clear()
+{
+    _series.clear();
+    _chart->clearAll();
 }
 
 ///
-/// \brief Maps the sample data series to screen points within the plot area.
-/// \param plotRect Plot area rectangle.
-/// \return Polyline points for the trend curve.
+/// \brief Applies the timestamp display mode and re-feeds the chart.
+/// \param mode Local time or UTC.
 ///
-QVector<QPointF> TrendGraphWidget::trendPoints(const QRectF &plotRect) const
+void TrendGraphWidget::setTimestampMode(AppSettings::TimestampMode mode)
 {
-    const QVector<qreal> values = {
-        24.1, 24.3, 22.8, 23.5, 22.9, 24.8, 23.2, 24.1, 22.6, 24.5,
-        23.6, 25.0, 24.7, 24.9, 25.1, 21.8, 20.4, 21.2, 23.8, 24.9,
-        22.7, 23.5, 25.2, 22.6, 23.1, 23.7, 24.4, 22.8, 24.2, 23.0,
-        23.4, 24.7, 25.1, 24.9, 22.0, 23.2, 24.5, 21.1, 23.8, 25.0,
-        24.0, 22.8, 23.1, 24.2, 23.4, 25.0
-    };
+    if (_timestampMode == mode)
+        return;
+    _timestampMode = mode;
+    for (const TrendSeries &series : std::as_const(_series))
+        refeedSeries(series);
+}
 
-    QVector<QPointF> points;
-    points.reserve(values.size());
-    for (int i = 0; i < values.size(); ++i) {
-        const qreal x = plotRect.left() + plotRect.width() * i / qMax(1, values.size() - 1);
-        const qreal normalized = (values.at(i) - 15.0) / 15.0;
-        const qreal y = plotRect.bottom() - plotRect.height() * normalized;
-        points.append(QPointF(x, y));
+///
+/// \brief Maps an epoch timestamp to the chart's local-time X axis.
+/// \param epochMs Source timestamp in milliseconds since the epoch (UTC).
+/// \return X position so the local-time axis renders the chosen wall clock.
+///
+qreal TrendGraphWidget::toChartX(qreal epochMs) const
+{
+    if (_timestampMode != AppSettings::TimestampMode::Utc)
+        return epochMs;
+    const qint64 offsetMs = qint64(QDateTime::currentDateTime().offsetFromUtc()) * 1000;
+    return epochMs - static_cast<qreal>(offsetMs);
+}
+
+///
+/// \brief Pushes a series' buffered points into the chart with the active mode.
+/// \param series Series whose points are re-fed.
+///
+void TrendGraphWidget::refeedSeries(const TrendSeries &series)
+{
+    const QVector<QPointF> &points = series.points();
+    QVector<ChartPoint> mapped;
+    mapped.reserve(points.size());
+    for (const QPointF &point : points)
+        mapped.append(ChartPoint{toChartX(point.x()), point.y()});
+    _chart->setPoints(series.nodeId(), mapped);
+}
+
+///
+/// \brief Builds a chart theme from AppColors and applies it.
+///
+void TrendGraphWidget::applyTheme()
+{
+    ChartTheme theme;
+    theme.background = palette().color(QPalette::Base);
+    theme.grid = AppColors::noticeNeutralBorder();
+    theme.axis = AppColors::caption();
+    theme.text = AppColors::subtitleText();
+    theme.legendText = AppColors::titleText();
+    theme.seriesPalette = kSeriesPalette;
+    _chart->setTheme(theme);
+}
+
+///
+/// \brief Accepts a drag that carries a droppable variable node.
+///
+void TrendGraphWidget::dragEnterEvent(QDragEnterEvent *event)
+{
+    dragMoveEvent(event);
+}
+
+///
+/// \brief Accepts the drag as a copy while it carries a variable node.
+///
+void TrendGraphWidget::dragMoveEvent(QDragMoveEvent *event)
+{
+    OpcUaNodeInfo node;
+    if (AddressSpaceMime::decodeNode(event->mimeData(), &node)
+        && !node.nodeId.isEmpty() && OpcUa::isVariable(node.nodeClass)) {
+        event->setDropAction(Qt::CopyAction);
+        event->accept();
+    } else {
+        event->ignore();
     }
-    return points;
+}
+
+///
+/// \brief Adds the dropped variable node as a new series.
+///
+void TrendGraphWidget::dropEvent(QDropEvent *event)
+{
+    OpcUaNodeInfo node;
+    if (!AddressSpaceMime::decodeNode(event->mimeData(), &node)
+        || node.nodeId.isEmpty() || !OpcUa::isVariable(node.nodeClass)) {
+        event->ignore();
+        return;
+    }
+    const QString label = node.displayName.isEmpty()
+        ? (node.browseName.isEmpty() ? node.nodeId : node.browseName)
+        : node.displayName;
+    addNode(node.nodeId, label, node.displayPath);
+    event->setDropAction(Qt::CopyAction);
+    event->accept();
 }

@@ -52,6 +52,7 @@
 #include "widgets/favoriteswidget.h"
 #include "widgets/maintoolbar.h"
 #include "widgets/themedtoolbutton.h"
+#include "widgets/trendpanelwidget.h"
 
 
 ///
@@ -422,6 +423,7 @@ void MainWindow::saveSettings()
     settings.setDataAccessPage(ui->dataView->currentPage());
     _featureManager->saveState(settings);
     ui->dataView->saveViewState(settings);
+    ui->trendPanelWidget->saveViewState(settings);
 }
 
 ///
@@ -453,6 +455,7 @@ void MainWindow::restoreSettings()
 
     _featureManager->restoreState(settings);
     ui->dataView->restoreViewState(settings);
+    ui->trendPanelWidget->restoreViewState(settings);
 }
 
 ///
@@ -691,13 +694,23 @@ void MainWindow::setupDataAccessWiring()
                 _eventsPlugin, &EventsModule::readHistory);
         connect(_eventsPlugin, &EventsModule::eventsHistoryReady,
                 this, &MainWindow::onEventsHistoryReady);
+        connect(ui->trendPanelWidget, &TrendPanelWidget::historyReadRequested,
+                _dataAccessPlugin, &DataAccessModule::readHistory);
     }
+    connect(ui->trendPanelWidget, &TrendPanelWidget::subscribeRequested,
+            _dataAccessPlugin, &DataAccessModule::subscribe);
+    connect(ui->trendPanelWidget, &TrendPanelWidget::unsubscribeRequested,
+            _dataAccessPlugin, &DataAccessModule::unsubscribe);
     connect(_dataAccessPlugin, &DataAccessModule::monitoringFinished,
             this, &MainWindow::onMonitoringFinished);
     connect(_selectionContext, &SelectionContext::eventMonitorRequested, this,
             [this](const OpcUaNodeInfo &node) {
         ui->dataView->requestEventMonitoringForNode(node.nodeId, node.displayName,
                                                     node.displayPath);
+    });
+    connect(_selectionContext, &SelectionContext::addToTrendRequested, this,
+            [this](const OpcUaNodeInfo &node) {
+        ui->trendPanelWidget->addNode(node.nodeId, node.displayName, node.displayPath);
     });
     connect(ui->dataView->events(), &EventsWidget::eventSubscribeRequested,
             _eventsPlugin, &EventsModule::subscribeEvents);
@@ -709,6 +722,8 @@ void MainWindow::setupDataAccessWiring()
             this, &MainWindow::onEventMonitoringFinished);
     connect(theApp(), &Application::timestampModeChanged,
             ui->dataView, &DataView::setTimestampMode);
+    connect(theApp(), &Application::timestampModeChanged,
+            ui->trendPanelWidget, &TrendPanelWidget::setTimestampMode);
 }
 
 ///
@@ -784,8 +799,10 @@ void MainWindow::onSelectionCleared()
 ///
 void MainWindow::onDataValuesReady(const QVector<OpcUaDataValue> &values, const QString &error)
 {
-    if (error.isEmpty())
+    if (error.isEmpty()) {
         ui->dataView->updateValues(values);
+        ui->trendPanelWidget->applyLiveValues(values);
+    }
 }
 
 ///
@@ -797,7 +814,8 @@ void MainWindow::onDataValuesReady(const QVector<OpcUaDataValue> &values, const 
 void MainWindow::onHistoryReady(const QString &nodeId, const QVector<OpcUaHistoryValue> &values,
                                 const QString &error)
 {
-    Q_UNUSED(nodeId)
+    if (ui->trendPanelWidget->consumeHistory(nodeId, error, values))
+        return;
     if (error.isEmpty())
         ui->dataView->setDataHistoryResults(values);
     else
@@ -955,6 +973,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     } else if (state == OpcUaConnectionState::Disconnected
                || state == OpcUaConnectionState::Unavailable) {
         ui->dataView->clearRuntimeData();
+        ui->trendPanelWidget->clearRuntimeData();
         _selectionContext->clear();
         _featureManager->clearRuntimeState();
         _subscribedNodeIds.clear();

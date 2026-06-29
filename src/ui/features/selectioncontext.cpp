@@ -141,3 +141,12 @@ void SelectionContext::requestEventsHistory(const OpcUaNodeInfo &node)
     if (_currentNode.nodeId != node.nodeId || _currentDetails.nodeId != node.nodeId)
         selectNode(node);
 }
+
+///
+/// \brief Requests charting a node selected from a feature.
+/// \param node Variable node to chart.
+///
+void SelectionContext::requestAddToTrend(const OpcUaNodeInfo &node)
+{
+    emit addToTrendRequested(node);
+}

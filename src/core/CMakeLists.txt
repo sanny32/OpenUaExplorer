@@ -68,6 +68,8 @@ add_library(ouaexp_core STATIC
     models/subscriptionitem.h
     models/subscriptionsmodel.cpp
     models/subscriptionsmodel.h
+    models/trendseries.cpp
+    models/trendseries.h
 )
 
 target_include_directories(ouaexp_core PUBLIC

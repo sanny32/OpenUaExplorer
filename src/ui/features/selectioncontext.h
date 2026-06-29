@@ -75,6 +75,12 @@ public slots:
     ///
     void requestEventsHistory(const OpcUaNodeInfo &node);
 
+    ///
+    /// \brief Requests charting a node selected from a feature.
+    /// \param node Variable node to chart.
+    ///
+    void requestAddToTrend(const OpcUaNodeInfo &node);
+
 signals:
     ///
     /// \brief Emitted when a node becomes the current selection.
@@ -111,6 +117,12 @@ signals:
     /// \param node Node whose event history should be read.
     ///
     void eventsHistoryReadRequested(OpcUaNodeInfo node);
+
+    ///
+    /// \brief Emitted when a feature requests charting a node.
+    /// \param node Variable node to chart.
+    ///
+    void addToTrendRequested(OpcUaNodeInfo node);
 
 private:
     OpcUaNodeInfo _currentNode;

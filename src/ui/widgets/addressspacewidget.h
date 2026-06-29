@@ -149,6 +149,12 @@ signals:
     ///
     void readEventsHistoryRequested(OpcUaNodeInfo node);
 
+    ///
+    /// \brief Emitted when the user requests charting a node in the trend panel.
+    /// \param node Variable node to chart.
+    ///
+    void addToTrendRequested(OpcUaNodeInfo node);
+
 private:
     void setupTreeView();
     void setupNodeInfoView();
