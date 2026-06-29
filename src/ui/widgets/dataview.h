@@ -19,13 +19,14 @@ class DataView;
 }
 
 class DataAccessWidget;
+class SubscriptionsDialog;
 class SubscriptionsWidget;
 class EventsWidget;
 class EventsHistoryWidget;
 class DataHistoryWidget;
 
 ///
-/// \brief Tabbed container for data access, subscriptions, live events, and history widgets.
+/// \brief Tabbed container for data access, live events, and history widgets.
 ///
 class DataView : public QWidget
 {
@@ -37,10 +38,9 @@ public:
     ///
     enum Page {
         DataAccessPage = 0,
-        SubscriptionsPage,
-        EventsPage,
-        DataHistoryPage,
-        EventsHistoryPage
+        EventsPage = 2,
+        DataHistoryPage = 3,
+        EventsHistoryPage = 4
     };
 
     ///
@@ -61,7 +61,7 @@ public:
     DataAccessWidget *dataAccess() const;
 
     ///
-    /// \brief Returns the subscriptions tab widget.
+    /// \brief Returns the subscriptions dialog widget.
     /// \return Subscriptions widget.
     ///
     SubscriptionsWidget *subscriptions() const;
@@ -92,9 +92,14 @@ public:
 
     ///
     /// \brief Returns the currently visible tab index.
-    /// \return Index of the active page.
+    /// \return Legacy page value of the active page.
     ///
     int currentPage() const;
+
+    ///
+    /// \brief Shows the subscriptions management dialog.
+    ///
+    void showSubscriptionsDialog();
 
     ///
     /// \brief Persists the header state of the hosted tab views.
@@ -210,4 +215,5 @@ public slots:
 
 private:
     Ui::DataView *ui;
+    SubscriptionsDialog *_subscriptionsDialog;
 };

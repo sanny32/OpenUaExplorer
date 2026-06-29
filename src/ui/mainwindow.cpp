@@ -311,11 +311,11 @@ void MainWindow::on_actionViewDataAccess_triggered()
 }
 
 ///
-/// \brief Switches the data-access widget to the Subscriptions page.
+/// \brief Opens the subscriptions management dialog.
 ///
-void MainWindow::on_actionViewSubscriptions_triggered()
+void MainWindow::on_actionManageSubscriptions_triggered()
 {
-    ui->dataView->setCurrentPage(DataView::SubscriptionsPage);
+    ui->dataView->showSubscriptionsDialog();
 }
 
 ///

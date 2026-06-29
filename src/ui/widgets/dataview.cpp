@@ -11,11 +11,55 @@
 #include "appsettings.h"
 #include "dataaccesswidget.h"
 #include "dataview.h"
+#include "dialogs/subscriptionsdialog.h"
 #include "eventswidget.h"
 #include "eventshistorywidget.h"
 #include "datahistorywidget.h"
 #include "subscriptionswidget.h"
 #include "ui_dataview.h"
+
+namespace {
+
+///
+/// \brief Returns the tab index for a legacy page value.
+/// \param page Legacy page value.
+/// \return Current tab index, or 0 for unsupported values.
+///
+int tabIndexForPage(DataView::Page page)
+{
+    switch (page) {
+    case DataView::DataAccessPage:
+        return 0;
+    case DataView::EventsPage:
+        return 1;
+    case DataView::DataHistoryPage:
+        return 2;
+    case DataView::EventsHistoryPage:
+        return 3;
+    }
+    return 0;
+}
+
+///
+/// \brief Returns the legacy page value for a current tab index.
+/// \param tabIndex Current tab index.
+/// \return Legacy page value.
+///
+DataView::Page pageForTabIndex(int tabIndex)
+{
+    switch (tabIndex) {
+    case 1:
+        return DataView::EventsPage;
+    case 2:
+        return DataView::DataHistoryPage;
+    case 3:
+        return DataView::EventsHistoryPage;
+    default:
+        return DataView::DataAccessPage;
+    }
+}
+
+} // namespace
 
 ///
 /// \brief Builds the tabbed view and its hosted tab widgets.
@@ -24,22 +68,26 @@
 DataView::DataView(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::DataView)
+    , _subscriptionsDialog(new SubscriptionsDialog(this))
 {
     ui->setupUi(this);
 
-    ui->mainTabs->setTabVisible(DataHistoryPage, OpcUa::isHistoryReadSupported());
-    ui->mainTabs->setTabVisible(EventsHistoryPage, OpcUa::isHistoryReadSupported());
+    ui->mainTabs->setTabVisible(tabIndexForPage(DataHistoryPage),
+                                OpcUa::isHistoryReadSupported());
+    ui->mainTabs->setTabVisible(tabIndexForPage(EventsHistoryPage),
+                                OpcUa::isHistoryReadSupported());
 
-    connect(ui->subscriptionsWidget, &SubscriptionsWidget::subscriptionsChanged,
+    SubscriptionsWidget *subscriptionsWidget = subscriptions();
+    connect(subscriptionsWidget, &SubscriptionsWidget::subscriptionsChanged,
             ui->dataAccessWidget, &DataAccessWidget::setSubscriptions);
-    connect(ui->subscriptionsWidget, &SubscriptionsWidget::subscriptionRenamed,
+    connect(subscriptionsWidget, &SubscriptionsWidget::subscriptionRenamed,
             ui->dataAccessWidget, &DataAccessWidget::applySubscriptionRename);
-    connect(ui->subscriptionsWidget, &SubscriptionsWidget::subscriptionIntervalChanged,
+    connect(subscriptionsWidget, &SubscriptionsWidget::subscriptionIntervalChanged,
             ui->dataAccessWidget, &DataAccessWidget::applySubscriptionInterval);
-    connect(ui->subscriptionsWidget, &SubscriptionsWidget::subscriptionRemoved,
+    connect(subscriptionsWidget, &SubscriptionsWidget::subscriptionRemoved,
             ui->dataAccessWidget, &DataAccessWidget::applySubscriptionRemoval);
 
-    ui->dataAccessWidget->setSubscriptions(ui->subscriptionsWidget->subscriptions());
+    ui->dataAccessWidget->setSubscriptions(subscriptionsWidget->subscriptions());
 }
 
 ///
@@ -60,12 +108,12 @@ DataAccessWidget *DataView::dataAccess() const
 }
 
 ///
-/// \brief Returns the subscriptions tab widget.
+/// \brief Returns the subscriptions dialog widget.
 /// \return Subscriptions widget.
 ///
 SubscriptionsWidget *DataView::subscriptions() const
 {
-    return ui->subscriptionsWidget;
+    return _subscriptionsDialog->subscriptions();
 }
 
 ///
@@ -103,7 +151,7 @@ void DataView::setCurrentPage(Page page)
 {
     if ((page == DataHistoryPage || page == EventsHistoryPage) && !OpcUa::isHistoryReadSupported())
         page = DataAccessPage;
-    ui->mainTabs->setCurrentIndex(static_cast<int>(page));
+    ui->mainTabs->setCurrentIndex(tabIndexForPage(page));
 }
 
 ///
@@ -112,7 +160,17 @@ void DataView::setCurrentPage(Page page)
 ///
 int DataView::currentPage() const
 {
-    return ui->mainTabs->currentIndex();
+    return static_cast<int>(pageForTabIndex(ui->mainTabs->currentIndex()));
+}
+
+///
+/// \brief Shows the subscriptions management dialog.
+///
+void DataView::showSubscriptionsDialog()
+{
+    _subscriptionsDialog->show();
+    _subscriptionsDialog->raise();
+    _subscriptionsDialog->activateWindow();
 }
 
 ///
@@ -122,7 +180,7 @@ int DataView::currentPage() const
 void DataView::saveViewState(AppSettings &settings) const
 {
     ui->dataAccessWidget->saveViewState(settings);
-    ui->subscriptionsWidget->saveViewState(settings);
+    subscriptions()->saveViewState(settings);
     ui->eventsWidget->saveViewState(settings);
     ui->dataHistoryWidget->saveViewState(settings);
     ui->eventsHistoryWidget->saveViewState(settings);
@@ -135,7 +193,7 @@ void DataView::saveViewState(AppSettings &settings) const
 void DataView::restoreViewState(AppSettings &settings)
 {
     ui->dataAccessWidget->restoreViewState(settings);
-    ui->subscriptionsWidget->restoreViewState(settings);
+    subscriptions()->restoreViewState(settings);
     ui->eventsWidget->restoreViewState(settings);
     ui->dataHistoryWidget->restoreViewState(settings);
     ui->eventsHistoryWidget->restoreViewState(settings);
@@ -279,7 +337,7 @@ void DataView::setNodeSubscribed(const QString &nodeId, bool subscribed)
 void DataView::clearRuntimeData()
 {
     ui->dataAccessWidget->clear();
-    ui->subscriptionsWidget->reset();
+    subscriptions()->reset();
     ui->eventsWidget->clear();
     ui->dataHistoryWidget->clear();
     ui->eventsHistoryWidget->clear();

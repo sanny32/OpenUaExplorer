@@ -26,6 +26,7 @@ class TestDataView : public QObject
 
 private slots:
     void historyTabsFollowQtSupport();
+    void pagesUseLegacyValues();
     void clearRuntimeDataResetsTabs();
     void eventMonitoringRequestTargetsNodeAndSubscribes();
     void eventsHistoryRequestTargetsNodeAndReads();
@@ -60,10 +61,35 @@ void TestDataView::historyTabsFollowQtSupport()
     auto *tabs = view.findChild<QTabWidget *>(QStringLiteral("mainTabs"));
     QVERIFY(tabs);
 
-    QCOMPARE(tabs->isTabVisible(DataView::DataHistoryPage), OpcUa::isHistoryReadSupported());
-    QCOMPARE(tabs->isTabVisible(DataView::EventsHistoryPage), OpcUa::isHistoryReadSupported());
-    QCOMPARE(tabs->tabText(DataView::DataHistoryPage), QStringLiteral("Data History"));
-    QCOMPARE(tabs->tabText(DataView::EventsHistoryPage), QStringLiteral("Events History"));
+    QCOMPARE(tabs->count(), 4);
+    for (int index = 0; index < tabs->count(); ++index)
+        QVERIFY(tabs->tabText(index) != QStringLiteral("Subscriptions"));
+    QCOMPARE(tabs->isTabVisible(2), OpcUa::isHistoryReadSupported());
+    QCOMPARE(tabs->isTabVisible(3), OpcUa::isHistoryReadSupported());
+    QCOMPARE(tabs->tabText(2), QStringLiteral("Data History"));
+    QCOMPARE(tabs->tabText(3), QStringLiteral("Events History"));
+}
+
+///
+/// \brief Page values remain compatible with saved settings after removing Subscriptions.
+///
+void TestDataView::pagesUseLegacyValues()
+{
+    DataView view;
+    auto *tabs = view.findChild<QTabWidget *>(QStringLiteral("mainTabs"));
+    QVERIFY(tabs);
+
+    view.setCurrentPage(DataView::EventsPage);
+    QCOMPARE(tabs->currentIndex(), 1);
+    QCOMPARE(view.currentPage(), int(DataView::EventsPage));
+
+    view.setCurrentPage(static_cast<DataView::Page>(1));
+    QCOMPARE(tabs->currentIndex(), 0);
+    QCOMPARE(view.currentPage(), int(DataView::DataAccessPage));
+
+    view.setCurrentPage(static_cast<DataView::Page>(99));
+    QCOMPARE(tabs->currentIndex(), 0);
+    QCOMPARE(view.currentPage(), int(DataView::DataAccessPage));
 }
 
 ///
@@ -122,6 +148,9 @@ void TestDataView::eventMonitoringRequestTargetsNodeAndSubscribes()
 ///
 void TestDataView::eventsHistoryRequestTargetsNodeAndReads()
 {
+    if (!OpcUa::isHistoryReadSupported())
+        QSKIP("HistoryRead is not supported by the linked Qt OPC UA API.");
+
     DataView view;
     QSignalSpy spy(view.eventsHistory(), &EventsHistoryWidget::eventsHistoryReadRequested);
     QVERIFY(spy.isValid());

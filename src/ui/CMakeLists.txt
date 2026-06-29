@@ -10,6 +10,7 @@ set(UI_FILES
     dialogs/dialogabout.ui
     dialogs/editfavoritedialog.ui
     dialogs/settingsdialog.ui
+    dialogs/subscriptionsdialog.ui
     dialogs/writevaluedialog.ui
 
     widgets/addressspacewidget.ui
@@ -86,6 +87,8 @@ add_library(ouaexp_ui STATIC
     dialogs/editfavoritedialog.h
     dialogs/settingsdialog.cpp
     dialogs/settingsdialog.h
+    dialogs/subscriptionsdialog.cpp
+    dialogs/subscriptionsdialog.h
     dialogs/writevaluedialog.cpp
     dialogs/writevaluedialog.h
 

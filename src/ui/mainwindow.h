@@ -65,7 +65,7 @@ private slots:
     void on_actionTheme_triggered();
     void on_actionAbout_triggered();
     void on_actionViewDataAccess_triggered();
-    void on_actionViewSubscriptions_triggered();
+    void on_actionManageSubscriptions_triggered();
     void on_actionViewEvents_triggered();
     void on_actionViewDataHistory_triggered();
     void on_actionViewEventsHistory_triggered();

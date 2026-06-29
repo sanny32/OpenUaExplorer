@@ -3,7 +3,7 @@
 
 ///
 /// \file subscriptionswidget.h
-/// \brief Declares the OPC UA subscriptions tab widget.
+/// \brief Declares the OPC UA subscriptions management widget.
 ///
 
 #pragma once
@@ -23,7 +23,7 @@ class SubscriptionsWidget;
 class SubscriptionsModel;
 
 ///
-/// \brief Tab widget that manages the configured OPC UA subscriptions.
+/// \brief Widget that manages the configured OPC UA subscriptions.
 ///
 class SubscriptionsWidget : public QWidget
 {

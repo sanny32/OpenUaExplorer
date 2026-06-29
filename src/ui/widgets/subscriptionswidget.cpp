@@ -3,7 +3,7 @@
 
 ///
 /// \file subscriptionswidget.cpp
-/// \brief Implements the OPC UA subscriptions tab widget.
+/// \brief Implements the OPC UA subscriptions management widget.
 ///
 
 #include <algorithm>
