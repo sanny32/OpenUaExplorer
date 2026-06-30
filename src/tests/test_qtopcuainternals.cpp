@@ -59,6 +59,7 @@ private slots:
     void resolvesSessionByApplicationAndRecency();
     void ignoresInvalidSessionDiagnostics();
     void coordinatesIndependentAndSupersededRequests();
+    void keepsKeyedRequestsIndependent();
     void invalidatesAllRequests();
     void boundsTimeouts();
     void backendSwitchClearsDiscoveryState();
@@ -134,6 +135,31 @@ void TestQtOpcUaInternals::coordinatesIndependentAndSupersededRequests()
     QVERIFY(coordinator.isCurrent(read));
     QVERIFY(coordinator.settle(second));
     QVERIFY(!coordinator.settle(second));
+}
+
+/// \brief Keeps keyed requests independent across keys but superseding within one key.
+void TestQtOpcUaInternals::keepsKeyedRequestsIndependent()
+{
+    using Op = QtOpcUaRequestCoordinator::Operation;
+    QtOpcUaRequestCoordinator coordinator;
+    const auto nodeA = coordinator.begin(Op::HistoryRead, QStringLiteral("A"));
+    const auto nodeB = coordinator.begin(Op::HistoryRead, QStringLiteral("B"));
+    QVERIFY(coordinator.isCurrent(nodeA));
+    QVERIFY(coordinator.isCurrent(nodeB));
+
+    const auto nodeAAgain = coordinator.begin(Op::HistoryRead, QStringLiteral("A"));
+    QVERIFY(!coordinator.isCurrent(nodeA));
+    QVERIFY(coordinator.isCurrent(nodeB));
+    QVERIFY(coordinator.isCurrent(nodeAAgain));
+
+    QVERIFY(coordinator.settle(nodeB));
+    QVERIFY(!coordinator.settle(nodeB));
+    QVERIFY(coordinator.settle(nodeAAgain));
+
+    const auto beforeReset = coordinator.begin(Op::HistoryRead, QStringLiteral("C"));
+    coordinator.cancelAll();
+    QVERIFY(!coordinator.isCurrent(beforeReset));
+    QVERIFY(coordinator.isCurrent(coordinator.begin(Op::HistoryRead, QStringLiteral("C"))));
 }
 
 /// \brief Invalidates every active token when a connection is replaced.

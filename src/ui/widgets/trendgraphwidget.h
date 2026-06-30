@@ -22,11 +22,12 @@
 #include "opcua/opcuatypes.h"
 #include "trendsettings.h"
 
+namespace Ui {
+class TrendGraphWidget;
+}
+
 class IChartView;
-class ThemedToolButton;
-class QButtonGroup;
 class QTimer;
-class QVBoxLayout;
 class QMimeData;
 class QContextMenuEvent;
 
@@ -253,9 +254,10 @@ private:
         History
     };
 
-    void buildToolbar(QVBoxLayout *layout);
+    void wireToolbar();
     void enterLiveMode();
     void enterHistoryMode(qint64 windowMs);
+    void refreshHistory();
     void applyWindow();
     void subscribeNode(const QString &nodeId);
     void unsubscribeNode(const QString &nodeId);
@@ -266,19 +268,15 @@ private:
     qreal toChartX(qreal epochMs) const;
     QColor paletteColor(int index) const;
 
+    Ui::TrendGraphWidget *ui;
     std::unique_ptr<IChartView> _chart;
     QHash<QString, TrendSeries> _series;
     AppSettings::TimestampMode _timestampMode = AppSettings::TimestampMode::LocalTime;
 
-    QButtonGroup *_modeGroup = nullptr;
-    ThemedToolButton *_liveButton = nullptr;
-    ThemedToolButton *_oneMinuteButton = nullptr;
-    ThemedToolButton *_tenMinutesButton = nullptr;
-    ThemedToolButton *_oneHourButton = nullptr;
-    ThemedToolButton *_oneDayButton = nullptr;
     QTimer *_liveTimer = nullptr;
     Mode _mode = Mode::Live;
     qint64 _windowMs = 60000;
+    qint64 _windowEndMs = 0;
     TrendDisplaySettings _display;
     QSet<QString> _subscribed;
     QSet<QString> _pendingHistory;

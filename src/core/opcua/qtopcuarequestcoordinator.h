@@ -5,6 +5,8 @@
 
 #include <array>
 
+#include <QHash>
+#include <QString>
 #include <QtGlobal>
 
 class QtOpcUaRequestCoordinator
@@ -31,10 +33,18 @@ public:
         Operation operation;
         quint64 connectionGeneration;
         quint64 operationGeneration;
+        QString key;
     };
 
     /// \brief Starts a request and supersedes the previous request of its category.
     Token begin(Operation operation);
+
+    /// \brief Starts a request that supersedes only the previous request with the same key.
+    ///
+    /// Categories such as HistoryRead read several nodes in parallel; keying by node
+    /// keeps those reads independent while a newer read of one node still cancels its
+    /// own in-flight predecessor.
+    Token begin(Operation operation, const QString &key);
 
     /// \brief Reports whether a token can still complete.
     bool isCurrent(const Token &token) const;
@@ -56,4 +66,5 @@ private:
 
     quint64 _connectionGeneration = 0;
     std::array<quint64, static_cast<std::size_t>(Operation::Count)> _generations{};
+    std::array<QHash<QString, quint64>, static_cast<std::size_t>(Operation::Count)> _keyedGenerations{};
 };

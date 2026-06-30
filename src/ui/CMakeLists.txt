@@ -28,6 +28,7 @@ set(UI_FILES
     widgets/favoriteswidget.ui
     widgets/logwidget.ui
     widgets/mainstatusbarwidget.ui
+    widgets/trendgraphwidget.ui
     widgets/trendpanelwidget.ui
 )
 

@@ -7,6 +7,7 @@
 ///
 
 #include "trendgraphwidget.h"
+#include "ui_trendgraphwidget.h"
 
 #include <algorithm>
 #include <utility>
@@ -19,7 +20,6 @@
 #include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QFileDialog>
-#include <QHBoxLayout>
 #include <QIcon>
 #include <QImage>
 #include <QMenu>
@@ -27,9 +27,7 @@
 #include <QMimeData>
 #include <QPainter>
 #include <QPixmap>
-#include <QSpacerItem>
 #include <QTimer>
-#include <QVBoxLayout>
 
 #include "appcolors.h"
 #include "appicons.h"
@@ -38,7 +36,6 @@
 #include "dialogs/trendsettingsdialog.h"
 #include "ichartview.h"
 #include "models/addressspacemimedata.h"
-#include "themedtoolbutton.h"
 
 namespace {
 
@@ -78,21 +75,21 @@ QIcon swatchIcon(const QColor &color)
 ///
 TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     : QWidget(parent)
+    , ui(new Ui::TrendGraphWidget)
     , _chart(ChartViewFactory::createChartView(this))
 {
+    ui->setupUi(this);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setAcceptDrops(true);
 
-    auto *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
-    buildToolbar(layout);
-
     QWidget *chartWidget = _chart->widget();
-    layout->addWidget(chartWidget);
+    ui->chartLayout->addWidget(chartWidget);
     chartWidget->installEventFilter(this);
     const QList<QWidget *> chartChildren = chartWidget->findChildren<QWidget *>();
     for (QWidget *child : chartChildren)
         child->installEventFilter(this);
+
+    wireToolbar();
 
     _liveTimer = new QTimer(this);
     _liveTimer->setInterval(kLiveTickMs);
@@ -110,97 +107,48 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
 }
 
 ///
-/// \brief Builds the per-chart toolbar and wires its buttons.
-/// \param layout Vertical layout to host the toolbar row.
+/// \brief Groups the range buttons for exclusivity and wires every toolbar action.
 ///
-void TrendGraphWidget::buildToolbar(QVBoxLayout *layout)
+void TrendGraphWidget::wireToolbar()
 {
-    const auto makeRangeButton = [this](const QString &name, const QString &text) {
-        auto *button = new ThemedToolButton(this);
-        button->setObjectName(name);
-        button->setText(text);
-        button->setCheckable(true);
-        button->setToolButtonStyle(Qt::ToolButtonTextOnly);
-        button->setMinimumWidth(40);
-        return button;
-    };
+    auto *modeGroup = new QButtonGroup(this);
+    modeGroup->setExclusive(true);
+    modeGroup->addButton(ui->liveButton);
+    modeGroup->addButton(ui->oneMinuteButton);
+    modeGroup->addButton(ui->tenMinutesButton);
+    modeGroup->addButton(ui->oneHourButton);
+    modeGroup->addButton(ui->oneDayButton);
 
-    _liveButton = makeRangeButton(QStringLiteral("liveButton"), tr("Live"));
-    _liveButton->setChecked(true);
-    _oneMinuteButton = makeRangeButton(QStringLiteral("oneMinuteButton"), tr("1m"));
-    _tenMinutesButton = makeRangeButton(QStringLiteral("tenMinutesButton"), tr("10m"));
-    _oneHourButton = makeRangeButton(QStringLiteral("oneHourButton"), tr("1h"));
-    _oneDayButton = makeRangeButton(QStringLiteral("oneDayButton"), tr("1d"));
-
-    auto *autoScaleButton = new ThemedToolButton(this);
-    autoScaleButton->setObjectName(QStringLiteral("autoScaleButton"));
-    autoScaleButton->setText(tr("Auto Scale"));
-    autoScaleButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
-
-    auto *fitButton = new ThemedToolButton(this);
-    fitButton->setObjectName(QStringLiteral("fitButton"));
-    fitButton->setText(tr("Fit"));
-    fitButton->setIcon(QStringLiteral("fit"));
-    fitButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-    auto *exportButton = new ThemedToolButton(this);
-    exportButton->setObjectName(QStringLiteral("exportButton"));
-    exportButton->setSquareIconOnly(true);
-    exportButton->setIcon(QStringLiteral("export"));
-
-    auto *settingsButton = new ThemedToolButton(this);
-    settingsButton->setObjectName(QStringLiteral("settingsButton"));
-    settingsButton->setSquareIconOnly(true);
-    settingsButton->setIcon(QStringLiteral("settings"));
-
-    auto *toolbar = new QHBoxLayout;
-    toolbar->setContentsMargins(9, 9, 9, 9);
-    toolbar->setSpacing(6);
-    toolbar->addWidget(_liveButton);
-    toolbar->addWidget(_oneMinuteButton);
-    toolbar->addWidget(_tenMinutesButton);
-    toolbar->addWidget(_oneHourButton);
-    toolbar->addWidget(_oneDayButton);
-    toolbar->addStretch(1);
-    toolbar->addWidget(autoScaleButton);
-    toolbar->addWidget(fitButton);
-    toolbar->addWidget(exportButton);
-    toolbar->addWidget(settingsButton);
-    layout->addLayout(toolbar);
-
-    _modeGroup = new QButtonGroup(this);
-    _modeGroup->setExclusive(true);
-    _modeGroup->addButton(_liveButton);
-    _modeGroup->addButton(_oneMinuteButton);
-    _modeGroup->addButton(_tenMinutesButton);
-    _modeGroup->addButton(_oneHourButton);
-    _modeGroup->addButton(_oneDayButton);
-
-    connect(_liveButton, &QAbstractButton::clicked, this,
+    connect(ui->liveButton, &QAbstractButton::clicked, this,
             [this]() { enterLiveMode(); });
-    connect(_oneMinuteButton, &QAbstractButton::clicked, this,
+    connect(ui->oneMinuteButton, &QAbstractButton::clicked, this,
             [this]() { enterHistoryMode(60000); });
-    connect(_tenMinutesButton, &QAbstractButton::clicked, this,
+    connect(ui->tenMinutesButton, &QAbstractButton::clicked, this,
             [this]() { enterHistoryMode(600000); });
-    connect(_oneHourButton, &QAbstractButton::clicked, this,
+    connect(ui->oneHourButton, &QAbstractButton::clicked, this,
             [this]() { enterHistoryMode(3600000); });
-    connect(_oneDayButton, &QAbstractButton::clicked, this,
+    connect(ui->oneDayButton, &QAbstractButton::clicked, this,
             [this]() { enterHistoryMode(86400000); });
 
-    connect(autoScaleButton, &QAbstractButton::clicked, this,
+    connect(ui->autoScaleButton, &QAbstractButton::clicked, this,
             [this]() { autoScale(); });
-    connect(fitButton, &QAbstractButton::clicked, this,
+    connect(ui->fitButton, &QAbstractButton::clicked, this,
             [this]() { fit(); });
-    connect(exportButton, &QAbstractButton::clicked, this,
+    connect(ui->refreshButton, &QAbstractButton::clicked, this,
+            [this]() { refreshHistory(); });
+    connect(ui->exportButton, &QAbstractButton::clicked, this,
             [this]() { exportChart(); });
-    connect(settingsButton, &QAbstractButton::clicked, this,
+    connect(ui->settingsButton, &QAbstractButton::clicked, this,
             [this]() { openSettings(); });
 }
 
 ///
 /// \brief Destroys the widget and its chart view.
 ///
-TrendGraphWidget::~TrendGraphWidget() = default;
+TrendGraphWidget::~TrendGraphWidget()
+{
+    delete ui;
+}
 
 ///
 /// \brief Returns a distinct palette colour for a series index.
@@ -511,7 +459,9 @@ void TrendGraphWidget::enterLiveMode()
 {
     _mode = Mode::Live;
     _windowMs = kLiveWindowMs;
-    _liveButton->setChecked(true);
+    _windowEndMs = 0;
+    ui->liveButton->setChecked(true);
+    ui->refreshButton->setEnabled(false);
     const QStringList ids = chartedNodeIds();
     for (const QString &nodeId : ids)
         subscribeNode(nodeId);
@@ -528,12 +478,14 @@ void TrendGraphWidget::enterHistoryMode(qint64 windowMs)
 {
     _mode = Mode::History;
     _windowMs = windowMs;
+    _windowEndMs = QDateTime::currentMSecsSinceEpoch();
     switch (windowMs) {
-    case 600000:   _tenMinutesButton->setChecked(true); break;
-    case 3600000:  _oneHourButton->setChecked(true); break;
-    case 86400000: _oneDayButton->setChecked(true); break;
-    default:       _oneMinuteButton->setChecked(true); break;
+    case 600000:   ui->tenMinutesButton->setChecked(true); break;
+    case 3600000:  ui->oneHourButton->setChecked(true); break;
+    case 86400000: ui->oneDayButton->setChecked(true); break;
+    default:       ui->oneMinuteButton->setChecked(true); break;
     }
+    ui->refreshButton->setEnabled(true);
     _liveTimer->stop();
     const QSet<QString> subscribed = _subscribed;
     for (const QString &nodeId : subscribed)
@@ -545,12 +497,32 @@ void TrendGraphWidget::enterHistoryMode(qint64 windowMs)
 }
 
 ///
+/// \brief Re-anchors the history window to now and re-reads every series.
+///
+/// History reads stay pinned to the window captured when the mode was entered so
+/// that series added later share one interval; this button advances the anchor to
+/// the current time and refetches, giving an explicit, aligned refresh.
+///
+void TrendGraphWidget::refreshHistory()
+{
+    if (_mode != Mode::History)
+        return;
+    _windowEndMs = QDateTime::currentMSecsSinceEpoch();
+    applyWindow();
+    const QStringList ids = chartedNodeIds();
+    for (const QString &nodeId : ids)
+        requestHistory(nodeId);
+}
+
+///
 /// \brief Applies the rolling time window to the chart.
 ///
 void TrendGraphWidget::applyWindow()
 {
-    const qint64 now = QDateTime::currentMSecsSinceEpoch();
-    setTimeWindow(static_cast<qreal>(now - _windowMs), static_cast<qreal>(now));
+    const qint64 end = (_mode == Mode::History && _windowEndMs > 0)
+        ? _windowEndMs
+        : QDateTime::currentMSecsSinceEpoch();
+    setTimeWindow(static_cast<qreal>(end - _windowMs), static_cast<qreal>(end));
 }
 
 ///
@@ -581,7 +553,9 @@ void TrendGraphWidget::unsubscribeNode(const QString &nodeId)
 ///
 void TrendGraphWidget::requestHistory(const QString &nodeId)
 {
-    const QDateTime end = QDateTime::currentDateTime();
+    const QDateTime end = (_windowEndMs > 0)
+        ? QDateTime::fromMSecsSinceEpoch(_windowEndMs)
+        : QDateTime::currentDateTime();
     const QDateTime start = end.addMSecs(-_windowMs);
     _pendingHistory.insert(nodeId);
     emit historyReadRequested(nodeId, start, end, 0);

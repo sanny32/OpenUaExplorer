@@ -681,7 +681,7 @@ void QtOpcUaBackend::readHistoryRaw(const QString &nodeId, const QDateTime &star
         return;
     }
     response->setParent(this);
-    const auto token = _d->requests.begin(QtOpcUaRequestCoordinator::Operation::HistoryRead);
+    const auto token = _d->requests.begin(QtOpcUaRequestCoordinator::Operation::HistoryRead, nodeId);
     connect(response, &QOpcUaHistoryReadResponse::readHistoryDataFinished, this,
             [this, response, nodeId, token](const QList<QOpcUaHistoryData> &results,
                                             QOpcUa::UaStatusCode serviceResult) {
