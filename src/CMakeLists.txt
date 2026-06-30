@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 
 project(ouaexp
         VERSION 1.0.0
-        DESCRIPTION "An OPC UA client application for exploring and monitoring OPC UA servers."
+        DESCRIPTION "An OPC UA client application for exploring and monitoring OPC UA servers"
         LANGUAGES CXX)
 
 include(GNUInstallDirs)
