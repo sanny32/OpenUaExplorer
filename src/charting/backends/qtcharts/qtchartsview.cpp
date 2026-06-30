@@ -18,9 +18,11 @@
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QValueAxis>
 
+#include <QApplication>
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QFont>
-#include <QFontMetrics>
+#include <QFontMetricsF>
 #include <QFrame>
 #include <QGraphicsItem>
 #include <QImage>
@@ -40,10 +42,12 @@ constexpr qreal kDefaultWindowMs = 60000.0;
 }
 
 ///
-/// \brief Rounded value plaque anchored to a data point on the chart.
+/// \brief Card-style value plaque anchored to a data point on the chart.
 ///
-/// Drawn directly on the chart scene so it follows the plotted point, picks up
-/// the chart theme colours, and never leaks Qt Charts beyond this backend.
+/// Drawn directly on the chart scene so it follows the plotted point: a rounded
+/// card with a soft shadow showing the series swatch and name, a clock glyph with
+/// the sample time, a separator, and the value in a large weight. Picks up the
+/// chart theme colours and never leaks Qt Charts beyond this backend.
 ///
 class ChartCallout : public QGraphicsItem
 {
@@ -56,6 +60,15 @@ public:
         : QGraphicsItem(chart)
         , _chart(chart)
     {
+        const QFont base = QApplication::font();
+        _nameFont = base;
+        _timeFont = base;
+        _valueLabelFont = base;
+        _valueFont = base;
+        _valueFont.setBold(true);
+        _valueFont.setPointSizeF(base.pointSizeF() + 9.0);
+        _valueLabel = QCoreApplication::translate("QtChartsView", "Value");
+
         setZValue(11.0);
         hide();
     }
@@ -72,51 +85,59 @@ public:
     }
 
     ///
-    /// \brief Sets the displayed text and recomputes the box geometry.
-    /// \param text Multi-line label.
+    /// \brief Sets the card content and recomputes its geometry.
+    /// \param swatch Series colour shown beside the name.
+    /// \param name Series legend name.
+    /// \param time Sample time text.
+    /// \param value Sample value text.
     ///
-    void setText(const QString &text)
+    void setData(const QColor &swatch, const QString &name, const QString &time,
+                 const QString &value)
     {
-        _text = text;
-        const QFontMetrics metrics(_font);
-        _textRect = metrics.boundingRect(QRect(0, 0, 220, 120),
-                                         Qt::AlignLeft | Qt::TextWordWrap, _text);
-        _textRect.translate(8.0, 6.0);
-        prepareGeometryChange();
-        _rect = _textRect.adjusted(-8.0, -6.0, 8.0, 6.0);
+        _swatch = swatch;
+        _name = name;
+        _time = time;
+        _value = value;
+        relayout();
     }
 
     ///
-    /// \brief Applies theme colours to the plaque.
-    /// \param background Box fill colour.
-    /// \param text Label colour.
-    /// \param border Box outline colour.
+    /// \brief Applies theme colours to the card and derives muted tones.
+    /// \param background Card fill colour.
+    /// \param text Primary text colour.
     ///
-    void setColors(const QColor &background, const QColor &text, const QColor &border)
+    void setColors(const QColor &background, const QColor &text)
     {
         _background = background;
         _textColor = text;
-        _border = border;
+        _muted = blend(text, background, 0.45);
+        _border = blend(text, background, 0.82);
     }
 
     ///
-    /// \brief Repositions the box beside the current anchor point.
+    /// \brief Places the card beside the anchor, kept inside the plot area.
     ///
     void updateGeometry()
     {
         prepareGeometryChange();
-        setPos(_chart->mapToPosition(_anchor, _series) + QPointF(12.0, -52.0));
+        const QPointF anchor = _chart->mapToPosition(_anchor, _series);
+        const QRectF plot = _chart->plotArea();
+
+        qreal x = anchor.x() + 16.0;
+        if (x + _rect.width() > plot.right())
+            x = anchor.x() - 16.0 - _rect.width();
+        qreal y = anchor.y() - _rect.height() / 2.0;
+
+        x = qBound(plot.left(), x, qMax(plot.left(), plot.right() - _rect.width()));
+        y = qBound(plot.top(), y, qMax(plot.top(), plot.bottom() - _rect.height()));
+        setPos(x, y);
     }
 
     QRectF boundingRect() const override
     {
+        QRectF rect = _rect.adjusted(-12.0, -10.0, 12.0, 16.0);
         const QPointF anchor = mapFromParent(_chart->mapToPosition(_anchor, _series));
-        QRectF rect;
-        rect.setLeft(qMin(_rect.left(), anchor.x()));
-        rect.setRight(qMax(_rect.right(), anchor.x()));
-        rect.setTop(qMin(_rect.top(), anchor.y()));
-        rect.setBottom(qMax(_rect.bottom(), anchor.y()));
-        return rect;
+        return rect.united(QRectF(anchor.x() - 8.0, anchor.y() - 8.0, 16.0, 16.0));
     }
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override
@@ -124,42 +145,168 @@ public:
         Q_UNUSED(option)
         Q_UNUSED(widget)
 
-        QPainterPath path;
-        path.addRoundedRect(_rect, 5.0, 5.0);
+        painter->setRenderHint(QPainter::Antialiasing, true);
 
         const QPointF anchor = mapFromParent(_chart->mapToPosition(_anchor, _series));
-        if (!_rect.contains(anchor)) {
-            const bool above = anchor.y() <= _rect.top();
-            const bool below = anchor.y() > _rect.bottom();
-            const qreal cornerX = qBound(_rect.left() + 8.0, anchor.x(), _rect.right() - 8.0);
-            const qreal edgeY = above ? _rect.top() : _rect.bottom();
-            if (above || below) {
-                path.moveTo(cornerX - 6.0, edgeY);
-                path.lineTo(anchor);
-                path.lineTo(cornerX + 6.0, edgeY);
-            }
-            path = path.simplified();
+
+        painter->setPen(Qt::NoPen);
+        for (int i = 7; i >= 1; --i) {
+            painter->setBrush(QColor(0, 0, 0, 5));
+            painter->drawRoundedRect(_rect.adjusted(-i, -i + 3.0, i, i + 3.0),
+                                     kRadius + i, kRadius + i);
         }
 
-        painter->setRenderHint(QPainter::Antialiasing, true);
+        QPainterPath card;
+        card.addRoundedRect(_rect, kRadius, kRadius);
+        appendTail(card, anchor);
+        card = card.simplified();
+
         painter->setBrush(_background);
-        painter->setPen(QPen(_border));
-        painter->drawPath(path);
+        painter->setPen(QPen(_border, 1.0));
+        painter->drawPath(card);
+
+        const QFontMetricsF nameMetrics(_nameFont);
+        const qreal headerH = qMax(kSwatch, nameMetrics.height());
+        const QRectF swatchRect(kPad, _headerY + (headerH - kSwatch) / 2.0, kSwatch, kSwatch);
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(_swatch);
+        painter->drawRoundedRect(swatchRect, 3.0, 3.0);
+
+        const qreal textX = kPad + kSwatch + kIconGap;
+        painter->setFont(_nameFont);
         painter->setPen(_textColor);
-        painter->drawText(_textRect, _text);
+        painter->drawText(QRectF(textX, _headerY, _rect.width() - textX - kPad, headerH),
+                          Qt::AlignLeft | Qt::AlignVCenter, _name);
+
+        const QFontMetricsF timeMetrics(_timeFont);
+        const qreal timeH = qMax(kIcon, timeMetrics.height());
+        paintClock(painter, QRectF(kPad, _timeY + (timeH - kIcon) / 2.0, kIcon, kIcon));
+        painter->setFont(_timeFont);
+        painter->setPen(_muted);
+        painter->drawText(QRectF(textX, _timeY, _rect.width() - textX - kPad, timeH),
+                          Qt::AlignLeft | Qt::AlignVCenter, _time);
+
+        painter->setPen(QPen(_border, 1.0));
+        painter->drawLine(QPointF(kPad, _sepY), QPointF(_rect.width() - kPad, _sepY));
+
+        const QFontMetricsF labelMetrics(_valueLabelFont);
+        painter->setFont(_valueLabelFont);
+        painter->setPen(_muted);
+        painter->drawText(QRectF(kPad, _valueLabelY, _rect.width() - kPad * 2.0, labelMetrics.height()),
+                          Qt::AlignLeft | Qt::AlignVCenter, _valueLabel);
+
+        const QFontMetricsF valueMetrics(_valueFont);
+        painter->setFont(_valueFont);
+        painter->setPen(_textColor);
+        painter->drawText(QRectF(kPad, _valueY, _rect.width() - kPad * 2.0, valueMetrics.height()),
+                          Qt::AlignLeft | Qt::AlignVCenter, _value);
+
+        painter->setPen(QPen(_background, 2.0));
+        painter->setBrush(_swatch);
+        painter->drawEllipse(anchor, 5.0, 5.0);
     }
 
 private:
+    static constexpr qreal kPad = 16.0;
+    static constexpr qreal kSwatch = 14.0;
+    static constexpr qreal kIcon = 15.0;
+    static constexpr qreal kIconGap = 10.0;
+    static constexpr qreal kRadius = 12.0;
+
+    static QColor blend(const QColor &a, const QColor &b, qreal t)
+    {
+        return QColor(int(a.red() * (1.0 - t) + b.red() * t),
+                      int(a.green() * (1.0 - t) + b.green() * t),
+                      int(a.blue() * (1.0 - t) + b.blue() * t));
+    }
+
+    void relayout()
+    {
+        const QFontMetricsF nameMetrics(_nameFont);
+        const QFontMetricsF timeMetrics(_timeFont);
+        const QFontMetricsF labelMetrics(_valueLabelFont);
+        const QFontMetricsF valueMetrics(_valueFont);
+
+        const qreal headerW = kSwatch + kIconGap + nameMetrics.horizontalAdvance(_name);
+        const qreal timeW = kIcon + kIconGap + timeMetrics.horizontalAdvance(_time);
+        const qreal labelW = labelMetrics.horizontalAdvance(_valueLabel);
+        const qreal valueW = valueMetrics.horizontalAdvance(_value);
+        const qreal contentW = qMax(qMax(headerW, timeW), qMax(labelW, valueW));
+
+        const qreal headerH = qMax(kSwatch, nameMetrics.height());
+        const qreal timeH = qMax(kIcon, timeMetrics.height());
+
+        prepareGeometryChange();
+
+        qreal y = kPad;
+        _headerY = y;
+        y += headerH + 10.0;
+        _timeY = y;
+        y += timeH + 12.0;
+        _sepY = y;
+        y += 12.0;
+        _valueLabelY = y;
+        y += labelMetrics.height() + 4.0;
+        _valueY = y;
+        y += valueMetrics.height() + kPad;
+
+        _rect = QRectF(0.0, 0.0, kPad * 2.0 + contentW, y);
+    }
+
+    void appendTail(QPainterPath &path, const QPointF &anchor) const
+    {
+        if (_rect.contains(anchor))
+            return;
+        if (anchor.x() < _rect.left() || anchor.x() > _rect.right()) {
+            const qreal edgeX = anchor.x() < _rect.left() ? _rect.left() : _rect.right();
+            const qreal baseY = qBound(_rect.top() + 14.0, anchor.y(), _rect.bottom() - 14.0);
+            path.moveTo(edgeX, baseY - 8.0);
+            path.lineTo(anchor);
+            path.lineTo(edgeX, baseY + 8.0);
+        } else {
+            const qreal edgeY = anchor.y() < _rect.top() ? _rect.top() : _rect.bottom();
+            const qreal baseX = qBound(_rect.left() + 14.0, anchor.x(), _rect.right() - 14.0);
+            path.moveTo(baseX - 8.0, edgeY);
+            path.lineTo(anchor);
+            path.lineTo(baseX + 8.0, edgeY);
+        }
+    }
+
+    void paintClock(QPainter *painter, const QRectF &area) const
+    {
+        const qreal diameter = qMin(area.width(), area.height()) - 2.0;
+        const QRectF dial(area.center().x() - diameter / 2.0,
+                          area.center().y() - diameter / 2.0, diameter, diameter);
+        painter->setPen(QPen(_muted, 1.4));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawEllipse(dial);
+        const QPointF centre = dial.center();
+        painter->drawLine(centre, centre + QPointF(0.0, -diameter * 0.30));
+        painter->drawLine(centre, centre + QPointF(diameter * 0.22, diameter * 0.06));
+    }
+
     QChart *_chart = nullptr;
     QLineSeries *_series = nullptr;
-    QString _text;
-    QRectF _textRect;
-    QRectF _rect;
     QPointF _anchor;
-    QFont _font;
+    QColor _swatch;
+    QString _name;
+    QString _time;
+    QString _value;
+    QString _valueLabel;
+    QFont _nameFont;
+    QFont _timeFont;
+    QFont _valueLabelFont;
+    QFont _valueFont;
+    QRectF _rect;
+    qreal _headerY = 0.0;
+    qreal _timeY = 0.0;
+    qreal _sepY = 0.0;
+    qreal _valueLabelY = 0.0;
+    qreal _valueY = 0.0;
     QColor _background = QColor(0xff, 0xff, 0xff);
     QColor _textColor = QColor(0x20, 0x20, 0x20);
-    QColor _border = QColor(0x9e, 0x9e, 0x9e);
+    QColor _muted = QColor(0x90, 0x90, 0x90);
+    QColor _border = QColor(0xe0, 0xe0, 0xe0);
 };
 
 ///
@@ -229,12 +376,10 @@ void QtChartsView::showCallout(QLineSeries *series, const QPointF &point, bool s
     }
 
     const QDateTime time = QDateTime::fromMSecsSinceEpoch(qint64(point.x()));
-    const QString text = QStringLiteral("%1\n%2\n%3")
-                             .arg(series->name(),
-                                  time.toString(QStringLiteral("HH:mm:ss")),
-                                  QString::number(point.y(), 'g', 6));
     _callout->setAnchor(series, point);
-    _callout->setText(text);
+    _callout->setData(series->color(), series->name(),
+                      time.toString(QStringLiteral("HH:mm:ss")),
+                      QString::number(point.y(), 'g', 6));
     _callout->updateGeometry();
     _callout->show();
 }
@@ -485,7 +630,7 @@ void QtChartsView::setTheme(const ChartTheme &theme)
     _axisX->setLinePenColor(theme.axis);
     _axisX->setLabelsColor(theme.text);
 
-    _callout->setColors(theme.background, theme.text, theme.axis);
+    _callout->setColors(theme.background, theme.text);
 }
 
 ///
