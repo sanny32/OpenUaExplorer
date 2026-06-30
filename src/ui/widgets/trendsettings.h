@@ -12,6 +12,8 @@
 #include <QString>
 #include <QtGlobal>
 
+#include "models/trendseries.h"
+
 ///
 /// \brief Per-chart display and range options edited in the trend settings dialog.
 ///
@@ -31,6 +33,8 @@ struct TrendDisplaySettings
     bool smoothLines = true;
     /// \brief Show the value plaque when hovering a series line.
     bool showValueTooltip = true;
+    /// \brief Identifier used to name series in the legend and hover plaque.
+    TrendLabelMode labelMode = TrendLabelMode::DisplayName;
     /// \brief Keep the visible window pinned to "now" while streaming live.
     bool autoScrollLive = true;
     /// \brief Active mode: 0 for Live, 1 for History.

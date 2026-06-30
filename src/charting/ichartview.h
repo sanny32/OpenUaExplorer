@@ -135,6 +135,13 @@ public:
     virtual void setSeriesColor(const ChartSeriesId &id, const QColor &color) = 0;
 
     ///
+    /// \brief Renames a single series in the legend and hover plaque.
+    /// \param id Target series.
+    /// \param name New legend name.
+    ///
+    virtual void setSeriesName(const ChartSeriesId &id, const QString &name) = 0;
+
+    ///
     /// \brief Applies the application colour theme to the chart.
     /// \param theme Backend-neutral colour set.
     ///

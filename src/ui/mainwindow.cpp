@@ -674,7 +674,8 @@ void MainWindow::setupDataAccessWiring()
     });
     connect(_selectionContext, &SelectionContext::addToTrendRequested, this,
             [this](const OpcUaNodeInfo &node) {
-        ui->trendPanelWidget->addNode(node.nodeId, node.displayName, node.displayPath);
+        const QString name = node.displayName.isEmpty() ? node.browseName : node.displayName;
+        ui->trendPanelWidget->addNode(node.nodeId, name, node.displayPath);
     });
     connect(_selectionContext, &SelectionContext::subscribeRequested, this,
             [this](const OpcUaNodeInfo &node) {

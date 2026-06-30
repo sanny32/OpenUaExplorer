@@ -162,7 +162,7 @@ bool TrendGraphWidget::addNode(const QString &nodeId, const QString &displayName
     series.setColor(color);
     _series.insert(nodeId, series);
 
-    _chart->addSeries(nodeId, series.label(), color);
+    _chart->addSeries(nodeId, series.seriesLabel(_display.labelMode), color);
 
     emit nodeAdded(nodeId, displayName, displayPath);
     if (_mode == Mode::Live)
@@ -380,6 +380,8 @@ void TrendGraphWidget::applyDisplaySettings()
     _chart->setGridVisible(_display.showGrid);
     _chart->setSmoothLines(_display.smoothLines);
     _chart->setHoverValueVisible(_display.showValueTooltip);
+    for (const TrendSeries &series : std::as_const(_series))
+        _chart->setSeriesName(series.nodeId(), series.seriesLabel(_display.labelMode));
 }
 
 ///
@@ -388,16 +390,18 @@ void TrendGraphWidget::applyDisplaySettings()
 ///
 QVector<TrendSeriesInfo> TrendGraphWidget::seriesInfos() const
 {
+    const TrendLabelMode mode = _display.labelMode;
     QList<TrendSeries> ordered = _series.values();
     std::sort(ordered.begin(), ordered.end(),
-              [](const TrendSeries &lhs, const TrendSeries &rhs) {
-                  return lhs.label().localeAwareCompare(rhs.label()) < 0;
+              [mode](const TrendSeries &lhs, const TrendSeries &rhs) {
+                  return lhs.seriesLabel(mode).localeAwareCompare(rhs.seriesLabel(mode)) < 0;
               });
 
     QVector<TrendSeriesInfo> result;
     result.reserve(ordered.size());
     for (const TrendSeries &series : std::as_const(ordered))
-        result.append({ series.nodeId(), series.label(), series.color(), series.isVisible() });
+        result.append({ series.nodeId(), series.seriesLabel(mode),
+                        series.color(), series.isVisible() });
     return result;
 }
 
@@ -671,16 +675,17 @@ void TrendGraphWidget::showSeriesContextMenu(const QPoint &globalPos)
     if (!_series.isEmpty()) {
         menu.addSeparator();
 
+        const TrendLabelMode mode = _display.labelMode;
         QList<TrendSeries> ordered = _series.values();
         std::sort(ordered.begin(), ordered.end(),
-                  [](const TrendSeries &lhs, const TrendSeries &rhs) {
-                      return lhs.label().localeAwareCompare(rhs.label()) < 0;
+                  [mode](const TrendSeries &lhs, const TrendSeries &rhs) {
+                      return lhs.seriesLabel(mode).localeAwareCompare(rhs.seriesLabel(mode)) < 0;
                   });
 
         for (const TrendSeries &series : std::as_const(ordered)) {
             const QString nodeId = series.nodeId();
             menu.addAction(swatchIcon(series.color()),
-                           tr("Remove %1").arg(series.label()), this,
+                           tr("Remove %1").arg(series.seriesLabel(mode)), this,
                            [this, nodeId]() { removeNode(nodeId); });
         }
 

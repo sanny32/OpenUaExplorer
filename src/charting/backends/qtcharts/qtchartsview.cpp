@@ -610,6 +610,17 @@ void QtChartsView::setSeriesColor(const ChartSeriesId &id, const QColor &color)
 }
 
 ///
+/// \brief Renames a single series in the legend and hover plaque.
+/// \param id Target series.
+/// \param name New legend name.
+///
+void QtChartsView::setSeriesName(const ChartSeriesId &id, const QString &name)
+{
+    if (QLineSeries *series = _series.value(id))
+        series->setName(name);
+}
+
+///
 /// \brief Applies the colour theme to the chart, axes, and callout.
 /// \param theme Backend-neutral colour set.
 ///

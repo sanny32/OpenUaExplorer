@@ -39,6 +39,25 @@ QString TrendSeries::label() const
     return _nodeId;
 }
 
+QString TrendSeries::seriesLabel(TrendLabelMode mode) const
+{
+    switch (mode) {
+    case TrendLabelMode::NodeId:
+        return _nodeId;
+    case TrendLabelMode::Path:
+        if (!_displayPath.isEmpty())
+            return _displayPath;
+        if (!_displayName.isEmpty())
+            return _displayName;
+        return _nodeId;
+    case TrendLabelMode::DisplayName:
+        break;
+    }
+    if (!_displayName.isEmpty())
+        return _displayName;
+    return _nodeId;
+}
+
 QColor TrendSeries::color() const
 {
     return _color;

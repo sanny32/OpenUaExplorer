@@ -57,6 +57,7 @@ public:
     void setHoverValueVisible(bool visible) override;
     void setSeriesVisible(const ChartSeriesId &id, bool visible) override;
     void setSeriesColor(const ChartSeriesId &id, const QColor &color) override;
+    void setSeriesName(const ChartSeriesId &id, const QString &name) override;
     void setTheme(const ChartTheme &theme) override;
     QImage renderToImage(const QSize &size) override;
 

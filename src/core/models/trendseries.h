@@ -16,6 +16,15 @@
 #include "opcua/opcuatypes.h"
 
 ///
+/// \brief Chooses which identifier names a series in the legend and hover plaque.
+///
+enum class TrendLabelMode {
+    DisplayName, ///< Prefer the human-readable display name.
+    NodeId,      ///< Use the raw NodeId.
+    Path         ///< Prefer the full node path.
+};
+
+///
 /// \brief Holds the buffered numeric samples for one charted OPC UA node.
 ///
 /// Points store the source timestamp as milliseconds since the Unix epoch (UTC)
@@ -49,6 +58,13 @@ public:
     /// \return Display label.
     ///
     QString label() const;
+
+    ///
+    /// \brief Returns the legend label for the requested naming mode.
+    /// \param mode Identifier to prefer when naming the series.
+    /// \return Display label, falling back to another form and then the NodeId.
+    ///
+    QString seriesLabel(TrendLabelMode mode) const;
 
     ///
     /// \brief Returns the assigned line colour.

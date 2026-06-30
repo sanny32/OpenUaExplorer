@@ -153,6 +153,7 @@ void TrendSettingsDialog::setDisplaySettings(const TrendDisplaySettings &setting
     ui->showGridCheck->setChecked(settings.showGrid);
     ui->smoothLinesCheck->setChecked(settings.smoothLines);
     ui->showTooltipCheck->setChecked(settings.showValueTooltip);
+    ui->labelModeCombo->setCurrentIndex(static_cast<int>(settings.labelMode));
     ui->autoScrollCheck->setChecked(settings.autoScrollLive);
     selectPeriod(settings.mode, settings.windowMs);
 }
@@ -169,6 +170,7 @@ TrendDisplaySettings TrendSettingsDialog::displaySettings() const
     settings.showGrid = ui->showGridCheck->isChecked();
     settings.smoothLines = ui->smoothLinesCheck->isChecked();
     settings.showValueTooltip = ui->showTooltipCheck->isChecked();
+    settings.labelMode = static_cast<TrendLabelMode>(ui->labelModeCombo->currentIndex());
     settings.autoScrollLive = ui->autoScrollCheck->isChecked();
 
     if (ui->oneMinuteButton->isChecked()) {
