@@ -25,11 +25,19 @@ TrendSeries::TrendSeries(QString nodeId, QString displayName, QString displayPat
 {
 }
 
+///
+/// \brief Returns the NodeId identifying this series.
+/// \return Node NodeId.
+///
 QString TrendSeries::nodeId() const
 {
     return _nodeId;
 }
 
+///
+/// \brief Returns the legend label (path preferred over name, then NodeId).
+/// \return Display label.
+///
 QString TrendSeries::label() const
 {
     if (!_displayPath.isEmpty())
@@ -39,6 +47,11 @@ QString TrendSeries::label() const
     return _nodeId;
 }
 
+///
+/// \brief Returns the legend label for the requested naming mode.
+/// \param mode Identifier to prefer when naming the series.
+/// \return Display label, falling back to another form and then the NodeId.
+///
 QString TrendSeries::seriesLabel(TrendLabelMode mode) const
 {
     switch (mode) {
@@ -58,26 +71,46 @@ QString TrendSeries::seriesLabel(TrendLabelMode mode) const
     return _nodeId;
 }
 
+///
+/// \brief Returns the assigned line colour.
+/// \return Series colour, invalid until assigned.
+///
 QColor TrendSeries::color() const
 {
     return _color;
 }
 
+///
+/// \brief Assigns the line colour.
+/// \param color Colour to use.
+///
 void TrendSeries::setColor(const QColor &color)
 {
     _color = color;
 }
 
+///
+/// \brief Reports whether the series is drawn.
+/// \return True when visible.
+///
 bool TrendSeries::isVisible() const
 {
     return _visible;
 }
 
+///
+/// \brief Sets whether the series is drawn.
+/// \param visible True to draw the series.
+///
 void TrendSeries::setVisible(bool visible)
 {
     _visible = visible;
 }
 
+///
+/// \brief Returns the buffered points (x = ms since epoch UTC, y = value).
+/// \return Points in insertion order.
+///
 const QVector<QPointF> &TrendSeries::points() const
 {
     return _points;
@@ -161,11 +194,50 @@ void TrendSeries::setHistory(const QVector<OpcUaHistoryValue> &values)
     trim();
 }
 
+///
+/// \brief Backfills with history while keeping newer live points.
+/// \param values History samples in time order.
+///
+void TrendSeries::backfillHistory(const QVector<OpcUaHistoryValue> &values)
+{
+    QVector<QPointF> historyPoints;
+    historyPoints.reserve(values.size());
+    for (const OpcUaHistoryValue &sample : values) {
+        double number = 0.0;
+        if (!toNumeric(sample.value, &number))
+            continue;
+        const QDateTime timestamp = sample.sourceTimestamp.isValid()
+            ? sample.sourceTimestamp
+            : sample.serverTimestamp;
+        if (!timestamp.isValid())
+            continue;
+        historyPoints.append(QPointF(static_cast<qreal>(timestamp.toMSecsSinceEpoch()), number));
+    }
+
+    if (historyPoints.isEmpty())
+        return;
+
+    const qreal boundaryX = historyPoints.constLast().x();
+    for (const QPointF &point : std::as_const(_points)) {
+        if (point.x() > boundaryX)
+            historyPoints.append(point);
+    }
+    _points = std::move(historyPoints);
+    trim();
+}
+
+///
+/// \brief Removes all buffered points.
+///
 void TrendSeries::clear()
 {
     _points.clear();
 }
 
+///
+/// \brief Caps the number of retained points; older points are dropped.
+/// \param maxPoints Maximum points to keep (minimum 1).
+///
 void TrendSeries::setMaxPoints(int maxPoints)
 {
     _maxPoints = qMax(1, maxPoints);

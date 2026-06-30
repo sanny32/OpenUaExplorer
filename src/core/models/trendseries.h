@@ -110,6 +110,16 @@ public:
     void setHistory(const QVector<OpcUaHistoryValue> &values);
 
     ///
+    /// \brief Backfills with history while keeping newer live points.
+    /// \param values History samples in time order.
+    ///
+    /// Prepends the numeric history samples and re-appends any already buffered
+    /// points newer than the latest sample, so live values that streamed in while
+    /// the read was pending are preserved instead of being discarded.
+    ///
+    void backfillHistory(const QVector<OpcUaHistoryValue> &values);
+
+    ///
     /// \brief Removes all buffered points.
     ///
     void clear();

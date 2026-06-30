@@ -169,8 +169,7 @@ bool TrendGraphWidget::addNode(const QString &nodeId, const QString &displayName
     emit nodeAdded(nodeId, displayName, displayPath);
     if (_mode == Mode::Live)
         subscribeNode(nodeId);
-    else
-        requestHistory(nodeId);
+    requestHistory(nodeId);
     return true;
 }
 
@@ -230,7 +229,8 @@ void TrendGraphWidget::applyLiveValues(const QVector<OpcUaDataValue> &values)
 }
 
 ///
-/// \brief Replaces a series' points with history samples.
+/// \brief Feeds history into a series, replacing in History mode and backfilling
+/// behind live points in Live mode.
 /// \param nodeId Node whose history arrived.
 /// \param values History samples in time order.
 ///
@@ -240,7 +240,10 @@ void TrendGraphWidget::applyHistory(const QString &nodeId,
     auto it = _series.find(nodeId);
     if (it == _series.end())
         return;
-    it->setHistory(values);
+    if (_mode == Mode::Live)
+        it->backfillHistory(values);
+    else
+        it->setHistory(values);
     refeedSeries(*it);
 }
 
