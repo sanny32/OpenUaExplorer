@@ -27,26 +27,46 @@
     <number>9</number>
    </property>
    <item>
-    <widget class="ThemedToolButton" name="liveButton">
-     <property name="minimumSize">
-      <size>
-       <width>40</width>
-       <height>0</height>
-      </size>
+    <layout class="QHBoxLayout" name="liveGroup">
+     <property name="spacing">
+      <number>2</number>
      </property>
-     <property name="text">
-      <string>Live</string>
-     </property>
-     <property name="checkable">
-      <bool>true</bool>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-     <property name="toolButtonStyle">
-      <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
-     </property>
-    </widget>
+     <item>
+      <widget class="ThemedToolButton" name="liveButton">
+       <property name="minimumSize">
+        <size>
+         <width>40</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Live</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="ThemedToolButton" name="livePauseButton">
+       <property name="toolTip">
+        <string>Pause</string>
+       </property>
+       <property name="iconName" stdset="0">
+        <string>pause</string>
+       </property>
+       <property name="squareIconOnly" stdset="0">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="ThemedToolButton" name="oneMinuteButton">

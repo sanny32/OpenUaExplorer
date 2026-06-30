@@ -114,6 +114,8 @@ void TrendGraphWidget::connectToolbar()
 {
     connect(ui->toolbar, &TrendGraphToolbar::liveRequested,
             this, &TrendGraphWidget::enterLiveMode);
+    connect(ui->toolbar, &TrendGraphToolbar::livePauseToggled,
+            this, &TrendGraphWidget::setLivePaused);
     connect(ui->toolbar, &TrendGraphToolbar::historyRequested,
             this, &TrendGraphWidget::enterHistoryMode);
     connect(ui->toolbar, &TrendGraphToolbar::refreshRequested,
@@ -483,6 +485,7 @@ void TrendGraphWidget::setLivePaused(bool paused)
     if (_mode != Mode::Live || _livePaused == paused)
         return;
     _livePaused = paused;
+    ui->toolbar->setLivePaused(paused);
     if (!paused) {
         applyWindow();
         if (_display.autoScale)

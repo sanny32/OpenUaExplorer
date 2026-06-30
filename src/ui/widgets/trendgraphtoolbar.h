@@ -50,11 +50,23 @@ public:
     ///
     void setRefreshEnabled(bool enabled);
 
+    ///
+    /// \brief Syncs the live play/pause control without emitting a request.
+    /// \param paused True to show the paused (resume) state.
+    ///
+    void setLivePaused(bool paused);
+
 signals:
     ///
     /// \brief Requests a switch to live mode.
     ///
     void liveRequested();
+
+    ///
+    /// \brief Requests that live streaming be paused or resumed.
+    /// \param paused True to pause, false to resume.
+    ///
+    void livePauseToggled(bool paused);
 
     ///
     /// \brief Requests a switch to a history range.
@@ -89,8 +101,12 @@ signals:
 
 private slots:
     void handleModeClicked(int id);
+    void handleLivePauseClicked();
 
 private:
+    void updateLivePauseButton();
+
     Ui::TrendGraphToolbar *ui;
     class QButtonGroup *_modeGroup = nullptr;
+    bool _livePaused = false;
 };

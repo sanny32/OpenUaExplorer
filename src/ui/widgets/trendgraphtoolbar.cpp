@@ -43,6 +43,8 @@ TrendGraphToolbar::TrendGraphToolbar(QWidget *parent)
 
     connect(_modeGroup, &QButtonGroup::idClicked,
             this, &TrendGraphToolbar::handleModeClicked);
+    connect(ui->livePauseButton, &QAbstractButton::clicked,
+            this, &TrendGraphToolbar::handleLivePauseClicked);
     connect(ui->refreshButton, &QAbstractButton::clicked,
             this, &TrendGraphToolbar::refreshRequested);
     connect(ui->autoScaleButton, &QAbstractButton::clicked,
@@ -70,6 +72,8 @@ void TrendGraphToolbar::selectLive()
 {
     const QSignalBlocker blocker(_modeGroup);
     ui->liveButton->setChecked(true);
+    ui->livePauseButton->setEnabled(true);
+    setLivePaused(false);
 }
 
 ///
@@ -85,6 +89,8 @@ void TrendGraphToolbar::selectHistoryWindow(qint64 windowMs)
     case kOneDayMs:     ui->oneDayButton->setChecked(true); break;
     default:            ui->oneMinuteButton->setChecked(true); break;
     }
+    setLivePaused(false);
+    ui->livePauseButton->setEnabled(false);
 }
 
 ///
@@ -97,6 +103,16 @@ void TrendGraphToolbar::setRefreshEnabled(bool enabled)
 }
 
 ///
+/// \brief Syncs the live play/pause control without emitting a request.
+/// \param paused True to show the paused (resume) state.
+///
+void TrendGraphToolbar::setLivePaused(bool paused)
+{
+    _livePaused = paused;
+    updateLivePauseButton();
+}
+
+///
 /// \brief Emits the mode request for the clicked range button.
 /// \param id Button id registered in the mode group.
 ///
@@ -106,4 +122,24 @@ void TrendGraphToolbar::handleModeClicked(int id)
         emit liveRequested();
     else
         emit historyRequested(id);
+}
+
+///
+/// \brief Flips the paused state, updates the icon and forwards the request.
+///
+void TrendGraphToolbar::handleLivePauseClicked()
+{
+    _livePaused = !_livePaused;
+    updateLivePauseButton();
+    emit livePauseToggled(_livePaused);
+}
+
+///
+/// \brief Reflects the paused state in the play/pause icon and tooltip.
+///
+void TrendGraphToolbar::updateLivePauseButton()
+{
+    ui->livePauseButton->setIcon(_livePaused ? QStringLiteral("resume")
+                                             : QStringLiteral("pause"));
+    ui->livePauseButton->setToolTip(_livePaused ? tr("Resume") : tr("Pause"));
 }
