@@ -196,6 +196,23 @@ void SubscriptionsWidget::addSubscription()
 }
 
 ///
+/// \brief Adds a subscription with the given name and publishing interval.
+/// \param name Subscription name; ignored when empty or already in use.
+/// \param interval Publishing interval in milliseconds.
+///
+void SubscriptionsWidget::createSubscription(const QString &name, double interval)
+{
+    if (name.isEmpty() || _subscriptionsModel->containsName(name))
+        return;
+
+    SubscriptionItem subscription;
+    subscription.id = _subscriptionsModel->rowCount();
+    subscription.name = name;
+    subscription.publishingInterval = interval;
+    _subscriptionsModel->addSubscription(subscription);
+}
+
+///
 /// \brief Removes the selected subscriptions, unassigning and unmonitoring their nodes.
 ///
 void SubscriptionsWidget::removeSelectedSubscriptions()

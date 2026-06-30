@@ -8,8 +8,9 @@
 
 #pragma once
 
-#include <QStyledItemDelegate>
+#include <QPersistentModelIndex>
 #include <QStringList>
+#include <QStyledItemDelegate>
 
 ///
 /// \brief Combo-box delegate used to assign subscriptions to monitored items.
@@ -25,6 +26,18 @@ public:
     /// \param parent Owning QObject.
     ///
     explicit SubscriptionDelegate(QStringList subscriptionNames, QObject *parent = nullptr);
+
+    ///
+    /// \brief Replaces the selectable subscription names offered by future editors.
+    /// \param subscriptionNames Names to offer.
+    ///
+    void setSubscriptionNames(QStringList subscriptionNames);
+
+    ///
+    /// \brief Returns the label of the entry that opens the new-subscription dialog.
+    /// \return Create-new entry label, also used as the cell's pending placeholder.
+    ///
+    static QString createNewLabel();
 
     ///
     /// \brief Creates a combo-box editor listing the subscription names plus an empty choice.
@@ -58,6 +71,16 @@ signals:
     ///
     void subscriptionChanged(const QModelIndex &index, const QString &subscriptionName) const;
 
+    ///
+    /// \brief Emitted when the user chooses the "create new subscription" entry.
+    /// \param index Model index being edited.
+    ///
+    void newSubscriptionRequested(const QModelIndex &index) const;
+
+private slots:
+    void commitAndCloseEditor();
+
 private:
-    QStringList _subscriptionNames;
+    QStringList                 _subscriptionNames;
+    mutable QPersistentModelIndex _editingIndex;
 };

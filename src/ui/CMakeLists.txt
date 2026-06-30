@@ -92,6 +92,8 @@ add_library(ouaexp_ui STATIC
     dialogs/dialogabout.h
     dialogs/editfavoritedialog.cpp
     dialogs/editfavoritedialog.h
+    dialogs/newsubscriptiondialog.cpp
+    dialogs/newsubscriptiondialog.h
     dialogs/settingsdialog.cpp
     dialogs/settingsdialog.h
     dialogs/subscriptionsdialog.cpp

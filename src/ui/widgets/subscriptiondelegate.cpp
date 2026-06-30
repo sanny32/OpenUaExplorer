@@ -13,6 +13,13 @@
 
 #include "subscriptiondelegate.h"
 
+namespace {
+
+/// \brief Item-data role flagging the combo entry that opens the new-subscription dialog.
+constexpr int createNewRole = Qt::UserRole + 1;
+
+}
+
 ///
 /// \brief Constructs the delegate with the set of selectable subscription names.
 /// \param subscriptionNames Names offered in the editor combo box.
@@ -22,6 +29,24 @@ SubscriptionDelegate::SubscriptionDelegate(QStringList subscriptionNames, QObjec
     : QStyledItemDelegate(parent)
     , _subscriptionNames(std::move(subscriptionNames))
 {
+}
+
+///
+/// \brief Replaces the selectable subscription names offered by future editors.
+/// \param subscriptionNames Names to offer.
+///
+void SubscriptionDelegate::setSubscriptionNames(QStringList subscriptionNames)
+{
+    _subscriptionNames = std::move(subscriptionNames);
+}
+
+///
+/// \brief Returns the label of the entry that opens the new-subscription dialog.
+/// \return Create-new entry label, also used as the cell's pending placeholder.
+///
+QString SubscriptionDelegate::createNewLabel()
+{
+    return tr("<New subscription>");
 }
 
 ///
@@ -36,6 +61,13 @@ QWidget *SubscriptionDelegate::createEditor(QWidget *parent, const QStyleOptionV
     combo->addItem(QStringLiteral("—"), QString());
     for (const QString &name : _subscriptionNames)
         combo->addItem(name, name);
+
+    combo->insertSeparator(combo->count());
+    combo->addItem(createNewLabel());
+    combo->setItemData(combo->count() - 1, true, createNewRole);
+
+    connect(combo, QOverload<int>::of(&QComboBox::activated),
+            this, &SubscriptionDelegate::commitAndCloseEditor);
 
     const QFontMetrics metrics(combo->font());
     int contentWidth = 0;
@@ -58,6 +90,7 @@ QWidget *SubscriptionDelegate::createEditor(QWidget *parent, const QStyleOptionV
 ///
 void SubscriptionDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
 {
+    _editingIndex = index;
     QComboBox *combo = static_cast<QComboBox *>(editor);
     const QString current = index.data(Qt::EditRole).toString();
     const int i = combo->findData(current);
@@ -74,9 +107,31 @@ void SubscriptionDelegate::setModelData(QWidget *editor, QAbstractItemModel *mod
                                         const QModelIndex &index) const
 {
     QComboBox *combo = static_cast<QComboBox *>(editor);
+    if (combo->itemData(combo->currentIndex(), createNewRole).toBool())
+        return;
     const QString newName = combo->currentData().toString();
     if (newName == index.data(Qt::EditRole).toString())
         return;
     model->setData(index, newName, Qt::EditRole);
     emit subscriptionChanged(index, newName);
+}
+
+///
+/// \brief Commits and closes the editor as soon as the user picks a combo entry.
+///
+/// The "create new subscription" entry closes the editor without committing its value, so
+/// the receiver can drive the cell while no editor is open to overwrite it.
+///
+void SubscriptionDelegate::commitAndCloseEditor()
+{
+    QComboBox *combo = qobject_cast<QComboBox *>(sender());
+    if (!combo)
+        return;
+    if (combo->itemData(combo->currentIndex(), createNewRole).toBool()) {
+        emit newSubscriptionRequested(_editingIndex);
+        emit closeEditor(combo);
+        return;
+    }
+    emit commitData(combo);
+    emit closeEditor(combo);
 }

@@ -23,6 +23,7 @@ class DataAccessWidget;
 }
 
 class DataAccessModel;
+class SubscriptionDelegate;
 
 ///
 /// \brief Tab widget for browsing and monitoring data access items.
@@ -163,6 +164,13 @@ signals:
     ///
     void monitoringCancelled(QString nodeId);
 
+    ///
+    /// \brief Emitted when the user asks to create a new subscription from the Subscription column.
+    /// \param name New subscription name.
+    /// \param publishingInterval New subscription publishing interval in milliseconds.
+    ///
+    void subscriptionCreationRequested(QString name, double publishingInterval);
+
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
@@ -177,6 +185,7 @@ private:
     void rebuildSubscribeMenu();
     void populateSubscribeMenu(QMenu *menu);
     void applySubscriptionToSelection(const QString &subscriptionName);
+    void promptNewSubscription(const QString &nodeId);
     QStringList subscriptionNames() const;
     double intervalFor(const QString &name) const;
     SubscriptionItem defaultSubscription() const;
@@ -184,5 +193,6 @@ private:
 
     Ui::DataAccessWidget      *ui;
     DataAccessModel           *_dataModel;
+    SubscriptionDelegate      *_subscriptionDelegate = nullptr;
     QVector<SubscriptionItem>  _subscriptions;
 };

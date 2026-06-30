@@ -19,6 +19,7 @@
 #include "appicons.h"
 #include "appsettings.h"
 #include "dataaccesswidget.h"
+#include "dialogs/newsubscriptiondialog.h"
 #include "headerview.h"
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
@@ -177,6 +178,8 @@ void DataAccessWidget::setTimestampMode(AppSettings::TimestampMode mode)
 void DataAccessWidget::setSubscriptions(const QVector<SubscriptionItem> &subscriptions)
 {
     _subscriptions = subscriptions;
+    if (_subscriptionDelegate)
+        _subscriptionDelegate->setSubscriptionNames(subscriptionNames());
     rebuildSubscribeMenu();
 }
 
@@ -271,6 +274,25 @@ bool DataAccessWidget::eventFilter(QObject *watched, QEvent *event)
 void DataAccessWidget::setupDataView()
 {
     ui->dataView->setModel(_dataModel);
+
+    _subscriptionDelegate = new SubscriptionDelegate(subscriptionNames(), ui->dataView);
+    ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, _subscriptionDelegate);
+    connect(_subscriptionDelegate, &SubscriptionDelegate::subscriptionChanged, this,
+            [this](const QModelIndex &index, const QString &subscriptionName) {
+                const QString nodeId = _dataModel->itemAt(index.row()).nodeId;
+                if (subscriptionName.isEmpty())
+                    emit monitoringCancelled(nodeId);
+                else
+                    emit monitoringRequested(nodeId, intervalFor(subscriptionName));
+            });
+    connect(_subscriptionDelegate, &SubscriptionDelegate::newSubscriptionRequested, this,
+            [this](const QModelIndex &index) {
+                const QString nodeId = _dataModel->itemAt(index.row()).nodeId;
+                QMetaObject::invokeMethod(this, [this, nodeId] {
+                    promptNewSubscription(nodeId);
+                }, Qt::QueuedConnection);
+            });
+
     ui->dataView->setAcceptDrops(true);
     ui->dataView->viewport()->setAcceptDrops(true);
     ui->dataView->setDropIndicatorShown(true);
@@ -433,23 +455,10 @@ void DataAccessWidget::removeAllNodes()
 }
 
 ///
-/// \brief Rebuilds the subscription editor delegate and the subscribe button's menu.
+/// \brief Rebuilds the subscribe button's menu from the current subscriptions.
 ///
 void DataAccessWidget::rebuildSubscribeMenu()
 {
-    const QStringList names = subscriptionNames();
-
-    auto delegate = new SubscriptionDelegate(names, ui->dataView);
-    ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, delegate);
-    connect(delegate, &SubscriptionDelegate::subscriptionChanged, this,
-            [this](const QModelIndex &index, const QString &subscriptionName) {
-                const QString nodeId = _dataModel->itemAt(index.row()).nodeId;
-                if (subscriptionName.isEmpty())
-                    emit monitoringCancelled(nodeId);
-                else
-                    emit monitoringRequested(nodeId, intervalFor(subscriptionName));
-            });
-
     QMenu *menu = new QMenu(ui->subscribeButton);
     populateSubscribeMenu(menu);
     ui->subscribeButton->setMenu(menu);
@@ -490,6 +499,39 @@ void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionN
         else
             emit monitoringRequested(nodeId, interval);
     }
+}
+
+///
+/// \brief Prompts for a new subscription and assigns the edited node to it.
+/// \param nodeId Node whose Subscription cell triggered the request.
+///
+void DataAccessWidget::promptNewSubscription(const QString &nodeId)
+{
+    int row = -1;
+    for (int r = 0; r < _dataModel->rowCount(); ++r) {
+        if (_dataModel->itemAt(r).nodeId == nodeId) {
+            row = r;
+            break;
+        }
+    }
+    if (row < 0)
+        return;
+
+    const QModelIndex index = _dataModel->index(row, DataAccessModel::ColSubscription);
+    const QString previous = _dataModel->itemAt(row).subscriptionName;
+    _dataModel->setData(index, SubscriptionDelegate::createNewLabel(), Qt::EditRole);
+
+    NewSubscriptionDialog dialog(subscriptionNames(), this);
+    if (dialog.exec() != QDialog::Accepted) {
+        _dataModel->setData(index, previous, Qt::EditRole);
+        return;
+    }
+
+    const QString name = dialog.subscriptionName();
+    const double interval = dialog.publishingInterval();
+    emit subscriptionCreationRequested(name, interval);
+    _dataModel->setData(index, name, Qt::EditRole);
+    emit monitoringRequested(nodeId, interval);
 }
 
 ///

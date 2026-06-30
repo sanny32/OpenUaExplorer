@@ -64,6 +64,14 @@ public:
     ///
     void restoreViewState(AppSettings &settings);
 
+public slots:
+    ///
+    /// \brief Adds a subscription with the given name and publishing interval.
+    /// \param name Subscription name; ignored when empty or already in use.
+    /// \param interval Publishing interval in milliseconds.
+    ///
+    void createSubscription(const QString &name, double interval);
+
 signals:
     ///
     /// \brief Emitted whenever the set of subscriptions changes.

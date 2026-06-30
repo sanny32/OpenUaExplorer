@@ -86,6 +86,8 @@ DataView::DataView(QWidget *parent)
             ui->dataAccessWidget, &DataAccessWidget::applySubscriptionInterval);
     connect(subscriptionsWidget, &SubscriptionsWidget::subscriptionRemoved,
             ui->dataAccessWidget, &DataAccessWidget::applySubscriptionRemoval);
+    connect(ui->dataAccessWidget, &DataAccessWidget::subscriptionCreationRequested,
+            subscriptionsWidget, &SubscriptionsWidget::createSubscription);
 
     ui->dataAccessWidget->setSubscriptions(subscriptionsWidget->subscriptions());
 }
