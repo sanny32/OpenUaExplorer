@@ -50,6 +50,14 @@ public:
     void setModelData(QWidget *editor, QAbstractItemModel *model,
                       const QModelIndex &index) const override;
 
+signals:
+    ///
+    /// \brief Emitted when the user picks a different subscription for an item.
+    /// \param index Model index that was edited.
+    /// \param subscriptionName Chosen subscription name, or empty to unsubscribe.
+    ///
+    void subscriptionChanged(const QModelIndex &index, const QString &subscriptionName) const;
+
 private:
     QStringList _subscriptionNames;
 };

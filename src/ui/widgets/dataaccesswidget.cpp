@@ -441,6 +441,14 @@ void DataAccessWidget::rebuildSubscribeMenu()
 
     auto delegate = new SubscriptionDelegate(names, ui->dataView);
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, delegate);
+    connect(delegate, &SubscriptionDelegate::subscriptionChanged, this,
+            [this](const QModelIndex &index, const QString &subscriptionName) {
+                const QString nodeId = _dataModel->itemAt(index.row()).nodeId;
+                if (subscriptionName.isEmpty())
+                    emit monitoringCancelled(nodeId);
+                else
+                    emit monitoringRequested(nodeId, intervalFor(subscriptionName));
+            });
 
     QMenu *menu = new QMenu(ui->subscribeButton);
     populateSubscribeMenu(menu);

@@ -74,5 +74,9 @@ void SubscriptionDelegate::setModelData(QWidget *editor, QAbstractItemModel *mod
                                         const QModelIndex &index) const
 {
     QComboBox *combo = static_cast<QComboBox *>(editor);
-    model->setData(index, combo->currentData(), Qt::EditRole);
+    const QString newName = combo->currentData().toString();
+    if (newName == index.data(Qt::EditRole).toString())
+        return;
+    model->setData(index, newName, Qt::EditRole);
+    emit subscriptionChanged(index, newName);
 }
