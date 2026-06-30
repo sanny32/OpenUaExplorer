@@ -115,6 +115,12 @@ public:
     virtual void setSmoothLines(bool smooth) = 0;
 
     ///
+    /// \brief Shows or hides the value plaque shown when hovering a series.
+    /// \param visible True to display the hover value plaque.
+    ///
+    virtual void setHoverValueVisible(bool visible) = 0;
+
+    ///
     /// \brief Shows or hides a single series.
     /// \param id Target series.
     /// \param visible True to draw the series.

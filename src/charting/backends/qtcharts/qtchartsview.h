@@ -12,6 +12,7 @@
 #pragma once
 
 #include <QHash>
+#include <QObject>
 
 #include "ichartview.h"
 
@@ -20,6 +21,8 @@ class QChartView;
 class QLineSeries;
 class QValueAxis;
 class QDateTimeAxis;
+class QPointF;
+class ChartCallout;
 
 ///
 /// \brief Renders trend series with Qt Charts behind the IChartView API.
@@ -51,6 +54,7 @@ public:
     void setLegendVisible(bool visible) override;
     void setGridVisible(bool visible) override;
     void setSmoothLines(bool smooth) override;
+    void setHoverValueVisible(bool visible) override;
     void setSeriesVisible(const ChartSeriesId &id, bool visible) override;
     void setSeriesColor(const ChartSeriesId &id, const QColor &color) override;
     void setTheme(const ChartTheme &theme) override;
@@ -58,12 +62,16 @@ public:
 
 private:
     QColor nextPaletteColor();
+    void showCallout(QLineSeries *series, const QPointF &point, bool state);
 
     QChartView *_view = nullptr;
     QChart *_chart = nullptr;
     QValueAxis *_axisY = nullptr;
     QDateTimeAxis *_axisX = nullptr;
     QHash<ChartSeriesId, QLineSeries *> _series;
+    ChartCallout *_callout = nullptr;
     ChartTheme _theme;
     int _paletteIndex = 0;
+    bool _hoverValueVisible = true;
+    QObject _hoverContext;
 };

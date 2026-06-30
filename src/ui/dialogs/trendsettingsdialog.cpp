@@ -152,6 +152,7 @@ void TrendSettingsDialog::setDisplaySettings(const TrendDisplaySettings &setting
     ui->showLegendCheck->setChecked(settings.showLegend);
     ui->showGridCheck->setChecked(settings.showGrid);
     ui->smoothLinesCheck->setChecked(settings.smoothLines);
+    ui->showTooltipCheck->setChecked(settings.showValueTooltip);
     ui->autoScrollCheck->setChecked(settings.autoScrollLive);
     selectPeriod(settings.mode, settings.windowMs);
 }
@@ -167,6 +168,7 @@ TrendDisplaySettings TrendSettingsDialog::displaySettings() const
     settings.showLegend = ui->showLegendCheck->isChecked();
     settings.showGrid = ui->showGridCheck->isChecked();
     settings.smoothLines = ui->smoothLinesCheck->isChecked();
+    settings.showValueTooltip = ui->showTooltipCheck->isChecked();
     settings.autoScrollLive = ui->autoScrollCheck->isChecked();
 
     if (ui->oneMinuteButton->isChecked()) {

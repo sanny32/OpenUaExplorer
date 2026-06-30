@@ -360,9 +360,13 @@ TrendDisplaySettings TrendGraphWidget::displaySettings() const
 ///
 void TrendGraphWidget::setDisplaySettings(const TrendDisplaySettings &settings)
 {
+    const bool intervalChanged =
+        settings.mode != modeState() || settings.windowMs != windowState();
+
     _display = settings;
     applyDisplaySettings();
-    applyModeState(settings.mode, settings.windowMs);
+    if (intervalChanged)
+        applyModeState(settings.mode, settings.windowMs);
     if (_display.autoScale)
         autoScale();
 }
@@ -375,6 +379,7 @@ void TrendGraphWidget::applyDisplaySettings()
     _chart->setLegendVisible(_display.showLegend);
     _chart->setGridVisible(_display.showGrid);
     _chart->setSmoothLines(_display.smoothLines);
+    _chart->setHoverValueVisible(_display.showValueTooltip);
 }
 
 ///

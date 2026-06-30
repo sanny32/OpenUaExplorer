@@ -29,6 +29,8 @@ struct TrendDisplaySettings
     bool showGrid = true;
     /// \brief Render series lines with antialiasing.
     bool smoothLines = true;
+    /// \brief Show the value plaque when hovering a series line.
+    bool showValueTooltip = true;
     /// \brief Keep the visible window pinned to "now" while streaming live.
     bool autoScrollLive = true;
     /// \brief Active mode: 0 for Live, 1 for History.
