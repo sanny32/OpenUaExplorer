@@ -74,14 +74,16 @@ public:
     }
 
     ///
-    /// \brief Binds the callout to a series and the hovered value point.
-    /// \param series Series the point belongs to (its axes map the position).
-    /// \param anchor Hovered value in series coordinates.
+    /// \brief Pins the callout to a fixed screen position of the hovered point.
+    /// \param scenePos Hovered point in chart (parent item) coordinates.
     ///
-    void setAnchor(QLineSeries *series, const QPointF &anchor)
+    /// The position is captured once and never re-derived from the series value,
+    /// so a live chart scrolling under a stationary cursor cannot stretch the
+    /// connector to a point that has since moved.
+    ///
+    void setAnchor(const QPointF &scenePos)
     {
-        _series = series;
-        _anchor = anchor;
+        _anchorScene = scenePos;
     }
 
     ///
@@ -120,7 +122,7 @@ public:
     void updateGeometry()
     {
         prepareGeometryChange();
-        const QPointF anchor = _chart->mapToPosition(_anchor, _series);
+        const QPointF anchor = _anchorScene;
         const QRectF plot = _chart->plotArea();
 
         qreal x = anchor.x() + 16.0;
@@ -136,7 +138,7 @@ public:
     QRectF boundingRect() const override
     {
         QRectF rect = _rect.adjusted(-12.0, -10.0, 12.0, 16.0);
-        const QPointF anchor = mapFromParent(_chart->mapToPosition(_anchor, _series));
+        const QPointF anchor = mapFromParent(_anchorScene);
         return rect.united(QRectF(anchor.x() - 8.0, anchor.y() - 8.0, 16.0, 16.0));
     }
 
@@ -147,7 +149,7 @@ public:
 
         painter->setRenderHint(QPainter::Antialiasing, true);
 
-        const QPointF anchor = mapFromParent(_chart->mapToPosition(_anchor, _series));
+        const QPointF anchor = mapFromParent(_anchorScene);
 
         painter->setPen(Qt::NoPen);
         for (int i = 7; i >= 1; --i) {
@@ -286,8 +288,7 @@ private:
     }
 
     QChart *_chart = nullptr;
-    QLineSeries *_series = nullptr;
-    QPointF _anchor;
+    QPointF _anchorScene;
     QColor _swatch;
     QString _name;
     QString _time;
@@ -376,7 +377,7 @@ void QtChartsView::showCallout(QLineSeries *series, const QPointF &point, bool s
     }
 
     const QDateTime time = QDateTime::fromMSecsSinceEpoch(qint64(point.x()));
-    _callout->setAnchor(series, point);
+    _callout->setAnchor(_chart->mapToPosition(point, series));
     _callout->setData(series->color(), series->name(),
                       time.toString(QStringLiteral("HH:mm:ss")),
                       QString::number(point.y(), 'g', 6));
@@ -487,6 +488,7 @@ void QtChartsView::setPoints(const ChartSeriesId &id, const QVector<ChartPoint> 
 ///
 void QtChartsView::setTimeWindow(qreal startMsEpoch, qreal endMsEpoch)
 {
+    _callout->hide();
     _axisX->setRange(QDateTime::fromMSecsSinceEpoch(qint64(startMsEpoch)),
                      QDateTime::fromMSecsSinceEpoch(qint64(endMsEpoch)));
 }
