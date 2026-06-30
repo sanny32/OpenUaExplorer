@@ -256,6 +256,7 @@ private:
 
     void connectToolbar();
     void enterLiveMode();
+    void setLivePaused(bool paused);
     void enterHistoryMode(qint64 windowMs);
     void refreshHistory();
     void applyWindow();
@@ -275,6 +276,7 @@ private:
 
     QTimer *_liveTimer = nullptr;
     Mode _mode = Mode::Live;
+    bool _livePaused = false;
     qint64 _windowMs = 60000;
     qint64 _windowEndMs = 0;
     TrendDisplaySettings _display;

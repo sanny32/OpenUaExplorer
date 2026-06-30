@@ -93,6 +93,8 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     _liveTimer = new QTimer(this);
     _liveTimer->setInterval(kLiveTickMs);
     connect(_liveTimer, &QTimer::timeout, this, [this]() {
+        if (_livePaused)
+            return;
         if (_display.autoScrollLive)
             applyWindow();
         if (_display.autoScale)
@@ -451,6 +453,7 @@ void TrendGraphWidget::openSettings()
 void TrendGraphWidget::enterLiveMode()
 {
     _mode = Mode::Live;
+    _livePaused = false;
     _windowMs = kLiveWindowMs;
     _windowEndMs = 0;
     ui->toolbar->selectLive();
@@ -461,6 +464,27 @@ void TrendGraphWidget::enterLiveMode()
     applyWindow();
     if (!_liveTimer->isActive())
         _liveTimer->start();
+}
+
+///
+/// \brief Pauses or resumes live scrolling and rescaling without dropping data.
+///
+/// While paused the rolling window and value axis stay frozen so the chart can be
+/// inspected; incoming samples keep buffering and become visible on resume, which
+/// snaps the window back to now.
+///
+/// \param paused True to freeze the live view, false to resume.
+///
+void TrendGraphWidget::setLivePaused(bool paused)
+{
+    if (_mode != Mode::Live || _livePaused == paused)
+        return;
+    _livePaused = paused;
+    if (!paused) {
+        applyWindow();
+        if (_display.autoScale)
+            autoScale();
+    }
 }
 
 ///
@@ -665,6 +689,14 @@ bool TrendGraphWidget::dropNode(const QMimeData *mimeData)
 void TrendGraphWidget::showSeriesContextMenu(const QPoint &globalPos)
 {
     QMenu menu(this);
+
+    if (_mode == Mode::Live) {
+        const QString icon = _livePaused ? QStringLiteral("resume") : QStringLiteral("pause");
+        const QString text = _livePaused ? tr("Resume") : tr("Pause");
+        menu.addAction(AppIcons::themed(icon), text, this,
+                       [this]() { setLivePaused(!_livePaused); });
+        menu.addSeparator();
+    }
 
     menu.addAction(tr("Auto Scale"), this, [this]() { autoScale(); });
     menu.addAction(AppIcons::themed(QStringLiteral("fit")), tr("Fit"), this,
