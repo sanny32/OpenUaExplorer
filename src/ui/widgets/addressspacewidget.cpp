@@ -141,10 +141,24 @@ void AddressSpaceWidget::setNodeDetails(const OpcUaNodeDetails &details)
 void AddressSpaceWidget::clear()
 {
     _selectedNodeId.clear();
+    _subscribedNodeIds.clear();
     _referencesByNodeId.clear();
     _treeModel->clear();
     _nodeInfoModel->clear();
     _referencesModel->clear();
+}
+
+///
+/// \brief Updates the tracked monitoring state shown in the context menu.
+/// \param nodeId Affected node.
+/// \param subscribed True when the node is being monitored.
+///
+void AddressSpaceWidget::setNodeSubscribed(const QString &nodeId, bool subscribed)
+{
+    if (subscribed)
+        _subscribedNodeIds.insert(nodeId);
+    else
+        _subscribedNodeIds.remove(nodeId);
 }
 
 ///
@@ -238,6 +252,19 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
         emit addToTrendRequested(info);
     });
     trendAction->setEnabled(OpcUa::isVariable(info.nodeClass));
+
+    const bool subscribed = _subscribedNodeIds.contains(info.nodeId);
+    const QString monitoringIcon = subscribed ? QStringLiteral("unsubscribe")
+                                              : QStringLiteral("subscribe");
+    QAction *monitoringAction = menu.addAction(AppIcons::themed(monitoringIcon),
+                                               subscribed ? tr("Unsubscribe") : tr("Subscribe"),
+                                               this, [this, info, subscribed] {
+        if (subscribed)
+            emit unsubscribeRequested(info);
+        else
+            emit subscribeRequested(info);
+    });
+    monitoringAction->setEnabled(OpcUa::isVariable(info.nodeClass));
 
     if (OpcUa::isHistoryReadSupported()) {
         QAction *historyAction = menu.addAction(AppIcons::themed(QStringLiteral("history")),

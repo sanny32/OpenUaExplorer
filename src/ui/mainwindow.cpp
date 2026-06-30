@@ -676,6 +676,18 @@ void MainWindow::setupDataAccessWiring()
             [this](const OpcUaNodeInfo &node) {
         ui->trendPanelWidget->addNode(node.nodeId, node.displayName, node.displayPath);
     });
+    connect(_selectionContext, &SelectionContext::subscribeRequested, this,
+            [this](const OpcUaNodeInfo &node) {
+        addNodeToDataAccess(node.nodeId);
+    });
+    connect(_selectionContext, &SelectionContext::unsubscribeRequested, this,
+            [this](const OpcUaNodeInfo &node) {
+        if (node.nodeId.isEmpty() || !_subscribedNodeIds.contains(node.nodeId))
+            return;
+        _pendingMonitoringNodeIds.insert(node.nodeId);
+        updateMonitoringActions();
+        _dataAccessPlugin->unsubscribe(node.nodeId);
+    });
     connect(ui->dataView->events(), &EventsWidget::eventSubscribeRequested,
             _eventsPlugin, &EventsModule::subscribeEvents);
     connect(ui->dataView->events(), &EventsWidget::eventUnsubscribeRequested,

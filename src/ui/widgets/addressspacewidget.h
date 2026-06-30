@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QHash>
+#include <QSet>
 #include <QWidget>
 
 #include "models/addressspaceitem.h"
@@ -83,6 +84,13 @@ public:
     void clear();
 
     ///
+    /// \brief Updates the tracked monitoring state shown in the context menu.
+    /// \param nodeId Affected node.
+    /// \param subscribed True when the node is being monitored.
+    ///
+    void setNodeSubscribed(const QString &nodeId, bool subscribed);
+
+    ///
     /// \brief Returns the node currently selected in the tree.
     /// \return Currently selected OPC UA node.
     ///
@@ -155,6 +163,18 @@ signals:
     ///
     void addToTrendRequested(OpcUaNodeInfo node);
 
+    ///
+    /// \brief Emitted when the user requests monitoring a variable node.
+    /// \param node Variable node to subscribe.
+    ///
+    void subscribeRequested(OpcUaNodeInfo node);
+
+    ///
+    /// \brief Emitted when the user requests to stop monitoring a variable node.
+    /// \param node Variable node to unsubscribe.
+    ///
+    void unsubscribeRequested(OpcUaNodeInfo node);
+
 private:
     void setupTreeView();
     void setupNodeInfoView();
@@ -170,5 +190,6 @@ private:
     NodeInfoModel          *_nodeInfoModel;
     ReferencesModel        *_referencesModel;
     QString                 _selectedNodeId;
+    QSet<QString>           _subscribedNodeIds;
     QHash<QString, QVector<ReferenceItem>> _referencesByNodeId;
 };

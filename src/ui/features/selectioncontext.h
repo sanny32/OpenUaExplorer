@@ -81,6 +81,18 @@ public slots:
     ///
     void requestAddToTrend(const OpcUaNodeInfo &node);
 
+    ///
+    /// \brief Requests monitoring a variable node selected from a feature.
+    /// \param node Variable node to subscribe.
+    ///
+    void requestSubscribe(const OpcUaNodeInfo &node);
+
+    ///
+    /// \brief Requests stopping monitoring of a variable node selected from a feature.
+    /// \param node Variable node to unsubscribe.
+    ///
+    void requestUnsubscribe(const OpcUaNodeInfo &node);
+
 signals:
     ///
     /// \brief Emitted when a node becomes the current selection.
@@ -123,6 +135,18 @@ signals:
     /// \param node Variable node to chart.
     ///
     void addToTrendRequested(OpcUaNodeInfo node);
+
+    ///
+    /// \brief Emitted when a feature requests monitoring a variable node.
+    /// \param node Variable node to subscribe.
+    ///
+    void subscribeRequested(OpcUaNodeInfo node);
+
+    ///
+    /// \brief Emitted when a feature requests stopping monitoring of a variable node.
+    /// \param node Variable node to unsubscribe.
+    ///
+    void unsubscribeRequested(OpcUaNodeInfo node);
 
 private:
     OpcUaNodeInfo _currentNode;

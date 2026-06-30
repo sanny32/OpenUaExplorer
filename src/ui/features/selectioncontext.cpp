@@ -150,3 +150,21 @@ void SelectionContext::requestAddToTrend(const OpcUaNodeInfo &node)
 {
     emit addToTrendRequested(node);
 }
+
+///
+/// \brief Requests monitoring a variable node selected from a feature.
+/// \param node Variable node to subscribe.
+///
+void SelectionContext::requestSubscribe(const OpcUaNodeInfo &node)
+{
+    emit subscribeRequested(node);
+}
+
+///
+/// \brief Requests stopping monitoring of a variable node selected from a feature.
+/// \param node Variable node to unsubscribe.
+///
+void SelectionContext::requestUnsubscribe(const OpcUaNodeInfo &node)
+{
+    emit unsubscribeRequested(node);
+}

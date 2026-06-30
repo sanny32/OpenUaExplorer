@@ -13,6 +13,7 @@
 
 #include "addressspacemodule.h"
 #include "appsettings.h"
+#include "dataaccessmodule.h"
 #include "featurehost.h"
 #include "opcua/standardnodeid.h"
 #include "servicemodulemanager.h"
@@ -54,6 +55,7 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
 
     auto *addressSpacePlugin = host.dataModules()->module<AddressSpaceModule>();
     auto *referencePlugin = host.dataModules()->module<ReferenceModule>();
+    auto *dataAccessPlugin = host.dataModules()->module<DataAccessModule>();
 
     QObject::connect(_widget, &AddressSpaceWidget::browseRequested,
                      addressSpacePlugin, &AddressSpaceModule::browse);
@@ -75,8 +77,19 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
                      host.selection(), &SelectionContext::requestEventsHistory);
     QObject::connect(_widget, &AddressSpaceWidget::addToTrendRequested,
                      host.selection(), &SelectionContext::requestAddToTrend);
+    QObject::connect(_widget, &AddressSpaceWidget::subscribeRequested,
+                     host.selection(), &SelectionContext::requestSubscribe);
+    QObject::connect(_widget, &AddressSpaceWidget::unsubscribeRequested,
+                     host.selection(), &SelectionContext::requestUnsubscribe);
     QObject::connect(host.selection(), &SelectionContext::detailsReady,
                      _widget, &AddressSpaceWidget::setNodeDetails);
+    if (dataAccessPlugin) {
+        QObject::connect(dataAccessPlugin, &DataAccessModule::monitoringFinished, _widget,
+                         [this](const QString &nodeId, bool subscribed, bool success, const QString &) {
+            if (success)
+                _widget->setNodeSubscribed(nodeId, subscribed);
+        });
+    }
 
     host.addDock(Qt::LeftDockWidgetArea, _addressDock);
     host.addDock(Qt::LeftDockWidgetArea, _nodeDetailsDock);
