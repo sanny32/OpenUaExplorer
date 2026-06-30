@@ -76,7 +76,7 @@
         <string>View details</string>
        </property>
        <property name="iconName" stdset="0">
-        <string>read</string>
+        <string>file-text</string>
        </property>
        <property name="styleSheet">
         <string notr="true">QToolButton#viewDetailsButton {

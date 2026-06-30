@@ -9,6 +9,7 @@
         <file alias="icons/light/event.svg">res/icons/light/event.svg</file>
         <file alias="icons/light/event-history.svg">res/icons/light/event-history.svg</file>
         <file alias="icons/light/export.svg">res/icons/light/export.svg</file>
+        <file alias="icons/light/file-text.svg">res/icons/light/file-text.svg</file>
         <file alias="icons/light/fit.svg">res/icons/light/fit.svg</file>
         <file alias="icons/light/folder.svg">res/icons/light/folder.svg</file>
         <file alias="icons/light/method.svg">res/icons/light/method.svg</file>
@@ -30,6 +31,7 @@
         <file alias="icons/dark/event.svg">res/icons/dark/event.svg</file>
         <file alias="icons/dark/event-history.svg">res/icons/dark/event-history.svg</file>
         <file alias="icons/dark/export.svg">res/icons/dark/export.svg</file>
+        <file alias="icons/dark/file-text.svg">res/icons/dark/file-text.svg</file>
         <file alias="icons/dark/fit.svg">res/icons/dark/fit.svg</file>
         <file alias="icons/dark/folder.svg">res/icons/dark/folder.svg</file>
         <file alias="icons/dark/method.svg">res/icons/dark/method.svg</file>
