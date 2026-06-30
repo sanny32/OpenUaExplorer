@@ -29,6 +29,7 @@ set(UI_FILES
     widgets/logwidget.ui
     widgets/mainstatusbarwidget.ui
     widgets/trendgraphwidget.ui
+    widgets/trendgraphtoolbar.ui
     widgets/trendpanelwidget.ui
 )
 
@@ -54,6 +55,10 @@ add_library(ouaexp_ui STATIC
     ui_resources.qrc
     mainwindow.cpp
     mainwindow.h
+    favoritescoordinator.cpp
+    favoritescoordinator.h
+    themecoordinator.cpp
+    themecoordinator.h
     ${UI_FILES}
 
     features/addressspacefeature.cpp
@@ -166,6 +171,8 @@ add_library(ouaexp_ui STATIC
     widgets/themepreviewbutton.h
     widgets/trendgraphwidget.cpp
     widgets/trendgraphwidget.h
+    widgets/trendgraphtoolbar.cpp
+    widgets/trendgraphtoolbar.h
     widgets/trendpanelwidget.cpp
     widgets/trendpanelwidget.h
     widgets/trendsettings.h

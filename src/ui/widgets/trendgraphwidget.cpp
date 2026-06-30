@@ -12,8 +12,6 @@
 #include <algorithm>
 #include <utility>
 
-#include <QAbstractButton>
-#include <QButtonGroup>
 #include <QContextMenuEvent>
 #include <QDateTime>
 #include <QDragEnterEvent>
@@ -36,6 +34,7 @@
 #include "dialogs/trendsettingsdialog.h"
 #include "ichartview.h"
 #include "models/addressspacemimedata.h"
+#include "trendgraphtoolbar.h"
 
 namespace {
 
@@ -89,7 +88,7 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     for (QWidget *child : chartChildren)
         child->installEventFilter(this);
 
-    wireToolbar();
+    connectToolbar();
 
     _liveTimer = new QTimer(this);
     _liveTimer->setInterval(kLiveTickMs);
@@ -107,39 +106,24 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
 }
 
 ///
-/// \brief Groups the range buttons for exclusivity and wires every toolbar action.
+/// \brief Wires toolbar commands to chart behaviour.
 ///
-void TrendGraphWidget::wireToolbar()
+void TrendGraphWidget::connectToolbar()
 {
-    auto *modeGroup = new QButtonGroup(this);
-    modeGroup->setExclusive(true);
-    modeGroup->addButton(ui->liveButton);
-    modeGroup->addButton(ui->oneMinuteButton);
-    modeGroup->addButton(ui->tenMinutesButton);
-    modeGroup->addButton(ui->oneHourButton);
-    modeGroup->addButton(ui->oneDayButton);
-
-    connect(ui->liveButton, &QAbstractButton::clicked, this,
-            [this]() { enterLiveMode(); });
-    connect(ui->oneMinuteButton, &QAbstractButton::clicked, this,
-            [this]() { enterHistoryMode(60000); });
-    connect(ui->tenMinutesButton, &QAbstractButton::clicked, this,
-            [this]() { enterHistoryMode(600000); });
-    connect(ui->oneHourButton, &QAbstractButton::clicked, this,
-            [this]() { enterHistoryMode(3600000); });
-    connect(ui->oneDayButton, &QAbstractButton::clicked, this,
-            [this]() { enterHistoryMode(86400000); });
-
-    connect(ui->autoScaleButton, &QAbstractButton::clicked, this,
-            [this]() { autoScale(); });
-    connect(ui->fitButton, &QAbstractButton::clicked, this,
-            [this]() { fit(); });
-    connect(ui->refreshButton, &QAbstractButton::clicked, this,
-            [this]() { refreshHistory(); });
-    connect(ui->exportButton, &QAbstractButton::clicked, this,
-            [this]() { exportChart(); });
-    connect(ui->settingsButton, &QAbstractButton::clicked, this,
-            [this]() { openSettings(); });
+    connect(ui->toolbar, &TrendGraphToolbar::liveRequested,
+            this, &TrendGraphWidget::enterLiveMode);
+    connect(ui->toolbar, &TrendGraphToolbar::historyRequested,
+            this, &TrendGraphWidget::enterHistoryMode);
+    connect(ui->toolbar, &TrendGraphToolbar::refreshRequested,
+            this, &TrendGraphWidget::refreshHistory);
+    connect(ui->toolbar, &TrendGraphToolbar::autoScaleRequested,
+            this, &TrendGraphWidget::autoScale);
+    connect(ui->toolbar, &TrendGraphToolbar::fitRequested,
+            this, &TrendGraphWidget::fit);
+    connect(ui->toolbar, &TrendGraphToolbar::exportRequested,
+            this, &TrendGraphWidget::exportChart);
+    connect(ui->toolbar, &TrendGraphToolbar::settingsRequested,
+            this, &TrendGraphWidget::openSettings);
 }
 
 ///
@@ -460,8 +444,8 @@ void TrendGraphWidget::enterLiveMode()
     _mode = Mode::Live;
     _windowMs = kLiveWindowMs;
     _windowEndMs = 0;
-    ui->liveButton->setChecked(true);
-    ui->refreshButton->setEnabled(false);
+    ui->toolbar->selectLive();
+    ui->toolbar->setRefreshEnabled(false);
     const QStringList ids = chartedNodeIds();
     for (const QString &nodeId : ids)
         subscribeNode(nodeId);
@@ -479,13 +463,8 @@ void TrendGraphWidget::enterHistoryMode(qint64 windowMs)
     _mode = Mode::History;
     _windowMs = windowMs;
     _windowEndMs = QDateTime::currentMSecsSinceEpoch();
-    switch (windowMs) {
-    case 600000:   ui->tenMinutesButton->setChecked(true); break;
-    case 3600000:  ui->oneHourButton->setChecked(true); break;
-    case 86400000: ui->oneDayButton->setChecked(true); break;
-    default:       ui->oneMinuteButton->setChecked(true); break;
-    }
-    ui->refreshButton->setEnabled(true);
+    ui->toolbar->selectHistoryWindow(windowMs);
+    ui->toolbar->setRefreshEnabled(true);
     _liveTimer->stop();
     const QSet<QString> subscribed = _subscribed;
     for (const QString &nodeId : subscribed)

@@ -8,6 +8,10 @@ add_library(ouaexp_core STATIC
 
     opcua/attributeformatter.cpp
     opcua/attributeformatter.h
+    opcua/bitmaskformatter.cpp
+    opcua/nodeidformatter.cpp
+    opcua/scalarformatter.cpp
+    opcua/valueformatter.cpp
     opcua/certificateinfo.cpp
     opcua/certificateinfo.h
     opcua/certificatetrustdecider.h
@@ -32,8 +36,12 @@ add_library(ouaexp_core STATIC
     opcua/qtopcuabackend.h
     opcua/qtopcuaconnectionmanager.cpp
     opcua/qtopcuaconnectionmanager.h
+    opcua/qtopcuamonitoringmanager.cpp
+    opcua/qtopcuamonitoringmanager.h
     opcua/qtopcuarequestcoordinator.cpp
     opcua/qtopcuarequestcoordinator.h
+    opcua/qtopcuaresultmapper.cpp
+    opcua/qtopcuaresultmapper.h
     opcua/qtopcuatypemapper.cpp
     opcua/qtopcuatypemapper.h
     opcua/secretstore.cpp
@@ -45,6 +53,7 @@ add_library(ouaexp_core STATIC
     models/addressspacemimedata.h
     models/addressspacemodel.cpp
     models/addressspacemodel.h
+    models/addressspacenode.h
     models/attributesmodel.cpp
     models/attributesmodel.h
     models/columnalignmentstore.h

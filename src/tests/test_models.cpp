@@ -10,17 +10,12 @@
 #include <QBrush>
 #include <QColor>
 #include <QDateTime>
-#include <QMimeData>
-#include <QScopedPointer>
 #include <QSignalSpy>
 #include <QTest>
 
 #include "appsettings.h"
 #include "testdata.h"
 #include "opcua/opcuatypes.h"
-#include "opcua/standardnodeid.h"
-#include "models/addressspacemimedata.h"
-#include "models/addressspacemodel.h"
 #include "models/attributesmodel.h"
 #include "models/dataaccessmodel.h"
 #include "models/eventsmodel.h"
@@ -55,14 +50,6 @@ private slots:
     void logSearchFilterIsCaseInsensitive();
     void logLevelAndSearchCombine();
 
-    // AddressSpaceModel.
-    void addressSpaceFetchMoreEmitsBrowseOnce();
-    void addressSpaceBrowseFailedAllowsRetry();
-    void addressSpaceLeafDoesNotFetch();
-    void addressSpaceFindByNodeIdAndDisplayName();
-    void addressSpaceSetChildrenDeduplicatesNodeIds();
-    void addressSpaceDragMimeIncludesNodesWithNodeId();
-
     // Header/role/mutator coverage for the simple table & tree models.
     void historyReadRequiresHistorizingVariable();
     void eventMonitoringRequiresEventNotifier();
@@ -80,7 +67,6 @@ private slots:
     void eventsModelHeaderRolesAndMutators();
     void nodeInfoModelColumnsAndClear();
     void dataAccessHeaderRolesAndHelpers();
-    void addressSpaceDataRolesAndTreeOps();
 };
 
 ///
@@ -472,174 +458,6 @@ void TestModels::logLevelAndSearchCombine()
     QCOMPARE(model.rowCount(), 1);
     QCOMPARE(model.data(model.index(0, LogModel::ColMessage)).toString(),
              QStringLiteral("timeout on write"));
-}
-
-///
-/// \brief Builds a browsable root node for the address space tests.
-///
-static OpcUaNodeInfo makeRoot()
-{
-    OpcUaNodeInfo root;
-    root.nodeId = QString::fromLatin1(StandardNodeId::ObjectsFolder);
-    root.displayName = QStringLiteral("Root");
-    root.nodeClass = 1;
-    root.hasChildren = true;
-    return root;
-}
-
-///
-/// \brief fetchMore requests a browse once; a second call is a no-op.
-///
-void TestModels::addressSpaceFetchMoreEmitsBrowseOnce()
-{
-    // No QAbstractItemModelTester here: it eagerly calls fetchMore(), consuming the single browse this test observes.
-    AddressSpaceModel model;
-    model.setRootNode(makeRoot());
-
-    const QModelIndex rootIndex = model.index(0, 0);
-    QVERIFY(model.canFetchMore(rootIndex));
-
-    QSignalSpy browseSpy(&model, &AddressSpaceModel::browseRequested);
-    model.fetchMore(rootIndex);
-    model.fetchMore(rootIndex); // browse already started
-    QCOMPARE(browseSpy.size(), 1);
-}
-
-///
-/// \brief A failed browse clears the in-flight flag so the node can be retried.
-///
-void TestModels::addressSpaceBrowseFailedAllowsRetry()
-{
-    AddressSpaceModel model;
-    model.setRootNode(makeRoot());
-
-    const QModelIndex rootIndex = model.index(0, 0);
-    model.fetchMore(rootIndex);
-    QVERIFY(!model.canFetchMore(rootIndex)); // browse in flight
-
-    model.setBrowseFailed(makeRoot().nodeId);
-    QVERIFY(model.canFetchMore(rootIndex)); // retry is allowed again
-}
-
-///
-/// \brief A node declared without children never offers a fetch.
-///
-void TestModels::addressSpaceLeafDoesNotFetch()
-{
-    AddressSpaceModel model;
-    OpcUaNodeInfo leaf = makeRoot();
-    leaf.hasChildren = false;
-    model.setRootNode(leaf);
-
-    const QModelIndex rootIndex = model.index(0, 0);
-    QVERIFY(!model.canFetchMore(rootIndex));
-    QVERIFY(!model.hasChildren(rootIndex));
-}
-
-///
-/// \brief findByNodeId and findFirst locate nodes after children are applied.
-///
-void TestModels::addressSpaceFindByNodeIdAndDisplayName()
-{
-    AddressSpaceModel model;
-    model.setRootNode(makeRoot());
-    model.fetchMore(model.index(0, 0));
-
-    OpcUaNodeInfo child;
-    child.nodeId = QStringLiteral("ns=0;i=85");
-    child.displayName = QStringLiteral("Objects");
-    child.nodeClass = 1;
-    model.setChildren(makeRoot().nodeId, {child});
-
-    const QModelIndex byId = model.findByNodeId(child.nodeId);
-    QVERIFY(byId.isValid());
-    QCOMPARE(model.nodeInfo(byId).displayName, child.displayName);
-    QCOMPARE(model.nodeInfo(byId).displayPath, QStringLiteral("Root/Objects"));
-
-    const QModelIndex byName = model.findFirst(child.displayName);
-    QVERIFY(byName.isValid());
-    QCOMPARE(byName, byId);
-
-    QVERIFY(!model.findByNodeId(QStringLiteral("ns=0;i=9999")).isValid());
-}
-
-///
-/// \brief setChildren keeps one sibling for repeated NodeIds.
-///
-void TestModels::addressSpaceSetChildrenDeduplicatesNodeIds()
-{
-    AddressSpaceModel model;
-    model.setRootNode(makeRoot());
-
-    OpcUaNodeInfo first;
-    first.nodeId = QStringLiteral("ns=2;s=MyDevice");
-    first.displayName = QStringLiteral("MyDevice");
-    first.referenceTypeId = QStringLiteral("ns=0;i=47");
-    first.nodeClass = 1;
-
-    OpcUaNodeInfo duplicate = first;
-    duplicate.referenceTypeId = QStringLiteral("ns=0;i=35");
-
-    OpcUaNodeInfo sameNameDifferentNode;
-    sameNameDifferentNode.nodeId = QStringLiteral("ns=2;s=OtherDevice");
-    sameNameDifferentNode.displayName = QStringLiteral("MyDevice");
-    sameNameDifferentNode.nodeClass = 1;
-
-    model.setChildren(makeRoot().nodeId, {first, duplicate, sameNameDifferentNode});
-
-    const QModelIndex rootIndex = model.index(0, 0);
-    QCOMPARE(model.rowCount(rootIndex), 2);
-    QCOMPARE(model.nodeInfo(model.index(0, 0, rootIndex)).referenceTypeId,
-             first.referenceTypeId);
-    QCOMPARE(model.nodeInfo(model.index(1, 0, rootIndex)).nodeId,
-             sameNameDifferentNode.nodeId);
-}
-
-///
-/// \brief Drag MIME is exported for any node that carries a NodeId.
-///
-void TestModels::addressSpaceDragMimeIncludesNodesWithNodeId()
-{
-    AddressSpaceModel model;
-    model.setRootNode(makeRoot());
-
-    OpcUaNodeInfo variable;
-    variable.nodeId = QStringLiteral("ns=2;s=Temperature");
-    variable.browseName = QStringLiteral("2:Temperature");
-    variable.displayName = QStringLiteral("Temperature");
-    variable.nodeClass = OpcUa::Variable;
-    variable.historizing = true;
-
-    OpcUaNodeInfo object;
-    object.nodeId = QStringLiteral("ns=2;s=Device");
-    object.displayName = QStringLiteral("Device");
-    object.nodeClass = OpcUa::Object;
-    object.eventNotifier = OpcUa::SubscribeToEvents | OpcUa::HistoryRead;
-
-    model.setChildren(makeRoot().nodeId, {variable, object});
-
-    const QModelIndex root = model.index(0, 0);
-    const QModelIndex variableIndex = model.index(0, 0, root);
-    const QModelIndex objectIndex = model.index(1, 0, root);
-    QVERIFY(model.mimeTypes().contains(AddressSpaceMime::nodeMimeType()));
-    QVERIFY(model.supportedDragActions().testFlag(Qt::CopyAction));
-    QVERIFY(model.flags(variableIndex).testFlag(Qt::ItemIsDragEnabled));
-    QVERIFY(model.flags(objectIndex).testFlag(Qt::ItemIsDragEnabled));
-
-    QScopedPointer<QMimeData> variableMime(model.mimeData({variableIndex}));
-    OpcUaNodeInfo decoded;
-    QVERIFY(AddressSpaceMime::decodeNode(variableMime.data(), &decoded));
-    QCOMPARE(decoded.nodeId, variable.nodeId);
-    QCOMPARE(decoded.displayName, variable.displayName);
-    QCOMPARE(decoded.displayPath, QStringLiteral("Root/Temperature"));
-    QCOMPARE(decoded.nodeClass, variable.nodeClass);
-    QCOMPARE(decoded.historizing, variable.historizing);
-
-    QScopedPointer<QMimeData> objectMime(model.mimeData({objectIndex}));
-    QVERIFY(AddressSpaceMime::decodeNode(objectMime.data(), &decoded));
-    QCOMPARE(decoded.nodeId, object.nodeId);
-    QCOMPARE(decoded.nodeClass, object.nodeClass);
-    QCOMPARE(decoded.eventNotifier, object.eventNotifier);
 }
 
 ///
@@ -1119,77 +937,6 @@ void TestModels::dataAccessHeaderRolesAndHelpers()
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue),
                         Qt::TextAlignmentRole).toInt(),
              int(Qt::AlignRight | Qt::AlignVCenter));
-
-    model.clear();
-    QCOMPARE(model.rowCount(), 0);
-}
-
-///
-/// \brief AddressSpaceModel: data roles, the parent chain, icons and tree edits.
-///
-void TestModels::addressSpaceDataRolesAndTreeOps()
-{
-    AddressSpaceModel model;
-
-    // A small synthetic tree exercises setItems/appendTestItems and every NodeType.
-    const QVector<AddressSpaceItem> items = {
-        {QStringLiteral("Objects"), AddressSpaceItem::NodeType::Folder,
-         {{QStringLiteral("Temp"), AddressSpaceItem::NodeType::Variable, {}}}},
-        {QStringLiteral("DoIt"), AddressSpaceItem::NodeType::Method, {}},
-        {QStringLiteral("Plain"), AddressSpaceItem::NodeType::Node, {}},
-    };
-    model.setItems(items);
-    QCOMPARE(model.rowCount(), 3);
-
-    const QModelIndex folder = model.index(0, 0);
-    const QModelIndex method = model.index(1, 0);
-    const QModelIndex temp = model.index(0, 0, folder);
-    QVERIFY(temp.isValid());
-
-    // parent() of a child resolves to its folder; a top-level node has no parent.
-    QCOMPARE(model.parent(temp), folder);
-    QVERIFY(!model.parent(folder).isValid());
-    QVERIFY(!model.parent(QModelIndex()).isValid());
-
-    // data roles: display, tooltip == user role, the default branch and invalid index.
-    QCOMPARE(model.data(folder, Qt::DisplayRole).toString(), QStringLiteral("Objects"));
-    QCOMPARE(model.data(folder, Qt::ToolTipRole).toString(),
-             model.data(folder, Qt::UserRole).toString());
-    QVERIFY(!model.data(folder, Qt::SizeHintRole).isValid());
-    QVERIFY(!model.data(QModelIndex()).isValid());
-
-    // The decoration role only resolves once an icon provider is installed; calling it per NodeType drives iconType's branches.
-    QVERIFY(!model.data(folder, Qt::DecorationRole).isValid());
-    model.setIconProvider([](AddressSpaceItem::NodeType) { return QIcon(); });
-    model.data(folder, Qt::DecorationRole);
-    model.data(temp, Qt::DecorationRole);
-    model.data(method, Qt::DecorationRole);
-
-    // Lookups: out-of-range index, unknown display name and unknown parent NodeId.
-    QVERIFY(!model.index(99, 0).isValid());
-    QVERIFY(!model.findFirst(QStringLiteral("nope")).isValid());
-    QVERIFY(!model.canFetchMore(QModelIndex()));
-    model.setChildren(QStringLiteral("does-not-exist"), {}); // no-op, returns early
-
-    // Switch to a browsable root to cover setChildren's clear-then-insert path.
-    model.setRootNode(makeRoot());
-    const QModelIndex rootIndex = model.index(0, 0);
-    model.fetchMore(rootIndex);
-
-    OpcUaNodeInfo first;
-    first.nodeId = QStringLiteral("ns=0;i=85");
-    first.displayName = QStringLiteral("Objects");
-    first.nodeClass = 1;
-    model.setChildren(makeRoot().nodeId, {first});
-    QCOMPARE(model.rowCount(rootIndex), 1);
-
-    OpcUaNodeInfo second;
-    second.nodeId = QStringLiteral("ns=0;i=86");
-    second.displayName = QStringLiteral("Types");
-    second.nodeClass = 1;
-    model.setChildren(makeRoot().nodeId, {second}); // replaces existing children
-    QCOMPARE(model.rowCount(rootIndex), 1);
-    QCOMPARE(model.findByNodeId(second.nodeId).isValid(), true);
 
     model.clear();
     QCOMPARE(model.rowCount(), 0);

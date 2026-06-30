@@ -254,7 +254,7 @@ private:
         History
     };
 
-    void wireToolbar();
+    void connectToolbar();
     void enterLiveMode();
     void enterHistoryMode(qint64 windowMs);
     void refreshHistory();

@@ -6,16 +6,22 @@
 #include <QTimeZone>
 
 #include <QOpcUaBinaryDataEncoding>
+#include <QOpcUaDataValue>
 #include <QOpcUaEndpointDescription>
 #include <QOpcUaExpandedNodeId>
 #include <QOpcUaExtensionObject>
+#include <QOpcUaHistoryData>
+#include <QOpcUaHistoryEvent>
 #include <QOpcUaLocalizedText>
+#include <QOpcUaMonitoringParameters>
 #include <QOpcUaQualifiedName>
+#include <QOpcUaReadResult>
 #include <QOpcUaReferenceDescription>
 #include <QOpcUaUserTokenPolicy>
 
 #include "opcua/qtopcuaconnectionmanager.h"
 #include "opcua/qtopcuarequestcoordinator.h"
+#include "opcua/qtopcuaresultmapper.h"
 #include "opcua/qtopcuatypemapper.h"
 
 namespace {
@@ -56,6 +62,9 @@ class TestQtOpcUaInternals : public QObject
 
 private slots:
     void mapsEndpointsAndReferences();
+    void mapsReadResultsAndBrowseEnrichment();
+    void mapsHistoryResults();
+    void mapsEventFields();
     void resolvesSessionByApplicationAndRecency();
     void ignoresInvalidSessionDiagnostics();
     void coordinatesIndependentAndSupersededRequests();
@@ -97,6 +106,108 @@ void TestQtOpcUaInternals::mapsEndpointsAndReferences()
     QCOMPARE(nodes.size(), 1);
     QCOMPARE(nodes.first().nodeId, QStringLiteral("ns=2;s=Value"));
     QCOMPARE(nodes.first().browseName, QStringLiteral("Value"));
+}
+
+/// \brief Verifies mapping of attribute reads used by Value reads and browse enrichment.
+void TestQtOpcUaInternals::mapsReadResultsAndBrowseEnrichment()
+{
+    const QDateTime source = QDateTime::fromMSecsSinceEpoch(1000, kUtc);
+    const QDateTime server = QDateTime::fromMSecsSinceEpoch(2000, kUtc);
+
+    QOpcUaReadResult valueResult;
+    valueResult.setNodeId(QStringLiteral("ns=2;s=Value"));
+    valueResult.setAttribute(QOpcUa::NodeAttribute::Value);
+    valueResult.setValue(42);
+    valueResult.setStatusCode(QOpcUa::UaStatusCode::Good);
+    valueResult.setSourceTimestamp(source);
+    valueResult.setServerTimestamp(server);
+
+    const QVector<OpcUaDataValue> values = QtOpcUaResultMapper::dataValues({valueResult});
+    QCOMPARE(values.size(), 1);
+    QCOMPARE(values.first().nodeId, valueResult.nodeId());
+    QCOMPARE(values.first().value.toInt(), 42);
+    QCOMPARE(values.first().status, QStringLiteral("Good"));
+    QCOMPARE(values.first().sourceTimestamp, source);
+    QCOMPARE(values.first().serverTimestamp, server);
+
+    QVector<OpcUaNodeInfo> nodes;
+    OpcUaNodeInfo object;
+    object.nodeId = QStringLiteral("ns=2;s=Object");
+    nodes.append(object);
+    OpcUaNodeInfo variable;
+    variable.nodeId = QStringLiteral("ns=2;s=Variable");
+    nodes.append(variable);
+
+    QOpcUaReadResult eventNotifier;
+    eventNotifier.setNodeId(object.nodeId);
+    eventNotifier.setAttribute(QOpcUa::NodeAttribute::EventNotifier);
+    eventNotifier.setValue(OpcUa::SubscribeToEvents);
+    eventNotifier.setStatusCode(QOpcUa::UaStatusCode::Good);
+    QOpcUaReadResult historizing;
+    historizing.setNodeId(variable.nodeId);
+    historizing.setAttribute(QOpcUa::NodeAttribute::Historizing);
+    historizing.setValue(true);
+    historizing.setStatusCode(QOpcUa::UaStatusCode::Good);
+
+    QtOpcUaResultMapper::applyBrowseAttributeResults(&nodes, {eventNotifier, historizing});
+    QCOMPARE(nodes.at(0).eventNotifier, OpcUa::SubscribeToEvents);
+    QVERIFY(nodes.at(1).historizing);
+}
+
+/// \brief Verifies mapping of raw history data samples.
+void TestQtOpcUaInternals::mapsHistoryResults()
+{
+    const QDateTime source = QDateTime::fromMSecsSinceEpoch(1000, kUtc);
+    const QDateTime server = QDateTime::fromMSecsSinceEpoch(2000, kUtc);
+
+    QOpcUaDataValue sample;
+    sample.setValue(12.5);
+    sample.setStatusCode(QOpcUa::UaStatusCode::Good);
+    sample.setSourceTimestamp(source);
+    sample.setServerTimestamp(server);
+    QOpcUaHistoryData history(QStringLiteral("ns=2;s=Temperature"));
+    history.addValue(sample);
+
+    const QVector<OpcUaHistoryValue> values = QtOpcUaResultMapper::historyValues(history);
+    QCOMPARE(values.size(), 1);
+    QCOMPARE(values.first().nodeId, history.nodeId());
+    QCOMPARE(values.first().value.toDouble(), 12.5);
+    QCOMPARE(values.first().status, QStringLiteral("Good"));
+    QCOMPARE(values.first().sourceTimestamp, source);
+    QCOMPARE(values.first().serverTimestamp, server);
+}
+
+/// \brief Verifies the shared event filter and field-to-event mapping.
+void TestQtOpcUaInternals::mapsEventFields()
+{
+    const QOpcUaMonitoringParameters::EventFilter filter =
+        QtOpcUaResultMapper::baseEventFilter();
+    QCOMPARE(filter.selectClauses().size(), 5);
+
+    const QDateTime time = QDateTime::fromMSecsSinceEpoch(3000, kUtc);
+    const QVariantList fields = {
+        time,
+        500u,
+        QStringLiteral("Server"),
+        QVariant::fromValue(QOpcUaLocalizedText(QStringLiteral("en"), QStringLiteral("Started"))),
+        QStringLiteral("ns=0;i=2041")
+    };
+
+    const OpcUaEvent event = QtOpcUaResultMapper::eventFromFields(
+        QStringLiteral("ns=0;i=2253"), fields);
+    QCOMPARE(event.sourceNodeId, QStringLiteral("ns=0;i=2253"));
+    QCOMPARE(event.time, time);
+    QCOMPARE(event.severity, quint16(500));
+    QCOMPARE(event.sourceName, QStringLiteral("Server"));
+    QCOMPARE(event.message, QStringLiteral("Started"));
+    QCOMPARE(event.eventType, QStringLiteral("ns=0;i=2041"));
+    QCOMPARE(event.fields.size(), fields.size());
+
+    QOpcUaHistoryEvent history(QStringLiteral("ns=0;i=2253"));
+    history.addEvent(fields);
+    const QVector<OpcUaEvent> events = QtOpcUaResultMapper::historyEvents(history);
+    QCOMPARE(events.size(), 1);
+    QCOMPARE(events.first().message, QStringLiteral("Started"));
 }
 
 /// \brief Prefers an application match and otherwise the newest session.

@@ -13,6 +13,7 @@
 #include <QStringList>
 
 #include "addressspacemimedata.h"
+#include "addressspacenode.h"
 
 namespace {
 

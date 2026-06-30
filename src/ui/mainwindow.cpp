@@ -9,7 +9,6 @@
 #include <algorithm>
 
 #include <QAction>
-#include <QActionGroup>
 #include <QCloseEvent>
 #include <QDateTime>
 #include <QEvent>
@@ -33,6 +32,8 @@
 #include "features/selectioncontext.h"
 #include "loggingcategories.h"
 #include "mainwindow.h"
+#include "favoritescoordinator.h"
+#include "themecoordinator.h"
 #include "opcua/connectioncontroller.h"
 #include "opcua/opcuaclientservice.h"
 #include "addressspacemodule.h"
@@ -49,7 +50,6 @@
 #include "widgets/eventshistorywidget.h"
 #include "widgets/eventswidget.h"
 #include "widgets/datahistorywidget.h"
-#include "widgets/favoriteswidget.h"
 #include "widgets/maintoolbar.h"
 #include "widgets/themedtoolbutton.h"
 #include "widgets/trendpanelwidget.h"
@@ -78,7 +78,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupDockOptions();
     bindIcons();
-    setupThemeControls();
+    _themeCoordinator = new ThemeCoordinator(ui->actionTheme,
+                                             ui->actionThemeLight,
+                                             ui->actionThemeDark,
+                                             ui->actionThemeSystem,
+                                             this);
 
     setupOpcUaClient();
     setupPlugins();
@@ -291,7 +295,7 @@ void MainWindow::on_actionSettings_triggered()
 ///
 void MainWindow::on_actionTheme_triggered()
 {
-    cycleTheme();
+    _themeCoordinator->cycle();
 }
 
 ///
@@ -459,36 +463,6 @@ void MainWindow::restoreSettings()
 }
 
 ///
-/// \brief Wires the toolbar button and Theme submenu to the three colour-scheme modes.
-///
-void MainWindow::setupThemeControls()
-{
-    QActionGroup *group = new QActionGroup(this);
-    group->setExclusive(true);
-
-    const bool manualThemeSupported = theApp()->theme().isManualToggleSupported();
-    const QList<QAction *> modeActions = {
-        ui->actionThemeLight, ui->actionThemeDark, ui->actionThemeSystem};
-    for (QAction *action : modeActions) {
-        action->setCheckable(true);
-        action->setEnabled(manualThemeSupported);
-        group->addAction(action);
-    }
-
-    connect(ui->actionThemeLight, &QAction::triggered, this,
-            [this] { applyThemeMode(AppSettings::ThemeMode::Light); });
-    connect(ui->actionThemeDark, &QAction::triggered, this,
-            [this] { applyThemeMode(AppSettings::ThemeMode::Dark); });
-    connect(ui->actionThemeSystem, &QAction::triggered, this,
-            [this] { applyThemeMode(AppSettings::ThemeMode::System); });
-
-    connect(&theApp()->theme(), &AppTheme::colorSchemeChanged, this,
-            &MainWindow::updateThemeControls);
-
-    updateThemeControls();
-}
-
-///
 /// \brief Reflects the saved colour-scheme mode in the toolbar icon and Theme submenu.
 ///
 void MainWindow::updateThemeControls()
@@ -582,25 +556,15 @@ void MainWindow::setupOpcUaClient()
     connect(_connectionController, &ConnectionController::recentsChanged,
             this, &MainWindow::rebuildRecentConnections);
 
-    _favoritesWidget = new FavoritesWidget(this);
-    connect(_favoritesWidget, &FavoritesWidget::connectRequested,
+    _favoritesCoordinator = new FavoritesCoordinator(_connectionController,
+                                                     _clientService,
+                                                     this);
+    connect(_favoritesCoordinator, &FavoritesCoordinator::connectRequested,
             this, &MainWindow::connectFavorite);
-    connect(_favoritesWidget, &FavoritesWidget::editRequested,
+    connect(_favoritesCoordinator, &FavoritesCoordinator::editRequested,
             this, &MainWindow::editFavorite);
-    connect(_favoritesWidget, &FavoritesWidget::removeRequested,
-            this, [this](const QString &id) {
-        _connectionController->removeFavorite(id);
-    });
-    connect(_favoritesWidget, &FavoritesWidget::addFavoriteRequested,
+    connect(_favoritesCoordinator, &FavoritesCoordinator::addFavoriteRequested,
             this, &MainWindow::addCurrentToFavorites);
-    connect(_favoritesWidget, &FavoritesWidget::reorderRequested,
-            this, [this](const QStringList &orderedIds) {
-        _connectionController->reorderFavorites(orderedIds);
-    });
-    connect(_connectionController, &ConnectionController::profilesChanged, this, [this] {
-        if (_favoritesWidget->isVisible())
-            _favoritesWidget->setFavorites(_connectionController->profiles());
-    });
     connect(ui->mainToolBar->favoritesButton(), &QToolButton::clicked,
             this, &MainWindow::openFavorites);
     connect(_connectionController, &ConnectionController::errorOccurred,
@@ -1046,16 +1010,7 @@ void MainWindow::rebuildRecentConnections()
 ///
 void MainWindow::openFavorites()
 {
-    const QList<ConnectionProfile> profiles = _connectionController->profiles();
-    const ConnectionProfile active = _connectionController->activeProfile();
-    const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
-    const bool alreadyFavorite = std::any_of(
-        profiles.cbegin(), profiles.cend(), [&active](const ConnectionProfile &profile) {
-            return profile.isSameEndpoint(active);
-        });
-    _favoritesWidget->setCanAddFavorite(
-        connected && !active.endpointUrl.isEmpty() && !alreadyFavorite);
-    _favoritesWidget->showFor(profiles, ui->mainToolBar->favoritesButton());
+    _favoritesCoordinator->open(ui->mainToolBar->favoritesButton());
 }
 
 ///

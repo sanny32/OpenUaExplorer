@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TrendGraphToolbar</class>
+ <widget class="QWidget" name="TrendGraphToolbar">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>640</width>
+    <height>48</height>
+   </rect>
+  </property>
+  <layout class="QHBoxLayout" name="toolbarLayout">
+   <property name="spacing">
+    <number>6</number>
+   </property>
+   <property name="leftMargin">
+    <number>9</number>
+   </property>
+   <property name="topMargin">
+    <number>9</number>
+   </property>
+   <property name="rightMargin">
+    <number>9</number>
+   </property>
+   <property name="bottomMargin">
+    <number>9</number>
+   </property>
+   <item>
+    <widget class="ThemedToolButton" name="liveButton">
+     <property name="minimumSize">
+      <size>
+       <width>40</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>Live</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+     <property name="toolButtonStyle">
+      <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="ThemedToolButton" name="oneMinuteButton">
+     <property name="minimumSize">
+      <size>
+       <width>40</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>1m</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="toolButtonStyle">
+      <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="ThemedToolButton" name="tenMinutesButton">
+     <property name="minimumSize">
+      <size>
+       <width>40</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>10m</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="toolButtonStyle">
+      <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="ThemedToolButton" name="oneHourButton">
+     <property name="minimumSize">
+      <size>
+       <width>40</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>1h</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="toolButtonStyle">
+      <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="ThemedToolButton" name="oneDayButton">
+     <property name="minimumSize">
+      <size>
+       <width>40</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>1d</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="toolButtonStyle">
+      <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="toolbarSpacer">
+     <property name="orientation">
+      <enum>Qt::Orientation::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="ThemedToolButton" name="refreshButton">
+     <property name="minimumSize">
+      <size>
+       <width>40</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="toolTip">
+      <string>Refresh history from now</string>
+     </property>
+     <property name="iconName" stdset="0">
+      <string>refresh</string>
+     </property>
+     <property name="squareIconOnly" stdset="0">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="ThemedToolButton" name="autoScaleButton">
+     <property name="text">
+      <string>Auto Scale</string>
+     </property>
+     <property name="toolButtonStyle">
+      <enum>Qt::ToolButtonStyle::ToolButtonTextOnly</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="ThemedToolButton" name="fitButton">
+     <property name="text">
+      <string>Fit</string>
+     </property>
+     <property name="toolButtonStyle">
+      <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+     </property>
+     <property name="iconName" stdset="0">
+      <string>fit</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="ThemedToolButton" name="exportButton">
+     <property name="iconName" stdset="0">
+      <string>export</string>
+     </property>
+     <property name="squareIconOnly" stdset="0">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="ThemedToolButton" name="settingsButton">
+     <property name="iconName" stdset="0">
+      <string>settings</string>
+     </property>
+     <property name="squareIconOnly" stdset="0">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ThemedToolButton</class>
+   <extends>QToolButton</extends>
+   <header>widgets/themedtoolbutton.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

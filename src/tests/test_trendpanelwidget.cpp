@@ -30,6 +30,7 @@ class TestTrendPanelWidget : public QObject
 private slots:
     void addingNodeInLiveModeSubscribes();
     void switchingToHistoryModeReadsHistory();
+    void refreshingHistoryReanchorsWindow();
     void consumeHistoryMatchesPendingNode();
 };
 
@@ -65,6 +66,37 @@ void TestTrendPanelWidget::switchingToHistoryModeReadsHistory()
     QCOMPARE(unsubscribeSpy.count(), 1);
     QCOMPARE(historySpy.count(), 1);
     QCOMPARE(historySpy.first().at(0).toString(), QString::fromLatin1(kNodeId));
+}
+
+///
+/// \brief Refreshing history keeps the range length and advances the window anchor.
+///
+void TestTrendPanelWidget::refreshingHistoryReanchorsWindow()
+{
+    TrendPanelWidget panel;
+    panel.addNode(QString::fromLatin1(kNodeId), QStringLiteral("Demo"));
+
+    QSignalSpy historySpy(&panel, &TrendPanelWidget::historyReadRequested);
+
+    auto *oneMinute = panel.findChild<QAbstractButton *>(QStringLiteral("oneMinuteButton"));
+    QVERIFY(oneMinute);
+    oneMinute->click();
+    QCOMPARE(historySpy.count(), 1);
+
+    const QDateTime firstStart = historySpy.first().at(1).toDateTime();
+    const QDateTime firstEnd = historySpy.first().at(2).toDateTime();
+    QCOMPARE(firstStart.msecsTo(firstEnd), qint64(60000));
+
+    QTest::qWait(20);
+    auto *refresh = panel.findChild<QAbstractButton *>(QStringLiteral("refreshButton"));
+    QVERIFY(refresh);
+    refresh->click();
+
+    QCOMPARE(historySpy.count(), 2);
+    const QDateTime secondStart = historySpy.at(1).at(1).toDateTime();
+    const QDateTime secondEnd = historySpy.at(1).at(2).toDateTime();
+    QCOMPARE(secondStart.msecsTo(secondEnd), qint64(60000));
+    QVERIFY(secondEnd >= firstEnd);
 }
 
 ///

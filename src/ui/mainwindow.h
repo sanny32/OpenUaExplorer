@@ -82,7 +82,6 @@ private:
     void saveSettings();
     void restoreSettings();
     void bindIcons();
-    void setupThemeControls();
     void updateThemeControls();
     void configureHistoryUi();
     void cycleTheme();
@@ -132,7 +131,8 @@ private:
     class ReferenceModule *_referencePlugin = nullptr;
     class DataAccessModule *_dataAccessPlugin = nullptr;
     class EventsModule *_eventsPlugin = nullptr;
-    class FavoritesWidget *_favoritesWidget = nullptr;
+    class ThemeCoordinator *_themeCoordinator = nullptr;
+    class FavoritesCoordinator *_favoritesCoordinator = nullptr;
     OpcUaNodeDetails _selectedNodeDetails;
     QSet<QString> _subscribedNodeIds;
     QSet<QString> _pendingMonitoringNodeIds;
