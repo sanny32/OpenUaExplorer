@@ -23,6 +23,7 @@
 #include "models/eventsmodel.h"
 #include "nodelineedit.h"
 #include "opcua/attributeformatter.h"
+#include "severitydelegate.h"
 #include "tableview.h"
 #include "ui_eventshistorywidget.h"
 
@@ -204,6 +205,8 @@ void EventsHistoryWidget::setupEventsHistoryView()
     ui->eventsHistoryTable->setModel(_eventsHistoryModel);
     ui->eventsHistoryTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->eventsHistoryTable->verticalHeader()->hide();
+    ui->eventsHistoryTable->setItemDelegateForColumn(EventsModel::ColSeverity,
+                                                     new SeverityDelegate(this));
 
     auto *eventsHeader = ui->eventsHistoryTable->headerView();
     connect(eventsHeader, &HeaderView::sectionAlignmentChanged, this,

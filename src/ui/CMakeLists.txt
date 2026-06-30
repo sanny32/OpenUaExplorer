@@ -155,6 +155,8 @@ add_library(ouaexp_ui STATIC
     widgets/publishingintervaldelegate.h
     widgets/subscriptiondelegate.cpp
     widgets/subscriptiondelegate.h
+    widgets/severitydelegate.cpp
+    widgets/severitydelegate.h
     widgets/tableview.cpp
     widgets/tableview.h
     widgets/themedaction.cpp

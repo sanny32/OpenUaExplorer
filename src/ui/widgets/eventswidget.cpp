@@ -21,6 +21,7 @@
 #include "models/eventsmodel.h"
 #include "nodelineedit.h"
 #include "opcua/attributeformatter.h"
+#include "severitydelegate.h"
 #include "tableview.h"
 #include "ui_eventswidget.h"
 
@@ -179,6 +180,8 @@ void EventsWidget::setupEventsView()
 {
     ui->eventsTable->setModel(_eventsModel);
     ui->eventsTable->verticalHeader()->hide();
+    ui->eventsTable->setItemDelegateForColumn(EventsModel::ColSeverity,
+                                              new SeverityDelegate(this));
 
     auto *eventsHeader = ui->eventsTable->headerView();
     connect(eventsHeader, &HeaderView::sectionAlignmentChanged, this,
