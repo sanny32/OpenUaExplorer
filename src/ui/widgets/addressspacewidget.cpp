@@ -247,12 +247,6 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
 
     QMenu menu(this);
 
-    QAction *trendAction = menu.addAction(AppIcons::themed(QStringLiteral("trend")),
-                                          tr("Add to Trend"), this, [this, info] {
-        emit addToTrendRequested(info);
-    });
-    trendAction->setEnabled(OpcUa::isVariable(info.nodeClass));
-
     const bool subscribed = _subscribedNodeIds.contains(info.nodeId);
     const QString monitoringIcon = subscribed ? QStringLiteral("unsubscribe")
                                               : QStringLiteral("subscribe");
@@ -265,6 +259,12 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
             emit subscribeRequested(info);
     });
     monitoringAction->setEnabled(OpcUa::isVariable(info.nodeClass));
+
+    QAction *trendAction = menu.addAction(AppIcons::themed(QStringLiteral("trend")),
+                                          tr("Add to Trend"), this, [this, info] {
+        emit addToTrendRequested(info);
+    });
+    trendAction->setEnabled(OpcUa::isVariable(info.nodeClass));
 
     if (OpcUa::isHistoryReadSupported()) {
         QAction *historyAction = menu.addAction(AppIcons::themed(QStringLiteral("history")),
