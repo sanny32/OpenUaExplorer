@@ -31,6 +31,7 @@
 #include "appicons.h"
 #include "charttypes.h"
 #include "chartviewfactory.h"
+#include "dialogs/customintervaldialog.h"
 #include "dialogs/trendsettingsdialog.h"
 #include "ichartview.h"
 #include "models/addressspacemimedata.h"
@@ -42,6 +43,16 @@ constexpr qint64 kLiveWindowMs = 60000;
 constexpr int kLiveTickMs = 1000;
 constexpr double kPublishingIntervalMs = 1000.0;
 
+///
+/// \brief Reports whether a history window matches a toolbar preset range.
+/// \param windowMs Window length in milliseconds.
+/// \return True for the 1m, 10m and 1h presets.
+///
+bool isPresetWindow(qint64 windowMs)
+{
+    return windowMs == 60000 || windowMs == 600000 || windowMs == 3600000;
+}
+
 const QVector<QColor> kSeriesPalette = {
     QColor(0x00, 0xb4, 0x46),
     QColor(0x25, 0x63, 0xeb),
@@ -52,6 +63,37 @@ const QVector<QColor> kSeriesPalette = {
     QColor(0xdb, 0x27, 0x77),
     QColor(0x65, 0xa3, 0x0d),
 };
+
+///
+/// \brief Formats a duration as a compact label of its two largest units.
+/// \param ms Duration in milliseconds.
+/// \return A label such as "2m 54s", "1h 5m" or "3d 4h".
+///
+QString humanizeDuration(qint64 ms)
+{
+    qint64 seconds = ms / 1000;
+    if (seconds < 0)
+        seconds = 0;
+    const qint64 days = seconds / 86400;
+    seconds %= 86400;
+    const qint64 hours = seconds / 3600;
+    seconds %= 3600;
+    const qint64 minutes = seconds / 60;
+    seconds %= 60;
+
+    QStringList parts;
+    if (days > 0)
+        parts << QStringLiteral("%1d").arg(days);
+    if (hours > 0)
+        parts << QStringLiteral("%1h").arg(hours);
+    if (minutes > 0)
+        parts << QStringLiteral("%1m").arg(minutes);
+    if (seconds > 0 || parts.isEmpty())
+        parts << QStringLiteral("%1s").arg(seconds);
+    while (parts.size() > 2)
+        parts.removeLast();
+    return parts.join(QLatin1Char(' '));
+}
 
 QIcon swatchIcon(const QColor &color)
 {
@@ -118,6 +160,8 @@ void TrendGraphWidget::connectToolbar()
             this, &TrendGraphWidget::setLivePaused);
     connect(ui->toolbar, &TrendGraphToolbar::historyRequested,
             this, &TrendGraphWidget::enterHistoryMode);
+    connect(ui->toolbar, &TrendGraphToolbar::customIntervalRequested,
+            this, &TrendGraphWidget::openCustomInterval);
     connect(ui->toolbar, &TrendGraphToolbar::refreshRequested,
             this, &TrendGraphWidget::refreshHistory);
     connect(ui->toolbar, &TrendGraphToolbar::autoScaleRequested,
@@ -459,8 +503,11 @@ void TrendGraphWidget::enterLiveMode()
 {
     _mode = Mode::Live;
     _livePaused = false;
+    _customInterval = false;
+    _absoluteInterval = false;
     _windowMs = kLiveWindowMs;
     _windowEndMs = 0;
+    ui->toolbar->setInterval(QString(), QString());
     ui->toolbar->selectLive();
     ui->toolbar->setRefreshEnabled(false);
     const QStringList ids = chartedNodeIds();
@@ -500,9 +547,72 @@ void TrendGraphWidget::setLivePaused(bool paused)
 void TrendGraphWidget::enterHistoryMode(qint64 windowMs)
 {
     _mode = Mode::History;
+    _customInterval = !isPresetWindow(windowMs);
+    _absoluteInterval = false;
     _windowMs = windowMs;
     _windowEndMs = QDateTime::currentMSecsSinceEpoch();
+    if (!_customInterval)
+        ui->toolbar->setInterval(QString(), QString());
     ui->toolbar->selectHistoryWindow(windowMs);
+    ui->toolbar->setRefreshEnabled(true);
+    _liveTimer->stop();
+    const QSet<QString> subscribed = _subscribed;
+    for (const QString &nodeId : subscribed)
+        unsubscribeNode(nodeId);
+    applyWindow();
+    const QStringList ids = chartedNodeIds();
+    for (const QString &nodeId : ids)
+        requestHistory(nodeId);
+}
+
+///
+/// \brief Opens the custom interval dialog and applies an accepted range.
+///
+/// On cancel the toolbar selection is restored to the active mode so the Custom
+/// button does not appear checked while a different interval is shown.
+///
+void TrendGraphWidget::openCustomInterval()
+{
+    const qint64 end = (_mode == Mode::History && _windowEndMs > 0)
+        ? _windowEndMs
+        : QDateTime::currentMSecsSinceEpoch();
+    const qint64 start = end - _windowMs;
+
+    CustomIntervalDialog dialog(this);
+    dialog.setInterval(QDateTime::fromMSecsSinceEpoch(start),
+                       QDateTime::fromMSecsSinceEpoch(end));
+    if (dialog.exec() != QDialog::Accepted) {
+        if (_mode == Mode::Live)
+            ui->toolbar->selectLive();
+        else if (_absoluteInterval)
+            ui->toolbar->selectCustom();
+        else
+            ui->toolbar->selectHistoryWindow(_windowMs);
+        return;
+    }
+
+    enterCustomInterval(dialog.fromDateTime(), dialog.toDateTime(), dialog.isRelative());
+}
+
+///
+/// \brief Switches to a history read over an explicit start/end interval.
+///
+/// A relative range (the dialog's "last N units") tracks "now" on later refreshes;
+/// an absolute From/To range stays pinned so refresh re-reads the same window.
+///
+/// \param start Inclusive interval start.
+/// \param end Inclusive interval end.
+/// \param relative True when the range should follow "now" on refresh.
+///
+void TrendGraphWidget::enterCustomInterval(const QDateTime &start, const QDateTime &end,
+                                           bool relative)
+{
+    _mode = Mode::History;
+    _customInterval = true;
+    _absoluteInterval = !relative;
+    _windowMs = start.msecsTo(end);
+    _windowEndMs = end.toMSecsSinceEpoch();
+    ui->toolbar->selectCustom();
     ui->toolbar->setRefreshEnabled(true);
     _liveTimer->stop();
     const QSet<QString> subscribed = _subscribed;
@@ -525,7 +635,8 @@ void TrendGraphWidget::refreshHistory()
 {
     if (_mode != Mode::History)
         return;
-    _windowEndMs = QDateTime::currentMSecsSinceEpoch();
+    if (!_absoluteInterval)
+        _windowEndMs = QDateTime::currentMSecsSinceEpoch();
     applyWindow();
     const QStringList ids = chartedNodeIds();
     for (const QString &nodeId : ids)
@@ -540,7 +651,28 @@ void TrendGraphWidget::applyWindow()
     const qint64 end = (_mode == Mode::History && _windowEndMs > 0)
         ? _windowEndMs
         : QDateTime::currentMSecsSinceEpoch();
-    setTimeWindow(static_cast<qreal>(end - _windowMs), static_cast<qreal>(end));
+    const qint64 start = end - _windowMs;
+    setTimeWindow(static_cast<qreal>(start), static_cast<qreal>(end));
+    if (_customInterval)
+        updateIntervalBar(start, end);
+}
+
+///
+/// \brief Shows the visible custom interval as text beside the Custom button.
+/// \param startMs Window start in milliseconds since the epoch.
+/// \param endMs Window end in milliseconds since the epoch.
+///
+void TrendGraphWidget::updateIntervalBar(qint64 startMs, qint64 endMs)
+{
+    const bool utc = _timestampMode == AppSettings::TimestampMode::Utc;
+    auto format = [utc](qint64 ms) {
+        QDateTime dt = QDateTime::fromMSecsSinceEpoch(ms);
+        if (utc)
+            dt = dt.toUTC();
+        return dt.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    };
+    ui->toolbar->setInterval(QStringLiteral("%1 — %2").arg(format(startMs), format(endMs)),
+                             humanizeDuration(endMs - startMs));
 }
 
 ///

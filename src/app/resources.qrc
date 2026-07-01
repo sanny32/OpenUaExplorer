@@ -111,6 +111,8 @@
         <file alias="icons/dark/keyhole.svg">res/icons/dark/keyhole.svg</file>
         <file alias="icons/light/history.svg">res/icons/light/history.svg</file>
         <file alias="icons/dark/history.svg">res/icons/dark/history.svg</file>
+        <file alias="icons/light/clock.svg">res/icons/light/clock.svg</file>
+        <file alias="icons/dark/clock.svg">res/icons/dark/clock.svg</file>
         <file alias="icons/light/trend.svg">res/icons/light/trend.svg</file>
         <file alias="icons/dark/trend.svg">res/icons/dark/trend.svg</file>
     </qresource>

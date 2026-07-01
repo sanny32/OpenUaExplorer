@@ -11,15 +11,19 @@
 
 #include <QAbstractButton>
 #include <QButtonGroup>
+#include <QEvent>
 #include <QSignalBlocker>
+#include <QSize>
+
+#include "appcolors.h"
 
 namespace {
 
 constexpr int kLiveModeId = 0;
+constexpr int kCustomModeId = -2;
 constexpr int kOneMinuteMs = 60000;
 constexpr int kTenMinutesMs = 600000;
 constexpr int kOneHourMs = 3600000;
-constexpr int kOneDayMs = 86400000;
 
 } // namespace
 
@@ -39,7 +43,11 @@ TrendGraphToolbar::TrendGraphToolbar(QWidget *parent)
     _modeGroup->addButton(ui->oneMinuteButton, kOneMinuteMs);
     _modeGroup->addButton(ui->tenMinutesButton, kTenMinutesMs);
     _modeGroup->addButton(ui->oneHourButton, kOneHourMs);
-    _modeGroup->addButton(ui->oneDayButton, kOneDayMs);
+    _modeGroup->addButton(ui->customButton, kCustomModeId);
+
+    ui->durationIcon->setIcon(QStringLiteral("clock"), QSize(14, 14));
+    ui->durationBadge->setAttribute(Qt::WA_StyledBackground, true);
+    applyIntervalStyling();
 
     connect(_modeGroup, &QButtonGroup::idClicked,
             this, &TrendGraphToolbar::handleModeClicked);
@@ -84,13 +92,65 @@ void TrendGraphToolbar::selectHistoryWindow(qint64 windowMs)
 {
     const QSignalBlocker blocker(_modeGroup);
     switch (windowMs) {
+    case kOneMinuteMs:  ui->oneMinuteButton->setChecked(true); break;
     case kTenMinutesMs: ui->tenMinutesButton->setChecked(true); break;
     case kOneHourMs:    ui->oneHourButton->setChecked(true); break;
-    case kOneDayMs:     ui->oneDayButton->setChecked(true); break;
-    default:            ui->oneMinuteButton->setChecked(true); break;
+    default:            ui->customButton->setChecked(true); break;
     }
     setLivePaused(false);
     ui->livePauseButton->setEnabled(false);
+}
+
+///
+/// \brief Marks the custom interval command active.
+///
+void TrendGraphToolbar::selectCustom()
+{
+    const QSignalBlocker blocker(_modeGroup);
+    ui->customButton->setChecked(true);
+    setLivePaused(false);
+    ui->livePauseButton->setEnabled(false);
+}
+
+///
+/// \brief Shows the interval length beside the Custom button.
+/// \param range Interval range text; shown as the badge tooltip on hover.
+/// \param duration Human-readable interval length; an empty string hides the badge.
+///
+void TrendGraphToolbar::setInterval(const QString &range, const QString &duration)
+{
+    ui->durationLabel->setText(duration);
+    ui->durationBadge->setToolTip(range);
+    ui->durationIcon->setToolTip(range);
+    ui->durationLabel->setToolTip(range);
+    ui->intervalGroup->setVisible(!duration.isEmpty());
+}
+
+///
+/// \brief Restyles the interval label and duration badge for the active theme.
+///
+void TrendGraphToolbar::applyIntervalStyling()
+{
+    ui->durationLabel->setStyleSheet(
+        QStringLiteral("color: %1;").arg(AppColors::intervalBadgeText().name()));
+    ui->durationBadge->setStyleSheet(
+        QStringLiteral("#durationBadge { background-color: %1; border: 1px solid %2; "
+                       "border-radius: 6px; }")
+            .arg(AppColors::intervalBadgeBackground().name(),
+                 AppColors::intervalBadgeBorder().name()));
+}
+
+///
+/// \brief Restyles the interval display when the colour scheme changes.
+///
+void TrendGraphToolbar::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+
+    if (event->type() == QEvent::PaletteChange
+        || event->type() == QEvent::ApplicationPaletteChange) {
+        applyIntervalStyling();
+    }
 }
 
 ///
@@ -120,6 +180,8 @@ void TrendGraphToolbar::handleModeClicked(int id)
 {
     if (id == kLiveModeId)
         emit liveRequested();
+    else if (id == kCustomModeId)
+        emit customIntervalRequested();
     else
         emit historyRequested(id);
 }

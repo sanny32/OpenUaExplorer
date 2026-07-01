@@ -212,6 +212,33 @@ inline QColor errorBadgeText()
 }
 
 ///
+/// \brief Background fill for the trend interval-duration badge.
+/// \return Theme-matching duration badge background.
+///
+inline QColor intervalBadgeBackground()
+{
+    return AppIcons::isDarkTheme() ? QColor(0x222a33) : QColor(0xe5e7eb);
+}
+
+///
+/// \brief Border colour for the trend interval-duration badge.
+/// \return Theme-matching duration badge border.
+///
+inline QColor intervalBadgeBorder()
+{
+    return AppIcons::isDarkTheme() ? QColor(0x36404c) : QColor(0xd1d5db);
+}
+
+///
+/// \brief Text and icon colour for the trend interval-duration badge.
+/// \return Theme-matching duration badge foreground.
+///
+inline QColor intervalBadgeText()
+{
+    return AppIcons::isDarkTheme() ? QColor(0xe2e8f0) : QColor(0x1e293b);
+}
+
+///
 /// \brief Formats a colour as a Qt Style Sheet rgba() string, preserving alpha.
 /// \param color Colour to format.
 /// \return CSS rgba() literal.

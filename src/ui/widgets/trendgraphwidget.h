@@ -258,8 +258,11 @@ private:
     void enterLiveMode();
     void setLivePaused(bool paused);
     void enterHistoryMode(qint64 windowMs);
+    void openCustomInterval();
+    void enterCustomInterval(const QDateTime &start, const QDateTime &end, bool relative);
     void refreshHistory();
     void applyWindow();
+    void updateIntervalBar(qint64 startMs, qint64 endMs);
     void subscribeNode(const QString &nodeId);
     void unsubscribeNode(const QString &nodeId);
     void requestHistory(const QString &nodeId);
@@ -277,6 +280,8 @@ private:
     QTimer *_liveTimer = nullptr;
     Mode _mode = Mode::Live;
     bool _livePaused = false;
+    bool _customInterval = false;
+    bool _absoluteInterval = false;
     qint64 _windowMs = 60000;
     qint64 _windowEndMs = 0;
     TrendDisplaySettings _display;

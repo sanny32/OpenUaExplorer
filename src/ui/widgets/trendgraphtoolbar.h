@@ -45,6 +45,18 @@ public:
     void selectHistoryWindow(qint64 windowMs);
 
     ///
+    /// \brief Marks the custom interval command active.
+    ///
+    void selectCustom();
+
+    ///
+    /// \brief Shows the custom interval and its length beside the Custom button.
+    /// \param range Interval range text; an empty string hides the display.
+    /// \param duration Human-readable interval length shown in the badge.
+    ///
+    void setInterval(const QString &range, const QString &duration);
+
+    ///
     /// \brief Enables the history refresh command.
     /// \param enabled Whether refresh can be clicked.
     ///
@@ -75,6 +87,11 @@ signals:
     void historyRequested(qint64 windowMs);
 
     ///
+    /// \brief Requests that the custom interval dialog be opened.
+    ///
+    void customIntervalRequested();
+
+    ///
     /// \brief Requests that history be re-read from now.
     ///
     void refreshRequested();
@@ -99,12 +116,16 @@ signals:
     ///
     void settingsRequested();
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private slots:
     void handleModeClicked(int id);
     void handleLivePauseClicked();
 
 private:
     void updateLivePauseButton();
+    void applyIntervalStyling();
 
     Ui::TrendGraphToolbar *ui;
     class QButtonGroup *_modeGroup = nullptr;
