@@ -155,6 +155,7 @@ void TrendSettingsDialog::setDisplaySettings(const TrendDisplaySettings &setting
     ui->showTooltipCheck->setChecked(settings.showValueTooltip);
     ui->labelModeCombo->setCurrentIndex(static_cast<int>(settings.labelMode));
     ui->autoScrollCheck->setChecked(settings.autoScrollLive);
+    ui->liveUpdateSpin->setValue(settings.liveUpdateMs);
     selectPeriod(settings.mode, settings.windowMs);
 }
 
@@ -172,6 +173,7 @@ TrendDisplaySettings TrendSettingsDialog::displaySettings() const
     settings.showValueTooltip = ui->showTooltipCheck->isChecked();
     settings.labelMode = static_cast<TrendLabelMode>(ui->labelModeCombo->currentIndex());
     settings.autoScrollLive = ui->autoScrollCheck->isChecked();
+    settings.liveUpdateMs = ui->liveUpdateSpin->value();
 
     if (ui->oneMinuteButton->isChecked()) {
         settings.mode = 1;

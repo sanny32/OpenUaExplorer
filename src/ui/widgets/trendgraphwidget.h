@@ -264,6 +264,7 @@ private:
     void applyWindow();
     void updateIntervalBar(qint64 startMs, qint64 endMs);
     void subscribeNode(const QString &nodeId);
+    void resubscribeLiveNodes();
     void unsubscribeNode(const QString &nodeId);
     void requestHistory(const QString &nodeId);
     void exportChart();

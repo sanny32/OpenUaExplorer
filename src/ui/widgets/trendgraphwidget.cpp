@@ -41,7 +41,6 @@ namespace {
 
 constexpr qint64 kLiveWindowMs = 60000;
 constexpr int kLiveTickMs = 1000;
-constexpr double kPublishingIntervalMs = 1000.0;
 
 ///
 /// \brief Reports whether a history window matches a toolbar preset range.
@@ -413,11 +412,14 @@ void TrendGraphWidget::setDisplaySettings(const TrendDisplaySettings &settings)
 {
     const bool intervalChanged =
         settings.mode != modeState() || settings.windowMs != windowState();
+    const bool liveUpdateChanged = settings.liveUpdateMs != _display.liveUpdateMs;
 
     _display = settings;
     applyDisplaySettings();
     if (intervalChanged)
         applyModeState(settings.mode, settings.windowMs);
+    else if (liveUpdateChanged && _mode == Mode::Live)
+        resubscribeLiveNodes();
     if (_display.autoScale)
         autoScale();
 }
@@ -431,6 +433,7 @@ void TrendGraphWidget::applyDisplaySettings()
     _chart->setGridVisible(_display.showGrid);
     _chart->setSmoothLines(_display.smoothLines);
     _chart->setHoverValueVisible(_display.showValueTooltip);
+    _liveTimer->setInterval(qMax(1, _display.liveUpdateMs));
     for (const TrendSeries &series : std::as_const(_series))
         _chart->setSeriesName(series.nodeId(), series.seriesLabel(_display.labelMode));
 }
@@ -684,7 +687,19 @@ void TrendGraphWidget::subscribeNode(const QString &nodeId)
     if (_subscribed.contains(nodeId))
         return;
     _subscribed.insert(nodeId);
-    emit subscribeRequested(nodeId, kPublishingIntervalMs);
+    emit subscribeRequested(nodeId, _display.liveUpdateMs);
+}
+
+///
+/// \brief Re-requests monitoring for every live node at the current interval.
+///
+/// Called when the live update interval changes so the host re-negotiates the
+/// publishing interval of already-subscribed nodes.
+///
+void TrendGraphWidget::resubscribeLiveNodes()
+{
+    for (const QString &nodeId : std::as_const(_subscribed))
+        emit subscribeRequested(nodeId, _display.liveUpdateMs);
 }
 
 ///

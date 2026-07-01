@@ -9,6 +9,9 @@
 #include "trendpanelwidget.h"
 #include "ui_trendpanelwidget.h"
 
+#include <algorithm>
+#include <limits>
+
 #include <QAbstractButton>
 #include <QDataStream>
 #include <QIODevice>
@@ -20,6 +23,19 @@
 namespace {
 
 const QString kModeStateKey = QStringLiteral("trendPanelState");
+
+///
+/// \brief Returns the fastest publishing interval any chart asked for a node.
+/// \param subscribers Charts monitoring the node, each with its requested interval.
+/// \return Smallest requested interval in milliseconds.
+///
+double fastestInterval(const QHash<TrendGraphWidget *, double> &subscribers)
+{
+    double interval = std::numeric_limits<double>::max();
+    for (double requested : subscribers)
+        interval = std::min(interval, requested);
+    return interval;
+}
 
 }
 
@@ -186,29 +202,56 @@ void TrendPanelWidget::addNode(const QString &nodeId, const QString &displayName
 }
 
 ///
-/// \brief Ref-counts a chart's subscribe request, monitoring on first reference.
+/// \brief Records a chart's requested interval, monitoring at the fastest one.
+///
+/// A node charted from several tabs is monitored once. Each chart may ask for a
+/// different publishing interval, so the panel tracks every requester and forwards
+/// the fastest interval, re-requesting whenever that effective interval changes.
+///
 /// \param nodeId Node a chart wants monitored.
-/// \param publishingInterval Publishing interval in milliseconds.
+/// \param publishingInterval Publishing interval the chart requests, in milliseconds.
 ///
 void TrendPanelWidget::onChartSubscribe(const QString &nodeId, double publishingInterval)
 {
-    if (++_subscriptionRefs[nodeId] == 1)
-        emit subscribeRequested(nodeId, publishingInterval);
+    auto *chart = qobject_cast<TrendGraphWidget *>(sender());
+    if (!chart)
+        return;
+
+    QHash<TrendGraphWidget *, double> &subscribers = _nodeSubscribers[nodeId];
+    const bool firstSubscriber = subscribers.isEmpty();
+    const double previousInterval = firstSubscriber ? 0.0 : fastestInterval(subscribers);
+    subscribers.insert(chart, publishingInterval);
+
+    const double interval = fastestInterval(subscribers);
+    if (firstSubscriber || !qFuzzyCompare(interval, previousInterval))
+        emit subscribeRequested(nodeId, interval);
 }
 
 ///
-/// \brief Ref-counts a chart's unsubscribe request, stopping on the last reference.
+/// \brief Drops a chart's request, stopping or re-negotiating the node's interval.
 /// \param nodeId Node a chart no longer wants monitored.
 ///
 void TrendPanelWidget::onChartUnsubscribe(const QString &nodeId)
 {
-    auto it = _subscriptionRefs.find(nodeId);
-    if (it == _subscriptionRefs.end())
+    auto *chart = qobject_cast<TrendGraphWidget *>(sender());
+    if (!chart)
         return;
-    if (--it.value() <= 0) {
-        _subscriptionRefs.erase(it);
+
+    auto it = _nodeSubscribers.find(nodeId);
+    if (it == _nodeSubscribers.end())
+        return;
+
+    const double previousInterval = fastestInterval(it.value());
+    it.value().remove(chart);
+    if (it.value().isEmpty()) {
+        _nodeSubscribers.erase(it);
         emit unsubscribeRequested(nodeId);
+        return;
     }
+
+    const double interval = fastestInterval(it.value());
+    if (!qFuzzyCompare(interval, previousInterval))
+        emit subscribeRequested(nodeId, interval);
 }
 
 ///
@@ -303,7 +346,7 @@ void TrendPanelWidget::clearRuntimeData()
 {
     for (TrendGraphWidget *chart : charts())
         chart->clear();
-    _subscriptionRefs.clear();
+    _nodeSubscribers.clear();
 }
 
 ///

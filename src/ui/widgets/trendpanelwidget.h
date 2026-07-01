@@ -28,8 +28,9 @@ class ThemedToolButton;
 ///
 /// Each tab holds one TrendGraphWidget that owns its own Live / 1m / 10m / 1h / 1d
 /// toolbar and mode. The panel manages the tab strip (add, close, last-tab reset),
-/// ref-counts the charts' subscribe / unsubscribe requests so a node monitored from
-/// several tabs is subscribed once, and fans live values and history out to charts.
+/// coalesces the charts' subscribe / unsubscribe requests so a node monitored from
+/// several tabs is subscribed once at the fastest interval any chart asked for, and
+/// fans live values and history out to charts.
 ///
 class TrendPanelWidget : public QWidget
 {
@@ -155,5 +156,5 @@ private:
     bool _collapsed = false;
     int _expandedMinHeight = 0;
     AppSettings::TimestampMode _timestampMode = AppSettings::TimestampMode::LocalTime;
-    QHash<QString, int> _subscriptionRefs;
+    QHash<QString, QHash<TrendGraphWidget *, double>> _nodeSubscribers;
 };
