@@ -78,7 +78,6 @@ public:
         _valueFont.setPointSizeF(base.pointSizeF() + 9.0);
         _statusFont = base;
         _valueLabel = QCoreApplication::translate("QtChartsView", "Value");
-        _statusLabel = QCoreApplication::translate("QtChartsView", "Status");
 
         hide();
     }
@@ -219,22 +218,21 @@ protected:
                          Qt::AlignLeft | Qt::AlignVCenter, _valueLabel);
 
         const QFontMetricsF valueMetrics(_valueFont);
+        const QFontMetricsF statusMetrics(_statusFont);
+        const qreal badgeH = statusMetrics.height() + 2.0 * kBadgePadY;
+        const qreal valueRowH = _status.isEmpty()
+                                    ? valueMetrics.height()
+                                    : qMax(valueMetrics.height(), badgeH);
         painter.setFont(_valueFont);
         painter.setPen(_textColor);
-        painter.drawText(QRectF(kPad, _valueY, _rect.width() - kPad * 2.0, valueMetrics.height()),
+        painter.drawText(QRectF(kPad, _valueY, _rect.width() - kPad * 2.0, valueRowH),
                          Qt::AlignLeft | Qt::AlignVCenter, _value);
 
         if (!_status.isEmpty()) {
-            painter.setFont(_valueLabelFont);
-            painter.setPen(_muted);
-            painter.drawText(QRectF(kPad, _statusLabelY, _rect.width() - kPad * 2.0, labelMetrics.height()),
-                             Qt::AlignLeft | Qt::AlignVCenter, _statusLabel);
-
-            const QFontMetricsF statusMetrics(_statusFont);
             const QColor accent = statusColor();
             const qreal badgeW = statusMetrics.horizontalAdvance(_status) + 2.0 * kBadgePadX;
-            const qreal badgeH = statusMetrics.height() + 2.0 * kBadgePadY;
-            const QRectF badgeRect(kPad, _statusY, badgeW, badgeH);
+            const qreal badgeX = kPad + valueMetrics.horizontalAdvance(_value) + kValueBadgeGap;
+            const QRectF badgeRect(badgeX, _valueY + (valueRowH - badgeH) / 2.0, badgeW, badgeH);
 
             painter.setPen(Qt::NoPen);
             painter.setBrush(blend(accent, _background, 0.82));
@@ -257,6 +255,7 @@ private:
     static constexpr qreal kBadgePadX = 12.0;
     static constexpr qreal kBadgePadY = 5.0;
     static constexpr qreal kBadgeRadius = 9.0;
+    static constexpr qreal kValueBadgeGap = 12.0;
 
     static QColor blend(const QColor &a, const QColor &b, qreal t)
     {
@@ -277,13 +276,12 @@ private:
         const qreal headerW = kSwatch + kIconGap + nameMetrics.horizontalAdvance(_name);
         const qreal timeW = kIcon + kIconGap + timeMetrics.horizontalAdvance(_time);
         const qreal labelW = labelMetrics.horizontalAdvance(_valueLabel);
-        const qreal valueW = valueMetrics.horizontalAdvance(_value);
-        qreal contentW = qMax(qMax(headerW, timeW), qMax(labelW, valueW));
+        qreal valueRowW = valueMetrics.horizontalAdvance(_value);
         if (hasStatus) {
-            contentW = qMax(contentW, labelMetrics.horizontalAdvance(_statusLabel));
-            contentW = qMax(contentW,
-                            statusMetrics.horizontalAdvance(_status) + 2.0 * kBadgePadX);
+            valueRowW += kValueBadgeGap
+                         + statusMetrics.horizontalAdvance(_status) + 2.0 * kBadgePadX;
         }
+        qreal contentW = qMax(qMax(headerW, timeW), qMax(labelW, valueRowW));
         contentW = qMax(contentW, kMinContentWidth);
 
         const qreal headerH = qMax(kSwatch, nameMetrics.height());
@@ -299,14 +297,10 @@ private:
         _valueLabelY = y;
         y += labelMetrics.height() + 4.0;
         _valueY = y;
-        y += valueMetrics.height();
-        if (hasStatus) {
-            y += 10.0;
-            _statusLabelY = y;
-            y += labelMetrics.height() + 6.0;
-            _statusY = y;
-            y += statusMetrics.height() + 2.0 * kBadgePadY;
-        }
+        qreal valueRowH = valueMetrics.height();
+        if (hasStatus)
+            valueRowH = qMax(valueRowH, statusMetrics.height() + 2.0 * kBadgePadY);
+        y += valueRowH;
         y += kPad;
 
         _rect = QRectF(0.0, 0.0, kPad * 2.0 + contentW, y);
@@ -347,7 +341,6 @@ private:
     QString _value;
     QString _status;
     QString _valueLabel;
-    QString _statusLabel;
     QFont _nameFont;
     QFont _timeFont;
     QFont _valueLabelFont;
@@ -359,8 +352,6 @@ private:
     qreal _sepY = 0.0;
     qreal _valueLabelY = 0.0;
     qreal _valueY = 0.0;
-    qreal _statusLabelY = 0.0;
-    qreal _statusY = 0.0;
     QColor _background = QColor(0xff, 0xff, 0xff);
     QColor _textColor = QColor(0x20, 0x20, 0x20);
     QColor _muted = QColor(0x90, 0x90, 0x90);
