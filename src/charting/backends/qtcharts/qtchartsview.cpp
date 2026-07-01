@@ -509,7 +509,7 @@ void QtChartsView::addSeries(const ChartSeriesId &id, const QString &name, const
     series->attachAxis(_axisY);
     _series.insert(id, series);
 
-    series->setPointsVisible(false);
+    series->setPointsVisible(_pointsVisible);
     QObject::connect(series, &QLineSeries::hovered, &_hoverContext,
                      [this, series, id](const QPointF &point, bool state) {
                          showCallout(series, id, point, state);
@@ -706,6 +706,17 @@ void QtChartsView::setGridVisible(bool visible)
 void QtChartsView::setSmoothLines(bool smooth)
 {
     _view->setRenderHint(QPainter::Antialiasing, smooth);
+}
+
+///
+/// \brief Shows or hides a marker at each sample point on every series.
+/// \param visible True to draw a marker at every point.
+///
+void QtChartsView::setPointsVisible(bool visible)
+{
+    _pointsVisible = visible;
+    for (QLineSeries *series : std::as_const(_series))
+        series->setPointsVisible(visible);
 }
 
 ///

@@ -31,6 +31,8 @@ struct TrendDisplaySettings
     bool showGrid = true;
     /// \brief Render series lines with antialiasing.
     bool smoothLines = true;
+    /// \brief Draw a marker at each sample point.
+    bool showPoints = false;
     /// \brief Show the value plaque when hovering a series line.
     bool showValueTooltip = true;
     /// \brief Identifier used to name series in the legend and hover plaque.

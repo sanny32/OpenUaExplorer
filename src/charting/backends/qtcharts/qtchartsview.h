@@ -56,6 +56,7 @@ public:
     void setLegendVisible(bool visible) override;
     void setGridVisible(bool visible) override;
     void setSmoothLines(bool smooth) override;
+    void setPointsVisible(bool visible) override;
     void setHoverValueVisible(bool visible) override;
     void setSeriesVisible(const ChartSeriesId &id, bool visible) override;
     void setSeriesColor(const ChartSeriesId &id, const QColor &color) override;
@@ -80,5 +81,6 @@ private:
     ChartTheme _theme;
     int _paletteIndex = 0;
     bool _hoverValueVisible = true;
+    bool _pointsVisible = false;
     QObject _hoverContext;
 };

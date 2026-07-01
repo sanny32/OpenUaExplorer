@@ -425,13 +425,14 @@ void TrendGraphWidget::setDisplaySettings(const TrendDisplaySettings &settings)
 }
 
 ///
-/// \brief Pushes the display toggles (legend, grid, smoothing) to the chart.
+/// \brief Pushes the display toggles (legend, grid, smoothing, points) to the chart.
 ///
 void TrendGraphWidget::applyDisplaySettings()
 {
     _chart->setLegendVisible(_display.showLegend);
     _chart->setGridVisible(_display.showGrid);
     _chart->setSmoothLines(_display.smoothLines);
+    _chart->setPointsVisible(_display.showPoints);
     _chart->setHoverValueVisible(_display.showValueTooltip);
     _liveTimer->setInterval(qMax(1, _display.liveUpdateMs));
     for (const TrendSeries &series : std::as_const(_series))

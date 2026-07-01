@@ -152,6 +152,7 @@ void TrendSettingsDialog::setDisplaySettings(const TrendDisplaySettings &setting
     ui->showLegendCheck->setChecked(settings.showLegend);
     ui->showGridCheck->setChecked(settings.showGrid);
     ui->smoothLinesCheck->setChecked(settings.smoothLines);
+    ui->showPointsCheck->setChecked(settings.showPoints);
     ui->showTooltipCheck->setChecked(settings.showValueTooltip);
     ui->labelModeCombo->setCurrentIndex(static_cast<int>(settings.labelMode));
     ui->autoScrollCheck->setChecked(settings.autoScrollLive);
@@ -170,6 +171,7 @@ TrendDisplaySettings TrendSettingsDialog::displaySettings() const
     settings.showLegend = ui->showLegendCheck->isChecked();
     settings.showGrid = ui->showGridCheck->isChecked();
     settings.smoothLines = ui->smoothLinesCheck->isChecked();
+    settings.showPoints = ui->showPointsCheck->isChecked();
     settings.showValueTooltip = ui->showTooltipCheck->isChecked();
     settings.labelMode = static_cast<TrendLabelMode>(ui->labelModeCombo->currentIndex());
     settings.autoScrollLive = ui->autoScrollCheck->isChecked();

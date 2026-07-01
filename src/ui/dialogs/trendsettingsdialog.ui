@@ -67,6 +67,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QCheckBox" name="showPointsCheck">
+        <property name="text">
+         <string>Show points</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QCheckBox" name="showTooltipCheck">
         <property name="text">
          <string>Show value on hover</string>
