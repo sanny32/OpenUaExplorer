@@ -231,10 +231,18 @@ protected:
                              Qt::AlignLeft | Qt::AlignVCenter, _statusLabel);
 
             const QFontMetricsF statusMetrics(_statusFont);
+            const QColor accent = statusColor();
+            const qreal badgeW = statusMetrics.horizontalAdvance(_status) + 2.0 * kBadgePadX;
+            const qreal badgeH = statusMetrics.height() + 2.0 * kBadgePadY;
+            const QRectF badgeRect(kPad, _statusY, badgeW, badgeH);
+
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(blend(accent, _background, 0.82));
+            painter.drawRoundedRect(badgeRect, kBadgeRadius, kBadgeRadius);
+
             painter.setFont(_statusFont);
-            painter.setPen(statusColor());
-            painter.drawText(QRectF(kPad, _statusY, _rect.width() - kPad * 2.0, statusMetrics.height()),
-                             Qt::AlignLeft | Qt::AlignVCenter, _status);
+            painter.setPen(accent);
+            painter.drawText(badgeRect, Qt::AlignCenter, _status);
         }
     }
 
@@ -246,6 +254,9 @@ private:
     static constexpr qreal kRadius = 12.0;
     static constexpr qreal kMargin = 14.0;
     static constexpr qreal kMinContentWidth = 150.0;
+    static constexpr qreal kBadgePadX = 12.0;
+    static constexpr qreal kBadgePadY = 5.0;
+    static constexpr qreal kBadgeRadius = 9.0;
 
     static QColor blend(const QColor &a, const QColor &b, qreal t)
     {
@@ -270,7 +281,8 @@ private:
         qreal contentW = qMax(qMax(headerW, timeW), qMax(labelW, valueW));
         if (hasStatus) {
             contentW = qMax(contentW, labelMetrics.horizontalAdvance(_statusLabel));
-            contentW = qMax(contentW, statusMetrics.horizontalAdvance(_status));
+            contentW = qMax(contentW,
+                            statusMetrics.horizontalAdvance(_status) + 2.0 * kBadgePadX);
         }
         contentW = qMax(contentW, kMinContentWidth);
 
@@ -291,9 +303,9 @@ private:
         if (hasStatus) {
             y += 10.0;
             _statusLabelY = y;
-            y += labelMetrics.height() + 4.0;
+            y += labelMetrics.height() + 6.0;
             _statusY = y;
-            y += statusMetrics.height();
+            y += statusMetrics.height() + 2.0 * kBadgePadY;
         }
         y += kPad;
 
