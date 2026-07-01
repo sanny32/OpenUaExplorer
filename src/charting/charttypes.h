@@ -30,6 +30,8 @@ struct ChartPoint
     qreal xMsEpoch = 0.0;
     /// \brief Y value.
     qreal y = 0.0;
+    /// \brief OPC UA status text for the sample, shown in the hover plaque.
+    QString status;
 };
 
 ///
@@ -47,6 +49,12 @@ struct ChartTheme
     QColor text;
     /// \brief Legend text colour.
     QColor legendText;
+    /// \brief Status text colour for a Good sample in the hover plaque.
+    QColor statusGood;
+    /// \brief Status text colour for an Uncertain sample in the hover plaque.
+    QColor statusUncertain;
+    /// \brief Status text colour for a Bad sample in the hover plaque.
+    QColor statusBad;
     /// \brief Palette cycled through when a series is added without an explicit colour.
     QVector<QColor> seriesPalette;
 };

@@ -21,6 +21,7 @@ class QChartView;
 class QLineSeries;
 class QValueAxis;
 class QDateTimeAxis;
+class QGraphicsEllipseItem;
 class QPointF;
 class ChartCallout;
 
@@ -46,7 +47,8 @@ public:
     void removeSeries(const ChartSeriesId &id) override;
     void clearSeries(const ChartSeriesId &id) override;
     void clearAll() override;
-    void appendPoint(const ChartSeriesId &id, qreal xMsEpoch, qreal y) override;
+    void appendPoint(const ChartSeriesId &id, qreal xMsEpoch, qreal y,
+                     const QString &status) override;
     void setPoints(const ChartSeriesId &id, const QVector<ChartPoint> &points) override;
     void setTimeWindow(qreal startMsEpoch, qreal endMsEpoch) override;
     void autoScaleY() override;
@@ -63,14 +65,18 @@ public:
 
 private:
     QColor nextPaletteColor();
-    void showCallout(QLineSeries *series, const QPointF &point, bool state);
+    void showCallout(QLineSeries *series, const ChartSeriesId &id, const QPointF &point, bool state);
+    void hideCallout();
+    void styleLegendMarkers();
 
     QChartView *_view = nullptr;
     QChart *_chart = nullptr;
     QValueAxis *_axisY = nullptr;
     QDateTimeAxis *_axisX = nullptr;
     QHash<ChartSeriesId, QLineSeries *> _series;
+    QHash<ChartSeriesId, QVector<QString>> _statuses;
     ChartCallout *_callout = nullptr;
+    QGraphicsEllipseItem *_marker = nullptr;
     ChartTheme _theme;
     int _paletteIndex = 0;
     bool _hoverValueVisible = true;

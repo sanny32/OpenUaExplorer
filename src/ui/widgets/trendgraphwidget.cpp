@@ -269,7 +269,7 @@ void TrendGraphWidget::applyLiveValues(const QVector<OpcUaDataValue> &values)
         if (it->points().size() == before)
             continue;
         const QPointF &point = it->points().constLast();
-        _chart->appendPoint(value.nodeId, toChartX(point.x()), point.y());
+        _chart->appendPoint(value.nodeId, toChartX(point.x()), point.y(), value.status);
     }
 }
 
@@ -778,10 +778,13 @@ qreal TrendGraphWidget::toChartX(qreal epochMs) const
 void TrendGraphWidget::refeedSeries(const TrendSeries &series)
 {
     const QVector<QPointF> &points = series.points();
+    const QVector<QString> &statuses = series.statuses();
     QVector<ChartPoint> mapped;
     mapped.reserve(points.size());
-    for (const QPointF &point : points)
-        mapped.append(ChartPoint{toChartX(point.x()), point.y()});
+    for (int i = 0; i < points.size(); ++i) {
+        mapped.append(ChartPoint{toChartX(points.at(i).x()), points.at(i).y(),
+                                 i < statuses.size() ? statuses.at(i) : QString()});
+    }
     _chart->setPoints(series.nodeId(), mapped);
 }
 
@@ -796,6 +799,9 @@ void TrendGraphWidget::applyTheme()
     theme.axis = AppColors::caption();
     theme.text = AppColors::subtitleText();
     theme.legendText = AppColors::titleText();
+    theme.statusGood = AppColors::statusSuccess();
+    theme.statusUncertain = AppColors::statusWarning();
+    theme.statusBad = AppColors::statusError();
     theme.seriesPalette = kSeriesPalette;
     _chart->setTheme(theme);
 }

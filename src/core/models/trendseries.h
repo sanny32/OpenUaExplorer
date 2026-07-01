@@ -96,6 +96,11 @@ public:
     ///
     const QVector<QPointF> &points() const;
 
+    /// \brief Returns the OPC UA status text aligned with points().
+    /// \return Status strings in point order.
+    ///
+    const QVector<QString> &statuses() const;
+
     ///
     /// \brief Appends a streamed value if it is numeric, trimming to the cap.
     /// \param value Streamed data value.
@@ -147,5 +152,6 @@ private:
     QColor _color;
     bool _visible = true;
     QVector<QPointF> _points;
+    QVector<QString> _statuses;
     int _maxPoints = 50000;
 };

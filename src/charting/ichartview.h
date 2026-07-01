@@ -69,8 +69,10 @@ public:
     /// \param id Target series.
     /// \param xMsEpoch X position in milliseconds since the epoch.
     /// \param y Y value.
+    /// \param status OPC UA status text for the sample, shown in the hover plaque.
     ///
-    virtual void appendPoint(const ChartSeriesId &id, qreal xMsEpoch, qreal y) = 0;
+    virtual void appendPoint(const ChartSeriesId &id, qreal xMsEpoch, qreal y,
+                             const QString &status) = 0;
 
     ///
     /// \brief Replaces all points of a series (history read).

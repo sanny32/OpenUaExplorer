@@ -117,6 +117,15 @@ const QVector<QPointF> &TrendSeries::points() const
 }
 
 ///
+/// \brief Returns the OPC UA status text aligned with points().
+/// \return Status strings in point order.
+///
+const QVector<QString> &TrendSeries::statuses() const
+{
+    return _statuses;
+}
+
+///
 /// \brief Coerces an OPC UA value to a chartable number.
 /// \param value Value to coerce.
 /// \param out Destination for the numeric result.
@@ -168,6 +177,7 @@ bool TrendSeries::appendLive(const OpcUaDataValue &value)
         : static_cast<qreal>(QDateTime::currentMSecsSinceEpoch());
 
     _points.append(QPointF(x, number));
+    _statuses.append(value.status);
     trim();
     return true;
 }
@@ -179,7 +189,9 @@ bool TrendSeries::appendLive(const OpcUaDataValue &value)
 void TrendSeries::setHistory(const QVector<OpcUaHistoryValue> &values)
 {
     _points.clear();
+    _statuses.clear();
     _points.reserve(values.size());
+    _statuses.reserve(values.size());
     for (const OpcUaHistoryValue &sample : values) {
         double number = 0.0;
         if (!toNumeric(sample.value, &number))
@@ -190,6 +202,7 @@ void TrendSeries::setHistory(const QVector<OpcUaHistoryValue> &values)
         if (!timestamp.isValid())
             continue;
         _points.append(QPointF(static_cast<qreal>(timestamp.toMSecsSinceEpoch()), number));
+        _statuses.append(sample.status);
     }
     trim();
 }
@@ -201,7 +214,9 @@ void TrendSeries::setHistory(const QVector<OpcUaHistoryValue> &values)
 void TrendSeries::backfillHistory(const QVector<OpcUaHistoryValue> &values)
 {
     QVector<QPointF> historyPoints;
+    QVector<QString> historyStatuses;
     historyPoints.reserve(values.size());
+    historyStatuses.reserve(values.size());
     for (const OpcUaHistoryValue &sample : values) {
         double number = 0.0;
         if (!toNumeric(sample.value, &number))
@@ -212,17 +227,21 @@ void TrendSeries::backfillHistory(const QVector<OpcUaHistoryValue> &values)
         if (!timestamp.isValid())
             continue;
         historyPoints.append(QPointF(static_cast<qreal>(timestamp.toMSecsSinceEpoch()), number));
+        historyStatuses.append(sample.status);
     }
 
     if (historyPoints.isEmpty())
         return;
 
     const qreal boundaryX = historyPoints.constLast().x();
-    for (const QPointF &point : std::as_const(_points)) {
-        if (point.x() > boundaryX)
-            historyPoints.append(point);
+    for (int i = 0; i < _points.size(); ++i) {
+        if (_points.at(i).x() > boundaryX) {
+            historyPoints.append(_points.at(i));
+            historyStatuses.append(i < _statuses.size() ? _statuses.at(i) : QString());
+        }
     }
     _points = std::move(historyPoints);
+    _statuses = std::move(historyStatuses);
     trim();
 }
 
@@ -232,6 +251,7 @@ void TrendSeries::backfillHistory(const QVector<OpcUaHistoryValue> &values)
 void TrendSeries::clear()
 {
     _points.clear();
+    _statuses.clear();
 }
 
 ///
@@ -251,5 +271,7 @@ void TrendSeries::trim()
 {
     if (_points.size() <= _maxPoints)
         return;
-    _points.remove(0, _points.size() - _maxPoints);
+    const int excess = _points.size() - _maxPoints;
+    _points.remove(0, excess);
+    _statuses.remove(0, qMin(excess, _statuses.size()));
 }

@@ -20,12 +20,13 @@ namespace {
 /// \param msec Source timestamp in milliseconds since the epoch.
 /// \return Data value item.
 ///
-OpcUaDataValue makeValue(const QVariant &value, qint64 msec)
+OpcUaDataValue makeValue(const QVariant &value, qint64 msec, const QString &status = QString())
 {
     OpcUaDataValue item;
     item.nodeId = QStringLiteral("ns=2;s=Demo");
     item.value = value;
     item.sourceTimestamp = QDateTime::fromMSecsSinceEpoch(msec);
+    item.status = status;
     return item;
 }
 
@@ -44,6 +45,7 @@ private slots:
     void appendsLiveSamples();
     void replacesHistory();
     void trimsToMaxPoints();
+    void keepsStatusAlignedWithPoints();
 };
 
 ///
@@ -120,6 +122,24 @@ void TestTrendSeries::trimsToMaxPoints()
     QCOMPARE(series.points().size(), 3);
     QCOMPARE(series.points().first().y(), 2.0);
     QCOMPARE(series.points().last().y(), 4.0);
+}
+
+///
+/// \brief Status text stays aligned with points through appends and trimming.
+///
+void TestTrendSeries::keepsStatusAlignedWithPoints()
+{
+    TrendSeries series(QStringLiteral("ns=2;s=Demo"), QStringLiteral("Demo"), QString());
+    series.setMaxPoints(2);
+    series.appendLive(makeValue(QVariant(1.0), 1000, QStringLiteral("Good")));
+    series.appendLive(makeValue(QVariant(2.0), 2000, QStringLiteral("Uncertain")));
+    series.appendLive(makeValue(QVariant(3.0), 3000, QStringLiteral("Bad")));
+
+    QCOMPARE(series.points().size(), 2);
+    QCOMPARE(series.statuses().size(), 2);
+    QCOMPARE(series.points().at(0).y(), 2.0);
+    QCOMPARE(series.statuses().at(0), QStringLiteral("Uncertain"));
+    QCOMPARE(series.statuses().at(1), QStringLiteral("Bad"));
 }
 
 QTEST_MAIN(TestTrendSeries)
