@@ -9,9 +9,15 @@
 #include <algorithm>
 
 #include <QAction>
+#include <QBrush>
+#include <QColor>
+#include <QEvent>
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QMenu>
+#include <QPainter>
+#include <QPalette>
+#include <QPixmap>
 #include <QPushButton>
 
 #include "appicons.h"
@@ -22,6 +28,30 @@
 #include "subscriptionswidget.h"
 #include "tableview.h"
 #include "ui_subscriptionswidget.h"
+
+namespace {
+
+/// \brief Edge length of the built-in lock glyph in device-independent pixels.
+constexpr int lockGlyphSize = 16;
+
+/// \brief Transparent left padding baked before the lock glyph, in device-independent pixels.
+constexpr int lockLeftPadding = 8;
+
+/// \brief Normal (non-built-in) row canvas colours, matching the qlementine item background.
+constexpr QRgb lightCanvas = 0xffffff;
+constexpr QRgb darkCanvas = 0x1e1f24;
+
+///
+/// \brief Derives the faint shade that distinguishes built-in rows from the row canvas.
+/// \param dark Whether the dark colour scheme is active.
+/// \return A barely darker shade on light themes, a barely lighter one on dark themes.
+///
+QColor builtinShade(bool dark)
+{
+    return dark ? QColor(darkCanvas).lighter(118) : QColor(lightCanvas).darker(104);
+}
+
+} // namespace
 
 ///
 /// \brief Builds the subscriptions widget and its table view.
@@ -37,6 +67,7 @@ SubscriptionsWidget::SubscriptionsWidget(QWidget *parent)
     ui->removeSubscriptionButton->setIcon(QStringLiteral("remove"));
     ui->removeSubscriptionButton->setEnabled(false);
     setupSubscriptionsView();
+    applyBuiltinDecoration();
 
     connect(_subscriptionsModel, &QAbstractItemModel::rowsInserted,
             this, &SubscriptionsWidget::emitSubscriptionsChanged);
@@ -149,6 +180,7 @@ void SubscriptionsWidget::loadSubscriptions(AppSettings &settings)
 void SubscriptionsWidget::setupSubscriptionsView()
 {
     ui->subscriptionsTable->setModel(_subscriptionsModel);
+    ui->subscriptionsTable->setIconSize(QSize(lockGlyphSize + lockLeftPadding, lockGlyphSize));
     ui->subscriptionsTable->verticalHeader()->hide();
     ui->subscriptionsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->subscriptionsTable->setEditTriggers(QAbstractItemView::DoubleClicked
@@ -180,6 +212,36 @@ void SubscriptionsWidget::setupSubscriptionsView()
             this, &SubscriptionsWidget::addSubscription);
     connect(ui->removeSubscriptionButton, &QPushButton::clicked,
             this, &SubscriptionsWidget::removeSelectedSubscriptions);
+}
+
+///
+/// \brief Applies the lock icon and shaded background used for built-in subscriptions.
+///
+void SubscriptionsWidget::applyBuiltinDecoration()
+{
+    const qreal dpr = devicePixelRatioF();
+    QPixmap canvas(QSize(lockGlyphSize + lockLeftPadding, lockGlyphSize) * dpr);
+    canvas.setDevicePixelRatio(dpr);
+    canvas.fill(Qt::transparent);
+    QPainter painter(&canvas);
+    painter.drawPixmap(QPoint(lockLeftPadding, 0),
+                       AppIcons::themed(QStringLiteral("lock"))
+                           .pixmap(QSize(lockGlyphSize, lockGlyphSize), dpr));
+    painter.end();
+    _subscriptionsModel->setBuiltinIcon(QIcon(canvas));
+
+    _subscriptionsModel->setBuiltinBackground(builtinShade(AppIcons::isDarkTheme()));
+}
+
+///
+/// \brief Re-applies the built-in row styling when the palette changes.
+/// \param event Change event being handled.
+///
+void SubscriptionsWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::PaletteChange)
+        applyBuiltinDecoration();
 }
 
 ///

@@ -86,6 +86,16 @@ QVariant SubscriptionsModel::data(const QModelIndex &index, int role) const
         }
     }
 
+    if (role == Qt::DecorationRole && index.column() == ColName
+        && item.isBuiltin() && !_builtinIcon.isNull()) {
+        return _builtinIcon;
+    }
+
+    if (role == Qt::BackgroundRole && item.isBuiltin()
+        && _builtinBackground.style() != Qt::NoBrush) {
+        return _builtinBackground;
+    }
+
     if (role == Qt::TextAlignmentRole)
         return QVariant(_columnAlignments.alignment(index.column()));
 
@@ -275,4 +285,28 @@ void SubscriptionsModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {
     _columnAlignments.setAlignment(column, alignment);
     emit dataChanged(index(0, column), index(rowCount() - 1, column), {Qt::TextAlignmentRole});
+}
+
+///
+/// \brief Sets the decoration icon shown next to built-in subscription names.
+/// \param icon Icon to display, typically a lock glyph.
+///
+void SubscriptionsModel::setBuiltinIcon(const QIcon &icon)
+{
+    _builtinIcon = icon;
+    if (_items.isEmpty())
+        return;
+    emit dataChanged(index(0, ColName), index(rowCount() - 1, ColName), {Qt::DecorationRole});
+}
+
+///
+/// \brief Sets the row background brush used for built-in subscriptions.
+/// \param brush Background brush distinguishing built-in rows.
+///
+void SubscriptionsModel::setBuiltinBackground(const QBrush &brush)
+{
+    _builtinBackground = brush;
+    if (_items.isEmpty())
+        return;
+    emit dataChanged(index(0, 0), index(rowCount() - 1, ColCount - 1), {Qt::BackgroundRole});
 }

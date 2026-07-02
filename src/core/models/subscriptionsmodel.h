@@ -9,6 +9,8 @@
 #pragma once
 
 #include <QAbstractTableModel>
+#include <QBrush>
+#include <QIcon>
 #include <QVector>
 
 #include "columnalignmentstore.h"
@@ -137,6 +139,18 @@ public:
     void setColumnAlignment(int column, Qt::Alignment alignment);
 
     ///
+    /// \brief Sets the decoration icon shown next to built-in subscription names.
+    /// \param icon Icon to display, typically a lock glyph.
+    ///
+    void setBuiltinIcon(const QIcon &icon);
+
+    ///
+    /// \brief Sets the row background brush used for built-in subscriptions.
+    /// \param brush Background brush distinguishing built-in rows.
+    ///
+    void setBuiltinBackground(const QBrush &brush);
+
+    ///
     /// \brief Columns exposed by the subscriptions table.
     ///
     enum Column {
@@ -163,4 +177,6 @@ signals:
 private:
     QVector<SubscriptionItem>  _items;
     ColumnAlignmentStore _columnAlignments;
+    QIcon  _builtinIcon;
+    QBrush _builtinBackground;
 };

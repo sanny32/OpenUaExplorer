@@ -111,8 +111,16 @@ signals:
     ///
     void subscriptionRemoved(QString name);
 
+protected:
+    ///
+    /// \brief Re-applies the built-in row styling when the palette changes.
+    /// \param event Change event being handled.
+    ///
+    void changeEvent(QEvent *event) override;
+
 private:
     void setupSubscriptionsView();
+    void applyBuiltinDecoration();
     void showSubscriptionsContextMenu(const QPoint &pos);
     void addSubscription();
     void removeSelectedSubscriptions();
