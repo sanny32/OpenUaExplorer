@@ -39,8 +39,8 @@ struct TrendDisplaySettings
     TrendLabelMode labelMode = TrendLabelMode::DisplayName;
     /// \brief Keep the visible window pinned to "now" while streaming live.
     bool autoScrollLive = true;
-    /// \brief How often the live chart scrolls and rescales, in milliseconds.
-    int liveUpdateMs = 1000;
+    /// \brief Name of the subscription whose publishing interval drives live updates.
+    QString liveSubscription = QStringLiteral("Default");
     /// \brief Active mode: 0 for Live, 1 for History.
     int mode = 0;
     /// \brief History window length in milliseconds.

@@ -18,6 +18,7 @@
 #include <QSet>
 
 #include "appsettings.h"
+#include "models/subscriptionitem.h"
 #include "models/trendseries.h"
 #include "opcua/opcuatypes.h"
 #include "trendsettings.h"
@@ -185,6 +186,19 @@ public:
     ///
     void applySeriesInfos(const QVector<TrendSeriesInfo> &series);
 
+    ///
+    /// \brief Updates the known subscriptions and re-negotiates the live interval.
+    /// \param subscriptions Current subscriptions in row order.
+    ///
+    void setSubscriptions(const QVector<SubscriptionItem> &subscriptions);
+
+    ///
+    /// \brief Repoints the live subscription reference when a subscription is renamed.
+    /// \param oldName Previous subscription name.
+    /// \param newName New subscription name.
+    ///
+    void applySubscriptionRename(const QString &oldName, const QString &newName);
+
 public slots:
     ///
     /// \brief Applies the timestamp display mode and re-feeds the chart.
@@ -234,6 +248,13 @@ signals:
     ///
     void settingsRequested();
 
+    ///
+    /// \brief Requests that a new subscription be created in the shared list.
+    /// \param name New subscription name.
+    /// \param publishingInterval Publishing interval in milliseconds.
+    ///
+    void subscriptionCreationRequested(QString name, double publishingInterval);
+
 protected:
     void changeEvent(QEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -266,6 +287,7 @@ private:
     void subscribeNode(const QString &nodeId);
     void resubscribeLiveNodes();
     void unsubscribeNode(const QString &nodeId);
+    double liveIntervalMs() const;
     void requestHistory(const QString &nodeId);
     void exportChart();
     void applyTheme();
@@ -286,6 +308,7 @@ private:
     qint64 _windowMs = 60000;
     qint64 _windowEndMs = 0;
     TrendDisplaySettings _display;
+    QVector<SubscriptionItem> _subscriptions;
     QSet<QString> _subscribed;
     QSet<QString> _pendingHistory;
 };

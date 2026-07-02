@@ -24,11 +24,29 @@ struct SubscriptionItem
     /// \brief Stable subscription identifier; 0 is the built-in Default subscription.
     int id = 0;
 
+    /// \brief Whether this subscription is built in and cannot be edited or removed.
+    bool builtin = false;
+
     ///
     /// \brief Reports whether this is the built-in Default subscription.
     /// \return True for the built-in Default subscription.
     ///
     bool isDefault() const { return id == 0; }
+
+    ///
+    /// \brief Reports whether this subscription is protected from editing and removal.
+    /// \return True for built-in subscriptions.
+    ///
+    bool isBuiltin() const { return builtin; }
+
+    ///
+    /// \brief Returns a display label combining the name and publishing interval.
+    /// \return Text formatted as "name (interval ms)".
+    ///
+    QString label() const
+    {
+        return QStringLiteral("%1 (%2 ms)").arg(name, QString::number(publishingInterval));
+    }
 };
 
 ///

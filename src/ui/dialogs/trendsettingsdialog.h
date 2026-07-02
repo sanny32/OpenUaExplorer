@@ -12,6 +12,7 @@
 #include <QVector>
 
 #include "appbasedialog.h"
+#include "models/subscriptionitem.h"
 #include "trendsettings.h"
 
 namespace Ui {
@@ -46,6 +47,12 @@ public:
     ~TrendSettingsDialog() override;
 
     ///
+    /// \brief Populates the live-subscription combo with the known subscriptions.
+    /// \param subscriptions Current subscriptions in row order.
+    ///
+    void setSubscriptions(const QVector<SubscriptionItem> &subscriptions);
+
+    ///
     /// \brief Pre-fills the display, range and auto-scroll controls.
     /// \param settings Current chart settings.
     ///
@@ -69,11 +76,25 @@ public:
     ///
     QVector<TrendSeriesInfo> series() const;
 
+signals:
+    ///
+    /// \brief Requests that a new subscription be created in the shared list.
+    /// \param name New subscription name.
+    /// \param publishingInterval Publishing interval in milliseconds.
+    ///
+    void subscriptionCreationRequested(QString name, double publishingInterval);
+
 private:
     void selectPeriod(int mode, qint64 windowMs);
     void resetToDefaults();
+    void rebuildSubscriptionCombo();
+    void selectSubscription(const QString &name);
+    void handleSubscriptionActivated(int index);
+    void promptNewSubscription();
 
     Ui::TrendSettingsDialog *ui;
     QButtonGroup *_periodGroup = nullptr;
     QStandardItemModel *_seriesModel = nullptr;
+    QVector<SubscriptionItem> _subscriptions;
+    int _previousSubscriptionIndex = 0;
 };

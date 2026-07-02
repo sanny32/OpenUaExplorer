@@ -95,12 +95,15 @@ TrendGraphWidget *TrendPanelWidget::addChartTab()
 {
     auto *chart = new TrendGraphWidget(ui->trendTabs);
     chart->setTimestampMode(_timestampMode);
+    chart->setSubscriptions(_subscriptions);
     connect(chart, &TrendGraphWidget::subscribeRequested, this,
             &TrendPanelWidget::onChartSubscribe);
     connect(chart, &TrendGraphWidget::unsubscribeRequested, this,
             &TrendPanelWidget::onChartUnsubscribe);
     connect(chart, &TrendGraphWidget::historyReadRequested, this,
             &TrendPanelWidget::historyReadRequested);
+    connect(chart, &TrendGraphWidget::subscriptionCreationRequested, this,
+            &TrendPanelWidget::subscriptionCreationRequested);
 
     const int insertAt = ui->trendTabs->indexOf(_addTab);
     const QString title = QStringLiteral("Trend %1").arg(++_chartCounter);
@@ -291,6 +294,28 @@ void TrendPanelWidget::setTimestampMode(AppSettings::TimestampMode mode)
     _timestampMode = mode;
     for (TrendGraphWidget *chart : charts())
         chart->setTimestampMode(mode);
+}
+
+///
+/// \brief Updates the subscriptions offered by every chart's settings.
+/// \param subscriptions Current subscriptions in row order.
+///
+void TrendPanelWidget::setSubscriptions(const QVector<SubscriptionItem> &subscriptions)
+{
+    _subscriptions = subscriptions;
+    for (TrendGraphWidget *chart : charts())
+        chart->setSubscriptions(subscriptions);
+}
+
+///
+/// \brief Repoints charts referencing a renamed subscription.
+/// \param oldName Previous subscription name.
+/// \param newName New subscription name.
+///
+void TrendPanelWidget::applySubscriptionRename(const QString &oldName, const QString &newName)
+{
+    for (TrendGraphWidget *chart : charts())
+        chart->applySubscriptionRename(oldName, newName);
 }
 
 ///

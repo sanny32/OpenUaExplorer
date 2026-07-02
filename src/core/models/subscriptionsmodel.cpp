@@ -95,13 +95,14 @@ QVariant SubscriptionsModel::data(const QModelIndex &index, int role) const
 ///
 /// \brief Reports that the Name and Publishing Interval cells are editable.
 /// \param index Cell to query.
-/// \return Item flags including Qt::ItemIsEditable for both columns.
+/// \return Item flags including Qt::ItemIsEditable for non-built-in rows.
 ///
 Qt::ItemFlags SubscriptionsModel::flags(const QModelIndex &index) const
 {
     Qt::ItemFlags flags = QAbstractTableModel::flags(index);
     if (index.isValid()
-        && (index.column() == ColName || index.column() == ColPublishingInterval)) {
+        && (index.column() == ColName || index.column() == ColPublishingInterval)
+        && !itemAt(index.row()).isBuiltin()) {
         flags |= Qt::ItemIsEditable;
     }
     return flags;
@@ -121,6 +122,8 @@ bool SubscriptionsModel::setData(const QModelIndex &index, const QVariant &value
     if (index.row() < 0 || index.row() >= _items.size())
         return false;
     SubscriptionItem &item = _items[index.row()];
+    if (item.isBuiltin())
+        return false;
 
     if (index.column() == ColName) {
         const QString newName = value.toString().trimmed();

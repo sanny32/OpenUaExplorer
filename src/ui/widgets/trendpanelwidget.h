@@ -14,6 +14,7 @@
 #include <QWidget>
 
 #include "appsettings.h"
+#include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
 
 namespace Ui {
@@ -104,6 +105,19 @@ public:
 
 public slots:
     ///
+    /// \brief Updates the subscriptions offered by every chart's settings.
+    /// \param subscriptions Current subscriptions in row order.
+    ///
+    void setSubscriptions(const QVector<SubscriptionItem> &subscriptions);
+
+    ///
+    /// \brief Repoints charts referencing a renamed subscription.
+    /// \param oldName Previous subscription name.
+    /// \param newName New subscription name.
+    ///
+    void applySubscriptionRename(const QString &oldName, const QString &newName);
+
+    ///
     /// \brief Forwards streamed values to the charts.
     /// \param values Latest data-access values.
     ///
@@ -138,6 +152,13 @@ signals:
     ///
     void historyReadRequested(QString nodeId, QDateTime start, QDateTime end, quint32 maxValues);
 
+    ///
+    /// \brief Requests that a new subscription be created in the shared list.
+    /// \param name New subscription name.
+    /// \param publishingInterval Publishing interval in milliseconds.
+    ///
+    void subscriptionCreationRequested(QString name, double publishingInterval);
+
 private:
     TrendGraphWidget *addChartTab();
     TrendGraphWidget *currentChart() const;
@@ -156,5 +177,6 @@ private:
     bool _collapsed = false;
     int _expandedMinHeight = 0;
     AppSettings::TimestampMode _timestampMode = AppSettings::TimestampMode::LocalTime;
+    QVector<SubscriptionItem> _subscriptions;
     QHash<QString, QHash<TrendGraphWidget *, double>> _nodeSubscribers;
 };

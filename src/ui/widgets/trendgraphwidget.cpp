@@ -417,7 +417,7 @@ void TrendGraphWidget::setDisplaySettings(const TrendDisplaySettings &settings)
 {
     const bool intervalChanged =
         settings.mode != modeState() || settings.windowMs != windowState();
-    const bool liveUpdateChanged = settings.liveUpdateMs != _display.liveUpdateMs;
+    const bool liveUpdateChanged = settings.liveSubscription != _display.liveSubscription;
 
     _display = settings;
     applyDisplaySettings();
@@ -439,7 +439,7 @@ void TrendGraphWidget::applyDisplaySettings()
     _chart->setSmoothLines(_display.smoothLines);
     _chart->setPointsVisible(_display.showPoints);
     _chart->setHoverValueVisible(_display.showValueTooltip);
-    _liveTimer->setInterval(qMax(1, _display.liveUpdateMs));
+    _liveTimer->setInterval(qMax(1, static_cast<int>(liveIntervalMs())));
     for (const TrendSeries &series : std::as_const(_series))
         _chart->setSeriesName(series.nodeId(), series.seriesLabel(_display.labelMode));
 }
@@ -496,6 +496,9 @@ void TrendGraphWidget::openSettings()
     emit settingsRequested();
 
     TrendSettingsDialog dialog(this);
+    connect(&dialog, &TrendSettingsDialog::subscriptionCreationRequested,
+            this, &TrendGraphWidget::subscriptionCreationRequested);
+    dialog.setSubscriptions(_subscriptions);
     dialog.setDisplaySettings(displaySettings());
     dialog.setSeries(seriesInfos());
     if (dialog.exec() != QDialog::Accepted)
@@ -693,7 +696,20 @@ void TrendGraphWidget::subscribeNode(const QString &nodeId)
     if (_subscribed.contains(nodeId))
         return;
     _subscribed.insert(nodeId);
-    emit subscribeRequested(nodeId, _display.liveUpdateMs);
+    emit subscribeRequested(nodeId, liveIntervalMs());
+}
+
+///
+/// \brief Resolves the live publishing interval from the selected subscription.
+/// \return Publishing interval in milliseconds, or the default when unresolved.
+///
+double TrendGraphWidget::liveIntervalMs() const
+{
+    for (const SubscriptionItem &item : _subscriptions) {
+        if (item.name == _display.liveSubscription)
+            return item.publishingInterval;
+    }
+    return kLiveTickMs;
 }
 
 ///
@@ -705,7 +721,34 @@ void TrendGraphWidget::subscribeNode(const QString &nodeId)
 void TrendGraphWidget::resubscribeLiveNodes()
 {
     for (const QString &nodeId : std::as_const(_subscribed))
-        emit subscribeRequested(nodeId, _display.liveUpdateMs);
+        emit subscribeRequested(nodeId, liveIntervalMs());
+}
+
+///
+/// \brief Updates the known subscriptions and re-negotiates the live interval.
+/// \param subscriptions Current subscriptions in row order.
+///
+void TrendGraphWidget::setSubscriptions(const QVector<SubscriptionItem> &subscriptions)
+{
+    const double before = liveIntervalMs();
+    _subscriptions = subscriptions;
+    const double after = liveIntervalMs();
+    if (qFuzzyCompare(before, after))
+        return;
+    _liveTimer->setInterval(qMax(1, static_cast<int>(after)));
+    if (_mode == Mode::Live)
+        resubscribeLiveNodes();
+}
+
+///
+/// \brief Repoints the live subscription reference when a subscription is renamed.
+/// \param oldName Previous subscription name.
+/// \param newName New subscription name.
+///
+void TrendGraphWidget::applySubscriptionRename(const QString &oldName, const QString &newName)
+{
+    if (_display.liveSubscription == oldName)
+        _display.liveSubscription = newName;
 }
 
 ///

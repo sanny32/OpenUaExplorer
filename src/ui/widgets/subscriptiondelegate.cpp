@@ -21,23 +21,23 @@ constexpr int createNewRole = Qt::UserRole + 1;
 }
 
 ///
-/// \brief Constructs the delegate with the set of selectable subscription names.
-/// \param subscriptionNames Names offered in the editor combo box.
+/// \brief Constructs the delegate with the set of selectable subscriptions.
+/// \param subscriptions Subscriptions offered in the editor combo box.
 /// \param parent Owning QObject.
 ///
-SubscriptionDelegate::SubscriptionDelegate(QStringList subscriptionNames, QObject *parent)
+SubscriptionDelegate::SubscriptionDelegate(QVector<SubscriptionItem> subscriptions, QObject *parent)
     : QStyledItemDelegate(parent)
-    , _subscriptionNames(std::move(subscriptionNames))
+    , _subscriptions(std::move(subscriptions))
 {
 }
 
 ///
-/// \brief Replaces the selectable subscription names offered by future editors.
-/// \param subscriptionNames Names to offer.
+/// \brief Replaces the selectable subscriptions offered by future editors.
+/// \param subscriptions Subscriptions to offer.
 ///
-void SubscriptionDelegate::setSubscriptionNames(QStringList subscriptionNames)
+void SubscriptionDelegate::setSubscriptions(QVector<SubscriptionItem> subscriptions)
 {
-    _subscriptionNames = std::move(subscriptionNames);
+    _subscriptions = std::move(subscriptions);
 }
 
 ///
@@ -50,6 +50,22 @@ QString SubscriptionDelegate::createNewLabel()
 }
 
 ///
+/// \brief Renders a cell's stored subscription name with its publishing interval.
+/// \param value Stored subscription name.
+/// \param locale Active locale.
+/// \return Label formatted as "name (interval ms)", or the raw value when unmatched.
+///
+QString SubscriptionDelegate::displayText(const QVariant &value, const QLocale &locale) const
+{
+    const QString name = value.toString();
+    for (const SubscriptionItem &item : _subscriptions) {
+        if (item.name == name)
+            return item.label();
+    }
+    return QStyledItemDelegate::displayText(value, locale);
+}
+
+///
 /// \brief Creates a combo-box editor listing the subscription names plus an empty choice.
 /// \param parent Parent for the editor widget.
 /// \return The combo-box editor.
@@ -59,8 +75,8 @@ QWidget *SubscriptionDelegate::createEditor(QWidget *parent, const QStyleOptionV
 {
     QComboBox *combo = new QComboBox(parent);
     combo->addItem(QStringLiteral("—"), QString());
-    for (const QString &name : _subscriptionNames)
-        combo->addItem(name, name);
+    for (const SubscriptionItem &item : _subscriptions)
+        combo->addItem(item.label(), item.name);
 
     combo->insertSeparator(combo->count());
     combo->addItem(createNewLabel());

@@ -178,8 +178,10 @@ void DataAccessWidget::setTimestampMode(AppSettings::TimestampMode mode)
 void DataAccessWidget::setSubscriptions(const QVector<SubscriptionItem> &subscriptions)
 {
     _subscriptions = subscriptions;
-    if (_subscriptionDelegate)
-        _subscriptionDelegate->setSubscriptionNames(subscriptionNames());
+    if (_subscriptionDelegate) {
+        _subscriptionDelegate->setSubscriptions(_subscriptions);
+        ui->dataView->viewport()->update();
+    }
     rebuildSubscribeMenu();
 }
 
@@ -275,7 +277,7 @@ void DataAccessWidget::setupDataView()
 {
     ui->dataView->setModel(_dataModel);
 
-    _subscriptionDelegate = new SubscriptionDelegate(subscriptionNames(), ui->dataView);
+    _subscriptionDelegate = new SubscriptionDelegate(_subscriptions, ui->dataView);
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, _subscriptionDelegate);
     connect(_subscriptionDelegate, &SubscriptionDelegate::subscriptionChanged, this,
             [this](const QModelIndex &index, const QString &subscriptionName) {

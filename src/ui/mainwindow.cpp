@@ -51,6 +51,7 @@
 #include "widgets/eventswidget.h"
 #include "widgets/datahistorywidget.h"
 #include "widgets/maintoolbar.h"
+#include "widgets/subscriptionswidget.h"
 #include "widgets/themedtoolbutton.h"
 #include "widgets/trendpanelwidget.h"
 
@@ -665,6 +666,15 @@ void MainWindow::setupDataAccessWiring()
             _dataAccessPlugin, &DataAccessModule::subscribe);
     connect(ui->trendPanelWidget, &TrendPanelWidget::unsubscribeRequested,
             _dataAccessPlugin, &DataAccessModule::unsubscribe);
+
+    SubscriptionsWidget *subscriptions = ui->dataView->subscriptions();
+    ui->trendPanelWidget->setSubscriptions(subscriptions->subscriptions());
+    connect(subscriptions, &SubscriptionsWidget::subscriptionsChanged,
+            ui->trendPanelWidget, &TrendPanelWidget::setSubscriptions);
+    connect(subscriptions, &SubscriptionsWidget::subscriptionRenamed,
+            ui->trendPanelWidget, &TrendPanelWidget::applySubscriptionRename);
+    connect(ui->trendPanelWidget, &TrendPanelWidget::subscriptionCreationRequested,
+            subscriptions, &SubscriptionsWidget::createSubscription);
     connect(_dataAccessPlugin, &DataAccessModule::monitoringFinished,
             this, &MainWindow::onMonitoringFinished);
     connect(_selectionContext, &SelectionContext::eventMonitorRequested, this,

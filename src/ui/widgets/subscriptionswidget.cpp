@@ -67,13 +67,21 @@ SubscriptionsWidget::~SubscriptionsWidget()
 }
 
 ///
-/// \brief Resets the list to the single built-in Default subscription.
+/// \brief Resets the list to the built-in Default and Fast subscriptions.
 ///
 void SubscriptionsWidget::reset()
 {
-    SubscriptionItem subscription;
-    subscription.name = tr("Default");
-    _subscriptionsModel->setItems({subscription});
+    SubscriptionItem defaultSubscription;
+    defaultSubscription.name = tr("Default");
+    defaultSubscription.builtin = true;
+
+    SubscriptionItem fastSubscription;
+    fastSubscription.name = tr("Fast");
+    fastSubscription.publishingInterval = 250.0;
+    fastSubscription.id = 1;
+    fastSubscription.builtin = true;
+
+    _subscriptionsModel->setItems({defaultSubscription, fastSubscription});
 }
 
 ///
@@ -137,9 +145,9 @@ void SubscriptionsWidget::setupSubscriptionsView()
     connect(ui->subscriptionsTable->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, [this] {
         const QModelIndexList rows = ui->subscriptionsTable->selectionModel()->selectedRows();
-        const bool defaultSelected = rows.size() == 1
-            && _subscriptionsModel->itemAt(rows.first().row()).isDefault();
-        ui->removeSubscriptionButton->setEnabled(!rows.isEmpty() && !defaultSelected);
+        const bool builtinSelected = rows.size() == 1
+            && _subscriptionsModel->itemAt(rows.first().row()).isBuiltin();
+        ui->removeSubscriptionButton->setEnabled(!rows.isEmpty() && !builtinSelected);
     });
 
     connect(ui->addSubscriptionButton, &QPushButton::clicked,
@@ -155,8 +163,8 @@ void SubscriptionsWidget::setupSubscriptionsView()
 void SubscriptionsWidget::showSubscriptionsContextMenu(const QPoint &pos)
 {
     const QModelIndexList rows = ui->subscriptionsTable->selectionModel()->selectedRows();
-    const bool defaultSelected = rows.size() == 1
-        && _subscriptionsModel->itemAt(rows.first().row()).isDefault();
+    const bool builtinSelected = rows.size() == 1
+        && _subscriptionsModel->itemAt(rows.first().row()).isBuiltin();
 
     QMenu menu(this);
     menu.addAction(AppIcons::themed(QStringLiteral("add")), tr("Add"),
@@ -164,11 +172,11 @@ void SubscriptionsWidget::showSubscriptionsContextMenu(const QPoint &pos)
 
     QAction *removeAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove"),
                                            this, &SubscriptionsWidget::removeSelectedSubscriptions);
-    removeAction->setEnabled(!rows.isEmpty() && !defaultSelected);
+    removeAction->setEnabled(!rows.isEmpty() && !builtinSelected);
 
     QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
                                               this, &SubscriptionsWidget::removeAllSubscriptions);
-    removeAllAction->setEnabled(_subscriptionsModel->rowCount() > 1);
+    removeAllAction->setEnabled(hasRemovableSubscriptions());
 
     menu.exec(ui->subscriptionsTable->viewport()->mapToGlobal(pos));
 }
@@ -241,10 +249,23 @@ void SubscriptionsWidget::removeAllSubscriptions()
 void SubscriptionsWidget::removeSubscriptionRow(int row)
 {
     const SubscriptionItem subscription = _subscriptionsModel->itemAt(row);
-    if (subscription.isDefault())
+    if (subscription.isBuiltin())
         return;
     emit subscriptionRemoved(subscription.name);
     _subscriptionsModel->removeRow(row);
+}
+
+///
+/// \brief Reports whether any subscription can be removed.
+/// \return True when at least one non-built-in subscription exists.
+///
+bool SubscriptionsWidget::hasRemovableSubscriptions() const
+{
+    for (int row = 0; row < _subscriptionsModel->rowCount(); ++row) {
+        if (!_subscriptionsModel->itemAt(row).isBuiltin())
+            return true;
+    }
+    return false;
 }
 
 ///

@@ -9,8 +9,10 @@
 #pragma once
 
 #include <QPersistentModelIndex>
-#include <QStringList>
+#include <QVector>
 #include <QStyledItemDelegate>
+
+#include "models/subscriptionitem.h"
 
 ///
 /// \brief Combo-box delegate used to assign subscriptions to monitored items.
@@ -21,23 +23,31 @@ class SubscriptionDelegate : public QStyledItemDelegate
 
 public:
     ///
-    /// \brief Constructs the delegate with the set of selectable subscription names.
-    /// \param subscriptionNames Names offered in the editor combo box.
+    /// \brief Constructs the delegate with the set of selectable subscriptions.
+    /// \param subscriptions Subscriptions offered in the editor combo box.
     /// \param parent Owning QObject.
     ///
-    explicit SubscriptionDelegate(QStringList subscriptionNames, QObject *parent = nullptr);
+    explicit SubscriptionDelegate(QVector<SubscriptionItem> subscriptions, QObject *parent = nullptr);
 
     ///
-    /// \brief Replaces the selectable subscription names offered by future editors.
-    /// \param subscriptionNames Names to offer.
+    /// \brief Replaces the selectable subscriptions offered by future editors.
+    /// \param subscriptions Subscriptions to offer.
     ///
-    void setSubscriptionNames(QStringList subscriptionNames);
+    void setSubscriptions(QVector<SubscriptionItem> subscriptions);
 
     ///
     /// \brief Returns the label of the entry that opens the new-subscription dialog.
     /// \return Create-new entry label, also used as the cell's pending placeholder.
     ///
     static QString createNewLabel();
+
+    ///
+    /// \brief Renders a cell's stored subscription name with its publishing interval.
+    /// \param value Stored subscription name.
+    /// \param locale Active locale.
+    /// \return Label formatted as "name (interval ms)", or the raw value when unmatched.
+    ///
+    QString displayText(const QVariant &value, const QLocale &locale) const override;
 
     ///
     /// \brief Creates a combo-box editor listing the subscription names plus an empty choice.
@@ -81,6 +91,6 @@ private slots:
     void commitAndCloseEditor();
 
 private:
-    QStringList                 _subscriptionNames;
+    QVector<SubscriptionItem>     _subscriptions;
     mutable QPersistentModelIndex _editingIndex;
 };

@@ -42,7 +42,7 @@ public:
     ~SubscriptionsWidget() override;
 
     ///
-    /// \brief Resets the list to the single built-in Default subscription.
+    /// \brief Resets the list to the built-in Default and Fast subscriptions.
     ///
     void reset();
 
@@ -106,6 +106,7 @@ private:
     void removeSelectedSubscriptions();
     void removeAllSubscriptions();
     void removeSubscriptionRow(int row);
+    bool hasRemovableSubscriptions() const;
     void emitSubscriptionsChanged();
 
     Ui::SubscriptionsWidget *ui;
