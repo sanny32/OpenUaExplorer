@@ -29,6 +29,9 @@ constexpr auto requestTimeoutKey = "requestTimeoutMs";
 constexpr auto secureChannelLifetimeKey = "secureChannelLifetimeMs";
 constexpr auto maxMessageSizeKey = "maxMessageSizeBytes";
 constexpr auto loggingGroup = "logging";
+constexpr auto subscriptionsGroup = "subscriptions/custom";
+constexpr auto subscriptionNameKey = "name";
+constexpr auto subscriptionIntervalKey = "interval";
 }
 
 ///
@@ -342,6 +345,49 @@ void AppSettings::setRestoreLayoutOnStartup(bool enabled)
 {
     QSettings settings;
     settings.setValue(QLatin1String(restoreLayoutKey), enabled);
+}
+
+///
+/// \brief Returns the user-created subscriptions persisted from the last session.
+/// \return Custom subscriptions in stored order, or an empty vector when none are stored.
+///
+QVector<SubscriptionItem> AppSettings::customSubscriptions() const
+{
+    QSettings settings;
+    QVector<SubscriptionItem> subscriptions;
+    const int count = settings.beginReadArray(QLatin1String(subscriptionsGroup));
+    subscriptions.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        settings.setArrayIndex(i);
+        SubscriptionItem item;
+        item.name = settings.value(QLatin1String(subscriptionNameKey)).toString();
+        item.publishingInterval =
+            settings.value(QLatin1String(subscriptionIntervalKey), 1000.0).toDouble();
+        if (!item.name.isEmpty())
+            subscriptions.append(item);
+    }
+    settings.endArray();
+    return subscriptions;
+}
+
+///
+/// \brief Stores the user-created subscriptions to restore on the next launch.
+/// \param subscriptions Custom subscriptions to persist; built-in ones are ignored.
+///
+void AppSettings::setCustomSubscriptions(const QVector<SubscriptionItem> &subscriptions)
+{
+    QSettings settings;
+    settings.remove(QLatin1String(subscriptionsGroup));
+    settings.beginWriteArray(QLatin1String(subscriptionsGroup));
+    int index = 0;
+    for (const SubscriptionItem &item : subscriptions) {
+        if (item.isBuiltin())
+            continue;
+        settings.setArrayIndex(index++);
+        settings.setValue(QLatin1String(subscriptionNameKey), item.name);
+        settings.setValue(QLatin1String(subscriptionIntervalKey), item.publishingInterval);
+    }
+    settings.endArray();
 }
 
 ///

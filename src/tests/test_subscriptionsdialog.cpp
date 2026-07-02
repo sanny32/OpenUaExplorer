@@ -41,7 +41,7 @@ void TestSubscriptionsDialog::referenceControlsArePresent()
     QVERIFY(dialog.findChild<SubscriptionsWidget *>(QStringLiteral("subscriptionsWidget")));
     auto *table = dialog.findChild<QTableView *>(QStringLiteral("subscriptionsTable"));
     QVERIFY(table);
-    QCOMPARE(table->model()->rowCount(), 2);
+    QCOMPARE(table->model()->rowCount(), 3);
 }
 
 ///
@@ -60,12 +60,12 @@ void TestSubscriptionsDialog::addRemoveAndClose()
     QVERIFY(buttonBox);
 
     addButton->click();
-    QCOMPARE(table->model()->rowCount(), 3);
+    QCOMPARE(table->model()->rowCount(), 4);
 
-    table->selectRow(2);
+    table->selectRow(3);
     QVERIFY(removeButton->isEnabled());
     removeButton->click();
-    QCOMPARE(table->model()->rowCount(), 2);
+    QCOMPARE(table->model()->rowCount(), 3);
 
     dialog.show();
     QVERIFY(dialog.isVisible());

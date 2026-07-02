@@ -13,6 +13,8 @@
 #include <QString>
 #include <QVector>
 
+#include "models/subscriptionitem.h"
+
 ///
 /// \brief Typed facade over QSettings for application preferences and UI state.
 ///
@@ -220,6 +222,18 @@ public:
     /// \param enabled True to restore the layout on the next launch.
     ///
     void setRestoreLayoutOnStartup(bool enabled);
+
+    ///
+    /// \brief Returns the user-created subscriptions persisted from the last session.
+    /// \return Custom subscriptions in stored order, or an empty vector when none are stored.
+    ///
+    QVector<SubscriptionItem> customSubscriptions() const;
+
+    ///
+    /// \brief Stores the user-created subscriptions to restore on the next launch.
+    /// \param subscriptions Custom subscriptions to persist; built-in ones are ignored.
+    ///
+    void setCustomSubscriptions(const QVector<SubscriptionItem> &subscriptions);
 
     ///
     /// \brief Returns the saved element state for a named view.

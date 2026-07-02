@@ -342,12 +342,14 @@ void DataView::clearDataAccessNodes()
 }
 
 ///
-/// \brief Clears the data, subscriptions, live events, and history tabs.
+/// \brief Clears the data, live events, and history tabs.
+///
+/// Leaves the configured subscriptions untouched: they are user configuration
+/// that persists across connections rather than per-connection runtime data.
 ///
 void DataView::clearRuntimeData()
 {
     ui->dataAccessWidget->clear();
-    subscriptions()->reset();
     ui->eventsWidget->clear();
     ui->dataHistoryWidget->clear();
     ui->eventsHistoryWidget->clear();

@@ -64,6 +64,18 @@ public:
     ///
     void restoreViewState(AppSettings &settings);
 
+    ///
+    /// \brief Persists the user-created subscriptions.
+    /// \param settings Settings store to write to.
+    ///
+    void saveSubscriptions(AppSettings &settings) const;
+
+    ///
+    /// \brief Restores the user-created subscriptions saved from the last session.
+    /// \param settings Settings store to read from.
+    ///
+    void loadSubscriptions(AppSettings &settings);
+
 public slots:
     ///
     /// \brief Adds a subscription with the given name and publishing interval.

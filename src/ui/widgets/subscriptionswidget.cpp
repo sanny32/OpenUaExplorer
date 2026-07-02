@@ -67,7 +67,7 @@ SubscriptionsWidget::~SubscriptionsWidget()
 }
 
 ///
-/// \brief Resets the list to the built-in Default and Fast subscriptions.
+/// \brief Resets the list to the built-in Default, Fast, and Slow subscriptions.
 ///
 void SubscriptionsWidget::reset()
 {
@@ -81,7 +81,13 @@ void SubscriptionsWidget::reset()
     fastSubscription.id = 1;
     fastSubscription.builtin = true;
 
-    _subscriptionsModel->setItems({defaultSubscription, fastSubscription});
+    SubscriptionItem slowSubscription;
+    slowSubscription.name = tr("Slow");
+    slowSubscription.publishingInterval = 5000.0;
+    slowSubscription.id = 2;
+    slowSubscription.builtin = true;
+
+    _subscriptionsModel->setItems({defaultSubscription, fastSubscription, slowSubscription});
 }
 
 ///
@@ -115,6 +121,26 @@ void SubscriptionsWidget::restoreViewState(AppSettings &settings)
 {
     ui->subscriptionsTable->headerView()->restoreLayout(
         settings.viewState(ui->subscriptionsTable->objectName()));
+}
+
+///
+/// \brief Persists the user-created subscriptions.
+/// \param settings Settings store to write to.
+///
+void SubscriptionsWidget::saveSubscriptions(AppSettings &settings) const
+{
+    settings.setCustomSubscriptions(subscriptions());
+}
+
+///
+/// \brief Restores the user-created subscriptions saved from the last session.
+/// \param settings Settings store to read from.
+///
+void SubscriptionsWidget::loadSubscriptions(AppSettings &settings)
+{
+    const QVector<SubscriptionItem> stored = settings.customSubscriptions();
+    for (const SubscriptionItem &item : stored)
+        createSubscription(item.name, item.publishingInterval);
 }
 
 ///

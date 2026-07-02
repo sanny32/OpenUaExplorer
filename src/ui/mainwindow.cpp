@@ -476,6 +476,7 @@ void MainWindow::saveSettings()
     settings.setDataAccessPage(ui->dataView->currentPage());
     _featureManager->saveState(settings);
     ui->dataView->saveViewState(settings);
+    ui->dataView->subscriptions()->saveSubscriptions(settings);
     ui->trendPanelWidget->saveViewState(settings);
 }
 
@@ -488,6 +489,8 @@ void MainWindow::saveSettings()
 void MainWindow::restoreSettings()
 {
     AppSettings settings;
+    ui->dataView->subscriptions()->loadSubscriptions(settings);
+
     if (!settings.restoreLayoutOnStartup())
         return;
 
