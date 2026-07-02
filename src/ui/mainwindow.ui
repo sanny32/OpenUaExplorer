@@ -359,9 +359,6 @@
    </property>
   </action>
   <action name="actionCertificates">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>Certificates...</string>
    </property>

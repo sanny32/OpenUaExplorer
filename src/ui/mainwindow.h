@@ -53,6 +53,7 @@ private slots:
     void on_actionBrowseAddressSpace_triggered();
     void on_actionRefresh_triggered();
     void on_actionEndpointSettings_triggered();
+    void on_actionCertificates_triggered();
     void on_actionRead_triggered();
     void on_actionReadSelected_triggered();
     void on_actionWrite_triggered();

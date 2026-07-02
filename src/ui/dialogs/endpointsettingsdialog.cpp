@@ -13,6 +13,7 @@
 
 #include "appcolors.h"
 #include "certificatedetailsdialog.h"
+#include "formatters/datetimeformatter.h"
 #include "formatters/durationformatter.h"
 #include "endpointsettingsdialog.h"
 #include "opcua/certificateinfo.h"
@@ -213,8 +214,7 @@ void EndpointSettingsDialog::updateServerCertificateFields()
         info.selfSigned && !info.issuer.isEmpty()
             ? tr("%1 (self-signed)").arg(info.issuer)
             : info.issuer);
-    ui->certificateValidUntilValue->setText(
-        info.expiryDate.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")));
+    ui->certificateValidUntilValue->setText(formatDateTime(info.expiryDate));
     setCertificateStatus(info.status);
     ui->certificateSerialNumberValue->setText(
         info.serialNumber.isEmpty() ? tr("Unavailable") : info.serialNumber);

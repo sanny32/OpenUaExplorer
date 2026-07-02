@@ -19,6 +19,7 @@
 #include "appicons.h"
 #include "application.h"
 #include "appsettings.h"
+#include "dialogs/certificatesdialog.h"
 #include "dialogs/certificatetrustdialog.h"
 #include "dialogs/dialogabout.h"
 #include "dialogs/connectioncredentialsdialog.h"
@@ -184,6 +185,15 @@ void MainWindow::on_actionEndpointSettings_triggered()
     EndpointSettingsDialog dialog(this);
     dialog.setProfile(_connectionController->activeProfile());
     dialog.setServerCertificate(_clientService->activeServerCertificate());
+    dialog.exec();
+}
+
+///
+/// \brief Opens the PKI certificate management dialog.
+///
+void MainWindow::on_actionCertificates_triggered()
+{
+    CertificatesDialog dialog(this);
     dialog.exec();
 }
 
@@ -1219,4 +1229,5 @@ void MainWindow::bindIcons()
     AppIcons::bindIcon(ui->actionSubscribe,   "subscribe");
     AppIcons::bindIcon(ui->actionUnsubscribe, "unsubscribe");
     AppIcons::bindIcon(ui->actionSettings,    "settings");
+    AppIcons::bindIcon(ui->actionCertificates, "certificate");
 }

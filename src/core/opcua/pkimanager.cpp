@@ -11,6 +11,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QSaveFile>
+#include <QSslCertificate>
 #include <QStandardPaths>
 #include <QStringList>
 #include <QSysInfo>
@@ -202,6 +203,38 @@ QString openSslError()
         messages.append(QString::fromLatin1(buffer));
     }
     return messages.join(QStringLiteral("; "));
+}
+
+///
+/// \brief Writes bytes to a file atomically.
+/// \param path Destination file path.
+/// \param data Bytes to write.
+/// \return True when the file was written and committed.
+///
+bool writeFileAtomically(const QString &path, const QByteArray &data)
+{
+    QSaveFile file(path);
+    return file.open(QIODevice::WriteOnly)
+        && file.write(data) == data.size()
+        && file.commit();
+}
+
+///
+/// \brief Reads a DER or PEM certificate file and returns it in DER encoding.
+/// \param path Certificate file path.
+/// \return DER-encoded certificate, or an empty array when it cannot be read.
+///
+QByteArray readCertificateAsDer(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        return {};
+    const QByteArray raw = file.readAll();
+
+    QList<QSslCertificate> chain = QSslCertificate::fromData(raw, QSsl::Der);
+    if (chain.isEmpty())
+        chain = QSslCertificate::fromData(raw, QSsl::Pem);
+    return chain.isEmpty() ? QByteArray() : chain.constFirst().toDer();
 }
 
 } // namespace
@@ -444,18 +477,181 @@ bool PkiManager::trustServerCertificate(const QByteArray &certificate, QString *
             *error = QObject::tr("The server did not provide a certificate.");
         return false;
     }
+    return setCertificateCategory(certificate, Category::Trusted, error);
+}
+
+///
+/// \brief Returns the SHA-256 fingerprint used to name a certificate on disk.
+/// \param certificate DER-encoded certificate.
+/// \return Lower-case hexadecimal fingerprint.
+///
+QString PkiManager::fingerprint(const QByteArray &certificate)
+{
+    return QString::fromLatin1(
+        QCryptographicHash::hash(certificate, QCryptographicHash::Sha256).toHex());
+}
+
+///
+/// \brief Reads every DER certificate stored in a trust-store category.
+/// \param category Trust-store category to enumerate.
+/// \return DER-encoded certificates found in the category directory.
+///
+QList<QByteArray> PkiManager::certificates(Category category) const
+{
+    const Paths p = paths();
+    const QString directory = category == Category::Trusted
+        ? p.trustedCertificates
+        : p.rejectedCertificates;
+
+    QList<QByteArray> result;
+    const QStringList files =
+        QDir(directory).entryList({QStringLiteral("*.der")}, QDir::Files, QDir::Name);
+    for (const QString &name : files) {
+        QFile file(directory + QLatin1Char('/') + name);
+        if (file.open(QIODevice::ReadOnly))
+            result.append(file.readAll());
+    }
+    return result;
+}
+
+///
+/// \brief Files a certificate under a category, removing it from the other one.
+/// \param certificate DER-encoded certificate.
+/// \param category Destination category.
+/// \param error Receives an error message.
+/// \return True when the certificate is stored under the requested category.
+///
+bool PkiManager::setCertificateCategory(const QByteArray &certificate, Category category,
+                                        QString *error) const
+{
+    if (certificate.isEmpty()) {
+        if (error)
+            *error = QObject::tr("The certificate is empty.");
+        return false;
+    }
     if (!ensureDirectories(error))
         return false;
 
-    const QString fingerprint =
-        QString::fromLatin1(QCryptographicHash::hash(certificate, QCryptographicHash::Sha256).toHex());
-    QSaveFile file(paths().trustedCertificates + QLatin1Char('/') + fingerprint
-                   + QStringLiteral(".der"));
-    if (!file.open(QIODevice::WriteOnly) || file.write(certificate) != certificate.size()
-        || !file.commit()) {
+    const Paths p = paths();
+    const QString fileName = fingerprint(certificate) + QStringLiteral(".der");
+    const QString destination = category == Category::Trusted
+        ? p.trustedCertificates
+        : p.rejectedCertificates;
+    const QString other = category == Category::Trusted
+        ? p.rejectedCertificates
+        : p.trustedCertificates;
+
+    if (!writeFileAtomically(destination + QLatin1Char('/') + fileName, certificate)) {
         if (error)
-            *error = QObject::tr("Could not store the server certificate in the trust list.");
+            *error = QObject::tr("Could not store the certificate in the PKI store.");
+        return false;
+    }
+    QFile::remove(other + QLatin1Char('/') + fileName);
+    return true;
+}
+
+///
+/// \brief Removes a certificate from both trust-store categories.
+/// \param certificate DER-encoded certificate.
+/// \param error Receives an error message.
+/// \return True when no copy of the certificate remains.
+///
+bool PkiManager::removeCertificate(const QByteArray &certificate, QString *error) const
+{
+    const Paths p = paths();
+    const QString fileName = fingerprint(certificate) + QStringLiteral(".der");
+    bool removed = true;
+    for (const QString &directory : {p.trustedCertificates, p.rejectedCertificates}) {
+        const QString path = directory + QLatin1Char('/') + fileName;
+        if (QFileInfo::exists(path))
+            removed = QFile::remove(path) && removed;
+    }
+    if (!removed && error)
+        *error = QObject::tr("Could not remove the certificate from the PKI store.");
+    return removed;
+}
+
+///
+/// \brief Reports the current client certificate and key files, if both exist.
+/// \param certificateFile Receives the DER certificate path.
+/// \param privateKeyFile Receives the PEM private key path.
+/// \return True when both files are present.
+///
+bool PkiManager::clientCertificatePaths(QString *certificateFile, QString *privateKeyFile) const
+{
+    const Paths p = paths();
+    const QString fileBaseName = Utils::executableBaseName();
+    const QString certPath = p.ownCertificates + QLatin1Char('/') + fileBaseName
+        + QStringLiteral(".der");
+    const QString keyPath = p.ownPrivate + QLatin1Char('/') + fileBaseName
+        + QStringLiteral(".pem");
+    if (!QFileInfo::exists(certPath) || !QFileInfo::exists(keyPath))
+        return false;
+
+    if (certificateFile)
+        *certificateFile = certPath;
+    if (privateKeyFile)
+        *privateKeyFile = keyPath;
+    return true;
+}
+
+///
+/// \brief Imports a client certificate and key, replacing any existing pair.
+/// \param certificateSource DER or PEM certificate file to import.
+/// \param privateKeySource PEM private key file to import.
+/// \param error Receives an error message.
+/// \return True when the certificate and key were stored as the client identity.
+///
+bool PkiManager::importClientCertificate(const QString &certificateSource,
+                                         const QString &privateKeySource,
+                                         QString *error) const
+{
+    if (!ensureDirectories(error))
+        return false;
+
+    const QByteArray certificate = readCertificateAsDer(certificateSource);
+    if (certificate.isEmpty()) {
+        if (error)
+            *error = QObject::tr("The selected file is not a readable certificate.");
+        return false;
+    }
+
+    QFile keyFile(privateKeySource);
+    if (!keyFile.open(QIODevice::ReadOnly)) {
+        if (error)
+            *error = QObject::tr("The selected private key could not be read.");
+        return false;
+    }
+    const QByteArray key = keyFile.readAll();
+
+    const Paths p = paths();
+    const QString fileBaseName = Utils::executableBaseName();
+    const QString certPath = p.ownCertificates + QLatin1Char('/') + fileBaseName
+        + QStringLiteral(".der");
+    const QString keyPath = p.ownPrivate + QLatin1Char('/') + fileBaseName
+        + QStringLiteral(".pem");
+    if (!writeFileAtomically(certPath, certificate) || !writeFileAtomically(keyPath, key)) {
+        if (error)
+            *error = QObject::tr("Could not store the imported client certificate.");
         return false;
     }
     return true;
+}
+
+///
+/// \brief Removes the client certificate and its private key.
+/// \param error Receives an error message.
+/// \return True when no client certificate or key remains.
+///
+bool PkiManager::removeClientCertificate(QString *error) const
+{
+    QString certPath;
+    QString keyPath;
+    if (!clientCertificatePaths(&certPath, &keyPath))
+        return true;
+
+    const bool removed = QFile::remove(certPath) & QFile::remove(keyPath);
+    if (!removed && error)
+        *error = QObject::tr("Could not remove the client certificate.");
+    return removed;
 }

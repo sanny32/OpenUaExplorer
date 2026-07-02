@@ -115,5 +115,9 @@
         <file alias="icons/dark/clock.svg">res/icons/dark/clock.svg</file>
         <file alias="icons/light/trend.svg">res/icons/light/trend.svg</file>
         <file alias="icons/dark/trend.svg">res/icons/dark/trend.svg</file>
+        <file alias="icons/light/download.svg">res/icons/light/download.svg</file>
+        <file alias="icons/dark/download.svg">res/icons/dark/download.svg</file>
+        <file alias="icons/light/key-round.svg">res/icons/light/key-round.svg</file>
+        <file alias="icons/dark/key-round.svg">res/icons/dark/key-round.svg</file>
     </qresource>
 </RCC>

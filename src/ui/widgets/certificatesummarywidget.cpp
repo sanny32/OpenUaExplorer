@@ -14,6 +14,7 @@
 #include "appcolors.h"
 #include "appicons.h"
 #include "certificatesummarywidget.h"
+#include "formatters/datetimeformatter.h"
 #include "opcua/certificateinfo.h"
 #include "ui_certificatesummarywidget.h"
 
@@ -193,8 +194,7 @@ void CertificateSummaryWidget::fillCertificateFields()
     if (info.selfSigned && !issuer.isEmpty())
         issuer = tr("%1 (self-signed)").arg(issuer);
     ui->issuerEdit->setText(issuer);
-    ui->validEdit->setText(
-        info.expiryDate.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")));
+    ui->validEdit->setText(formatDateTime(info.expiryDate));
 
     QString badgeText;
     QColor color;

@@ -17,6 +17,7 @@
 
 #include "appcolors.h"
 #include "certificatedetailswidget.h"
+#include "formatters/datetimeformatter.h"
 #include "opcua/certificateinfo.h"
 #include "ui_certificatedetailswidget.h"
 
@@ -38,9 +39,8 @@ QString unavailable()
 ///
 QString formatDate(const QDateTime &value)
 {
-    return value.isValid()
-        ? value.toLocalTime().toString(QStringLiteral("dd.MM.yyyy HH:mm"))
-        : unavailable();
+    const QString text = formatDateTime(value);
+    return text.isEmpty() ? unavailable() : text;
 }
 
 ///
