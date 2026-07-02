@@ -7,16 +7,21 @@
 ///
 
 #include <QAbstractItemModel>
+#include <QAbstractScrollArea>
 #include <QDialogButtonBox>
 #include <QFile>
+#include <QHeaderView>
 #include <QLabel>
 #include <QPushButton>
+#include <QScrollBar>
+#include <QStyle>
 #include <QTableView>
 #include <QTest>
 
 #include "dialogs/certificatesdialog.h"
 #include "opcua/pkimanager.h"
 #include "widgets/dialogbuttonbox.h"
+#include "widgets/tableview.h"
 
 ///
 /// \brief Drives the certificates dialog through its client and trust-store flows.
@@ -28,18 +33,20 @@ class TestCertificatesDialog : public QObject
 private slots:
     void showsClientCertificate();
     void rejectsTrustedCertificateOnApply();
+    void trustStoreTableKeepsLongCellsScrollable();
 };
 
 namespace {
 
 /// \brief Generates a client certificate and returns its DER bytes, skipping on failure.
-QByteArray generateCertificate()
+/// \param commonName Subject common name for the generated certificate.
+QByteArray generateCertificate(const QString &commonName = PkiManager::clientCertificateCommonName())
 {
     PkiManager pki;
     QString certificateFile;
     QString privateKeyFile;
     QString error;
-    if (!pki.generateClientCertificate(PkiManager::clientCertificateCommonName(),
+    if (!pki.generateClientCertificate(commonName,
                                        PkiManager::applicationUri(),
                                        &certificateFile, &privateKeyFile, &error)) {
         return {};
@@ -123,6 +130,45 @@ void TestCertificatesDialog::rejectsTrustedCertificateOnApply()
     };
     QVERIFY(!contains(pki.certificates(PkiManager::Category::Trusted)));
     QVERIFY(contains(pki.certificates(PkiManager::Category::Rejected)));
+
+    pki.removeCertificate(der);
+}
+
+///
+/// \brief Long trust-store fields keep their full column width behind a horizontal scrollbar.
+///
+void TestCertificatesDialog::trustStoreTableKeepsLongCellsScrollable()
+{
+    const QString commonName(64, QLatin1Char('W'));
+    const QByteArray der = generateCertificate(commonName);
+    if (der.isEmpty())
+        QSKIP("Certificate generation is unavailable.");
+
+    PkiManager pki;
+    QString error;
+    QVERIFY(pki.setCertificateCategory(der, PkiManager::Category::Trusted, &error));
+
+    CertificatesDialog dialog;
+    auto *table = dialog.findChild<TableView *>(QStringLiteral("tableView"));
+    QVERIFY(table);
+    QVERIFY(table->fullTextHorizontalScroll());
+
+    dialog.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+
+    QCOMPARE(table->sizeAdjustPolicy(), QAbstractScrollArea::AdjustIgnored);
+    QCOMPARE(table->textElideMode(), Qt::ElideNone);
+    QCOMPARE(table->horizontalScrollBarPolicy(), Qt::ScrollBarAsNeeded);
+    QCOMPARE(table->horizontalHeader()->sectionResizeMode(0), QHeaderView::Interactive);
+    QCOMPARE(table->horizontalHeader()->sectionResizeMode(1), QHeaderView::Interactive);
+
+    const int textWidth = table->fontMetrics().horizontalAdvance(commonName);
+    const int textMargin = table->style()->pixelMetric(QStyle::PM_FocusFrameHMargin, nullptr, table) + 1;
+    const int minimumFullTextWidth = textWidth + textMargin * 2 + 16;
+    QVERIFY(table->columnWidth(0) >= minimumFullTextWidth);
+    QVERIFY(table->columnWidth(1) >= minimumFullTextWidth);
+    QVERIFY(table->horizontalHeader()->length() > table->viewport()->width());
+    QVERIFY(table->horizontalScrollBar()->maximum() > 0);
 
     pki.removeCertificate(der);
 }

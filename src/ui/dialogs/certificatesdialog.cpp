@@ -12,9 +12,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QFontMetrics>
 #include <QGridLayout>
-#include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QLabel>
 #include <QLineEdit>
@@ -201,20 +199,6 @@ void CertificatesDialog::setupTrustStore()
     _proxy = new TrustFilterProxyModel(this);
     _proxy->setSourceModel(_model);
     ui->tableView->setModel(_proxy);
-
-    // Name and Issuer share the free width; the compact columns keep an explicit
-    // width (resize-to-contents is unreliable under the qlementine header style).
-    QHeaderView *header = ui->tableView->horizontalHeader();
-    header->setSectionResizeMode(0, QHeaderView::Stretch);
-    header->setSectionResizeMode(1, QHeaderView::Stretch);
-    header->setSectionResizeMode(2, QHeaderView::Interactive);
-    header->setSectionResizeMode(3, QHeaderView::Interactive);
-    const QFontMetrics metrics(ui->tableView->font());
-    const int padding = 32;
-    header->resizeSection(2, qMax(metrics.horizontalAdvance(tr("Expiry Date")),
-                                  metrics.horizontalAdvance(QStringLiteral("0000-00-00 00:00:00"))) + padding);
-    header->resizeSection(3, qMax(metrics.horizontalAdvance(tr("Status")),
-                                  metrics.horizontalAdvance(tr("Trusted")) + 22) + padding);
 
     ui->filterComboBox->addItem(tr("All"), -1);
     ui->filterComboBox->addItem(tr("Trusted"), TargetTrusted);

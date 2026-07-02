@@ -371,6 +371,9 @@ QToolButton:hover:enabled {
           <height>200</height>
          </size>
         </property>
+        <property name="fullTextHorizontalScroll" stdset="0">
+         <bool>true</bool>
+        </property>
         <property name="editTriggers">
          <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
         </property>
