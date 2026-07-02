@@ -46,6 +46,9 @@ void TestCertificateSummaryWidget::hintModeHidesDetailsWhenEmpty()
     QVERIFY(detailsWidget->isHidden());
     QCOMPARE(viewDetailsButton->text(), QStringLiteral("View details"));
     QCOMPARE(viewDetailsButton->iconName(), QStringLiteral("file-text"));
+    QVERIFY(viewDetailsButton->linkStyle());
+    QVERIFY(viewDetailsButton->styleSheet().isEmpty());
+    QCOMPARE(viewDetailsButton->cursor().shape(), Qt::PointingHandCursor);
     QVERIFY(!viewDetailsButton->isEnabled());
     QVERIFY(widget.certificate().isEmpty());
 }
