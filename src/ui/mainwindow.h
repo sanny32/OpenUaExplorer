@@ -12,6 +12,7 @@
 #include <QSet>
 
 #include "appsettings.h"
+#include "models/subscriptionitem.h"
 #include "opcua/certificatetrustdecider.h"
 #include "opcua/opcuatypes.h"
 
@@ -58,6 +59,12 @@ private slots:
     void on_actionSubscribe_triggered();
     void on_actionUnsubscribe_triggered();
     void on_actionAddToDataAccess_triggered();
+    void on_actionRemoveFromDataAccess_triggered();
+    void on_actionClearDataAccess_triggered();
+    void on_actionSetSubscriptionNone_triggered();
+    void on_actionSetSubscriptionDefault_triggered();
+    void on_actionSetSubscriptionFast_triggered();
+    void on_actionSetSubscriptionCustom_triggered();
     void on_actionReadDataHistory_triggered();
     void on_actionReadEventsHistory_triggered();
     void on_actionExit_triggered();
@@ -92,6 +99,9 @@ private:
     void updateClientUi(OpcUaConnectionState state);
     void initializeAddressSpace();
     void addNodeToDataAccess(const QString &nodeId);
+    SubscriptionItem builtinSubscription(bool fast) const;
+    void onDataAccessNodeCountChanged(int count);
+    void updateDataAccessSelectionActions();
     void showWriteDialog(const QString &nodeId, const QVariant &value, int valueType,
                          const QString &dataTypeId, bool writable);
     void rebuildRecentConnections();

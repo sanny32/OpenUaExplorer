@@ -334,6 +334,14 @@ void DataView::setNodeSubscribed(const QString &nodeId, bool subscribed)
 }
 
 ///
+/// \brief Removes every node from the Data Access page, cancelling their monitoring.
+///
+void DataView::clearDataAccessNodes()
+{
+    ui->dataAccessWidget->removeAllNodes();
+}
+
+///
 /// \brief Clears the data, subscriptions, live events, and history tabs.
 ///
 void DataView::clearRuntimeData()

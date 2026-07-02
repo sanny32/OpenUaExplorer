@@ -202,6 +202,11 @@ public:
     void setNodeSubscribed(const QString &nodeId, bool subscribed);
 
     ///
+    /// \brief Removes every node from the Data Access page, cancelling their monitoring.
+    ///
+    void clearDataAccessNodes();
+
+    ///
     /// \brief Clears the data, subscriptions, live events, and history tabs.
     ///
     void clearRuntimeData();

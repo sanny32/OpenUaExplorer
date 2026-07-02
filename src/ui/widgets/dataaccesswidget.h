@@ -73,6 +73,33 @@ public:
     void setNodeSubscribed(const QString &nodeId, bool subscribed);
 
     ///
+    /// \brief Assigns a subscription (or clears it) on every selected data row.
+    /// \param subscriptionName Subscription to assign, or empty to unsubscribe.
+    ///
+    void applySubscriptionToSelection(const QString &subscriptionName);
+
+    ///
+    /// \brief Prompts for a new subscription and assigns it to the selected data rows.
+    ///
+    void promptSubscriptionForSelection();
+
+    ///
+    /// \brief Reports whether any data-access row is selected.
+    /// \return True when at least one row is selected.
+    ///
+    bool hasSelection() const;
+
+    ///
+    /// \brief Removes the selected data-access nodes, cancelling monitoring for subscribed ones.
+    ///
+    void removeSelectedNodes();
+
+    ///
+    /// \brief Removes every data-access node, cancelling monitoring for subscribed nodes.
+    ///
+    void removeAllNodes();
+
+    ///
     /// \brief Removes all data-access rows.
     ///
     void clear();
@@ -171,6 +198,17 @@ signals:
     ///
     void subscriptionCreationRequested(QString name, double publishingInterval);
 
+    ///
+    /// \brief Emitted whenever the number of data-access rows changes.
+    /// \param count Current data-access row count.
+    ///
+    void nodeCountChanged(int count);
+
+    ///
+    /// \brief Emitted whenever the data-access row selection changes.
+    ///
+    void selectionChanged();
+
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
@@ -178,13 +216,10 @@ private:
     void setupDataView();
     void configureToolbar();
     void showDataContextMenu(const QPoint &pos);
-    void removeSelectedNodes();
     void readSelectedNodes();
     void writeSelectedNode();
-    void removeAllNodes();
     void rebuildSubscribeMenu();
     void populateSubscribeMenu(QMenu *menu);
-    void applySubscriptionToSelection(const QString &subscriptionName);
     void promptNewSubscription(const QString &nodeId);
     QStringList subscriptionNames() const;
     double intervalFor(const QString &name) const;

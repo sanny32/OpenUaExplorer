@@ -252,6 +252,54 @@ void MainWindow::on_actionAddToDataAccess_triggered()
 }
 
 ///
+/// \brief Removes the selected data-access nodes from the data-access view.
+///
+void MainWindow::on_actionRemoveFromDataAccess_triggered()
+{
+    ui->dataView->dataAccess()->removeSelectedNodes();
+}
+
+///
+/// \brief Removes every node from the data-access view.
+///
+void MainWindow::on_actionClearDataAccess_triggered()
+{
+    ui->dataView->clearDataAccessNodes();
+}
+
+///
+/// \brief Unsubscribes the selected data-access nodes, leaving them in the view.
+///
+void MainWindow::on_actionSetSubscriptionNone_triggered()
+{
+    ui->dataView->dataAccess()->applySubscriptionToSelection(QString());
+}
+
+///
+/// \brief Assigns the selected data-access nodes to the built-in Default subscription.
+///
+void MainWindow::on_actionSetSubscriptionDefault_triggered()
+{
+    ui->dataView->dataAccess()->applySubscriptionToSelection(builtinSubscription(false).name);
+}
+
+///
+/// \brief Assigns the selected data-access nodes to the built-in Fast subscription.
+///
+void MainWindow::on_actionSetSubscriptionFast_triggered()
+{
+    ui->dataView->dataAccess()->applySubscriptionToSelection(builtinSubscription(true).name);
+}
+
+///
+/// \brief Creates a new subscription and assigns the selected data-access nodes to it.
+///
+void MainWindow::on_actionSetSubscriptionCustom_triggered()
+{
+    ui->dataView->dataAccess()->promptSubscriptionForSelection();
+}
+
+///
 /// \brief Reads the data history of the selected variable node.
 ///
 void MainWindow::on_actionReadDataHistory_triggered()
@@ -648,6 +696,10 @@ void MainWindow::setupDataAccessWiring()
             _dataAccessPlugin, &DataAccessModule::subscribe);
     connect(ui->dataView->dataAccess(), &DataAccessWidget::monitoringCancelled,
             _dataAccessPlugin, &DataAccessModule::unsubscribe);
+    connect(ui->dataView->dataAccess(), &DataAccessWidget::nodeCountChanged,
+            this, &MainWindow::onDataAccessNodeCountChanged);
+    connect(ui->dataView->dataAccess(), &DataAccessWidget::selectionChanged,
+            this, &MainWindow::updateDataAccessSelectionActions);
     connect(_dataAccessPlugin, &DataAccessModule::valuesReady,
             this, &MainWindow::onDataValuesReady);
     if (OpcUa::isHistoryReadSupported()) {
@@ -955,6 +1007,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     ui->actionBrowseAddressSpace->setEnabled(connected);
     ui->actionRefresh->setEnabled(connected);
     updateMonitoringActions();
+    updateDataAccessSelectionActions();
     if (connected) {
         initializeAddressSpace();
     } else if (state == OpcUaConnectionState::Disconnected
@@ -988,6 +1041,56 @@ void MainWindow::addNodeToDataAccess(const QString &nodeId)
         return;
     _pendingDataAccessNodeIds.insert(nodeId);
     _attributePlugin->read(nodeId);
+}
+
+///
+/// \brief Returns the built-in Default or Fast subscription from the current list.
+/// \param fast True for the Fast subscription, false for the Default subscription.
+/// \return Matching subscription, or a sensible fallback when it is missing.
+///
+SubscriptionItem MainWindow::builtinSubscription(bool fast) const
+{
+    const QVector<SubscriptionItem> items = ui->dataView->subscriptions()->subscriptions();
+    for (const SubscriptionItem &item : items) {
+        const bool matches = fast ? (item.isBuiltin() && !item.isDefault()) : item.isDefault();
+        if (matches)
+            return item;
+    }
+
+    SubscriptionItem fallback;
+    fallback.builtin = true;
+    if (fast) {
+        fallback.name = tr("Fast");
+        fallback.publishingInterval = 250.0;
+        fallback.id = 1;
+    } else {
+        fallback.name = tr("Default");
+    }
+    return fallback;
+}
+
+///
+/// \brief Enables the data-access clear/remove actions for the current row count.
+/// \param count Current number of data-access rows.
+///
+void MainWindow::onDataAccessNodeCountChanged(int count)
+{
+    ui->actionClearDataAccess->setEnabled(count > 0);
+    updateDataAccessSelectionActions();
+}
+
+///
+/// \brief Enables the data-access selection actions (Remove and Set Subscription).
+///
+void MainWindow::updateDataAccessSelectionActions()
+{
+    const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
+    const bool actionable = connected && ui->dataView->dataAccess()->hasSelection();
+    ui->actionRemoveFromDataAccess->setEnabled(actionable);
+    ui->actionSetSubscriptionNone->setEnabled(actionable);
+    ui->actionSetSubscriptionDefault->setEnabled(actionable);
+    ui->actionSetSubscriptionFast->setEnabled(actionable);
+    ui->actionSetSubscriptionCustom->setEnabled(actionable);
 }
 
 ///

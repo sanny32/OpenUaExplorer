@@ -137,6 +137,15 @@ void DataAccessWidget::setNodeSubscribed(const QString &nodeId, bool subscribed)
 }
 
 ///
+/// \brief Reports whether any data-access row is selected.
+/// \return True when at least one row is selected.
+///
+bool DataAccessWidget::hasSelection() const
+{
+    return !ui->dataView->selectionModel()->selectedRows().isEmpty();
+}
+
+///
 /// \brief Removes all data-access rows.
 ///
 void DataAccessWidget::clear()
@@ -277,6 +286,11 @@ void DataAccessWidget::setupDataView()
 {
     ui->dataView->setModel(_dataModel);
 
+    const auto emitNodeCount = [this] { emit nodeCountChanged(_dataModel->rowCount()); };
+    connect(_dataModel, &QAbstractItemModel::rowsInserted, this, emitNodeCount);
+    connect(_dataModel, &QAbstractItemModel::rowsRemoved, this, emitNodeCount);
+    connect(_dataModel, &QAbstractItemModel::modelReset, this, emitNodeCount);
+
     _subscriptionDelegate = new SubscriptionDelegate(_subscriptions, ui->dataView);
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, _subscriptionDelegate);
     connect(_subscriptionDelegate, &SubscriptionDelegate::subscriptionChanged, this,
@@ -346,6 +360,7 @@ void DataAccessWidget::setupDataView()
         ui->readButton->setEnabled(hasSelection);
         ui->writeButton->setEnabled(selectedCount == 1);
         ui->subscribeButton->setEnabled(hasSelection);
+        emit selectionChanged();
     });
 }
 
@@ -415,11 +430,17 @@ void DataAccessWidget::showDataContextMenu(const QPoint &pos)
 }
 
 ///
-/// \brief Removes the selected data-access nodes.
+/// \brief Removes the selected data-access nodes, cancelling monitoring for subscribed ones.
 ///
 void DataAccessWidget::removeSelectedNodes()
 {
-    _dataModel->removeRows(selectedDataRows());
+    const QModelIndexList rows = selectedDataRows();
+    for (const QModelIndex &idx : rows) {
+        const DataAccessItem item = _dataModel->itemAt(idx.row());
+        if (!item.subscriptionName.isEmpty())
+            emit monitoringCancelled(item.nodeId);
+    }
+    _dataModel->removeRows(rows);
 }
 
 ///
@@ -501,6 +522,23 @@ void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionN
         else
             emit monitoringRequested(nodeId, interval);
     }
+}
+
+///
+/// \brief Prompts for a new subscription and assigns it to the selected data rows.
+///
+void DataAccessWidget::promptSubscriptionForSelection()
+{
+    if (!hasSelection())
+        return;
+
+    NewSubscriptionDialog dialog(subscriptionNames(), this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    const QString name = dialog.subscriptionName();
+    emit subscriptionCreationRequested(name, dialog.publishingInterval());
+    applySubscriptionToSelection(name);
 }
 
 ///
