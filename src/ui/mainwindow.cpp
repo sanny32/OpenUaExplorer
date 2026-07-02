@@ -6,35 +6,24 @@
 /// \brief Implements the main application window.
 ///
 
-#include <algorithm>
-
 #include <QAction>
 #include <QCloseEvent>
-#include <QDateTime>
 #include <QEvent>
-#include <QList>
 #include <QMenu>
-#include <QMessageBox>
 
 #include "appicons.h"
 #include "application.h"
 #include "appsettings.h"
 #include "dialogs/certificatesdialog.h"
-#include "dialogs/certificatetrustdialog.h"
 #include "dialogs/dialogabout.h"
-#include "dialogs/connectioncredentialsdialog.h"
-#include "dialogs/connectiondialog.h"
-#include "dialogs/editfavoritedialog.h"
-#include "dialogs/endpointsettingsdialog.h"
 #include "dialogs/settingsdialog.h"
-#include "dialogs/writevaluedialog.h"
 #include "features/builtinfeatures.h"
 #include "features/featurehost.h"
 #include "features/featuremanager.h"
 #include "features/selectioncontext.h"
-#include "loggingcategories.h"
 #include "mainwindow.h"
-#include "favoritescoordinator.h"
+#include "connectioncoordinator.h"
+#include "dataaccesscoordinator.h"
 #include "themecoordinator.h"
 #include "opcua/connectioncontroller.h"
 #include "opcua/opcuaclientservice.h"
@@ -47,15 +36,8 @@
 #include "referencemodule.h"
 #include "servermodule.h"
 #include "ui_mainwindow.h"
-#include "widgets/dataaccesswidget.h"
-#include "widgets/dataview.h"
-#include "widgets/eventshistorywidget.h"
-#include "widgets/eventswidget.h"
-#include "widgets/datahistorywidget.h"
 #include "widgets/maintoolbar.h"
-#include "widgets/subscriptionswidget.h"
 #include "widgets/themedtoolbutton.h"
-#include "widgets/trendpanelwidget.h"
 
 
 ///
@@ -90,7 +72,6 @@ MainWindow::MainWindow(QWidget *parent)
     setupOpcUaClient();
     setupPlugins();
     resetLayout();
-    rebuildRecentConnections();
     restoreSettings();
     updateClientUi(_clientService->state());
 }
@@ -131,7 +112,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 ///
 void MainWindow::on_actionNewConnection_triggered()
 {
-    openConnectionDialog();
+    _connectionCoordinator->openConnectionDialog();
 }
 
 ///
@@ -139,7 +120,7 @@ void MainWindow::on_actionNewConnection_triggered()
 ///
 void MainWindow::on_actionConnect_triggered()
 {
-    openConnectionDialog();
+    _connectionCoordinator->openConnectionDialog();
 }
 
 ///
@@ -147,7 +128,7 @@ void MainWindow::on_actionConnect_triggered()
 ///
 void MainWindow::on_actionDisconnect_triggered()
 {
-    _clientService->disconnectFromEndpoint();
+    _connectionCoordinator->disconnectFromServer();
 }
 
 ///
@@ -182,10 +163,7 @@ void MainWindow::on_actionRefresh_triggered()
 ///
 void MainWindow::on_actionEndpointSettings_triggered()
 {
-    EndpointSettingsDialog dialog(this);
-    dialog.setProfile(_connectionController->activeProfile());
-    dialog.setServerCertificate(_clientService->activeServerCertificate());
-    dialog.exec();
+    _connectionCoordinator->showEndpointSettings();
 }
 
 ///
@@ -202,9 +180,7 @@ void MainWindow::on_actionCertificates_triggered()
 ///
 void MainWindow::on_actionRead_triggered()
 {
-    const OpcUaNodeInfo selected = _selectionContext->currentNode();
-    if (!selected.nodeId.isEmpty())
-        _attributePlugin->read(selected.nodeId);
+    _dataAccessCoordinator->readSelected();
 }
 
 ///
@@ -212,7 +188,7 @@ void MainWindow::on_actionRead_triggered()
 ///
 void MainWindow::on_actionReadSelected_triggered()
 {
-    on_actionRead_triggered();
+    _dataAccessCoordinator->readSelected();
 }
 
 ///
@@ -220,11 +196,7 @@ void MainWindow::on_actionReadSelected_triggered()
 ///
 void MainWindow::on_actionWrite_triggered()
 {
-    if (_selectedNodeDetails.nodeId.isEmpty())
-        return;
-    showWriteDialog(_selectedNodeDetails.nodeId, _selectedNodeDetails.value,
-                    _selectedNodeDetails.valueType, _selectedNodeDetails.dataTypeId,
-                    OpcUa::isWritable(_selectedNodeDetails.userAccessLevel));
+    _dataAccessCoordinator->writeSelected();
 }
 
 ///
@@ -232,7 +204,7 @@ void MainWindow::on_actionWrite_triggered()
 ///
 void MainWindow::on_actionWriteValue_triggered()
 {
-    on_actionWrite_triggered();
+    _dataAccessCoordinator->writeSelected();
 }
 
 ///
@@ -240,14 +212,7 @@ void MainWindow::on_actionWriteValue_triggered()
 ///
 void MainWindow::on_actionSubscribe_triggered()
 {
-    if (!OpcUa::isVariable(_selectedNodeDetails.nodeClass)
-        || _selectedNodeDetails.nodeId.isEmpty()) {
-        return;
-    }
-    ui->dataView->addNode(_selectedNodeDetails);
-    _pendingMonitoringNodeIds.insert(_selectedNodeDetails.nodeId);
-    updateMonitoringActions();
-    _dataAccessPlugin->subscribe(_selectedNodeDetails.nodeId);
+    _dataAccessCoordinator->subscribeSelected();
 }
 
 ///
@@ -255,13 +220,7 @@ void MainWindow::on_actionSubscribe_triggered()
 ///
 void MainWindow::on_actionUnsubscribe_triggered()
 {
-    if (_selectedNodeDetails.nodeId.isEmpty()
-        || !_subscribedNodeIds.contains(_selectedNodeDetails.nodeId)) {
-        return;
-    }
-    _pendingMonitoringNodeIds.insert(_selectedNodeDetails.nodeId);
-    updateMonitoringActions();
-    _dataAccessPlugin->unsubscribe(_selectedNodeDetails.nodeId);
+    _dataAccessCoordinator->unsubscribeSelected();
 }
 
 ///
@@ -269,8 +228,7 @@ void MainWindow::on_actionUnsubscribe_triggered()
 ///
 void MainWindow::on_actionAddToDataAccess_triggered()
 {
-    if (OpcUa::isVariable(_selectedNodeDetails.nodeClass))
-        ui->dataView->addNode(_selectedNodeDetails);
+    _dataAccessCoordinator->addSelectedToView();
 }
 
 ///
@@ -278,7 +236,7 @@ void MainWindow::on_actionAddToDataAccess_triggered()
 ///
 void MainWindow::on_actionRemoveFromDataAccess_triggered()
 {
-    ui->dataView->dataAccess()->removeSelectedNodes();
+    _dataAccessCoordinator->removeSelectionFromView();
 }
 
 ///
@@ -286,7 +244,7 @@ void MainWindow::on_actionRemoveFromDataAccess_triggered()
 ///
 void MainWindow::on_actionClearDataAccess_triggered()
 {
-    ui->dataView->clearDataAccessNodes();
+    _dataAccessCoordinator->clearView();
 }
 
 ///
@@ -294,7 +252,7 @@ void MainWindow::on_actionClearDataAccess_triggered()
 ///
 void MainWindow::on_actionSetSubscriptionNone_triggered()
 {
-    ui->dataView->dataAccess()->applySubscriptionToSelection(QString());
+    _dataAccessCoordinator->applyNoSubscription();
 }
 
 ///
@@ -302,7 +260,7 @@ void MainWindow::on_actionSetSubscriptionNone_triggered()
 ///
 void MainWindow::on_actionSetSubscriptionDefault_triggered()
 {
-    ui->dataView->dataAccess()->applySubscriptionToSelection(builtinSubscription(false).name);
+    _dataAccessCoordinator->applyDefaultSubscription();
 }
 
 ///
@@ -310,7 +268,7 @@ void MainWindow::on_actionSetSubscriptionDefault_triggered()
 ///
 void MainWindow::on_actionSetSubscriptionFast_triggered()
 {
-    ui->dataView->dataAccess()->applySubscriptionToSelection(builtinSubscription(true).name);
+    _dataAccessCoordinator->applyFastSubscription();
 }
 
 ///
@@ -318,7 +276,7 @@ void MainWindow::on_actionSetSubscriptionFast_triggered()
 ///
 void MainWindow::on_actionSetSubscriptionCustom_triggered()
 {
-    ui->dataView->dataAccess()->promptSubscriptionForSelection();
+    _dataAccessCoordinator->promptCustomSubscription();
 }
 
 ///
@@ -326,11 +284,7 @@ void MainWindow::on_actionSetSubscriptionCustom_triggered()
 ///
 void MainWindow::on_actionReadDataHistory_triggered()
 {
-    if (OpcUa::canReadHistory(_selectedNodeDetails))
-        ui->dataView->requestDataHistoryForNode(
-            _selectedNodeDetails.nodeId,
-            _selectedNodeDetails.displayName,
-            _selectionContext->currentNode().displayPath);
+    _dataAccessCoordinator->readDataHistoryForSelected();
 }
 
 ///
@@ -338,11 +292,7 @@ void MainWindow::on_actionReadDataHistory_triggered()
 ///
 void MainWindow::on_actionReadEventsHistory_triggered()
 {
-    if (OpcUa::canReadEventHistory(_selectedNodeDetails))
-        ui->dataView->requestEventsHistoryForNode(
-            _selectedNodeDetails.nodeId,
-            _selectedNodeDetails.displayName,
-            _selectionContext->currentNode().displayPath);
+    _dataAccessCoordinator->readEventsHistoryForSelected();
 }
 
 ///
@@ -383,7 +333,7 @@ void MainWindow::on_actionAbout_triggered()
 ///
 void MainWindow::on_actionViewDataAccess_triggered()
 {
-    ui->dataView->setCurrentPage(DataView::DataAccessPage);
+    _dataAccessCoordinator->showDataAccessPage();
 }
 
 ///
@@ -391,7 +341,7 @@ void MainWindow::on_actionViewDataAccess_triggered()
 ///
 void MainWindow::on_actionManageSubscriptions_triggered()
 {
-    ui->dataView->showSubscriptionsDialog();
+    _dataAccessCoordinator->showSubscriptionsDialog();
 }
 
 ///
@@ -399,7 +349,7 @@ void MainWindow::on_actionManageSubscriptions_triggered()
 ///
 void MainWindow::on_actionViewEvents_triggered()
 {
-    ui->dataView->setCurrentPage(DataView::EventsPage);
+    _dataAccessCoordinator->showEventsPage();
 }
 
 ///
@@ -407,9 +357,7 @@ void MainWindow::on_actionViewEvents_triggered()
 ///
 void MainWindow::on_actionViewDataHistory_triggered()
 {
-    if (!OpcUa::isHistoryReadSupported())
-        return;
-    ui->dataView->setCurrentPage(DataView::DataHistoryPage);
+    _dataAccessCoordinator->showDataHistoryPage();
 }
 
 ///
@@ -417,9 +365,7 @@ void MainWindow::on_actionViewDataHistory_triggered()
 ///
 void MainWindow::on_actionViewEventsHistory_triggered()
 {
-    if (!OpcUa::isHistoryReadSupported())
-        return;
-    ui->dataView->setCurrentPage(DataView::EventsHistoryPage);
+    _dataAccessCoordinator->showEventsHistoryPage();
 }
 
 ///
@@ -428,34 +374,6 @@ void MainWindow::on_actionViewEventsHistory_triggered()
 void MainWindow::on_actionResetLayout_triggered()
 {
     resetLayout();
-}
-
-///
-/// \brief Runs the connection dialog and connects (optionally saving) the chosen profile.
-///
-void MainWindow::openConnectionDialog(const ConnectionProfile *preset)
-{
-    ConnectionDialog dialog(this);
-    dialog.setClientService(_clientService);
-    if (preset)
-        dialog.setProfile(*preset);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-
-    // Editing an existing favourite saves the changes back to it; a plain connect does not
-    // touch favourites, so reconnecting a server with different security never overwrites it.
-    const QList<ConnectionProfile> favorites = _connectionController->profiles();
-    const bool editingFavorite = preset && std::any_of(
-        favorites.cbegin(), favorites.cend(), [preset](const ConnectionProfile &favorite) {
-            return favorite.id == preset->id;
-        });
-    const ConnectionProfile profile = dialog.profile();
-    if (editingFavorite) {
-        _connectionController->saveProfile(
-            profile, dialog.password(), dialog.privateKeyPassword());
-    }
-    _connectionController->connectNewProfile(
-        profile, dialog.password(), dialog.privateKeyPassword());
 }
 
 ///
@@ -495,11 +413,8 @@ void MainWindow::saveSettings()
     settings.setWindowGeometry(saveGeometry());
     settings.setWindowState(saveState());
     settings.setCentralSplitterState(ui->centralSplitter->saveState());
-    settings.setDataAccessPage(ui->dataView->currentPage());
     _featureManager->saveState(settings);
-    ui->dataView->saveViewState(settings);
-    ui->dataView->subscriptions()->saveSubscriptions(settings);
-    ui->trendPanelWidget->saveViewState(settings);
+    _dataAccessCoordinator->saveState(settings);
 }
 
 ///
@@ -511,7 +426,7 @@ void MainWindow::saveSettings()
 void MainWindow::restoreSettings()
 {
     AppSettings settings;
-    ui->dataView->subscriptions()->loadSubscriptions(settings);
+    _dataAccessCoordinator->loadSubscriptions(settings);
 
     if (!settings.restoreLayoutOnStartup())
         return;
@@ -528,69 +443,8 @@ void MainWindow::restoreSettings()
     if (!splitterState.isEmpty())
         ui->centralSplitter->restoreState(splitterState);
 
-    ui->dataView->setCurrentPage(
-        static_cast<DataView::Page>(settings.dataAccessPage()));
-
     _featureManager->restoreState(settings);
-    ui->dataView->restoreViewState(settings);
-    ui->trendPanelWidget->restoreViewState(settings);
-}
-
-///
-/// \brief Reflects the saved colour-scheme mode in the toolbar icon and Theme submenu.
-///
-void MainWindow::updateThemeControls()
-{
-    if (!ui)
-        return;
-
-    switch (AppSettings().themeMode()) {
-    case AppSettings::ThemeMode::Light:
-        ui->actionTheme->setIcon(AppIcons::themed(QStringLiteral("theme-light")));
-        ui->actionTheme->setToolTip(tr("Theme: Light — click to switch to Dark"));
-        ui->actionThemeLight->setChecked(true);
-        break;
-    case AppSettings::ThemeMode::Dark:
-        ui->actionTheme->setIcon(AppIcons::themed(QStringLiteral("theme-dark")));
-        ui->actionTheme->setToolTip(tr("Theme: Dark — click to switch to System"));
-        ui->actionThemeDark->setChecked(true);
-        break;
-    case AppSettings::ThemeMode::System:
-        ui->actionTheme->setIcon(AppIcons::themed(QStringLiteral("theme-system")));
-        ui->actionTheme->setToolTip(tr("Theme: System — click to switch to Light"));
-        ui->actionThemeSystem->setChecked(true);
-        break;
-    }
-}
-
-///
-/// \brief Advances the colour scheme to the next mode: Light → Dark → System → Light.
-///
-void MainWindow::cycleTheme()
-{
-    AppSettings::ThemeMode next = AppSettings::ThemeMode::Light;
-    switch (AppSettings().themeMode()) {
-    case AppSettings::ThemeMode::Light:
-        next = AppSettings::ThemeMode::Dark;
-        break;
-    case AppSettings::ThemeMode::Dark:
-        next = AppSettings::ThemeMode::System;
-        break;
-    case AppSettings::ThemeMode::System:
-        next = AppSettings::ThemeMode::Light;
-        break;
-    }
-    applyThemeMode(next);
-}
-
-///
-/// \brief Applies and persists a colour-scheme mode, then refreshes the theme controls.
-/// \param mode Light, Dark or System mode to activate.
-///
-void MainWindow::applyThemeMode(AppSettings::ThemeMode mode)
-{
-    theApp()->theme().setColorSchemePreference(mode);
-    updateThemeControls();
+    _dataAccessCoordinator->restoreState(settings);
 }
 
 ///
@@ -621,29 +475,21 @@ void MainWindow::setupOpcUaClient()
 {
     connect(_clientService, &OpcUaClientService::stateChanged,
             this, &MainWindow::updateClientUi);
-    connect(ui->dataView->dataAccess(), &DataAccessWidget::addSelectedNodeRequested,
-            this, &MainWindow::on_actionAddToDataAccess_triggered);
-    connect(ui->dataView->dataAccess(), &DataAccessWidget::nodeDropRequested,
-            this, &MainWindow::addNodeToDataAccess);
-    connect(ui->dataView->dataAccess(), &DataAccessWidget::writeRequested,
-            this, &MainWindow::showWriteDialog);
-    connect(_connectionController, &ConnectionController::recentsChanged,
-            this, &MainWindow::rebuildRecentConnections);
 
-    _favoritesCoordinator = new FavoritesCoordinator(_connectionController,
-                                                     _clientService,
-                                                     this);
-    connect(_favoritesCoordinator, &FavoritesCoordinator::connectRequested,
-            this, &MainWindow::connectFavorite);
-    connect(_favoritesCoordinator, &FavoritesCoordinator::editRequested,
-            this, &MainWindow::editFavorite);
-    connect(_favoritesCoordinator, &FavoritesCoordinator::addFavoriteRequested,
-            this, &MainWindow::addCurrentToFavorites);
-    connect(ui->mainToolBar->favoritesButton(), &QToolButton::clicked,
-            this, &MainWindow::openFavorites);
-    connect(_connectionController, &ConnectionController::errorOccurred,
-            this, &MainWindow::onClientError);
-    _connectionController->setCertificateTrustDecider(this);
+    ConnectionActions connectionActions;
+    connectionActions.connect = ui->actionConnect;
+    connectionActions.newConnection = ui->actionNewConnection;
+    connectionActions.disconnect = ui->actionDisconnect;
+    connectionActions.browse = ui->actionBrowse;
+    connectionActions.browseAddressSpace = ui->actionBrowseAddressSpace;
+    connectionActions.refresh = ui->actionRefresh;
+    connectionActions.endpointSettings = ui->actionEndpointSettings;
+    _connectionCoordinator = new ConnectionCoordinator(_connectionController,
+                                                       _clientService,
+                                                       ui->menuRecentConnections,
+                                                       ui->mainToolBar->favoritesButton(),
+                                                       connectionActions,
+                                                       this);
     ui->statusbar->setConnectionController(_connectionController);
 }
 
@@ -684,340 +530,35 @@ void MainWindow::setupPlugins()
     ServiceContext context(_clientService, _connectionController);
     _pluginManager->initializeAll(context);
 
-    connect(_attributePlugin, &AttributeModule::attributesReady,
-            this, &MainWindow::onAttributeDetailsReady);
-    connect(_selectionContext, &SelectionContext::detailsReady,
-            this, &MainWindow::onNodeDetailsReady);
-    connect(_selectionContext, &SelectionContext::cleared,
-            this, &MainWindow::onSelectionCleared);
-    if (OpcUa::isHistoryReadSupported()) {
-        connect(_selectionContext, &SelectionContext::historyReadRequested,
-                this, [this](const OpcUaNodeInfo &node) {
-            ui->dataView->requestDataHistoryForNode(node.nodeId, node.displayName, node.displayPath);
-        });
-        connect(_selectionContext, &SelectionContext::eventsHistoryReadRequested,
-                this, [this](const OpcUaNodeInfo &node) {
-            ui->dataView->requestEventsHistoryForNode(node.nodeId, node.displayName,
-                                                      node.displayPath);
-        });
-    }
-    connect(_attributePlugin, &AttributeModule::writeFinished,
-            this, &MainWindow::onWriteFinished);
-
-    setupDataAccessWiring();
+    DataAccessActions dataAccessActions;
+    dataAccessActions.read = ui->actionRead;
+    dataAccessActions.readSelected = ui->actionReadSelected;
+    dataAccessActions.write = ui->actionWrite;
+    dataAccessActions.writeValue = ui->actionWriteValue;
+    dataAccessActions.subscribe = ui->actionSubscribe;
+    dataAccessActions.unsubscribe = ui->actionUnsubscribe;
+    dataAccessActions.addToDataAccess = ui->actionAddToDataAccess;
+    dataAccessActions.removeFromDataAccess = ui->actionRemoveFromDataAccess;
+    dataAccessActions.clearDataAccess = ui->actionClearDataAccess;
+    dataAccessActions.setSubscriptionNone = ui->actionSetSubscriptionNone;
+    dataAccessActions.setSubscriptionDefault = ui->actionSetSubscriptionDefault;
+    dataAccessActions.setSubscriptionFast = ui->actionSetSubscriptionFast;
+    dataAccessActions.setSubscriptionCustom = ui->actionSetSubscriptionCustom;
+    dataAccessActions.readDataHistory = ui->actionReadDataHistory;
+    dataAccessActions.readEventsHistory = ui->actionReadEventsHistory;
+    _dataAccessCoordinator = new DataAccessCoordinator(ui->dataView,
+                                                       ui->trendPanelWidget,
+                                                       _dataAccessPlugin,
+                                                       _eventsPlugin,
+                                                       _attributePlugin,
+                                                       _selectionContext,
+                                                       _clientService,
+                                                       dataAccessActions,
+                                                       this);
 }
 
 ///
-/// \brief Connects the data-access view and its plugin for reads and monitoring.
-///
-/// The data-access area is a central-widget monitoring controller, not a dock feature:
-/// this groups its plugin wiring so the coupling stays discoverable in one place.
-///
-void MainWindow::setupDataAccessWiring()
-{
-    connect(ui->dataView->dataAccess(), &DataAccessWidget::readRequested,
-            _dataAccessPlugin, &DataAccessModule::read);
-    connect(ui->dataView->dataAccess(), &DataAccessWidget::monitoringRequested,
-            _dataAccessPlugin, &DataAccessModule::subscribe);
-    connect(ui->dataView->dataAccess(), &DataAccessWidget::monitoringCancelled,
-            _dataAccessPlugin, &DataAccessModule::unsubscribe);
-    connect(ui->dataView->dataAccess(), &DataAccessWidget::nodeCountChanged,
-            this, &MainWindow::onDataAccessNodeCountChanged);
-    connect(ui->dataView->dataAccess(), &DataAccessWidget::selectionChanged,
-            this, &MainWindow::updateDataAccessSelectionActions);
-    connect(_dataAccessPlugin, &DataAccessModule::valuesReady,
-            this, &MainWindow::onDataValuesReady);
-    if (OpcUa::isHistoryReadSupported()) {
-        connect(ui->dataView->dataHistory(), &DataHistoryWidget::dataHistoryReadRequested,
-                _dataAccessPlugin, &DataAccessModule::readHistory);
-        connect(_dataAccessPlugin, &DataAccessModule::historyReady,
-                this, &MainWindow::onHistoryReady);
-        connect(ui->dataView->eventsHistory(), &EventsHistoryWidget::eventsHistoryReadRequested,
-                _eventsPlugin, &EventsModule::readHistory);
-        connect(_eventsPlugin, &EventsModule::eventsHistoryReady,
-                this, &MainWindow::onEventsHistoryReady);
-        connect(ui->trendPanelWidget, &TrendPanelWidget::historyReadRequested,
-                _dataAccessPlugin, &DataAccessModule::readHistory);
-    }
-    connect(ui->trendPanelWidget, &TrendPanelWidget::subscribeRequested,
-            _dataAccessPlugin, &DataAccessModule::subscribe);
-    connect(ui->trendPanelWidget, &TrendPanelWidget::unsubscribeRequested,
-            _dataAccessPlugin, &DataAccessModule::unsubscribe);
-
-    SubscriptionsWidget *subscriptions = ui->dataView->subscriptions();
-    ui->trendPanelWidget->setSubscriptions(subscriptions->subscriptions());
-    connect(subscriptions, &SubscriptionsWidget::subscriptionsChanged,
-            ui->trendPanelWidget, &TrendPanelWidget::setSubscriptions);
-    connect(subscriptions, &SubscriptionsWidget::subscriptionRenamed,
-            ui->trendPanelWidget, &TrendPanelWidget::applySubscriptionRename);
-    connect(ui->trendPanelWidget, &TrendPanelWidget::subscriptionCreationRequested,
-            subscriptions, &SubscriptionsWidget::createSubscription);
-    connect(_dataAccessPlugin, &DataAccessModule::monitoringFinished,
-            this, &MainWindow::onMonitoringFinished);
-    connect(_selectionContext, &SelectionContext::eventMonitorRequested, this,
-            [this](const OpcUaNodeInfo &node) {
-        ui->dataView->requestEventMonitoringForNode(node.nodeId, node.displayName,
-                                                    node.displayPath);
-    });
-    connect(_selectionContext, &SelectionContext::addToTrendRequested, this,
-            [this](const OpcUaNodeInfo &node) {
-        const QString name = node.displayName.isEmpty() ? node.browseName : node.displayName;
-        ui->trendPanelWidget->addNode(node.nodeId, name, node.displayPath);
-    });
-    connect(_selectionContext, &SelectionContext::subscribeRequested, this,
-            [this](const OpcUaNodeInfo &node) {
-        addNodeToDataAccess(node.nodeId);
-    });
-    connect(_selectionContext, &SelectionContext::unsubscribeRequested, this,
-            [this](const OpcUaNodeInfo &node) {
-        if (node.nodeId.isEmpty() || !_subscribedNodeIds.contains(node.nodeId))
-            return;
-        _pendingMonitoringNodeIds.insert(node.nodeId);
-        updateMonitoringActions();
-        _dataAccessPlugin->unsubscribe(node.nodeId);
-    });
-    connect(ui->dataView->events(), &EventsWidget::eventSubscribeRequested,
-            _eventsPlugin, &EventsModule::subscribeEvents);
-    connect(ui->dataView->events(), &EventsWidget::eventUnsubscribeRequested,
-            _eventsPlugin, &EventsModule::unsubscribeEvents);
-    connect(_eventsPlugin, &EventsModule::eventsReady,
-            this, &MainWindow::onEventsReady);
-    connect(_eventsPlugin, &EventsModule::eventMonitoringFinished,
-            this, &MainWindow::onEventMonitoringFinished);
-    connect(theApp(), &Application::timestampModeChanged,
-            ui->dataView, &DataView::setTimestampMode);
-    connect(theApp(), &Application::timestampModeChanged,
-            ui->trendPanelWidget, &TrendPanelWidget::setTimestampMode);
-}
-
-///
-/// \brief Logs an error reported by the connection controller.
-///
-/// Backend and client-service errors are already logged at their source in
-/// QtOpcUaBackend::setError(); this slot covers controller-level errors only.
-///
-/// \param message Error reported by the connection controller.
-///
-void MainWindow::onClientError(const QString &message)
-{
-    qCWarning(lcClient) << message;
-}
-
-///
-/// \brief Applies raw attribute results that are not tied to the current selection.
-/// \param details Read node details.
-/// \param error Read error, if any.
-///
-void MainWindow::onAttributeDetailsReady(const OpcUaNodeDetails &details, const QString &error)
-{
-    if (!error.isEmpty())
-        return;
-
-    if (_pendingDataAccessNodeIds.remove(details.nodeId) && OpcUa::isVariable(details.nodeClass))
-        ui->dataView->addNodeWithDefaultSubscription(details);
-}
-
-///
-/// \brief Shows the read node details and enables the matching actions.
-/// \param details Read node details.
-/// \param error Read error, if any.
-///
-void MainWindow::onNodeDetailsReady(const OpcUaNodeDetails &details, const QString &error)
-{
-    if (!error.isEmpty())
-        return;
-
-    const bool variable = OpcUa::isVariable(details.nodeClass);
-    _selectedNodeDetails = details;
-    const bool writable = variable && OpcUa::isWritable(details.userAccessLevel);
-    ui->actionRead->setEnabled(variable);
-    ui->actionReadSelected->setEnabled(variable);
-    ui->actionWrite->setEnabled(writable);
-    ui->actionWriteValue->setEnabled(writable);
-    ui->actionAddToDataAccess->setEnabled(variable);
-    ui->actionReadDataHistory->setEnabled(OpcUa::canReadHistory(details));
-    ui->actionReadEventsHistory->setEnabled(OpcUa::canReadEventHistory(details));
-    updateMonitoringActions();
-}
-
-///
-/// \brief Clears selected-node state and disables selected-node actions.
-///
-void MainWindow::onSelectionCleared()
-{
-    _selectedNodeDetails = {};
-    ui->actionRead->setEnabled(false);
-    ui->actionReadSelected->setEnabled(false);
-    ui->actionWrite->setEnabled(false);
-    ui->actionWriteValue->setEnabled(false);
-    ui->actionAddToDataAccess->setEnabled(false);
-    ui->actionReadDataHistory->setEnabled(false);
-    ui->actionReadEventsHistory->setEnabled(false);
-    updateMonitoringActions();
-}
-
-///
-/// \brief Pushes the latest data-access values into the view.
-/// \param values Latest data access values.
-/// \param error Read error, if any.
-///
-void MainWindow::onDataValuesReady(const QVector<OpcUaDataValue> &values, const QString &error)
-{
-    if (error.isEmpty()) {
-        ui->dataView->updateValues(values);
-        ui->trendPanelWidget->applyLiveValues(values);
-    }
-}
-
-///
-/// \brief Pushes raw data history samples into the view, or reports a read failure.
-/// \param nodeId Node whose history was read.
-/// \param values History samples in time order.
-/// \param error Read error, if any.
-///
-void MainWindow::onHistoryReady(const QString &nodeId, const QVector<OpcUaHistoryValue> &values,
-                                const QString &error)
-{
-    if (ui->trendPanelWidget->consumeHistory(nodeId, error, values))
-        return;
-    if (error.isEmpty())
-        ui->dataView->setDataHistoryResults(values);
-    else
-        QMessageBox::warning(this, tr("Data History Read Failed"), error);
-}
-
-///
-/// \brief Re-reads the node on success, or warns the user on failure.
-/// \param nodeId Written node.
-/// \param success Whether the write succeeded.
-/// \param error Write error, if any.
-///
-void MainWindow::onWriteFinished(const QString &nodeId, bool success, const QString &error)
-{
-    if (success) {
-        _attributePlugin->read(nodeId);
-        _dataAccessPlugin->read({nodeId});
-    } else {
-        QMessageBox::warning(this, tr("Write Failed"), error);
-    }
-}
-
-///
-/// \brief Applies the result of a subscribe or unsubscribe request to the UI.
-/// \param nodeId Affected node.
-/// \param subscribed True for subscribe and false for unsubscribe.
-/// \param success Whether the request succeeded.
-/// \param error Error description, empty on success.
-///
-void MainWindow::onMonitoringFinished(const QString &nodeId, bool subscribed,
-                                      bool success, const QString &error)
-{
-    _pendingMonitoringNodeIds.remove(nodeId);
-    if (success) {
-        if (subscribed)
-            _subscribedNodeIds.insert(nodeId);
-        else
-            _subscribedNodeIds.remove(nodeId);
-        ui->dataView->setNodeSubscribed(nodeId, subscribed);
-    } else {
-        QMessageBox::warning(this,
-                             subscribed ? tr("Subscribe Failed") : tr("Unsubscribe Failed"),
-                             error);
-    }
-    updateMonitoringActions();
-}
-
-///
-/// \brief Appends received events to the events view, ignoring delivery errors.
-/// \param nodeId Monitored node that produced the events.
-/// \param events Received events.
-/// \param error Error description, empty on success.
-///
-void MainWindow::onEventsReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
-                               const QString &error)
-{
-    Q_UNUSED(nodeId)
-    if (error.isEmpty())
-        ui->dataView->appendEvents(events);
-}
-
-///
-/// \brief Pushes historical events into the view, or reports a read failure.
-/// \param nodeId Node whose event history was read.
-/// \param events Historical events in server order.
-/// \param error Read error, if any.
-///
-void MainWindow::onEventsHistoryReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
-                                      const QString &error)
-{
-    Q_UNUSED(nodeId)
-    if (error.isEmpty())
-        ui->dataView->setEventsHistoryResults(events);
-    else
-        QMessageBox::warning(this, tr("Events History Read Failed"), error);
-}
-
-///
-/// \brief Applies the result of an event subscribe or unsubscribe request to the UI.
-/// \param nodeId Affected node.
-/// \param subscribed True for subscribe and false for unsubscribe.
-/// \param success Whether the request succeeded.
-/// \param error Error description, empty on success.
-///
-void MainWindow::onEventMonitoringFinished(const QString &nodeId, bool subscribed,
-                                           bool success, const QString &error)
-{
-    if (success) {
-        ui->dataView->events()->setEventMonitoringState(nodeId, subscribed);
-    } else {
-        QMessageBox::warning(this,
-                             subscribed ? tr("Event Subscribe Failed")
-                                        : tr("Event Unsubscribe Failed"),
-                             error);
-    }
-}
-
-///
-/// \brief Enables the monitoring actions for the selected variable's current state.
-///
-void MainWindow::updateMonitoringActions()
-{
-    const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
-    const bool variable = connected && OpcUa::isVariable(_selectedNodeDetails.nodeClass)
-        && !_selectedNodeDetails.nodeId.isEmpty();
-    const bool subscribed = variable
-        && _subscribedNodeIds.contains(_selectedNodeDetails.nodeId);
-    const bool pending = variable
-        && _pendingMonitoringNodeIds.contains(_selectedNodeDetails.nodeId);
-    ui->actionSubscribe->setEnabled(variable && !subscribed && !pending);
-    ui->actionUnsubscribe->setEnabled(subscribed && !pending);
-}
-
-///
-/// \brief Shows the certificate prompt and returns the selected trust policy.
-/// \param certificate Server certificate awaiting a trust decision.
-/// \param message Validation message to display.
-/// \return Selected certificate trust policy.
-///
-CertificateTrustDecision MainWindow::decide(const QByteArray &certificate,
-                                            const QString &message)
-{
-    CertificateTrustDialog dialog(this);
-    dialog.setCertificate(certificate, message);
-    dialog.exec();
-    switch (dialog.decision()) {
-    case CertificateTrustDialog::TrustOnce:
-        return CertificateTrustDecision::TrustOnce;
-    case CertificateTrustDialog::TrustPermanently:
-        return CertificateTrustDecision::TrustPermanently;
-    case CertificateTrustDialog::Reject:
-        return CertificateTrustDecision::Reject;
-    }
-    return CertificateTrustDecision::Reject;
-}
-
-///
-/// \brief Enables/disables actions and refreshes the views for the client state.
+/// \brief Refreshes the views for the client state.
 /// \param state Current OPC UA client state.
 ///
 void MainWindow::updateClientUi(OpcUaConnectionState state)
@@ -1025,27 +566,12 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     const bool connected = state == OpcUaConnectionState::Connected;
     const bool idle = state == OpcUaConnectionState::Disconnected
         || state == OpcUaConnectionState::Unavailable;
-    ui->actionConnect->setEnabled(idle);
-    ui->actionNewConnection->setEnabled(idle);
-    ui->actionDisconnect->setEnabled(connected);
-    ui->actionBrowse->setEnabled(connected);
-    ui->actionBrowseAddressSpace->setEnabled(connected);
-    ui->actionRefresh->setEnabled(connected);
-    ui->actionEndpointSettings->setEnabled(connected);
-    updateMonitoringActions();
-    updateDataAccessSelectionActions();
     if (connected) {
         initializeAddressSpace();
-    } else if (state == OpcUaConnectionState::Disconnected
-               || state == OpcUaConnectionState::Unavailable) {
-        ui->dataView->clearRuntimeData();
-        ui->trendPanelWidget->clearRuntimeData();
+    } else if (idle) {
+        _dataAccessCoordinator->clearRuntimeState();
         _selectionContext->clear();
         _featureManager->clearRuntimeState();
-        _subscribedNodeIds.clear();
-        _pendingMonitoringNodeIds.clear();
-        _pendingDataAccessNodeIds.clear();
-        updateMonitoringActions();
     }
 }
 
@@ -1055,161 +581,6 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
 void MainWindow::initializeAddressSpace()
 {
     _featureManager->triggerCommand(QStringLiteral("addressSpace.browse"));
-}
-
-///
-/// \brief Reads a node so it can be added to Data Access after its attributes arrive.
-/// \param nodeId Node to add.
-///
-void MainWindow::addNodeToDataAccess(const QString &nodeId)
-{
-    if (nodeId.isEmpty())
-        return;
-    _pendingDataAccessNodeIds.insert(nodeId);
-    _attributePlugin->read(nodeId);
-}
-
-///
-/// \brief Returns the built-in Default or Fast subscription from the current list.
-/// \param fast True for the Fast subscription, false for the Default subscription.
-/// \return Matching subscription, or a sensible fallback when it is missing.
-///
-SubscriptionItem MainWindow::builtinSubscription(bool fast) const
-{
-    const QVector<SubscriptionItem> items = ui->dataView->subscriptions()->subscriptions();
-    for (const SubscriptionItem &item : items) {
-        const bool matches = fast ? (item.isBuiltin() && !item.isDefault()) : item.isDefault();
-        if (matches)
-            return item;
-    }
-
-    SubscriptionItem fallback;
-    fallback.builtin = true;
-    if (fast) {
-        fallback.name = tr("Fast");
-        fallback.publishingInterval = 250.0;
-        fallback.id = 1;
-    } else {
-        fallback.name = tr("Default");
-    }
-    return fallback;
-}
-
-///
-/// \brief Enables the data-access clear/remove actions for the current row count.
-/// \param count Current number of data-access rows.
-///
-void MainWindow::onDataAccessNodeCountChanged(int count)
-{
-    ui->actionClearDataAccess->setEnabled(count > 0);
-    updateDataAccessSelectionActions();
-}
-
-///
-/// \brief Enables the data-access selection actions (Remove and Set Subscription).
-///
-void MainWindow::updateDataAccessSelectionActions()
-{
-    const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
-    const bool actionable = connected && ui->dataView->dataAccess()->hasSelection();
-    ui->actionRemoveFromDataAccess->setEnabled(actionable);
-    ui->actionSetSubscriptionNone->setEnabled(actionable);
-    ui->actionSetSubscriptionDefault->setEnabled(actionable);
-    ui->actionSetSubscriptionFast->setEnabled(actionable);
-    ui->actionSetSubscriptionCustom->setEnabled(actionable);
-}
-
-///
-/// \brief Opens the write dialog and writes the entered value on accept.
-/// \param nodeId Node to write.
-/// \param value Current value.
-/// \param valueType OPC UA value type.
-/// \param dataTypeId DataType NodeId.
-/// \param writable Whether the user may write.
-///
-void MainWindow::showWriteDialog(const QString &nodeId, const QVariant &value,
-                                 int valueType, const QString &dataTypeId,
-                                 bool writable)
-{
-    WriteValueDialog dialog(this);
-    dialog.setValue(value, valueType, dataTypeId, writable);
-    if (dialog.exec() == QDialog::Accepted)
-        _attributePlugin->write(nodeId, dialog.value(), dialog.valueType());
-}
-
-///
-/// \brief Rebuilds the Recent Connections menu from the recent-connection history.
-///
-void MainWindow::rebuildRecentConnections()
-{
-    ui->menuRecentConnections->clear();
-    const QList<ConnectionProfile> recent = _connectionController->recentConnections();
-    if (recent.isEmpty()) {
-        ui->menuRecentConnections->addAction(tr("No Recent Connections"))->setEnabled(false);
-        return;
-    }
-    for (const ConnectionProfile &profile : recent) {
-        ui->menuRecentConnections->addAction(
-            profile.name.isEmpty() ? profile.endpointUrl : profile.name,
-            this, [this, profile]() {
-                _connectionController->connectSavedProfile(profile);
-            });
-    }
-}
-
-///
-/// \brief Opens the favourites widget beneath the toolbar button.
-///
-void MainWindow::openFavorites()
-{
-    _favoritesCoordinator->open(ui->mainToolBar->favoritesButton());
-}
-
-///
-/// \brief Saves the current connection as a favourite, or opens the dialog if none is active.
-///
-void MainWindow::addCurrentToFavorites()
-{
-    ConnectionProfile profile = _connectionController->activeProfile();
-    if (profile.endpointUrl.isEmpty()) {
-        openConnectionDialog();
-        return;
-    }
-    profile.saveProfile = true;
-    profile.lastUsed = QDateTime::currentDateTime();
-    _connectionController->saveProfile(profile, QString(), QString());
-}
-
-///
-/// \brief Connects a favourite, prompting for its credentials when it needs authentication.
-/// \param favorite Favourite to connect to.
-///
-void MainWindow::connectFavorite(const ConnectionProfile &favorite)
-{
-    if (favorite.authentication == ConnectionProfile::Authentication::Anonymous) {
-        _connectionController->connectSavedProfile(favorite);
-        return;
-    }
-
-    ConnectionCredentialsDialog dialog(this);
-    dialog.setProfile(favorite);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-    _connectionController->connectSavedProfileWithCredentials(
-        dialog.profile(), dialog.password(), dialog.privateKeyPassword());
-}
-
-///
-/// \brief Edits a favourite's server URL and security policy/mode, saving the changes.
-/// \param favorite Favourite to edit.
-///
-void MainWindow::editFavorite(const ConnectionProfile &favorite)
-{
-    EditFavoriteDialog dialog(this);
-    dialog.setProfile(favorite);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-    _connectionController->saveProfile(dialog.profile(), QString(), QString());
 }
 
 ///

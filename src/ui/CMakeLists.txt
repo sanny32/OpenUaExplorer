@@ -58,6 +58,10 @@ add_library(ouaexp_ui STATIC
     ui_resources.qrc
     mainwindow.cpp
     mainwindow.h
+    connectioncoordinator.cpp
+    connectioncoordinator.h
+    dataaccesscoordinator.cpp
+    dataaccesscoordinator.h
     favoritescoordinator.cpp
     favoritescoordinator.h
     themecoordinator.cpp
