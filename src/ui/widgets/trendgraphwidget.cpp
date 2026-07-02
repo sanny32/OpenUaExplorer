@@ -136,6 +136,8 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     connect(_liveTimer, &QTimer::timeout, this, [this]() {
         if (_livePaused)
             return;
+        if (_series.isEmpty())
+            return;
         if (_display.autoScrollLive)
             applyWindow();
         if (_display.autoScale)
@@ -212,8 +214,11 @@ bool TrendGraphWidget::addNode(const QString &nodeId, const QString &displayName
     _chart->addSeries(nodeId, series.seriesLabel(_display.labelMode), color);
 
     emit nodeAdded(nodeId, displayName, displayPath);
-    if (_mode == Mode::Live)
+    if (_mode == Mode::Live) {
+        if (_display.autoScrollLive)
+            applyWindow();
         subscribeNode(nodeId);
+    }
     requestHistory(nodeId);
     return true;
 }
