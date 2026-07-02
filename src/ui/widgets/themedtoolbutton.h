@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <QColor>
+#include <QIcon>
 #include <QSize>
 #include <QToolButton>
 
@@ -18,6 +20,7 @@ class ThemedToolButton : public QToolButton
 {
     Q_OBJECT
     Q_PROPERTY(bool squareIconOnly READ squareIconOnly WRITE setSquareIconOnly)
+    Q_PROPERTY(bool linkStyle READ linkStyle WRITE setLinkStyle)
     Q_PROPERTY(QString iconName READ iconName WRITE setIconName)
 
 public:
@@ -46,6 +49,12 @@ public:
     bool squareIconOnly() const;
 
     ///
+    /// \brief Reports whether the button is painted as a link-style action.
+    /// \return True when link-style rendering is enabled.
+    ///
+    bool linkStyle() const;
+
+    ///
     /// \brief Returns the themed icon resource name.
     /// \return Icon resource name.
     ///
@@ -56,6 +65,12 @@ public:
     /// \param enabled True to force a square shape.
     ///
     void setSquareIconOnly(bool enabled);
+
+    ///
+    /// \brief Enables or disables link-style rendering.
+    /// \param enabled True to paint as a link-style action.
+    ///
+    void setLinkStyle(bool enabled);
 
     ///
     /// \brief Sets the themed icon resource name.
@@ -71,11 +86,15 @@ public:
 
 protected:
     void changeEvent(QEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     void refreshIcon();
+    QIcon tintedLinkIcon(const QColor &color) const;
+    QColor linkColor() const;
     QSize squareSize(const QSize &size) const;
 
     bool _squareIconOnly = false;
+    bool _linkStyle = false;
     QString _iconName;
 };

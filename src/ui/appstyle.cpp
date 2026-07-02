@@ -159,8 +159,10 @@ QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
         }
         break;
     case CT_ToolButton:
-        if (qobject_cast<const ThemedToolButton *>(widget) != nullptr) {
-            size.setHeight(qMax(size.height(), controlMinHeight));
+        if (const auto *button = qobject_cast<const ThemedToolButton *>(widget)) {
+            if (!button->linkStyle()) {
+                size.setHeight(qMax(size.height(), controlMinHeight));
+            }
         }
         break;
     default:

@@ -22,6 +22,7 @@
 #include "opcua/pkimanager.h"
 #include "widgets/dialogbuttonbox.h"
 #include "widgets/tableview.h"
+#include "widgets/themedtoolbutton.h"
 
 ///
 /// \brief Drives the certificates dialog through its client and trust-store flows.
@@ -70,15 +71,27 @@ void TestCertificatesDialog::showsClientCertificate()
     auto *statusValue = dialog.findChild<QLabel *>(QStringLiteral("statusValue"));
     auto *importButton = dialog.findChild<QPushButton *>(QStringLiteral("importClientButton"));
     auto *removeButton = dialog.findChild<QPushButton *>(QStringLiteral("removeClientButton"));
+    auto *viewCertificateButton = dialog.findChild<ThemedToolButton *>(QStringLiteral("viewCertificateButton"));
+    auto *viewKeyButton = dialog.findChild<ThemedToolButton *>(QStringLiteral("viewKeyButton"));
     QVERIFY(fileValue);
     QVERIFY(statusValue);
     QVERIFY(importButton);
     QVERIFY(removeButton);
+    QVERIFY(viewCertificateButton);
+    QVERIFY(viewKeyButton);
 
     QVERIFY(fileValue->text().endsWith(QStringLiteral(".der")));
     QCOMPARE(statusValue->text(), QStringLiteral("Valid"));
     QVERIFY(!importButton->isEnabled());
     QVERIFY(removeButton->isEnabled());
+    QVERIFY(viewCertificateButton->linkStyle());
+    QVERIFY(viewKeyButton->linkStyle());
+    QVERIFY(viewCertificateButton->styleSheet().isEmpty());
+    QVERIFY(viewKeyButton->styleSheet().isEmpty());
+    QCOMPARE(viewCertificateButton->cursor().shape(), Qt::PointingHandCursor);
+    QCOMPARE(viewKeyButton->cursor().shape(), Qt::PointingHandCursor);
+    QVERIFY(viewCertificateButton->sizeHint().height() < importButton->sizeHint().height());
+    QVERIFY(viewKeyButton->sizeHint().height() < importButton->sizeHint().height());
 }
 
 ///
