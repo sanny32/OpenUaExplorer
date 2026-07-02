@@ -48,6 +48,9 @@ public:
     /// \brief Returns the endpoints from the latest successful discovery.
     const QVector<QOpcUaEndpointDescription> &endpointDescriptions() const;
 
+    /// \brief Returns the DER-encoded certificate of the endpoint in use, or empty.
+    QByteArray activeServerCertificate() const;
+
     /// \brief Sets the server-certificate trust delegate.
     void setCertificateTrustDecider(CertificateTrustDecider *decider);
 

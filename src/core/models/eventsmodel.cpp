@@ -8,7 +8,7 @@
 
 #include "eventsmodel.h"
 
-#include "opcua/attributeformatter.h"
+#include "formatters/attributeformatter.h"
 
 #include <QStringList>
 

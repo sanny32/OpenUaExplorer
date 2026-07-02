@@ -17,7 +17,7 @@
 
 #include "appsettings.h"
 #include "attributeswidget.h"
-#include "opcua/attributeformatter.h"
+#include "formatters/attributeformatter.h"
 #include "themedaction.h"
 #include "models/attributesmodel.h"
 #include "ui_attributeswidget.h"

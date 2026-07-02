@@ -33,6 +33,7 @@
 #include "chartviewfactory.h"
 #include "dialogs/customintervaldialog.h"
 #include "dialogs/trendsettingsdialog.h"
+#include "formatters/durationformatter.h"
 #include "ichartview.h"
 #include "models/addressspacemimedata.h"
 #include "trendgraphtoolbar.h"
@@ -62,37 +63,6 @@ const QVector<QColor> kSeriesPalette = {
     QColor(0xdb, 0x27, 0x77),
     QColor(0x65, 0xa3, 0x0d),
 };
-
-///
-/// \brief Formats a duration as a compact label of its two largest units.
-/// \param ms Duration in milliseconds.
-/// \return A label such as "2m 54s", "1h 5m" or "3d 4h".
-///
-QString humanizeDuration(qint64 ms)
-{
-    qint64 seconds = ms / 1000;
-    if (seconds < 0)
-        seconds = 0;
-    const qint64 days = seconds / 86400;
-    seconds %= 86400;
-    const qint64 hours = seconds / 3600;
-    seconds %= 3600;
-    const qint64 minutes = seconds / 60;
-    seconds %= 60;
-
-    QStringList parts;
-    if (days > 0)
-        parts << QStringLiteral("%1d").arg(days);
-    if (hours > 0)
-        parts << QStringLiteral("%1h").arg(hours);
-    if (minutes > 0)
-        parts << QStringLiteral("%1m").arg(minutes);
-    if (seconds > 0 || parts.isEmpty())
-        parts << QStringLiteral("%1s").arg(seconds);
-    while (parts.size() > 2)
-        parts.removeLast();
-    return parts.join(QLatin1Char(' '));
-}
 
 QIcon swatchIcon(const QColor &color)
 {
@@ -684,7 +654,7 @@ void TrendGraphWidget::updateIntervalBar(qint64 startMs, qint64 endMs)
         return dt.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
     };
     ui->toolbar->setInterval(QStringLiteral("%1 — %2").arg(format(startMs), format(endMs)),
-                             humanizeDuration(endMs - startMs));
+                             formatDuration(endMs - startMs));
 }
 
 ///

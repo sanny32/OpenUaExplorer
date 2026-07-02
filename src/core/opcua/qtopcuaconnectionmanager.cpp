@@ -13,7 +13,7 @@
 #include <QOpcUaErrorState>
 #include <QOpcUaPkiConfiguration>
 
-#include "attributeformatter.h"
+#include "formatters/attributeformatter.h"
 #include "certificatetrustdecider.h"
 #include "loggingcategories.h"
 
@@ -105,6 +105,12 @@ QOpcUaClient *QtOpcUaConnectionManager::client() const
 const QVector<QOpcUaEndpointDescription> &QtOpcUaConnectionManager::endpointDescriptions() const
 {
     return _endpoints;
+}
+
+/// \brief Returns the DER-encoded certificate of the endpoint in use, or empty.
+QByteArray QtOpcUaConnectionManager::activeServerCertificate() const
+{
+    return _activeCertificate;
 }
 
 /// \brief Sets the server-certificate trust delegate.

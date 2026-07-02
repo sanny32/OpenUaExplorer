@@ -3,8 +3,8 @@
  <class>CertificateDetailsWidget</class>
  <widget class="QWidget" name="CertificateDetailsWidget">
   <layout class="QVBoxLayout" name="mainLayout">
-   <property name="spacing">
-    <number>14</number>
+    <property name="spacing">
+     <number>10</number>
    </property>
    <property name="leftMargin">
     <number>0</number>
@@ -24,11 +24,11 @@
       <string>Summary</string>
      </property>
      <layout class="QGridLayout" name="summaryLayout" columnstretch="0,1">
-      <property name="horizontalSpacing">
-       <number>28</number>
-      </property>
-      <property name="verticalSpacing">
-       <number>14</number>
+       <property name="horizontalSpacing">
+        <number>16</number>
+       </property>
+       <property name="verticalSpacing">
+        <number>8</number>
       </property>
       <item row="0" column="0">
        <widget class="QLabel" name="statusLabel">
@@ -191,11 +191,11 @@
       <string>Technical Information</string>
      </property>
      <layout class="QGridLayout" name="technicalLayout" columnstretch="0,1">
-      <property name="horizontalSpacing">
-       <number>28</number>
-      </property>
-      <property name="verticalSpacing">
-       <number>14</number>
+       <property name="horizontalSpacing">
+        <number>16</number>
+       </property>
+       <property name="verticalSpacing">
+        <number>8</number>
       </property>
       <item row="0" column="0">
        <widget class="QLabel" name="certificatePathLabel">

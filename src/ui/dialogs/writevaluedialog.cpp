@@ -17,7 +17,7 @@
 #include <QPushButton>
 #include <QUuid>
 
-#include "opcua/attributeformatter.h"
+#include "formatters/attributeformatter.h"
 #include "ui_writevaluedialog.h"
 #include "writevaluedialog.h"
 

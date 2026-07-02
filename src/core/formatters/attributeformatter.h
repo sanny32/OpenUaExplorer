@@ -12,7 +12,7 @@
 
 #include <QOpcUaEndpointDescription>
 
-#include "opcuatypes.h"
+#include "opcua/opcuatypes.h"
 
 ///
 /// \brief Side-effect-free formatting of OPC UA values and node attributes.

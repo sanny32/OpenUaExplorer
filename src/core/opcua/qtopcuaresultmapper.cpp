@@ -8,7 +8,7 @@
 #include <QOpcUaSimpleAttributeOperand>
 #include <QVariant>
 
-#include "attributeformatter.h"
+#include "formatters/attributeformatter.h"
 
 namespace QtOpcUaResultMapper {
 

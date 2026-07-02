@@ -22,7 +22,7 @@
 #include "headerview.h"
 #include "models/eventsmodel.h"
 #include "nodelineedit.h"
-#include "opcua/attributeformatter.h"
+#include "formatters/attributeformatter.h"
 #include "severitydelegate.h"
 #include "tableview.h"
 #include "ui_eventshistorywidget.h"

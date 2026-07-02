@@ -10,7 +10,7 @@
 #include <QOpcUaQualifiedName>
 #include <QOpcUaUserTokenPolicy>
 
-#include "attributeformatter.h"
+#include "formatters/attributeformatter.h"
 
 using namespace OpcUaFormat;
 

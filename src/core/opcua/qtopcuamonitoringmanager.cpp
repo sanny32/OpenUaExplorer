@@ -7,7 +7,7 @@
 #include <QOpcUaMonitoringParameters>
 #include <QOpcUaNode>
 
-#include "attributeformatter.h"
+#include "formatters/attributeformatter.h"
 #include "qtopcuaresultmapper.h"
 
 using namespace OpcUaFormat;

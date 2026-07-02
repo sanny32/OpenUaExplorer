@@ -29,7 +29,7 @@
 #include <QOpcUaReadResult>
 #include <QOpcUaReferenceDescription>
 
-#include "attributeformatter.h"
+#include "formatters/attributeformatter.h"
 #include "loggingcategories.h"
 #include "pkimanager.h"
 #include "qtopcuabackend.h"
@@ -263,6 +263,15 @@ QString QtOpcUaBackend::lastError() const
 void QtOpcUaBackend::setCertificateTrustDecider(CertificateTrustDecider *decider)
 {
     _d->connection.setCertificateTrustDecider(decider);
+}
+
+///
+/// \brief Returns the DER-encoded certificate of the endpoint in use, or empty.
+/// \return DER-encoded server certificate, or an empty array.
+///
+QByteArray QtOpcUaBackend::activeServerCertificate() const
+{
+    return _d->connection.activeServerCertificate();
 }
 
 ///

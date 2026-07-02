@@ -103,6 +103,15 @@ QString OpcUaClientService::lastError() const
 }
 
 ///
+/// \brief Returns the DER-encoded certificate of the endpoint in use, or empty.
+/// \return DER-encoded server certificate, or an empty array.
+///
+QByteArray OpcUaClientService::activeServerCertificate() const
+{
+    return _backend->activeServerCertificate();
+}
+
+///
 /// \brief Sets the delegate consulted for server-certificate trust decisions.
 /// \param decider Trust decider forwarded to the backend.
 ///

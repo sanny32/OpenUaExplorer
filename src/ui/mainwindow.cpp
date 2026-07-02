@@ -24,6 +24,7 @@
 #include "dialogs/connectioncredentialsdialog.h"
 #include "dialogs/connectiondialog.h"
 #include "dialogs/editfavoritedialog.h"
+#include "dialogs/endpointsettingsdialog.h"
 #include "dialogs/settingsdialog.h"
 #include "dialogs/writevaluedialog.h"
 #include "features/builtinfeatures.h"
@@ -173,6 +174,17 @@ void MainWindow::on_actionRefresh_triggered()
     _addressSpacePlugin->refresh(nodeId);
     if (!nodeId.isEmpty())
         _referencePlugin->browseReferences(nodeId);
+}
+
+///
+/// \brief Shows a read-only summary of the active connection's endpoint settings.
+///
+void MainWindow::on_actionEndpointSettings_triggered()
+{
+    EndpointSettingsDialog dialog(this);
+    dialog.setProfile(_connectionController->activeProfile());
+    dialog.setServerCertificate(_clientService->activeServerCertificate());
+    dialog.exec();
 }
 
 ///
@@ -1009,6 +1021,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     ui->actionBrowse->setEnabled(connected);
     ui->actionBrowseAddressSpace->setEnabled(connected);
     ui->actionRefresh->setEnabled(connected);
+    ui->actionEndpointSettings->setEnabled(connected);
     updateMonitoringActions();
     updateDataAccessSelectionActions();
     if (connected) {

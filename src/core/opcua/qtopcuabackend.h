@@ -55,6 +55,12 @@ public:
     void setCertificateTrustDecider(CertificateTrustDecider *decider) override;
 
     ///
+    /// \brief Returns the DER-encoded certificate of the endpoint in use, or empty.
+    /// \return DER-encoded server certificate, or an empty array.
+    ///
+    QByteArray activeServerCertificate() const override;
+
+    ///
     /// \brief Requests the server's endpoint list, emitting endpointsDiscovered() with the result.
     /// \param url Discovery URL (must be opc.tcp).
     /// \param backend Preferred backend.

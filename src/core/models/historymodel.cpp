@@ -10,7 +10,7 @@
 
 #include <QStringList>
 
-#include "opcua/attributeformatter.h"
+#include "formatters/attributeformatter.h"
 
 namespace {
 

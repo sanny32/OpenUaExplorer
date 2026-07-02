@@ -6,12 +6,14 @@ add_library(ouaexp_core STATIC
     utils.cpp
     utils.h
 
-    opcua/attributeformatter.cpp
-    opcua/attributeformatter.h
-    opcua/bitmaskformatter.cpp
-    opcua/nodeidformatter.cpp
-    opcua/scalarformatter.cpp
-    opcua/valueformatter.cpp
+    formatters/attributeformatter.cpp
+    formatters/attributeformatter.h
+    formatters/bitmaskformatter.cpp
+    formatters/durationformatter.cpp
+    formatters/durationformatter.h
+    formatters/nodeidformatter.cpp
+    formatters/scalarformatter.cpp
+    formatters/valueformatter.cpp
     opcua/certificateinfo.cpp
     opcua/certificateinfo.h
     opcua/certificatetrustdecider.h

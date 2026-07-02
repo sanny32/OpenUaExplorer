@@ -10,6 +10,7 @@ set(UI_FILES
     dialogs/customintervaldialog.ui
     dialogs/dialogabout.ui
     dialogs/editfavoritedialog.ui
+    dialogs/endpointsettingsdialog.ui
     dialogs/settingsdialog.ui
     dialogs/subscriptionsdialog.ui
     dialogs/trendsettingsdialog.ui
@@ -95,6 +96,8 @@ add_library(ouaexp_ui STATIC
     dialogs/dialogabout.h
     dialogs/editfavoritedialog.cpp
     dialogs/editfavoritedialog.h
+    dialogs/endpointsettingsdialog.cpp
+    dialogs/endpointsettingsdialog.h
     dialogs/newsubscriptiondialog.cpp
     dialogs/newsubscriptiondialog.h
     dialogs/settingsdialog.cpp

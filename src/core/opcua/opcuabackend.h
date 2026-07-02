@@ -64,6 +64,15 @@ public:
     virtual void setCertificateTrustDecider(CertificateTrustDecider *decider) = 0;
 
     ///
+    /// \brief Returns the DER-encoded certificate of the endpoint in use, or empty.
+    ///
+    /// Backends that do not track the active endpoint may leave the default,
+    /// which reports no certificate.
+    /// \return DER-encoded server certificate, or an empty array.
+    ///
+    virtual QByteArray activeServerCertificate() const { return {}; }
+
+    ///
     /// \brief Discovers the endpoints offered by a server, bounded by a timeout.
     /// \param url Discovery URL.
     /// \param backend Backend name to use.

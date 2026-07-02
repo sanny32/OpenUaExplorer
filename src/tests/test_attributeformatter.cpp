@@ -13,7 +13,7 @@
 #include <QOpcUaLocalizedText>
 #include <QOpcUaQualifiedName>
 
-#include "opcua/attributeformatter.h"
+#include "formatters/attributeformatter.h"
 
 using namespace OpcUaFormat;
 

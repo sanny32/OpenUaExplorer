@@ -15,7 +15,7 @@
 #include <QPalette>
 
 #include "dataaccessmodel.h"
-#include "opcua/attributeformatter.h"
+#include "formatters/attributeformatter.h"
 
 namespace {
 OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
