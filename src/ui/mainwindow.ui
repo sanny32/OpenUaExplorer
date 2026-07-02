@@ -89,7 +89,6 @@
     <addaction name="actionRefresh"/>
     <addaction name="separator"/>
     <addaction name="actionEndpointSettings"/>
-    <addaction name="actionSecuritySettings"/>
     <addaction name="actionCertificates"/>
    </widget>
    <widget class="QMenu" name="menuData">
@@ -357,14 +356,6 @@
    </property>
    <property name="text">
     <string>Endpoint Settings...</string>
-   </property>
-  </action>
-  <action name="actionSecuritySettings">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Security Settings...</string>
    </property>
   </action>
   <action name="actionCertificates">
