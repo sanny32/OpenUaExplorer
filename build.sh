@@ -464,9 +464,6 @@ aqt_qt6_versions() {
     done
 }
 
-# aqt installs into "$root/$version/<compiler_dir>", where <compiler_dir> is not
-# the arch selector: e.g. selector linux_gcc_64 (Qt >= 6.7) installs into gcc_64.
-# Discover the real prefix from the filesystem instead of assuming its name.
 aqt_prefix_in() {
     local base="$1"
     local qmake
@@ -626,9 +623,11 @@ ensure_linuxdeployqt() {
 
 deploy_linux_with_linuxdeployqt() {
     local appdir="$1"
+    local build_dir="$2"
     local app="$appdir/usr/bin/ouaexp"
     local qmake
     local linuxdeployqt
+    local opcua_plugin
 
     if [ ! -x "$app" ]; then
         echo "Error: installed executable not found: $app" >&2
@@ -637,10 +636,23 @@ deploy_linux_with_linuxdeployqt() {
 
     qmake="$(qmake_from_qt_prefix)"
     linuxdeployqt="$(ensure_linuxdeployqt)"
+
     "$linuxdeployqt" "$app" \
         -qmake="$qmake" \
-        -bundle-non-qt-libs \
-        -extra-plugins=iconengines,opcua,platformthemes
+        -extra-plugins=iconengines,platformthemes
+
+    # Qt OpcUa is built from source into the CMake build tree, so its backend plugin
+    # is not in Qt's plugin dir and linuxdeployqt cannot find it via -extra-plugins.
+    # Copy it into the deployed plugin dir by hand; its Qt dependencies (libQt6OpcUa
+    # and friends) are already bundled through the application binary.
+    opcua_plugin="$build_dir/_deps/qtopcua-install/plugins/opcua"
+    if [ -d "$opcua_plugin" ]; then
+        mkdir -p "$appdir/usr/plugins"
+        cp -a "$opcua_plugin" "$appdir/usr/plugins/"
+        echo "Copied Qt OpcUa plugin into $appdir/usr/plugins/opcua"
+    else
+        echo "Warning: Qt OpcUa plugin not found at $opcua_plugin" >&2
+    fi
 
     echo "Deployed Linux AppDir into $appdir"
 }
@@ -673,7 +685,7 @@ install_project() {
     if [ "$(uname -s)" = "Linux" ] && [ "$QT_FROM_AQT" -eq 1 ]; then
         mkdir -p "$prefix"
         DESTDIR="$prefix" "$CMAKE_BIN" --install "$build_dir" --prefix /usr
-        deploy_linux_with_linuxdeployqt "$prefix"
+        deploy_linux_with_linuxdeployqt "$prefix" "$build_dir"
     elif [ "$(uname -s)" = "Linux" ] && [ "$QT_FROM_AQT" -eq 0 ] && [ ! -w "$prefix" ]; then
         run_as_root "$CMAKE_BIN" --install "$build_dir" --prefix "$prefix"
     else
