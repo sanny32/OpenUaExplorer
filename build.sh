@@ -429,12 +429,15 @@ latest_aqt_qt6_version() {
     local version
     local latest=""
     local required="$1"
+    local arch="$2"
 
     versions="$("$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop 2>/dev/null \
         | tr ' ' '\n' | sed -nE '/^6\.[0-9]+\.[0-9]+$/p')"
 
     for version in $versions; do
-        if version_ge "$version" "$required" && { [ -z "$latest" ] || version_ge "$version" "$latest"; }; then
+        if version_ge "$version" "$required" \
+            && aqt_qt_version_available "$version" "$arch" \
+            && { [ -z "$latest" ] || version_ge "$version" "$latest"; }; then
             latest="$version"
         fi
     done
@@ -447,6 +450,26 @@ latest_aqt_qt6_version() {
     echo "$latest"
 }
 
+aqt_qt_version_available() {
+    local version="$1"
+    local arch="$2"
+    local modules
+    local module
+
+    if ! "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop --arch "$version" 2>/dev/null \
+        | tr ' ' '\n' | grep -Fxq "$arch"; then
+        return 1
+    fi
+
+    modules="$("$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop --modules "$version" "$arch" 2>/dev/null \
+        | tr ' ' '\n')"
+    for module in qtsvg qttools qtcharts qtopcua; do
+        if ! grep -Fxq "$module" <<<"$modules"; then
+            return 1
+        fi
+    done
+}
+
 install_qt6_with_aqt() {
     local required="$1"
     local arch
@@ -457,7 +480,7 @@ install_qt6_with_aqt() {
     "$TOOLS_DIR/aqt-venv/bin/python3" -m pip install --upgrade aqtinstall
 
     arch="$(aqt_arch)"
-    version="$(latest_aqt_qt6_version "$required")"
+    version="$(latest_aqt_qt6_version "$required" "$arch")"
     QT_PREFIX="$root/$version/$arch"
     QT_FROM_AQT=1
 
@@ -683,9 +706,24 @@ build_linux() {
     build_project "g++"
 }
 
+brew_install_or_upgrade() {
+    local formula
+
+    for formula in "$@"; do
+        if brew list --versions "$formula" >/dev/null 2>&1; then
+            if brew outdated --quiet "$formula" | grep -Fxq "$formula"; then
+                brew upgrade "$formula"
+            fi
+        else
+            brew install "$formula"
+        fi
+    done
+}
+
 build_macos() {
     local min_cmake
     local min_qt
+    local cmake_prefix
     local openssl_prefix
     local qt_formula
 
@@ -707,9 +745,10 @@ build_macos() {
         qt_formula="qt"
     fi
 
-    brew install cmake ninja "$qt_formula" openssl@3
+    brew_install_or_upgrade cmake ninja "$qt_formula" openssl@3
 
-    CMAKE_BIN="$(command -v cmake)"
+    cmake_prefix="$(brew --prefix cmake)"
+    CMAKE_BIN="$cmake_prefix/bin/cmake"
     if ! version_ge "$(cmake_version "$CMAKE_BIN")" "$min_cmake"; then
         echo "Error: CMake $min_cmake or newer is required." >&2
         exit 1
