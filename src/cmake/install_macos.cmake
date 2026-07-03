@@ -26,6 +26,26 @@ if(MACDEPLOYQT_EXECUTABLE)
                 \"macdeployqt failed with exit code \${_macdeployqt_result}\")
         endif()
 
+        # macdeployqt deploys every plugin related to the Qt frameworks it copies
+        # and offers no per-plugin exclude. A Qt Widgets app does not use the PDF
+        # image-format plugin or the virtual-keyboard input context, yet Homebrew
+        # ships them, so macdeployqt drags in QtPdf / QtVirtualKeyboard[Qml] (and
+        # fails to resolve them). Drop those unused components before signing so
+        # they never reach the artifact.
+        set(_unwanted_components
+            \"\${_installed_app}/Contents/PlugIns/imageformats/libqpdf.dylib\"
+            \"\${_installed_app}/Contents/PlugIns/platforminputcontexts/libqtvirtualkeyboardplugin.dylib\"
+            \"\${_installed_app}/Contents/Frameworks/QtPdf.framework\"
+            \"\${_installed_app}/Contents/Frameworks/QtVirtualKeyboard.framework\"
+            \"\${_installed_app}/Contents/Frameworks/QtVirtualKeyboardQml.framework\"
+        )
+        foreach(_component IN LISTS _unwanted_components)
+            if(EXISTS \"\${_component}\")
+                message(STATUS \"Removing unused deployed component: \${_component}\")
+                file(REMOVE_RECURSE \"\${_component}\")
+            endif()
+        endforeach()
+
         find_program(_codesign_exe codesign)
         if(NOT _codesign_exe)
             message(FATAL_ERROR
