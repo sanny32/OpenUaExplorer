@@ -235,16 +235,16 @@ linux_general_packages() {
 linux_qt6_packages() {
     case "$DISTRO" in
         debian)
-            echo "qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools libqt6svg6-dev qt6-charts-dev"
+            echo "qt6-base-dev qt6-base-dev-tools qt6-base-private-dev qt6-tools-dev qt6-tools-dev-tools libqt6svg6-dev qt6-charts-dev"
             ;;
         rhel)
-            echo "qt6-qtbase-devel qt6-qttools-devel qt6-qtsvg-devel qt6-qtcharts-devel"
+            echo "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qttools-devel qt6-qtsvg-devel qt6-qtcharts-devel"
             ;;
         altlinux)
             echo "qt6-base-devel qt6-tools-devel qt6-svg-devel qt6-charts-devel"
             ;;
         suse)
-            echo "qt6-base-devel qt6-tools-devel qt6-svg-devel qt6-charts-devel"
+            echo "qt6-base-devel qt6-base-private-devel qt6-tools-devel qt6-svg-devel qt6-charts-devel"
             ;;
         arch)
             echo "qt6-base qt6-tools qt6-svg qt6-charts"
@@ -297,7 +297,7 @@ install_packages() {
             run_as_root apt-get install -y "${missing[@]}"
             ;;
         suse)
-            run_as_root zypper --non-interactive install "${missing[@]}"
+            run_as_root zypper --non-interactive install --force-resolution "${missing[@]}"
             ;;
         arch)
             run_as_root pacman -S --needed --noconfirm "${missing[@]}"

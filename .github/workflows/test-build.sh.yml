@@ -86,7 +86,12 @@ jobs:
         run: ${{ matrix.container-setup }}
 
       - name: Checkout
-        uses: actions/checkout@v6
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git init -q .
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git fetch -q --depth 1 origin "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
 
       - name: Run build.sh
         env:
