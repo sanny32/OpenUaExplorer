@@ -424,50 +424,30 @@ aqt_arch() {
     esac
 }
 
-latest_aqt_qt6_version() {
+aqt_qt6_versions() {
     local versions
     local version
-    local latest=""
     local required="$1"
     local arch="$2"
 
     versions="$("$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop 2>/dev/null \
-        | tr ' ' '\n' | sed -nE '/^6\.[0-9]+\.[0-9]+$/p')"
+        | tr ' ' '\n' | sed -nE '/^6\.[0-9]+\.[0-9]+$/p' | sort -Vr)"
 
     for version in $versions; do
-        if version_ge "$version" "$required" \
-            && aqt_qt_version_available "$version" "$arch" \
-            && { [ -z "$latest" ] || version_ge "$version" "$latest"; }; then
-            latest="$version"
+        if version_ge "$version" "$required" && aqt_qt_arch_available "$version" "$arch"; then
+            echo "$version"
         fi
     done
-
-    if [ -z "$latest" ]; then
-        echo "Error: cannot find a Qt 6 version >= $required with aqtinstall." >&2
-        exit 1
-    fi
-
-    echo "$latest"
 }
 
-aqt_qt_version_available() {
+aqt_qt_arch_available() {
     local version="$1"
     local arch="$2"
-    local modules
-    local module
 
     if ! "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop --arch "$version" 2>/dev/null \
         | tr ' ' '\n' | grep -Fxq "$arch"; then
         return 1
     fi
-
-    modules="$("$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop --modules "$version" "$arch" 2>/dev/null \
-        | tr ' ' '\n')"
-    for module in qtsvg qttools qtcharts qtopcua; do
-        if ! grep -Fxq "$module" <<<"$modules"; then
-            return 1
-        fi
-    done
 }
 
 install_qt6_with_aqt() {
@@ -475,19 +455,33 @@ install_qt6_with_aqt() {
     local arch
     local version
     local root="$TOOLS_DIR/qt"
+    local installed=0
 
     ensure_python_tools
     "$TOOLS_DIR/aqt-venv/bin/python3" -m pip install --upgrade aqtinstall
 
     arch="$(aqt_arch)"
-    version="$(latest_aqt_qt6_version "$required" "$arch")"
-    QT_PREFIX="$root/$version/$arch"
     QT_FROM_AQT=1
 
-    if [ ! -x "$QT_PREFIX/bin/qmake6" ] && [ ! -x "$QT_PREFIX/bin/qmake" ]; then
+    for version in $(aqt_qt6_versions "$required" "$arch"); do
+        QT_PREFIX="$root/$version/$arch"
+        if [ -x "$QT_PREFIX/bin/qmake6" ] || [ -x "$QT_PREFIX/bin/qmake" ]; then
+            installed=1
+            break
+        fi
+
         echo "Installing Qt $version for $arch with aqtinstall..."
-        "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-qt linux desktop "$version" "$arch" \
-            -O "$root" -m qtsvg qttools qtcharts qtopcua
+        if "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-qt linux desktop "$version" "$arch" \
+            -O "$root" -m qtsvg qttools qtcharts qtopcua; then
+            installed=1
+            break
+        fi
+        echo "Qt $version is not installable with the required modules, trying an older version..." >&2
+    done
+
+    if [ "$installed" -eq 0 ]; then
+        echo "Error: cannot install Qt 6 >= $required with the required modules using aqtinstall." >&2
+        exit 1
     fi
 
     QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
@@ -720,10 +714,32 @@ brew_install_or_upgrade() {
     done
 }
 
+homebrew_cmake_bin() {
+    local cmake_prefix
+    local cmake_bin
+
+    cmake_prefix="$(brew --prefix cmake 2>/dev/null || true)"
+    if [ -n "$cmake_prefix" ]; then
+        cmake_bin="$cmake_prefix/bin/cmake"
+        if [ -x "$cmake_bin" ]; then
+            echo "$cmake_bin"
+            return
+        fi
+    fi
+
+    if command -v cmake >/dev/null 2>&1; then
+        command -v cmake
+        return
+    fi
+
+    echo "Error: CMake executable was not found after Homebrew installation." >&2
+    exit 1
+}
+
 build_macos() {
     local min_cmake
     local min_qt
-    local cmake_prefix
+    local cmake_found
     local openssl_prefix
     local qt_formula
 
@@ -747,10 +763,10 @@ build_macos() {
 
     brew_install_or_upgrade cmake ninja "$qt_formula" openssl@3
 
-    cmake_prefix="$(brew --prefix cmake)"
-    CMAKE_BIN="$cmake_prefix/bin/cmake"
-    if ! version_ge "$(cmake_version "$CMAKE_BIN")" "$min_cmake"; then
-        echo "Error: CMake $min_cmake or newer is required." >&2
+    CMAKE_BIN="$(homebrew_cmake_bin)"
+    cmake_found="$(cmake_version "$CMAKE_BIN")"
+    if [ -z "$cmake_found" ] || ! version_ge "$cmake_found" "$min_cmake"; then
+        echo "Error: CMake $min_cmake or newer is required, found ${cmake_found:-unknown} at $CMAKE_BIN." >&2
         exit 1
     fi
 

@@ -83,7 +83,7 @@ void TestSettingsDialog::referenceControlsArePresent()
     auto *lightCard = dialog.findChild<ThemePreviewButton *>(
         QStringLiteral("lightThemeButton"));
     QVERIFY(lightCard);
-    QCOMPARE(lightCard->sizeHint(), QSize(190, 150));
+    QCOMPARE(lightCard->sizeHint(), QSize(150, 118));
     QVERIFY(dialog.findChild<ThemePreviewButton *>(QStringLiteral("darkThemeButton")));
     QVERIFY(dialog.findChild<ThemePreviewButton *>(QStringLiteral("systemThemeButton")));
     QVERIFY(dialog.findChild<QPushButton *>(QStringLiteral("resetButton")));
