@@ -734,7 +734,8 @@ build_linux() {
 
     configure_linux_qt "$min_qt"
     ensure_cmake "$min_cmake"
-    build_project "g++"
+
+    build_project "gcc"
 }
 
 brew_install_or_upgrade() {
