@@ -44,6 +44,38 @@ function(ouaexp_prepare_qtopcua_config_opt build_dir)
     file(TOUCH  "${build_dir}/config.opt.in")
 endfunction()
 
+function(ouaexp_find_qtopcua_config out_var)
+    set(search_dirs
+        "${QTOPCUA_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}/cmake/Qt6OpcUa"
+        "${QTOPCUA_INSTALL_DIR}/lib/cmake/Qt6OpcUa"
+    )
+    if(CMAKE_LIBRARY_ARCHITECTURE)
+        list(APPEND search_dirs
+            "${QTOPCUA_INSTALL_DIR}/lib/${CMAKE_LIBRARY_ARCHITECTURE}/cmake/Qt6OpcUa")
+    endif()
+
+    find_file(config_file
+        NAMES Qt6OpcUaConfig.cmake
+        PATHS ${search_dirs}
+        NO_DEFAULT_PATH
+        NO_CACHE
+    )
+    if(NOT config_file)
+        file(GLOB_RECURSE config_matches CONFIGURE_DEPENDS
+            "${QTOPCUA_INSTALL_DIR}/Qt6OpcUaConfig.cmake"
+            "${QTOPCUA_INSTALL_DIR}/*/Qt6OpcUaConfig.cmake"
+            "${QTOPCUA_INSTALL_DIR}/*/*/Qt6OpcUaConfig.cmake"
+            "${QTOPCUA_INSTALL_DIR}/*/*/*/Qt6OpcUaConfig.cmake"
+            "${QTOPCUA_INSTALL_DIR}/*/*/*/*/Qt6OpcUaConfig.cmake"
+        )
+        if(config_matches)
+            list(GET config_matches 0 config_file)
+        endif()
+    endif()
+
+    set(${out_var} "${config_file}" PARENT_SCOPE)
+endfunction()
+
 find_package(Qt6OpcUa CONFIG QUIET)
 
 if(TARGET Qt6::OpcUa)
@@ -97,8 +129,7 @@ endfunction()
 
 ouaexp_patch_qtopcua_history("${qtopcua_SOURCE_DIR}")
 
-set(QTOPCUA_CONFIG_FILE
-    "${QTOPCUA_INSTALL_DIR}/lib/cmake/Qt6OpcUa/Qt6OpcUaConfig.cmake")
+ouaexp_find_qtopcua_config(QTOPCUA_CONFIG_FILE)
 
 if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
     file(MAKE_DIRECTORY "${QTOPCUA_BUILD_DIR}")
@@ -154,6 +185,8 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
     )
 endif()
 
-set(Qt6OpcUa_DIR "${QTOPCUA_INSTALL_DIR}/lib/cmake/Qt6OpcUa"
+ouaexp_find_qtopcua_config(QTOPCUA_CONFIG_FILE)
+get_filename_component(QTOPCUA_CONFIG_DIR "${QTOPCUA_CONFIG_FILE}" DIRECTORY)
+set(Qt6OpcUa_DIR "${QTOPCUA_CONFIG_DIR}"
     CACHE PATH "Directory containing Qt6OpcUaConfig.cmake" FORCE)
 find_package(Qt6OpcUa CONFIG REQUIRED)

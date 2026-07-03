@@ -221,7 +221,7 @@ linux_general_packages() {
             echo "gcc gcc-c++ cmake ninja-build git curl tar gzip pkgconf-pkg-config mesa-libGL-devel xcb-util-cursor-devel xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon-x11 openssl-devel libsecret-devel python3 python3-pip"
             ;;
         altlinux)
-            echo "gcc gcc-c++ cmake ninja-build git curl tar gzip pkg-config libGL-devel libxcbutil-cursor libxcbutil-wm libxcbutil-image libxcbutil-keysyms libxcbutil-renderutil libxcbutil libxkbcommon openssl-devel libsecret-devel python3 python3-module-pip python3-module-venv"
+            echo "gcc gcc-c++ cmake ninja-build git curl tar gzip pkg-config libGL-devel libxcbutil-cursor libxcbutil-icccm libxcbutil-image libxcbutil-keysyms libxcb-render-util libxcbutil libxkbcommon openssl-devel libsecret-devel python3 python3-module-pip python3-module-venv"
             ;;
         suse)
             echo "gcc gcc-c++ cmake ninja git curl tar gzip pkgconf-pkg-config Mesa-libGL-devel xcb-util-cursor-devel libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0 libopenssl-devel libsecret-devel python3 python3-pip"
@@ -628,6 +628,7 @@ deploy_linux_with_linuxdeployqt() {
     local qmake
     local linuxdeployqt
     local opcua_plugin
+    local qtopcua_install
 
     if [ ! -x "$app" ]; then
         echo "Error: installed executable not found: $app" >&2
@@ -642,11 +643,11 @@ deploy_linux_with_linuxdeployqt() {
         -extra-plugins=iconengines,platformthemes \
         -unsupported-allow-new-glibc
 
-    # Qt OpcUa is built from source into the CMake build tree, so its backend plugin
-    # is not in Qt's plugin dir and linuxdeployqt cannot find it via -extra-plugins.
-    # Copy it into the deployed plugin dir by hand; its Qt dependencies (libQt6OpcUa
-    # and friends) are already bundled through the application binary.
-    opcua_plugin="$build_dir/_deps/qtopcua-install/plugins/opcua"
+    qtopcua_install="$build_dir/_deps/qtopcua-install"
+    opcua_plugin="$qtopcua_install/plugins/opcua"
+    if [ ! -d "$opcua_plugin" ] && [ -d "$qtopcua_install" ]; then
+        opcua_plugin="$(find "$qtopcua_install" -type d -path '*/plugins/opcua' -print -quit)"
+    fi
     if [ -d "$opcua_plugin" ]; then
         mkdir -p "$appdir/usr/plugins"
         cp -a "$opcua_plugin" "$appdir/usr/plugins/"
