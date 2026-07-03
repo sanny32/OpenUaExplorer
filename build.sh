@@ -353,6 +353,7 @@ repo_qt6_version() {
 
 qt_version_from_prefix() {
     local prefix="$1"
+    local config
     local qmake
 
     for qmake in "$prefix/bin/qmake6" "$prefix/bin/qmake" "$prefix/bin/qtpaths6"; do
@@ -368,6 +369,36 @@ qt_version_from_prefix() {
             return
         fi
     done
+
+    for config in \
+        "$prefix"/lib*/cmake/Qt6Core/Qt6CoreConfigVersion.cmake \
+        "$prefix"/lib/*/cmake/Qt6Core/Qt6CoreConfigVersion.cmake \
+        "$prefix"/cmake/Qt6Core/Qt6CoreConfigVersion.cmake \
+        "$prefix"/Qt6CoreConfigVersion.cmake; do
+        if [ -f "$config" ]; then
+            sed -nE 's/^[[:space:]]*set[[:space:]]*\([[:space:]]*PACKAGE_VERSION[[:space:]]+"?([^" )]+)"?.*/\1/p' "$config" | head -n1
+            return
+        fi
+    done
+}
+
+qt_prefix_from_core_config() {
+    local config="$1"
+    local prefix
+
+    case "$config" in
+        */lib*/cmake/Qt6Core/Qt6CoreConfig.cmake)
+            prefix="${config%%/lib*/cmake/Qt6Core/Qt6CoreConfig.cmake}"
+            ;;
+        */cmake/Qt6Core/Qt6CoreConfig.cmake)
+            prefix="${config%%/cmake/Qt6Core/Qt6CoreConfig.cmake}"
+            ;;
+        *)
+            prefix="$(dirname "$(dirname "$config")")"
+            ;;
+    esac
+
+    printf '%s\n' "$prefix"
 }
 
 qt_prefix_from_system() {
@@ -405,7 +436,7 @@ qt_prefix_from_system() {
 
     config="$(find /usr /usr/local -type f -name Qt6CoreConfig.cmake 2>/dev/null | head -n1 || true)"
     if [ -n "$config" ]; then
-        dirname "$(dirname "$config")"
+        qt_prefix_from_core_config "$config"
     fi
 }
 
