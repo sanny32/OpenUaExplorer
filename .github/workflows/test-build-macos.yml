@@ -1,0 +1,30 @@
+name: Test build.sh script on macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, dev]
+  pull_request:
+    paths:
+      - build.sh
+      - .github/workflows/test-build-macos.yml
+      - src/**
+
+concurrency:
+  group: build-script-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Run build.sh on MacOS-26
+    runs-on: macos-26
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run build.sh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: bash build.sh --install

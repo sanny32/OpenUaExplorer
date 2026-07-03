@@ -14,6 +14,18 @@ QT_PREFIX=""
 QT_VERSION=""
 CMAKE_BIN=""
 
+log_info() {
+    printf '\033[32mℹ %s\033[0m\n' "$*"
+}
+
+log_warn() {
+    printf '\033[33m⚠ %s\033[0m\n' "$*" >&2
+}
+
+log_error() {
+    printf '\033[31m✖ %s\033[0m\n' "$*" >&2
+}
+
 print_banner() {
     echo "================================"
     echo " OpenUaExplorer build script"
@@ -74,7 +86,7 @@ required_cmake_version() {
     version="$(sed -nE 's/^[[:space:]]*cmake_minimum_required[[:space:]]*\([[:space:]]*VERSION[[:space:]]+([0-9]+(\.[0-9]+){1,3}).*/\1/p' \
         "$SOURCE_DIR/CMakeLists.txt" | head -n1)"
     if [ -z "$version" ]; then
-        echo "Error: cannot detect minimum CMake version from $SOURCE_DIR/CMakeLists.txt" >&2
+        log_error "Cannot detect minimum CMake version from $SOURCE_DIR/CMakeLists.txt"
         exit 1
     fi
 
@@ -87,7 +99,7 @@ required_qt_version() {
     version="$(sed -nE 's/^[[:space:]]*find_package[[:space:]]*\([[:space:]]*Qt6[[:space:]]+([0-9]+(\.[0-9]+){1,3}).*/\1/p' \
         "$SOURCE_DIR/cmake/qt.cmake" | head -n1)"
     if [ -z "$version" ]; then
-        echo "Error: cannot detect minimum Qt version from $SOURCE_DIR/cmake/qt.cmake" >&2
+        log_error "Cannot detect minimum Qt version from $SOURCE_DIR/cmake/qt.cmake"
         exit 1
     fi
 
@@ -116,10 +128,10 @@ ensure_cmake() {
         found="$(cmake_version "$(command -v cmake)")"
         if [ -n "$found" ] && version_ge "$found" "$required"; then
             CMAKE_BIN="$(command -v cmake)"
-            echo "Using CMake $found from $CMAKE_BIN"
+            log_info "Using CMake $found from $CMAKE_BIN"
             return
         fi
-        echo "Found CMake ${found:-unknown}, but $required or newer is required."
+        log_warn "Found CMake ${found:-unknown}, but $required or newer is required."
     fi
 
     ensure_python_tools
@@ -128,11 +140,11 @@ ensure_cmake() {
     found="$(cmake_version "$CMAKE_BIN")"
 
     if [ -z "$found" ] || ! version_ge "$found" "$required"; then
-        echo "Error: cannot install CMake $required or newer." >&2
+        log_error "Cannot install CMake $required or newer."
         exit 1
     fi
 
-    echo "Using local CMake $found from $CMAKE_BIN"
+    log_info "Using local CMake $found from $CMAKE_BIN"
 }
 
 download_file() {
@@ -144,7 +156,7 @@ download_file() {
     elif command -v wget >/dev/null 2>&1; then
         wget -O "$output" "$url"
     else
-        echo "Error: curl or wget is required to download $url" >&2
+        log_error "curl or wget is required to download $url"
         exit 1
     fi
 }
@@ -164,7 +176,7 @@ detect_linux_distro() {
     local ID_LIKE=""
 
     if [ ! -f /etc/os-release ]; then
-        echo "Error: cannot detect Linux distribution." >&2
+        log_error "Cannot detect Linux distribution."
         exit 1
     fi
 
@@ -207,7 +219,7 @@ detect_linux_distro() {
     fi
 
     if [ -z "$DISTRO" ]; then
-        echo "Error: unsupported Linux distribution: ${ID:-unknown}" >&2
+        log_error "Unsupported Linux distribution: ${ID:-unknown}"
         exit 1
     fi
 }
@@ -268,13 +280,55 @@ package_installed() {
     esac
 }
 
+package_available() {
+    local package="$1"
+    local candidate
+
+    case "$DISTRO" in
+        debian|altlinux)
+            candidate="$(apt-cache policy "$package" 2>/dev/null | sed -nE 's/^[[:space:]]*Candidate:[[:space:]]*([^[:space:]]+).*/\1/p')"
+            [ -n "$candidate" ] && [ "$candidate" != "(none)" ]
+            ;;
+        rhel)
+            dnf repoquery --available "$package" >/dev/null 2>&1 \
+                || dnf list --available "$package" >/dev/null 2>&1
+            ;;
+        suse)
+            zypper --non-interactive info "$package" >/dev/null 2>&1
+            ;;
+        arch)
+            pacman -Si "$package" >/dev/null 2>&1
+            ;;
+    esac
+}
+
+qt_packages_available() {
+    local missing=()
+    local package
+
+    for package in "$@"; do
+        if package_installed "$package" || package_available "$package"; then
+            continue
+        fi
+        missing+=("$package")
+    done
+
+    if [ "${#missing[@]}" -eq 0 ]; then
+        return 0
+    fi
+
+    log_warn "Repository does not provide required Qt packages: ${missing[*]}"
+    log_info "Falling back to aqtinstall."
+    return 1
+}
+
 install_packages() {
     local missing=()
     local package
 
     for package in "$@"; do
         if package_installed "$package"; then
-            echo "Found package: $package"
+            log_info "Found package: $package"
         else
             missing+=("$package")
         fi
@@ -284,7 +338,7 @@ install_packages() {
         return
     fi
 
-    echo "Installing packages: ${missing[*]}"
+    log_info "Installing packages: ${missing[*]}"
     case "$DISTRO" in
         debian)
             run_as_root apt-get update
@@ -449,7 +503,7 @@ aqt_arch_candidates() {
             echo "linux_gcc_arm64"
             ;;
         *)
-            echo "Error: unsupported Linux architecture for aqtinstall: $(uname -m)" >&2
+            log_error "Unsupported Linux architecture for aqtinstall: $(uname -m)"
             exit 1
             ;;
     esac
@@ -521,7 +575,7 @@ install_qt6_with_aqt() {
 
     for version in $(aqt_qt6_versions "$required"); do
         if ! qt_release_has_final_tag "$version"; then
-            echo "Skipping Qt $version (no final release tag; beta/RC)." >&2
+            log_warn "Skipping Qt $version (no final release tag; beta/RC)."
             continue
         fi
 
@@ -532,7 +586,7 @@ install_qt6_with_aqt() {
         fi
 
         arch="$(aqt_arch "$version")"
-        echo "Installing Qt $version for $arch with aqtinstall..."
+        log_info "Installing Qt $version for $arch with aqtinstall..."
         if "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-qt linux desktop "$version" "$arch" \
             -O "$root" -m qtcharts; then
             QT_PREFIX="$(aqt_prefix_in "$root/$version")"
@@ -541,11 +595,11 @@ install_qt6_with_aqt() {
                 break
             fi
         fi
-        echo "Qt $version is not installable with the required modules, trying an older version..." >&2
+        log_warn "Qt $version is not installable with the required modules, trying an older version..."
     done
 
     if [ "$installed" -eq 0 ]; then
-        echo "Error: cannot install Qt 6 >= $required with the required modules using aqtinstall." >&2
+        log_error "Cannot install Qt 6 >= $required with the required modules using aqtinstall."
         exit 1
     fi
 
@@ -578,33 +632,37 @@ configure_linux_qt() {
 
     repo_version="$(repo_qt6_version)"
     if [ -n "$repo_version" ] && version_ge "$repo_version" "$required"; then
-        echo "Repository Qt $repo_version satisfies minimum Qt $required."
+        log_info "Repository Qt $repo_version satisfies minimum Qt $required."
         QT_FROM_AQT=0
         read -r -a qt_packages <<<"$(linux_qt6_packages)"
-        install_packages "${qt_packages[@]}"
-        QT_PREFIX="$(qt_prefix_from_system)"
-        QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
-        use_repo_qt_fallback "$repo_version"
+        if qt_packages_available "${qt_packages[@]}"; then
+            install_packages "${qt_packages[@]}"
+            QT_PREFIX="$(qt_prefix_from_system)"
+            QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
+            use_repo_qt_fallback "$repo_version"
+        else
+            install_qt6_with_aqt "$required"
+        fi
     else
         if [ -n "$repo_version" ]; then
-            echo "Repository Qt $repo_version is older than required Qt $required."
+            log_warn "Repository Qt $repo_version is older than required Qt $required."
         else
-            echo "Repository Qt 6 packages were not found."
+            log_warn "Repository Qt 6 packages were not found."
         fi
         install_qt6_with_aqt "$required"
     fi
 
     if [ -z "$QT_PREFIX" ] || [ -z "$QT_VERSION" ]; then
-        echo "Error: cannot detect Qt installation." >&2
+        log_error "Cannot detect Qt installation."
         exit 1
     fi
 
     if ! version_ge "$QT_VERSION" "$required"; then
-        echo "Error: Qt $QT_VERSION is older than required Qt $required." >&2
+        log_error "Qt $QT_VERSION is older than required Qt $required."
         exit 1
     fi
 
-    echo "Using Qt $QT_VERSION from $QT_PREFIX"
+    log_info "Using Qt $QT_VERSION from $QT_PREFIX"
 }
 
 qmake_from_qt_prefix() {
@@ -617,7 +675,7 @@ qmake_from_qt_prefix() {
         fi
     done
 
-    echo "Error: qmake not found in $QT_PREFIX/bin" >&2
+    log_error "qmake not found in $QT_PREFIX/bin"
     exit 1
 }
 
@@ -627,7 +685,7 @@ linuxdeployqt_arch() {
             echo "x86_64"
             ;;
         *)
-            echo "Error: unsupported architecture for linuxdeployqt: $(uname -m)" >&2
+            log_error "Unsupported architecture for linuxdeployqt: $(uname -m)"
             exit 1
             ;;
     esac
@@ -678,7 +736,7 @@ deploy_linux_with_linuxdeployqt() {
     local qtopcua_install
 
     if [ ! -x "$app" ]; then
-        echo "Error: installed executable not found: $app" >&2
+        log_error "Installed executable not found: $app"
         exit 1
     fi
 
@@ -698,12 +756,12 @@ deploy_linux_with_linuxdeployqt() {
     if [ -d "$opcua_plugin" ]; then
         mkdir -p "$appdir/usr/plugins"
         cp -a "$opcua_plugin" "$appdir/usr/plugins/"
-        echo "Copied Qt OpcUa plugin into $appdir/usr/plugins/opcua"
+        log_info "Copied Qt OpcUa plugin into $appdir/usr/plugins/opcua"
     else
-        echo "Warning: Qt OpcUa plugin not found at $opcua_plugin" >&2
+        log_warn "Qt OpcUa plugin not found at $opcua_plugin"
     fi
 
-    echo "Deployed Linux AppDir into $appdir"
+    log_info "Deployed Linux AppDir into $appdir"
 }
 
 default_install_prefix() {
@@ -728,9 +786,7 @@ install_project() {
     if [ -z "$prefix" ]; then
         prefix="$(default_install_prefix "$build_dir")"
     fi
-
-    echo ""
-    echo "Installing into $prefix"
+    log_info "Installing into $prefix"
     if [ "$(uname -s)" = "Linux" ] && [ "$QT_FROM_AQT" -eq 1 ]; then
         mkdir -p "$prefix"
         DESTDIR="$prefix" "$CMAKE_BIN" --install "$build_dir" --prefix /usr
@@ -757,9 +813,7 @@ build_project() {
     if [ "$RUN_TESTS" -eq 1 ]; then
         build_tests=ON
     fi
-
-    echo ""
-    echo "Configuring build in $build_dir"
+    log_info "Configuring build in $build_dir"
     cmake_args=(
         -S "$SOURCE_DIR"
         -B "$build_dir"
@@ -781,8 +835,7 @@ build_project() {
     if [ "$RUN_INSTALL" -eq 1 ]; then
         install_project "$build_dir"
     fi
-    echo ""
-    echo "Build finished successfully in $build_dir"
+    log_info "Build finished successfully in $build_dir"
 }
 
 build_linux() {
@@ -841,7 +894,7 @@ homebrew_cmake_bin() {
         return
     fi
 
-    echo "Error: CMake executable was not found after Homebrew installation." >&2
+    log_error "CMake executable was not found after Homebrew installation."
     exit 1
 }
 
@@ -852,11 +905,11 @@ build_macos() {
     local openssl_prefix
 
     if ! xcode-select -p >/dev/null 2>&1; then
-        echo "Error: Xcode Command Line Tools not found. Install them with: xcode-select --install" >&2
+        log_error "Xcode Command Line Tools not found. Install them with: xcode-select --install"
         exit 1
     fi
     if ! command -v brew >/dev/null 2>&1; then
-        echo "Error: Homebrew not found. Install it from https://brew.sh" >&2
+        log_error "Homebrew not found. Install it from https://brew.sh"
         exit 1
     fi
 
@@ -869,14 +922,14 @@ build_macos() {
     CMAKE_BIN="$(homebrew_cmake_bin)"
     cmake_found="$(cmake_version "$CMAKE_BIN")"
     if [ -z "$cmake_found" ] || ! version_ge "$cmake_found" "$min_cmake"; then
-        echo "Error: CMake $min_cmake or newer is required, found ${cmake_found:-unknown} at $CMAKE_BIN." >&2
+        log_error "CMake $min_cmake or newer is required, found ${cmake_found:-unknown} at $CMAKE_BIN."
         exit 1
     fi
 
     QT_PREFIX="$(brew --prefix qt 2>/dev/null)"
     QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
     if [ -z "$QT_VERSION" ] || ! version_ge "$QT_VERSION" "$min_qt"; then
-        echo "Error: Qt $min_qt or newer is required, found ${QT_VERSION:-unknown}." >&2
+        log_error "Qt $min_qt or newer is required, found ${QT_VERSION:-unknown}."
         exit 1
     fi
 
@@ -885,8 +938,8 @@ build_macos() {
         export OPENSSL_ROOT_DIR="$openssl_prefix"
     fi
 
-    echo "Using Qt $QT_VERSION from $QT_PREFIX"
-    echo "Using CMake $(cmake_version "$CMAKE_BIN") from $CMAKE_BIN"
+    log_info "Using Qt $QT_VERSION from $QT_PREFIX"
+    log_info "Using CMake $(cmake_version "$CMAKE_BIN") from $CMAKE_BIN"
     build_project "clang"
 }
 
@@ -907,12 +960,12 @@ main() {
                 RUN_INSTALL=1
                 INSTALL_PREFIX="${1#--install=}"
                 if [ -z "$INSTALL_PREFIX" ]; then
-                    echo "Error: --install prefix must not be empty" >&2
+                    log_error "--install prefix must not be empty"
                     return 1
                 fi
                 ;;
             *)
-                echo "Error: unknown argument: $1" >&2
+                log_error "Unknown argument: $1"
                 usage >&2
                 return 1
                 ;;
@@ -930,7 +983,7 @@ main() {
             build_macos
             ;;
         *)
-            echo "Error: unsupported OS: $(uname -s)" >&2
+            log_error "Unsupported OS: $(uname -s)"
             return 1
             ;;
     esac
