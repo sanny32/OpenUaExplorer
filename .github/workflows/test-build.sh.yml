@@ -62,6 +62,26 @@ jobs:
             container: fedora:43
             container-setup: dnf -y install git tar findutils
 
+          - name: Fedora-44
+            runner: ubuntu-latest
+            container: fedora:44
+            container-setup: dnf -y install git tar findutils
+
+          - name: Rocky-Linux-10.1
+            runner: ubuntu-latest
+            container: rockylinux:10.1
+            container-setup: dnf -y install git tar findutils
+
+          - name: RedOS-8
+            runner: ubuntu-latest
+            container: registry.red-soft.ru/redos8c/ubi:latest
+            container-setup: dnf -y install git tar findutils
+
+          - name: AstraLinux-1.8
+            runner: ubuntu-latest
+            container: registry.astralinux.ru/astra/ubi18:latest
+            container-setup: apt-get update && apt-get install -y git tar findutils
+
           - name: ALT-Linux-11
             runner: ubuntu-latest
             container: alt:p11

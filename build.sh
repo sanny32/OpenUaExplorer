@@ -813,6 +813,16 @@ brew_install_or_upgrade() {
     done
 }
 
+brew_install_or_upgrade_if_available() {
+    local formula
+
+    for formula in "$@"; do
+        if brew info "$formula" >/dev/null 2>&1; then
+            brew_install_or_upgrade "$formula"
+        fi
+    done
+}
+
 homebrew_cmake_bin() {
     local cmake_prefix
     local cmake_bin
@@ -853,7 +863,8 @@ build_macos() {
     min_cmake="$(required_cmake_version)"
     min_qt="$(required_qt_version)"
 
-    brew_install_or_upgrade cmake ninja qt openssl@3
+    brew_install_or_upgrade cmake ninja qt openssl@3 brotli webp
+    brew_install_or_upgrade_if_available qtpdf qt-pdf qtvirtualkeyboard qt-virtualkeyboard
 
     CMAKE_BIN="$(homebrew_cmake_bin)"
     cmake_found="$(cmake_version "$CMAKE_BIN")"
