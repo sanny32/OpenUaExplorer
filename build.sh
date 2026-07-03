@@ -13,6 +13,8 @@ QT_FROM_AQT=0
 QT_PREFIX=""
 QT_VERSION=""
 CMAKE_BIN=""
+LINUX_ID=""
+LINUX_VERSION_ID=""
 
 log_info() {
     printf '\033[32mℹ %s\033[0m\n' "$*"
@@ -25,7 +27,6 @@ log_warn() {
 log_error() {
     printf '\033[31m✖ %s\033[0m\n' "$*" >&2
 }
-
 print_banner() {
     echo "================================"
     echo " OpenUaExplorer build script"
@@ -182,6 +183,9 @@ detect_linux_distro() {
 
     . /etc/os-release
 
+    LINUX_ID="${ID:-}"
+    LINUX_VERSION_ID="${VERSION_ID:-}"
+
     DISTRO=""
     case "${ID:-}" in
         debian|ubuntu|linuxmint|zorin|astra)
@@ -222,6 +226,47 @@ detect_linux_distro() {
         log_error "Unsupported Linux distribution: ${ID:-unknown}"
         exit 1
     fi
+}
+
+enable_rhel_build_repositories() {
+    local major
+    local repo
+
+    if [ "$DISTRO" != "rhel" ] || [ "$LINUX_ID" = "fedora" ]; then
+        return
+    fi
+
+    major="${LINUX_VERSION_ID%%.*}"
+    if [ -z "$major" ] || ! command -v dnf >/dev/null 2>&1; then
+        return
+    fi
+
+    run_as_root dnf install -y dnf-plugins-core
+
+    case "$LINUX_ID" in
+        rocky|almalinux|centos|ol|redos)
+            if dnf repolist all 2>/dev/null | awk '{ print $1 }' | grep -Fxq crb; then
+                log_info "Enabling CRB repository."
+                run_as_root dnf config-manager --set-enabled crb
+                return
+            fi
+            if dnf repolist all 2>/dev/null | awk '{ print $1 }' | grep -Fxq powertools; then
+                log_info "Enabling PowerTools repository."
+                run_as_root dnf config-manager --set-enabled powertools
+                return
+            fi
+            ;;
+        rhel)
+            repo="codeready-builder-for-rhel-${major}-$(uname -m)-rpms"
+            if dnf repolist all 2>/dev/null | awk '{ print $1 }' | grep -Fxq "$repo"; then
+                log_info "Enabling CodeReady Builder repository."
+                run_as_root dnf config-manager --set-enabled "$repo"
+                return
+            fi
+            ;;
+    esac
+
+    log_warn "RHEL-family build repository was not found; package availability may be incomplete."
 }
 
 linux_general_packages() {
@@ -290,8 +335,8 @@ package_available() {
             [ -n "$candidate" ] && [ "$candidate" != "(none)" ]
             ;;
         rhel)
-            dnf repoquery --available "$package" >/dev/null 2>&1 \
-                || dnf list --available "$package" >/dev/null 2>&1
+            candidate="$(dnf repoquery --available --qf '%{name}' "$package" 2>/dev/null | head -n1 || true)"
+            [ -n "$candidate" ] || dnf list --available "$package" 2>/dev/null | awk 'NR > 1 { found = 1 } END { exit !found }'
             ;;
         suse)
             zypper --non-interactive info "$package" >/dev/null 2>&1
@@ -324,6 +369,7 @@ qt_packages_available() {
 
 install_packages() {
     local missing=()
+    local unavailable=()
     local package
 
     for package in "$@"; do
@@ -336,6 +382,17 @@ install_packages() {
 
     if [ "${#missing[@]}" -eq 0 ]; then
         return
+    fi
+
+    for package in "${missing[@]}"; do
+        if ! package_available "$package"; then
+            unavailable+=("$package")
+        fi
+    done
+
+    if [ "${#unavailable[@]}" -ne 0 ]; then
+        log_error "Package manager does not provide required packages: ${unavailable[*]}"
+        exit 1
     fi
 
     log_info "Installing packages: ${missing[*]}"
@@ -846,6 +903,7 @@ build_linux() {
     min_cmake="$(required_cmake_version)"
     min_qt="$(required_qt_version)"
 
+    enable_rhel_build_repositories
     configure_linux_qt "$min_qt"
     ensure_cmake "$min_cmake"
 
