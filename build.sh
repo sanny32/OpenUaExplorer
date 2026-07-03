@@ -224,7 +224,7 @@ linux_general_packages() {
             echo "gcc gcc-c++ cmake ninja-build git curl tar gzip pkg-config libGL-devel libxcbutil-cursor libxcbutil-wm libxcbutil-image libxcbutil-keysyms libxcbutil-renderutil libxcbutil libxkbcommon openssl-devel libsecret-devel python3 python3-module-pip python3-module-venv"
             ;;
         suse)
-            echo "gcc gcc-c++ cmake ninja git curl tar gzip pkg-config Mesa-libGL-devel xcb-util-cursor-devel libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0 libopenssl-devel libsecret-devel python3 python3-pip python3-venv"
+            echo "gcc gcc-c++ cmake ninja git curl tar gzip pkgconf-pkg-config Mesa-libGL-devel xcb-util-cursor-devel libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0 libopenssl-devel libsecret-devel python3 python3-pip"
             ;;
         arch)
             echo "base-devel cmake ninja git curl tar gzip pkgconf mesa libxcb xcb-util-cursor xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon openssl libsecret python python-pip"
