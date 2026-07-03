@@ -39,8 +39,7 @@ function(ouaexp_remove_incomplete_qtopcua_source)
     file(REMOVE_RECURSE "${QTOPCUA_SOURCE_DIR}")
 endfunction()
 
-function(ouaexp_prepare_qt_configure_module build_dir)
-    # The wrapper may overwrite this file with a read-only sidecar, then append to it.
+function(ouaexp_prepare_qtopcua_config_opt build_dir)
     file(REMOVE "${build_dir}/config.opt.in")
     file(TOUCH  "${build_dir}/config.opt.in")
 endfunction()
@@ -102,14 +101,8 @@ set(QTOPCUA_CONFIG_FILE
     "${QTOPCUA_INSTALL_DIR}/lib/cmake/Qt6OpcUa/Qt6OpcUaConfig.cmake")
 
 if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
-    find_program(QTOPCUA_CONFIGURE_EXECUTABLE
-        NAMES qt-configure-module qt-configure-module.bat
-        HINTS "${QT_BINARY_DIR}"
-        REQUIRED
-    )
-
     file(MAKE_DIRECTORY "${QTOPCUA_BUILD_DIR}")
-    ouaexp_prepare_qt_configure_module("${QTOPCUA_BUILD_DIR}")
+    ouaexp_prepare_qtopcua_config_opt("${QTOPCUA_BUILD_DIR}")
 
     set(QTOPCUA_CONFIGURE_OPTIONS
         -DINPUT_open62541=qt
@@ -141,9 +134,10 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
         "Configuring Qt OpcUa ${QTOPCUA_VERSION} with the bundled open62541 backend")
     execute_process(
         COMMAND "${CMAKE_COMMAND}" -E env "PATH=${CMAKE_PATH}"
-            "${QTOPCUA_CONFIGURE_EXECUTABLE}"
-            "${qtopcua_SOURCE_DIR}"
-            --
+            "${CMAKE_COMMAND}"
+            -G Ninja
+            -S "${qtopcua_SOURCE_DIR}"
+            -B "${QTOPCUA_BUILD_DIR}"
             ${QTOPCUA_CONFIGURE_OPTIONS}
         WORKING_DIRECTORY "${QTOPCUA_BUILD_DIR}"
         COMMAND_ERROR_IS_FATAL ANY
