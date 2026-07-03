@@ -39,6 +39,12 @@ function(ouaexp_remove_incomplete_qtopcua_source)
     file(REMOVE_RECURSE "${QTOPCUA_SOURCE_DIR}")
 endfunction()
 
+function(ouaexp_prepare_qt_configure_module build_dir)
+    # The wrapper may overwrite this file with a read-only sidecar, then append to it.
+    file(REMOVE "${build_dir}/config.opt.in")
+    file(TOUCH  "${build_dir}/config.opt.in")
+endfunction()
+
 find_package(Qt6OpcUa CONFIG QUIET)
 
 if(TARGET Qt6::OpcUa)
@@ -103,6 +109,7 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
     )
 
     file(MAKE_DIRECTORY "${QTOPCUA_BUILD_DIR}")
+    ouaexp_prepare_qt_configure_module("${QTOPCUA_BUILD_DIR}")
 
     set(QTOPCUA_CONFIGURE_OPTIONS
         -DINPUT_open62541=qt

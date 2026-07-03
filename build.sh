@@ -464,6 +464,21 @@ aqt_qt6_versions() {
     done
 }
 
+# aqt installs into "$root/$version/<compiler_dir>", where <compiler_dir> is not
+# the arch selector: e.g. selector linux_gcc_64 (Qt >= 6.7) installs into gcc_64.
+# Discover the real prefix from the filesystem instead of assuming its name.
+aqt_prefix_in() {
+    local base="$1"
+    local qmake
+
+    for qmake in "$base"/*/bin/qmake6 "$base"/*/bin/qmake; do
+        if [ -x "$qmake" ]; then
+            dirname "$(dirname "$qmake")"
+            return
+        fi
+    done
+}
+
 install_qt6_with_aqt() {
     local required="$1"
     local arch
@@ -482,18 +497,21 @@ install_qt6_with_aqt() {
             continue
         fi
 
-        arch="$(aqt_arch "$version")"
-        QT_PREFIX="$root/$version/$arch"
-        if [ -x "$QT_PREFIX/bin/qmake6" ] || [ -x "$QT_PREFIX/bin/qmake" ]; then
+        QT_PREFIX="$(aqt_prefix_in "$root/$version")"
+        if [ -n "$QT_PREFIX" ]; then
             installed=1
             break
         fi
 
+        arch="$(aqt_arch "$version")"
         echo "Installing Qt $version for $arch with aqtinstall..."
         if "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-qt linux desktop "$version" "$arch" \
             -O "$root" -m qtcharts; then
-            installed=1
-            break
+            QT_PREFIX="$(aqt_prefix_in "$root/$version")"
+            if [ -n "$QT_PREFIX" ]; then
+                installed=1
+                break
+            fi
         fi
         echo "Qt $version is not installable with the required modules, trying an older version..." >&2
     done
