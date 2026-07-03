@@ -215,7 +215,7 @@ detect_linux_distro() {
 linux_general_packages() {
     case "$DISTRO" in
         debian)
-            echo "build-essential cmake ninja-build git curl tar gzip pkg-config libgl1-mesa-dev libxcb-cursor-dev libssl-dev python3 python3-pip python3-venv"
+            echo "build-essential cmake ninja-build git curl tar gzip pkg-config libgl1-mesa-dev libxcb-cursor-dev libxkbcommon-x11-0 libssl-dev python3 python3-pip python3-venv"
             ;;
         rhel)
             echo "gcc gcc-c++ cmake ninja-build git curl tar gzip pkgconf-pkg-config mesa-libGL-devel xcb-util-cursor-devel openssl-devel python3 python3-pip"
