@@ -50,26 +50,33 @@ jobs:
         include:
           - name: Ubuntu-22.04
             runner: ubuntu-22.04
+
           - name: Ubuntu-24.04
             runner: ubuntu-24.04
+
           - name: Ubuntu-26.04
             runner: ubuntu-26.04
+
           - name: Fedora-43
             runner: ubuntu-latest
             container: fedora:43
             container-setup: dnf -y install git tar findutils
+
           - name: ALT-Linux-11
             runner: ubuntu-latest
             container: alt:p11
             container-setup: apt-get update && apt-get install -y git tar findutils
+
           - name: openSUSE-Tumbleweed
             runner: ubuntu-latest
             container: opensuse/tumbleweed
             container-setup: zypper --non-interactive install git tar findutils
+
           - name: Arch
             runner: ubuntu-latest
             container: archlinux:latest
             container-setup: pacman -Sy --noconfirm git tar
+            
           - name: MacOS-26
             runner: macos-26
 
@@ -79,7 +86,7 @@ jobs:
         run: ${{ matrix.container-setup }}
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Run build.sh
         env:
