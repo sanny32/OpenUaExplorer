@@ -442,6 +442,13 @@ aqt_arch() {
     return 1
 }
 
+qt_release_has_final_tag() {
+    local version="$1"
+
+    git ls-remote --exit-code --tags https://code.qt.io/qt/qtbase.git \
+        "refs/tags/v${version}" >/dev/null 2>&1
+}
+
 aqt_qt6_versions() {
     local versions
     local version
@@ -470,6 +477,11 @@ install_qt6_with_aqt() {
     QT_FROM_AQT=1
 
     for version in $(aqt_qt6_versions "$required"); do
+        if ! qt_release_has_final_tag "$version"; then
+            echo "Skipping Qt $version (no final release tag; beta/RC)." >&2
+            continue
+        fi
+
         arch="$(aqt_arch "$version")"
         QT_PREFIX="$root/$version/$arch"
         if [ -x "$QT_PREFIX/bin/qmake6" ] || [ -x "$QT_PREFIX/bin/qmake" ]; then
