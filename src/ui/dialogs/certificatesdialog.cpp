@@ -87,14 +87,14 @@ public:
     void setCategory(int category)
     {
         _category = category;
-        invalidateFilter();
+        refilter();
     }
 
     /// \brief Restricts rows to those whose name or issuer contain the text.
     void setSearch(const QString &text)
     {
         _search = text.trimmed();
-        invalidateFilter();
+        refilter();
     }
 
 protected:
@@ -120,6 +120,17 @@ protected:
     }
 
 private:
+    /// \brief Re-runs the row filter, using the non-deprecated API where available.
+    void refilter()
+    {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+        beginFilterChange();
+        endFilterChange();
+#else
+        invalidateFilter();
+#endif
+    }
+
     int _category = -1;
     QString _search;
 };

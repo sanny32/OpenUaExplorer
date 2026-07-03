@@ -38,6 +38,20 @@ QString clientErrorName(QOpcUaClient::ClientError error)
     case QOpcUaClient::UnknownError:    return backendTr("Unknown client error.");
     case QOpcUaClient::UnsupportedAuthenticationInformation:
         return backendTr("Unsupported authentication information.");
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+    case QOpcUaClient::InvalidAuthenticationInformation:
+        return backendTr("Invalid authentication information.");
+    case QOpcUaClient::InvalidEndpointDescription:
+        return backendTr("Invalid endpoint description.");
+    case QOpcUaClient::NoMatchingUserIdentityTokenFound:
+        return backendTr("No matching user identity token found.");
+    case QOpcUaClient::UnsupportedSecurityPolicy:
+        return backendTr("Unsupported security policy.");
+    case QOpcUaClient::InvalidPki:
+        return backendTr("Invalid PKI configuration.");
+    case QOpcUaClient::CertificateUntrusted:
+        return backendTr("Certificate is not trusted.");
+#endif
     }
     return backendTr("Unknown client error (%1).").arg(static_cast<int>(error));
 }
