@@ -103,6 +103,16 @@ public:
     ///
     void restoreViewState(AppSettings &settings);
 
+protected:
+    ///
+    /// \brief Keeps the collapse button pinned to the tab strip on tab-widget
+    ///        resize and show events.
+    /// \param watched Object delivering the event.
+    /// \param event Event being filtered.
+    /// \return True when the event is consumed.
+    ///
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 public slots:
     ///
     /// \brief Updates the subscriptions offered by every chart's settings.
@@ -168,6 +178,7 @@ private:
     void onChartSubscribe(const QString &nodeId, double publishingInterval);
     void onChartUnsubscribe(const QString &nodeId);
     int collapsedHeight() const;
+    void positionCollapseButton();
 
     Ui::TrendPanelWidget *ui;
     QWidget *_addTab = nullptr;

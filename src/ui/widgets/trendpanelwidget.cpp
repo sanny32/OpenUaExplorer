@@ -14,7 +14,9 @@
 
 #include <QAbstractButton>
 #include <QDataStream>
+#include <QEvent>
 #include <QIODevice>
+#include <QResizeEvent>
 #include <QTabBar>
 
 #include "themedtoolbutton.h"
@@ -53,13 +55,16 @@ TrendPanelWidget::TrendPanelWidget(QWidget *parent)
 
     ui->trendTabs->setTabsClosable(true);
 
+    // The collapse button is positioned manually over the tab strip rather than
+    // via QTabWidget::setCornerWidget: QlementineStyle places corner widgets one
+    // row too low (below the tab bar instead of centred within it).
     _collapseButton = new ThemedToolButton(ui->trendTabs);
     _collapseButton->setObjectName(QStringLiteral("collapseButton"));
     _collapseButton->setSquareIconOnly(true);
     _collapseButton->setAutoRaise(true);
     _collapseButton->setIcon(QStringLiteral("chevron-down"));
     _collapseButton->setToolTip(tr("Collapse trend panel"));
-    ui->trendTabs->setCornerWidget(_collapseButton, Qt::TopRightCorner);
+    ui->trendTabs->installEventFilter(this);
     connect(_collapseButton, &QAbstractButton::clicked, this,
             [this]() { setCollapsed(!_collapsed); });
 
@@ -362,6 +367,44 @@ int TrendPanelWidget::collapsedHeight() const
     if (_collapseButton)
         header = qMax(header, _collapseButton->sizeHint().height());
     return header;
+}
+
+///
+/// \brief Pins the collapse button to the top-right of the tab strip, centred on
+///        the tab bar.
+///
+void TrendPanelWidget::positionCollapseButton()
+{
+    if (!_collapseButton)
+        return;
+
+    const QTabBar *bar = ui->trendTabs->tabBar();
+    const int barHeight = bar ? bar->height() : _collapseButton->sizeHint().height();
+    const QSize hint = _collapseButton->sizeHint();
+    const int margin = 6;
+    const int x = ui->trendTabs->width() - hint.width() - margin;
+    const int y = qMax(0, (barHeight - hint.height()) / 2);
+
+    _collapseButton->setGeometry(x, y, hint.width(), hint.height());
+    _collapseButton->raise();
+    _collapseButton->show();
+}
+
+///
+/// \brief Keeps the collapse button pinned to the tab strip on tab-widget resize
+///        and show events.
+/// \param watched Object delivering the event.
+/// \param event Event being filtered.
+/// \return True when the event is consumed.
+///
+bool TrendPanelWidget::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == ui->trendTabs
+        && (event->type() == QEvent::Resize || event->type() == QEvent::Show
+            || event->type() == QEvent::LayoutRequest)) {
+        positionCollapseButton();
+    }
+    return QWidget::eventFilter(watched, event);
 }
 
 ///
