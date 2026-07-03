@@ -3,8 +3,7 @@ name: Test build.sh script on macOS
 on:
   workflow_dispatch:
   push:
-    branches: [main, dev]
-  pull_request:
+    branches: [main]
     paths:
       - build.sh
       - .github/workflows/test-build-macos.yml
