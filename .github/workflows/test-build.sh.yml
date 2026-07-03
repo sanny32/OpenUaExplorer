@@ -1,6 +1,7 @@
 name: Test build.sh script
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, dev]
   pull_request:
@@ -37,32 +38,50 @@ jobs:
       - name: Check help output
         run: bash build.sh --help
 
-  linux:
-    name: Run build.sh on Linux
-    runs-on: ubuntu-22.04
+  build:
+    name: Run build.sh on ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
     needs: validate
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu-22.04
+            runner: ubuntu-22.04
+          - name: Ubuntu-24.04
+            runner: ubuntu-24.04
+          - name: Ubuntu-26.04
+            runner: ubuntu-26.04
+          - name: Fedora-43
+            runner: ubuntu-latest
+            container: fedora:43
+            container-setup: dnf -y install git tar findutils
+          - name: ALT-Linux-11
+            runner: ubuntu-latest
+            container: alt:p11
+            container-setup: apt-get update && apt-get install -y git tar findutils
+          - name: openSUSE-Tumbleweed
+            runner: ubuntu-latest
+            container: opensuse/tumbleweed
+            container-setup: zypper --non-interactive install git tar findutils
+          - name: Arch
+            runner: ubuntu-latest
+            container: archlinux:latest
+            container-setup: pacman -Sy --noconfirm git tar
+          - name: MacOS-26
+            runner: macos-26
 
     steps:
+      - name: Prepare container
+        if: matrix.container-setup != ''
+        run: ${{ matrix.container-setup }}
+
       - name: Checkout
         uses: actions/checkout@v5
 
       - name: Run build.sh
         env:
           QT_QPA_PLATFORM: offscreen
-        run: bash build.sh --install="$PWD/install-linux"
-
-  macos:
-    name: Run build.sh on macOS
-    runs-on: macos-latest
-    needs: validate
-    timeout-minutes: 90
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Run build.sh
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: bash build.sh --install="$PWD/install-macos"
+        run: bash build.sh --install
