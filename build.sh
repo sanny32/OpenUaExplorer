@@ -65,7 +65,7 @@ version_ge() {
 }
 
 extract_version() {
-    sed -nE 's/.*([0-9]+(\.[0-9]+){1,3}).*/\1/p' | head -n1
+    grep -oE '[0-9]+(\.[0-9]+){1,3}' | head -n1
 }
 
 required_cmake_version() {
@@ -409,10 +409,10 @@ qt_prefix_from_system() {
     fi
 }
 
-aqt_arch() {
+aqt_arch_candidates() {
     case "$(uname -m)" in
         x86_64|amd64)
-            echo "gcc_64"
+            echo "linux_gcc_64 gcc_64"
             ;;
         aarch64|arm64)
             echo "linux_gcc_arm64"
@@ -424,30 +424,37 @@ aqt_arch() {
     esac
 }
 
+aqt_arch() {
+    local version="$1"
+    local available
+    local candidate
+
+    available="$("$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop --arch "$version" 2>/dev/null \
+        | tr ' ' '\n')"
+
+    for candidate in $(aqt_arch_candidates); do
+        if printf '%s\n' "$available" | grep -Fxq "$candidate"; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
 aqt_qt6_versions() {
     local versions
     local version
     local required="$1"
-    local arch="$2"
 
     versions="$("$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop 2>/dev/null \
         | tr ' ' '\n' | sed -nE '/^6\.[0-9]+\.[0-9]+$/p' | sort -Vr)"
 
     for version in $versions; do
-        if version_ge "$version" "$required" && aqt_qt_arch_available "$version" "$arch"; then
+        if version_ge "$version" "$required" && [ -n "$(aqt_arch "$version")" ]; then
             echo "$version"
         fi
     done
-}
-
-aqt_qt_arch_available() {
-    local version="$1"
-    local arch="$2"
-
-    if ! "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop --arch "$version" 2>/dev/null \
-        | tr ' ' '\n' | grep -Fxq "$arch"; then
-        return 1
-    fi
 }
 
 install_qt6_with_aqt() {
@@ -460,10 +467,10 @@ install_qt6_with_aqt() {
     ensure_python_tools
     "$TOOLS_DIR/aqt-venv/bin/python3" -m pip install --upgrade aqtinstall
 
-    arch="$(aqt_arch)"
     QT_FROM_AQT=1
 
-    for version in $(aqt_qt6_versions "$required" "$arch"); do
+    for version in $(aqt_qt6_versions "$required"); do
+        arch="$(aqt_arch "$version")"
         QT_PREFIX="$root/$version/$arch"
         if [ -x "$QT_PREFIX/bin/qmake6" ] || [ -x "$QT_PREFIX/bin/qmake" ]; then
             installed=1
@@ -741,7 +748,6 @@ build_macos() {
     local min_qt
     local cmake_found
     local openssl_prefix
-    local qt_formula
 
     if ! xcode-select -p >/dev/null 2>&1; then
         echo "Error: Xcode Command Line Tools not found. Install them with: xcode-select --install" >&2
@@ -755,13 +761,7 @@ build_macos() {
     min_cmake="$(required_cmake_version)"
     min_qt="$(required_qt_version)"
 
-    if brew info qt@6 >/dev/null 2>&1; then
-        qt_formula="qt@6"
-    else
-        qt_formula="qt"
-    fi
-
-    brew_install_or_upgrade cmake ninja "$qt_formula" openssl@3
+    brew_install_or_upgrade cmake ninja qt openssl@3
 
     CMAKE_BIN="$(homebrew_cmake_bin)"
     cmake_found="$(cmake_version "$CMAKE_BIN")"
@@ -770,7 +770,7 @@ build_macos() {
         exit 1
     fi
 
-    QT_PREFIX="$(brew --prefix qt@6 2>/dev/null || brew --prefix qt 2>/dev/null)"
+    QT_PREFIX="$(brew --prefix qt 2>/dev/null)"
     QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
     if [ -z "$QT_VERSION" ] || ! version_ge "$QT_VERSION" "$min_qt"; then
         echo "Error: Qt $min_qt or newer is required, found ${QT_VERSION:-unknown}." >&2
