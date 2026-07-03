@@ -1,0 +1,68 @@
+name: Test build.sh script
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    paths:
+      - build.sh
+      - .github/workflows/test-build.sh.yml
+      - src/**
+
+concurrency:
+  group: build-script-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate build.sh syntax
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Check script metadata
+        run: head -n1 build.sh | grep -qx '#!/usr/bin/env bash'
+
+      - name: Check Bash syntax
+        run: bash -n build.sh
+
+      - name: Run ShellCheck
+        run: shellcheck -e SC1091 build.sh
+
+      - name: Check help output
+        run: bash build.sh --help
+
+  linux:
+    name: Run build.sh on Linux
+    runs-on: ubuntu-22.04
+    needs: validate
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Run build.sh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: bash build.sh --install="$PWD/install-linux"
+
+  macos:
+    name: Run build.sh on macOS
+    runs-on: macos-latest
+    needs: validate
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Run build.sh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: bash build.sh --install="$PWD/install-macos"

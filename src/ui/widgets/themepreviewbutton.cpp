@@ -19,7 +19,7 @@
 
 namespace {
 
-constexpr int kPreviewIconSide = 56;
+constexpr int kPreviewIconSide = 44;
 
 ///
 /// \brief Resolves the toolbar icon name for a mode.
@@ -92,7 +92,7 @@ void ThemePreviewButton::setPreviewMode(const QString &mode)
 ///
 QSize ThemePreviewButton::sizeHint() const
 {
-    return QSize(190, 150);
+    return QSize(150, 118);
 }
 
 ///
@@ -113,17 +113,17 @@ void ThemePreviewButton::paintEvent(QPaintEvent *event)
     painter.setBrush(palette().color(QPalette::Base));
     painter.drawRoundedRect(cardRect, 5.0, 5.0);
 
-    const QRectF previewRect = cardRect.adjusted(22.0, 14.0, -22.0, -42.0);
+    const QRectF previewRect = cardRect.adjusted(18.0, 12.0, -18.0, -34.0);
     paintPreviewIcon(painter, previewRect, _previewMode);
 
     QStyleOptionButton radio;
     radio.initFrom(this);
     radio.state |= isChecked() ? QStyle::State_On : QStyle::State_Off;
-    radio.rect = QRect(16, height() - 30, 18, 18);
+    radio.rect = QRect(14, height() - 26, 16, 16);
     style()->drawPrimitive(QStyle::PE_IndicatorRadioButton, &radio, &painter, this);
 
     painter.setPen(palette().color(QPalette::Text));
-    painter.drawText(QRect(42, height() - 34, width() - 52, 26),
+    painter.drawText(QRect(36, height() - 30, width() - 46, 24),
                      Qt::AlignVCenter | Qt::AlignLeft, text());
 
     if (hasFocus()) {

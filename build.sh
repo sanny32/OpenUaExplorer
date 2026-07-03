@@ -4,35 +4,36 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_DIR="$PROJECT_DIR/src"
 TOOLS_DIR="$PROJECT_DIR/.build-tools"
-BUILD_TYPE="${BUILD_TYPE:-Release}"
+BUILD_TYPE=Release
+RUN_TESTS=0
+RUN_INSTALL=0
+INSTALL_PREFIX=""
+QT_FROM_AQT=0
 
 QT_PREFIX=""
 QT_VERSION=""
 CMAKE_BIN=""
 
-usage() {
-    echo "Usage: ./build.sh"
+print_banner() {
+    echo "================================"
+    echo " OpenUaExplorer build script"
+    echo "================================"
     echo ""
-    echo "Environment:"
-    echo "  BUILD_TYPE=Release|Debug|RelWithDebInfo"
 }
 
-case "${1:-}" in
-    -h|--help)
-        usage
-        exit 0
-        ;;
-esac
-
-echo "================================"
-echo " OpenUaExplorer build script"
-echo "================================"
-echo ""
+usage() {
+    echo "Usage: ./build.sh [--tests] [--install[=PREFIX]]"
+    echo ""
+    echo "Options:"
+    echo "  --tests             Build and run the test suite"
+    echo "  --install[=PREFIX]  Install after building"
+}
 
 version_part() {
     local version="$1"
     local index="$2"
     local part
+    local -a parts
 
     IFS=. read -r -a parts <<<"$version"
     part="${parts[$index]:-0}"
@@ -134,6 +135,20 @@ ensure_cmake() {
     echo "Using local CMake $found from $CMAKE_BIN"
 }
 
+download_file() {
+    local url="$1"
+    local output="$2"
+
+    if command -v curl >/dev/null 2>&1; then
+        curl -L --fail "$url" -o "$output"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -O "$output" "$url"
+    else
+        echo "Error: curl or wget is required to download $url" >&2
+        exit 1
+    fi
+}
+
 run_as_root() {
     if [ "$EUID" -eq 0 ]; then
         "$@"
@@ -145,6 +160,9 @@ run_as_root() {
 }
 
 detect_linux_distro() {
+    local ID=""
+    local ID_LIKE=""
+
     if [ ! -f /etc/os-release ]; then
         echo "Error: cannot detect Linux distribution." >&2
         exit 1
@@ -217,19 +235,19 @@ linux_general_packages() {
 linux_qt6_packages() {
     case "$DISTRO" in
         debian)
-            echo "qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools libqt6svg6-dev"
+            echo "qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools libqt6svg6-dev qt6-charts-dev"
             ;;
         rhel)
-            echo "qt6-qtbase-devel qt6-qttools-devel qt6-qtsvg-devel"
+            echo "qt6-qtbase-devel qt6-qttools-devel qt6-qtsvg-devel qt6-qtcharts-devel"
             ;;
         altlinux)
-            echo "qt6-base-devel qt6-tools-devel qt6-svg-devel"
+            echo "qt6-base-devel qt6-tools-devel qt6-svg-devel qt6-charts-devel"
             ;;
         suse)
-            echo "qt6-base-devel qt6-tools-devel qt6-svg-devel"
+            echo "qt6-base-devel qt6-tools-devel qt6-svg-devel qt6-charts-devel"
             ;;
         arch)
-            echo "qt6-base qt6-tools qt6-svg"
+            echo "qt6-base qt6-tools qt6-svg qt6-charts"
             ;;
     esac
 }
@@ -269,6 +287,7 @@ install_packages() {
     echo "Installing packages: ${missing[*]}"
     case "$DISTRO" in
         debian)
+            run_as_root apt-get update
             run_as_root apt-get install -y "${missing[@]}"
             ;;
         rhel)
@@ -440,11 +459,12 @@ install_qt6_with_aqt() {
     arch="$(aqt_arch)"
     version="$(latest_aqt_qt6_version "$required")"
     QT_PREFIX="$root/$version/$arch"
+    QT_FROM_AQT=1
 
     if [ ! -x "$QT_PREFIX/bin/qmake6" ] && [ ! -x "$QT_PREFIX/bin/qmake" ]; then
         echo "Installing Qt $version for $arch with aqtinstall..."
         "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-qt linux desktop "$version" "$arch" \
-            -O "$root" -m qtsvg qttools
+            -O "$root" -m qtsvg qttools qtcharts qtopcua
     fi
 
     QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
@@ -453,15 +473,18 @@ install_qt6_with_aqt() {
 configure_linux_qt() {
     local required="$1"
     local repo_version
-    local packages
+    local -a general_packages
+    local -a qt_packages
 
-    install_packages $(linux_general_packages)
+    read -r -a general_packages <<<"$(linux_general_packages)"
+    install_packages "${general_packages[@]}"
 
     repo_version="$(repo_qt6_version)"
     if [ -n "$repo_version" ] && version_ge "$repo_version" "$required"; then
         echo "Repository Qt $repo_version satisfies minimum Qt $required."
-        packages="$(linux_qt6_packages)"
-        install_packages $packages
+        QT_FROM_AQT=0
+        read -r -a qt_packages <<<"$(linux_qt6_packages)"
+        install_packages "${qt_packages[@]}"
         QT_PREFIX="$(qt_prefix_from_system)"
         QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
     else
@@ -486,16 +509,139 @@ configure_linux_qt() {
     echo "Using Qt $QT_VERSION from $QT_PREFIX"
 }
 
+qmake_from_qt_prefix() {
+    local qmake
+
+    for qmake in "$QT_PREFIX/bin/qmake6" "$QT_PREFIX/bin/qmake"; do
+        if [ -x "$qmake" ]; then
+            echo "$qmake"
+            return
+        fi
+    done
+
+    echo "Error: qmake not found in $QT_PREFIX/bin" >&2
+    exit 1
+}
+
+linuxdeployqt_arch() {
+    case "$(uname -m)" in
+        x86_64|amd64)
+            echo "x86_64"
+            ;;
+        *)
+            echo "Error: unsupported architecture for linuxdeployqt: $(uname -m)" >&2
+            exit 1
+            ;;
+    esac
+}
+
+ensure_linuxdeployqt() {
+    local arch
+    local appimage
+    local appimage_dir
+    local extract_dir
+
+    arch="$(linuxdeployqt_arch)"
+    appimage_dir="$TOOLS_DIR/linuxdeployqt"
+    appimage="$appimage_dir/linuxdeployqt-continuous-$arch.AppImage"
+    extract_dir="$appimage_dir/squashfs-root-$arch"
+
+    if [ -x "$extract_dir/AppRun" ]; then
+        echo "$extract_dir/AppRun"
+        return
+    fi
+
+    mkdir -p "$appimage_dir"
+    if [ ! -f "$appimage" ]; then
+        download_file \
+            "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-$arch.AppImage" \
+            "$appimage"
+    fi
+    chmod +x "$appimage"
+
+    if "$appimage" --version >/dev/null 2>&1; then
+        echo "$appimage"
+        return
+    fi
+
+    (cd "$appimage_dir" && "./$(basename "$appimage")" --appimage-extract >/dev/null)
+    rm -rf "$extract_dir"
+    mv "$appimage_dir/squashfs-root" "$extract_dir"
+    echo "$extract_dir/AppRun"
+}
+
+deploy_linux_with_linuxdeployqt() {
+    local appdir="$1"
+    local app="$appdir/usr/bin/ouaexp"
+    local qmake
+    local linuxdeployqt
+
+    if [ ! -x "$app" ]; then
+        echo "Error: installed executable not found: $app" >&2
+        exit 1
+    fi
+
+    qmake="$(qmake_from_qt_prefix)"
+    linuxdeployqt="$(ensure_linuxdeployqt)"
+    "$linuxdeployqt" "$app" \
+        -qmake="$qmake" \
+        -bundle-non-qt-libs \
+        -extra-plugins=iconengines,opcua,platformthemes
+
+    echo "Deployed Linux AppDir into $appdir"
+}
+
+default_install_prefix() {
+    case "$(uname -s)" in
+        Linux)
+            if [ "$QT_FROM_AQT" -eq 1 ]; then
+                echo "$1/install"
+            else
+                echo "/usr/local"
+            fi
+            ;;
+        Darwin)
+            echo "/Applications"
+            ;;
+    esac
+}
+
+install_project() {
+    local build_dir="$1"
+    local prefix="$INSTALL_PREFIX"
+
+    if [ -z "$prefix" ]; then
+        prefix="$(default_install_prefix "$build_dir")"
+    fi
+
+    echo ""
+    echo "Installing into $prefix"
+    if [ "$(uname -s)" = "Linux" ] && [ "$QT_FROM_AQT" -eq 1 ]; then
+        mkdir -p "$prefix"
+        DESTDIR="$prefix" "$CMAKE_BIN" --install "$build_dir" --prefix /usr
+        deploy_linux_with_linuxdeployqt "$prefix"
+    elif [ "$(uname -s)" = "Linux" ] && [ "$QT_FROM_AQT" -eq 0 ] && [ ! -w "$prefix" ]; then
+        run_as_root "$CMAKE_BIN" --install "$build_dir" --prefix "$prefix"
+    else
+        "$CMAKE_BIN" --install "$build_dir" --prefix "$prefix"
+    fi
+}
+
 build_project() {
     local compiler="$1"
     local qt_version_safe
     local arch
     local build_dir
     local cmake_args
+    local build_tests
 
     qt_version_safe="$(printf '%s' "$QT_VERSION" | tr '. ' '__')"
     arch="$(uname -m)"
     build_dir="$PROJECT_DIR/build-ouaexp-Qt_${qt_version_safe}_${compiler}_${arch}-${BUILD_TYPE}"
+    build_tests=OFF
+    if [ "$RUN_TESTS" -eq 1 ]; then
+        build_tests=ON
+    fi
 
     echo ""
     echo "Configuring build in $build_dir"
@@ -505,6 +651,7 @@ build_project() {
         -GNinja
         -DCMAKE_PREFIX_PATH="$QT_PREFIX"
         -DCMAKE_BUILD_TYPE="$BUILD_TYPE"
+        -DOUAEXP_BUILD_TESTS="$build_tests"
     )
     if [ -n "${OPENSSL_ROOT_DIR:-}" ]; then
         cmake_args+=("-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR")
@@ -513,6 +660,12 @@ build_project() {
     "$CMAKE_BIN" "${cmake_args[@]}"
 
     "$CMAKE_BIN" --build "$build_dir" --parallel
+    if [ "$RUN_TESTS" -eq 1 ]; then
+        "$CMAKE_BIN" --build "$build_dir" --parallel --target ouaexp_check
+    fi
+    if [ "$RUN_INSTALL" -eq 1 ]; then
+        install_project "$build_dir"
+    fi
     echo ""
     echo "Build finished successfully in $build_dir"
 }
@@ -579,15 +732,50 @@ build_macos() {
     build_project "clang"
 }
 
-case "$(uname -s)" in
-    Linux)
-        build_linux
-        ;;
-    Darwin)
-        build_macos
-        ;;
-    *)
-        echo "Error: unsupported OS: $(uname -s)" >&2
-        exit 1
-        ;;
-esac
+main() {
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            -h|--help)
+                usage
+                return 0
+                ;;
+            --tests)
+                RUN_TESTS=1
+                ;;
+            --install)
+                RUN_INSTALL=1
+                ;;
+            --install=*)
+                RUN_INSTALL=1
+                INSTALL_PREFIX="${1#--install=}"
+                if [ -z "$INSTALL_PREFIX" ]; then
+                    echo "Error: --install prefix must not be empty" >&2
+                    return 1
+                fi
+                ;;
+            *)
+                echo "Error: unknown argument: $1" >&2
+                usage >&2
+                return 1
+                ;;
+        esac
+        shift
+    done
+
+    print_banner
+
+    case "$(uname -s)" in
+        Linux)
+            build_linux
+            ;;
+        Darwin)
+            build_macos
+            ;;
+        *)
+            echo "Error: unsupported OS: $(uname -s)" >&2
+            return 1
+            ;;
+    esac
+}
+
+main "$@"

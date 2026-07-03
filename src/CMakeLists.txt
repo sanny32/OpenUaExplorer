@@ -18,6 +18,8 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 set(PRODUCT_NAME "Open UaExplorer")
 set(ORGANIZATION_NAME "OpenUaExplorer contributers")
 
+option(OUAEXP_BUILD_TESTS "Build OpenUaExplorer tests" OFF)
+
 include("${PROJECT_SOURCE_DIR}/cmake/qt.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/dependencies.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/qtopcua.cmake")
@@ -25,7 +27,9 @@ include("${PROJECT_SOURCE_DIR}/cmake/project_version.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/coverage.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/uninstall.cmake")
 
-enable_testing()
+if(OUAEXP_BUILD_TESTS)
+    enable_testing()
+endif()
 
 ouaexp_apply_project_version_suffix()
 
@@ -48,7 +52,9 @@ add_subdirectory(charting)
 add_subdirectory(plugins)
 add_subdirectory(ui)
 add_subdirectory(app)
-add_subdirectory(tests)
+if(OUAEXP_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
 
 ouaexp_configure_uninstall_target()
 

@@ -93,6 +93,7 @@ jobs:
           cmake -S src -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF
+          -DOUAEXP_BUILD_TESTS=ON
           ${{ matrix.cmake_extra }}
 
       - name: Build and run tests (Linux)

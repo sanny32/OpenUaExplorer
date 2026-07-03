@@ -3,7 +3,9 @@ set(QT_COMMON_COMPONENTS Core Gui Widgets Svg Network)
 find_package(Qt6 6.6 COMPONENTS ${QT_COMMON_COMPONENTS} REQUIRED)
 set(QT_VERSION_MAJOR 6)
 
-find_package(Qt6 COMPONENTS Test REQUIRED)
+if(OUAEXP_BUILD_TESTS)
+    find_package(Qt6 COMPONENTS Test REQUIRED)
+endif()
 
 if(LINUX)
     find_package(Qt6 COMPONENTS DBus QUIET)
