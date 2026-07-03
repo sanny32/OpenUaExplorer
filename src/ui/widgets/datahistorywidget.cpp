@@ -16,6 +16,7 @@
 #include <QSaveFile>
 #include <QSpinBox>
 #include <QTextStream>
+#include <QTimeZone>
 
 #include "appsettings.h"
 #include "headerview.h"
@@ -322,11 +323,11 @@ void DataHistoryWidget::exportDataHistoryToCsv()
 void DataHistoryWidget::applyDataHistoryTimestampMode(AppSettings::TimestampMode mode)
 {
     const bool utc = mode == AppSettings::TimestampMode::Utc;
-    const Qt::TimeSpec spec = utc ? Qt::UTC : Qt::LocalTime;
+    const QTimeZone zone = utc ? QTimeZone::UTC : QTimeZone::LocalTime;
 
     for (QDateTimeEdit *edit : {ui->dataHistoryStartEdit, ui->dataHistoryEndEdit}) {
         const QDateTime current = edit->dateTime();
-        edit->setTimeSpec(spec);
+        edit->setTimeZone(zone);
         edit->setDateTime(utc ? current.toUTC() : current.toLocalTime());
         updateDataHistoryZoneSuffix(edit);
     }
@@ -338,7 +339,7 @@ void DataHistoryWidget::applyDataHistoryTimestampMode(AppSettings::TimestampMode
 ///
 void DataHistoryWidget::updateDataHistoryZoneSuffix(QDateTimeEdit *edit)
 {
-    const QString zone = edit->timeSpec() == Qt::UTC
+    const QString zone = edit->timeZone() == QTimeZone::UTC
         ? QStringLiteral("Z")
         : utcOffsetSuffix(edit->dateTime());
     edit->setDisplayFormat(QStringLiteral("yyyy-MM-dd HH:mm:ss '%1'").arg(zone));
