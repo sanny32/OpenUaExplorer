@@ -14,6 +14,7 @@ set(UI_FILES
     dialogs/endpointsettingsdialog.ui
     dialogs/settingsdialog.ui
     dialogs/subscriptionsdialog.ui
+    dialogs/textviewdialog.ui
     dialogs/trendsettingsdialog.ui
     dialogs/writevaluedialog.ui
 
@@ -111,6 +112,8 @@ add_library(ouaexp_ui STATIC
     dialogs/settingsdialog.h
     dialogs/subscriptionsdialog.cpp
     dialogs/subscriptionsdialog.h
+    dialogs/textviewdialog.cpp
+    dialogs/textviewdialog.h
     dialogs/trendsettingsdialog.cpp
     dialogs/trendsettingsdialog.h
     dialogs/writevaluedialog.cpp

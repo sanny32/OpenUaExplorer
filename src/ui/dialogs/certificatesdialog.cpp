@@ -20,7 +20,6 @@
 #include <QPushButton>
 #include <QSortFilterProxyModel>
 #include <QSslCertificate>
-#include <QSslKey>
 #include <QStandardItem>
 #include <QStandardItemModel>
 
@@ -30,6 +29,7 @@
 #include "certificatesdialog.h"
 #include "formatters/datetimeformatter.h"
 #include "opcua/certificateinfo.h"
+#include "textviewdialog.h"
 #include "ui_certificatesdialog.h"
 
 namespace {
@@ -540,7 +540,7 @@ void CertificatesDialog::viewClientCertificate()
 }
 
 ///
-/// \brief Shows the private key's file path and, when readable, its algorithm and length.
+/// \brief Shows the private key file contents in a read-only, copyable text viewer.
 ///
 void CertificatesDialog::viewPrivateKey()
 {
@@ -548,22 +548,14 @@ void CertificatesDialog::viewPrivateKey()
     if (keyPath.isEmpty())
         return;
 
-    QString details = tr("File: %1").arg(keyPath);
     QFile file(keyPath);
-    if (file.open(QIODevice::ReadOnly)) {
-        const QByteArray pem = file.readAll();
-        QSslKey key(pem, QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey);
-        QString algorithm = QStringLiteral("RSA");
-        if (key.isNull()) {
-            key = QSslKey(pem, QSsl::Ec, QSsl::Pem, QSsl::PrivateKey);
-            algorithm = QStringLiteral("EC");
-        }
-        if (!key.isNull()) {
-            details += QLatin1Char('\n') + tr("Algorithm: %1").arg(algorithm);
-            details += QLatin1Char('\n') + tr("Length: %1 bits").arg(key.length());
-        }
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::critical(this, tr("Private Key"),
+                              tr("Could not read the private key file."));
+        return;
     }
-    QMessageBox::information(this, tr("Private Key"), details);
+
+    TextViewDialog::showText(this, tr("Private Key"), QString::fromUtf8(file.readAll()));
 }
 
 ///
