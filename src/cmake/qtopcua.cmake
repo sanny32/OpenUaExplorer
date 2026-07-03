@@ -61,7 +61,7 @@ function(ouaexp_find_qtopcua_config out_var)
         NO_CACHE
     )
     if(NOT config_file)
-        file(GLOB_RECURSE config_matches CONFIGURE_DEPENDS
+        file(GLOB_RECURSE config_matches
             "${QTOPCUA_INSTALL_DIR}/Qt6OpcUaConfig.cmake"
             "${QTOPCUA_INSTALL_DIR}/*/Qt6OpcUaConfig.cmake"
             "${QTOPCUA_INSTALL_DIR}/*/*/Qt6OpcUaConfig.cmake"
