@@ -215,19 +215,19 @@ detect_linux_distro() {
 linux_general_packages() {
     case "$DISTRO" in
         debian)
-            echo "build-essential cmake ninja-build git curl tar gzip pkg-config libgl1-mesa-dev libxcb-cursor-dev libxkbcommon-x11-0 libssl-dev python3 python3-pip python3-venv"
+            echo "build-essential cmake ninja-build git curl tar gzip pkg-config libgl1-mesa-dev libxcb-cursor-dev libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-util1 libssl-dev python3 python3-pip python3-venv"
             ;;
         rhel)
-            echo "gcc gcc-c++ cmake ninja-build git curl tar gzip pkgconf-pkg-config mesa-libGL-devel xcb-util-cursor-devel openssl-devel python3 python3-pip"
+            echo "gcc gcc-c++ cmake ninja-build git curl tar gzip pkgconf-pkg-config mesa-libGL-devel xcb-util-cursor-devel xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon-x11 openssl-devel python3 python3-pip"
             ;;
         altlinux)
-            echo "gcc gcc-c++ cmake ninja-build git curl tar gzip pkg-config libGL-devel libxcbutil-cursor openssl-devel python3 python3-module-pip python3-module-venv"
+            echo "gcc gcc-c++ cmake ninja-build git curl tar gzip pkg-config libGL-devel libxcbutil-cursor libxcbutil-wm libxcbutil-image libxcbutil-keysyms libxcbutil-renderutil libxcbutil libxkbcommon openssl-devel python3 python3-module-pip python3-module-venv"
             ;;
         suse)
-            echo "gcc gcc-c++ cmake ninja git curl tar gzip pkg-config Mesa-libGL-devel xcb-util-cursor-devel libopenssl-devel python3 python3-pip python3-venv"
+            echo "gcc gcc-c++ cmake ninja git curl tar gzip pkg-config Mesa-libGL-devel xcb-util-cursor-devel libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0 libopenssl-devel python3 python3-pip python3-venv"
             ;;
         arch)
-            echo "base-devel cmake ninja git curl tar gzip pkgconf mesa libxcb xcb-util-cursor openssl python python-pip"
+            echo "base-devel cmake ninja git curl tar gzip pkgconf mesa libxcb xcb-util-cursor xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon openssl python python-pip"
             ;;
     esac
 }
