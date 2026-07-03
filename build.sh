@@ -639,7 +639,8 @@ deploy_linux_with_linuxdeployqt() {
 
     "$linuxdeployqt" "$app" \
         -qmake="$qmake" \
-        -extra-plugins=iconengines,platformthemes
+        -extra-plugins=iconengines,platformthemes \
+        -unsupported-allow-new-glibc
 
     # Qt OpcUa is built from source into the CMake build tree, so its backend plugin
     # is not in Qt's plugin dir and linuxdeployqt cannot find it via -extra-plugins.
