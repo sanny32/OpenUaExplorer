@@ -272,19 +272,19 @@ enable_rhel_build_repositories() {
 linux_general_packages() {
     case "$DISTRO" in
         debian)
-            echo "build-essential cmake ninja-build git curl tar gzip pkg-config libgl1-mesa-dev libxcb-cursor-dev libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-util1 libssl-dev libsecret-1-dev python3 python3-pip python3-venv"
+            echo "build-essential cmake ninja-build git curl tar gzip pkg-config libgl1-mesa-dev libxcb-cursor-dev libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-util1 libssl-dev libsecret-1-dev libdbus-1-3 python3 python3-pip python3-venv"
             ;;
         rhel)
-            echo "gcc gcc-c++ libstdc++-static cmake ninja-build git curl tar gzip pkgconf-pkg-config mesa-libGL-devel xcb-util-cursor-devel xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon-x11 openssl-devel libsecret-devel python3 python3-pip"
+            echo "gcc gcc-c++ libstdc++-static cmake ninja-build git curl tar gzip pkgconf-pkg-config mesa-libGL-devel xcb-util-cursor-devel xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon-x11 openssl-devel libsecret-devel dbus-libs python3 python3-pip"
             ;;
         altlinux)
-            echo "gcc gcc-c++ libstdc++-devel-static cmake ninja-build git curl tar gzip pkg-config libGL-devel libxcbutil-cursor libxcbutil-icccm libxcbutil-image libxcbutil-keysyms libxcb-render-util libxcbutil libxkbcommon openssl-devel libsecret-devel python3 python3-base python3-module-pip"
+            echo "gcc gcc-c++ libstdc++-devel-static cmake ninja-build git curl tar gzip pkg-config libGL-devel libxcbutil-cursor libxcbutil-icccm libxcbutil-image libxcbutil-keysyms libxcb-render-util libxcbutil libxkbcommon openssl-devel libsecret-devel libdbus python3 python3-base python3-module-pip"
             ;;
         suse)
-            echo "gcc gcc-c++ cmake ninja git curl tar gzip pkgconf-pkg-config Mesa-libGL-devel xcb-util-cursor-devel libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0 libopenssl-devel libsecret-devel python3 python3-pip"
+            echo "gcc gcc-c++ cmake ninja git curl tar gzip pkgconf-pkg-config Mesa-libGL-devel xcb-util-cursor-devel libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0 libopenssl-devel libsecret-devel libdbus-1-3 python3 python3-pip"
             ;;
         arch)
-            echo "base-devel cmake ninja git curl tar gzip pkgconf mesa libxcb xcb-util-cursor xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon openssl libsecret python python-pip"
+            echo "base-devel cmake ninja git curl tar gzip pkgconf mesa libxcb xcb-util-cursor xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon openssl libsecret dbus python python-pip"
             ;;
     esac
 }
