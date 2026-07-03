@@ -472,7 +472,7 @@ install_qt6_with_aqt() {
 
         echo "Installing Qt $version for $arch with aqtinstall..."
         if "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-qt linux desktop "$version" "$arch" \
-            -O "$root" -m qtsvg qttools qtcharts qtopcua; then
+            -O "$root" -m qtcharts; then
             installed=1
             break
         fi
