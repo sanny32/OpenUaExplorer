@@ -552,6 +552,21 @@ install_qt6_with_aqt() {
     QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
 }
 
+use_repo_qt_fallback() {
+    local repo_version="$1"
+
+    if [ -n "$QT_PREFIX" ] && [ -n "$QT_VERSION" ]; then
+        return
+    fi
+    if [ -z "$repo_version" ]; then
+        return
+    fi
+
+    QT_FROM_AQT=0
+    QT_PREFIX="/usr"
+    QT_VERSION="$repo_version"
+}
+
 configure_linux_qt() {
     local required="$1"
     local repo_version
@@ -569,6 +584,7 @@ configure_linux_qt() {
         install_packages "${qt_packages[@]}"
         QT_PREFIX="$(qt_prefix_from_system)"
         QT_VERSION="$(qt_version_from_prefix "$QT_PREFIX")"
+        use_repo_qt_fallback "$repo_version"
     else
         if [ -n "$repo_version" ]; then
             echo "Repository Qt $repo_version is older than required Qt $required."
