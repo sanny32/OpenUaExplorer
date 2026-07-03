@@ -270,41 +270,119 @@ enable_rhel_build_repositories() {
 }
 
 linux_general_packages() {
+    local -a packages
+
     case "$DISTRO" in
         debian)
-            echo "build-essential cmake ninja-build git curl tar gzip pkg-config libgl1-mesa-dev libxcb-cursor-dev libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-util1 libssl-dev libsecret-1-dev libdbus-1-3 python3 python3-pip python3-venv"
+            packages=(
+                build-essential cmake ninja-build git curl tar gzip pkg-config
+                libgl1-mesa-dev libxcb-cursor-dev libxkbcommon-x11-0
+                libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0
+                libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
+                libxcb-xkb1 libxcb-util1
+                libssl-dev libsecret-1-dev libdbus-1-3
+                python3 python3-pip python3-venv
+            )
             ;;
         rhel)
-            echo "gcc gcc-c++ libstdc++-static cmake ninja-build git curl tar gzip pkgconf-pkg-config mesa-libGL-devel xcb-util-cursor-devel xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon-x11 openssl-devel libsecret-devel dbus-libs python3 python3-pip"
+            packages=(
+                gcc gcc-c++ libstdc++-static cmake ninja-build git curl tar gzip
+                pkgconf-pkg-config mesa-libGL-devel
+                xcb-util-cursor-devel xcb-util-wm xcb-util-image
+                xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon-x11
+                openssl-devel libsecret-devel dbus-libs
+                python3 python3-pip
+            )
             ;;
         altlinux)
-            echo "gcc gcc-c++ libstdc++-devel-static cmake ninja-build git curl tar gzip pkg-config libGL-devel libxcbutil-cursor libxcbutil-icccm libxcbutil-image libxcbutil-keysyms libxcb-render-util libxcbutil libxkbcommon openssl-devel libsecret-devel libdbus python3 python3-base python3-module-pip"
+            packages=(
+                gcc gcc-c++ libstdc++-devel-static cmake ninja-build git curl tar gzip
+                pkg-config libGL-devel
+                libxcbutil-cursor libxcbutil-icccm libxcbutil-image
+                libxcbutil-keysyms libxcb-render-util libxcbutil libxkbcommon
+                openssl-devel libsecret-devel libdbus
+                python3 python3-base python3-module-pip
+            )
             ;;
         suse)
-            echo "gcc gcc-c++ cmake ninja git curl tar gzip pkgconf-pkg-config Mesa-libGL-devel xcb-util-cursor-devel libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0 libopenssl-devel libsecret-devel libdbus-1-3 python3 python3-pip"
+            packages=(
+                gcc gcc-c++ cmake ninja git curl tar gzip
+                pkgconf-pkg-config Mesa-libGL-devel xcb-util-cursor-devel
+                libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0
+                libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
+                libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0
+                libopenssl-devel libsecret-devel libdbus-1-3
+                python3 python3-pip
+            )
             ;;
         arch)
-            echo "base-devel cmake ninja git curl tar gzip pkgconf mesa libxcb xcb-util-cursor xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon openssl libsecret dbus python python-pip"
+            packages=(
+                base-devel cmake ninja git curl tar gzip pkgconf mesa libxcb
+                xcb-util-cursor xcb-util-wm xcb-util-image xcb-util-keysyms
+                xcb-util-renderutil xcb-util libxkbcommon
+                openssl libsecret dbus
+                python python-pip
+            )
             ;;
     esac
+
+    echo "${packages[*]}"
 }
 
 linux_qt6_packages() {
+    local -a packages
+
     case "$DISTRO" in
         debian)
-            echo "qt6-base-dev qt6-base-dev-tools qt6-base-private-dev qt6-tools-dev qt6-tools-dev-tools libqt6svg6-dev qt6-charts-dev"
+            packages=(
+                qt6-base-dev qt6-base-dev-tools qt6-base-private-dev
+                qt6-tools-dev qt6-tools-dev-tools
+                libqt6svg6-dev qt6-charts-dev
+            )
             ;;
         rhel)
-            echo "qt6-qtbase-devel qt6-qtbase-private-devel qt6-qttools-devel qt6-qtsvg-devel qt6-qtcharts-devel"
+            packages=(
+                qt6-qtbase-devel qt6-qtbase-private-devel
+                qt6-qttools-devel qt6-qtsvg-devel qt6-qtcharts-devel
+            )
             ;;
         altlinux)
-            echo "qt6-base-devel qt6-tools-devel qt6-svg-devel qt6-charts-devel"
+            packages=(
+                qt6-base-devel qt6-tools-devel qt6-svg-devel qt6-charts-devel
+            )
             ;;
         suse)
-            echo "qt6-base-devel qt6-base-private-devel qt6-tools-devel qt6-svg-devel qt6-charts-devel"
+            packages=(
+                qt6-base-devel qt6-base-private-devel
+                qt6-tools-devel qt6-svg-devel qt6-charts-devel
+            )
             ;;
         arch)
-            echo "qt6-base qt6-tools qt6-svg qt6-charts"
+            packages=(
+                qt6-base qt6-tools qt6-svg qt6-charts
+            )
+            ;;
+    esac
+
+    echo "${packages[*]}"
+}
+
+linux_gtk_runtime_package() {
+    case "$DISTRO" in
+        debian)
+            echo "libgtk-3-0"
+            ;;
+        rhel)
+            echo "gtk3"
+            ;;
+        altlinux)
+            echo "libgtk+3"
+            ;;
+        suse)
+            echo "libgtk-3-0"
+            ;;
+        arch)
+            echo "gtk3"
             ;;
     esac
 }
@@ -801,6 +879,11 @@ deploy_linux_with_linuxdeployqt() {
 
     qmake="$(qmake_from_qt_prefix)"
     linuxdeployqt="$(ensure_linuxdeployqt)"
+
+    # The Qt from aqtinstall bundles the GTK platform theme plugin (libqgtk3),
+    # which linuxdeployqt refuses to deploy unless GTK 3 is present on the host.
+    # System-Qt builds get this transitively, so only the aqt path needs it.
+    install_packages "$(linux_gtk_runtime_package)"
 
     "$linuxdeployqt" "$app" \
         -qmake="$qmake" \
