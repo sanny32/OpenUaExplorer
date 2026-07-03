@@ -384,15 +384,17 @@ install_packages() {
         return
     fi
 
-    for package in "${missing[@]}"; do
-        if ! package_available "$package"; then
-            unavailable+=("$package")
-        fi
-    done
+    if [ "$DISTRO" = "rhel" ]; then
+        for package in "${missing[@]}"; do
+            if ! package_available "$package"; then
+                unavailable+=("$package")
+            fi
+        done
 
-    if [ "${#unavailable[@]}" -ne 0 ]; then
-        log_error "Package manager does not provide required packages: ${unavailable[*]}"
-        exit 1
+        if [ "${#unavailable[@]}" -ne 0 ]; then
+            log_error "Package manager does not provide required packages: ${unavailable[*]}"
+            exit 1
+        fi
     fi
 
     log_info "Installing packages: ${missing[*]}"
