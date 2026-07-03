@@ -5,4 +5,9 @@ function(ouaexp_configure_target_macos target_name)
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
     )
+
+   if(QTOPCUA_INSTALL_DIR)
+        set_property(TARGET ${target_name} APPEND PROPERTY
+            INSTALL_RPATH "${QTOPCUA_INSTALL_DIR}/lib")
+    endif()
 endfunction()
