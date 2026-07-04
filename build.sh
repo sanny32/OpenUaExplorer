@@ -800,6 +800,14 @@ configure_linux_qt() {
     fi
 
     log_info "Using Qt $QT_VERSION from $QT_PREFIX"
+
+    # The Qt from aqtinstall bundles the GTK platform theme plugin (libqgtk3),
+    # which needs GTK 3 present on the host (both at runtime and for
+    # linuxdeployqt to deploy it). System-Qt builds get this transitively, so
+    # only the aqt path needs it installed explicitly.
+    if [ "$QT_FROM_AQT" -eq 1 ]; then
+        install_packages "$(linux_gtk_runtime_package)"
+    fi
 }
 
 qmake_from_qt_prefix() {
@@ -879,11 +887,6 @@ deploy_linux_with_linuxdeployqt() {
 
     qmake="$(qmake_from_qt_prefix)"
     linuxdeployqt="$(ensure_linuxdeployqt)"
-
-    # The Qt from aqtinstall bundles the GTK platform theme plugin (libqgtk3),
-    # which linuxdeployqt refuses to deploy unless GTK 3 is present on the host.
-    # System-Qt builds get this transitively, so only the aqt path needs it.
-    install_packages "$(linux_gtk_runtime_package)"
 
     "$linuxdeployqt" "$app" \
         -qmake="$qmake" \
