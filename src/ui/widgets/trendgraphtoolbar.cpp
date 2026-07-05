@@ -12,6 +12,7 @@
 #include <QAbstractButton>
 #include <QButtonGroup>
 #include <QEvent>
+#include <QPalette>
 #include <QSignalBlocker>
 #include <QSize>
 
@@ -44,6 +45,9 @@ TrendGraphToolbar::TrendGraphToolbar(QWidget *parent)
     _modeGroup->addButton(ui->tenMinutesButton, kTenMinutesMs);
     _modeGroup->addButton(ui->oneHourButton, kOneHourMs);
     _modeGroup->addButton(ui->customButton, kCustomModeId);
+
+    setAutoFillBackground(true);
+    setBackgroundRole(QPalette::Base);
 
     ui->durationIcon->setIcon(QStringLiteral("clock"), QSize(14, 14));
     ui->durationBadge->setAttribute(Qt::WA_StyledBackground, true);
