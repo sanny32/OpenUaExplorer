@@ -919,7 +919,7 @@ default_install_prefix() {
             fi
             ;;
         Darwin)
-            echo "/Applications"
+            echo "$HOME/Applications"
             ;;
     esac
 }

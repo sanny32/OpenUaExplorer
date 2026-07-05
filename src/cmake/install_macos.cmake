@@ -1,5 +1,5 @@
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set(CMAKE_INSTALL_PREFIX "/Applications"
+    set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/Applications"
         CACHE PATH "Install path prefix" FORCE)
 endif()
 
