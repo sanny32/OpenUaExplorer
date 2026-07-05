@@ -23,6 +23,7 @@ if(NOT TARGET qt6keychain AND OUAEXP_FETCH_QTKEYCHAIN)
         GIT_REPOSITORY https://github.com/frankosterfeld/qtkeychain.git
         GIT_TAG ${QTKEYCHAIN_VERSION}
         GIT_SHALLOW TRUE
+        EXCLUDE_FROM_ALL
     )
     FetchContent_MakeAvailable(qtkeychain)
 endif()

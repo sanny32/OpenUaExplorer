@@ -7,7 +7,16 @@ install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
 
 if(MACDEPLOYQT_EXECUTABLE)
     install(CODE "
-        set(_installed_app \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app\")
+        set(_built_app \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app\")
+        set(_installed_app \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${PRODUCT_NAME}.app\")
+
+        # The bundle is built as ${PROJECT_NAME}.app but is shipped under the
+        # product name so Finder and the Dock label it '${PRODUCT_NAME}'. The
+        # executable inside keeps its ${PROJECT_NAME} name (CFBundleExecutable).
+        if(NOT _built_app STREQUAL _installed_app)
+            file(REMOVE_RECURSE \"\${_installed_app}\")
+            file(RENAME \"\${_built_app}\" \"\${_installed_app}\")
+        endif()
 
         if(NOT EXISTS \"\${_installed_app}\")
             message(FATAL_ERROR \"Installed app bundle not found: \${_installed_app}\")
