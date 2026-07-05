@@ -10,10 +10,6 @@
 
 #include "maintoolbutton.h"
 
-namespace {
-constexpr int mainToolButtonWidth = 78;
-}
-
 ///
 /// \brief Builds a fixed-width text-under-icon button bound to an action.
 /// \param action Default action driving the button; its text becomes the tooltip.
@@ -24,8 +20,8 @@ MainToolButton::MainToolButton(QAction *action, QWidget *parent)
 {
     setDefaultAction(action);
     setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-    setMinimumWidth(mainToolButtonWidth);
-    setMaximumWidth(mainToolButtonWidth);
+    setMinimumWidth(fixedWidth);
+    setMaximumWidth(fixedWidth);
 
     if (action) {
         setToolTip(action->text());

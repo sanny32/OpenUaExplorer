@@ -29,6 +29,8 @@ MainToolBar::MainToolBar(QWidget *parent)
     setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
 
     _favoritesButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    _favoritesButton->setMinimumWidth(MainToolButton::fixedWidth);
+    _favoritesButton->setMaximumWidth(MainToolButton::fixedWidth);
     _favoritesButton->setText(tr("Favorites"));
     _favoritesButton->setToolTip(tr("Connect to a favourite server"));
     _favoritesButton->setIcon(QStringLiteral("star"));
@@ -55,7 +57,9 @@ void MainToolBar::setupFromDesignerActions()
 
     addWidget(toolbarSpacer);
     addWidget(_favoritesButton);
+#ifndef Q_OS_MACOS
     addWidget(new FixedGap(8, this));
+#endif
 }
 
 ///
