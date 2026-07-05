@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include <QList>
 #include <QToolBar>
 
 class QAction;
+class QEvent;
 class MainToolButton;
 class ThemedToolButton;
 
@@ -23,13 +25,16 @@ class MainToolBar : public QToolBar
 
 public:
     ///
-    /// \brief Constructs the toolbar with its endpoint and security selector widgets.
+    /// \brief Constructs the toolbar.
     /// \param parent Parent widget.
     ///
     explicit MainToolBar(QWidget *parent = nullptr);
 
     ///
-    /// \brief Rebuilds the toolbar from its Designer actions, appending the selector widgets.
+    /// \brief Rebuilds the toolbar from its Designer actions.
+    ///
+    /// Every action becomes a button in declaration order, except the one named
+    /// "actionFavorites", which is right-aligned after an expanding spacer.
     ///
     void setupFromDesignerActions();
 
@@ -39,8 +44,21 @@ public:
     ///
     ThemedToolButton *favoritesButton() const;
 
+protected:
+    ///
+    /// \brief Re-equalises button widths when the language, font, or style changes.
+    /// \param event Change event being handled.
+    ///
+    void changeEvent(QEvent *event) override;
+
 private:
     MainToolButton *addMainButton(QAction *action);
 
-    ThemedToolButton *_favoritesButton;
+    ///
+    /// \brief Sizes every tracked button to the widest button's content width.
+    ///
+    void equalizeButtonWidths();
+
+    ThemedToolButton *_favoritesButton = nullptr;
+    QList<ThemedToolButton *> _equalWidthButtons;
 };

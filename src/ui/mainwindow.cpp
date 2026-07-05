@@ -601,4 +601,5 @@ void MainWindow::bindIcons()
     AppIcons::bindIcon(ui->actionUnsubscribe, "unsubscribe");
     AppIcons::bindIcon(ui->actionSettings,    "settings");
     AppIcons::bindIcon(ui->actionCertificates, "certificate");
+    AppIcons::bindIcon(ui->actionFavorites,   "star");
 }

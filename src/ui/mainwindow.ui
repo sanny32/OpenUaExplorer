@@ -191,6 +191,7 @@
    <addaction name="actionSettings"/>
    <addaction name="separator"/>
    <addaction name="actionTheme"/>
+   <addaction name="actionFavorites"/>
   </widget>
   <widget class="MainStatusBarWidget" name="statusbar"/>
   <action name="actionConnect">
@@ -265,6 +266,14 @@
   <action name="actionTheme">
    <property name="text">
     <string>Theme</string>
+   </property>
+  </action>
+  <action name="actionFavorites">
+   <property name="text">
+    <string>Favorites</string>
+   </property>
+   <property name="toolTip">
+    <string>Connect to a favourite server</string>
    </property>
   </action>
   <action name="actionNewConnection">

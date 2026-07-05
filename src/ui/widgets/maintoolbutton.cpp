@@ -11,19 +11,18 @@
 #include "maintoolbutton.h"
 
 ///
-/// \brief Builds a fixed-width text-under-icon button bound to an action.
-/// \param action Default action driving the button; its text becomes the tooltip.
+/// \brief Builds a text-under-icon button bound to an action.
+/// \param action Default action driving the button; supplies its text, icon and tooltip.
 /// \param parent Parent widget.
 ///
 MainToolButton::MainToolButton(QAction *action, QWidget *parent)
     : ThemedToolButton(parent)
 {
+    // setDefaultAction already mirrors the action's tooltip onto the button, and
+    // QAction::toolTip() falls back to the action text when none is set, so buttons
+    // without an explicit tooltip still show their label.
     setDefaultAction(action);
     setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-    setMinimumWidth(fixedWidth);
-    setMaximumWidth(fixedWidth);
-
-    if (action) {
-        setToolTip(action->text());
-    }
+    // Floor only; MainToolBar equalises the final width across all buttons.
+    setMinimumWidth(minWidth);
 }
