@@ -71,5 +71,5 @@ build_with_vs.cmd
 test_with_vs.cmd
 run_test.sh
 
-# Coverage (tools/coverage.py)
-LastCoverageResults.log
+# Log files
+*.log
