@@ -596,8 +596,8 @@ Write-Host "Checking for OpenSSL..."
 $OpenSslRoot = "C:\Qt\Tools\OpenSSLv3\Win_x64"
 if (-not (Test-Path (Join-Path $OpenSslRoot "bin"))) {
     Initialize-Aqt
-    Write-Host "Downloading OpenSSL (tools_openssl_x64)..."
-    python -m aqt install-tool windows desktop tools_openssl_x64 --outputdir C:\Qt
+    Write-Host "Downloading OpenSSL (tools_opensslv3_x64)..."
+    python -m aqt install-tool windows desktop tools_opensslv3_x64 --outputdir C:\Qt
 
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $OpenSslRoot "bin"))) {
         Write-Error "ERROR: Failed to install OpenSSL via aqtinstall."

@@ -1,0 +1,70 @@
+name: Test build.ps1 script on Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, dev]
+    paths:
+      - build.ps1
+      - .github/workflows/test-build-windows.yaml
+      - src/**
+
+concurrency:
+  group: build-script-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate build.ps1 syntax
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Check PowerShell syntax
+        shell: powershell
+        run: |
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path build.ps1).Path, [ref]$null, [ref]$errors)
+          if ($errors) {
+            $errors | ForEach-Object { Write-Host "$($_.Extent.StartLineNumber): $($_.Message)" }
+            exit 1
+          }
+          Write-Host 'Syntax OK'
+
+      - name: Run PSScriptAnalyzer
+        shell: powershell
+        run: |
+          if (-not (Get-Module -ListAvailable PSScriptAnalyzer)) {
+            Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -Repository PSGallery
+          }
+          Import-Module PSScriptAnalyzer
+          $issues = Invoke-ScriptAnalyzer -Path build.ps1 -Severity Error
+          $issues | Format-Table RuleName, Line, Message -AutoSize
+          if ($issues) { exit 1 }
+
+      - name: Check help output
+        shell: powershell
+        run: |
+          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+          .\build.ps1 -Help
+
+  build:
+    name: Run build.ps1 on Windows
+    runs-on: windows-latest
+    needs: validate
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Run build.ps1
+        shell: powershell
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+          .\build.ps1 -Install
