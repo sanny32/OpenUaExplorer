@@ -16,7 +16,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 set(PRODUCT_NAME "Open UaExplorer")
-set(ORGANIZATION_NAME "OpenUaExplorer contributers")
+set(ORGANIZATION_NAME "OpenUaExplorer contributors")
 
 option(OUAEXP_BUILD_TESTS "Build OpenUaExplorer tests" OFF)
 

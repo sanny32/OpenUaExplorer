@@ -6,12 +6,12 @@ on:
     paths:
       - 'src/**'
       - 'tools/**'
-      - '.github/workflows/test.yml'
+      - '.github/workflows/test-ci.yml'
   pull_request:
     paths:
       - 'src/**'
       - 'tools/**'
-      - '.github/workflows/test.yml'
+      - '.github/workflows/test-ci.yml'
 
 # Cancel superseded runs on the same ref to save CI minutes.
 concurrency:
