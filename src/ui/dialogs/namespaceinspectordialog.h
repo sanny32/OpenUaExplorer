@@ -10,6 +10,7 @@
 
 #include "dialogs/appbasedialog.h"
 
+#include <QElapsedTimer>
 #include <QString>
 #include <QStringList>
 
@@ -91,6 +92,7 @@ private:
     QStandardItemModel *_model;
     QStringList _uris;
     OpcUaNamespaceNodeCounts _counts;
+    QElapsedTimer _progressClock;
     int _selectedNamespaceIndex = -1;
     bool _loadedOnce = false;
     bool _countsReady = false;

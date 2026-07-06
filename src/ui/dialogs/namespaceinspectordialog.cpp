@@ -185,6 +185,7 @@ void NamespaceInspectorDialog::refresh()
     _counts.clear();
     setControlsBusy(true);
     ui->statusLabel->setText(tr("Loading namespaces..."));
+    ui->statusLabel->repaint();
     _service->requestNamespaces();
 }
 
@@ -203,8 +204,8 @@ void NamespaceInspectorDialog::handleNamespaces(const QStringList &namespaces, c
         return;
     }
     _uris = namespaces;
-    rebuildTable();
     startCrawl();
+    rebuildTable();
 }
 
 ///
@@ -217,6 +218,8 @@ void NamespaceInspectorDialog::startCrawl()
     _countsReady = false;
     setControlsBusy(true);
     ui->statusLabel->setText(tr("Counting nodes..."));
+    ui->statusLabel->repaint();
+    _progressClock.restart();
     _service->requestNamespaceStatistics();
 }
 
@@ -228,7 +231,11 @@ void NamespaceInspectorDialog::handleStatisticsProgress(int visitedNodes)
 {
     if (!_crawling)
         return;
+    if (_progressClock.isValid() && _progressClock.elapsed() < 100)
+        return;
+    _progressClock.restart();
     ui->statusLabel->setText(tr("Counting nodes... %1").arg(visitedNodes));
+    ui->statusLabel->repaint();
 }
 
 ///
