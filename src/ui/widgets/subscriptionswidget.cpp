@@ -262,7 +262,7 @@ void SubscriptionsWidget::showSubscriptionsContextMenu(const QPoint &pos)
                                            this, &SubscriptionsWidget::removeSelectedSubscriptions);
     removeAction->setEnabled(!rows.isEmpty() && !builtinSelected);
 
-    QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
+    QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Clear"),
                                               this, &SubscriptionsWidget::removeAllSubscriptions);
     removeAllAction->setEnabled(hasRemovableSubscriptions());
 

@@ -408,7 +408,7 @@ void DataAccessWidget::showDataContextMenu(const QPoint &pos)
                                            this, &DataAccessWidget::removeSelectedNodes);
     removeAction->setEnabled(hasSelection);
 
-    QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
+    QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Clear"),
                                               this, &DataAccessWidget::removeAllNodes);
     removeAllAction->setEnabled(_dataModel->rowCount() > 0);
 

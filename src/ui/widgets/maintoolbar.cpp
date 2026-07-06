@@ -63,10 +63,6 @@ void MainToolBar::setupFromDesignerActions()
         _equalWidthButtons.append(_favoritesButton);
     }
 
-#ifndef Q_OS_MACOS
-    addWidget(new FixedGap(8, this));
-#endif
-
     equalizeButtonWidths();
 }
 

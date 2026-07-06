@@ -860,7 +860,7 @@ bool TrendGraphWidget::dropNode(const QMimeData *mimeData)
 /// \brief Shows the chart context menu: view actions plus node removal.
 ///
 /// Auto Scale, Fit, and Settings are always offered; per-node Remove entries
-/// and Remove All appear only while the chart has series.
+/// and Clear appear only while the chart has series.
 ///
 /// \param globalPos Menu position in global screen coordinates.
 ///
@@ -899,7 +899,7 @@ void TrendGraphWidget::showSeriesContextMenu(const QPoint &globalPos)
                            [this, nodeId]() { removeNode(nodeId); });
         }
 
-        menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
+        menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Clear"),
                        this, [this]() { clear(); });
     }
 
