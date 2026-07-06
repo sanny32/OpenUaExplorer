@@ -219,6 +219,37 @@ public:
     ///
     virtual void readServerSessionName(int timeoutMs) { Q_UNUSED(timeoutMs); }
 
+    ///
+    /// \brief Reads the server NamespaceArray, emitting namespacesReady() with the URIs.
+    ///
+    /// Backends that cannot read the namespace table may leave this default,
+    /// which reports that the operation is unsupported.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    virtual void requestNamespaces(int timeoutMs)
+    {
+        Q_UNUSED(timeoutMs)
+        emit namespacesReady({}, tr("Reading the namespace table is not supported."));
+    }
+
+    ///
+    /// \brief Crawls the address space, emitting namespaceStatisticsReady() with per-namespace counts.
+    ///
+    /// Backends that cannot crawl the address space may leave this default,
+    /// which reports that the operation is unsupported.
+    /// \param timeoutMs Per-request timeout in milliseconds.
+    ///
+    virtual void requestNamespaceStatistics(int timeoutMs)
+    {
+        Q_UNUSED(timeoutMs)
+        emit namespaceStatisticsReady({}, tr("Counting namespace nodes is not supported."));
+    }
+
+    ///
+    /// \brief Cancels an in-progress namespace statistics crawl, if any.
+    ///
+    virtual void cancelNamespaceStatistics() {}
+
 signals:
     ///
     /// \brief Emitted when the connection state changes.
@@ -325,4 +356,24 @@ signals:
     /// \param sessionName Resolved session name, empty when unavailable.
     ///
     void serverSessionNameResolved(QString sessionName);
+
+    ///
+    /// \brief Emitted when the server NamespaceArray has been read.
+    /// \param namespaces Namespace URIs indexed by namespace index.
+    /// \param error Error description, empty on success.
+    ///
+    void namespacesReady(QStringList namespaces, QString error);
+
+    ///
+    /// \brief Emitted periodically while a namespace statistics crawl runs.
+    /// \param visitedNodes Number of unique nodes visited so far.
+    ///
+    void namespaceStatisticsProgress(int visitedNodes);
+
+    ///
+    /// \brief Emitted when a namespace statistics crawl finishes or is cancelled.
+    /// \param nodeCounts Node counts keyed by namespace index.
+    /// \param error Error description, empty on success.
+    ///
+    void namespaceStatisticsReady(OpcUaNamespaceNodeCounts nodeCounts, QString error);
 };

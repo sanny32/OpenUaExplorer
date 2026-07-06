@@ -10,6 +10,7 @@
 
 #include <QMainWindow>
 
+#include "dialogs/namespaceinspectordialog.h"
 #include "opcua/opcuatypes.h"
 
 namespace Ui {
@@ -48,6 +49,7 @@ private slots:
     void on_actionRefresh_triggered();
     void on_actionEndpointSettings_triggered();
     void on_actionCertificates_triggered();
+    void on_actionNamespaceInspector_triggered();
     void on_actionRead_triggered();
     void on_actionReadSelected_triggered();
     void on_actionWrite_triggered();
@@ -103,4 +105,5 @@ private:
     class ThemeCoordinator *_themeCoordinator = nullptr;
     class ConnectionCoordinator *_connectionCoordinator = nullptr;
     class DataAccessCoordinator *_dataAccessCoordinator = nullptr;
+    NamespaceInspectorCache _namespaceCache;
 };

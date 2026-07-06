@@ -31,6 +31,7 @@
 
 #include "formatters/attributeformatter.h"
 #include "loggingcategories.h"
+#include "namespacecrawler.h"
 #include "pkimanager.h"
 #include "qtopcuabackend.h"
 #include "qtopcuaconnectionmanager.h"
@@ -64,6 +65,8 @@ public:
         QObject::connect(&connection, &QtOpcUaConnectionManager::clientInvalidated,
                           q, [this]() {
             cancelRequests();
+            if (namespaceCrawler)
+                namespaceCrawler->cancel();
             monitoring.clear();
             monitoring.setClient(nullptr);
         });
@@ -194,6 +197,7 @@ public:
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeNodes{};
     std::array<QMetaObject::Connection,
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeConnections{};
+    QPointer<NamespaceCrawler> namespaceCrawler;
 };
 
 ///
@@ -210,6 +214,7 @@ QtOpcUaBackend::QtOpcUaBackend(QObject *parent)
     qRegisterMetaType<OpcUaDataValue>();
     qRegisterMetaType<OpcUaEvent>();
     qRegisterMetaType<OpcUaHistoryValue>();
+    qRegisterMetaType<OpcUaNamespaceNodeCounts>();
 }
 
 ///
@@ -681,6 +686,83 @@ void QtOpcUaBackend::readServerSessionName(int timeoutMs)
         [node]() { return node->readAttributes(QOpcUa::NodeAttribute::Value); },
         [this]() { emit serverSessionNameResolved(QString()); },
         [this]() { emit serverSessionNameResolved(QString()); });
+}
+
+///
+/// \brief Reads the server NamespaceArray, emitting namespacesReady() with the URIs.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::requestNamespaces(int timeoutMs)
+{
+    QOpcUaClient *client = _d->connection.client();
+    if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit namespacesReady({}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    const QStringList cached = client->namespaceArray();
+    auto settled = std::make_shared<bool>(false);
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(client, &QOpcUaClient::namespaceArrayUpdated, this,
+        [this, settled, connection](const QStringList &namespaces) {
+            if (*settled)
+                return;
+            *settled = true;
+            disconnect(*connection);
+            emit namespacesReady(namespaces, QString());
+        });
+    QTimer::singleShot(QtOpcUaRequestCoordinator::boundedTimeout(timeoutMs), this,
+        [this, settled, connection, cached]() {
+            if (*settled)
+                return;
+            *settled = true;
+            disconnect(*connection);
+            if (!cached.isEmpty())
+                emit namespacesReady(cached, QString());
+            else
+                emit namespacesReady({}, tr("Reading the server namespace table timed out."));
+        });
+    if (!client->updateNamespaceArray() && !*settled) {
+        *settled = true;
+        disconnect(*connection);
+        if (!cached.isEmpty())
+            emit namespacesReady(cached, QString());
+        else
+            emit namespacesReady({}, tr("Could not read the server namespace table."));
+    }
+}
+
+///
+/// \brief Crawls the address space, emitting namespaceStatisticsReady() with per-namespace counts.
+/// \param timeoutMs Per-browse timeout in milliseconds.
+///
+void QtOpcUaBackend::requestNamespaceStatistics(int timeoutMs)
+{
+    QOpcUaClient *client = _d->connection.client();
+    if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit namespaceStatisticsReady({}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    if (_d->namespaceCrawler)
+        _d->namespaceCrawler->deleteLater();
+    _d->namespaceCrawler = new NamespaceCrawler(client, timeoutMs, this);
+    connect(_d->namespaceCrawler, &NamespaceCrawler::progress,
+            this, &QtOpcUaBackend::namespaceStatisticsProgress);
+    connect(_d->namespaceCrawler, &NamespaceCrawler::finished, this,
+            [this](const OpcUaNamespaceNodeCounts &counts, const QString &error) {
+        emit namespaceStatisticsReady(counts, error);
+        if (_d->namespaceCrawler)
+            _d->namespaceCrawler->deleteLater();
+    });
+    _d->namespaceCrawler->start();
+}
+
+///
+/// \brief Cancels an in-progress namespace statistics crawl, if any.
+///
+void QtOpcUaBackend::cancelNamespaceStatistics()
+{
+    if (_d->namespaceCrawler)
+        _d->namespaceCrawler->cancel();
 }
 
 ///

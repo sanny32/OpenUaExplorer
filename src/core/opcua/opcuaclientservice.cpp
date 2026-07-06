@@ -55,6 +55,12 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::eventMonitoringFinished);
     connect(_backend, &OpcUaBackend::serverSessionNameResolved,
             this, &OpcUaClientService::serverSessionNameResolved);
+    connect(_backend, &OpcUaBackend::namespacesReady,
+            this, &OpcUaClientService::namespacesReady);
+    connect(_backend, &OpcUaBackend::namespaceStatisticsProgress,
+            this, &OpcUaClientService::namespaceStatisticsProgress);
+    connect(_backend, &OpcUaBackend::namespaceStatisticsReady,
+            this, &OpcUaClientService::namespaceStatisticsReady);
 }
 
 ///
@@ -283,4 +289,28 @@ void OpcUaClientService::unsubscribeEvents(const QString &nodeId)
 void OpcUaClientService::readServerSessionName()
 {
     _backend->readServerSessionName(_requestTimeoutMs);
+}
+
+///
+/// \brief Reads the server NamespaceArray using the cached request timeout.
+///
+void OpcUaClientService::requestNamespaces()
+{
+    _backend->requestNamespaces(_requestTimeoutMs);
+}
+
+///
+/// \brief Crawls the address space to count nodes per namespace, using the cached request timeout.
+///
+void OpcUaClientService::requestNamespaceStatistics()
+{
+    _backend->requestNamespaceStatistics(_requestTimeoutMs);
+}
+
+///
+/// \brief Cancels an in-progress namespace statistics crawl, if any.
+///
+void OpcUaClientService::cancelNamespaceStatistics()
+{
+    _backend->cancelNamespaceStatistics();
 }

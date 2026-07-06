@@ -12,6 +12,7 @@ set(UI_FILES
     dialogs/certificatesdialog.ui
     dialogs/editfavoritedialog.ui
     dialogs/endpointsettingsdialog.ui
+    dialogs/namespaceinspectordialog.ui
     dialogs/settingsdialog.ui
     dialogs/subscriptionsdialog.ui
     dialogs/textviewdialog.ui
@@ -106,6 +107,8 @@ add_library(ouaexp_ui STATIC
     dialogs/editfavoritedialog.h
     dialogs/endpointsettingsdialog.cpp
     dialogs/endpointsettingsdialog.h
+    dialogs/namespaceinspectordialog.cpp
+    dialogs/namespaceinspectordialog.h
     dialogs/newsubscriptiondialog.cpp
     dialogs/newsubscriptiondialog.h
     dialogs/settingsdialog.cpp

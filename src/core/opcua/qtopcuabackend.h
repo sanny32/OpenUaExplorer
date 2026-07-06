@@ -176,6 +176,23 @@ public:
     ///
     void readServerSessionName(int timeoutMs) override;
 
+    ///
+    /// \brief Reads the server NamespaceArray, emitting namespacesReady() with the URIs.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void requestNamespaces(int timeoutMs) override;
+
+    ///
+    /// \brief Crawls the address space, emitting namespaceStatisticsReady() with per-namespace counts.
+    /// \param timeoutMs Per-browse timeout in milliseconds.
+    ///
+    void requestNamespaceStatistics(int timeoutMs) override;
+
+    ///
+    /// \brief Cancels an in-progress namespace statistics crawl, if any.
+    ///
+    void cancelNamespaceStatistics() override;
+
 private:
     ///
     /// \brief Reads EventNotifier/Historizing of browsed children, then emits browseFinished().

@@ -28,6 +28,8 @@ add_library(ouaexp_core STATIC
     opcua/connectionprofilevalidator.h
     opcua/endpointhistorystore.cpp
     opcua/endpointhistorystore.h
+    opcua/namespacecrawler.cpp
+    opcua/namespacecrawler.h
     opcua/opcuabackend.h
     opcua/opcuaclientservice.cpp
     opcua/opcuaclientservice.h

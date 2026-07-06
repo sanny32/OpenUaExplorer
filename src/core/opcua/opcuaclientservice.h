@@ -194,6 +194,21 @@ public:
     ///
     void readServerSessionName();
 
+    ///
+    /// \brief Reads the server NamespaceArray using the cached request timeout.
+    ///
+    void requestNamespaces();
+
+    ///
+    /// \brief Crawls the address space to count nodes per namespace, using the cached request timeout.
+    ///
+    void requestNamespaceStatistics();
+
+    ///
+    /// \brief Cancels an in-progress namespace statistics crawl, if any.
+    ///
+    void cancelNamespaceStatistics();
+
 signals:
     ///
     /// \brief Emitted when the connection state changes.
@@ -300,6 +315,26 @@ signals:
     /// \param sessionName Resolved session name, empty when unavailable.
     ///
     void serverSessionNameResolved(QString sessionName);
+
+    ///
+    /// \brief Emitted when the server NamespaceArray has been read.
+    /// \param namespaces Namespace URIs indexed by namespace index.
+    /// \param error Error description, empty on success.
+    ///
+    void namespacesReady(QStringList namespaces, QString error);
+
+    ///
+    /// \brief Emitted periodically while a namespace statistics crawl runs.
+    /// \param visitedNodes Number of unique nodes visited so far.
+    ///
+    void namespaceStatisticsProgress(int visitedNodes);
+
+    ///
+    /// \brief Emitted when a namespace statistics crawl finishes or is cancelled.
+    /// \param nodeCounts Node counts keyed by namespace index.
+    /// \param error Error description, empty on success.
+    ///
+    void namespaceStatisticsReady(OpcUaNamespaceNodeCounts nodeCounts, QString error);
 private:
     OpcUaBackend *_backend;
     bool _ownsBackend;

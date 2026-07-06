@@ -10,6 +10,7 @@
 
 #include <QByteArray>
 #include <QDateTime>
+#include <QHash>
 #include <QList>
 #include <QString>
 #include <QStringList>
@@ -335,7 +336,13 @@ struct OpcUaHistoryValue
     QDateTime serverTimestamp;
 };
 
+///
+/// \brief Node counts keyed by OPC UA namespace index.
+///
+using OpcUaNamespaceNodeCounts = QHash<int, int>;
+
 Q_DECLARE_METATYPE(EndpointInfo)
+Q_DECLARE_METATYPE(OpcUaNamespaceNodeCounts)
 Q_DECLARE_METATYPE(OpcUaNodeInfo)
 Q_DECLARE_METATYPE(OpcUaNodeDetails)
 Q_DECLARE_METATYPE(OpcUaDataValue)

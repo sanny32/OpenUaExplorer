@@ -15,6 +15,7 @@
 #include "application.h"
 #include "appsettings.h"
 #include "dialogs/certificatesdialog.h"
+#include "dialogs/namespaceinspectordialog.h"
 #include "dialogs/dialogabout.h"
 #include "dialogs/settingsdialog.h"
 #include "features/builtinfeatures.h"
@@ -172,6 +173,15 @@ void MainWindow::on_actionEndpointSettings_triggered()
 void MainWindow::on_actionCertificates_triggered()
 {
     CertificatesDialog dialog(this);
+    dialog.exec();
+}
+
+///
+/// \brief Opens the namespace inspector for the active connection.
+///
+void MainWindow::on_actionNamespaceInspector_triggered()
+{
+    NamespaceInspectorDialog dialog(_clientService, &_namespaceCache, this);
     dialog.exec();
 }
 
@@ -566,12 +576,14 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     const bool connected = state == OpcUaConnectionState::Connected;
     const bool idle = state == OpcUaConnectionState::Disconnected
         || state == OpcUaConnectionState::Unavailable;
+    ui->actionNamespaceInspector->setEnabled(connected);
     if (connected) {
         initializeAddressSpace();
     } else if (idle) {
         _dataAccessCoordinator->clearRuntimeState();
         _selectionContext->clear();
         _featureManager->clearRuntimeState();
+        _namespaceCache = {};
     }
 }
 
