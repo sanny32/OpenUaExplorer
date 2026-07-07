@@ -11,6 +11,7 @@
 #include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QHideEvent>
+#include <QMenu>
 #include <QMimeData>
 #include <QShowEvent>
 #include <QTimer>
@@ -26,6 +27,7 @@
 #include "opcua/opcuaclientservice.h"
 #include "ui_nodemonitordialog.h"
 #include "widgets/subscriptioncombobox.h"
+#include "widgets/themedpushbutton.h"
 
 namespace {
 
@@ -76,6 +78,14 @@ NodeMonitorDialog::NodeMonitorDialog(OpcUaClientService *service, QWidget *paren
     for (QWidget *child : chartChildren)
         child->installEventFilter(this);
 
+    _settingsButton = new ThemedPushButton(ui->chartContainer);
+    _settingsButton->setIconName(QStringLiteral("settings"));
+    _settingsButton->setToolTip(tr("Chart settings"));
+    _settingsButton->setCursor(Qt::PointingHandCursor);
+    _settingsButton->setFixedSize(28, 28);
+    _settingsButton->raise();
+    ui->chartContainer->installEventFilter(this);
+
     ui->alwaysOnTopCheck->setChecked(true);
     ui->qualityLabel->setAttribute(Qt::WA_StyledBackground, true);
     ui->closeButton->setColors(
@@ -89,6 +99,8 @@ NodeMonitorDialog::NodeMonitorDialog(OpcUaClientService *service, QWidget *paren
             this, [this](const QString &) { applySelectedSubscription(); });
     connect(ui->subscriptionCombo, &SubscriptionComboBox::subscriptionCreationRequested,
             this, &NodeMonitorDialog::subscriptionCreationRequested);
+    connect(_settingsButton, &QPushButton::clicked,
+            this, &NodeMonitorDialog::showSettingsMenu);
     connect(ui->closeButton, &QPushButton::clicked,
             this, &QDialog::close);
 
@@ -103,10 +115,12 @@ NodeMonitorDialog::NodeMonitorDialog(OpcUaClientService *service, QWidget *paren
         if (_livePaused || _nodeId.isEmpty())
             return;
         applyWindow();
-        _chart->autoScaleY();
+        if (_autoScaleY)
+            _chart->autoScaleY();
     });
 
     applyTheme();
+    applyChartOptions();
     setAcceptDrops(true);
     showPlaceholder();
     applyWindow();
@@ -221,6 +235,7 @@ void NodeMonitorDialog::unsubscribeCurrent()
 void NodeMonitorDialog::showEvent(QShowEvent *event)
 {
     AppBaseDialog::showEvent(event);
+    positionSettingsButton();
     subscribeCurrent();
     if (!_liveTimer->isActive())
         _liveTimer->start();
@@ -314,7 +329,8 @@ void NodeMonitorDialog::applyValue(const OpcUaDataValue &value)
 
     if (appended) {
         applyWindow();
-        _chart->autoScaleY();
+        if (_autoScaleY)
+            _chart->autoScaleY();
     }
 }
 
@@ -331,11 +347,121 @@ void NodeMonitorDialog::applyValue(const OpcUaDataValue &value)
 ///
 void NodeMonitorDialog::appendStep(qreal x, qreal y, const QString &status)
 {
-    if (_hasChartPoint)
+    if (_stepLines && _hasChartPoint)
         _chart->appendPoint(_nodeId, x, _lastChartY, status);
     _chart->appendPoint(_nodeId, x, y, status);
     _lastChartY = y;
     _hasChartPoint = true;
+}
+
+///
+/// \brief Rebuilds the chart from the buffer honouring the current step-line mode.
+///
+void NodeMonitorDialog::refeedChart()
+{
+    const QVector<QPointF> &points = _series.points();
+    const QVector<QString> &statuses = _series.statuses();
+
+    QVector<ChartPoint> mapped;
+    mapped.reserve(points.size() * (_stepLines ? 2 : 1));
+    for (int i = 0; i < points.size(); ++i) {
+        const QString status = i < statuses.size() ? statuses.at(i) : QString();
+        if (_stepLines && i > 0)
+            mapped.append(ChartPoint{ points.at(i).x(), points.at(i - 1).y(), status });
+        mapped.append(ChartPoint{ points.at(i).x(), points.at(i).y(), status });
+    }
+    _chart->setPoints(_nodeId, mapped);
+
+    _hasChartPoint = !points.isEmpty();
+    if (_hasChartPoint)
+        _lastChartY = points.constLast().y();
+}
+
+///
+/// \brief Pushes the current display toggles to the chart.
+///
+void NodeMonitorDialog::applyChartOptions()
+{
+    _chart->setGridVisible(_showGrid);
+    _chart->setLegendVisible(_showLegend);
+    _chart->setPointsVisible(_showPoints);
+    _chart->setHoverValueVisible(_showTooltip);
+    _chart->setSmoothLines(false);
+}
+
+///
+/// \brief Shows the chart display-options menu under the settings button.
+///
+void NodeMonitorDialog::showSettingsMenu()
+{
+    QMenu menu(this);
+
+    QAction *autoScale = menu.addAction(tr("Auto Scale"));
+    autoScale->setCheckable(true);
+    autoScale->setChecked(_autoScaleY);
+    connect(autoScale, &QAction::toggled, this, [this](bool on) {
+        _autoScaleY = on;
+        if (on && !_livePaused)
+            _chart->autoScaleY();
+    });
+
+    QAction *stepLines = menu.addAction(tr("Step Lines"));
+    stepLines->setCheckable(true);
+    stepLines->setChecked(_stepLines);
+    connect(stepLines, &QAction::toggled, this, [this](bool on) {
+        _stepLines = on;
+        refeedChart();
+        if (!_livePaused && _autoScaleY)
+            _chart->autoScaleY();
+    });
+
+    menu.addSeparator();
+
+    QAction *grid = menu.addAction(tr("Show Grid"));
+    grid->setCheckable(true);
+    grid->setChecked(_showGrid);
+    connect(grid, &QAction::toggled, this, [this](bool on) {
+        _showGrid = on;
+        _chart->setGridVisible(on);
+    });
+
+    QAction *legend = menu.addAction(tr("Show Legend"));
+    legend->setCheckable(true);
+    legend->setChecked(_showLegend);
+    connect(legend, &QAction::toggled, this, [this](bool on) {
+        _showLegend = on;
+        _chart->setLegendVisible(on);
+    });
+
+    QAction *points = menu.addAction(tr("Show Points"));
+    points->setCheckable(true);
+    points->setChecked(_showPoints);
+    connect(points, &QAction::toggled, this, [this](bool on) {
+        _showPoints = on;
+        _chart->setPointsVisible(on);
+    });
+
+    QAction *tooltip = menu.addAction(tr("Show Value Tooltip"));
+    tooltip->setCheckable(true);
+    tooltip->setChecked(_showTooltip);
+    connect(tooltip, &QAction::toggled, this, [this](bool on) {
+        _showTooltip = on;
+        _chart->setHoverValueVisible(on);
+    });
+
+    menu.exec(_settingsButton->mapToGlobal(QPoint(0, _settingsButton->height())));
+}
+
+///
+/// \brief Keeps the settings button pinned to the chart's top-right corner.
+///
+void NodeMonitorDialog::positionSettingsButton()
+{
+    if (!_settingsButton)
+        return;
+    const int margin = 8;
+    _settingsButton->move(ui->chartContainer->width() - _settingsButton->width() - margin, margin);
+    _settingsButton->raise();
 }
 
 ///
@@ -394,7 +520,8 @@ void NodeMonitorDialog::setLivePaused(bool paused)
     ui->pauseButton->setIconName(paused ? QStringLiteral("resume") : QStringLiteral("pause"));
     if (!paused) {
         applyWindow();
-        _chart->autoScaleY();
+        if (_autoScaleY)
+            _chart->autoScaleY();
     }
 }
 
@@ -491,6 +618,9 @@ bool NodeMonitorDialog::dropNode(const QMimeData *mimeData)
 ///
 bool NodeMonitorDialog::eventFilter(QObject *watched, QEvent *event)
 {
+    if (watched == ui->chartContainer && event->type() == QEvent::Resize)
+        positionSettingsButton();
+
     switch (event->type()) {
     case QEvent::DragEnter:
     case QEvent::DragMove: {

@@ -23,6 +23,7 @@ class NodeMonitorDialog;
 
 class OpcUaClientService;
 class IChartView;
+class ThemedPushButton;
 class QMimeData;
 class QTimer;
 
@@ -100,6 +101,10 @@ private:
     void handleNodeDetails(const OpcUaNodeDetails &details, const QString &error);
     void applyValue(const OpcUaDataValue &value);
     void appendStep(qreal x, qreal y, const QString &status);
+    void refeedChart();
+    void applyChartOptions();
+    void showSettingsMenu();
+    void positionSettingsButton();
     void updateQualityBadge(const QString &status);
     void clearQualityBadge();
     void applyWindow();
@@ -113,6 +118,7 @@ private:
     Ui::NodeMonitorDialog *ui;
     OpcUaClientService *_service;
     std::unique_ptr<IChartView> _chart;
+    ThemedPushButton *_settingsButton = nullptr;
     TrendSeries _series;
     QTimer *_liveTimer = nullptr;
     QString _nodeId;
@@ -124,4 +130,11 @@ private:
     double _lastChartY = 0.0;
     double _publishingInterval = 1000.0;
     qint64 _windowMs = 60000;
+
+    bool _autoScaleY = true;
+    bool _stepLines = true;
+    bool _showGrid = true;
+    bool _showLegend = true;
+    bool _showPoints = false;
+    bool _showTooltip = true;
 };
