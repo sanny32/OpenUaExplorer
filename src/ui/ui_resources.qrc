@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file alias="about.json">res/about.json</file>
+        <file alias="res/about.json">res/about.json</file>
     </qresource>
 </RCC>

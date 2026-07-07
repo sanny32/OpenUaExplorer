@@ -152,6 +152,15 @@ void SelectionContext::requestAddToTrend(const OpcUaNodeInfo &node)
 }
 
 ///
+/// \brief Requests monitoring a node selected from a feature in the node monitor.
+/// \param node Variable node to monitor.
+///
+void SelectionContext::requestMonitorNode(const OpcUaNodeInfo &node)
+{
+    emit monitorNodeRequested(node);
+}
+
+///
 /// \brief Requests monitoring a variable node selected from a feature.
 /// \param node Variable node to subscribe.
 ///

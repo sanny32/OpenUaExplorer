@@ -13,6 +13,7 @@ set(UI_FILES
     dialogs/editfavoritedialog.ui
     dialogs/endpointsettingsdialog.ui
     dialogs/namespaceinspectordialog.ui
+    dialogs/nodemonitordialog.ui
     dialogs/settingsdialog.ui
     dialogs/subscriptionsdialog.ui
     dialogs/textviewdialog.ui
@@ -109,6 +110,8 @@ add_library(ouaexp_ui STATIC
     dialogs/endpointsettingsdialog.h
     dialogs/namespaceinspectordialog.cpp
     dialogs/namespaceinspectordialog.h
+    dialogs/nodemonitordialog.cpp
+    dialogs/nodemonitordialog.h
     dialogs/newsubscriptiondialog.cpp
     dialogs/newsubscriptiondialog.h
     dialogs/settingsdialog.cpp
@@ -138,6 +141,8 @@ add_library(ouaexp_ui STATIC
     widgets/dataview.h
     widgets/dataaccesswidget.cpp
     widgets/dataaccesswidget.h
+    widgets/subscriptioncombobox.cpp
+    widgets/subscriptioncombobox.h
     widgets/subscriptionswidget.cpp
     widgets/subscriptionswidget.h
     widgets/eventswidget.cpp

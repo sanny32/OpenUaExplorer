@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QList>
 #include <QMainWindow>
 
 #include "dialogs/namespaceinspectordialog.h"
@@ -50,6 +51,7 @@ private slots:
     void on_actionEndpointSettings_triggered();
     void on_actionCertificates_triggered();
     void on_actionNamespaceInspector_triggered();
+    void on_actionNodeMonitor_triggered();
     void on_actionRead_triggered();
     void on_actionReadSelected_triggered();
     void on_actionWrite_triggered();
@@ -88,6 +90,9 @@ private:
     void setupPlugins();
     void updateClientUi(OpcUaConnectionState state);
     void initializeAddressSpace();
+    class NodeMonitorDialog *createNodeMonitor();
+    void openNodeMonitor(const OpcUaNodeInfo &node);
+    void closeNodeMonitors();
 
 private:
     Ui::MainWindow *ui;
@@ -105,5 +110,6 @@ private:
     class ThemeCoordinator *_themeCoordinator = nullptr;
     class ConnectionCoordinator *_connectionCoordinator = nullptr;
     class DataAccessCoordinator *_dataAccessCoordinator = nullptr;
+    QList<class NodeMonitorDialog *> _nodeMonitors;
     NamespaceInspectorCache _namespaceCache;
 };

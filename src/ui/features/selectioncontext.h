@@ -82,6 +82,12 @@ public slots:
     void requestAddToTrend(const OpcUaNodeInfo &node);
 
     ///
+    /// \brief Requests monitoring a node selected from a feature in the node monitor.
+    /// \param node Variable node to monitor.
+    ///
+    void requestMonitorNode(const OpcUaNodeInfo &node);
+
+    ///
     /// \brief Requests monitoring a variable node selected from a feature.
     /// \param node Variable node to subscribe.
     ///
@@ -135,6 +141,12 @@ signals:
     /// \param node Variable node to chart.
     ///
     void addToTrendRequested(OpcUaNodeInfo node);
+
+    ///
+    /// \brief Emitted when a feature requests monitoring a node in the node monitor.
+    /// \param node Variable node to monitor.
+    ///
+    void monitorNodeRequested(OpcUaNodeInfo node);
 
     ///
     /// \brief Emitted when a feature requests monitoring a variable node.

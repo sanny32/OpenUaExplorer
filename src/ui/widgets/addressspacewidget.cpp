@@ -266,6 +266,12 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
     });
     trendAction->setEnabled(OpcUa::isVariable(info.nodeClass));
 
+    QAction *monitorAction = menu.addAction(AppIcons::themed(QStringLiteral("trend")),
+                                            tr("Monitor Node..."), this, [this, info] {
+        emit monitorNodeRequested(info);
+    });
+    monitorAction->setEnabled(OpcUa::isVariable(info.nodeClass));
+
     if (OpcUa::isHistoryReadSupported()) {
         QAction *historyAction = menu.addAction(AppIcons::themed(QStringLiteral("history")),
                                                 tr("Read Data History"), this, [this, info] {

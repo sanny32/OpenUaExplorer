@@ -78,6 +78,7 @@ endfunction()
 
 function(ouaexp_add_ui_test test_name source_file)
     ouaexp_register_test(${test_name} ${source_file})
+    target_sources(${test_name} PRIVATE "${PROJECT_SOURCE_DIR}/app/resources.qrc")
     target_link_libraries(${test_name} PRIVATE ouaexp_ui)
 endfunction()
 

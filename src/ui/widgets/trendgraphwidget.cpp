@@ -241,9 +241,13 @@ void TrendGraphWidget::applyLiveValues(const QVector<OpcUaDataValue> &values)
         const int before = it->points().size();
         if (!it->appendLive(value))
             continue;
-        if (it->points().size() == before)
+        const QVector<QPointF> &points = it->points();
+        if (points.size() == before)
             continue;
-        const QPointF &point = it->points().constLast();
+        const QPointF &point = points.constLast();
+        if (points.size() >= 2)
+            _chart->appendPoint(value.nodeId, toChartX(point.x()),
+                                points.at(points.size() - 2).y(), value.status);
         _chart->appendPoint(value.nodeId, toChartX(point.x()), point.y(), value.status);
     }
 }
@@ -791,7 +795,13 @@ qreal TrendGraphWidget::toChartX(qreal epochMs) const
 }
 
 ///
-/// \brief Pushes a series' buffered points into the chart with the active mode.
+/// \brief Pushes a series' buffered points into the chart as hold-last-value steps.
+///
+/// OPC UA monitored items report on value change, so the value is constant between
+/// samples; inserting a corner at each new time keeps the previous value flat until
+/// it steps, matching how the dense server history draws instead of sloping between
+/// sparse live samples.
+///
 /// \param series Series whose points are re-fed.
 ///
 void TrendGraphWidget::refeedSeries(const TrendSeries &series)
@@ -799,10 +809,12 @@ void TrendGraphWidget::refeedSeries(const TrendSeries &series)
     const QVector<QPointF> &points = series.points();
     const QVector<QString> &statuses = series.statuses();
     QVector<ChartPoint> mapped;
-    mapped.reserve(points.size());
+    mapped.reserve(points.size() * 2);
     for (int i = 0; i < points.size(); ++i) {
-        mapped.append(ChartPoint{toChartX(points.at(i).x()), points.at(i).y(),
-                                 i < statuses.size() ? statuses.at(i) : QString()});
+        const QString status = i < statuses.size() ? statuses.at(i) : QString();
+        if (i > 0)
+            mapped.append(ChartPoint{toChartX(points.at(i).x()), points.at(i - 1).y(), status});
+        mapped.append(ChartPoint{toChartX(points.at(i).x()), points.at(i).y(), status});
     }
     _chart->setPoints(series.nodeId(), mapped);
 }

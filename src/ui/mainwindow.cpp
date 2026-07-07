@@ -6,6 +6,8 @@
 /// \brief Implements the main application window.
 ///
 
+#include <utility>
+
 #include <QAction>
 #include <QCloseEvent>
 #include <QEvent>
@@ -16,7 +18,10 @@
 #include "appsettings.h"
 #include "dialogs/certificatesdialog.h"
 #include "dialogs/namespaceinspectordialog.h"
+#include "dialogs/nodemonitordialog.h"
 #include "dialogs/dialogabout.h"
+#include "widgets/dataview.h"
+#include "widgets/subscriptionswidget.h"
 #include "dialogs/settingsdialog.h"
 #include "features/builtinfeatures.h"
 #include "features/featurehost.h"
@@ -183,6 +188,71 @@ void MainWindow::on_actionNamespaceInspector_triggered()
 {
     NamespaceInspectorDialog dialog(_clientService, &_namespaceCache, this);
     dialog.exec();
+}
+
+///
+/// \brief Opens a new, empty node monitor window ready to accept a dropped node.
+///
+void MainWindow::on_actionNodeMonitor_triggered()
+{
+    NodeMonitorDialog *monitor = createNodeMonitor();
+    monitor->show();
+    monitor->raise();
+    monitor->activateWindow();
+}
+
+///
+/// \brief Creates an independent modeless node monitor bound to the client service.
+/// \return The new node monitor instance, tracked until it is closed.
+///
+NodeMonitorDialog *MainWindow::createNodeMonitor()
+{
+    auto *monitor = new NodeMonitorDialog(_clientService, this);
+    monitor->setAttribute(Qt::WA_DeleteOnClose, true);
+    if (SubscriptionsWidget *subscriptions = ui->dataView->subscriptions()) {
+        monitor->setSubscriptions(subscriptions->subscriptions());
+        connect(subscriptions, &SubscriptionsWidget::subscriptionsChanged,
+                monitor, &NodeMonitorDialog::setSubscriptions);
+        connect(monitor, &NodeMonitorDialog::subscriptionCreationRequested,
+                subscriptions, &SubscriptionsWidget::createSubscription);
+    }
+    connect(monitor, &QObject::destroyed, this, [this, monitor]() {
+        _nodeMonitors.removeOne(monitor);
+    });
+    _nodeMonitors.append(monitor);
+    return monitor;
+}
+
+///
+/// \brief Monitors a variable node, raising an existing window for it when one is open.
+/// \param node Variable node to monitor.
+///
+void MainWindow::openNodeMonitor(const OpcUaNodeInfo &node)
+{
+    NodeMonitorDialog *monitor = nullptr;
+    for (NodeMonitorDialog *candidate : std::as_const(_nodeMonitors)) {
+        if (candidate->nodeId() == node.nodeId) {
+            monitor = candidate;
+            break;
+        }
+    }
+    if (!monitor) {
+        monitor = createNodeMonitor();
+        monitor->setTarget(node);
+    }
+    monitor->show();
+    monitor->raise();
+    monitor->activateWindow();
+}
+
+///
+/// \brief Closes every open node monitor window.
+///
+void MainWindow::closeNodeMonitors()
+{
+    const QList<NodeMonitorDialog *> monitors = _nodeMonitors;
+    for (NodeMonitorDialog *monitor : monitors)
+        monitor->close();
 }
 
 ///
@@ -565,6 +635,9 @@ void MainWindow::setupPlugins()
                                                        _clientService,
                                                        dataAccessActions,
                                                        this);
+
+    connect(_selectionContext, &SelectionContext::monitorNodeRequested,
+            this, &MainWindow::openNodeMonitor);
 }
 
 ///
@@ -577,6 +650,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     const bool idle = state == OpcUaConnectionState::Disconnected
         || state == OpcUaConnectionState::Unavailable;
     ui->actionNamespaceInspector->setEnabled(connected);
+    ui->actionNodeMonitor->setEnabled(connected);
     if (connected) {
         initializeAddressSpace();
     } else if (idle) {
@@ -584,6 +658,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
         _selectionContext->clear();
         _featureManager->clearRuntimeState();
         _namespaceCache = {};
+        closeNodeMonitors();
     }
 }
 
@@ -614,4 +689,5 @@ void MainWindow::bindIcons()
     AppIcons::bindIcon(ui->actionSettings,    "settings");
     AppIcons::bindIcon(ui->actionCertificates, "certificate");
     AppIcons::bindIcon(ui->actionFavorites,   "star");
+    AppIcons::bindIcon(ui->actionNodeMonitor, "trend");
 }

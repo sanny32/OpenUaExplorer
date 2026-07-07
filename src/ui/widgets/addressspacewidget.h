@@ -164,6 +164,12 @@ signals:
     void addToTrendRequested(OpcUaNodeInfo node);
 
     ///
+    /// \brief Emitted when the user requests monitoring a node in the node monitor.
+    /// \param node Variable node to monitor.
+    ///
+    void monitorNodeRequested(OpcUaNodeInfo node);
+
+    ///
     /// \brief Emitted when the user requests monitoring a variable node.
     /// \param node Variable node to subscribe.
     ///

@@ -265,7 +265,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="subscriptionCombo">
+         <widget class="SubscriptionComboBox" name="subscriptionCombo">
           <property name="minimumSize">
            <size>
             <width>160</width>
@@ -384,6 +384,11 @@
    <class>ThemedToolButton</class>
    <extends>QToolButton</extends>
    <header>widgets/themedtoolbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SubscriptionComboBox</class>
+   <extends>QComboBox</extends>
+   <header>widgets/subscriptioncombobox.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
