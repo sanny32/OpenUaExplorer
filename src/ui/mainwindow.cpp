@@ -11,7 +11,10 @@
 #include <QAction>
 #include <QCloseEvent>
 #include <QEvent>
+#include <QFileDialog>
 #include <QMenu>
+#include <QMessageBox>
+#include <QRegularExpression>
 
 #include "appicons.h"
 #include "application.h"
@@ -42,9 +45,31 @@
 #include "servicemodulemanager.h"
 #include "referencemodule.h"
 #include "servermodule.h"
+#include "session/sessionstore.h"
 #include "ui_mainwindow.h"
 #include "widgets/maintoolbar.h"
 #include "widgets/themedtoolbutton.h"
+
+namespace {
+
+///
+/// \brief Makes a string safe for use as a file name.
+/// \param value Source text.
+/// \param fallback Text used when the result becomes empty.
+/// \return File name without filesystem separators or control characters.
+///
+QString fileNameSegment(QString value, const QString &fallback)
+{
+    value = value.trimmed();
+    static const QRegularExpression invalidChars(QStringLiteral(R"([<>:"/\\|?*\x00-\x1f]+)"));
+    value.replace(invalidChars, QStringLiteral("_"));
+    value.replace(QRegularExpression(QStringLiteral(R"(\s+)")), QStringLiteral("_"));
+    while (value.endsWith(QLatin1Char('.')) || value.endsWith(QLatin1Char(' ')))
+        value.chop(1);
+    return value.isEmpty() ? fallback : value;
+}
+
+} // namespace
 
 
 ///
@@ -80,6 +105,8 @@ MainWindow::MainWindow(QWidget *parent)
     setupPlugins();
     resetLayout();
     restoreSettings();
+    ui->actionOpenSession->setEnabled(true);
+    ui->actionExportLog->setEnabled(true);
     updateClientUi(_clientService->state());
 }
 
@@ -120,6 +147,49 @@ void MainWindow::closeEvent(QCloseEvent *event)
 void MainWindow::on_actionNewConnection_triggered()
 {
     _connectionCoordinator->openConnectionDialog();
+}
+
+///
+/// \brief Prompts for a session file and restores its connection and workspace.
+///
+void MainWindow::on_actionOpenSession_triggered()
+{
+    const QString path = QFileDialog::getOpenFileName(
+        this, tr("Open Session"), QString(),
+        tr("Session Files (*.ouas);;All Files (*)"));
+    if (!path.isEmpty())
+        openSessionFromFile(path);
+}
+
+///
+/// \brief Prompts for a destination file and saves the current session.
+///
+void MainWindow::on_actionSaveSession_triggered()
+{
+    const ConnectionProfile &profile = _connectionController->activeProfile();
+    const QString base = !profile.sessionName.isEmpty() ? profile.sessionName : profile.name;
+    const QString suggested = fileNameSegment(base, tr("session")) + QStringLiteral(".ouas");
+    const QString path = QFileDialog::getSaveFileName(
+        this, tr("Save Session"), suggested,
+        tr("Session Files (*.ouas);;All Files (*)"));
+    if (!path.isEmpty())
+        saveSessionToFile(path);
+}
+
+///
+/// \brief Exports the currently visible central-area view to a file.
+///
+void MainWindow::on_actionExportData_triggered()
+{
+    _dataAccessCoordinator->exportActiveView();
+}
+
+///
+/// \brief Exports the activity log to a file.
+///
+void MainWindow::on_actionExportLog_triggered()
+{
+    _featureManager->triggerCommand(QStringLiteral("log.export"));
 }
 
 ///
@@ -544,6 +614,76 @@ void MainWindow::restoreSettings()
 }
 
 ///
+/// \brief Serializes the active connection and monitoring workspace to a session file.
+/// \param path Destination file path.
+///
+void MainWindow::saveSessionToFile(const QString &path)
+{
+    SessionData data;
+    data.profile = _connectionController->activeProfile();
+    data.subscriptions = _dataAccessCoordinator->sessionSubscriptions();
+    const QVector<QPair<QString, QString>> nodes = _dataAccessCoordinator->monitoredNodes();
+    for (const QPair<QString, QString> &node : nodes)
+        data.dataAccessNodes.append({node.first, node.second});
+    data.trendNodes = _dataAccessCoordinator->trendNodes();
+
+    QString error;
+    if (!SessionStore::save(path, data, &error)) {
+        QMessageBox::warning(this, tr("Save Session"),
+                             tr("Could not save the session:\n%1").arg(error));
+    }
+}
+
+///
+/// \brief Loads a session file and connects, deferring the workspace restore to connect time.
+/// \param path Source file path.
+///
+void MainWindow::openSessionFromFile(const QString &path)
+{
+    SessionData data;
+    QString error;
+    if (!SessionStore::load(path, data, &error)) {
+        QMessageBox::warning(this, tr("Open Session"),
+                             tr("Could not open the session:\n%1").arg(error));
+        return;
+    }
+
+    _pendingSession = data;
+    _hasPendingSession = true;
+
+    if (data.profile.authentication == ConnectionProfile::Authentication::Anonymous)
+        _connectionController->connectNewProfile(data.profile, QString(), QString());
+    else
+        _connectionCoordinator->openConnectionDialog(&data.profile);
+}
+
+///
+/// \brief Restores the pending session's workspace once its endpoint is connected.
+///
+void MainWindow::applyPendingSession()
+{
+    if (!_hasPendingSession)
+        return;
+
+    if (!_connectionController->activeProfile().isSameEndpoint(_pendingSession.profile))
+        return;
+
+    _hasPendingSession = false;
+    const SessionData session = _pendingSession;
+    _pendingSession = {};
+
+    _dataAccessCoordinator->restoreSubscriptions(session.subscriptions);
+
+    QVector<QPair<QString, QString>> nodes;
+    nodes.reserve(session.dataAccessNodes.size());
+    for (const SessionNode &node : session.dataAccessNodes)
+        nodes.append({node.nodeId, node.subscriptionName});
+    _dataAccessCoordinator->restoreMonitoredNodes(nodes);
+
+    _dataAccessCoordinator->restoreTrendNodes(session.trendNodes);
+}
+
+///
 /// \brief Removes HistoryRead entry points when the linked Qt OPC UA API cannot serve them.
 ///
 void MainWindow::configureHistoryUi()
@@ -587,6 +727,13 @@ void MainWindow::setupOpcUaClient()
                                                        connectionActions,
                                                        this);
     ui->statusbar->setConnectionController(_connectionController);
+
+    connect(ui->actionFileDisconnect, &QAction::triggered,
+            ui->actionDisconnect, &QAction::trigger);
+    connect(ui->actionDisconnect, &QAction::changed, this, [this] {
+        ui->actionFileDisconnect->setEnabled(ui->actionDisconnect->isEnabled());
+    });
+    ui->actionFileDisconnect->setEnabled(ui->actionDisconnect->isEnabled());
 }
 
 ///
@@ -669,8 +816,11 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
         || state == OpcUaConnectionState::Unavailable;
     ui->actionNamespaceInspector->setEnabled(connected);
     ui->actionNodeMonitor->setEnabled(connected);
+    ui->actionSaveSession->setEnabled(connected);
+    ui->actionExportData->setEnabled(connected);
     if (connected) {
         initializeAddressSpace();
+        applyPendingSession();
     } else if (idle) {
         _dataAccessCoordinator->clearRuntimeState();
         _selectionContext->clear();

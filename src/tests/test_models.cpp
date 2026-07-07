@@ -57,6 +57,7 @@ private slots:
     void eventsModelAddEventsAppendsAndCaps();
     void historyModelHeaderRolesAndMutators();
     void historyModelExportsCsv();
+    void dataAccessModelExportsCsv();
     void eventsModelExportsCsv();
     void eventsModelDisplaysKnownEventTypeNames();
     void referencesModelHeaderAndEdges();
@@ -517,6 +518,31 @@ void TestModels::historyModelExportsCsv()
              QStringLiteral("#,Source Timestamp,Server Timestamp,Value,Status\n"
                             "1,2024-01-02 03:04:05.006Z,2024-01-02 03:04:06.007Z,"
                             "\"12,\"\"quoted\"\"\nline\",\"Good,Clamped\"\n"));
+}
+
+///
+/// \brief DataAccessModel exports listed rows as escaped CSV with a header.
+///
+void TestModels::dataAccessModelExportsCsv()
+{
+    DataAccessItem item;
+    item.nodeId = QStringLiteral("ns=2;s=Temp");
+    item.displayName = QStringLiteral("Temperature");
+    item.value = QStringLiteral("12,\"quoted\"\nline");
+    item.dataType = QStringLiteral("Double");
+    item.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 6), Qt::UTC);
+    item.status = QStringLiteral("Good,Clamped");
+    item.subscriptionName = QStringLiteral("Default");
+
+    DataAccessModel model;
+    model.setTimestampMode(AppSettings::TimestampMode::Utc);
+    model.setItems({item});
+
+    QCOMPARE(model.toCsv(),
+             QStringLiteral("#,Node Id,Display Name,Value,Data Type,Source Timestamp,"
+                            "Status,Subscription\n"
+                            "1,ns=2;s=Temp,Temperature,\"12,\"\"quoted\"\"\nline\",Double,"
+                            "2024-01-02 03:04:05.006Z,\"Good,Clamped\",Default\n"));
 }
 
 ///

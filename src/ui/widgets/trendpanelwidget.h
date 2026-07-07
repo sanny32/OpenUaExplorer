@@ -65,6 +65,12 @@ public:
                  const QString &displayPath = {});
 
     ///
+    /// \brief Returns the distinct node ids charted across every tab.
+    /// \return Charted node ids without duplicates.
+    ///
+    QStringList chartedNodeIds() const;
+
+    ///
     /// \brief Applies history results if the panel requested them for the node.
     /// \param nodeId Node whose history arrived.
     /// \param error Read error, empty on success.

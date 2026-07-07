@@ -283,7 +283,114 @@ void DataAccessCoordinator::clearRuntimeState()
     _subscribedNodeIds.clear();
     _pendingMonitoringNodeIds.clear();
     _pendingDataAccessNodeIds.clear();
+    _pendingRestoreSubscriptions.clear();
     updateMonitoringActions();
+}
+
+///
+/// \brief Exports the currently visible central-area view to a file.
+///
+void DataAccessCoordinator::exportActiveView()
+{
+    switch (_dataView->currentPage()) {
+    case DataView::EventsPage:
+        _dataView->events()->exportEventsToCsv();
+        break;
+    case DataView::DataHistoryPage:
+        _dataView->dataHistory()->exportDataHistoryToCsv();
+        break;
+    case DataView::EventsHistoryPage:
+        _dataView->eventsHistory()->exportEventsHistoryToCsv();
+        break;
+    case DataView::DataAccessPage:
+    default:
+        _dataView->dataAccess()->exportToCsv();
+        break;
+    }
+}
+
+///
+/// \brief Returns the user-created subscriptions for a saved session.
+/// \return Non-built-in subscriptions in row order.
+///
+QVector<SubscriptionItem> DataAccessCoordinator::sessionSubscriptions() const
+{
+    QVector<SubscriptionItem> result;
+    const QVector<SubscriptionItem> items = _dataView->subscriptions()->subscriptions();
+    for (const SubscriptionItem &item : items) {
+        if (!item.isBuiltin())
+            result.append(item);
+    }
+    return result;
+}
+
+///
+/// \brief Returns the listed data-access nodes with their subscription for a saved session.
+/// \return NodeId and subscription-name pairs in row order.
+///
+QVector<QPair<QString, QString>> DataAccessCoordinator::monitoredNodes() const
+{
+    return _dataView->dataAccess()->monitoredNodes();
+}
+
+///
+/// \brief Returns the charted trend node ids for a saved session.
+/// \return Charted node ids.
+///
+QStringList DataAccessCoordinator::trendNodes() const
+{
+    return _trendPanel->chartedNodeIds();
+}
+
+///
+/// \brief Restores monitored data-access nodes from a loaded session.
+/// \param nodes NodeId and subscription-name pairs to re-add and monitor.
+///
+void DataAccessCoordinator::restoreMonitoredNodes(const QVector<QPair<QString, QString>> &nodes)
+{
+    for (const QPair<QString, QString> &node : nodes) {
+        if (node.first.isEmpty())
+            continue;
+        _pendingRestoreSubscriptions.insert(node.first, node.second);
+        addNodeById(node.first);
+    }
+}
+
+///
+/// \brief Restores charted trend nodes from a loaded session.
+/// \param nodeIds Node ids to chart.
+///
+void DataAccessCoordinator::restoreTrendNodes(const QStringList &nodeIds)
+{
+    for (const QString &nodeId : nodeIds)
+        _trendPanel->addNode(nodeId, QString());
+}
+
+///
+/// \brief Recreates user subscriptions from a loaded session.
+/// \param subscriptions Subscriptions to add if absent.
+///
+void DataAccessCoordinator::restoreSubscriptions(const QVector<SubscriptionItem> &subscriptions)
+{
+    for (const SubscriptionItem &item : subscriptions)
+        _dataView->subscriptions()->createSubscription(item.name, item.publishingInterval);
+}
+
+///
+/// \brief Looks up a subscription by name, falling back to a plain named item.
+/// \param name Subscription name.
+/// \return Matching subscription, or a default-interval item carrying the name.
+///
+SubscriptionItem DataAccessCoordinator::subscriptionByName(const QString &name) const
+{
+    const QVector<SubscriptionItem> items = _dataView->subscriptions()->subscriptions();
+    for (const SubscriptionItem &item : items) {
+        if (item.name == name)
+            return item;
+    }
+    SubscriptionItem fallback;
+    fallback.name = name;
+    return fallback;
 }
 
 ///
@@ -297,8 +404,21 @@ void DataAccessCoordinator::onAttributeDetailsReady(const OpcUaNodeDetails &deta
     if (!error.isEmpty())
         return;
 
-    if (_pendingDataAccessNodeIds.remove(details.nodeId) && OpcUa::isVariable(details.nodeClass))
-        _dataView->addNodeWithDefaultSubscription(details);
+    const bool pending = _pendingDataAccessNodeIds.remove(details.nodeId);
+    const bool isRestore = _pendingRestoreSubscriptions.contains(details.nodeId);
+    const QString restoreSubscription = _pendingRestoreSubscriptions.take(details.nodeId);
+    if (!pending || !OpcUa::isVariable(details.nodeClass))
+        return;
+
+    if (isRestore) {
+        if (restoreSubscription.isEmpty())
+            _dataView->addNode(details);
+        else
+            _dataView->addNodeWithDefaultSubscription(details, subscriptionByName(restoreSubscription));
+        return;
+    }
+
+    _dataView->addNodeWithDefaultSubscription(details);
 }
 
 ///

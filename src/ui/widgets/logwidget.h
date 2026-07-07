@@ -58,6 +58,11 @@ public:
     ///
     void restoreViewState(AppSettings &settings);
 
+    ///
+    /// \brief Prompts for a file and writes the visible log rows to it.
+    ///
+    void exportLog();
+
 protected:
     void changeEvent(QEvent *event) override;
 
@@ -66,7 +71,6 @@ private:
     void refreshIcons();
     void scrollToBottom();
     void registerSource(const QString &source);
-    void exportLog();
     void copyRows(const QList<int> &rows);
     void copySelection();
     void copyAll();

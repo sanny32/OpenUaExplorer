@@ -58,6 +58,7 @@
      <addaction name="actionNoRecentConnections"/>
     </widget>
     <addaction name="actionNewConnection"/>
+    <addaction name="actionFileDisconnect"/>
     <addaction name="actionOpenSession"/>
     <addaction name="actionSaveSession"/>
     <addaction name="menuRecentConnections"/>
@@ -198,6 +199,14 @@
    </property>
   </action>
   <action name="actionDisconnect">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Disconnect</string>
+   </property>
+  </action>
+  <action name="actionFileDisconnect">
    <property name="enabled">
     <bool>false</bool>
    </property>

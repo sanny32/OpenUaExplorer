@@ -24,6 +24,23 @@ OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
         ? OpcUaFormat::TimestampMode::Utc
         : OpcUaFormat::TimestampMode::LocalTime;
 }
+
+///
+/// \brief Escapes a single CSV field.
+/// \param value Field text.
+/// \return Escaped CSV field text.
+///
+QString csvField(QString value)
+{
+    const bool quote = value.contains(QLatin1Char(','))
+        || value.contains(QLatin1Char('"'))
+        || value.contains(QLatin1Char('\n'))
+        || value.contains(QLatin1Char('\r'));
+    if (!quote)
+        return value;
+    value.replace(QStringLiteral("\""), QStringLiteral("\"\""));
+    return QStringLiteral("\"%1\"").arg(value);
+}
 }
 
 ///
@@ -162,6 +179,28 @@ QStringList DataAccessModel::nodeIds(const QModelIndexList &rows) const
 DataAccessItem DataAccessModel::itemAt(int row) const
 {
     return row >= 0 && row < _items.size() ? _items.at(row) : DataAccessItem();
+}
+
+///
+/// \brief Exports the data-access rows as CSV text.
+/// \return CSV document with a header row.
+///
+QString DataAccessModel::toCsv() const
+{
+    QStringList lines;
+    QStringList header;
+    for (int column = 0; column < ColCount; ++column)
+        header.append(csvField(headerData(column, Qt::Horizontal).toString()));
+    lines.append(header.join(QLatin1Char(',')));
+
+    for (int row = 0; row < rowCount(); ++row) {
+        QStringList fields;
+        for (int column = 0; column < ColCount; ++column)
+            fields.append(csvField(data(index(row, column)).toString()));
+        lines.append(fields.join(QLatin1Char(',')));
+    }
+
+    return lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
 }
 
 ///

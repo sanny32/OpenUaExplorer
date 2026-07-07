@@ -210,6 +210,24 @@ void TrendPanelWidget::addNode(const QString &nodeId, const QString &displayName
 }
 
 ///
+/// \brief Returns the distinct node ids charted across every tab.
+/// \return Charted node ids without duplicates.
+///
+QStringList TrendPanelWidget::chartedNodeIds() const
+{
+    QStringList result;
+    const QList<TrendGraphWidget *> tabs = charts();
+    for (TrendGraphWidget *chart : tabs) {
+        const QStringList nodeIds = chart->chartedNodeIds();
+        for (const QString &nodeId : nodeIds) {
+            if (!result.contains(nodeId))
+                result.append(nodeId);
+        }
+    }
+    return result;
+}
+
+///
 /// \brief Records a chart's requested interval, monitoring at the fastest one.
 ///
 /// A node charted from several tabs is monitored once. Each chart may ask for a

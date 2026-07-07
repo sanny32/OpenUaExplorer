@@ -70,6 +70,12 @@ public:
     DataAccessItem itemAt(int row) const;
 
     ///
+    /// \brief Exports the data-access rows as CSV text.
+    /// \return CSV document with a header row.
+    ///
+    QString toCsv() const;
+
+    ///
     /// \brief Removes all rows.
     ///
     void clear();

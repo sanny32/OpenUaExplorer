@@ -13,6 +13,7 @@
 
 #include "dialogs/namespaceinspectordialog.h"
 #include "opcua/opcuatypes.h"
+#include "session/sessiondata.h"
 
 namespace Ui {
 class MainWindow;
@@ -43,6 +44,10 @@ protected:
 
 private slots:
     void on_actionNewConnection_triggered();
+    void on_actionOpenSession_triggered();
+    void on_actionSaveSession_triggered();
+    void on_actionExportData_triggered();
+    void on_actionExportLog_triggered();
     void on_actionConnect_triggered();
     void on_actionDisconnect_triggered();
     void on_actionBrowse_triggered();
@@ -89,6 +94,9 @@ private:
     void setupOpcUaClient();
     void setupPlugins();
     void updateClientUi(OpcUaConnectionState state);
+    void saveSessionToFile(const QString &path);
+    void openSessionFromFile(const QString &path);
+    void applyPendingSession();
     void initializeAddressSpace();
     class NodeMonitorDialog *createNodeMonitor();
     void openNodeMonitor(const OpcUaNodeInfo &node);
@@ -113,4 +121,6 @@ private:
     class DataAccessCoordinator *_dataAccessCoordinator = nullptr;
     QList<class NodeMonitorDialog *> _nodeMonitors;
     NamespaceInspectorCache _namespaceCache;
+    SessionData _pendingSession;
+    bool _hasPendingSession = false;
 };

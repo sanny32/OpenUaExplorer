@@ -85,6 +85,10 @@ add_library(ouaexp_core STATIC
     models/subscriptionsmodel.h
     models/trendseries.cpp
     models/trendseries.h
+
+    session/sessiondata.h
+    session/sessionstore.cpp
+    session/sessionstore.h
 )
 
 target_include_directories(ouaexp_core PUBLIC

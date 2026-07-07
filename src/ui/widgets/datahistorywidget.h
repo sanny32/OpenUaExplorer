@@ -68,6 +68,11 @@ public:
     void clear();
 
     ///
+    /// \brief Prompts for a file and exports the displayed data history as CSV.
+    ///
+    void exportDataHistoryToCsv();
+
+    ///
     /// \brief Persists the data history table header state.
     /// \param settings Settings store to write to.
     ///
@@ -101,7 +106,6 @@ private:
     void updateActionButtons();
     void clearDataHistoryNode();
     void requestDataHistoryRead();
-    void exportDataHistoryToCsv();
     void applyDataHistoryTimestampMode(AppSettings::TimestampMode mode);
     void updateDataHistoryZoneSuffix(QDateTimeEdit *edit);
 

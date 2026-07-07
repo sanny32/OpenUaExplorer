@@ -77,6 +77,11 @@ public:
     void clear();
 
     ///
+    /// \brief Prompts for a file and exports the displayed events as CSV.
+    ///
+    void exportEventsToCsv();
+
+    ///
     /// \brief Persists the events table header state.
     /// \param settings Settings store to write to.
     ///
@@ -107,7 +112,6 @@ private:
     void configureToolbar();
     void updateActionButtons();
     void clearEventSource();
-    void exportEventsToCsv();
 
     Ui::EventsWidget *ui;
     EventsModel      *_eventsModel;
