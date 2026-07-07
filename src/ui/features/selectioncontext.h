@@ -99,6 +99,13 @@ public slots:
     ///
     void requestUnsubscribe(const OpcUaNodeInfo &node);
 
+    ///
+    /// \brief Requests calling a method node selected from a feature.
+    /// \param object Object node that owns the method.
+    /// \param method Method node to call.
+    ///
+    void requestCallMethod(const OpcUaNodeInfo &object, const OpcUaNodeInfo &method);
+
 signals:
     ///
     /// \brief Emitted when a node becomes the current selection.
@@ -159,6 +166,13 @@ signals:
     /// \param node Variable node to unsubscribe.
     ///
     void unsubscribeRequested(OpcUaNodeInfo node);
+
+    ///
+    /// \brief Emitted when a feature requests calling a method node.
+    /// \param object Object node that owns the method.
+    /// \param method Method node to call.
+    ///
+    void callMethodRequested(OpcUaNodeInfo object, OpcUaNodeInfo method);
 
 private:
     OpcUaNodeInfo _currentNode;

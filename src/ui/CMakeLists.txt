@@ -3,6 +3,7 @@ include("${PROJECT_SOURCE_DIR}/cmake/qlementine.cmake")
 set(UI_FILES
     mainwindow.ui
 
+    dialogs/callmethoddialog.ui
     dialogs/certificatedetailsdialog.ui
     dialogs/certificatetrustdialog.ui
     dialogs/connectioncredentialsdialog.ui
@@ -90,6 +91,8 @@ add_library(ouaexp_ui STATIC
 
     dialogs/appbasedialog.cpp
     dialogs/appbasedialog.h
+    dialogs/callmethoddialog.cpp
+    dialogs/callmethoddialog.h
     dialogs/certificatedetailsdialog.cpp
     dialogs/certificatedetailsdialog.h
     dialogs/certificatesdialog.cpp

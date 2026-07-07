@@ -164,6 +164,22 @@ public:
     void writeValue(const QString &nodeId, const QVariant &value, int valueType);
 
     ///
+    /// \brief Reads a method's argument metadata using the cached request timeout.
+    /// \param methodNodeId Method node whose InputArguments/OutputArguments are read.
+    ///
+    void readMethodInfo(const QString &methodNodeId);
+
+    ///
+    /// \brief Calls a method on its owning object using the cached request timeout.
+    /// \param objectNodeId Object node that owns the method.
+    /// \param methodNodeId Method node to call.
+    /// \param args Input argument values in call order.
+    /// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
+    ///
+    void callMethod(const QString &objectNodeId, const QString &methodNodeId,
+                    const QVariantList &args, const QList<int> &argTypes);
+
+    ///
     /// \brief Enables Value monitoring, or re-applies the interval to an already monitored node.
     /// \param nodeId Node to monitor.
     /// \param publishingInterval Publishing interval in milliseconds.
@@ -283,6 +299,25 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void writeFinished(QString nodeId, bool success, QString error);
+
+    ///
+    /// \brief Emitted when a method's argument metadata has been read.
+    /// \param methodNodeId Method whose metadata was read.
+    /// \param inputs Input argument descriptions in call order.
+    /// \param outputs Output argument descriptions in result order.
+    /// \param error Error description, empty on success.
+    ///
+    void methodInfoReady(QString methodNodeId, QVector<OpcUaMethodArgument> inputs,
+                         QVector<OpcUaMethodArgument> outputs, QString error);
+
+    ///
+    /// \brief Emitted when a method call finishes.
+    /// \param methodNodeId Called method.
+    /// \param result Raw output value: a single value, or a list for several output arguments.
+    /// \param success Whether the call succeeded.
+    /// \param error Error description, empty on success.
+    ///
+    void methodCallFinished(QString methodNodeId, QVariant result, bool success, QString error);
 
     ///
     /// \brief Emitted after a monitoring request finishes.

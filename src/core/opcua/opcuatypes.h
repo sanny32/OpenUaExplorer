@@ -140,6 +140,25 @@ struct OpcUaNodeInfo
 };
 
 ///
+/// \brief One input or output argument of an OPC UA method.
+///
+struct OpcUaMethodArgument
+{
+    /// \brief Argument name.
+    QString name;
+    /// \brief DataType NodeId string.
+    QString dataTypeId;
+    /// \brief QOpcUa::Types numeric value mapped from the DataType.
+    int valueType = 0;
+    /// \brief OPC UA ValueRank (-1 for scalar arguments).
+    int valueRank = -1;
+    /// \brief Argument Description text.
+    QString description;
+    /// \brief Argument value; carries an output value, unused for input metadata.
+    QVariant value;
+};
+
+///
 /// \brief One displayable OPC UA node attribute.
 ///
 struct OpcUaNodeAttribute
@@ -344,6 +363,8 @@ using OpcUaNamespaceNodeCounts = QHash<int, int>;
 Q_DECLARE_METATYPE(EndpointInfo)
 Q_DECLARE_METATYPE(OpcUaNamespaceNodeCounts)
 Q_DECLARE_METATYPE(OpcUaNodeInfo)
+Q_DECLARE_METATYPE(OpcUaMethodArgument)
+Q_DECLARE_METATYPE(QVector<OpcUaMethodArgument>)
 Q_DECLARE_METATYPE(OpcUaNodeDetails)
 Q_DECLARE_METATYPE(OpcUaDataValue)
 Q_DECLARE_METATYPE(OpcUaEvent)

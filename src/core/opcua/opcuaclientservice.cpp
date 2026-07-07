@@ -47,6 +47,10 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::historyEventsReady);
     connect(_backend, &OpcUaBackend::writeFinished,
             this, &OpcUaClientService::writeFinished);
+    connect(_backend, &OpcUaBackend::methodInfoReady,
+            this, &OpcUaClientService::methodInfoReady);
+    connect(_backend, &OpcUaBackend::methodCallFinished,
+            this, &OpcUaClientService::methodCallFinished);
     connect(_backend, &OpcUaBackend::monitoringFinished,
             this, &OpcUaClientService::monitoringFinished);
     connect(_backend, &OpcUaBackend::eventsReady,
@@ -243,6 +247,28 @@ void OpcUaClientService::writeValue(const QString &nodeId, const QVariant &value
                                     int valueType)
 {
     _backend->writeValue(nodeId, value, valueType, _requestTimeoutMs);
+}
+
+///
+/// \brief Reads a method's argument metadata using the cached request timeout.
+/// \param methodNodeId Method node whose InputArguments/OutputArguments are read.
+///
+void OpcUaClientService::readMethodInfo(const QString &methodNodeId)
+{
+    _backend->readMethodInfo(methodNodeId, _requestTimeoutMs);
+}
+
+///
+/// \brief Calls a method on its owning object using the cached request timeout.
+/// \param objectNodeId Object node that owns the method.
+/// \param methodNodeId Method node to call.
+/// \param args Input argument values in call order.
+/// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
+///
+void OpcUaClientService::callMethod(const QString &objectNodeId, const QString &methodNodeId,
+                                    const QVariantList &args, const QList<int> &argTypes)
+{
+    _backend->callMethod(objectNodeId, methodNodeId, args, argTypes, _requestTimeoutMs);
 }
 
 ///

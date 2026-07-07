@@ -93,6 +93,7 @@ private:
     class NodeMonitorDialog *createNodeMonitor();
     void openNodeMonitor(const OpcUaNodeInfo &node);
     void closeNodeMonitors();
+    void openCallMethod(const OpcUaNodeInfo &object, const OpcUaNodeInfo &method);
 
 private:
     Ui::MainWindow *ui;

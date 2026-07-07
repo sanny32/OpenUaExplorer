@@ -16,6 +16,7 @@
 #include "appicons.h"
 #include "application.h"
 #include "appsettings.h"
+#include "dialogs/callmethoddialog.h"
 #include "dialogs/certificatesdialog.h"
 #include "dialogs/namespaceinspectordialog.h"
 #include "dialogs/nodemonitordialog.h"
@@ -253,6 +254,21 @@ void MainWindow::closeNodeMonitors()
     const QList<NodeMonitorDialog *> monitors = _nodeMonitors;
     for (NodeMonitorDialog *monitor : monitors)
         monitor->close();
+}
+
+///
+/// \brief Opens a method-call dialog for a method selected in the address space.
+/// \param object Object node that owns the method.
+/// \param method Method node to call.
+///
+void MainWindow::openCallMethod(const OpcUaNodeInfo &object, const OpcUaNodeInfo &method)
+{
+    auto *dialog = new CallMethodDialog(_clientService, this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose, true);
+    dialog->setTarget(object, method);
+    dialog->show();
+    dialog->raise();
+    dialog->activateWindow();
 }
 
 ///
@@ -638,6 +654,8 @@ void MainWindow::setupPlugins()
 
     connect(_selectionContext, &SelectionContext::monitorNodeRequested,
             this, &MainWindow::openNodeMonitor);
+    connect(_selectionContext, &SelectionContext::callMethodRequested,
+            this, &MainWindow::openCallMethod);
 }
 
 ///

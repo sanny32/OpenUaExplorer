@@ -135,6 +135,36 @@ public:
                             int valueType, int timeoutMs) = 0;
 
     ///
+    /// \brief Reads a method's InputArguments/OutputArguments, emitting methodInfoReady().
+    /// \param methodNodeId Method node whose argument metadata is read.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    virtual void readMethodInfo(const QString &methodNodeId, int timeoutMs)
+    {
+        Q_UNUSED(timeoutMs)
+        emit methodInfoReady(methodNodeId, {}, {}, tr("Calling methods is not supported."));
+    }
+
+    ///
+    /// \brief Calls a method on its owning object, emitting methodCallFinished() with the outputs.
+    /// \param objectNodeId Object node that owns the method.
+    /// \param methodNodeId Method node to call.
+    /// \param args Input argument values, ordered to match the method's InputArguments.
+    /// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    virtual void callMethod(const QString &objectNodeId, const QString &methodNodeId,
+                            const QVariantList &args, const QList<int> &argTypes, int timeoutMs)
+    {
+        Q_UNUSED(objectNodeId)
+        Q_UNUSED(args)
+        Q_UNUSED(argTypes)
+        Q_UNUSED(timeoutMs)
+        emit methodCallFinished(methodNodeId, QVariant(), false,
+                                tr("Calling methods is not supported."));
+    }
+
+    ///
     /// \brief Reads the raw history of a node's Value over a time range.
     /// \param nodeId Node whose history is read.
     /// \param start Inclusive range start.
@@ -324,6 +354,25 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void writeFinished(QString nodeId, bool success, QString error);
+
+    ///
+    /// \brief Emitted when a method's argument metadata has been read.
+    /// \param methodNodeId Method whose metadata was read.
+    /// \param inputs Input argument descriptions in call order.
+    /// \param outputs Output argument descriptions in result order.
+    /// \param error Error description, empty on success.
+    ///
+    void methodInfoReady(QString methodNodeId, QVector<OpcUaMethodArgument> inputs,
+                         QVector<OpcUaMethodArgument> outputs, QString error);
+
+    ///
+    /// \brief Emitted when a method call finishes.
+    /// \param methodNodeId Called method.
+    /// \param result Raw output value: a single value, or a list for several output arguments.
+    /// \param success Whether the call succeeded.
+    /// \param error Error description, empty on success.
+    ///
+    void methodCallFinished(QString methodNodeId, QVariant result, bool success, QString error);
 
     ///
     /// \brief Emitted after a monitoring request finishes.

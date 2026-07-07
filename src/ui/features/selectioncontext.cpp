@@ -177,3 +177,13 @@ void SelectionContext::requestUnsubscribe(const OpcUaNodeInfo &node)
 {
     emit unsubscribeRequested(node);
 }
+
+///
+/// \brief Requests calling a method node selected from a feature.
+/// \param object Object node that owns the method.
+/// \param method Method node to call.
+///
+void SelectionContext::requestCallMethod(const OpcUaNodeInfo &object, const OpcUaNodeInfo &method)
+{
+    emit callMethodRequested(object, method);
+}

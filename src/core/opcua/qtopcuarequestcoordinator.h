@@ -23,6 +23,8 @@ public:
         HistoryRead,
         HistoryEventsRead,
         Write,
+        MethodInfo,
+        Call,
         SessionNameRead,
         Count
     };

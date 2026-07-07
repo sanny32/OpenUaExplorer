@@ -83,6 +83,8 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
                      host.selection(), &SelectionContext::requestSubscribe);
     QObject::connect(_widget, &AddressSpaceWidget::unsubscribeRequested,
                      host.selection(), &SelectionContext::requestUnsubscribe);
+    QObject::connect(_widget, &AddressSpaceWidget::callMethodRequested,
+                     host.selection(), &SelectionContext::requestCallMethod);
     QObject::connect(host.selection(), &SelectionContext::detailsReady,
                      _widget, &AddressSpaceWidget::setNodeDetails);
     if (dataAccessPlugin) {

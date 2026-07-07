@@ -16,6 +16,7 @@
 
 #include <QStringList>
 
+#include <QOpcUaArgument>
 #include <QOpcUaBrowseRequest>
 #include <QOpcUaClient>
 #include <QOpcUaEndpointDescription>
@@ -210,6 +211,8 @@ QtOpcUaBackend::QtOpcUaBackend(QObject *parent)
 {
     qRegisterMetaType<EndpointInfo>();
     qRegisterMetaType<OpcUaNodeInfo>();
+    qRegisterMetaType<OpcUaMethodArgument>();
+    qRegisterMetaType<QVector<OpcUaMethodArgument>>();
     qRegisterMetaType<OpcUaNodeDetails>();
     qRegisterMetaType<OpcUaDataValue>();
     qRegisterMetaType<OpcUaEvent>();
@@ -821,6 +824,211 @@ void QtOpcUaBackend::writeValue(const QString &nodeId, const QVariant &value,
             emit writeFinished(nodeId, false, tr("The backend rejected the write request."));
         }
     }
+}
+
+///
+/// \brief Maps a method argument-property Value to transport-neutral argument records.
+/// \param value Property Value holding one or more QOpcUaArgument entries.
+/// \return Arguments in declaration order.
+///
+static QVector<OpcUaMethodArgument> argumentsFromVariant(const QVariant &value)
+{
+    QVector<OpcUaMethodArgument> arguments;
+    const auto append = [&arguments](const QOpcUaArgument &argument) {
+        OpcUaMethodArgument entry;
+        entry.name = argument.name();
+        entry.dataTypeId = argument.dataTypeId();
+        entry.valueType = static_cast<int>(valueTypeForDataType(argument.dataTypeId()));
+        entry.valueRank = argument.valueRank();
+        entry.description = argument.description().text();
+        arguments.append(entry);
+    };
+    if (value.typeId() == QMetaType::QVariantList) {
+        for (const QVariant &entry : value.toList()) {
+            if (entry.canConvert<QOpcUaArgument>())
+                append(entry.value<QOpcUaArgument>());
+        }
+    } else if (value.canConvert<QOpcUaArgument>()) {
+        append(value.value<QOpcUaArgument>());
+    }
+    return arguments;
+}
+
+///
+/// \brief Reads a method's InputArguments/OutputArguments, emitting methodInfoReady().
+/// \param methodNodeId Method node whose argument metadata is read.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::readMethodInfo(const QString &methodNodeId, int timeoutMs)
+{
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit methodInfoReady(methodNodeId, {}, {}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    QOpcUaNode *node = _d->connection.client()->node(methodNodeId);
+    if (!node) {
+        emit methodInfoReady(methodNodeId, {}, {}, tr("Could not create node %1.").arg(methodNodeId));
+        return;
+    }
+
+    QOpcUaBrowseRequest request;
+    request.setBrowseDirection(QOpcUaBrowseRequest::BrowseDirection::Forward);
+    request.setReferenceTypeId(QOpcUa::ReferenceTypeId::HasProperty);
+    request.setIncludeSubtypes(true);
+
+    _d->runNodeRequest(node, QtOpcUaRequestCoordinator::Operation::MethodInfo, timeoutMs,
+        &QOpcUaNode::browseFinished,
+        [this, methodNodeId, timeoutMs](const QVector<QOpcUaReferenceDescription> &references,
+                                        QOpcUa::UaStatusCode status) {
+            if (!QOpcUa::isSuccessStatus(status)) {
+                emit methodInfoReady(methodNodeId, {}, {},
+                    tr("Reading method arguments failed for %1: %2").arg(methodNodeId, statusName(status)));
+                return;
+            }
+            QString inputArgumentsNodeId;
+            QString outputArgumentsNodeId;
+            for (const OpcUaNodeInfo &reference : QtOpcUaTypeMapper::nodeInfos(references)) {
+                if (reference.browseName.endsWith(QLatin1String("InputArguments")))
+                    inputArgumentsNodeId = reference.nodeId;
+                else if (reference.browseName.endsWith(QLatin1String("OutputArguments")))
+                    outputArgumentsNodeId = reference.nodeId;
+            }
+            if (inputArgumentsNodeId.isEmpty() && outputArgumentsNodeId.isEmpty()) {
+                emit methodInfoReady(methodNodeId, {}, {}, QString());
+                return;
+            }
+            readMethodArgumentValues(methodNodeId, inputArgumentsNodeId,
+                                     outputArgumentsNodeId, timeoutMs);
+        },
+        [node, request]() { return node->browse(request); },
+        [this, methodNodeId]() {
+            emit methodInfoReady(methodNodeId, {}, {}, tr("Reading method arguments timed out."));
+        },
+        [this, methodNodeId]() {
+            emit methodInfoReady(methodNodeId, {}, {},
+                                 tr("The backend rejected the method argument request."));
+        });
+}
+
+///
+/// \brief Reads the Value of the located argument-property nodes and emits methodInfoReady().
+/// \param methodNodeId Method whose metadata is being resolved.
+/// \param inputArgumentsNodeId InputArguments property NodeId, or empty when absent.
+/// \param outputArgumentsNodeId OutputArguments property NodeId, or empty when absent.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::readMethodArgumentValues(const QString &methodNodeId,
+                                              const QString &inputArgumentsNodeId,
+                                              const QString &outputArgumentsNodeId, int timeoutMs)
+{
+    QOpcUaClient *client = _d->connection.client();
+    if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit methodInfoReady(methodNodeId, {}, {}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    QVector<QOpcUaReadItem> items;
+    if (!inputArgumentsNodeId.isEmpty())
+        items.append(QOpcUaReadItem(inputArgumentsNodeId, QOpcUa::NodeAttribute::Value));
+    if (!outputArgumentsNodeId.isEmpty())
+        items.append(QOpcUaReadItem(outputArgumentsNodeId, QOpcUa::NodeAttribute::Value));
+
+    constexpr auto operation = QtOpcUaRequestCoordinator::Operation::MethodInfo;
+    const auto token = _d->beginConnectionRequest(operation);
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(client, &QOpcUaClient::readNodeAttributesFinished, this,
+                         [this, connection, token, operation, methodNodeId,
+                          inputArgumentsNodeId, outputArgumentsNodeId](
+                             const QVector<QOpcUaReadResult> &results,
+                             QOpcUa::UaStatusCode serviceResult) {
+        // readNodeAttributesFinished is connection-wide; ignore completions of other reads.
+        if (!results.isEmpty() && results.constFirst().attribute() != QOpcUa::NodeAttribute::Value)
+            return;
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
+            return;
+        if (!QOpcUa::isSuccessStatus(serviceResult)) {
+            emit methodInfoReady(methodNodeId, {}, {},
+                tr("Reading method arguments failed: %1").arg(statusName(serviceResult)));
+            return;
+        }
+        QVector<OpcUaMethodArgument> inputs;
+        QVector<OpcUaMethodArgument> outputs;
+        for (const QOpcUaReadResult &result : results) {
+            if (result.attribute() != QOpcUa::NodeAttribute::Value)
+                continue;
+            if (!inputArgumentsNodeId.isEmpty() && result.nodeId() == inputArgumentsNodeId)
+                inputs = argumentsFromVariant(result.value());
+            else if (!outputArgumentsNodeId.isEmpty() && result.nodeId() == outputArgumentsNodeId)
+                outputs = argumentsFromVariant(result.value());
+        }
+        emit methodInfoReady(methodNodeId, inputs, outputs, QString());
+    });
+    _d->trackConnection(operation, *connection);
+    QTimer::singleShot(QtOpcUaRequestCoordinator::boundedTimeout(timeoutMs), this,
+                       [this, connection, token, operation, methodNodeId]() {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
+            return;
+        emit methodInfoReady(methodNodeId, {}, {}, tr("Reading method arguments timed out."));
+    });
+    if (!client->readNodeAttributes(items)) {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (_d->requests.settle(token))
+            emit methodInfoReady(methodNodeId, {}, {},
+                                 tr("The backend rejected the method argument request."));
+    }
+}
+
+///
+/// \brief Calls a method on its owning object, emitting methodCallFinished() with the outputs.
+/// \param objectNodeId Object node that owns the method.
+/// \param methodNodeId Method node to call.
+/// \param args Input argument values in call order.
+/// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::callMethod(const QString &objectNodeId, const QString &methodNodeId,
+                                const QVariantList &args, const QList<int> &argTypes, int timeoutMs)
+{
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit methodCallFinished(methodNodeId, QVariant(), false,
+                                tr("The OPC UA client is not connected."));
+        return;
+    }
+    QOpcUaNode *node = _d->connection.client()->node(objectNodeId);
+    if (!node) {
+        emit methodCallFinished(methodNodeId, QVariant(), false,
+                                tr("Could not create node %1.").arg(objectNodeId));
+        return;
+    }
+
+    QList<QOpcUa::TypedVariant> typedArgs;
+    typedArgs.reserve(args.size());
+    for (int i = 0; i < args.size(); ++i) {
+        const QOpcUa::Types type = i < argTypes.size()
+            ? static_cast<QOpcUa::Types>(argTypes.at(i))
+            : QOpcUa::Types::Undefined;
+        typedArgs.append(QOpcUa::TypedVariant(args.at(i), type));
+    }
+
+    _d->runNodeRequest(node, QtOpcUaRequestCoordinator::Operation::Call, timeoutMs,
+        &QOpcUaNode::methodCallFinished,
+        [this, methodNodeId](const QString &, const QVariant &result, QOpcUa::UaStatusCode status) {
+            const bool success = QOpcUa::isSuccessStatus(status);
+            emit methodCallFinished(methodNodeId, result, success,
+                                    success ? QString() : statusName(status));
+        },
+        [node, methodNodeId, typedArgs]() { return node->callMethod(methodNodeId, typedArgs); },
+        [this, methodNodeId]() {
+            emit methodCallFinished(methodNodeId, QVariant(), false, tr("Method call timed out."));
+        },
+        [this, methodNodeId]() {
+            emit methodCallFinished(methodNodeId, QVariant(), false,
+                                    tr("The backend rejected the method call request."));
+        });
 }
 
 ///

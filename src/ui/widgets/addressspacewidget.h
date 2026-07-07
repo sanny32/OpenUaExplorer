@@ -181,6 +181,13 @@ signals:
     ///
     void unsubscribeRequested(OpcUaNodeInfo node);
 
+    ///
+    /// \brief Emitted when the user requests calling a method node.
+    /// \param object Object node that owns the method.
+    /// \param method Method node to call.
+    ///
+    void callMethodRequested(OpcUaNodeInfo object, OpcUaNodeInfo method);
+
 private:
     void setupTreeView();
     void setupNodeInfoView();

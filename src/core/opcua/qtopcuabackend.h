@@ -145,6 +145,24 @@ public:
                     int valueType, int timeoutMs) override;
 
     ///
+    /// \brief Reads a method's InputArguments/OutputArguments, emitting methodInfoReady().
+    /// \param methodNodeId Method node whose argument metadata is read.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void readMethodInfo(const QString &methodNodeId, int timeoutMs) override;
+
+    ///
+    /// \brief Calls a method on its owning object, emitting methodCallFinished() with the outputs.
+    /// \param objectNodeId Object node that owns the method.
+    /// \param methodNodeId Method node to call.
+    /// \param args Input argument values in call order.
+    /// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void callMethod(const QString &objectNodeId, const QString &methodNodeId,
+                    const QVariantList &args, const QList<int> &argTypes, int timeoutMs) override;
+
+    ///
     /// \brief Enables Value monitoring for a node.
     /// \param nodeId Node to monitor.
     /// \param publishingInterval Publishing interval in milliseconds.
@@ -206,6 +224,17 @@ private:
     ///
     void enrichAndFinishBrowse(const QString &parentNodeId,
                                QVector<OpcUaNodeInfo> nodes, int timeoutMs);
+
+    ///
+    /// \brief Reads the Value of the located argument-property nodes and emits methodInfoReady().
+    /// \param methodNodeId Method whose metadata is being resolved.
+    /// \param inputArgumentsNodeId InputArguments property NodeId, or empty when absent.
+    /// \param outputArgumentsNodeId OutputArguments property NodeId, or empty when absent.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void readMethodArgumentValues(const QString &methodNodeId,
+                                  const QString &inputArgumentsNodeId,
+                                  const QString &outputArgumentsNodeId, int timeoutMs);
 
     class Private;
     Private *_d;

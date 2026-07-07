@@ -247,6 +247,15 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
 
     QMenu menu(this);
 
+    if (OpcUa::isMethod(info.nodeClass)) {
+        const OpcUaNodeInfo object = _treeModel->nodeInfo(index.parent());
+        menu.addAction(AppIcons::themed(QStringLiteral("method")),
+                       tr("Call..."), this, [this, object, info] {
+            emit callMethodRequested(object, info);
+        });
+        menu.addSeparator();
+    }
+
     const bool subscribed = _subscribedNodeIds.contains(info.nodeId);
     const QString monitoringIcon = subscribed ? QStringLiteral("unsubscribe")
                                               : QStringLiteral("subscribe");
