@@ -245,7 +245,7 @@ void TrendGraphWidget::applyLiveValues(const QVector<OpcUaDataValue> &values)
         if (points.size() == before)
             continue;
         const QPointF &point = points.constLast();
-        if (points.size() >= 2)
+        if (_display.lineType == TrendLineType::Step && points.size() >= 2)
             _chart->appendPoint(value.nodeId, toChartX(point.x()),
                                 points.at(points.size() - 2).y(), value.status);
         _chart->appendPoint(value.nodeId, toChartX(point.x()), point.y(), value.status);
@@ -392,9 +392,13 @@ void TrendGraphWidget::setDisplaySettings(const TrendDisplaySettings &settings)
     const bool intervalChanged =
         settings.mode != modeState() || settings.windowMs != windowState();
     const bool liveUpdateChanged = settings.liveSubscription != _display.liveSubscription;
+    const bool lineTypeChanged = settings.lineType != _display.lineType;
 
     _display = settings;
     applyDisplaySettings();
+    if (lineTypeChanged)
+        for (const TrendSeries &series : std::as_const(_series))
+            refeedSeries(series);
     if (intervalChanged)
         applyModeState(settings.mode, settings.windowMs);
     else if (liveUpdateChanged && _mode == Mode::Live)
@@ -795,12 +799,12 @@ qreal TrendGraphWidget::toChartX(qreal epochMs) const
 }
 
 ///
-/// \brief Pushes a series' buffered points into the chart as hold-last-value steps.
+/// \brief Pushes a series' buffered points into the chart, honouring the line type.
 ///
 /// OPC UA monitored items report on value change, so the value is constant between
-/// samples; inserting a corner at each new time keeps the previous value flat until
-/// it steps, matching how the dense server history draws instead of sloping between
-/// sparse live samples.
+/// samples. In Step mode a corner is inserted at each new time to keep the previous
+/// value flat until it steps, matching how the dense server history draws instead of
+/// sloping between sparse live samples; in Line mode the raw points are fed straight.
 ///
 /// \param series Series whose points are re-fed.
 ///
@@ -812,7 +816,7 @@ void TrendGraphWidget::refeedSeries(const TrendSeries &series)
     mapped.reserve(points.size() * 2);
     for (int i = 0; i < points.size(); ++i) {
         const QString status = i < statuses.size() ? statuses.at(i) : QString();
-        if (i > 0)
+        if (_display.lineType == TrendLineType::Step && i > 0)
             mapped.append(ChartPoint{toChartX(points.at(i).x()), points.at(i - 1).y(), status});
         mapped.append(ChartPoint{toChartX(points.at(i).x()), points.at(i).y(), status});
     }

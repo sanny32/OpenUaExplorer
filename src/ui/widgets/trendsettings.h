@@ -15,6 +15,14 @@
 #include "models/trendseries.h"
 
 ///
+/// \brief Chooses how a series' samples are connected between points.
+///
+enum class TrendLineType {
+    Line, ///< Straight segments interpolating between samples.
+    Step  ///< Hold-last-value steps, matching on-change reporting.
+};
+
+///
 /// \brief Per-chart display and range options edited in the trend settings dialog.
 ///
 /// These carry the scalar choices shown in the dialog. Per-series visibility and
@@ -31,6 +39,8 @@ struct TrendDisplaySettings
     bool showGrid = true;
     /// \brief Render series lines with antialiasing.
     bool smoothLines = true;
+    /// \brief How samples are connected: straight segments or hold-last-value steps.
+    TrendLineType lineType = TrendLineType::Step;
     /// \brief Draw a marker at each sample point.
     bool showPoints = false;
     /// \brief Show the value plaque when hovering a series line.
