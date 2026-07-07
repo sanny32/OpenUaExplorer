@@ -652,7 +652,7 @@ void MainWindow::openSessionFromFile(const QString &path)
     _hasPendingSession = true;
 
     if (data.profile.authentication == ConnectionProfile::Authentication::Anonymous)
-        _connectionController->connectNewProfile(data.profile, QString(), QString());
+        _connectionController->connectSavedProfileWithCredentials(data.profile, QString(), QString());
     else
         _connectionCoordinator->openConnectionDialog(&data.profile);
 }
