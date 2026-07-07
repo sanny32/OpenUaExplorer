@@ -134,8 +134,6 @@
     <addaction name="separator"/>
     <addaction name="actionNamespaceInspector"/>
     <addaction name="actionNodeMonitor"/>
-    <addaction name="separator"/>
-    <addaction name="actionDeveloperTools"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -509,14 +507,6 @@
    </property>
    <property name="text">
     <string>Node Monitor</string>
-   </property>
-  </action>
-  <action name="actionDeveloperTools">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Developer Tools</string>
    </property>
   </action>
   <action name="actionDocumentation">
