@@ -39,3 +39,21 @@ void FeaturePlugin::restoreState(AppSettings &settings)
 void FeaturePlugin::clearRuntimeState()
 {
 }
+
+///
+/// \brief Contributes feature state to a saved working session.
+/// \param session Session payload to write to.
+///
+void FeaturePlugin::saveSession(SessionData &session) const
+{
+    Q_UNUSED(session)
+}
+
+///
+/// \brief Restores feature state from a loaded working session.
+/// \param session Session payload to read from.
+///
+void FeaturePlugin::restoreSession(const SessionData &session)
+{
+    Q_UNUSED(session)
+}

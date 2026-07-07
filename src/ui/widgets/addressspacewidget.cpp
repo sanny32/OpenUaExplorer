@@ -6,6 +6,8 @@
 /// \brief Implements the OPC UA address space browser widget.
 ///
 
+#include <functional>
+
 #include <QAbstractItemView>
 #include <QHeaderView>
 #include <QItemSelectionModel>
@@ -96,6 +98,8 @@ void AddressSpaceWidget::setBrowseChildren(const QString &parentNodeId,
         return;
     }
     _treeModel->setChildren(parentNodeId, children);
+    if (!_pendingExpand.isEmpty() || !_pendingSelect.isEmpty())
+        applyPendingExpansion();
 }
 
 ///
@@ -143,6 +147,8 @@ void AddressSpaceWidget::clear()
     _selectedNodeId.clear();
     _subscribedNodeIds.clear();
     _referencesByNodeId.clear();
+    _pendingExpand.clear();
+    _pendingSelect.clear();
     _treeModel->clear();
     _nodeInfoModel->clear();
     _referencesModel->clear();
@@ -168,6 +174,70 @@ void AddressSpaceWidget::setNodeSubscribed(const QString &nodeId, bool subscribe
 OpcUaNodeInfo AddressSpaceWidget::selectedNode() const
 {
     return _treeModel->nodeInfo(ui->addressTree->currentIndex());
+}
+
+///
+/// \brief Returns the node ids of the expanded tree items, parents before children.
+/// \return Expanded node ids in top-down order.
+///
+QStringList AddressSpaceWidget::expandedNodeIds() const
+{
+    QStringList result;
+    std::function<void(const QModelIndex &)> walk = [&](const QModelIndex &parent) {
+        const int rows = _treeModel->rowCount(parent);
+        for (int row = 0; row < rows; ++row) {
+            const QModelIndex index = _treeModel->index(row, 0, parent);
+            if (!ui->addressTree->isExpanded(index))
+                continue;
+            const QString nodeId = _treeModel->nodeInfo(index).nodeId;
+            if (!nodeId.isEmpty())
+                result.append(nodeId);
+            walk(index);
+        }
+    };
+    walk(QModelIndex());
+    return result;
+}
+
+///
+/// \brief Re-expands saved tree nodes and reselects a node as they load.
+/// \param expandedNodeIds Node ids to expand, parents before children.
+/// \param selectedNodeId Node id to select once it is loaded, or empty.
+///
+void AddressSpaceWidget::restoreExpansion(const QStringList &expandedNodeIds,
+                                          const QString &selectedNodeId)
+{
+    _pendingExpand = expandedNodeIds;
+    _pendingSelect = selectedNodeId;
+    applyPendingExpansion();
+}
+
+///
+/// \brief Expands the loaded pending nodes and selects the pending node when available.
+///
+/// Expanding a node triggers a lazy browse of its children; as those results arrive
+/// through setBrowseChildren() this runs again to expand the next level down.
+///
+void AddressSpaceWidget::applyPendingExpansion()
+{
+    for (int i = _pendingExpand.size() - 1; i >= 0; --i) {
+        const QModelIndex index = _treeModel->findByNodeId(_pendingExpand.at(i));
+        if (!index.isValid())
+            continue;
+        ui->addressTree->expand(index);
+        if (_treeModel->canFetchMore(index))
+            _treeModel->fetchMore(index);
+        _pendingExpand.removeAt(i);
+    }
+
+    if (!_pendingSelect.isEmpty()) {
+        const QModelIndex index = _treeModel->findByNodeId(_pendingSelect);
+        if (index.isValid()) {
+            ui->addressTree->setCurrentIndex(index);
+            ui->addressTree->scrollTo(index);
+            _pendingSelect.clear();
+        }
+    }
 }
 
 ///

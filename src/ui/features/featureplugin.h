@@ -12,6 +12,7 @@
 
 class AppSettings;
 class FeatureHost;
+struct SessionData;
 
 ///
 /// \brief Base class for a dock-style UI feature hosted by MainWindow.
@@ -52,4 +53,16 @@ public:
     /// \brief Clears runtime data when the OPC UA session is no longer usable.
     ///
     virtual void clearRuntimeState();
+
+    ///
+    /// \brief Contributes feature state to a saved working session.
+    /// \param session Session payload to write to.
+    ///
+    virtual void saveSession(SessionData &session) const;
+
+    ///
+    /// \brief Restores feature state from a loaded working session.
+    /// \param session Session payload to read from.
+    ///
+    virtual void restoreSession(const SessionData &session);
 };

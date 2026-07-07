@@ -626,6 +626,7 @@ void MainWindow::saveSessionToFile(const QString &path)
     for (const QPair<QString, QString> &node : nodes)
         data.dataAccessNodes.append({node.first, node.second});
     data.trendNodes = _dataAccessCoordinator->trendNodes();
+    _featureManager->saveSession(data);
 
     QString error;
     if (!SessionStore::save(path, data, &error)) {
@@ -681,6 +682,8 @@ void MainWindow::applyPendingSession()
     _dataAccessCoordinator->restoreMonitoredNodes(nodes);
 
     _dataAccessCoordinator->restoreTrendNodes(session.trendNodes);
+
+    _featureManager->restoreSession(session);
 }
 
 ///

@@ -10,6 +10,7 @@
 
 #include <QHash>
 #include <QSet>
+#include <QStringList>
 #include <QWidget>
 
 #include "models/addressspaceitem.h"
@@ -95,6 +96,22 @@ public:
     /// \return Currently selected OPC UA node.
     ///
     OpcUaNodeInfo selectedNode() const;
+
+    ///
+    /// \brief Returns the node ids of the expanded tree items, parents before children.
+    /// \return Expanded node ids in top-down order.
+    ///
+    QStringList expandedNodeIds() const;
+
+    ///
+    /// \brief Re-expands saved tree nodes and reselects a node as they load.
+    ///
+    /// Expansion is applied incrementally: nodes already loaded are expanded now,
+    /// and deeper nodes are expanded as their parents' browse results arrive.
+    /// \param expandedNodeIds Node ids to expand, parents before children.
+    /// \param selectedNodeId Node id to select once it is loaded, or empty.
+    ///
+    void restoreExpansion(const QStringList &expandedNodeIds, const QString &selectedNodeId);
 
     ///
     /// \brief Detaches the node details panel so MainWindow can host it in a dock.
@@ -192,6 +209,7 @@ private:
     void setupTreeView();
     void setupNodeInfoView();
     void setupReferencesView();
+    void applyPendingExpansion();
     void showTreeContextMenu(const QPoint &pos);
     void onCurrentNodeChanged(const QModelIndex &current);
     void updateReferencesForNode(const QString &nodeId);
@@ -205,4 +223,6 @@ private:
     QString                 _selectedNodeId;
     QSet<QString>           _subscribedNodeIds;
     QHash<QString, QVector<ReferenceItem>> _referencesByNodeId;
+    QStringList             _pendingExpand;
+    QString                 _pendingSelect;
 };

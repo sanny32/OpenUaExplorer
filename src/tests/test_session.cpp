@@ -49,6 +49,8 @@ static SessionData sampleSession()
     data.dataAccessNodes.append({QStringLiteral("ns=2;s=Temp"), QStringLiteral("Fast")});
     data.dataAccessNodes.append({QStringLiteral("ns=2;s=Idle"), QString()});
     data.trendNodes = {QStringLiteral("ns=2;s=Temp")};
+    data.expandedNodes = {QStringLiteral("ns=0;i=85"), QStringLiteral("ns=2;s=Plant")};
+    data.selectedNode = QStringLiteral("ns=2;s=Temp");
     return data;
 }
 
@@ -84,6 +86,8 @@ void TestSession::roundTripPreservesWorkspace()
     QCOMPARE(loaded.dataAccessNodes.at(1).subscriptionName, QString());
 
     QCOMPARE(loaded.trendNodes, original.trendNodes);
+    QCOMPARE(loaded.expandedNodes, original.expandedNodes);
+    QCOMPARE(loaded.selectedNode, original.selectedNode);
 }
 
 ///

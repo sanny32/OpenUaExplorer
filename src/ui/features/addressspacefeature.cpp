@@ -15,6 +15,7 @@
 #include "appsettings.h"
 #include "dataaccessmodule.h"
 #include "featurehost.h"
+#include "session/sessiondata.h"
 #include "opcua/standardnodeid.h"
 #include "servicemodulemanager.h"
 #include "referencemodule.h"
@@ -135,6 +136,28 @@ void AddressSpaceFeature::clearRuntimeState()
 {
     if (_widget)
         _widget->clear();
+}
+
+///
+/// \brief Saves the expanded tree nodes and selected node into the session.
+/// \param session Session payload to write to.
+///
+void AddressSpaceFeature::saveSession(SessionData &session) const
+{
+    if (!_widget)
+        return;
+    session.expandedNodes = _widget->expandedNodeIds();
+    session.selectedNode = _widget->selectedNode().nodeId;
+}
+
+///
+/// \brief Restores the expanded tree nodes and selected node from the session.
+/// \param session Session payload to read from.
+///
+void AddressSpaceFeature::restoreSession(const SessionData &session)
+{
+    if (_widget)
+        _widget->restoreExpansion(session.expandedNodes, session.selectedNode);
 }
 
 ///

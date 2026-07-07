@@ -117,6 +117,12 @@ bool SessionStore::save(const QString &path, const SessionData &data, QString *e
         trends.append(nodeId);
     root[QStringLiteral("trendNodes")] = trends;
 
+    QJsonArray expanded;
+    for (const QString &nodeId : data.expandedNodes)
+        expanded.append(nodeId);
+    root[QStringLiteral("expandedNodes")] = expanded;
+    root[QStringLiteral("selectedNode")] = data.selectedNode;
+
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly)) {
         if (error)
@@ -194,6 +200,14 @@ bool SessionStore::load(const QString &path, SessionData &data, QString *error)
         if (!nodeId.isEmpty())
             parsed.trendNodes.append(nodeId);
     }
+
+    const QJsonArray expanded = root[QStringLiteral("expandedNodes")].toArray();
+    for (const QJsonValue &value : expanded) {
+        const QString nodeId = value.toString();
+        if (!nodeId.isEmpty())
+            parsed.expandedNodes.append(nodeId);
+    }
+    parsed.selectedNode = root[QStringLiteral("selectedNode")].toString();
 
     data = parsed;
     return true;

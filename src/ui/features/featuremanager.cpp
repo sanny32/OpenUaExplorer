@@ -78,6 +78,26 @@ void FeatureManager::clearRuntimeState()
 }
 
 ///
+/// \brief Collects every feature's contribution to a saved working session.
+/// \param session Session payload to write to.
+///
+void FeatureManager::saveSession(SessionData &session) const
+{
+    for (const std::unique_ptr<FeaturePlugin> &feature : _features)
+        feature->saveSession(session);
+}
+
+///
+/// \brief Restores every feature's state from a loaded working session.
+/// \param session Session payload to read from.
+///
+void FeatureManager::restoreSession(const SessionData &session)
+{
+    for (const std::unique_ptr<FeaturePlugin> &feature : _features)
+        feature->restoreSession(session);
+}
+
+///
 /// \brief Records a dock placement contribution.
 /// \param area Default dock area.
 /// \param dock Dock widget.

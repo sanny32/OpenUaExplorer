@@ -46,4 +46,10 @@ struct SessionData
 
     /// \brief Charted trend node ids.
     QStringList trendNodes;
+
+    /// \brief Expanded address-space node ids, parents before children.
+    QStringList expandedNodes;
+
+    /// \brief Node id selected in the address-space tree, if any.
+    QString selectedNode;
 };
