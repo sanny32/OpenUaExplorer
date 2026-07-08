@@ -15,6 +15,7 @@
 
 #include "dialogs/namespaceinspectordialog.h"
 #include "opcua/opcuatypes.h"
+#include "session/recentsessionstore.h"
 #include "session/sessiondata.h"
 
 namespace Ui {
@@ -99,6 +100,9 @@ private:
     bool saveSessionToFile(const QString &path);
     bool saveCurrentSession();
     void openSessionFromFile(const QString &path);
+    void recordRecentSession(const QString &path);
+    void rebuildRecentSessionsMenu();
+    void openRecentSession();
     void applyPendingSession();
     SessionData sessionWorkspace() const;
     SessionData collectSessionData() const;
@@ -132,6 +136,7 @@ private:
     class DataAccessCoordinator *_dataAccessCoordinator = nullptr;
     QList<class NodeMonitorDialog *> _nodeMonitors;
     NamespaceInspectorCache _namespaceCache;
+    RecentSessionStore _recentSessions;
     SessionData _pendingSession;
     QString _pendingSessionPath;
     bool _hasPendingSession = false;

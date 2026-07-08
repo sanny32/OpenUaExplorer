@@ -86,6 +86,8 @@ add_library(ouaexp_core STATIC
     models/trendseries.cpp
     models/trendseries.h
 
+    session/recentsessionstore.cpp
+    session/recentsessionstore.h
     session/sessiondata.h
     session/sessionstore.cpp
     session/sessionstore.h

@@ -10,6 +10,7 @@
 
 #include <QAction>
 #include <QCloseEvent>
+#include <QDir>
 #include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -181,6 +182,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionOpenSession->setEnabled(true);
     ui->actionExportLog->setEnabled(true);
     updateClientUi(_clientService->state());
+    rebuildRecentSessionsMenu();
 
     auto *modifiedTimer = new QTimer(this);
     modifiedTimer->setInterval(500);
@@ -726,6 +728,7 @@ bool MainWindow::saveSessionToFile(const QString &path)
 
     _savedSessionFingerprint = sessionFingerprint(data);
     setCurrentSessionPath(path);
+    recordRecentSession(path);
     return true;
 }
 
@@ -773,11 +776,62 @@ void MainWindow::openSessionFromFile(const QString &path)
     _pendingSession = data;
     _pendingSessionPath = path;
     _hasPendingSession = true;
+    recordRecentSession(path);
 
     if (data.profile.authentication == ConnectionProfile::Authentication::Anonymous)
         _connectionController->connectSavedProfileWithCredentials(data.profile, QString(), QString());
     else
         _connectionCoordinator->openConnectionDialog(&data.profile);
+}
+
+///
+/// \brief Records a session file as most-recent and refreshes the Recent Sessions menu.
+/// \param path Session file path that was opened or saved.
+///
+void MainWindow::recordRecentSession(const QString &path)
+{
+    _recentSessions.record(path);
+    rebuildRecentSessionsMenu();
+}
+
+///
+/// \brief Rebuilds the Recent Sessions menu from the stored history, hiding missing files.
+///
+void MainWindow::rebuildRecentSessionsMenu()
+{
+    ui->menuRecentSessions->clear();
+
+    QStringList existing;
+    const QStringList recent = _recentSessions.sessions();
+    for (const QString &path : recent) {
+        if (QFileInfo::exists(path))
+            existing.append(path);
+    }
+
+    if (existing.isEmpty()) {
+        ui->menuRecentSessions->addAction(tr("No Recent Sessions"))->setEnabled(false);
+        return;
+    }
+
+    for (const QString &path : existing) {
+        QAction *action = ui->menuRecentSessions->addAction(QFileInfo(path).completeBaseName());
+        action->setData(path);
+        action->setToolTip(QDir::toNativeSeparators(path));
+        connect(action, &QAction::triggered, this, &MainWindow::openRecentSession);
+    }
+}
+
+///
+/// \brief Opens the recent session carried by the triggering menu action.
+///
+void MainWindow::openRecentSession()
+{
+    auto *action = qobject_cast<QAction *>(sender());
+    if (!action)
+        return;
+    const QString path = action->data().toString();
+    if (!path.isEmpty())
+        openSessionFromFile(path);
 }
 
 ///
@@ -867,10 +921,11 @@ void MainWindow::updateWindowTitle()
 ///
 void MainWindow::updateModifiedState()
 {
+    const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
     const SessionData data = sessionWorkspace();
-    const bool modified = _sessionPath.isEmpty()
-        ? sessionHasContent(data)
-        : sessionFingerprint(data) != _savedSessionFingerprint;
+    const bool modified = connected
+        && (_sessionPath.isEmpty() ? sessionHasContent(data)
+                                   : sessionFingerprint(data) != _savedSessionFingerprint);
     if (modified != isWindowModified())
         setWindowModified(modified);
 }
@@ -881,6 +936,9 @@ void MainWindow::updateModifiedState()
 ///
 bool MainWindow::maybeSaveSession()
 {
+    if (_clientService->state() != OpcUaConnectionState::Connected)
+        return true;
+
     const SessionData data = sessionWorkspace();
 
     QString message;
