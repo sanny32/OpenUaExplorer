@@ -11,6 +11,7 @@
 ///
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QElapsedTimer>
 #include <QProcess>
 #include <QProcessEnvironment>
@@ -61,6 +62,9 @@ private:
     QProcess _server;
     QString _endpoint;
     QString _nodeId;
+    QString _counterNodeId;
+    QString _methodNodeId;
+    QString _objectsNodeId;
 };
 
 ///
@@ -115,6 +119,12 @@ void TestOpcUaIntegration::initTestCase()
             _endpoint = text.mid(9).trimmed();
         else if (text.startsWith(QStringLiteral("NODE ")))
             _nodeId = text.mid(5).trimmed();
+        else if (text.startsWith(QStringLiteral("COUNTER ")))
+            _counterNodeId = text.mid(8).trimmed();
+        else if (text.startsWith(QStringLiteral("METHOD ")))
+            _methodNodeId = text.mid(7).trimmed();
+        else if (text.startsWith(QStringLiteral("OBJECTS ")))
+            _objectsNodeId = text.mid(8).trimmed();
     }
 
     if (_endpoint.isEmpty() || _nodeId.isEmpty()) {
@@ -233,7 +243,64 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     QCOMPARE(updated.size(), 1);
     QCOMPARE(updated.first().value.toDouble(), 99.0);
 
-    // 7. Disconnect.
+    // 7. Read the server namespace table.
+    QSignalSpy namespacesSpy(&service, &OpcUaClientService::namespacesReady);
+    service.requestNamespaces();
+    QVERIFY(namespacesSpy.wait(15000));
+    const QList<QVariant> namespacesArgs = namespacesSpy.takeFirst();
+    QVERIFY2(namespacesArgs.at(1).toString().isEmpty(),
+             qPrintable(namespacesArgs.at(1).toString()));
+    QVERIFY(!namespacesArgs.at(0).toStringList().isEmpty());
+
+    // 8. Crawl the address space for per-namespace node counts.
+    QSignalSpy statsSpy(&service, &OpcUaClientService::namespaceStatisticsReady);
+    service.requestNamespaceStatistics();
+    QVERIFY(statsSpy.wait(30000));
+    QVERIFY2(statsSpy.takeFirst().at(1).toString().isEmpty(),
+             "namespace statistics reported an error");
+
+    // 9. Monitor the changing counter, receive a data change, then stop.
+    QVERIFY(!_counterNodeId.isEmpty());
+    QSignalSpy monitorSpy(&service, &OpcUaClientService::monitoringFinished);
+    QSignalSpy counterDataSpy(&service, &OpcUaClientService::dataValuesReady);
+    service.subscribe(_counterNodeId, 200.0);
+    QVERIFY(monitorSpy.wait(15000));
+    const QList<QVariant> monitorArgs = monitorSpy.takeFirst();
+    QCOMPARE(monitorArgs.at(0).toString(), _counterNodeId);
+    QVERIFY(monitorArgs.at(1).toBool());
+    QVERIFY2(monitorArgs.at(2).toBool(), qPrintable(monitorArgs.at(3).toString()));
+    QVERIFY(counterDataSpy.wait(15000)); // the counter ticks ~5x/s
+
+    QSignalSpy unsubscribeSpy(&service, &OpcUaClientService::monitoringFinished);
+    service.unsubscribe(_counterNodeId);
+    QVERIFY(unsubscribeSpy.wait(15000));
+    QVERIFY(!unsubscribeSpy.takeFirst().at(1).toBool());
+
+    // 10. Read a method's argument metadata and call it (6 * 7 = 42).
+    QVERIFY(!_methodNodeId.isEmpty() && !_objectsNodeId.isEmpty());
+    QSignalSpy methodInfoSpy(&service, &OpcUaClientService::methodInfoReady);
+    service.readMethodInfo(_methodNodeId);
+    QVERIFY(methodInfoSpy.wait(15000));
+    QVERIFY2(methodInfoSpy.takeFirst().at(3).toString().isEmpty(),
+             "reading method info reported an error");
+
+    QSignalSpy methodCallSpy(&service, &OpcUaClientService::methodCallFinished);
+    service.callMethod(_objectsNodeId, _methodNodeId, {6.0, 7.0},
+                       {static_cast<int>(QOpcUa::Types::Double),
+                        static_cast<int>(QOpcUa::Types::Double)});
+    QVERIFY(methodCallSpy.wait(15000));
+    const QList<QVariant> methodCallArgs = methodCallSpy.takeFirst();
+    QVERIFY2(methodCallArgs.at(2).toBool(), qPrintable(methodCallArgs.at(3).toString()));
+    QCOMPARE(methodCallArgs.at(1).toDouble(), 42.0);
+
+    // 11. Drive the raw-history read path (the server keeps no history, so the
+    //     result may be empty; this exercises the client request/response code).
+    QSignalSpy historySpy(&service, &OpcUaClientService::historyDataReady);
+    service.readHistoryRaw(_counterNodeId, QDateTime::currentDateTimeUtc().addSecs(-60),
+                           QDateTime::currentDateTimeUtc(), 100);
+    QVERIFY(historySpy.wait(15000));
+
+    // 12. Disconnect.
     service.disconnectFromEndpoint();
     QVERIFY(waitForState(service, OpcUaConnectionState::Disconnected, 10000));
 }
