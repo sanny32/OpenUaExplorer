@@ -11,6 +11,7 @@
 #include <QTest>
 
 #include "opcua/connectionprofilestore.h"
+#include "opcua/recentconnectionstore.h"
 
 ///
 /// \brief Unit tests for persistent connection profile storage.
@@ -33,6 +34,13 @@ private slots:
     void setOrderControlsProfileOrder();
     void unorderedProfilesFollowOrderedOnes();
     void removingProfilePrunesStoredOrder();
+
+    void recentStoreIsEmptyInitially();
+    void recentRecordsMostRecentFirst();
+    void recentDeduplicatesByEndpointUrl();
+    void recentIgnoresEmptyEndpointUrl();
+    void recentCapsAtMaximumSize();
+    void recentRoundTripsFields();
 
 private:
     static ConnectionProfile makeProfile(const QString &id, const QString &name);
@@ -276,6 +284,124 @@ void TestProfiles::removingProfilePrunesStoredOrder()
     const QStringList order =
         settings.value(QStringLiteral("opcua/favoritesOrder")).toStringList();
     QCOMPARE(order, QStringList{QStringLiteral("p2")});
+}
+
+///
+/// \brief A fresh store reports no recent connections.
+///
+void TestProfiles::recentStoreIsEmptyInitially()
+{
+    RecentConnectionStore store;
+    QVERIFY(store.connections().isEmpty());
+}
+
+///
+/// \brief record() prepends, so the newest connection is listed first.
+///
+void TestProfiles::recentRecordsMostRecentFirst()
+{
+    RecentConnectionStore store;
+    ConnectionProfile first = makeProfile(QStringLiteral("a"), QStringLiteral("A"));
+    first.endpointUrl = QStringLiteral("opc.tcp://host-a:4840");
+    ConnectionProfile second = makeProfile(QStringLiteral("b"), QStringLiteral("B"));
+    second.endpointUrl = QStringLiteral("opc.tcp://host-b:4840");
+
+    store.record(first);
+    store.record(second);
+
+    const QList<ConnectionProfile> recent = store.connections();
+    QCOMPARE(recent.size(), 2);
+    QCOMPARE(recent.at(0).endpointUrl, second.endpointUrl);
+    QCOMPARE(recent.at(1).endpointUrl, first.endpointUrl);
+}
+
+///
+/// \brief Recording the same endpoint again moves it to the front without duplicating.
+///
+void TestProfiles::recentDeduplicatesByEndpointUrl()
+{
+    RecentConnectionStore store;
+    ConnectionProfile a = makeProfile(QStringLiteral("a"), QStringLiteral("A"));
+    a.endpointUrl = QStringLiteral("opc.tcp://host-a:4840");
+    ConnectionProfile b = makeProfile(QStringLiteral("b"), QStringLiteral("B"));
+    b.endpointUrl = QStringLiteral("opc.tcp://host-b:4840");
+
+    store.record(a);
+    store.record(b);
+    store.record(a); // same endpoint URL as the first entry
+
+    const QList<ConnectionProfile> recent = store.connections();
+    QCOMPARE(recent.size(), 2);
+    QCOMPARE(recent.at(0).endpointUrl, a.endpointUrl);
+    QCOMPARE(recent.at(1).endpointUrl, b.endpointUrl);
+}
+
+///
+/// \brief A profile without an endpoint URL is not recorded.
+///
+void TestProfiles::recentIgnoresEmptyEndpointUrl()
+{
+    RecentConnectionStore store;
+    ConnectionProfile profile = makeProfile(QStringLiteral("a"), QStringLiteral("A"));
+    profile.endpointUrl.clear();
+
+    store.record(profile);
+
+    QVERIFY(store.connections().isEmpty());
+}
+
+///
+/// \brief The recent list is trimmed to RecentConnectionStore::maximumSize.
+///
+void TestProfiles::recentCapsAtMaximumSize()
+{
+    RecentConnectionStore store;
+    for (int index = 0; index < RecentConnectionStore::maximumSize + 5; ++index) {
+        ConnectionProfile profile =
+            makeProfile(QStringLiteral("id%1").arg(index), QStringLiteral("Name%1").arg(index));
+        profile.endpointUrl = QStringLiteral("opc.tcp://host-%1:4840").arg(index);
+        store.record(profile);
+    }
+
+    const QList<ConnectionProfile> recent = store.connections();
+    QCOMPARE(recent.size(), RecentConnectionStore::maximumSize);
+    // The most recently recorded endpoint survives at the front.
+    QCOMPARE(recent.first().endpointUrl,
+             QStringLiteral("opc.tcp://host-%1:4840")
+                 .arg(RecentConnectionStore::maximumSize + 4));
+}
+
+///
+/// \brief All persisted profile fields survive a record/read round-trip.
+///
+void TestProfiles::recentRoundTripsFields()
+{
+    RecentConnectionStore store;
+    ConnectionProfile profile = makeProfile(QStringLiteral("id"), QStringLiteral("Name"));
+    profile.endpointUrl = QStringLiteral("opc.tcp://host:4840");
+    profile.sessionName = QStringLiteral("session");
+    profile.backend = QStringLiteral("open62541");
+    profile.securityMode = 3;
+    profile.authentication = ConnectionProfile::Authentication::Username;
+    profile.username = QStringLiteral("user");
+    profile.sessionTimeoutMs = 123456;
+    profile.requestTimeoutMs = 4321;
+    profile.lastUsed = QDateTime::fromMSecsSinceEpoch(1700000000000LL);
+
+    store.record(profile);
+
+    const QList<ConnectionProfile> recent = store.connections();
+    QCOMPARE(recent.size(), 1);
+    const ConnectionProfile &read = recent.first();
+    QCOMPARE(read.id, profile.id);
+    QCOMPARE(read.name, profile.name);
+    QCOMPARE(read.sessionName, profile.sessionName);
+    QCOMPARE(read.securityMode, profile.securityMode);
+    QCOMPARE(read.authentication, profile.authentication);
+    QCOMPARE(read.username, profile.username);
+    QCOMPARE(read.sessionTimeoutMs, profile.sessionTimeoutMs);
+    QCOMPARE(read.requestTimeoutMs, profile.requestTimeoutMs);
+    QCOMPARE(read.lastUsed, profile.lastUsed);
 }
 
 QTEST_MAIN(TestProfiles)
