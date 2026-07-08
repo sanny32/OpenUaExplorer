@@ -8,8 +8,10 @@
 
 #pragma once
 
+#include <QByteArray>
 #include <QList>
 #include <QMainWindow>
+#include <QString>
 
 #include "dialogs/namespaceinspectordialog.h"
 #include "opcua/opcuatypes.h"
@@ -94,9 +96,15 @@ private:
     void setupOpcUaClient();
     void setupPlugins();
     void updateClientUi(OpcUaConnectionState state);
-    void saveSessionToFile(const QString &path);
+    bool saveSessionToFile(const QString &path);
     void openSessionFromFile(const QString &path);
     void applyPendingSession();
+    SessionData collectSessionData() const;
+    void setCurrentSessionPath(const QString &path);
+    void closeCurrentSession();
+    QString sessionDisplayName() const;
+    void updateWindowTitle();
+    bool maybeSaveSession();
     void initializeAddressSpace();
     class NodeMonitorDialog *createNodeMonitor();
     void openNodeMonitor(const OpcUaNodeInfo &node);
@@ -122,5 +130,8 @@ private:
     QList<class NodeMonitorDialog *> _nodeMonitors;
     NamespaceInspectorCache _namespaceCache;
     SessionData _pendingSession;
+    QString _pendingSessionPath;
     bool _hasPendingSession = false;
+    QString _sessionPath;
+    QByteArray _savedSessionFingerprint;
 };

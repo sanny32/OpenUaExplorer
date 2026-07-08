@@ -12,9 +12,11 @@
 #include <QCloseEvent>
 #include <QEvent>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMenu>
 #include <QMessageBox>
 #include <QRegularExpression>
+#include <QStringList>
 
 #include "appicons.h"
 #include "application.h"
@@ -69,6 +71,39 @@ QString fileNameSegment(QString value, const QString &fallback)
     return value.isEmpty() ? fallback : value;
 }
 
+///
+/// \brief Builds an order-independent fingerprint of a session's saveable workspace.
+/// \param data Session payload whose subscriptions, monitored nodes and trend nodes are hashed.
+/// \return Byte string that changes only when the workspace content changes.
+///
+/// Cosmetic navigation state (expanded and selected nodes) and the connection profile are
+/// excluded, so re-opening the same server or expanding the tree does not read as an edit.
+///
+QByteArray sessionFingerprint(const SessionData &data)
+{
+    QStringList subscriptions;
+    subscriptions.reserve(data.subscriptions.size());
+    for (const SubscriptionItem &item : data.subscriptions) {
+        subscriptions.append(item.name + QLatin1Char('\x1f')
+                             + QString::number(item.publishingInterval, 'g', 10));
+    }
+    subscriptions.sort();
+
+    QStringList nodes;
+    nodes.reserve(data.dataAccessNodes.size());
+    for (const SessionNode &node : data.dataAccessNodes)
+        nodes.append(node.nodeId + QLatin1Char('\x1f') + node.subscriptionName);
+    nodes.sort();
+
+    QStringList trends = data.trendNodes;
+    trends.sort();
+
+    const QString blob = subscriptions.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
+        + nodes.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
+        + trends.join(QLatin1Char('\n'));
+    return blob.toUtf8();
+}
+
 } // namespace
 
 
@@ -83,8 +118,8 @@ MainWindow::MainWindow(QWidget *parent)
     , _clientService(_connectionController->clientService())
 {
     ui->setupUi(this);
-    
-    setWindowTitle(QString::fromUtf8(APP_DESCRIPTION));
+
+    updateWindowTitle();
 
     const bool manualThemeSupported = theApp()->theme().isManualToggleSupported();
     ui->actionTheme->setVisible(manualThemeSupported);
@@ -137,6 +172,10 @@ void MainWindow::changeEvent(QEvent *event)
 ///
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    if (!maybeSaveSession()) {
+        event->ignore();
+        return;
+    }
     saveSettings();
     QMainWindow::closeEvent(event);
 }
@@ -166,6 +205,11 @@ void MainWindow::on_actionOpenSession_triggered()
 ///
 void MainWindow::on_actionSaveSession_triggered()
 {
+    if (!_sessionPath.isEmpty()) {
+        saveSessionToFile(_sessionPath);
+        return;
+    }
+
     const ConnectionProfile &profile = _connectionController->activeProfile();
     const QString base = !profile.sessionName.isEmpty() ? profile.sessionName : profile.name;
     const QString suggested = fileNameSegment(base, tr("session")) + QStringLiteral(".ouas");
@@ -617,7 +661,27 @@ void MainWindow::restoreSettings()
 /// \brief Serializes the active connection and monitoring workspace to a session file.
 /// \param path Destination file path.
 ///
-void MainWindow::saveSessionToFile(const QString &path)
+bool MainWindow::saveSessionToFile(const QString &path)
+{
+    const SessionData data = collectSessionData();
+
+    QString error;
+    if (!SessionStore::save(path, data, &error)) {
+        QMessageBox::warning(this, tr("Save Session"),
+                             tr("Could not save the session:\n%1").arg(error));
+        return false;
+    }
+
+    _savedSessionFingerprint = sessionFingerprint(data);
+    setCurrentSessionPath(path);
+    return true;
+}
+
+///
+/// \brief Gathers the current connection and monitoring workspace into a session payload.
+/// \return Session snapshot suitable for persistence or fingerprinting.
+///
+SessionData MainWindow::collectSessionData() const
 {
     SessionData data;
     data.profile = _connectionController->activeProfile();
@@ -627,12 +691,7 @@ void MainWindow::saveSessionToFile(const QString &path)
         data.dataAccessNodes.append({node.first, node.second});
     data.trendNodes = _dataAccessCoordinator->trendNodes();
     _featureManager->saveSession(data);
-
-    QString error;
-    if (!SessionStore::save(path, data, &error)) {
-        QMessageBox::warning(this, tr("Save Session"),
-                             tr("Could not save the session:\n%1").arg(error));
-    }
+    return data;
 }
 
 ///
@@ -650,6 +709,7 @@ void MainWindow::openSessionFromFile(const QString &path)
     }
 
     _pendingSession = data;
+    _pendingSessionPath = path;
     _hasPendingSession = true;
 
     if (data.profile.authentication == ConnectionProfile::Authentication::Anonymous)
@@ -671,7 +731,9 @@ void MainWindow::applyPendingSession()
 
     _hasPendingSession = false;
     const SessionData session = _pendingSession;
+    const QString sessionPath = _pendingSessionPath;
     _pendingSession = {};
+    _pendingSessionPath.clear();
 
     _dataAccessCoordinator->restoreSubscriptions(session.subscriptions);
 
@@ -684,6 +746,77 @@ void MainWindow::applyPendingSession()
     _dataAccessCoordinator->restoreTrendNodes(session.trendNodes);
 
     _featureManager->restoreSession(session);
+
+    _savedSessionFingerprint = sessionFingerprint(session);
+    setCurrentSessionPath(sessionPath);
+}
+
+///
+/// \brief Records the file backing the open session and refreshes the window title.
+/// \param path Session file path, or empty when no session file is associated.
+///
+void MainWindow::setCurrentSessionPath(const QString &path)
+{
+    _sessionPath = path;
+    updateWindowTitle();
+}
+
+///
+/// \brief Forgets the open session so a later close raises no save prompt.
+///
+void MainWindow::closeCurrentSession()
+{
+    if (_sessionPath.isEmpty() && _savedSessionFingerprint.isEmpty())
+        return;
+    _savedSessionFingerprint.clear();
+    setCurrentSessionPath(QString());
+}
+
+///
+/// \brief Returns the session name shown in the window title.
+/// \return Open session file's base name, or a placeholder when none is open.
+///
+QString MainWindow::sessionDisplayName() const
+{
+    if (_sessionPath.isEmpty())
+        return tr("Untitled");
+    return QFileInfo(_sessionPath).completeBaseName();
+}
+
+///
+/// \brief Sets the window title to the product name followed by the session name.
+///
+void MainWindow::updateWindowTitle()
+{
+    setWindowTitle(QStringLiteral("%1 — %2")
+                       .arg(QString::fromUtf8(APP_PRODUCT_NAME), sessionDisplayName()));
+}
+
+///
+/// \brief Offers to save an open session that has unsaved changes before it is discarded.
+/// \return True to proceed with closing, false when the user cancels.
+///
+bool MainWindow::maybeSaveSession()
+{
+    if (_sessionPath.isEmpty())
+        return true;
+    if (sessionFingerprint(collectSessionData()) == _savedSessionFingerprint)
+        return true;
+
+    const QMessageBox::StandardButton choice = QMessageBox::warning(
+        this, tr("Save Session"),
+        tr("The session \"%1\" has unsaved changes.\nDo you want to save them?")
+            .arg(sessionDisplayName()),
+        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+
+    switch (choice) {
+    case QMessageBox::Save:
+        return saveSessionToFile(_sessionPath);
+    case QMessageBox::Discard:
+        return true;
+    default:
+        return false;
+    }
 }
 
 ///
@@ -830,6 +963,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
         _featureManager->clearRuntimeState();
         _namespaceCache = {};
         closeNodeMonitors();
+        closeCurrentSession();
     }
 }
 
