@@ -105,6 +105,7 @@ target_link_libraries(ouaexp_core PUBLIC
 
 ouaexp_configure_dependencies(ouaexp_core)
 ouaexp_apply_coverage(ouaexp_core)
+ouaexp_apply_pch(ouaexp_core)
 
 if(MSVC)
     target_compile_options(ouaexp_core PUBLIC /utf-8)

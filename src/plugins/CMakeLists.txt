@@ -25,6 +25,7 @@ target_include_directories(ouaexp_plugins PUBLIC
 target_link_libraries(ouaexp_plugins PUBLIC ouaexp_core)
 
 ouaexp_apply_coverage(ouaexp_plugins)
+ouaexp_apply_pch(ouaexp_plugins)
 
 if(MSVC)
     target_compile_options(ouaexp_plugins PUBLIC /utf-8)

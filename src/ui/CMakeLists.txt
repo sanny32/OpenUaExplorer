@@ -220,6 +220,7 @@ target_link_libraries(ouaexp_ui PRIVATE ouaexp_charting)
 
 ouaexp_configure_qt_target(ouaexp_ui)
 ouaexp_configure_qlementine_app_style(ouaexp_ui)
+ouaexp_apply_pch(ouaexp_ui)
 
 if(MSVC)
     target_compile_options(ouaexp_ui PUBLIC /utf-8)
