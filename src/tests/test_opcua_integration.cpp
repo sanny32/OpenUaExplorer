@@ -13,6 +13,7 @@
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QProcess>
+#include <QProcessEnvironment>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTest>
@@ -81,6 +82,15 @@ void TestOpcUaIntegration::initTestCase()
     const QString script = QStringLiteral(OUAEXP_TEST_SERVER_SCRIPT);
     if (!QFile::exists(script))
         QSKIP(qPrintable(QStringLiteral("Test server script missing: %1").arg(script)));
+
+    // The Python server needs none of Qt's libraries, but the test runs with Qt
+    // (and the bundled OpenSSL) prepended to the loader path. Inheriting that
+    // breaks asyncua's native dependencies (cryptography loads the wrong
+    // libcrypto), so launch the server with a clean loader path.
+    QProcessEnvironment serverEnv = QProcessEnvironment::systemEnvironment();
+    serverEnv.remove(QStringLiteral("LD_LIBRARY_PATH"));
+    serverEnv.remove(QStringLiteral("DYLD_LIBRARY_PATH"));
+    _server.setProcessEnvironment(serverEnv);
 
     _server.setProcessChannelMode(QProcess::MergedChannels);
     _server.start(python, {script, QStringLiteral("--port"), QStringLiteral("48401")});
