@@ -10,6 +10,7 @@
 
 #include <QAction>
 #include <QCloseEvent>
+#include <QDesktopServices>
 #include <QDir>
 #include <QEvent>
 #include <QFileDialog>
@@ -19,6 +20,7 @@
 #include <QRegularExpression>
 #include <QStringList>
 #include <QTimer>
+#include <QUrl>
 
 #include "appicons.h"
 #include "application.h"
@@ -51,6 +53,7 @@
 #include "referencemodule.h"
 #include "servermodule.h"
 #include "session/sessionstore.h"
+#include "updatechecker.h"
 #include "ui_mainwindow.h"
 #include "widgets/maintoolbar.h"
 #include "widgets/themedtoolbutton.h"
@@ -189,6 +192,7 @@ MainWindow::MainWindow(QWidget *parent)
                                              this);
 
     setupOpcUaClient();
+    setupUpdateChecker();
     setupPlugins();
     resetLayout();
     restoreSettings();
@@ -594,6 +598,14 @@ void MainWindow::on_actionSettings_triggered()
 void MainWindow::on_actionTheme_triggered()
 {
     _themeCoordinator->cycle();
+}
+
+///
+/// \brief Starts a check for a newer application release.
+///
+void MainWindow::on_actionCheckForUpdates_triggered()
+{
+    _updateChecker->checkForUpdates();
 }
 
 ///
@@ -1043,6 +1055,47 @@ void MainWindow::setupOpcUaClient()
         ui->actionFileDisconnect->setEnabled(ui->actionDisconnect->isEnabled());
     });
     ui->actionFileDisconnect->setEnabled(ui->actionDisconnect->isEnabled());
+}
+
+///
+/// \brief Creates the update checker and wires it to the Help menu action.
+///
+void MainWindow::setupUpdateChecker()
+{
+    _updateChecker = new UpdateChecker(this);
+    ui->actionCheckForUpdates->setEnabled(true);
+
+    connect(_updateChecker, &UpdateChecker::checkStarted, this, [this] {
+        ui->actionCheckForUpdates->setEnabled(false);
+    });
+
+    connect(_updateChecker, &UpdateChecker::noUpdatesAvailable, this, [this] {
+        ui->actionCheckForUpdates->setEnabled(true);
+        MessageBoxDialog::information(this,
+                                     tr("Check for Updates"),
+                                     tr("You are running the latest version."));
+    });
+
+    connect(_updateChecker, &UpdateChecker::checkFailed, this, [this](const QString &errorString) {
+        ui->actionCheckForUpdates->setEnabled(true);
+        MessageBoxDialog::warning(this,
+                                  tr("Check for Updates"),
+                                  tr("Failed to check for updates.\n\n%1").arg(errorString),
+                                  DialogButtonBox::Ok);
+    });
+
+    connect(_updateChecker, &UpdateChecker::newVersionAvailable, this,
+            [this](const QString &version, const QString &url) {
+                ui->actionCheckForUpdates->setEnabled(true);
+                const auto answer = MessageBoxDialog::question(
+                    this,
+                    tr("Update Available"),
+                    tr("Version %1 is available.\n\nOpen the download page?").arg(version),
+                    DialogButtonBox::Yes | DialogButtonBox::No,
+                    DialogButtonBox::Yes);
+                if (answer == DialogButtonBox::Yes)
+                    QDesktopServices::openUrl(QUrl(url));
+            });
 }
 
 ///

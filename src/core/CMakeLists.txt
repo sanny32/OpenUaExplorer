@@ -3,6 +3,8 @@ add_library(ouaexp_core STATIC
     appsettings.h
     loggingcategories.cpp
     loggingcategories.h
+    updatechecker.cpp
+    updatechecker.h
     utils.cpp
     utils.h
 

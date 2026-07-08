@@ -78,6 +78,7 @@ private slots:
     void on_actionExit_triggered();
     void on_actionSettings_triggered();
     void on_actionTheme_triggered();
+    void on_actionCheckForUpdates_triggered();
     void on_actionAbout_triggered();
     void on_actionViewDataAccess_triggered();
     void on_actionManageSubscriptions_triggered();
@@ -95,6 +96,7 @@ private:
     void bindIcons();
     void configureHistoryUi();
     void setupOpcUaClient();
+    void setupUpdateChecker();
     void setupPlugins();
     void updateClientUi(OpcUaConnectionState state);
     bool saveSessionToFile(const QString &path);
@@ -122,6 +124,7 @@ private:
     Ui::MainWindow *ui;
     class ConnectionController *_connectionController;
     class OpcUaClientService *_clientService;
+    class UpdateChecker *_updateChecker = nullptr;
     class ServiceModuleManager *_pluginManager = nullptr;
     class FeatureManager *_featureManager = nullptr;
     class SelectionContext *_selectionContext = nullptr;
