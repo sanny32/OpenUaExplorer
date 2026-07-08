@@ -31,6 +31,7 @@
 #include "dialogs/namespaceinspectordialog.h"
 #include "dialogs/nodemonitordialog.h"
 #include "dialogs/dialogabout.h"
+#include "dialogs/dialogopcuainfo.h"
 #include "widgets/dataview.h"
 #include "widgets/subscriptionswidget.h"
 #include "dialogs/settingsdialog.h"
@@ -598,6 +599,15 @@ void MainWindow::on_actionSettings_triggered()
 void MainWindow::on_actionTheme_triggered()
 {
     _themeCoordinator->cycle();
+}
+
+///
+/// \brief Shows the OPC UA information dialog.
+///
+void MainWindow::on_actionOpcUaInfo_triggered()
+{
+    DialogOpcUaInfo dialog(this);
+    dialog.exec();
 }
 
 ///

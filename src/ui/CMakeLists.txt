@@ -10,6 +10,7 @@ set(UI_FILES
     dialogs/connectiondialog.ui
     dialogs/customintervaldialog.ui
     dialogs/dialogabout.ui
+    dialogs/dialogopcuainfo.ui
     dialogs/certificatesdialog.ui
     dialogs/editfavoritedialog.ui
     dialogs/endpointsettingsdialog.ui
@@ -107,6 +108,8 @@ add_library(ouaexp_ui STATIC
     dialogs/customintervaldialog.h
     dialogs/dialogabout.cpp
     dialogs/dialogabout.h
+    dialogs/dialogopcuainfo.cpp
+    dialogs/dialogopcuainfo.h
     dialogs/editfavoritedialog.cpp
     dialogs/editfavoritedialog.h
     dialogs/endpointsettingsdialog.cpp

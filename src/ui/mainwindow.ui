@@ -543,9 +543,6 @@
    </property>
   </action>
   <action name="actionOpcUaInfo">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>OPC UA Info</string>
    </property>

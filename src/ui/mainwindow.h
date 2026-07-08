@@ -78,6 +78,7 @@ private slots:
     void on_actionExit_triggered();
     void on_actionSettings_triggered();
     void on_actionTheme_triggered();
+    void on_actionOpcUaInfo_triggered();
     void on_actionCheckForUpdates_triggered();
     void on_actionAbout_triggered();
     void on_actionViewDataAccess_triggered();

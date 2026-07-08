@@ -2,6 +2,7 @@ function(ouaexp_configure_common_ui_tests)
     ouaexp_add_ui_test(ouaexp_tests_application         test_application.cpp)
     ouaexp_add_ui_test(ouaexp_tests_connection_dialog   test_connectiondialog.cpp)
     ouaexp_add_ui_test(ouaexp_tests_about_dialog        test_dialogabout.cpp)
+    ouaexp_add_ui_test(ouaexp_tests_opcua_info_dialog   test_dialogopcuainfo.cpp)
     ouaexp_add_ui_test(ouaexp_tests_endpoint_settings_dialog test_endpointsettingsdialog.cpp)
     ouaexp_add_ui_test(ouaexp_tests_certificates_dialog test_certificatesdialog.cpp)
     ouaexp_add_ui_test(ouaexp_tests_certificate_details_widget
