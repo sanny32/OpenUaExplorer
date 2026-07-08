@@ -128,6 +128,27 @@ def report_msvc(build_dir: Path, out_dir: Path, config: str) -> tuple[Path, int]
     return xml, rc
 
 
+def find_python_with_asyncua() -> str | None:
+    """Return the first interpreter that can import asyncua, or None.
+
+    Tries this runner's own interpreter first, then any `python`/`python3` on
+    PATH; the OPC UA integration test needs the server's interpreter to have
+    asyncua, and the plain PATH lookup it would otherwise do can land on one
+    that does not.
+    """
+    seen: set[str] = set()
+    candidates = [sys.executable, shutil.which("python"), shutil.which("python3")]
+    for candidate in candidates:
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        probe = subprocess.run([candidate, "-c", "import asyncua"],
+                               capture_output=True)
+        if probe.returncode == 0:
+            return candidate
+    return None
+
+
 def report_skipped_tests(build_dir: Path) -> None:
     """Print any QtTest SKIP reasons from the last ctest run.
 
@@ -195,10 +216,16 @@ def main() -> int:
     # argparse keeps the leading '--' separator in the remainder; drop it.
     extra = [a for a in args.cmake_args if a != "--"]
 
-    # The OPC UA integration test spawns its Python server; pin it to the very
-    # interpreter running this suite (the one asyncua was installed into) so it
-    # never picks a different `python` on PATH that lacks the module.
-    os.environ["OUAEXP_TEST_PYTHON"] = sys.executable
+    # The OPC UA integration test spawns its Python server, which needs asyncua.
+    # Different `python`/`python3` on PATH can point at interpreters that lack it,
+    # so probe the candidates here and pin the one that can actually import it.
+    server_python = find_python_with_asyncua()
+    if server_python:
+        print(f"Integration test server interpreter: {server_python}")
+        os.environ["OUAEXP_TEST_PYTHON"] = server_python
+    else:
+        print("WARNING: no interpreter with 'asyncua' found; "
+              "the OPC UA integration test will skip.")
 
     build_dir: Path = args.build_dir
     out_dir = build_dir / "coverage"

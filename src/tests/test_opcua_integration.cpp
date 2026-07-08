@@ -109,8 +109,9 @@ void TestOpcUaIntegration::initTestCase()
 
     if (_endpoint.isEmpty() || _nodeId.isEmpty()) {
         QSKIP(qPrintable(QStringLiteral(
-            "OPC UA test server did not become ready (asyncua missing?). Output:\n%1")
-            .arg(QString::fromUtf8(output))));
+            "OPC UA test server did not become ready (asyncua missing?). "
+            "Interpreter: %1\nOutput:\n%2")
+            .arg(python, QString::fromUtf8(output))));
     }
 }
 
