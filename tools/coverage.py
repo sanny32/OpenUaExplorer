@@ -128,6 +128,26 @@ def report_msvc(build_dir: Path, out_dir: Path, config: str) -> tuple[Path, int]
     return xml, rc
 
 
+def report_skipped_tests(build_dir: Path) -> None:
+    """Print any QtTest SKIP reasons from the last ctest run.
+
+    ctest hides the output of skipped tests (they exit 0, so it reports them as
+    passing), which can silently drop whole test bodies - notably the OPC UA
+    integration test - out of the coverage numbers. Surface those reasons here so
+    a skip is visible in the runner's own output on every platform.
+    """
+    log = build_dir / "Testing" / "Temporary" / "LastTest.log"
+    if not log.exists():
+        return
+    skips = [line.rstrip() for line in
+             log.read_text(encoding="utf-8", errors="replace").splitlines()
+             if line.lstrip().startswith("SKIP")]
+    if skips:
+        print("\nSkipped tests (their code is not reflected in coverage):")
+        for line in skips:
+            print(f"  {line.strip()}")
+
+
 def print_summary(xml: Path) -> None:
     if not xml.exists():
         sys.exit(f"error: expected report not produced: {xml}")
@@ -200,6 +220,7 @@ def main() -> int:
                        "--output-on-failure"], check=False).returncode
         xml = report_gcov(build_dir, out_dir, compiler)
 
+    report_skipped_tests(build_dir)
     print_summary(xml)
 
     if test_rc != 0:

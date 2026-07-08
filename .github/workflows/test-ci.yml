@@ -158,20 +158,6 @@ jobs:
       - name: Run coverage
         run: dbus-run-session -- python tools/coverage.py --strict -- -G Ninja
 
-      - name: Dump integration test log
-        if: always()
-        # ctest --output-on-failure hides the output of skipped (passing) tests,
-        # so surface the integration test's QSKIP/QWARN reason from the raw log.
-        run: |
-          log="build-coverage/Testing/Temporary/LastTest.log"
-          if [ -f "$log" ]; then
-            awk '/ouaexp_tests_integration/{flag=1} flag{print} /Test time/{if(flag)exit}' "$log" \
-              | head -80
-          else
-            echo "No ctest log at $log"
-            ls -R build-coverage/Testing 2>/dev/null || true
-          fi
-
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
