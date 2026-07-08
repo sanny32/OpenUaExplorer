@@ -72,6 +72,7 @@ def configure(build_dir: Path, config: str, extra: list[str]) -> None:
         "-S", SRC_DIR,
         "-B", build_dir,
         "-DOUAEXP_ENABLE_COVERAGE=ON",
+        "-DOUAEXP_BUILD_TESTS=ON",
         f"-DCMAKE_BUILD_TYPE={config}",
         # Coverage and LTO are incompatible; force it off for this build.
         "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF",
