@@ -439,6 +439,7 @@ QVector<TrendSeriesInfo> TrendGraphWidget::seriesInfos() const
     result.reserve(ordered.size());
     for (const TrendSeries &series : std::as_const(ordered))
         result.append({ series.nodeId(), series.seriesLabel(mode),
+                        series.displayName(), series.displayPath(),
                         series.color(), series.isVisible() });
     return result;
 }

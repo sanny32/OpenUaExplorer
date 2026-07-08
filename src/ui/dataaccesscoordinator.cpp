@@ -343,6 +343,15 @@ QStringList DataAccessCoordinator::trendNodes() const
 }
 
 ///
+/// \brief Returns the trend chart tabs with their settings for a saved session.
+/// \return Trend tabs in tab order.
+///
+QVector<SessionTrendTab> DataAccessCoordinator::trendTabs() const
+{
+    return _trendPanel->captureTrendTabs();
+}
+
+///
 /// \brief Restores monitored data-access nodes from a loaded session.
 /// \param nodes NodeId and subscription-name pairs to re-add and monitor.
 ///
@@ -364,6 +373,15 @@ void DataAccessCoordinator::restoreTrendNodes(const QStringList &nodeIds)
 {
     for (const QString &nodeId : nodeIds)
         _trendPanel->addNode(nodeId, QString());
+}
+
+///
+/// \brief Restores trend chart tabs and their settings from a loaded session.
+/// \param tabs Trend tabs to recreate.
+///
+void DataAccessCoordinator::restoreTrendTabs(const QVector<SessionTrendTab> &tabs)
+{
+    _trendPanel->restoreTrendTabs(tabs);
 }
 
 ///

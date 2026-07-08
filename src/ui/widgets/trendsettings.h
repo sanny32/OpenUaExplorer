@@ -66,6 +66,10 @@ struct TrendSeriesInfo
     QString nodeId;
     /// \brief Human-readable legend label.
     QString label;
+    /// \brief Human-readable node name captured for the series.
+    QString displayName;
+    /// \brief Human-readable node path captured for the series.
+    QString displayPath;
     /// \brief Current line colour.
     QColor color;
     /// \brief Whether the series is drawn.

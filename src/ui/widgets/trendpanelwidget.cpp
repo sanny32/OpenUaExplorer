@@ -13,6 +13,7 @@
 #include <limits>
 
 #include <QAbstractButton>
+#include <QColor>
 #include <QDataStream>
 #include <QEvent>
 #include <QIODevice>
@@ -225,6 +226,103 @@ QStringList TrendPanelWidget::chartedNodeIds() const
         }
     }
     return result;
+}
+
+///
+/// \brief Captures every chart tab with its display settings and series.
+/// \return Trend tabs in tab order, suitable for a saved session.
+///
+QVector<SessionTrendTab> TrendPanelWidget::captureTrendTabs() const
+{
+    QVector<SessionTrendTab> result;
+    const QList<TrendGraphWidget *> tabs = charts();
+    for (TrendGraphWidget *chart : tabs) {
+        const TrendDisplaySettings display = chart->displaySettings();
+        SessionTrendTab tab;
+        tab.autoScale = display.autoScale;
+        tab.showLegend = display.showLegend;
+        tab.showGrid = display.showGrid;
+        tab.smoothLines = display.smoothLines;
+        tab.lineType = static_cast<int>(display.lineType);
+        tab.showPoints = display.showPoints;
+        tab.showValueTooltip = display.showValueTooltip;
+        tab.labelMode = static_cast<int>(display.labelMode);
+        tab.autoScrollLive = display.autoScrollLive;
+        tab.liveSubscription = display.liveSubscription;
+        tab.mode = display.mode;
+        tab.windowMs = display.windowMs;
+
+        const QVector<TrendSeriesInfo> infos = chart->seriesInfos();
+        for (const TrendSeriesInfo &info : infos) {
+            SessionTrendSeries series;
+            series.nodeId = info.nodeId;
+            series.displayName = info.displayName;
+            series.displayPath = info.displayPath;
+            series.color = info.color.isValid() ? info.color.name(QColor::HexArgb) : QString();
+            series.visible = info.visible;
+            tab.series.append(series);
+        }
+        result.append(tab);
+    }
+    return result;
+}
+
+///
+/// \brief Rebuilds the chart tabs from a saved session's trend layout.
+/// \param tabs Trend tabs to recreate; ignored when empty.
+///
+void TrendPanelWidget::restoreTrendTabs(const QVector<SessionTrendTab> &tabs)
+{
+    if (tabs.isEmpty())
+        return;
+
+    _suppressTabChange = true;
+    const QList<TrendGraphWidget *> existing = charts();
+    for (TrendGraphWidget *chart : existing) {
+        chart->clear();
+        ui->trendTabs->removeTab(ui->trendTabs->indexOf(chart));
+        chart->deleteLater();
+    }
+    _chartCounter = 0;
+    _suppressTabChange = false;
+
+    for (const SessionTrendTab &tab : tabs) {
+        TrendGraphWidget *chart = addChartTab();
+        for (const SessionTrendSeries &series : tab.series)
+            chart->addNode(series.nodeId, series.displayName, series.displayPath);
+
+        TrendDisplaySettings display;
+        display.autoScale = tab.autoScale;
+        display.showLegend = tab.showLegend;
+        display.showGrid = tab.showGrid;
+        display.smoothLines = tab.smoothLines;
+        display.lineType = static_cast<TrendLineType>(tab.lineType);
+        display.showPoints = tab.showPoints;
+        display.showValueTooltip = tab.showValueTooltip;
+        display.labelMode = static_cast<TrendLabelMode>(tab.labelMode);
+        display.autoScrollLive = tab.autoScrollLive;
+        display.liveSubscription = tab.liveSubscription;
+        display.mode = tab.mode;
+        display.windowMs = tab.windowMs;
+        chart->setDisplaySettings(display);
+
+        QVector<TrendSeriesInfo> infos;
+        infos.reserve(tab.series.size());
+        for (const SessionTrendSeries &series : tab.series) {
+            TrendSeriesInfo info;
+            info.nodeId = series.nodeId;
+            info.displayName = series.displayName;
+            info.displayPath = series.displayPath;
+            info.color = series.color.isEmpty() ? QColor() : QColor(series.color);
+            info.visible = series.visible;
+            infos.append(info);
+        }
+        chart->applySeriesInfos(infos);
+    }
+
+    if (ui->trendTabs->count() > 0)
+        ui->trendTabs->setCurrentIndex(0);
+    setCollapsed(false);
 }
 
 ///

@@ -79,6 +79,77 @@ ConnectionProfile profileFromJson(const QJsonObject &json)
     return profile;
 }
 
+///
+/// \brief Serializes one trend tab, with its display settings and series, to JSON.
+/// \param tab Trend tab to serialize.
+/// \return JSON object mirroring the tab fields.
+///
+QJsonObject trendTabToJson(const SessionTrendTab &tab)
+{
+    QJsonObject json;
+    json[QStringLiteral("autoScale")] = tab.autoScale;
+    json[QStringLiteral("showLegend")] = tab.showLegend;
+    json[QStringLiteral("showGrid")] = tab.showGrid;
+    json[QStringLiteral("smoothLines")] = tab.smoothLines;
+    json[QStringLiteral("lineType")] = tab.lineType;
+    json[QStringLiteral("showPoints")] = tab.showPoints;
+    json[QStringLiteral("showValueTooltip")] = tab.showValueTooltip;
+    json[QStringLiteral("labelMode")] = tab.labelMode;
+    json[QStringLiteral("autoScrollLive")] = tab.autoScrollLive;
+    json[QStringLiteral("liveSubscription")] = tab.liveSubscription;
+    json[QStringLiteral("mode")] = tab.mode;
+    json[QStringLiteral("windowMs")] = static_cast<double>(tab.windowMs);
+
+    QJsonArray series;
+    for (const SessionTrendSeries &item : tab.series) {
+        QJsonObject entry;
+        entry[QStringLiteral("nodeId")] = item.nodeId;
+        entry[QStringLiteral("displayName")] = item.displayName;
+        entry[QStringLiteral("displayPath")] = item.displayPath;
+        entry[QStringLiteral("color")] = item.color;
+        entry[QStringLiteral("visible")] = item.visible;
+        series.append(entry);
+    }
+    json[QStringLiteral("series")] = series;
+    return json;
+}
+
+///
+/// \brief Reconstructs a trend tab from a JSON object.
+/// \param json JSON object produced by trendTabToJson().
+/// \return Parsed trend tab with default-backed missing fields.
+///
+SessionTrendTab trendTabFromJson(const QJsonObject &json)
+{
+    SessionTrendTab tab;
+    tab.autoScale = json[QStringLiteral("autoScale")].toBool(true);
+    tab.showLegend = json[QStringLiteral("showLegend")].toBool(true);
+    tab.showGrid = json[QStringLiteral("showGrid")].toBool(true);
+    tab.smoothLines = json[QStringLiteral("smoothLines")].toBool(true);
+    tab.lineType = json[QStringLiteral("lineType")].toInt(1);
+    tab.showPoints = json[QStringLiteral("showPoints")].toBool(false);
+    tab.showValueTooltip = json[QStringLiteral("showValueTooltip")].toBool(true);
+    tab.labelMode = json[QStringLiteral("labelMode")].toInt(0);
+    tab.autoScrollLive = json[QStringLiteral("autoScrollLive")].toBool(true);
+    tab.liveSubscription = json[QStringLiteral("liveSubscription")].toString(QStringLiteral("Default"));
+    tab.mode = json[QStringLiteral("mode")].toInt(0);
+    tab.windowMs = static_cast<qint64>(json[QStringLiteral("windowMs")].toDouble(60000));
+
+    const QJsonArray series = json[QStringLiteral("series")].toArray();
+    for (const QJsonValue &value : series) {
+        const QJsonObject entry = value.toObject();
+        SessionTrendSeries item;
+        item.nodeId = entry[QStringLiteral("nodeId")].toString();
+        item.displayName = entry[QStringLiteral("displayName")].toString();
+        item.displayPath = entry[QStringLiteral("displayPath")].toString();
+        item.color = entry[QStringLiteral("color")].toString();
+        item.visible = entry[QStringLiteral("visible")].toBool(true);
+        if (!item.nodeId.isEmpty())
+            tab.series.append(item);
+    }
+    return tab;
+}
+
 } // namespace
 
 ///
@@ -116,6 +187,11 @@ bool SessionStore::save(const QString &path, const SessionData &data, QString *e
     for (const QString &nodeId : data.trendNodes)
         trends.append(nodeId);
     root[QStringLiteral("trendNodes")] = trends;
+
+    QJsonArray trendTabs;
+    for (const SessionTrendTab &tab : data.trendTabs)
+        trendTabs.append(trendTabToJson(tab));
+    root[QStringLiteral("trendTabs")] = trendTabs;
 
     QJsonArray expanded;
     for (const QString &nodeId : data.expandedNodes)
@@ -200,6 +276,10 @@ bool SessionStore::load(const QString &path, SessionData &data, QString *error)
         if (!nodeId.isEmpty())
             parsed.trendNodes.append(nodeId);
     }
+
+    const QJsonArray trendTabs = root[QStringLiteral("trendTabs")].toArray();
+    for (const QJsonValue &value : trendTabs)
+        parsed.trendTabs.append(trendTabFromJson(value.toObject()));
 
     const QJsonArray expanded = root[QStringLiteral("expandedNodes")].toArray();
     for (const QJsonValue &value : expanded) {

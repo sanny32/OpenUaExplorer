@@ -16,6 +16,7 @@
 
 #include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
+#include "session/sessiondata.h"
 
 class AppSettings;
 class AttributeModule;
@@ -220,6 +221,12 @@ public:
     QStringList trendNodes() const;
 
     ///
+    /// \brief Returns the trend chart tabs with their settings for a saved session.
+    /// \return Trend tabs in tab order.
+    ///
+    QVector<SessionTrendTab> trendTabs() const;
+
+    ///
     /// \brief Restores monitored data-access nodes from a loaded session.
     /// \param nodes NodeId and subscription-name pairs to re-add and monitor.
     ///
@@ -230,6 +237,12 @@ public:
     /// \param nodeIds Node ids to chart.
     ///
     void restoreTrendNodes(const QStringList &nodeIds);
+
+    ///
+    /// \brief Restores trend chart tabs and their settings from a loaded session.
+    /// \param tabs Trend tabs to recreate.
+    ///
+    void restoreTrendTabs(const QVector<SessionTrendTab> &tabs);
 
     ///
     /// \brief Recreates user subscriptions from a loaded session.

@@ -95,8 +95,25 @@ QByteArray sessionFingerprint(const SessionData &data)
         nodes.append(node.nodeId + QLatin1Char('\x1f') + node.subscriptionName);
     nodes.sort();
 
-    QStringList trends = data.trendNodes;
-    trends.sort();
+    QStringList trends;
+    trends.reserve(data.trendTabs.size());
+    for (const SessionTrendTab &tab : data.trendTabs) {
+        QString entry;
+        entry += QString::number(tab.autoScale) + QString::number(tab.showLegend)
+            + QString::number(tab.showGrid) + QString::number(tab.smoothLines)
+            + QString::number(tab.lineType) + QString::number(tab.showPoints)
+            + QString::number(tab.showValueTooltip) + QString::number(tab.labelMode)
+            + QString::number(tab.autoScrollLive) + QLatin1Char('\x1f') + tab.liveSubscription
+            + QLatin1Char('\x1f') + QString::number(tab.mode)
+            + QLatin1Char('\x1f') + QString::number(tab.windowMs);
+        for (const SessionTrendSeries &series : tab.series) {
+            entry += QLatin1Char('\x1f') + series.nodeId + QLatin1Char('\x1d')
+                + series.displayName + QLatin1Char('\x1d') + series.displayPath
+                + QLatin1Char('\x1d') + series.color + QLatin1Char('\x1d')
+                + QString::number(series.visible);
+        }
+        trends.append(entry);
+    }
 
     const QString blob = subscriptions.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
         + nodes.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
@@ -689,7 +706,7 @@ SessionData MainWindow::collectSessionData() const
     const QVector<QPair<QString, QString>> nodes = _dataAccessCoordinator->monitoredNodes();
     for (const QPair<QString, QString> &node : nodes)
         data.dataAccessNodes.append({node.first, node.second});
-    data.trendNodes = _dataAccessCoordinator->trendNodes();
+    data.trendTabs = _dataAccessCoordinator->trendTabs();
     _featureManager->saveSession(data);
     return data;
 }
@@ -743,7 +760,10 @@ void MainWindow::applyPendingSession()
         nodes.append({node.nodeId, node.subscriptionName});
     _dataAccessCoordinator->restoreMonitoredNodes(nodes);
 
-    _dataAccessCoordinator->restoreTrendNodes(session.trendNodes);
+    if (!session.trendTabs.isEmpty())
+        _dataAccessCoordinator->restoreTrendTabs(session.trendTabs);
+    else
+        _dataAccessCoordinator->restoreTrendNodes(session.trendNodes);
 
     _featureManager->restoreSession(session);
 

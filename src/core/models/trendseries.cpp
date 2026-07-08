@@ -35,6 +35,24 @@ QString TrendSeries::nodeId() const
 }
 
 ///
+/// \brief Returns the human-readable node name captured for this series.
+/// \return Display name, possibly empty.
+///
+QString TrendSeries::displayName() const
+{
+    return _displayName;
+}
+
+///
+/// \brief Returns the human-readable node path captured for this series.
+/// \return Display path, possibly empty.
+///
+QString TrendSeries::displayPath() const
+{
+    return _displayPath;
+}
+
+///
 /// \brief Returns the legend label (path preferred over name, then NodeId).
 /// \return Display label.
 ///

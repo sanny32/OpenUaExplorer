@@ -16,6 +16,7 @@
 #include "appsettings.h"
 #include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
+#include "session/sessiondata.h"
 
 namespace Ui {
 class TrendPanelWidget;
@@ -69,6 +70,18 @@ public:
     /// \return Charted node ids without duplicates.
     ///
     QStringList chartedNodeIds() const;
+
+    ///
+    /// \brief Captures every chart tab with its display settings and series.
+    /// \return Trend tabs in tab order, suitable for a saved session.
+    ///
+    QVector<SessionTrendTab> captureTrendTabs() const;
+
+    ///
+    /// \brief Rebuilds the chart tabs from a saved session's trend layout.
+    /// \param tabs Trend tabs to recreate; ignored when empty.
+    ///
+    void restoreTrendTabs(const QVector<SessionTrendTab> &tabs);
 
     ///
     /// \brief Applies history results if the panel requested them for the node.
