@@ -67,9 +67,14 @@ private:
 ///
 void TestOpcUaIntegration::initTestCase()
 {
-    QString python = QStandardPaths::findExecutable(QStringLiteral("python"));
-    if (python.isEmpty())
-        python = QStandardPaths::findExecutable(QStringLiteral("python3"));
+    // Prefer the interpreter the coverage/test runner pinned for us (guaranteed
+    // to have asyncua installed); otherwise fall back to whatever is on PATH.
+    QString python = qEnvironmentVariable("OUAEXP_TEST_PYTHON");
+    if (python.isEmpty() || !QFile::exists(python)) {
+        python = QStandardPaths::findExecutable(QStringLiteral("python"));
+        if (python.isEmpty())
+            python = QStandardPaths::findExecutable(QStringLiteral("python3"));
+    }
     if (python.isEmpty())
         QSKIP("Python interpreter not found; skipping OPC UA integration test.");
 

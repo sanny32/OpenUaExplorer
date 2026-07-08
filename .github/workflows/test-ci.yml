@@ -149,12 +149,6 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -r tools/requirements.txt
 
-      - name: Verify asyncua is importable
-        # The integration test launches the OPC UA server via `python`; if that
-        # interpreter cannot import asyncua the test silently skips (and the live
-        # OPC UA code stays uncovered), so fail loudly here instead.
-        run: python -c "import asyncua; print('asyncua', asyncua.__version__)"
-
       - name: Cache Qt OpcUa build
         uses: actions/cache@v5
         with:

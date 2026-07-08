@@ -175,6 +175,11 @@ def main() -> int:
     # argparse keeps the leading '--' separator in the remainder; drop it.
     extra = [a for a in args.cmake_args if a != "--"]
 
+    # The OPC UA integration test spawns its Python server; pin it to the very
+    # interpreter running this suite (the one asyncua was installed into) so it
+    # never picks a different `python` on PATH that lacks the module.
+    os.environ["OUAEXP_TEST_PYTHON"] = sys.executable
+
     build_dir: Path = args.build_dir
     out_dir = build_dir / "coverage"
     out_dir.mkdir(parents=True, exist_ok=True)
