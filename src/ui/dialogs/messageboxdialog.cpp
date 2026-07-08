@@ -25,6 +25,8 @@ MessageBoxDialog::MessageBoxDialog(QWidget *parent)
     , _textLabel(new QLabel(this))
     , _buttonBox(new DialogButtonBox(this))
 {
+    setWindowFlag(Qt::WindowStaysOnTopHint, true);
+
     _iconLabel->setAlignment(Qt::AlignTop);
     _textLabel->setWordWrap(true);
     _textLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);

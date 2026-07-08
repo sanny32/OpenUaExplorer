@@ -49,6 +49,23 @@ static SessionData sampleSession()
     data.dataAccessNodes.append({QStringLiteral("ns=2;s=Temp"), QStringLiteral("Fast")});
     data.dataAccessNodes.append({QStringLiteral("ns=2;s=Idle"), QString()});
     data.trendNodes = {QStringLiteral("ns=2;s=Temp")};
+
+    SessionNodeMonitor monitor;
+    monitor.nodeId = QStringLiteral("ns=2;s=Temp");
+    monitor.displayName = QStringLiteral("Temperature");
+    monitor.displayPath = QStringLiteral("Objects/Plant/Temperature");
+    monitor.subscriptionName = QStringLiteral("Fast");
+    monitor.typeText = QStringLiteral("Double");
+    monitor.alwaysOnTop = false;
+    monitor.autoScale = false;
+    monitor.stepLines = false;
+    monitor.showGrid = false;
+    monitor.showLegend = false;
+    monitor.showPoints = true;
+    monitor.showValueTooltip = false;
+    monitor.geometry = QRect(10, 20, 640, 480);
+    data.nodeMonitors.append(monitor);
+
     data.expandedNodes = {QStringLiteral("ns=0;i=85"), QStringLiteral("ns=2;s=Plant")};
     data.selectedNode = QStringLiteral("ns=2;s=Temp");
     return data;
@@ -88,6 +105,22 @@ void TestSession::roundTripPreservesWorkspace()
     QCOMPARE(loaded.trendNodes, original.trendNodes);
     QCOMPARE(loaded.expandedNodes, original.expandedNodes);
     QCOMPARE(loaded.selectedNode, original.selectedNode);
+
+    QCOMPARE(loaded.nodeMonitors.size(), 1);
+    const SessionNodeMonitor &monitor = loaded.nodeMonitors.first();
+    QCOMPARE(monitor.nodeId, QStringLiteral("ns=2;s=Temp"));
+    QCOMPARE(monitor.displayName, QStringLiteral("Temperature"));
+    QCOMPARE(monitor.displayPath, QStringLiteral("Objects/Plant/Temperature"));
+    QCOMPARE(monitor.subscriptionName, QStringLiteral("Fast"));
+    QCOMPARE(monitor.typeText, QStringLiteral("Double"));
+    QCOMPARE(monitor.alwaysOnTop, false);
+    QCOMPARE(monitor.autoScale, false);
+    QCOMPARE(monitor.stepLines, false);
+    QCOMPARE(monitor.showGrid, false);
+    QCOMPARE(monitor.showLegend, false);
+    QCOMPARE(monitor.showPoints, true);
+    QCOMPARE(monitor.showValueTooltip, false);
+    QCOMPARE(monitor.geometry, QRect(10, 20, 640, 480));
 }
 
 ///

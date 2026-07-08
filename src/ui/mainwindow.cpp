@@ -118,23 +118,36 @@ QByteArray sessionFingerprint(const SessionData &data)
         trends.append(entry);
     }
 
+    QStringList monitors;
+    monitors.reserve(data.nodeMonitors.size());
+    for (const SessionNodeMonitor &monitor : data.nodeMonitors) {
+        monitors.append(monitor.nodeId + QLatin1Char('\x1f') + monitor.subscriptionName
+            + QLatin1Char('\x1f') + QString::number(monitor.alwaysOnTop)
+            + QString::number(monitor.autoScale) + QString::number(monitor.stepLines)
+            + QString::number(monitor.showGrid) + QString::number(monitor.showLegend)
+            + QString::number(monitor.showPoints) + QString::number(monitor.showValueTooltip));
+    }
+    monitors.sort();
+
     const QString blob = subscriptions.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
         + nodes.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
-        + trends.join(QLatin1Char('\n'));
+        + trends.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
+        + monitors.join(QLatin1Char('\n'));
     return blob.toUtf8();
 }
 
 ///
 /// \brief Reports whether a session carries a workspace worth saving.
 /// \param data Session payload to inspect.
-/// \return True when it has subscriptions, monitored nodes, or charted series.
+/// \return True when it has subscriptions, monitored nodes, monitor windows, or charted series.
 ///
 /// The trend panel always keeps one empty default tab, so an empty tab alone does
 /// not count as content.
 ///
 bool sessionHasContent(const SessionData &data)
 {
-    if (!data.subscriptions.isEmpty() || !data.dataAccessNodes.isEmpty())
+    if (!data.subscriptions.isEmpty() || !data.dataAccessNodes.isEmpty()
+        || !data.nodeMonitors.isEmpty())
         return true;
     for (const SessionTrendTab &tab : data.trendTabs) {
         if (!tab.series.isEmpty())
@@ -744,6 +757,11 @@ SessionData MainWindow::sessionWorkspace() const
     for (const QPair<QString, QString> &node : nodes)
         data.dataAccessNodes.append({node.first, node.second});
     data.trendTabs = _dataAccessCoordinator->trendTabs();
+    for (NodeMonitorDialog *monitor : _nodeMonitors) {
+        if (monitor->nodeId().isEmpty())
+            continue;
+        data.nodeMonitors.append(monitor->captureSession());
+    }
     return data;
 }
 
@@ -865,6 +883,12 @@ void MainWindow::applyPendingSession()
         _dataAccessCoordinator->restoreTrendNodes(session.trendNodes);
 
     _featureManager->restoreSession(session);
+
+    for (const SessionNodeMonitor &monitorState : session.nodeMonitors) {
+        NodeMonitorDialog *monitor = createNodeMonitor();
+        monitor->restoreSession(monitorState);
+        monitor->show();
+    }
 
     _savedSessionFingerprint = sessionFingerprint(session);
     setCurrentSessionPath(sessionPath);

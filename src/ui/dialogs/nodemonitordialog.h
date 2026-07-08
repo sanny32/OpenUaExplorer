@@ -16,6 +16,7 @@
 #include "models/subscriptionitem.h"
 #include "models/trendseries.h"
 #include "opcua/opcuatypes.h"
+#include "session/sessiondata.h"
 
 namespace Ui {
 class NodeMonitorDialog;
@@ -74,6 +75,18 @@ public:
     ///
     void setSubscriptions(const QVector<SubscriptionItem> &subscriptions);
 
+    ///
+    /// \brief Captures the monitored node, settings and placement for the session.
+    /// \return Serializable snapshot of this monitor window.
+    ///
+    SessionNodeMonitor captureSession() const;
+
+    ///
+    /// \brief Restores a monitor's settings, placement and target from a session.
+    /// \param state Snapshot previously produced by captureSession().
+    ///
+    void restoreSession(const SessionNodeMonitor &state);
+
 signals:
     ///
     /// \brief Requests that a new subscription be created in the shared list.
@@ -123,6 +136,7 @@ private:
     QTimer *_liveTimer = nullptr;
     QString _nodeId;
     QString _displayName;
+    QString _displayPath;
     QString _typeText;
     bool _subscribed = false;
     bool _livePaused = false;

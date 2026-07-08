@@ -150,6 +150,67 @@ SessionTrendTab trendTabFromJson(const QJsonObject &json)
     return tab;
 }
 
+///
+/// \brief Serializes one node-monitor window, with its settings, to JSON.
+/// \param monitor Node monitor to serialize.
+/// \return JSON object mirroring the monitor fields.
+///
+QJsonObject nodeMonitorToJson(const SessionNodeMonitor &monitor)
+{
+    QJsonObject json;
+    json[QStringLiteral("nodeId")] = monitor.nodeId;
+    json[QStringLiteral("displayName")] = monitor.displayName;
+    json[QStringLiteral("displayPath")] = monitor.displayPath;
+    json[QStringLiteral("subscription")] = monitor.subscriptionName;
+    json[QStringLiteral("typeText")] = monitor.typeText;
+    json[QStringLiteral("alwaysOnTop")] = monitor.alwaysOnTop;
+    json[QStringLiteral("autoScale")] = monitor.autoScale;
+    json[QStringLiteral("stepLines")] = monitor.stepLines;
+    json[QStringLiteral("showGrid")] = monitor.showGrid;
+    json[QStringLiteral("showLegend")] = monitor.showLegend;
+    json[QStringLiteral("showPoints")] = monitor.showPoints;
+    json[QStringLiteral("showValueTooltip")] = monitor.showValueTooltip;
+    if (monitor.geometry.isValid()) {
+        QJsonObject geometry;
+        geometry[QStringLiteral("x")] = monitor.geometry.x();
+        geometry[QStringLiteral("y")] = monitor.geometry.y();
+        geometry[QStringLiteral("width")] = monitor.geometry.width();
+        geometry[QStringLiteral("height")] = monitor.geometry.height();
+        json[QStringLiteral("geometry")] = geometry;
+    }
+    return json;
+}
+
+///
+/// \brief Reconstructs a node monitor from a JSON object.
+/// \param json JSON object produced by nodeMonitorToJson().
+/// \return Parsed node monitor with default-backed missing fields.
+///
+SessionNodeMonitor nodeMonitorFromJson(const QJsonObject &json)
+{
+    SessionNodeMonitor monitor;
+    monitor.nodeId = json[QStringLiteral("nodeId")].toString();
+    monitor.displayName = json[QStringLiteral("displayName")].toString();
+    monitor.displayPath = json[QStringLiteral("displayPath")].toString();
+    monitor.subscriptionName = json[QStringLiteral("subscription")].toString();
+    monitor.typeText = json[QStringLiteral("typeText")].toString();
+    monitor.alwaysOnTop = json[QStringLiteral("alwaysOnTop")].toBool(true);
+    monitor.autoScale = json[QStringLiteral("autoScale")].toBool(true);
+    monitor.stepLines = json[QStringLiteral("stepLines")].toBool(true);
+    monitor.showGrid = json[QStringLiteral("showGrid")].toBool(true);
+    monitor.showLegend = json[QStringLiteral("showLegend")].toBool(true);
+    monitor.showPoints = json[QStringLiteral("showPoints")].toBool(false);
+    monitor.showValueTooltip = json[QStringLiteral("showValueTooltip")].toBool(true);
+    if (json.contains(QStringLiteral("geometry"))) {
+        const QJsonObject geometry = json[QStringLiteral("geometry")].toObject();
+        monitor.geometry = QRect(geometry[QStringLiteral("x")].toInt(),
+                                 geometry[QStringLiteral("y")].toInt(),
+                                 geometry[QStringLiteral("width")].toInt(),
+                                 geometry[QStringLiteral("height")].toInt());
+    }
+    return monitor;
+}
+
 } // namespace
 
 ///
@@ -192,6 +253,11 @@ bool SessionStore::save(const QString &path, const SessionData &data, QString *e
     for (const SessionTrendTab &tab : data.trendTabs)
         trendTabs.append(trendTabToJson(tab));
     root[QStringLiteral("trendTabs")] = trendTabs;
+
+    QJsonArray nodeMonitors;
+    for (const SessionNodeMonitor &monitor : data.nodeMonitors)
+        nodeMonitors.append(nodeMonitorToJson(monitor));
+    root[QStringLiteral("nodeMonitors")] = nodeMonitors;
 
     QJsonArray expanded;
     for (const QString &nodeId : data.expandedNodes)
@@ -280,6 +346,13 @@ bool SessionStore::load(const QString &path, SessionData &data, QString *error)
     const QJsonArray trendTabs = root[QStringLiteral("trendTabs")].toArray();
     for (const QJsonValue &value : trendTabs)
         parsed.trendTabs.append(trendTabFromJson(value.toObject()));
+
+    const QJsonArray nodeMonitors = root[QStringLiteral("nodeMonitors")].toArray();
+    for (const QJsonValue &value : nodeMonitors) {
+        const SessionNodeMonitor monitor = nodeMonitorFromJson(value.toObject());
+        if (!monitor.nodeId.isEmpty())
+            parsed.nodeMonitors.append(monitor);
+    }
 
     const QJsonArray expanded = root[QStringLiteral("expandedNodes")].toArray();
     for (const QJsonValue &value : expanded) {

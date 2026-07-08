@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QRect>
 #include <QString>
 #include <QStringList>
 #include <QVector>
@@ -98,6 +99,55 @@ struct SessionTrendTab
 };
 
 ///
+/// \brief One open node-monitor window restored with a working session.
+///
+/// Captures the monitored node together with the window's chart display toggles,
+/// subscription choice and placement, so a saved session reopens each monitor as
+/// it was left, not just the fact that a monitor was open.
+///
+struct SessionNodeMonitor
+{
+    /// \brief Monitored variable NodeId string.
+    QString nodeId;
+
+    /// \brief Human-readable node name shown in the header and legend.
+    QString displayName;
+
+    /// \brief Human-readable node path.
+    QString displayPath;
+
+    /// \brief Selected subscription name driving the live update interval.
+    QString subscriptionName;
+
+    /// \brief Resolved data-type display text, shown until a fresh read refreshes it.
+    QString typeText;
+
+    /// \brief Keep the window above others.
+    bool alwaysOnTop = true;
+
+    /// \brief Rescale the value axis to the data as new points arrive.
+    bool autoScale = true;
+
+    /// \brief Connect samples as hold-last-value steps instead of straight segments.
+    bool stepLines = true;
+
+    /// \brief Show the axis grid lines.
+    bool showGrid = true;
+
+    /// \brief Show the chart legend.
+    bool showLegend = true;
+
+    /// \brief Draw a marker at each sample point.
+    bool showPoints = false;
+
+    /// \brief Show the value plaque when hovering the series line.
+    bool showValueTooltip = true;
+
+    /// \brief Window geometry on screen, invalid when it was never placed.
+    QRect geometry;
+};
+
+///
 /// \brief Snapshot of a working session: connection plus its monitoring workspace.
 ///
 /// Secrets are never part of this payload; the connection profile references its
@@ -119,6 +169,9 @@ struct SessionData
 
     /// \brief Trend chart tabs with their display settings and series.
     QVector<SessionTrendTab> trendTabs;
+
+    /// \brief Open node-monitor windows with their settings.
+    QVector<SessionNodeMonitor> nodeMonitors;
 
     /// \brief Expanded address-space node ids, parents before children.
     QStringList expandedNodes;

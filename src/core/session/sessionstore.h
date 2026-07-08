@@ -26,7 +26,7 @@ public:
     ///
     /// \brief Current session file schema version.
     ///
-    static constexpr int schemaVersion = 2;
+    static constexpr int schemaVersion = 3;
 
     ///
     /// \brief Writes a session to a JSON file.

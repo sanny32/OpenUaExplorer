@@ -14,6 +14,7 @@
 #include <QMenu>
 #include <QMimeData>
 #include <QShowEvent>
+#include <QSignalBlocker>
 #include <QTimer>
 
 #include "appcolors.h"
@@ -152,6 +153,7 @@ void NodeMonitorDialog::setTarget(const OpcUaNodeInfo &node)
     _displayName = node.displayName.isEmpty()
         ? (node.browseName.isEmpty() ? node.nodeId : node.browseName)
         : node.displayName;
+    _displayPath = node.displayPath;
     _typeText.clear();
     _hasChartPoint = false;
     _lastChartY = 0.0;
@@ -215,6 +217,70 @@ void NodeMonitorDialog::setSubscriptions(const QVector<SubscriptionItem> &subscr
 {
     ui->subscriptionCombo->setSubscriptions(subscriptions);
     applySelectedSubscription();
+}
+
+///
+/// \brief Captures the monitored node, settings and placement for the session.
+/// \return Serializable snapshot of this monitor window.
+///
+SessionNodeMonitor NodeMonitorDialog::captureSession() const
+{
+    SessionNodeMonitor state;
+    state.nodeId = _nodeId;
+    state.displayName = _displayName;
+    state.displayPath = _displayPath;
+    state.subscriptionName = ui->subscriptionCombo->currentSubscription();
+    state.typeText = _typeText;
+    state.alwaysOnTop = ui->alwaysOnTopCheck->isChecked();
+    state.autoScale = _autoScaleY;
+    state.stepLines = _stepLines;
+    state.showGrid = _showGrid;
+    state.showLegend = _showLegend;
+    state.showPoints = _showPoints;
+    state.showValueTooltip = _showTooltip;
+    state.geometry = geometry();
+    return state;
+}
+
+///
+/// \brief Restores a monitor's settings, placement and target from a session.
+/// \param state Snapshot previously produced by captureSession().
+///
+void NodeMonitorDialog::restoreSession(const SessionNodeMonitor &state)
+{
+    _autoScaleY = state.autoScale;
+    _stepLines = state.stepLines;
+    _showGrid = state.showGrid;
+    _showLegend = state.showLegend;
+    _showPoints = state.showPoints;
+    _showTooltip = state.showValueTooltip;
+    applyChartOptions();
+
+    {
+        const QSignalBlocker blocker(ui->alwaysOnTopCheck);
+        ui->alwaysOnTopCheck->setChecked(state.alwaysOnTop);
+    }
+    setWindowFlag(Qt::WindowStaysOnTopHint, state.alwaysOnTop);
+
+    ui->subscriptionCombo->setCurrentSubscription(state.subscriptionName);
+    _publishingInterval = ui->subscriptionCombo->currentInterval();
+
+    if (state.geometry.isValid())
+        setGeometry(state.geometry);
+
+    if (!state.nodeId.isEmpty()) {
+        OpcUaNodeInfo node;
+        node.nodeId = state.nodeId;
+        node.displayName = state.displayName;
+        node.displayPath = state.displayPath;
+        node.nodeClass = OpcUa::Variable;
+        setTarget(node);
+
+        if (!state.typeText.isEmpty()) {
+            _typeText = state.typeText;
+            ui->typeLabel->setText(_typeText);
+        }
+    }
 }
 
 ///
