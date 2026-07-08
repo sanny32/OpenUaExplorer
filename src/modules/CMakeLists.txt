@@ -1,4 +1,4 @@
-add_library(ouaexp_plugins STATIC
+add_library(ouaexp_modules STATIC
     servicemodule.h
     servicecontext.cpp
     servicecontext.h
@@ -18,15 +18,15 @@ add_library(ouaexp_plugins STATIC
     eventsmodule.h
 )
 
-target_include_directories(ouaexp_plugins PUBLIC
+target_include_directories(ouaexp_modules PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(ouaexp_plugins PUBLIC ouaexp_core)
+target_link_libraries(ouaexp_modules PUBLIC ouaexp_core)
 
-ouaexp_apply_coverage(ouaexp_plugins)
-ouaexp_apply_pch(ouaexp_plugins)
+ouaexp_apply_coverage(ouaexp_modules)
+ouaexp_apply_pch(ouaexp_modules)
 
 if(MSVC)
-    target_compile_options(ouaexp_plugins PUBLIC /utf-8)
+    target_compile_options(ouaexp_modules PUBLIC /utf-8)
 endif()

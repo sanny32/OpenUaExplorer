@@ -54,19 +54,19 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
     _nodeDetailsDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetFloatable);
     _nodeDetailsDock->setWidget(_widget->takeNodeDetailsPanel());
 
-    auto *addressSpacePlugin = host.dataModules()->module<AddressSpaceModule>();
-    auto *referencePlugin = host.dataModules()->module<ReferenceModule>();
-    auto *dataAccessPlugin = host.dataModules()->module<DataAccessModule>();
+    auto *addressSpaceModule = host.dataModules()->module<AddressSpaceModule>();
+    auto *referenceModule = host.dataModules()->module<ReferenceModule>();
+    auto *dataAccessModule = host.dataModules()->module<DataAccessModule>();
 
     QObject::connect(_widget, &AddressSpaceWidget::browseRequested,
-                     addressSpacePlugin, &AddressSpaceModule::browse);
+                     addressSpaceModule, &AddressSpaceModule::browse);
     QObject::connect(_widget, &AddressSpaceWidget::refreshRequested,
-                     addressSpacePlugin, &AddressSpaceModule::refresh);
-    QObject::connect(addressSpacePlugin, &AddressSpaceModule::childrenReady,
+                     addressSpaceModule, &AddressSpaceModule::refresh);
+    QObject::connect(addressSpaceModule, &AddressSpaceModule::childrenReady,
                      _widget, &AddressSpaceWidget::setBrowseChildren);
     QObject::connect(_widget, &AddressSpaceWidget::referencesRequested,
-                     referencePlugin, &ReferenceModule::browseReferences);
-    QObject::connect(referencePlugin, &ReferenceModule::referencesReady,
+                     referenceModule, &ReferenceModule::browseReferences);
+    QObject::connect(referenceModule, &ReferenceModule::referencesReady,
                      _widget, &AddressSpaceWidget::setBrowseReferences);
     QObject::connect(_widget, &AddressSpaceWidget::nodeSelected,
                      host.selection(), &SelectionContext::selectNode);
@@ -88,8 +88,8 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
                      host.selection(), &SelectionContext::requestCallMethod);
     QObject::connect(host.selection(), &SelectionContext::detailsReady,
                      _widget, &AddressSpaceWidget::setNodeDetails);
-    if (dataAccessPlugin) {
-        QObject::connect(dataAccessPlugin, &DataAccessModule::monitoringFinished, _widget,
+    if (dataAccessModule) {
+        QObject::connect(dataAccessModule, &DataAccessModule::monitoringFinished, _widget,
                          [this](const QString &nodeId, bool subscribed, bool success, const QString &) {
             if (success)
                 _widget->setNodeSubscribed(nodeId, subscribed);

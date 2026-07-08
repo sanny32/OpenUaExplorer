@@ -52,7 +52,7 @@ add_compile_definitions(
 
 add_subdirectory(core)
 add_subdirectory(charting)
-add_subdirectory(plugins)
+add_subdirectory(modules)
 add_subdirectory(ui)
 add_subdirectory(app)
 if(OUAEXP_BUILD_TESTS)

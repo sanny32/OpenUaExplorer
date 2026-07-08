@@ -23,7 +23,7 @@
 /// \param toolBar Main toolbar.
 /// \param clientService Shared OPC UA client service.
 /// \param connectionController Shared connection controller.
-/// \param dataModules Shared data-plugin registry.
+/// \param dataModules Shared data-module registry.
 /// \param features Feature registry receiving contributions.
 /// \param selection Shared selected-node context.
 ///
@@ -92,8 +92,8 @@ ConnectionController *FeatureHost::connectionController() const
 }
 
 ///
-/// \brief Returns the data-plugin registry.
-/// \return Data-plugin registry.
+/// \brief Returns the data-module registry.
+/// \return Data-module registry.
 ///
 ServiceModuleManager *FeatureHost::dataModules() const
 {

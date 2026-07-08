@@ -193,7 +193,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupOpcUaClient();
     setupUpdateChecker();
-    setupPlugins();
+    setupModules();
     resetLayout();
     restoreSettings();
     ui->actionOpenSession->setEnabled(true);
@@ -345,9 +345,9 @@ void MainWindow::on_actionBrowseAddressSpace_triggered()
 void MainWindow::on_actionRefresh_triggered()
 {
     const QString nodeId = _selectionContext->currentNode().nodeId;
-    _addressSpacePlugin->refresh(nodeId);
+    _addressSpaceModule->refresh(nodeId);
     if (!nodeId.isEmpty())
-        _referencePlugin->browseReferences(nodeId);
+        _referenceModule->browseReferences(nodeId);
 }
 
 ///
@@ -1099,41 +1099,41 @@ void MainWindow::setupUpdateChecker()
 }
 
 ///
-/// \brief Registers data plugins, initializes UI features, and wires shared flows.
+/// \brief Registers data modules, initializes UI features, and wires shared flows.
 ///
-void MainWindow::setupPlugins()
+void MainWindow::setupModules()
 {
-    _pluginManager = new ServiceModuleManager(this);
+    _moduleManager = new ServiceModuleManager(this);
     _featureManager = new FeatureManager(this);
     _selectionContext = new SelectionContext(this);
 
-    _serverPlugin = new ServerModule;
-    _addressSpacePlugin = new AddressSpaceModule;
-    _attributePlugin = new AttributeModule;
-    _referencePlugin = new ReferenceModule;
-    _dataAccessPlugin = new DataAccessModule;
-    _eventsPlugin = new EventsModule;
+    _serverModule = new ServerModule;
+    _addressSpaceModule = new AddressSpaceModule;
+    _attributeModule = new AttributeModule;
+    _referenceModule = new ReferenceModule;
+    _dataAccessModule = new DataAccessModule;
+    _eventsModule = new EventsModule;
 
-    _pluginManager->registerModule(_serverPlugin);
-    _pluginManager->registerModule(_addressSpacePlugin);
-    _pluginManager->registerModule(_attributePlugin);
-    _pluginManager->registerModule(_referencePlugin);
-    _pluginManager->registerModule(_dataAccessPlugin);
-    _pluginManager->registerModule(_eventsPlugin);
+    _moduleManager->registerModule(_serverModule);
+    _moduleManager->registerModule(_addressSpaceModule);
+    _moduleManager->registerModule(_attributeModule);
+    _moduleManager->registerModule(_referenceModule);
+    _moduleManager->registerModule(_dataAccessModule);
+    _moduleManager->registerModule(_eventsModule);
 
     FeatureHost host(this,
                      ui->menuView,
                      ui->mainToolBar,
                      _clientService,
                      _connectionController,
-                     _pluginManager,
+                     _moduleManager,
                      _featureManager,
                      _selectionContext);
     registerBuiltinFeatures(*_featureManager);
     _featureManager->initializeAll(host);
 
     ServiceContext context(_clientService, _connectionController);
-    _pluginManager->initializeAll(context);
+    _moduleManager->initializeAll(context);
 
     DataAccessActions dataAccessActions;
     dataAccessActions.read = ui->actionRead;
@@ -1153,9 +1153,9 @@ void MainWindow::setupPlugins()
     dataAccessActions.readEventsHistory = ui->actionReadEventsHistory;
     _dataAccessCoordinator = new DataAccessCoordinator(ui->dataView,
                                                        ui->trendPanelWidget,
-                                                       _dataAccessPlugin,
-                                                       _eventsPlugin,
-                                                       _attributePlugin,
+                                                       _dataAccessModule,
+                                                       _eventsModule,
+                                                       _attributeModule,
                                                        _selectionContext,
                                                        _clientService,
                                                        dataAccessActions,

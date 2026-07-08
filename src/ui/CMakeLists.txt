@@ -217,7 +217,7 @@ target_include_directories(ouaexp_ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/widgets
 )
 
-target_link_libraries(ouaexp_ui PUBLIC ouaexp_plugins)
+target_link_libraries(ouaexp_ui PUBLIC ouaexp_modules)
 target_link_libraries(ouaexp_ui PRIVATE ouaexp_charting)
 
 ouaexp_configure_qt_target(ouaexp_ui)
