@@ -140,6 +140,15 @@ void UpdateChecker::onReplyFinished(QNetworkReply *reply)
     _isChecking = false;
 
     if (reply->error() != QNetworkReply::NoError) {
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (status == 404) {
+            _hasNewVersion = false;
+            _latestVersion.clear();
+            _releaseUrl.clear();
+            emit noUpdatesAvailable();
+            return;
+        }
+
         qCWarning(lcApp) << "Update check failed:" << reply->errorString();
         emit checkFailed(reply->errorString());
         return;
