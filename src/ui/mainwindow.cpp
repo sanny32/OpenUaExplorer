@@ -17,6 +17,7 @@
 #include <QMessageBox>
 #include <QRegularExpression>
 #include <QStringList>
+#include <QTimer>
 
 #include "appicons.h"
 #include "application.h"
@@ -122,6 +123,25 @@ QByteArray sessionFingerprint(const SessionData &data)
     return blob.toUtf8();
 }
 
+///
+/// \brief Reports whether a session carries a workspace worth saving.
+/// \param data Session payload to inspect.
+/// \return True when it has subscriptions, monitored nodes, or charted series.
+///
+/// The trend panel always keeps one empty default tab, so an empty tab alone does
+/// not count as content.
+///
+bool sessionHasContent(const SessionData &data)
+{
+    if (!data.subscriptions.isEmpty() || !data.dataAccessNodes.isEmpty())
+        return true;
+    for (const SessionTrendTab &tab : data.trendTabs) {
+        if (!tab.series.isEmpty())
+            return true;
+    }
+    return false;
+}
+
 } // namespace
 
 
@@ -161,6 +181,11 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionOpenSession->setEnabled(true);
     ui->actionExportLog->setEnabled(true);
     updateClientUi(_clientService->state());
+
+    auto *modifiedTimer = new QTimer(this);
+    modifiedTimer->setInterval(500);
+    connect(modifiedTimer, &QTimer::timeout, this, &MainWindow::updateModifiedState);
+    modifiedTimer->start();
 }
 
 ///
@@ -223,19 +248,28 @@ void MainWindow::on_actionOpenSession_triggered()
 ///
 void MainWindow::on_actionSaveSession_triggered()
 {
-    if (!_sessionPath.isEmpty()) {
-        saveSessionToFile(_sessionPath);
-        return;
-    }
+    saveCurrentSession();
+}
+
+///
+/// \brief Saves the session, writing to the current file or prompting for a new one.
+/// \return True when the session was saved, false when the user cancelled.
+///
+bool MainWindow::saveCurrentSession()
+{
+    if (!_sessionPath.isEmpty())
+        return saveSessionToFile(_sessionPath);
 
     const ConnectionProfile &profile = _connectionController->activeProfile();
-    const QString base = !profile.sessionName.isEmpty() ? profile.sessionName : profile.name;
+    QString base = !profile.sessionName.isEmpty() ? profile.sessionName : profile.name;
+    base.remove(QRegularExpression(QStringLiteral(R"(^[A-Za-z][A-Za-z0-9.+-]*://)")));
     const QString suggested = fileNameSegment(base, tr("session")) + QStringLiteral(".ouas");
     const QString path = QFileDialog::getSaveFileName(
         this, tr("Save Session"), suggested,
         tr("Session Files (*.ouas);;All Files (*)"));
-    if (!path.isEmpty())
-        saveSessionToFile(path);
+    if (path.isEmpty())
+        return false;
+    return saveSessionToFile(path);
 }
 
 ///
@@ -696,18 +730,28 @@ bool MainWindow::saveSessionToFile(const QString &path)
 }
 
 ///
-/// \brief Gathers the current connection and monitoring workspace into a session payload.
-/// \return Session snapshot suitable for persistence or fingerprinting.
+/// \brief Gathers only the saveable monitoring workspace, cheaply, for change detection.
+/// \return Subscriptions, monitored nodes and trend tabs, without profile or navigation state.
 ///
-SessionData MainWindow::collectSessionData() const
+SessionData MainWindow::sessionWorkspace() const
 {
     SessionData data;
-    data.profile = _connectionController->activeProfile();
     data.subscriptions = _dataAccessCoordinator->sessionSubscriptions();
     const QVector<QPair<QString, QString>> nodes = _dataAccessCoordinator->monitoredNodes();
     for (const QPair<QString, QString> &node : nodes)
         data.dataAccessNodes.append({node.first, node.second});
     data.trendTabs = _dataAccessCoordinator->trendTabs();
+    return data;
+}
+
+///
+/// \brief Gathers the current connection and monitoring workspace into a session payload.
+/// \return Session snapshot suitable for persistence or fingerprinting.
+///
+SessionData MainWindow::collectSessionData() const
+{
+    SessionData data = sessionWorkspace();
+    data.profile = _connectionController->activeProfile();
     _featureManager->saveSession(data);
     return data;
 }
@@ -780,6 +824,7 @@ void MainWindow::setCurrentSessionPath(const QString &path)
 {
     _sessionPath = path;
     updateWindowTitle();
+    updateModifiedState();
 }
 
 ///
@@ -809,8 +854,25 @@ QString MainWindow::sessionDisplayName() const
 ///
 void MainWindow::updateWindowTitle()
 {
-    setWindowTitle(QStringLiteral("%1 — %2")
+    setWindowTitle(QStringLiteral("%1 — %2[*]")
                        .arg(QString::fromUtf8(APP_PRODUCT_NAME), sessionDisplayName()));
+}
+
+///
+/// \brief Marks the window modified when the session has unsaved changes.
+///
+/// Drives the "[*]" marker in the window title. An open session is modified when its
+/// workspace differs from the saved snapshot; an untitled session is modified once it
+/// holds any content worth saving.
+///
+void MainWindow::updateModifiedState()
+{
+    const SessionData data = sessionWorkspace();
+    const bool modified = _sessionPath.isEmpty()
+        ? sessionHasContent(data)
+        : sessionFingerprint(data) != _savedSessionFingerprint;
+    if (modified != isWindowModified())
+        setWindowModified(modified);
 }
 
 ///
@@ -819,21 +881,28 @@ void MainWindow::updateWindowTitle()
 ///
 bool MainWindow::maybeSaveSession()
 {
-    if (_sessionPath.isEmpty())
-        return true;
-    if (sessionFingerprint(collectSessionData()) == _savedSessionFingerprint)
-        return true;
+    const SessionData data = sessionWorkspace();
+
+    QString message;
+    if (_sessionPath.isEmpty()) {
+        if (!sessionHasContent(data))
+            return true;
+        message = tr("The current session has unsaved changes.\nDo you want to save them?");
+    } else {
+        if (sessionFingerprint(data) == _savedSessionFingerprint)
+            return true;
+        message = tr("The session \"%1\" has unsaved changes.\nDo you want to save them?")
+                      .arg(sessionDisplayName());
+    }
 
     const DialogButtonBox::StandardButton choice = MessageBoxDialog::warning(
-        this, tr("Save Session"),
-        tr("The session \"%1\" has unsaved changes.\nDo you want to save them?")
-            .arg(sessionDisplayName()),
+        this, tr("Save Session"), message,
         DialogButtonBox::Save | DialogButtonBox::Discard | DialogButtonBox::Cancel,
         DialogButtonBox::Save);
 
     switch (choice) {
     case DialogButtonBox::Save:
-        return saveSessionToFile(_sessionPath);
+        return saveCurrentSession();
     case DialogButtonBox::Discard:
         return true;
     default:

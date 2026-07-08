@@ -97,13 +97,16 @@ private:
     void setupPlugins();
     void updateClientUi(OpcUaConnectionState state);
     bool saveSessionToFile(const QString &path);
+    bool saveCurrentSession();
     void openSessionFromFile(const QString &path);
     void applyPendingSession();
+    SessionData sessionWorkspace() const;
     SessionData collectSessionData() const;
     void setCurrentSessionPath(const QString &path);
     void closeCurrentSession();
     QString sessionDisplayName() const;
     void updateWindowTitle();
+    void updateModifiedState();
     bool maybeSaveSession();
     void initializeAddressSpace();
     class NodeMonitorDialog *createNodeMonitor();
