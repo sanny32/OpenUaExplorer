@@ -567,6 +567,9 @@ void NodeMonitorDialog::applyTheme()
     theme.statusBad = AppColors::statusError();
     theme.seriesPalette = { kSeriesColor };
     _chart->setTheme(theme);
+
+    ui->typeLabel->setStyleSheet(
+        QStringLiteral("color: %1;").arg(AppColors::toCss(AppColors::titleText())));
 }
 
 ///
