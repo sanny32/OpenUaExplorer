@@ -23,6 +23,7 @@
 #include "appsettings.h"
 #include "dialogs/callmethoddialog.h"
 #include "dialogs/certificatesdialog.h"
+#include "dialogs/messageboxdialog.h"
 #include "dialogs/namespaceinspectordialog.h"
 #include "dialogs/nodemonitordialog.h"
 #include "dialogs/dialogabout.h"
@@ -823,16 +824,17 @@ bool MainWindow::maybeSaveSession()
     if (sessionFingerprint(collectSessionData()) == _savedSessionFingerprint)
         return true;
 
-    const QMessageBox::StandardButton choice = QMessageBox::warning(
+    const DialogButtonBox::StandardButton choice = MessageBoxDialog::warning(
         this, tr("Save Session"),
         tr("The session \"%1\" has unsaved changes.\nDo you want to save them?")
             .arg(sessionDisplayName()),
-        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+        DialogButtonBox::Save | DialogButtonBox::Discard | DialogButtonBox::Cancel,
+        DialogButtonBox::Save);
 
     switch (choice) {
-    case QMessageBox::Save:
+    case DialogButtonBox::Save:
         return saveSessionToFile(_sessionPath);
-    case QMessageBox::Discard:
+    case DialogButtonBox::Discard:
         return true;
     default:
         return false;

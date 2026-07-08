@@ -111,6 +111,8 @@ add_library(ouaexp_ui STATIC
     dialogs/editfavoritedialog.h
     dialogs/endpointsettingsdialog.cpp
     dialogs/endpointsettingsdialog.h
+    dialogs/messageboxdialog.cpp
+    dialogs/messageboxdialog.h
     dialogs/namespaceinspectordialog.cpp
     dialogs/namespaceinspectordialog.h
     dialogs/nodemonitordialog.cpp

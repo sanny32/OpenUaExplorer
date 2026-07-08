@@ -13,6 +13,7 @@
 
 #include "coloredpushbutton.h"
 
+class QAbstractButton;
 class QPushButton;
 
 ///
@@ -53,6 +54,16 @@ public:
     /// \return Matching button, or nullptr when not present.
     ///
     QPushButton *button(StandardButton which) const;
+
+    ///
+    /// \brief Returns the standard button role backing a button instance.
+    /// \param button Button created by setStandardButtons().
+    /// \return Matching standard button, or NoButton when unknown.
+    ///
+    /// Reimplemented because the base class cannot map buttons that were added as
+    /// custom ColoredPushButton instances back to their standard role.
+    ///
+    StandardButton standardButton(QAbstractButton *button) const;
 
     ///
     /// \brief Paints a standard button with an explicit colour set.
