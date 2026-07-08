@@ -15,6 +15,7 @@
 #include <QSignalSpy>
 #include <QTableView>
 #include <QTest>
+#include <QTimeZone>
 #include <QToolButton>
 
 #include "models/addressspacemimedata.h"
@@ -94,7 +95,7 @@ void TestEventsWidget::exportAndClearButtonsFollowEvents()
     QVERIFY(!clearButton->isEnabled());
 
     OpcUaEvent event;
-    event.time = QDateTime(QDate(2026, 6, 26), QTime(11, 5, 20, 335), Qt::UTC);
+    event.time = QDateTime(QDate(2026, 6, 26), QTime(11, 5, 20, 335), QTimeZone::UTC);
     event.severity = 500;
     event.sourceName = QStringLiteral("MyLevel");
     event.message = QStringLiteral("Level exceeded");
@@ -119,7 +120,7 @@ void TestEventsWidget::sourceClearUnsubscribesAndClearsEvents()
     widget.setEventMonitoringState(QStringLiteral("ns=6;s=MyDevice"), true);
 
     OpcUaEvent event;
-    event.time = QDateTime(QDate(2026, 6, 26), QTime(11, 38, 1, 329), Qt::UTC);
+    event.time = QDateTime(QDate(2026, 6, 26), QTime(11, 38, 1, 329), QTimeZone::UTC);
     event.severity = 700;
     event.sourceName = QStringLiteral("MyLevel");
     event.message = QStringLiteral("Level exceeded");

@@ -12,6 +12,7 @@
 #include <QSignalSpy>
 #include <QString>
 #include <QTest>
+#include <QTimeZone>
 
 #include "addressspacemodule.h"
 #include "attributemodule.h"
@@ -128,8 +129,8 @@ void TestPlugins::eventHistoryApiReachesClientService()
 
     QSignalSpy spy(&module, &EventsModule::eventsHistoryReady);
     module.readHistory(QStringLiteral("ns=0;i=2253"),
-                       QDateTime(QDate(2026, 6, 25), QTime(12, 0), Qt::UTC),
-                       QDateTime(QDate(2026, 6, 25), QTime(13, 0), Qt::UTC),
+                       QDateTime(QDate(2026, 6, 25), QTime(12, 0), QTimeZone::UTC),
+                       QDateTime(QDate(2026, 6, 25), QTime(13, 0), QTimeZone::UTC),
                        1000);
     QTRY_COMPARE(spy.count(), 1);
     QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=0;i=2253"));

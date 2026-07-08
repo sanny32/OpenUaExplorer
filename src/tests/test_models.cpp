@@ -12,6 +12,7 @@
 #include <QDateTime>
 #include <QSignalSpy>
 #include <QTest>
+#include <QTimeZone>
 
 #include "appsettings.h"
 #include "testdata.h"
@@ -346,7 +347,7 @@ void TestModels::dataAccessTimestampModeReformats()
     DataAccessModel model;
     OpcUaNodeDetails details;
     details.nodeId = QStringLiteral("ns=2;s=TS");
-    details.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), Qt::UTC);
+    details.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), QTimeZone::UTC);
     model.addOrUpdate(details);
 
     const QModelIndex timestampIndex = model.index(0, DataAccessModel::ColTimestamp);
@@ -377,7 +378,7 @@ void TestModels::attributesModelTimestampModeReformats()
     value.displayValue = QStringLiteral("42");
     OpcUaNodeAttribute timestamp;
     timestamp.name = QStringLiteral("Source Timestamp");
-    timestamp.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), Qt::UTC);
+    timestamp.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), QTimeZone::UTC);
     value.children.append(timestamp);
 
     AttributesModel model;
@@ -505,8 +506,8 @@ void TestModels::historyModelHeaderRolesAndMutators()
 void TestModels::historyModelExportsCsv()
 {
     OpcUaHistoryValue value;
-    value.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 6), Qt::UTC);
-    value.serverTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 6, 7), Qt::UTC);
+    value.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 6), QTimeZone::UTC);
+    value.serverTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 6, 7), QTimeZone::UTC);
     value.value = QStringLiteral("12,\"quoted\"\nline");
     value.status = QStringLiteral("Good,Clamped");
 
@@ -530,7 +531,7 @@ void TestModels::dataAccessModelExportsCsv()
     item.displayName = QStringLiteral("Temperature");
     item.value = QStringLiteral("12,\"quoted\"\nline");
     item.dataType = QStringLiteral("Double");
-    item.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 6), Qt::UTC);
+    item.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 6), QTimeZone::UTC);
     item.status = QStringLiteral("Good,Clamped");
     item.subscriptionName = QStringLiteral("Default");
 
