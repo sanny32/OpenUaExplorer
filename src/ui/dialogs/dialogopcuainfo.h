@@ -48,6 +48,9 @@ public:
     ///
     QStringList supportedSecurityPolicies() const;
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private slots:
     void copyInfo();
 

@@ -1,6 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file alias="res/about.json">res/about.json</file>
-        <file alias="res/opcua-logo.svg">res/opcua-logo.svg</file>
-    </qresource>
-</RCC>

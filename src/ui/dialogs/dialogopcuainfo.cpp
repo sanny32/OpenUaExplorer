@@ -8,45 +8,24 @@
 
 #include <QApplication>
 #include <QClipboard>
-#include <QImage>
+#include <QEvent>
 #include <QLabel>
-#include <QPainter>
 #include <QPixmap>
 #include <QPushButton>
 #include <QScopedPointer>
-#include <QSvgRenderer>
 #include <QtGlobal>
 
 #include <QOpcUaClient>
 #include <QOpcUaProvider>
 
 #include "appcolors.h"
+#include "appicons.h"
 #include "dialogopcuainfo.h"
 #include "ui_dialogopcuainfo.h"
 
 namespace {
 
 constexpr char securityPolicyPrefix[] = "http://opcfoundation.org/UA/SecurityPolicy#";
-
-///
-/// \brief Returns the bounding rectangle of visible pixels in an image.
-/// \param image Image to scan.
-/// \return Bounding rectangle, or an invalid rectangle when the image is transparent.
-///
-QRect visibleBounds(const QImage &image)
-{
-    QRect bounds;
-    for (int y = 0; y < image.height(); ++y) {
-        const auto *line = reinterpret_cast<const QRgb *>(image.constScanLine(y));
-        for (int x = 0; x < image.width(); ++x) {
-            if (qAlpha(line[x]) == 0)
-                continue;
-            const QRect pixelRect(x, y, 1, 1);
-            bounds = bounds.isNull() ? pixelRect : bounds.united(pixelRect);
-        }
-    }
-    return bounds;
-}
 
 }
 
@@ -58,8 +37,6 @@ DialogOpcUaInfo::DialogOpcUaInfo(QWidget *parent)
     : AppBaseDialog(parent)
     , ui(new Ui::DialogOpcUaInfo)
 {
-    Q_INIT_RESOURCE(ui_resources);
-
     ui->setupUi(this);
 
     setupLayout();
@@ -138,6 +115,20 @@ QStringList DialogOpcUaInfo::supportedSecurityPolicies() const
     policies.removeDuplicates();
     policies.sort(Qt::CaseInsensitive);
     return policies;
+}
+
+///
+/// \brief Refreshes the logo when the application palette changes.
+/// \param event Change event being handled.
+///
+void DialogOpcUaInfo::changeEvent(QEvent *event)
+{
+    AppBaseDialog::changeEvent(event);
+
+    if (event->type() == QEvent::PaletteChange
+        || event->type() == QEvent::ApplicationPaletteChange) {
+        setupLogo();
+    }
 }
 
 ///
@@ -224,19 +215,10 @@ void DialogOpcUaInfo::setupLayout()
 ///
 void DialogOpcUaInfo::setupLogo()
 {
-    QSvgRenderer renderer(QStringLiteral(":/res/opcua-logo.svg"));
-    QImage image(1600, 1600, QImage::Format_ARGB32_Premultiplied);
-    image.fill(Qt::transparent);
-
-    QPainter painter(&image);
-    renderer.render(&painter);
-    painter.end();
-
-    const QRect bounds = visibleBounds(image);
-    const QImage logo = bounds.isValid() ? image.copy(bounds) : image;
-    ui->logoLabel->setPixmap(QPixmap::fromImage(logo).scaled(ui->logoLabel->minimumSize(),
-                                                             Qt::KeepAspectRatio,
-                                                             Qt::SmoothTransformation));
+    const QString logoResource = AppIcons::isDarkTheme()
+        ? QStringLiteral(":/res/opcua-logo-dark.png")
+        : QStringLiteral(":/res/opcua-logo-light.png");
+    ui->logoLabel->setPixmap(QPixmap(logoResource));
 }
 
 ///

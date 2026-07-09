@@ -60,7 +60,6 @@ add_library(ouaexp_ui STATIC
     qlementineappstyle.h
     qlementinethemefactory.cpp
     qlementinethemefactory.h
-    ui_resources.qrc
     mainwindow.cpp
     mainwindow.h
     connectioncoordinator.cpp

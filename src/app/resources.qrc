@@ -1,6 +1,9 @@
 <RCC>
     <qresource prefix="/">
+        <file alias="res/about.json">res/about.json</file>
         <file alias="icons/light/add.svg">res/icons/light/add.svg</file>
+        <file alias="res/opcua-logo-dark.png">res/opcua-logo-dark.png</file>
+        <file alias="res/opcua-logo-light.png">res/opcua-logo-light.png</file>
         <file alias="icons/light/app.svg">res/icons/light/app.svg</file>
         <file alias="icons/light/browse.svg">res/icons/light/browse.svg</file>
         <file alias="icons/light/connect.svg">res/icons/light/connect.svg</file>

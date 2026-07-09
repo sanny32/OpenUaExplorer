@@ -8,10 +8,14 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QImage>
 #include <QLabel>
+#include <QPixmap>
 #include <QPushButton>
 #include <QTest>
 
+#include "application.h"
+#include "appsettings.h"
 #include "dialogs/dialogopcuainfo.h"
 
 ///
@@ -23,6 +27,7 @@ class TestDialogOpcUaInfo : public QObject
 
 private slots:
     void showsSectionsAndRuntimeValues();
+    void logoStaysVisibleOnDarkPalette();
     void exposesExternalLinks();
     void copiesDiagnosticSummary();
 };
@@ -40,18 +45,56 @@ void TestDialogOpcUaInfo::showsSectionsAndRuntimeValues()
     QVERIFY(dialog.findChild<QLabel *>(QStringLiteral("specificationTitleLabel")));
     QVERIFY(dialog.findChild<QLabel *>(QStringLiteral("resourcesTitleLabel")));
 
+    auto *logo = dialog.findChild<QLabel *>(QStringLiteral("logoLabel"));
     auto *sdkValue = dialog.findChild<QLabel *>(QStringLiteral("sdkValue"));
     auto *sdkVersionValue = dialog.findChild<QLabel *>(QStringLiteral("sdkVersionValue"));
     auto *securityPoliciesValue =
         dialog.findChild<QLabel *>(QStringLiteral("securityPoliciesValue"));
+    QVERIFY(logo);
     QVERIFY(sdkValue);
     QVERIFY(sdkVersionValue);
     QVERIFY(securityPoliciesValue);
 
+    QVERIFY(!logo->pixmap().isNull());
     QCOMPARE(sdkValue->text(), QStringLiteral("open62541"));
     QCOMPARE(sdkVersionValue->text(), QStringLiteral("Not available"));
     QVERIFY(!dialog.findChild<QLabel *>(QStringLiteral("backendValue")));
     QVERIFY(!securityPoliciesValue->text().isEmpty());
+}
+
+///
+/// \brief The OPC UA logo keeps visible light pixels on a dark palette.
+///
+void TestDialogOpcUaInfo::logoStaysVisibleOnDarkPalette()
+{
+    const AppSettings::ThemeMode previousMode = AppSettings().themeMode();
+    theApp()->theme().setColorSchemePreference(AppSettings::ThemeMode::Dark);
+    if (!theApp()->theme().isDark()) {
+        theApp()->theme().setColorSchemePreference(previousMode);
+        QSKIP("Dark application theme is not available on this platform.");
+    }
+
+    DialogOpcUaInfo dialog;
+
+    auto *logo = dialog.findChild<QLabel *>(QStringLiteral("logoLabel"));
+    QVERIFY(logo);
+    const QPixmap pixmap = logo->pixmap();
+    QVERIFY(!pixmap.isNull());
+
+    const QImage image = pixmap.toImage();
+    bool hasLightPixel = false;
+    for (int y = 0; y < image.height() && !hasLightPixel; ++y) {
+        for (int x = 0; x < image.width(); ++x) {
+            const QColor color = image.pixelColor(x, y);
+            if (color.alpha() > 0 && color.lightness() > 200) {
+                hasLightPixel = true;
+                break;
+            }
+        }
+    }
+    QVERIFY(hasLightPixel);
+
+    theApp()->theme().setColorSchemePreference(previousMode);
 }
 
 ///
@@ -94,6 +137,17 @@ void TestDialogOpcUaInfo::copiesDiagnosticSummary()
     QVERIFY(clipboardText.contains(QStringLiteral("https://opcfoundation.org")));
 }
 
-QTEST_MAIN(TestDialogOpcUaInfo)
+///
+/// \brief Runs the suite under a real Application so theme-aware resources are available.
+/// \param argc Argument count.
+/// \param argv Argument vector.
+/// \return Test exit code.
+///
+int main(int argc, char *argv[])
+{
+    Application app(argc, argv);
+    TestDialogOpcUaInfo test;
+    return QTest::qExec(&test, argc, argv);
+}
 
 #include "test_dialogopcuainfo.moc"
