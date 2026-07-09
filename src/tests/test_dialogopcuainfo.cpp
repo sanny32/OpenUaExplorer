@@ -57,7 +57,14 @@ void TestDialogOpcUaInfo::showsSectionsAndRuntimeValues()
 
     QVERIFY(!logo->pixmap().isNull());
     QCOMPARE(sdkValue->text(), QStringLiteral("open62541"));
-    QCOMPARE(sdkVersionValue->text(), QStringLiteral("Not available"));
+#ifdef OPCUA_OPEN62541_VERSION
+    const QString expectedSdkVersion = QStringLiteral(OPCUA_OPEN62541_VERSION).isEmpty()
+        ? QStringLiteral("Not available")
+        : QStringLiteral(OPCUA_OPEN62541_VERSION);
+#else
+    const QString expectedSdkVersion = QStringLiteral("Not available");
+#endif
+    QCOMPARE(sdkVersionValue->text(), expectedSdkVersion);
     QVERIFY(!dialog.findChild<QLabel *>(QStringLiteral("backendValue")));
     QVERIFY(!securityPoliciesValue->text().isEmpty());
 }

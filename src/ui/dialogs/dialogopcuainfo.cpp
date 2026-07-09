@@ -27,6 +27,19 @@ namespace {
 
 constexpr char securityPolicyPrefix[] = "http://opcfoundation.org/UA/SecurityPolicy#";
 
+///
+/// \brief Returns the open62541 version detected while configuring Qt OPC UA.
+/// \return open62541 version, or an empty string when it was not detected.
+///
+QString open62541Version()
+{
+#ifdef OPCUA_OPEN62541_VERSION
+    return QStringLiteral(OPCUA_OPEN62541_VERSION);
+#else
+    return {};
+#endif
+}
+
 }
 
 ///
@@ -149,7 +162,9 @@ void DialogOpcUaInfo::setupContent()
         policies = fallbackSecurityPolicies();
 
     setRowValue(QStringLiteral("sdkValue"), QStringLiteral("open62541"));
-    setRowValue(QStringLiteral("sdkVersionValue"), tr("Not available"));
+    const QString sdkVersion = open62541Version();
+    setRowValue(QStringLiteral("sdkVersionValue"),
+                sdkVersion.isEmpty() ? tr("Not available") : sdkVersion);
     setRowValue(QStringLiteral("qtOpcUaVersionValue"),
                 tr("%1 (built against %2)").arg(qVersion(), QStringLiteral(QT_VERSION_STR)));
     setRowValue(QStringLiteral("securityPoliciesValue"), displayList(policies));
