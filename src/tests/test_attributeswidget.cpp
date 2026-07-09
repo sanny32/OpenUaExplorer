@@ -28,6 +28,8 @@ class TestAttributesWidget : public QObject
 private slots:
     void usesSharedHeaderView();
     void headerSectionsAreResizable();
+    void valueSectionStretchesToFillView();
+    void valueSectionStretchesAfterStateRestore();
     void copiesCurrentCell();
     void copiesFullTree();
     void contextMenuOnlyUsesValueColumn();
@@ -85,7 +87,7 @@ void TestAttributesWidget::usesSharedHeaderView()
 }
 
 ///
-/// \brief Verifies the attributes columns can be resized by the user.
+/// \brief Verifies the attributes column can be resized by the user.
 ///
 void TestAttributesWidget::headerSectionsAreResizable()
 {
@@ -94,7 +96,44 @@ void TestAttributesWidget::headerSectionsAreResizable()
     QVERIFY(tree);
 
     QCOMPARE(tree->header()->sectionResizeMode(0), QHeaderView::Interactive);
-    QCOMPARE(tree->header()->sectionResizeMode(1), QHeaderView::Interactive);
+}
+
+///
+/// \brief Verifies the value column fills the remaining header width.
+///
+void TestAttributesWidget::valueSectionStretchesToFillView()
+{
+    AttributesWidget widget;
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("attributesTree"));
+    QVERIFY(tree);
+
+    QVERIFY(tree->header()->stretchLastSection());
+}
+
+///
+/// \brief Restored header state keeps the value column filling the view.
+///
+void TestAttributesWidget::valueSectionStretchesAfterStateRestore()
+{
+    AppSettings settings;
+    settings.clearLayout();
+
+    AttributesWidget savedWidget;
+    auto *savedTree = savedWidget.findChild<QTreeView *>(QStringLiteral("attributesTree"));
+    QVERIFY(savedTree);
+    auto *savedHeader = qobject_cast<HeaderView *>(savedTree->header());
+    QVERIFY(savedHeader);
+    savedHeader->setStretchLastSection(false);
+    settings.setViewState(savedTree->objectName(), savedHeader->saveLayout());
+
+    AttributesWidget restoredWidget;
+    restoredWidget.restoreViewState(settings);
+    auto *restoredTree =
+        restoredWidget.findChild<QTreeView *>(QStringLiteral("attributesTree"));
+    QVERIFY(restoredTree);
+    QVERIFY(restoredTree->header()->stretchLastSection());
+
+    settings.clearLayout();
 }
 
 ///

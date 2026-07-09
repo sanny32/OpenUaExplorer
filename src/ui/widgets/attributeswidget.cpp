@@ -250,8 +250,10 @@ void AttributesWidget::restoreViewState(AppSettings &settings)
 {
     const QByteArray state = settings.viewState(ui->attributesTree->objectName());
     auto *header = qobject_cast<HeaderView *>(ui->attributesTree->header());
-    if (header)
+    if (header) {
         header->restoreLayout(state);
+        header->setStretchLastSection(true);
+    }
 }
 
 ///
@@ -262,7 +264,7 @@ void AttributesWidget::setupAttributesView()
     ui->attributesTree->setHeader(new HeaderView(Qt::Horizontal, ui->attributesTree));
     ui->attributesTree->setModel(_model);
     auto *header = ui->attributesTree->header();
-    header->setStretchLastSection(false);
+    header->setStretchLastSection(true);
     header->setSectionResizeMode(AttributesModel::ColAttribute, QHeaderView::Interactive);
     header->setSectionResizeMode(AttributesModel::ColValue, QHeaderView::Interactive);
 
