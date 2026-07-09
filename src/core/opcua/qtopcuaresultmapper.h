@@ -17,10 +17,11 @@
 
 namespace QtOpcUaResultMapper {
 
-/// \brief Keeps only endpoints whose security policy the active backend can use.
+/// \brief Keeps only endpoints whose security policy and transport scheme can be used.
 QVector<QOpcUaEndpointDescription> endpointsWithSupportedPolicy(
     const QVector<QOpcUaEndpointDescription> &endpoints,
-    const QStringList &supportedPolicies);
+    const QStringList &supportedPolicies,
+    const QString &scheme = QString());
 
 /// \brief Fills browsed children with EventNotifier/Historizing values from a batch read.
 void applyBrowseAttributeResults(QVector<OpcUaNodeInfo> *nodes,

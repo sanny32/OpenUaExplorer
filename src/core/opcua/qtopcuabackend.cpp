@@ -302,13 +302,14 @@ void QtOpcUaBackend::discoverEndpoints(const QString &url, const QString &backen
         emit endpointsDiscovered({}, message);
         return;
     }
+    const QString discoveryScheme = discoveryUrl.scheme();
     _d->connection.setState(OpcUaConnectionState::Discovering);
     constexpr auto operation = QtOpcUaRequestCoordinator::Operation::Discovery;
     const auto token = _d->beginConnectionRequest(operation);
     auto connection = std::make_shared<QMetaObject::Connection>();
     *connection = connect(
         _d->connection.client(), &QOpcUaClient::endpointsRequestFinished, this,
-        [this, connection, token, operation](
+        [this, connection, token, operation, discoveryScheme](
             const QVector<QOpcUaEndpointDescription> &result,
             QOpcUa::UaStatusCode status, const QUrl &) {
         disconnect(*connection);
@@ -319,7 +320,8 @@ void QtOpcUaBackend::discoverEndpoints(const QString &url, const QString &backen
         if (!_d->requests.settle(token))
             return;
         const QVector<QOpcUaEndpointDescription> usable = QOpcUa::isSuccessStatus(status)
-            ? QtOpcUaResultMapper::endpointsWithSupportedPolicy(result, supportedPolicies)
+            ? QtOpcUaResultMapper::endpointsWithSupportedPolicy(result, supportedPolicies,
+                                                                discoveryScheme)
             : QVector<QOpcUaEndpointDescription>();
         _d->connection.finishDiscovery(usable);
         const QList<EndpointInfo> endpoints = QtOpcUaTypeMapper::endpointInfos(usable);

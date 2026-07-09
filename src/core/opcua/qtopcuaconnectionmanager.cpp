@@ -12,6 +12,7 @@
 #include <QOpcUaConnectionSettings>
 #include <QOpcUaErrorState>
 #include <QOpcUaPkiConfiguration>
+#include <QOpcUaUserTokenPolicy>
 
 #include "formatters/attributeformatter.h"
 #include "certificatetrustdecider.h"
@@ -67,6 +68,28 @@ QString connectionStepName(QOpcUaErrorState::ConnectionStep step)
     case QOpcUaErrorState::ConnectionStep::ActivateSession: return backendTr("Activate session");
     }
     return backendTr("Step %1").arg(static_cast<int>(step));
+}
+
+/// \brief Returns true when an endpoint advertises the requested user-token type.
+bool supportsAuthentication(const QOpcUaEndpointDescription &endpoint,
+                            ConnectionProfile::Authentication authentication)
+{
+    QOpcUaUserTokenPolicy::TokenType tokenType = QOpcUaUserTokenPolicy::Anonymous;
+    switch (authentication) {
+    case ConnectionProfile::Authentication::Username:
+        tokenType = QOpcUaUserTokenPolicy::Username;
+        break;
+    case ConnectionProfile::Authentication::Certificate:
+        tokenType = QOpcUaUserTokenPolicy::Certificate;
+        break;
+    case ConnectionProfile::Authentication::Anonymous:
+        tokenType = QOpcUaUserTokenPolicy::Anonymous;
+        break;
+    }
+    for (const QOpcUaUserTokenPolicy &token : endpoint.userIdentityTokens())
+        if (token.tokenType() == tokenType)
+            return true;
+    return false;
 }
 
 } // namespace
@@ -348,7 +371,8 @@ int QtOpcUaConnectionManager::endpointIndex(const ConnectionProfile &profile) co
         const QOpcUaEndpointDescription &candidate = _endpoints.at(i);
         if (candidate.endpointUrl() == profile.endpointUrl
             && candidate.securityPolicy() == profile.securityPolicy
-            && static_cast<int>(candidate.securityMode()) == profile.securityMode) {
+            && static_cast<int>(candidate.securityMode()) == profile.securityMode
+            && supportsAuthentication(candidate, profile.authentication)) {
             return i;
         }
     }

@@ -6,6 +6,7 @@
 #include <QHash>
 #include <QOpcUaLocalizedText>
 #include <QOpcUaSimpleAttributeOperand>
+#include <QUrl>
 #include <QVariant>
 
 #include "formatters/attributeformatter.h"
@@ -13,19 +14,23 @@
 namespace QtOpcUaResultMapper {
 
 ///
-/// \brief Keeps only endpoints whose security policy the active backend can use.
+/// \brief Keeps only endpoints whose security policy and transport scheme can be used.
 /// \param endpoints Endpoints returned by the discovery request.
 /// \param supportedPolicies Security policy URIs reported by the backend.
-/// \return Endpoints whose security policy is supported by the backend.
+/// \param scheme Discovery URL scheme, or empty to accept any scheme.
+/// \return Endpoints whose security policy and scheme match the discovery request.
 ///
 QVector<QOpcUaEndpointDescription> endpointsWithSupportedPolicy(
     const QVector<QOpcUaEndpointDescription> &endpoints,
-    const QStringList &supportedPolicies)
+    const QStringList &supportedPolicies,
+    const QString &scheme)
 {
     QVector<QOpcUaEndpointDescription> filtered;
     filtered.reserve(endpoints.size());
     for (const QOpcUaEndpointDescription &endpoint : endpoints) {
-        if (supportedPolicies.contains(endpoint.securityPolicy()))
+        const bool schemeMatches = scheme.isEmpty()
+            || QUrl(endpoint.endpointUrl()).scheme().compare(scheme, Qt::CaseInsensitive) == 0;
+        if (schemeMatches && supportedPolicies.contains(endpoint.securityPolicy()))
             filtered.append(endpoint);
     }
     return filtered;

@@ -88,13 +88,25 @@ void TestQtOpcUaInternals::mapsEndpointsAndReferences()
     endpoint.setServerCertificate(QByteArrayLiteral("certificate"));
     endpoint.setUserIdentityTokens({anonymous, username});
 
-    const QList<EndpointInfo> endpoints = QtOpcUaTypeMapper::endpointInfos({endpoint});
+    QOpcUaEndpointDescription duplicate = endpoint;
+    duplicate.setServerCertificate(QByteArrayLiteral("alternate-certificate"));
+    duplicate.setUserIdentityTokens({anonymous});
+    const QList<EndpointInfo> endpoints = QtOpcUaTypeMapper::endpointInfos({duplicate, endpoint});
     QCOMPARE(endpoints.size(), 1);
     QCOMPARE(endpoints.first().index, 0);
     QCOMPARE(endpoints.first().endpointUrl, endpoint.endpointUrl());
     QVERIFY(endpoints.first().supportsAnonymous);
     QVERIFY(endpoints.first().supportsUsername);
     QVERIFY(!endpoints.first().supportsCertificate);
+
+    QOpcUaEndpointDescription httpsEndpoint = endpoint;
+    httpsEndpoint.setEndpointUrl(QStringLiteral("opc.https://localhost:53443"));
+    const QVector<QOpcUaEndpointDescription> transportFiltered =
+        QtOpcUaResultMapper::endpointsWithSupportedPolicy({endpoint, httpsEndpoint},
+                                                          {QStringLiteral("policy")},
+                                                          QStringLiteral("opc.tcp"));
+    QCOMPARE(transportFiltered.size(), 1);
+    QCOMPARE(transportFiltered.first().endpointUrl(), endpoint.endpointUrl());
 
     QOpcUaReferenceDescription reference;
     reference.setTargetNodeId(QOpcUaExpandedNodeId(QStringLiteral("ns=2;s=Value")));

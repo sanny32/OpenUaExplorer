@@ -3,6 +3,8 @@
 
 #include "qtopcuatypemapper.h"
 
+#include <algorithm>
+
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaBinaryDataEncoding>
 #include <QOpcUaExtensionObject>
@@ -85,6 +87,24 @@ QList<QPair<QString, QOpcUa::NodeAttribute>> attributeFields(
     return fields;
 }
 
+/// \brief Returns true when two endpoint rows represent the same selectable profile.
+bool isSameEndpointProfile(const EndpointInfo &left, const EndpointInfo &right)
+{
+    return left.endpointUrl == right.endpointUrl
+        && left.securityPolicy == right.securityPolicy
+        && left.securityModeValue == right.securityModeValue;
+}
+
+/// \brief Adds token capabilities from source to target.
+void mergeEndpointCapabilities(EndpointInfo *target, const EndpointInfo &source)
+{
+    target->supportsAnonymous |= source.supportsAnonymous;
+    target->supportsUsername |= source.supportsUsername;
+    target->supportsCertificate |= source.supportsCertificate;
+    if (target->serverCertificate.isEmpty())
+        target->serverCertificate = source.serverCertificate;
+}
+
 } // namespace
 
 namespace QtOpcUaTypeMapper {
@@ -107,6 +127,14 @@ QList<EndpointInfo> endpointInfos(const QVector<QOpcUaEndpointDescription> &endp
             info.supportsAnonymous |= token.tokenType() == QOpcUaUserTokenPolicy::Anonymous;
             info.supportsUsername |= token.tokenType() == QOpcUaUserTokenPolicy::Username;
             info.supportsCertificate |= token.tokenType() == QOpcUaUserTokenPolicy::Certificate;
+        }
+        const auto existing = std::find_if(result.begin(), result.end(),
+                                           [&info](const EndpointInfo &candidate) {
+                                               return isSameEndpointProfile(candidate, info);
+                                           });
+        if (existing != result.end()) {
+            mergeEndpointCapabilities(&*existing, info);
+            continue;
         }
         result.append(info);
     }
