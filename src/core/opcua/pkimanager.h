@@ -55,6 +55,18 @@ public:
     static QString applicationUri();
 
     ///
+    /// \brief Returns the application name the client presents to OPC UA servers.
+    /// \return "product@host" name identifying this installation.
+    ///
+    static QString applicationName();
+
+    ///
+    /// \brief Returns the product URI reported in the application identity.
+    /// \return Product URI in the "vendor:product" form Qt OPC UA derives from certificates.
+    ///
+    static QString productUri();
+
+    ///
     /// \brief Returns the common name for the auto-generated client certificate.
     /// \return Common name used by the auto-generated client certificate.
     ///

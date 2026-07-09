@@ -12,6 +12,7 @@
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
+#include <QSysInfo>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -37,6 +38,7 @@ private slots:
     void initTestCase();
     void profileRoundTripDoesNotStoreSecrets();
     void pkiPathsUseExpectedLayout();
+    void applicationNameIdentifiesProductAndHost();
     void generatedCertificateProvidesApplicationIdentity();
     void lazyModelRequestsAndAppliesBrowse();
     void attributesModelExposesStructuredValues();
@@ -104,6 +106,22 @@ void TestOpcUa::pkiPathsUseExpectedLayout()
 }
 
 ///
+/// \brief TestOpcUa::applicationNameIdentifiesProductAndHost
+///
+void TestOpcUa::applicationNameIdentifiesProductAndHost()
+{
+    QString productName = QString::fromUtf8(APP_PRODUCT_NAME);
+    productName.remove(QLatin1Char(' '));
+    QString host = QSysInfo::machineHostName().trimmed();
+    if (host.isEmpty())
+        host = QStringLiteral("localhost");
+    host.remove(QLatin1Char(' '));
+
+    QCOMPARE(PkiManager::applicationName(), QStringLiteral("%1@%2").arg(productName, host));
+    QCOMPARE(PkiManager::productUri(), QStringLiteral("%1:%1").arg(productName));
+}
+
+///
 /// \brief TestOpcUa::generatedCertificateProvidesApplicationIdentity
 ///
 void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
@@ -146,6 +164,7 @@ void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
     configuration.setPrivateKeyFile(privateKeyFile);
     QCOMPARE(configuration.applicationIdentity().applicationUri(),
              PkiManager::applicationUri());
+    QVERIFY(configuration.applicationIdentity().isValid());
 
     QString existingCertificateFile;
     QString existingPrivateKeyFile;

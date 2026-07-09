@@ -28,6 +28,17 @@ QString backendTr(const char *text)
     return QCoreApplication::translate("QtOpcUaBackend", text);
 }
 
+/// \brief Builds the identity this client reports to servers when no certificate is configured.
+QOpcUaApplicationIdentity applicationIdentity()
+{
+    QOpcUaApplicationIdentity identity;
+    identity.setApplicationName(PkiManager::applicationName());
+    identity.setApplicationUri(PkiManager::applicationUri());
+    identity.setProductUri(PkiManager::productUri());
+    identity.setApplicationType(QOpcUaApplicationDescription::Client);
+    return identity;
+}
+
 /// \brief Returns a user-facing description of a Qt OPC UA client error.
 QString clientErrorName(QOpcUaClient::ClientError error)
 {
@@ -339,7 +350,7 @@ void QtOpcUaConnectionManager::configureClient(const ConnectionProfile &profile,
     }
     _client->setAuthenticationInformation(authentication);
     _client->setPkiConfiguration(QOpcUaPkiConfiguration());
-    _client->setApplicationIdentity(QOpcUaApplicationIdentity());
+    _client->setApplicationIdentity(applicationIdentity());
     if (!profile.clientCertificateFile.isEmpty()) {
         QString error;
         _pki.ensureDirectories(&error);
@@ -352,8 +363,13 @@ void QtOpcUaConnectionManager::configureClient(const ConnectionProfile &profile,
         configuration.setIssuerListDirectory(paths.issuerCertificates);
         configuration.setIssuerRevocationListDirectory(paths.issuerCrl);
         _client->setPkiConfiguration(configuration);
-        if (configuration.isKeyAndCertificateFileSet())
-            _client->setApplicationIdentity(configuration.applicationIdentity());
+        if (configuration.isKeyAndCertificateFileSet()) {
+            QOpcUaApplicationIdentity identity = configuration.applicationIdentity();
+            if (identity.isValid()) {
+                identity.setApplicationName(PkiManager::applicationName());
+                _client->setApplicationIdentity(identity);
+            }
+        }
         _activeClientCertificateFile = profile.clientCertificateFile;
     }
     QOpcUaConnectionSettings settings;

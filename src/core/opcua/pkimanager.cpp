@@ -250,6 +250,26 @@ QString PkiManager::applicationUri()
 }
 
 ///
+/// \brief Returns the application name the client presents to OPC UA servers.
+/// \return "product@host" name identifying this installation.
+///
+QString PkiManager::applicationName()
+{
+    const QString productName = withoutSpaces(QString::fromUtf8(APP_PRODUCT_NAME));
+    return QStringLiteral("%1@%2").arg(productName, withoutSpaces(hostName()));
+}
+
+///
+/// \brief Returns the product URI reported in the application identity.
+/// \return Product URI in the "vendor:product" form Qt OPC UA derives from certificates.
+///
+QString PkiManager::productUri()
+{
+    const QString productName = withoutSpaces(QString::fromUtf8(APP_PRODUCT_NAME));
+    return QStringLiteral("%1:%1").arg(productName);
+}
+
+///
 /// \brief Returns the common name for the auto-generated client certificate.
 /// \return Common name used by the auto-generated client certificate.
 ///
