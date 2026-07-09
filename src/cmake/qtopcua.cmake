@@ -104,13 +104,14 @@ FetchContent_Declare(qtopcua
     GIT_REPOSITORY https://code.qt.io/qt/qtopcua.git
     GIT_TAG "v${QTOPCUA_VERSION}"
     GIT_SHALLOW TRUE
+    SOURCE_DIR "${QTOPCUA_SOURCE_DIR}"
+    BINARY_DIR "${QTOPCUA_BUILD_DIR}"
+    SOURCE_SUBDIR cmake-populate-only
 )
 
 ouaexp_remove_incomplete_qtopcua_source()
+FetchContent_MakeAvailable(qtopcua)
 FetchContent_GetProperties(qtopcua)
-if(NOT qtopcua_POPULATED)
-    FetchContent_Populate(qtopcua)
-endif()
 
 ouaexp_detect_open62541_version("${qtopcua_SOURCE_DIR}")
 
