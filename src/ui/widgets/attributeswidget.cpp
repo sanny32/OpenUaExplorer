@@ -18,6 +18,7 @@
 #include "appsettings.h"
 #include "attributeswidget.h"
 #include "formatters/attributeformatter.h"
+#include "headerview.h"
 #include "themedaction.h"
 #include "models/attributesmodel.h"
 #include "ui_attributeswidget.h"
@@ -236,8 +237,9 @@ void AttributesWidget::setTimestampMode(AppSettings::TimestampMode mode)
 ///
 void AttributesWidget::saveViewState(AppSettings &settings) const
 {
-    settings.setViewState(ui->attributesTree->objectName(),
-                          ui->attributesTree->header()->saveState());
+    auto *header = qobject_cast<HeaderView *>(ui->attributesTree->header());
+    if (header)
+        settings.setViewState(ui->attributesTree->objectName(), header->saveLayout());
 }
 
 ///
@@ -247,8 +249,9 @@ void AttributesWidget::saveViewState(AppSettings &settings) const
 void AttributesWidget::restoreViewState(AppSettings &settings)
 {
     const QByteArray state = settings.viewState(ui->attributesTree->objectName());
-    if (!state.isEmpty())
-        ui->attributesTree->header()->restoreState(state);
+    auto *header = qobject_cast<HeaderView *>(ui->attributesTree->header());
+    if (header)
+        header->restoreLayout(state);
 }
 
 ///
@@ -256,11 +259,12 @@ void AttributesWidget::restoreViewState(AppSettings &settings)
 ///
 void AttributesWidget::setupAttributesView()
 {
+    ui->attributesTree->setHeader(new HeaderView(Qt::Horizontal, ui->attributesTree));
     ui->attributesTree->setModel(_model);
     auto *header = ui->attributesTree->header();
     header->setStretchLastSection(false);
-    header->setSectionResizeMode(AttributesModel::ColAttribute, QHeaderView::Fixed);
-    header->setSectionResizeMode(AttributesModel::ColValue, QHeaderView::Stretch);
+    header->setSectionResizeMode(AttributesModel::ColAttribute, QHeaderView::Interactive);
+    header->setSectionResizeMode(AttributesModel::ColValue, QHeaderView::Interactive);
 
     ui->attributesTree->setColumnWidth(AttributesModel::ColAttribute, 165);
 

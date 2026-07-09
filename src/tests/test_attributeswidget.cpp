@@ -15,6 +15,7 @@
 #include <QTest>
 
 #include "application.h"
+#include "widgets/headerview.h"
 #include "widgets/attributeswidget.h"
 
 ///
@@ -25,6 +26,8 @@ class TestAttributesWidget : public QObject
     Q_OBJECT
 
 private slots:
+    void usesSharedHeaderView();
+    void headerSectionsAreResizable();
     void copiesCurrentCell();
     void copiesFullTree();
     void contextMenuOnlyUsesValueColumn();
@@ -69,6 +72,30 @@ OpcUaNodeDetails makeDetails()
 }
 
 } // namespace
+
+///
+/// \brief Verifies the attributes tree uses the shared header implementation.
+///
+void TestAttributesWidget::usesSharedHeaderView()
+{
+    AttributesWidget widget;
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("attributesTree"));
+    QVERIFY(tree);
+    QVERIFY(qobject_cast<HeaderView *>(tree->header()));
+}
+
+///
+/// \brief Verifies the attributes columns can be resized by the user.
+///
+void TestAttributesWidget::headerSectionsAreResizable()
+{
+    AttributesWidget widget;
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("attributesTree"));
+    QVERIFY(tree);
+
+    QCOMPARE(tree->header()->sectionResizeMode(0), QHeaderView::Interactive);
+    QCOMPARE(tree->header()->sectionResizeMode(1), QHeaderView::Interactive);
+}
 
 ///
 /// \brief Verifies the Copy Cell action writes the current cell text.
