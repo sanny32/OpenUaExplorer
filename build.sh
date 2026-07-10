@@ -890,7 +890,7 @@ deploy_linux_with_linuxdeployqt() {
     # with the rest and resolves their dependencies too.
     "$linuxdeployqt" "$app" \
         -qmake="$qmake" \
-        -extra-plugins=iconengines,platformthemes \
+        -extra-plugins=iconengines,platformthemes,tls \
         -unsupported-allow-new-glibc
 
     log_info "Deployed Linux AppDir into $appdir"
