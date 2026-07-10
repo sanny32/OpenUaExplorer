@@ -164,6 +164,5 @@ jobs:
           prerelease: ${{ steps.version.outputs.prerelease != '' }}
           files: |
             ${{ steps.version.outputs.setup }}
-            ${{ steps.version.outputs.setup }}.sha256
           generate_release_notes: true
           fail_on_unmatched_files: true
