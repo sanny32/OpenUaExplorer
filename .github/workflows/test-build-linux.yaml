@@ -1,0 +1,115 @@
+name: Test build.sh script on Linux
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - build.sh
+      - .github/workflows/test-build-linux.yaml
+      - src/**
+
+concurrency:
+  group: build-script-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate build.sh syntax
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Check script metadata
+        run: head -n1 build.sh | grep -qx '#!/usr/bin/env bash'
+
+      - name: Check Bash syntax
+        run: bash -n build.sh
+
+      - name: Run ShellCheck
+        run: shellcheck -e SC1091 build.sh
+
+      - name: Check help output
+        run: bash build.sh --help
+
+  build:
+    name: Run build.sh on ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
+    needs: validate
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu-22.04
+            runner: ubuntu-22.04
+
+          - name: Ubuntu-24.04
+            runner: ubuntu-24.04
+
+          - name: Ubuntu-26.04
+            runner: ubuntu-26.04
+
+          - name: Fedora-43
+            runner: ubuntu-latest
+            container: fedora:43
+            container-setup: dnf -y install git tar findutils
+
+          - name: Fedora-44
+            runner: ubuntu-latest
+            container: fedora:44
+            container-setup: dnf -y install git tar findutils
+
+          - name: Rocky-Linux-10.1
+            runner: ubuntu-latest
+            container: rockylinux/rockylinux:10.1
+            container-setup: dnf -y install git tar findutils
+
+          - name: RedOS-8
+            runner: ubuntu-latest
+            container: registry.red-soft.ru/redos8c/ubi:latest
+            container-setup: dnf -y install git tar findutils
+
+          - name: AstraLinux-1.8
+            runner: ubuntu-latest
+            container: registry.astralinux.ru/astra/ubi18:latest
+            container-setup: apt-get update && apt-get install -y git tar findutils
+
+          - name: ALT-Linux-11
+            runner: ubuntu-latest
+            container: alt:p11
+            container-setup: apt-get update && apt-get install -y git tar findutils
+
+          - name: openSUSE-Tumbleweed
+            runner: ubuntu-latest
+            container: opensuse/tumbleweed
+            container-setup: zypper --non-interactive install git tar findutils
+
+          - name: Arch
+            runner: ubuntu-latest
+            container: archlinux:latest
+            container-setup: pacman -Sy --noconfirm git tar
+
+    steps:
+      - name: Prepare container
+        if: matrix.container-setup
+        run: ${{ matrix.container-setup }}
+
+      - name: Checkout
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git init -q .
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git fetch -q --depth 1 origin "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
+
+      - name: Run build.sh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: bash build.sh --install

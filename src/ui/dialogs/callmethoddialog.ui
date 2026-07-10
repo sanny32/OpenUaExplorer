@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CallMethodDialog</class>
+ <widget class="QDialog" name="CallMethodDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>640</width>
+    <height>420</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Call Method</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="inputGroup">
+     <property name="title"><string>Input Arguments</string></property>
+     <layout class="QVBoxLayout" name="inputLayout">
+      <item>
+       <widget class="TableView" name="inputTable">
+        <property name="minimumSize"><size><width>0</width><height>110</height></size></property>
+        <property name="fullTextHorizontalScroll" stdset="0"><bool>true</bool></property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="outputGroup">
+     <property name="title"><string>Output Arguments</string></property>
+     <layout class="QVBoxLayout" name="outputLayout">
+      <item>
+       <widget class="TableView" name="outputTable">
+        <property name="minimumSize"><size><width>0</width><height>90</height></size></property>
+        <property name="fullTextHorizontalScroll" stdset="0"><bool>true</bool></property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="resultLayout">
+     <item>
+      <widget class="QLabel" name="resultTitleLabel">
+       <property name="text"><string>Result:</string></property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="resultLabel">
+       <property name="text"><string/></property>
+       <property name="textInteractionFlags"><set>Qt::TextSelectableByMouse</set></property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="resultSpacer">
+       <property name="orientation"><enum>Qt::Horizontal</enum></property>
+       <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="DialogButtonBox" name="buttonBox">
+     <property name="standardButtons"><set>QDialogButtonBox::Apply|QDialogButtonBox::Close</set></property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TableView</class>
+   <extends>QTableView</extends>
+   <header>widgets/tableview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>DialogButtonBox</class>
+   <extends>QDialogButtonBox</extends>
+   <header>widgets/dialogbuttonbox.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

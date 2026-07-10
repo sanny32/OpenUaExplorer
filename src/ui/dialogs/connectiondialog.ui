@@ -1,0 +1,890 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ConnectionDialog</class>
+ <widget class="QDialog" name="ConnectionDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1020</width>
+    <height>650</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Connect to OPC UA Server</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>:/app.ico</normaloff>:/app.ico</iconset>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_2">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="3,2">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <item>
+        <widget class="QGroupBox" name="connectionGroupBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string>Connection</string>
+         </property>
+         <layout class="QVBoxLayout" name="connectionLayout">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout">
+            <item>
+             <widget class="QLabel" name="endpointUrlLabel">
+              <property name="text">
+               <string>Endpoint URL:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="HistoryComboBox" name="discoveryUrlComboBox">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>300</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="editable">
+               <bool>true</bool>
+              </property>
+              <item>
+               <property name="text">
+                <string>opc.tcp://localhost:4840</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item>
+             <widget class="ThemedPushButton" name="getEndpointsButton">
+              <property name="text">
+               <string>Discover Endpoints</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="EndpointDiscoveryWidget" name="endpointsWidget" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>1</horstretch>
+              <verstretch>1</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="authenticationGroupBox">
+         <property name="title">
+          <string>Authentication</string>
+         </property>
+         <layout class="QGridLayout" name="authenticationLayout" columnstretch="0,1,0">
+          <item row="0" column="0">
+           <widget class="QLabel" name="authenticationLabel">
+            <property name="text">
+             <string>Authentication:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="authenticationComboBox">
+            <property name="minimumSize">
+             <size>
+              <width>280</width>
+              <height>0</height>
+             </size>
+            </property>
+            <item>
+             <property name="text">
+              <string>Anonymous</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Username/Password</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Certificate</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="0" colspan="3">
+           <widget class="QStackedWidget" name="authStack">
+            <widget class="QWidget" name="usernamePanel">
+             <layout class="QGridLayout" name="usernameLayout" columnstretch="0,0,0">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="usernameLabel">
+                <property name="text">
+                 <string>Username:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="usernameEdit">
+                <property name="minimumSize">
+                 <size>
+                  <width>280</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="2">
+               <widget class="QLabel" name="usernameHintLabel">
+                <property name="text">
+                 <string>(not used with Anonymous)</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="passwordLabel">
+                <property name="text">
+                 <string>Password:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="passwordEdit">
+                <property name="minimumSize">
+                 <size>
+                  <width>280</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="echoMode">
+                 <enum>QLineEdit::EchoMode::Password</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="2">
+               <widget class="QLabel" name="passwordHintLabel">
+                <property name="text">
+                 <string>(not used with Anonymous)</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="certificatePanel">
+             <layout class="QGridLayout" name="certificateLayout" columnstretch="0,0,0">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="certificateLabel">
+                <property name="text">
+                 <string>Certificate:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="certificateEdit">
+                <property name="minimumSize">
+                 <size>
+                  <width>280</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="2">
+               <widget class="ThemedPushButton" name="certificateBrowseButton">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>32</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>...</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="privateKeyLabel">
+                <property name="text">
+                 <string>Private Key:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="privateKeyEdit">
+                <property name="minimumSize">
+                 <size>
+                  <width>280</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="2">
+               <widget class="ThemedPushButton" name="privateKeyBrowseButton">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>32</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>...</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="privateKeyPasswordLabel">
+                <property name="text">
+                 <string>Key Password:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLineEdit" name="privateKeyPasswordEdit">
+                <property name="minimumSize">
+                 <size>
+                  <width>280</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="echoMode">
+                 <enum>QLineEdit::EchoMode::Password</enum>
+                </property>
+                <property name="placeholderText">
+                 <string>Leave empty for an unencrypted key</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="advancedGroupBox">
+         <property name="title">
+          <string>Advanced Settings</string>
+         </property>
+         <layout class="QVBoxLayout" name="advancedLayout">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QWidget" name="advancedContent" native="true">
+            <layout class="QGridLayout" name="advancedGridLayout" columnstretch="0,0,0,1,0,0,0">
+             <property name="leftMargin">
+              <number>9</number>
+             </property>
+             <property name="topMargin">
+              <number>6</number>
+             </property>
+             <property name="rightMargin">
+              <number>9</number>
+             </property>
+             <property name="bottomMargin">
+              <number>9</number>
+             </property>
+             <property name="horizontalSpacing">
+              <number>8</number>
+             </property>
+             <property name="verticalSpacing">
+              <number>6</number>
+             </property>
+             <item row="0" column="0">
+              <widget class="QLabel" name="sessionTimeoutLabel">
+               <property name="text">
+                <string>Session Timeout:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QSpinBox" name="sessionTimeoutSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>1000000</number>
+               </property>
+               <property name="value">
+                <number>600000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <widget class="QLabel" name="sessionTimeoutUnitLabel">
+               <property name="text">
+                <string>ms</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="4">
+              <widget class="QLabel" name="endpointTimeoutLabel">
+               <property name="text">
+                <string>Endpoint Timeout:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="5">
+              <widget class="QSpinBox" name="endpointTimeoutSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>1000000</number>
+               </property>
+               <property name="value">
+                <number>10000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="6">
+              <widget class="QLabel" name="endpointTimeoutUnitLabel">
+               <property name="text">
+                <string>ms</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="connectTimeoutLabel">
+               <property name="text">
+                <string>Connect Timeout:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QSpinBox" name="connectTimeoutSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>1000000</number>
+               </property>
+               <property name="value">
+                <number>10000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="2">
+              <widget class="QLabel" name="connectTimeoutUnitLabel">
+               <property name="text">
+                <string>ms</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="4">
+              <widget class="QLabel" name="requestTimeoutLabel">
+               <property name="text">
+                <string>Request Timeout:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="5">
+              <widget class="QSpinBox" name="requestTimeoutSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>1000000</number>
+               </property>
+               <property name="value">
+                <number>5000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="6">
+              <widget class="QLabel" name="requestTimeoutUnitLabel">
+               <property name="text">
+                <string>ms</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="secureChannelLifetimeLabel">
+               <property name="text">
+                <string>Secure Channel Lifetime:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QSpinBox" name="secureChannelLifetimeSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>1000000</number>
+               </property>
+               <property name="value">
+                <number>600000</number>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="2">
+              <widget class="QLabel" name="secureChannelLifetimeUnitLabel">
+               <property name="text">
+                <string>ms</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="4">
+              <widget class="QLabel" name="maxMessageSizeLabel">
+               <property name="text">
+                <string>Max. Message Size:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="5">
+              <widget class="QSpinBox" name="maxMessageSizeSpinBox">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>10000000</number>
+               </property>
+               <property name="value">
+                <number>4194304</number>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="6">
+              <widget class="QLabel" name="maxMessageSizeUnitLabel">
+               <property name="text">
+                <string>bytes</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="certificatesPanel">
+       <property name="title">
+        <string>Certificates</string>
+       </property>
+       <layout class="QVBoxLayout" name="certificatesLayout">
+        <property name="spacing">
+         <number>16</number>
+        </property>
+        <property name="leftMargin">
+         <number>16</number>
+        </property>
+        <property name="topMargin">
+         <number>18</number>
+        </property>
+        <property name="rightMargin">
+         <number>16</number>
+        </property>
+        <property name="bottomMargin">
+         <number>16</number>
+        </property>
+        <item>
+         <widget class="QWidget" name="clientCertificateGroupBox" native="true">
+          <layout class="QVBoxLayout" name="clientCertificateCardLayout">
+           <property name="spacing">
+            <number>8</number>
+           </property>
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <layout class="QHBoxLayout" name="clientCertificateLayout">
+             <property name="spacing">
+              <number>8</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="clientCertificateCaption">
+               <property name="text">
+                <string>Certificate:</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+               </property>
+               <property name="certCaption" stdset="0">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+              <item>
+               <widget class="QComboBox" name="clientCertificateComboBox">
+                <item>
+                 <property name="text">
+                  <string>Auto-select</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Default client certificate</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item>
+               <widget class="ThemedPushButton" name="clientCertificateViewButton">
+                <property name="text">
+                 <string>View...</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           <item>
+            <widget class="CertificateSummaryWidget" name="clientCertificateWidget" native="true"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="Line" name="certificateSectionLine">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="serverCertificateGroupBox" native="true">
+          <layout class="QVBoxLayout" name="serverCertificateCardLayout">
+           <property name="spacing">
+            <number>6</number>
+           </property>
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="CertificateSummaryWidget" name="serverCertificateWidget" native="true"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="Line" name="trustSectionLine">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="trustServerCertificateCheckBox">
+          <property name="text">
+           <string>Trust server certificate automatically</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="trustListLayout">
+          <item>
+           <widget class="QLabel" name="trustListLabel">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Trust List:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="trustListComboBox">
+            <item>
+             <property name="text">
+              <string>Default</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Current user</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Application</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <widget class="ThemedPushButton" name="trustListManageButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Manage...</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <spacer name="certificatesBottomSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QFrame" name="statusSeparator">
+     <property name="frameShape">
+      <enum>QFrame::HLine</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Sunken</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="bottomLayout">
+     <property name="spacing">
+      <number>6</number>
+     </property>
+     <property name="topMargin">
+      <number>4</number>
+     </property>
+     <item>
+      <widget class="ThemedIconLabel" name="statusIconLabel">
+       <property name="minimumSize">
+        <size>
+         <width>16</width>
+         <height>16</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16</width>
+         <height>16</height>
+        </size>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="statusLabel">
+       <property name="text">
+        <string>Disconnected</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="bottomSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="ThemedPushButton" name="cancelButton">
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="ColoredPushButton" name="connectButton">
+       <property name="text">
+        <string>Connect</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ThemedPushButton</class>
+   <extends>QPushButton</extends>
+   <header>widgets/themedpushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ColoredPushButton</class>
+   <extends>QPushButton</extends>
+   <header>widgets/coloredpushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>HistoryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>widgets/historycombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ThemedIconLabel</class>
+   <extends>QLabel</extends>
+   <header>widgets/themediconlabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>EndpointDiscoveryWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/endpointdiscoverywidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CertificateSummaryWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/certificatesummarywidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>discoveryUrlComboBox</tabstop>
+  <tabstop>getEndpointsButton</tabstop>
+  <tabstop>endpointsWidget</tabstop>
+  <tabstop>authenticationComboBox</tabstop>
+  <tabstop>usernameEdit</tabstop>
+  <tabstop>passwordEdit</tabstop>
+  <tabstop>certificateEdit</tabstop>
+  <tabstop>certificateBrowseButton</tabstop>
+  <tabstop>privateKeyEdit</tabstop>
+  <tabstop>privateKeyBrowseButton</tabstop>
+  <tabstop>privateKeyPasswordEdit</tabstop>
+  <tabstop>advancedGroupBox</tabstop>
+  <tabstop>sessionTimeoutSpinBox</tabstop>
+  <tabstop>endpointTimeoutSpinBox</tabstop>
+  <tabstop>connectTimeoutSpinBox</tabstop>
+  <tabstop>requestTimeoutSpinBox</tabstop>
+  <tabstop>secureChannelLifetimeSpinBox</tabstop>
+  <tabstop>maxMessageSizeSpinBox</tabstop>
+  <tabstop>clientCertificateComboBox</tabstop>
+  <tabstop>clientCertificateViewButton</tabstop>
+  <tabstop>trustServerCertificateCheckBox</tabstop>
+  <tabstop>trustListComboBox</tabstop>
+  <tabstop>trustListManageButton</tabstop>
+  <tabstop>cancelButton</tabstop>
+  <tabstop>connectButton</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

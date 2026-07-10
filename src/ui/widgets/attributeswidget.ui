@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AttributesWidget</class>
+ <widget class="QWidget" name="AttributesWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>350</width>
+    <height>283</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>8</number>
+   </property>
+   <property name="leftMargin">
+    <number>8</number>
+   </property>
+   <property name="topMargin">
+    <number>8</number>
+   </property>
+   <property name="rightMargin">
+    <number>8</number>
+   </property>
+   <property name="bottomMargin">
+    <number>8</number>
+   </property>
+   <item>
+    <widget class="QTreeView" name="attributesTree">
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectItems</enum>
+     </property>
+     <property name="uniformRowHeights">
+      <bool>true</bool>
+     </property>
+     <property name="allColumnsShowFocus">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="writeValueGroup">
+     <property name="title">
+      <string>Write Value</string>
+     </property>
+     <layout class="QHBoxLayout" name="writeLayout">
+      <item>
+       <widget class="QLabel" name="valueLabel">
+        <property name="text">
+         <string>Value:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="ValueLineEdit" name="valueEdit"/>
+      </item>
+      <item>
+       <widget class="QComboBox" name="typeCombo"/>
+      </item>
+      <item>
+       <widget class="ThemedPushButton" name="writeButton">
+        <property name="text">
+         <string>Write</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ThemedPushButton</class>
+   <extends>QPushButton</extends>
+   <header>widgets/themedpushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ValueLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>widgets/valuelineedit.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

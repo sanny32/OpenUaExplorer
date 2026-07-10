@@ -1,0 +1,512 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CertificatesDialog</class>
+ <widget class="QDialog" name="CertificatesDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>605</width>
+    <height>684</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Certificates</string>
+  </property>
+  <layout class="QVBoxLayout" name="rootLayout">
+   <property name="spacing">
+    <number>14</number>
+   </property>
+   <property name="leftMargin">
+    <number>24</number>
+   </property>
+   <property name="topMargin">
+    <number>20</number>
+   </property>
+   <property name="rightMargin">
+    <number>24</number>
+   </property>
+   <property name="bottomMargin">
+    <number>20</number>
+   </property>
+   <item>
+    <widget class="QGroupBox" name="clientCertificateGroupBox">
+     <property name="title">
+      <string>Client Certificate</string>
+     </property>
+     <layout class="QVBoxLayout" name="clientCertificateLayout">
+      <property name="spacing">
+       <number>12</number>
+      </property>
+      <item>
+       <layout class="QGridLayout" name="clientCertificateGrid" columnstretch="0,1,0">
+        <property name="horizontalSpacing">
+         <number>16</number>
+        </property>
+        <property name="verticalSpacing">
+         <number>8</number>
+        </property>
+        <item row="0" column="0">
+         <widget class="QLabel" name="certificateFileCaption">
+          <property name="text">
+           <string>Certificate file:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLabel" name="certificateFileValue">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="2">
+         <widget class="ThemedToolButton" name="viewCertificateButton">
+          <property name="text">
+           <string>View details</string>
+          </property>
+          <property name="linkStyle" stdset="0">
+           <bool>true</bool>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>16</width>
+            <height>16</height>
+           </size>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+          </property>
+          <property name="autoRaise">
+           <bool>true</bool>
+          </property>
+          <property name="iconName" stdset="0">
+           <string>file-text</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="privateKeyCaption">
+          <property name="text">
+           <string>Private key:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLabel" name="privateKeyValue">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="2">
+         <widget class="ThemedToolButton" name="viewKeyButton">
+          <property name="text">
+           <string>View Key</string>
+          </property>
+          <property name="linkStyle" stdset="0">
+           <bool>true</bool>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>16</width>
+            <height>16</height>
+           </size>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+          </property>
+          <property name="autoRaise">
+           <bool>true</bool>
+          </property>
+          <property name="iconName" stdset="0">
+           <string>key-round</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="validUntilCaption">
+          <property name="text">
+           <string>Valid until:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1" colspan="2">
+         <widget class="QLabel" name="validUntilValue">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="issuerCaption">
+          <property name="text">
+           <string>Issuer:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1" colspan="2">
+         <widget class="QLabel" name="issuerValue">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="thumbprintCaption">
+          <property name="text">
+           <string>Thumbprint:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1" colspan="2">
+         <widget class="QLabel" name="thumbprintValue">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="statusCaption">
+          <property name="text">
+           <string>Status:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1" colspan="2">
+         <layout class="QHBoxLayout" name="statusRowLayout">
+          <property name="spacing">
+           <number>6</number>
+          </property>
+          <item>
+           <widget class="ThemedIconLabel" name="statusIcon">
+            <property name="minimumSize">
+             <size>
+              <width>18</width>
+              <height>18</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>18</width>
+              <height>18</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="statusValue">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="statusSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="clientCertificateButtons">
+        <property name="spacing">
+         <number>8</number>
+        </property>
+        <item>
+         <spacer name="clientButtonsLeadingSpacer">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="ThemedPushButton" name="importClientButton">
+          <property name="text">
+           <string>Import...</string>
+          </property>
+          <property name="iconName" stdset="0">
+           <string>export</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="ThemedPushButton" name="exportClientButton">
+          <property name="text">
+           <string>Export...</string>
+          </property>
+          <property name="iconName" stdset="0">
+           <string>download</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="ThemedPushButton" name="replaceClientButton">
+          <property name="text">
+           <string>Replace...</string>
+          </property>
+          <property name="iconName" stdset="0">
+           <string>refresh</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="ThemedPushButton" name="removeClientButton">
+          <property name="text">
+           <string>Remove</string>
+          </property>
+          <property name="iconName" stdset="0">
+           <string>trash</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="trustStoreGroupBox">
+     <property name="title">
+      <string>Trusted / Rejected Certificates</string>
+     </property>
+     <layout class="QVBoxLayout" name="trustStoreLayout">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <item>
+       <layout class="QHBoxLayout" name="trustStoreHeader">
+        <property name="spacing">
+         <number>10</number>
+        </property>
+        <item>
+         <widget class="QComboBox" name="filterComboBox">
+          <property name="minimumSize">
+           <size>
+            <width>130</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="searchEdit">
+          <property name="minimumSize">
+           <size>
+            <width>220</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="placeholderText">
+           <string>Search...</string>
+          </property>
+          <property name="clearButtonEnabled">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="TableView" name="tableView">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>200</height>
+         </size>
+        </property>
+        <property name="fullTextHorizontalScroll" stdset="0">
+         <bool>true</bool>
+        </property>
+        <property name="editTriggers">
+         <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+        </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+        </property>
+        <property name="horizontalScrollMode">
+         <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+        </property>
+        <property name="wordWrap">
+         <bool>false</bool>
+        </property>
+        <attribute name="horizontalHeaderStretchLastSection">
+         <bool>false</bool>
+        </attribute>
+        <attribute name="verticalHeaderVisible">
+         <bool>false</bool>
+        </attribute>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="trustStoreButtons">
+        <property name="spacing">
+         <number>8</number>
+        </property>
+        <item>
+         <widget class="ThemedPushButton" name="trustButton">
+          <property name="text">
+           <string>Trust</string>
+          </property>
+          <property name="iconName" stdset="0">
+           <string>shield-check</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="ThemedPushButton" name="rejectButton">
+          <property name="text">
+           <string>Reject</string>
+          </property>
+          <property name="iconName" stdset="0">
+           <string>shield-warning</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="ThemedPushButton" name="removeCertificateButton">
+          <property name="text">
+           <string>Remove</string>
+          </property>
+          <property name="iconName" stdset="0">
+           <string>trash</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="ThemedPushButton" name="detailsButton">
+          <property name="text">
+           <string>Details...</string>
+          </property>
+          <property name="iconName" stdset="0">
+           <string>info</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="trustStoreButtonsSpacer">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="importCertificateRow">
+        <item>
+         <widget class="ThemedPushButton" name="importCertificateButton">
+          <property name="text">
+           <string>Import Certificate...</string>
+          </property>
+          <property name="iconName" stdset="0">
+           <string>export</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="importCertificateSpacer">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="DialogButtonBox" name="buttonBox">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::StandardButton::Apply|QDialogButtonBox::StandardButton::Close|QDialogButtonBox::StandardButton::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DialogButtonBox</class>
+   <extends>QDialogButtonBox</extends>
+   <header>widgets/dialogbuttonbox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ThemedPushButton</class>
+   <extends>QPushButton</extends>
+   <header>widgets/themedpushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ThemedIconLabel</class>
+   <extends>QLabel</extends>
+   <header>widgets/themediconlabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ThemedToolButton</class>
+   <extends>QToolButton</extends>
+   <header>widgets/themedtoolbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>TableView</class>
+   <extends>QTableView</extends>
+   <header>widgets/tableview.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

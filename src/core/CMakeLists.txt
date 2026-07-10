@@ -1,0 +1,118 @@
+add_library(ouaexp_core STATIC
+    appsettings.cpp
+    appsettings.h
+    loggingcategories.cpp
+    loggingcategories.h
+    updatechecker.cpp
+    updatechecker.h
+    utils.cpp
+    utils.h
+
+    formatters/attributeformatter.cpp
+    formatters/attributeformatter.h
+    formatters/bitmaskformatter.cpp
+    formatters/datetimeformatter.cpp
+    formatters/datetimeformatter.h
+    formatters/durationformatter.cpp
+    formatters/durationformatter.h
+    formatters/nodeidformatter.cpp
+    formatters/scalarformatter.cpp
+    formatters/valueformatter.cpp
+    opcua/certificateinfo.cpp
+    opcua/certificateinfo.h
+    opcua/certificatetrustdecider.h
+    opcua/connectioncontroller.cpp
+    opcua/connectioncontroller.h
+    opcua/connectionprofile.h
+    opcua/connectionprofilestore.cpp
+    opcua/connectionprofilestore.h
+    opcua/connectionprofilevalidator.cpp
+    opcua/connectionprofilevalidator.h
+    opcua/endpointhistorystore.cpp
+    opcua/endpointhistorystore.h
+    opcua/namespacecrawler.cpp
+    opcua/namespacecrawler.h
+    opcua/nodesearchcrawler.cpp
+    opcua/nodesearchcrawler.h
+    opcua/opcuabackend.h
+    opcua/opcuaclientservice.cpp
+    opcua/opcuaclientservice.h
+    opcua/opcuatypes.h
+    opcua/pkimanager.cpp
+    opcua/pkimanager.h
+    opcua/recentconnectionstore.cpp
+    opcua/recentconnectionstore.h
+    opcua/qtopcuabackend.cpp
+    opcua/qtopcuabackend.h
+    opcua/qtopcuaconnectionmanager.cpp
+    opcua/qtopcuaconnectionmanager.h
+    opcua/qtopcuamonitoringmanager.cpp
+    opcua/qtopcuamonitoringmanager.h
+    opcua/qtopcuarequestcoordinator.cpp
+    opcua/qtopcuarequestcoordinator.h
+    opcua/qtopcuaresultmapper.cpp
+    opcua/qtopcuaresultmapper.h
+    opcua/qtopcuatypemapper.cpp
+    opcua/qtopcuatypemapper.h
+    opcua/secretstore.cpp
+    opcua/secretstore.h
+    opcua/standardnodeid.h
+
+    models/addressspaceitem.h
+    models/addressspacemimedata.cpp
+    models/addressspacemimedata.h
+    models/addressspacemodel.cpp
+    models/addressspacemodel.h
+    models/addressspacenode.h
+    models/attributesmodel.cpp
+    models/attributesmodel.h
+    models/columnalignmentstore.h
+    models/dataaccessitem.h
+    models/dataaccessmodel.cpp
+    models/dataaccessmodel.h
+    models/endpointmodel.cpp
+    models/endpointmodel.h
+    models/eventsmodel.cpp
+    models/eventsmodel.h
+    models/historymodel.cpp
+    models/historymodel.h
+    models/logitem.h
+    models/logmodel.cpp
+    models/logmodel.h
+    models/nodeinfomodel.cpp
+    models/nodeinfomodel.h
+    models/nodeitem.h
+    models/referencesmodel.cpp
+    models/referencesmodel.h
+    models/subscriptionitem.h
+    models/subscriptionsmodel.cpp
+    models/subscriptionsmodel.h
+    models/trendseries.cpp
+    models/trendseries.h
+
+    session/recentsessionstore.cpp
+    session/recentsessionstore.h
+    session/sessiondata.h
+    session/sessionstore.cpp
+    session/sessionstore.h
+)
+
+target_include_directories(ouaexp_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(ouaexp_core PUBLIC
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Gui
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+    Qt${QT_VERSION_MAJOR}::OpcUa
+)
+
+ouaexp_configure_dependencies(ouaexp_core)
+ouaexp_apply_coverage(ouaexp_core)
+ouaexp_apply_pch(ouaexp_core)
+
+if(MSVC)
+    target_compile_options(ouaexp_core PUBLIC /utf-8)
+endif()

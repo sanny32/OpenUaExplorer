@@ -1,0 +1,75 @@
+%global appname ouaexp
+
+# The bundle keeps its private libraries in /usr/lib/ouaexp on every architecture
+# rather than in %%{_libdir}, which is what Firefox does and what the shared
+# bundle.sh stages, so the layout is identical to the one the .deb ships.
+%global appdir %{_prefix}/lib/%{appname}
+
+# The binaries are stripped by bundle.sh and the Qt libraries come from the Qt
+# installer, so there is nothing worth putting in a -debuginfo subpackage.
+%global debug_package %{nil}
+%global _build_id_links none
+
+# The bundled Qt libraries are private: they must not satisfy the dependencies of
+# any other package, and the sonames the bundle needs are resolved through the
+# RPATH inside it rather than by the distribution. Anything outside the bundle -
+# the C, C++, OpenGL and xcb runtimes - is left to the dependency generator.
+%global __provides_exclude_from ^%{appdir}/.*$
+%global __requires_exclude @REQUIRES_EXCLUDE@
+
+Name:           @NAME@
+Version:        @VERSION@
+Release:        @RELEASE@
+Summary:        OPC UA client for exploring and monitoring OPC UA servers
+
+License:        MIT
+URL:            https://github.com/sanny32/OpenUaExplorer
+
+# The workflow builds an x86_64 bundle, and the OpenSSL dependency below names
+# the 64-bit soname, so the spec is not valid for any other architecture.
+ExclusiveArch:  x86_64
+
+# Qt opens OpenSSL with dlopen, so the dependency is invisible to the generator.
+# The sonames are requested directly because the package that provides them is
+# named openssl-libs on Fedora, libopenssl3 on openSUSE and openssl-libs on RHEL.
+Requires:       libssl.so.3()(64bit)
+Requires:       libcrypto.so.3()(64bit)
+
+%description
+OpenUaExplorer is an open source OPC UA client for browsing, inspecting,
+and monitoring OPC UA servers.
+
+  * Browse the OPC UA address space and inspect node attributes.
+  * View Data Access, subscriptions, events, and history panels.
+  * Plot live and historical values on charts.
+  * Connect anonymously, with a username, or with a client certificate.
+
+The package is self-contained: it carries the Qt libraries it was built
+against, together with the Qt OpcUa module and its open62541 backend, in a
+private directory under /usr/lib/ouaexp. Only the C, C++, OpenGL and xcb
+runtimes come from the distribution.
+
+# The tree was already built, bundled and staged by the workflow, so the only
+# thing left to do is to hand it to rpmbuild.
+%prep
+
+%build
+
+%install
+cp -a %{_stagedir}/. %{buildroot}/
+
+# The desktop database, the icon cache and the AppStream cache are all refreshed
+# by the file triggers that ship with desktop-file-utils, gtk-update-icon-cache
+# and appstream, so this package needs no scriptlets of its own.
+
+%files
+%dir %{_datadir}/licenses/%{name}
+%license %{_datadir}/licenses/%{name}/LICENSE
+%{_bindir}/%{appname}
+%{appdir}/
+%{_datadir}/applications/io.github.sanny32.OpenUaExplorer.desktop
+%{_datadir}/icons/hicolor/scalable/apps/io.github.sanny32.OpenUaExplorer.svg
+%{_datadir}/metainfo/io.github.sanny32.OpenUaExplorer.metainfo.xml
+
+# The workflow appends the entry for the build it is producing.
+%changelog

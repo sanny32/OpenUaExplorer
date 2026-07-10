@@ -1,0 +1,592 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1520</width>
+    <height>940</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>OpenUaExplorer</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="centralLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QSplitter" name="centralSplitter">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <widget class="DataView" name="dataView" native="true"/>
+      <widget class="TrendPanelWidget" name="trendPanelWidget" native="true"/>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1520</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <widget class="QMenu" name="menuRecentConnections">
+     <property name="title">
+      <string>Recent Connections</string>
+     </property>
+     <addaction name="actionNoRecentConnections"/>
+    </widget>
+    <widget class="QMenu" name="menuRecentSessions">
+     <property name="title">
+      <string>Recent Sessions</string>
+     </property>
+     <addaction name="actionNoRecentSessions"/>
+    </widget>
+    <addaction name="actionNewConnection"/>
+    <addaction name="actionFileDisconnect"/>
+    <addaction name="menuRecentConnections"/>
+    <addaction name="separator"/>
+    <addaction name="actionOpenSession"/>
+    <addaction name="actionSaveSession"/>
+    <addaction name="menuRecentSessions"/>
+    <addaction name="separator"/>
+    <addaction name="actionExportData"/>
+    <addaction name="actionExportLog"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionViewDataAccess"/>
+     <addaction name="actionViewEvents"/>
+     <addaction name="actionViewDataHistory"/>
+     <addaction name="actionViewEventsHistory"/>
+     <addaction name="separator"/>
+    <addaction name="actionResetLayout"/>
+   </widget>
+   <widget class="QMenu" name="menuServer">
+    <property name="title">
+     <string>Server</string>
+    </property>
+    <addaction name="actionConnect"/>
+    <addaction name="actionDisconnect"/>
+    <addaction name="separator"/>
+    <addaction name="actionBrowseAddressSpace"/>
+    <addaction name="actionRefresh"/>
+    <addaction name="separator"/>
+    <addaction name="actionEndpointSettings"/>
+    <addaction name="actionCertificates"/>
+   </widget>
+   <widget class="QMenu" name="menuData">
+    <property name="title">
+     <string>Data</string>
+    </property>
+    <widget class="QMenu" name="menuSetSubscription">
+     <property name="title">
+      <string>Set Subscription</string>
+     </property>
+     <addaction name="actionSetSubscriptionNone"/>
+     <addaction name="actionSetSubscriptionDefault"/>
+     <addaction name="actionSetSubscriptionFast"/>
+     <addaction name="actionSetSubscriptionCustom"/>
+    </widget>
+     <addaction name="actionReadSelected"/>
+     <addaction name="actionWriteValue"/>
+     <addaction name="actionReadDataHistory"/>
+     <addaction name="actionReadEventsHistory"/>
+     <addaction name="separator"/>
+    <addaction name="actionAddToDataAccess"/>
+    <addaction name="actionRemoveFromDataAccess"/>
+    <addaction name="separator"/>
+    <addaction name="actionManageSubscriptions"/>
+    <addaction name="menuSetSubscription"/>
+    <addaction name="separator"/>
+    <addaction name="actionClearDataAccess"/>
+   </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <widget class="QMenu" name="menuTheme">
+     <property name="title">
+      <string>Theme</string>
+     </property>
+     <addaction name="actionThemeLight"/>
+     <addaction name="actionThemeDark"/>
+     <addaction name="actionThemeSystem"/>
+    </widget>
+    <addaction name="actionSettings"/>
+    <addaction name="menuTheme"/>
+    <addaction name="separator"/>
+    <addaction name="actionNamespaceInspector"/>
+    <addaction name="actionNodeMonitor"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionDocumentation"/>
+    <addaction name="actionOpcUaInfo"/>
+    <addaction name="separator"/>
+    <addaction name="actionCheckForUpdates"/>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuView"/>
+   <addaction name="menuServer"/>
+   <addaction name="menuData"/>
+   <addaction name="menuTools"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="MainToolBar" name="mainToolBar">
+   <property name="minimumSize">
+    <size>
+     <width>0</width>
+     <height>0</height>
+    </size>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>24</width>
+     <height>24</height>
+    </size>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionConnect"/>
+   <addaction name="actionDisconnect"/>
+   <addaction name="separator"/>
+   <addaction name="actionBrowse"/>
+   <addaction name="separator"/>
+    <addaction name="actionRead"/>
+    <addaction name="actionSubscribe"/>
+   <addaction name="actionUnsubscribe"/>
+   <addaction name="separator"/>
+   <addaction name="actionSettings"/>
+   <addaction name="separator"/>
+   <addaction name="actionTheme"/>
+   <addaction name="actionFavorites"/>
+  </widget>
+  <widget class="MainStatusBarWidget" name="statusbar"/>
+  <action name="actionConnect">
+   <property name="text">
+    <string>Connect</string>
+   </property>
+  </action>
+  <action name="actionDisconnect">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Disconnect</string>
+   </property>
+  </action>
+  <action name="actionFileDisconnect">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Disconnect</string>
+   </property>
+  </action>
+  <action name="actionBrowse">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Browse</string>
+   </property>
+  </action>
+  <action name="actionRefresh">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Refresh</string>
+   </property>
+  </action>
+  <action name="actionRead">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Read</string>
+   </property>
+  </action>
+  <action name="actionWrite">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Write</string>
+   </property>
+  </action>
+  <action name="actionSubscribe">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Subscribe</string>
+   </property>
+  </action>
+  <action name="actionUnsubscribe">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Unsubscribe</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionTheme">
+   <property name="text">
+    <string>Theme</string>
+   </property>
+  </action>
+  <action name="actionFavorites">
+   <property name="text">
+    <string>Favorites</string>
+   </property>
+   <property name="toolTip">
+    <string>Connect to a favourite server</string>
+   </property>
+  </action>
+  <action name="actionNewConnection">
+   <property name="text">
+    <string>New Connection</string>
+   </property>
+  </action>
+  <action name="actionOpenSession">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Open Session...</string>
+   </property>
+  </action>
+  <action name="actionSaveSession">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Save Session...</string>
+   </property>
+  </action>
+  <action name="actionNoRecentConnections">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>No Recent Connections</string>
+   </property>
+  </action>
+  <action name="actionNoRecentSessions">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>No Recent Sessions</string>
+   </property>
+  </action>
+  <action name="actionExportData">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Export Data...</string>
+   </property>
+  </action>
+  <action name="actionExportLog">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Export Log...</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionViewDataAccess">
+   <property name="text">
+    <string>Data Access</string>
+   </property>
+  </action>
+  <action name="actionViewEvents">
+   <property name="text">
+    <string>Events</string>
+   </property>
+  </action>
+  <action name="actionViewDataHistory">
+   <property name="text">
+    <string>Data History</string>
+   </property>
+  </action>
+  <action name="actionViewEventsHistory">
+   <property name="text">
+    <string>Events History</string>
+   </property>
+  </action>
+  <action name="actionResetLayout">
+   <property name="text">
+    <string>Reset Layout</string>
+   </property>
+  </action>
+  <action name="actionBrowseAddressSpace">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Browse Address Space</string>
+   </property>
+  </action>
+  <action name="actionEndpointSettings">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Endpoint Settings...</string>
+   </property>
+  </action>
+  <action name="actionCertificates">
+   <property name="text">
+    <string>Certificates...</string>
+   </property>
+  </action>
+  <action name="actionReadSelected">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Read Selected</string>
+   </property>
+  </action>
+  <action name="actionWriteValue">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Write Value...</string>
+   </property>
+  </action>
+  <action name="actionAddToDataAccess">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Add to Data Access</string>
+   </property>
+  </action>
+  <action name="actionReadDataHistory">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Read Data History</string>
+   </property>
+   <property name="toolTip">
+    <string>Read the data history of the selected node</string>
+   </property>
+  </action>
+  <action name="actionReadEventsHistory">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Read Events History</string>
+   </property>
+   <property name="toolTip">
+    <string>Read the event history of the selected node</string>
+   </property>
+  </action>
+  <action name="actionRemoveFromDataAccess">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Remove from Data Access</string>
+   </property>
+  </action>
+  <action name="actionSetSubscriptionNone">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>None</string>
+   </property>
+  </action>
+  <action name="actionSetSubscriptionDefault">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Default</string>
+   </property>
+  </action>
+  <action name="actionSetSubscriptionFast">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Fast</string>
+   </property>
+  </action>
+  <action name="actionSetSubscriptionCustom">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Custom...</string>
+   </property>
+  </action>
+  <action name="actionManageSubscriptions">
+   <property name="text">
+    <string>Manage Subscriptions...</string>
+   </property>
+  </action>
+  <action name="actionClearDataAccess">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Clear Data Access</string>
+   </property>
+  </action>
+  <action name="actionThemeLight">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Light</string>
+   </property>
+  </action>
+  <action name="actionThemeDark">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Dark</string>
+   </property>
+  </action>
+  <action name="actionThemeSystem">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>System</string>
+   </property>
+  </action>
+  <action name="actionNamespaceInspector">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Namespace Inspector</string>
+   </property>
+  </action>
+  <action name="actionNodeMonitor">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Node Monitor</string>
+   </property>
+  </action>
+  <action name="actionDocumentation">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Documentation</string>
+   </property>
+  </action>
+  <action name="actionOpcUaInfo">
+   <property name="text">
+    <string>OPC UA Info</string>
+   </property>
+  </action>
+  <action name="actionCheckForUpdates">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Check for Updates</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>DataView</class>
+   <extends>QWidget</extends>
+   <header>widgets/dataview.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>TrendPanelWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/trendpanelwidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>MainToolBar</class>
+   <extends>QToolBar</extends>
+   <header>widgets/maintoolbar.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>MainStatusBarWidget</class>
+   <extends>QStatusBar</extends>
+   <header>widgets/mainstatusbarwidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

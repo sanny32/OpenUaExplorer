@@ -1,0 +1,235 @@
+include("${PROJECT_SOURCE_DIR}/cmake/qlementine.cmake")
+
+set(UI_FILES
+    mainwindow.ui
+
+    dialogs/callmethoddialog.ui
+    dialogs/certificatedetailsdialog.ui
+    dialogs/certificatetrustdialog.ui
+    dialogs/connectioncredentialsdialog.ui
+    dialogs/connectiondialog.ui
+    dialogs/customintervaldialog.ui
+    dialogs/dialogabout.ui
+    dialogs/dialogopcuainfo.ui
+    dialogs/certificatesdialog.ui
+    dialogs/editfavoritedialog.ui
+    dialogs/endpointsettingsdialog.ui
+    dialogs/namespaceinspectordialog.ui
+    dialogs/nodemonitordialog.ui
+    dialogs/settingsdialog.ui
+    dialogs/subscriptionsdialog.ui
+    dialogs/textviewdialog.ui
+    dialogs/trendsettingsdialog.ui
+    dialogs/writevaluedialog.ui
+
+    widgets/addressspacewidget.ui
+    widgets/attributeswidget.ui
+    widgets/certificatedetailswidget.ui
+    widgets/certificatesummarywidget.ui
+    widgets/connectionstatuswidget.ui
+    widgets/dataview.ui
+    widgets/dataaccesswidget.ui
+    widgets/subscriptionswidget.ui
+    widgets/eventswidget.ui
+    widgets/eventshistorywidget.ui
+    widgets/datahistorywidget.ui
+    widgets/favoriteswidget.ui
+    widgets/logwidget.ui
+    widgets/mainstatusbarwidget.ui
+    widgets/trendgraphwidget.ui
+    widgets/trendgraphtoolbar.ui
+    widgets/trendpanelwidget.ui
+)
+
+add_library(ouaexp_ui STATIC
+    appcolors.h
+    appicons.h
+    application.cpp
+    application.h
+    appstyle.cpp
+    appstyle.h
+    apptheme.cpp
+    apptheme.h
+    fusionstyle.cpp
+    fusionstyle.h
+    macappstyle.cpp
+    macappstyle.h
+    macthemefactory.cpp
+    macthemefactory.h
+    qlementineappstyle.cpp
+    qlementineappstyle.h
+    qlementinethemefactory.cpp
+    qlementinethemefactory.h
+    mainwindow.cpp
+    mainwindow.h
+    connectioncoordinator.cpp
+    connectioncoordinator.h
+    dataaccesscoordinator.cpp
+    dataaccesscoordinator.h
+    favoritescoordinator.cpp
+    favoritescoordinator.h
+    themecoordinator.cpp
+    themecoordinator.h
+    ${UI_FILES}
+
+    features/addressspacefeature.cpp
+    features/addressspacefeature.h
+    features/attributesfeature.cpp
+    features/attributesfeature.h
+    features/builtinfeatures.cpp
+    features/builtinfeatures.h
+    features/featurehost.cpp
+    features/featurehost.h
+    features/featuremanager.cpp
+    features/featuremanager.h
+    features/featureplugin.cpp
+    features/featureplugin.h
+    features/logfeature.cpp
+    features/logfeature.h
+    features/selectioncontext.cpp
+    features/selectioncontext.h
+
+    dialogs/appbasedialog.cpp
+    dialogs/appbasedialog.h
+    dialogs/callmethoddialog.cpp
+    dialogs/callmethoddialog.h
+    dialogs/certificatedetailsdialog.cpp
+    dialogs/certificatedetailsdialog.h
+    dialogs/certificatesdialog.cpp
+    dialogs/certificatesdialog.h
+    dialogs/certificatetrustdialog.cpp
+    dialogs/certificatetrustdialog.h
+    dialogs/connectioncredentialsdialog.cpp
+    dialogs/connectioncredentialsdialog.h
+    dialogs/connectiondialog.cpp
+    dialogs/connectiondialog.h
+    dialogs/customintervaldialog.cpp
+    dialogs/customintervaldialog.h
+    dialogs/dialogabout.cpp
+    dialogs/dialogabout.h
+    dialogs/dialogopcuainfo.cpp
+    dialogs/dialogopcuainfo.h
+    dialogs/editfavoritedialog.cpp
+    dialogs/editfavoritedialog.h
+    dialogs/endpointsettingsdialog.cpp
+    dialogs/endpointsettingsdialog.h
+    dialogs/messageboxdialog.cpp
+    dialogs/messageboxdialog.h
+    dialogs/namespaceinspectordialog.cpp
+    dialogs/namespaceinspectordialog.h
+    dialogs/nodemonitordialog.cpp
+    dialogs/nodemonitordialog.h
+    dialogs/newsubscriptiondialog.cpp
+    dialogs/newsubscriptiondialog.h
+    dialogs/settingsdialog.cpp
+    dialogs/settingsdialog.h
+    dialogs/subscriptionsdialog.cpp
+    dialogs/subscriptionsdialog.h
+    dialogs/textviewdialog.cpp
+    dialogs/textviewdialog.h
+    dialogs/trendsettingsdialog.cpp
+    dialogs/trendsettingsdialog.h
+    dialogs/writevaluedialog.cpp
+    dialogs/writevaluedialog.h
+
+    widgets/addressspacewidget.cpp
+    widgets/addressspacewidget.h
+    widgets/attributeswidget.cpp
+    widgets/attributeswidget.h
+    widgets/certificatedetailswidget.cpp
+    widgets/certificatedetailswidget.h
+    widgets/certificatesummarywidget.cpp
+    widgets/certificatesummarywidget.h
+    widgets/coloredpushbutton.cpp
+    widgets/coloredpushbutton.h
+    widgets/connectionstatuswidget.cpp
+    widgets/connectionstatuswidget.h
+    widgets/dataview.cpp
+    widgets/dataview.h
+    widgets/dataaccesswidget.cpp
+    widgets/dataaccesswidget.h
+    widgets/subscriptioncombobox.cpp
+    widgets/subscriptioncombobox.h
+    widgets/subscriptionswidget.cpp
+    widgets/subscriptionswidget.h
+    widgets/eventswidget.cpp
+    widgets/eventswidget.h
+    widgets/eventshistorywidget.cpp
+    widgets/eventshistorywidget.h
+    widgets/datahistorywidget.cpp
+    widgets/datahistorywidget.h
+    widgets/dialogbuttonbox.cpp
+    widgets/dialogbuttonbox.h
+    widgets/valuelineedit.cpp
+    widgets/valuelineedit.h
+    widgets/endpointdiscoverywidget.cpp
+    widgets/endpointdiscoverywidget.h
+    widgets/calendarwidget.cpp
+    widgets/calendarwidget.h
+    widgets/datetimeedit.cpp
+    widgets/datetimeedit.h
+    widgets/fixedgap.cpp
+    widgets/fixedgap.h
+    widgets/headerview.cpp
+    widgets/headerview.h
+    widgets/historycombobox.cpp
+    widgets/historycombobox.h
+    widgets/spinneraction.cpp
+    widgets/spinneraction.h
+    widgets/logwidget.cpp
+    widgets/logwidget.h
+    widgets/mainstatusbarwidget.cpp
+    widgets/mainstatusbarwidget.h
+    widgets/maintoolbar.cpp
+    widgets/maintoolbar.h
+    widgets/favoriteswidget.cpp
+    widgets/favoriteswidget.h
+    widgets/maintoolbutton.cpp
+    widgets/maintoolbutton.h
+    widgets/nodelineedit.cpp
+    widgets/nodelineedit.h
+    widgets/publishingintervaldelegate.cpp
+    widgets/publishingintervaldelegate.h
+    widgets/subscriptiondelegate.cpp
+    widgets/subscriptiondelegate.h
+    widgets/severitydelegate.cpp
+    widgets/severitydelegate.h
+    widgets/tableview.cpp
+    widgets/tableview.h
+    widgets/themedaction.cpp
+    widgets/themedaction.h
+    widgets/themediconlabel.cpp
+    widgets/themediconlabel.h
+    widgets/themedpushbutton.cpp
+    widgets/themedpushbutton.h
+    widgets/themedtoolbutton.cpp
+    widgets/themedtoolbutton.h
+    widgets/scrollarea.cpp
+    widgets/scrollarea.h
+    widgets/themepreviewbutton.cpp
+    widgets/themepreviewbutton.h
+    widgets/trendgraphwidget.cpp
+    widgets/trendgraphwidget.h
+    widgets/trendgraphtoolbar.cpp
+    widgets/trendgraphtoolbar.h
+    widgets/trendpanelwidget.cpp
+    widgets/trendpanelwidget.h
+    widgets/trendsettings.h
+)
+
+target_include_directories(ouaexp_ui PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/features
+    ${CMAKE_CURRENT_SOURCE_DIR}/widgets
+)
+
+target_link_libraries(ouaexp_ui PUBLIC ouaexp_modules)
+target_link_libraries(ouaexp_ui PRIVATE ouaexp_charting)
+
+ouaexp_configure_qt_target(ouaexp_ui)
+ouaexp_configure_qlementine_app_style(ouaexp_ui)
+ouaexp_apply_pch(ouaexp_ui)
+
+if(MSVC)
+    target_compile_options(ouaexp_ui PUBLIC /utf-8)
+endif()

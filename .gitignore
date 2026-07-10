@@ -30,6 +30,7 @@ ui_*.h
 Makefile*
 *build-*
 build/
+.deps/
 *.qm
 *.prl
 *.qmlls.ini
@@ -53,4 +54,24 @@ compile_commands.json
 # QtCreator local machine specific files for imported projects
 *creator.user*
 
+# Cache files and folders
 *_qmlcache.qrc
+__pycache__
+
+# AI agents
+.skills
+.claude
+.codex_tmp
+.vscode
+AGENTS.md
+
+# .github
+!.github/workflows/*build-*
+
+# Local build and test commands
+build_with_vs.cmd
+test_with_vs.cmd
+run_test.sh
+
+# Log files
+*.log

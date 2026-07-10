@@ -1,0 +1,259 @@
+name: Build RPM package
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Checkout branch'
+        required: false
+        default: dev
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: package-rpm-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: '6.9.3'
+  QT_MODULES: qtcharts
+  MAINTAINER: Alexandr Ananev <mail@ananev.org>
+
+jobs:
+  rpm:
+    name: Build .rpm
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch }}
+
+      # The package is built on Ubuntu because that is where the Qt installer and
+      # the Qt OpcUa cache live, and because the bundle carries its own Qt: the
+      # only thing rpmbuild has to do is wrap an already staged /usr tree. The
+      # oldest runner image is used so the glibc and libstdc++ symbol versions
+      # the binaries reference stay as low as possible.
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build pkg-config patchelf \
+            rpm file \
+            desktop-file-utils appstream-util \
+            libgl1-mesa-dev libssl-dev libsecret-1-dev \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
+            libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0
+
+      - name: Determine version
+        id: version
+        run: |
+          read -r major minor patch < <(
+            sed -nE 's/^project\(ouaexp[[:space:]]+VERSION[[:space:]]+([0-9]+)\.([0-9]+)\.([0-9]+).*/\1 \2 \3/p' src/CMakeLists.txt
+          )
+          if [ -z "${patch:-}" ]; then
+            echo "::error::Could not read the project version from src/CMakeLists.txt"
+            exit 1
+          fi
+
+          # Mirror src/cmake/project_version.cmake, then map onto an RPM version.
+          # RPM compares Version first and only then Release, so a pre-release
+          # cannot be encoded in Version - it would sort *above* its own final
+          # release, since 1.0.0b1 > 1.0.0. It goes into Release instead, where
+          # the leading 0. keeps every pre-release below the final release's 1,
+          # and dev snapshots take 0.0. to stay below every tagged pre-release.
+          prerelease=''
+          ref='${{ github.ref }}'
+          if [[ $ref =~ ^refs/tags/v(.+)$ ]]; then
+            tag_version="${BASH_REMATCH[1]}"
+            if [[ ! $tag_version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-(.+))?$ ]]; then
+              echo "::error::Tag v$tag_version is not <major>.<minor>.<patch>[-prerelease]"
+              exit 1
+            fi
+            major="${BASH_REMATCH[1]}"
+            minor="${BASH_REMATCH[2]}"
+            patch="${BASH_REMATCH[3]}"
+            prerelease="${BASH_REMATCH[5]}"
+            if [ -n "$prerelease" ]; then
+              # A Release may not contain '-', which is the field separator.
+              release="0.1.${prerelease//-/.}"
+            else
+              release='1'
+            fi
+          else
+            release="0.0.dev$(date -u +%Y%m%d).g$(git rev-parse --short HEAD)"
+          fi
+
+          version="$major.$minor.$patch"
+          arch="$(uname -m)"
+          package="ouaexp-$version-$release.$arch.rpm"
+
+          {
+            echo "prerelease=$prerelease"
+            echo "version=$version"
+            echo "release=$release"
+            echo "arch=$arch"
+            echo "package=$package"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building $package"
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: ${{ env.QT_MODULES }}
+          cache: true
+
+      - name: Cache Qt OpcUa build
+        uses: actions/cache@v5
+        with:
+          path: build/_deps/qtopcua-install
+          key: qtopcua-ubuntu-22.04-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
+
+      - name: Configure
+        run: >
+          cmake -S src -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DOUAEXP_BUILD_TESTS=OFF
+          "-DPROJECT_PRERELEASE=${{ steps.version.outputs.prerelease }}"
+
+      - name: Build
+        run: cmake --build build --parallel --target ouaexp
+
+      # The application is not installed with `cmake --install`: the package has to
+      # carry the Qt build it was compiled against, so bundle.sh assembles the whole
+      # private tree under /usr/lib/ouaexp instead.
+      - name: Stage package root
+        run: |
+          rm -rf pkgroot
+          bash .github/linux/bundle.sh \
+            "$PWD/pkgroot" \
+            "$PWD/build/app/ouaexp" \
+            "$QT_ROOT_DIR" \
+            "$PWD/build/_deps/qtopcua-install"
+
+          cp -r .github/linux/usr/. pkgroot/usr/
+          install -D -m 0644 LICENSE pkgroot/usr/share/licenses/ouaexp/LICENSE
+
+          find pkgroot -type d -exec chmod 0755 {} +
+
+      - name: Validate desktop entry and AppStream metadata
+        run: |
+          desktop-file-validate pkgroot/usr/share/applications/*.desktop
+          appstream-util validate-relax --nonet pkgroot/usr/share/metainfo/*.metainfo.xml
+
+      - name: Generate spec file
+        run: |
+          mkdir -p rpmbuild/SPECS
+
+          # rpm resolves dependencies by soname, so every bundled library would
+          # otherwise be requested from the distribution - and offered to it. The
+          # spec drops the provides by path; the requires have to be dropped by
+          # name, so the pattern is generated from the staging tree and cannot
+          # drift from what bundle.sh actually copied. A requires entry reads
+          # 'libQt6Core.so.6()(64bit)', hence the trailing bracket.
+          #
+          # The literal '.' and '(' are written as bracket expressions rather than
+          # escapes to keep the pattern free of backslashes, which sed would eat
+          # from the replacement text below.
+          sonames=''
+          for lib in pkgroot/usr/lib/ouaexp/lib/*; do
+            name="${lib##*/}"
+            sonames="${sonames:+$sonames|}${name//./[.]}"
+          done
+          if [ -z "$sonames" ]; then
+            echo "::error::No bundled libraries found; the staged tree is wrong"
+            exit 1
+          fi
+          requires_exclude="^(${sonames})[(]"
+
+          # '|' and '(' appear in the pattern, so '#' delimits the substitution.
+          sed -e "s#@NAME@#ouaexp#" \
+              -e "s#@VERSION@#${{ steps.version.outputs.version }}#" \
+              -e "s#@RELEASE@#${{ steps.version.outputs.release }}#" \
+              -e "s#@REQUIRES_EXCLUDE@#${requires_exclude}#" \
+              .github/linux/rpm/ouaexp.spec.in > rpmbuild/SPECS/ouaexp.spec
+
+          cat >> rpmbuild/SPECS/ouaexp.spec <<EOF
+          * $(date -u +'%a %b %d %Y') ${{ env.MAINTAINER }} - ${{ steps.version.outputs.version }}-${{ steps.version.outputs.release }}
+          - Automated build of ${{ github.sha }}.
+          EOF
+
+          cat rpmbuild/SPECS/ouaexp.spec
+
+      - name: Build package
+        run: |
+          rpmbuild -bb rpmbuild/SPECS/ouaexp.spec \
+            --define "_topdir $PWD/rpmbuild" \
+            --define "_stagedir $PWD/pkgroot"
+
+          mv "rpmbuild/RPMS/${{ steps.version.outputs.arch }}/${{ steps.version.outputs.package }}" .
+
+      - name: Inspect package
+        run: |
+          rpm -qpi "${{ steps.version.outputs.package }}"
+          rpm -qpl "${{ steps.version.outputs.package }}"
+          echo '--- provides ---'
+          rpm -qp --provides "${{ steps.version.outputs.package }}"
+          echo '--- requires ---'
+          rpm -qp --requires "${{ steps.version.outputs.package }}"
+
+          # A leaked provide or require of a bundled soname means the exclusions
+          # in the spec no longer match what bundle.sh copied: the package would
+          # then pull a distribution Qt in, or hand its private one out.
+          if rpm -qp --provides "${{ steps.version.outputs.package }}" | grep -E '^lib(Qt6|open62541)'; then
+            echo "::error::The bundled libraries are offered as provides"
+            exit 1
+          fi
+          if rpm -qp --requires "${{ steps.version.outputs.package }}" | grep -E '^lib(Qt6|open62541)'; then
+            echo "::error::The bundled libraries are requested as requires"
+            exit 1
+          fi
+
+      # Installing the .rpm on a real RPM distribution resolves the generated
+      # Requires against its archive, so a missing runtime dependency fails here
+      # rather than on a user's machine. The program is a GUI application with no
+      # batch mode, so it is checked by resolving its libraries instead of
+      # starting it. The image is not pinned because an end-of-life Fedora loses
+      # its mirrors and the step would then fail for a reason of its own.
+      - name: Verify the package installs
+        run: |
+          docker run --rm -v "$PWD:/pkg" -w /pkg fedora:latest bash -eux -c '
+            dnf -y install "./${{ steps.version.outputs.package }}"
+            test -L /usr/bin/ouaexp
+            if ldd -r /usr/lib/ouaexp/bin/ouaexp | grep -E "not found|undefined symbol"; then
+              echo "The installed binary has unresolved libraries or symbols"
+              exit 1
+            fi
+            dnf -y remove ouaexp
+          '
+
+      - name: Compute checksum
+        run: sha256sum "${{ steps.version.outputs.package }}" > "${{ steps.version.outputs.package }}.sha256"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ouaexp-rpm-${{ steps.version.outputs.arch }}
+          path: |
+            ${{ steps.version.outputs.package }}
+            ${{ steps.version.outputs.package }}.sha256
+          if-no-files-found: error
+
+      - name: Attach package to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          prerelease: ${{ steps.version.outputs.prerelease != '' }}
+          files: |
+            ${{ steps.version.outputs.package }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
