@@ -59,6 +59,15 @@ inline QColor fieldLabel()
 }
 
 ///
+/// \brief Stroke colour for glyphs painted to match the themed icon set.
+/// \return Theme-matching stroke colour, identical to the icon resources' stroke.
+///
+inline QColor iconStroke()
+{
+    return AppIcons::isDarkTheme() ? QColor(0xe2e8f0) : QColor(0x1e293b);
+}
+
+///
 /// \brief Muted grey used for small captions.
 /// \return Caption text colour.
 ///

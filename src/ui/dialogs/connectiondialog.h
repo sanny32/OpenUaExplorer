@@ -91,6 +91,7 @@ private:
     void saveSessionDefaults();
     int currentAuthentication() const;
     void saveLastEndpointUrl();
+    void forgetEndpointUrl(const QString &endpointUrl);
     void resetDiscovery();
     void selectGeneratedClientCertificate();
     void updateClientCertificate();

@@ -172,6 +172,8 @@ add_library(ouaexp_ui STATIC
     widgets/fixedgap.h
     widgets/headerview.cpp
     widgets/headerview.h
+    widgets/historycombobox.cpp
+    widgets/historycombobox.h
     widgets/logwidget.cpp
     widgets/logwidget.h
     widgets/mainstatusbarwidget.cpp

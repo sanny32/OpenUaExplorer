@@ -6,24 +6,20 @@
 /// \brief Implements the OPC UA connection dialog.
 ///
 
-#include <QAbstractItemView>
 #include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QFontMetrics>
 #include <QLineEdit>
 #include <QSslCertificate>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QScreen>
 #include <QSignalBlocker>
 #include <QSizePolicy>
 #include <QStackedWidget>
 #include <QStringList>
-#include <QStyle>
 #include <QUuid>
 
 #include "appcolors.h"
@@ -38,32 +34,7 @@
 #include "widgets/certificatesummarywidget.h"
 #include "widgets/coloredpushbutton.h"
 #include "widgets/endpointdiscoverywidget.h"
-
-namespace {
-
-///
-/// \brief Expands a combo box popup to fit its longest item.
-/// \param comboBox Combo box whose popup width should be updated.
-///
-void updatePopupWidth(QComboBox *comboBox)
-{
-    int contentWidth = comboBox->width();
-    const QFontMetrics metrics(comboBox->view()->font());
-    for (int index = 0; index < comboBox->count(); ++index)
-        contentWidth = qMax(contentWidth, metrics.horizontalAdvance(comboBox->itemText(index)));
-
-    const int popupPadding = comboBox->style()->pixelMetric(QStyle::PM_ScrollBarExtent)
-        + comboBox->style()->pixelMetric(QStyle::PM_ComboBoxFrameWidth) * 2
-        + 32;
-    contentWidth += popupPadding;
-
-    if (const QScreen *screen = comboBox->screen())
-        contentWidth = qMin(contentWidth, screen->availableGeometry().width() - 40);
-
-    comboBox->view()->setMinimumWidth(contentWidth);
-}
-
-}
+#include "widgets/historycombobox.h"
 
 ///
 /// \brief Builds the dialog and initialises its history, certificate panels, and controls.
@@ -125,7 +96,6 @@ void ConnectionDialog::setupEndpointHistory()
     ui->discoveryUrlComboBox->addItems(endpointHistory);
     _lastEnteredEndpointUrl = endpointHistory.constFirst();
     ui->discoveryUrlComboBox->setEditText(_lastEnteredEndpointUrl);
-    updatePopupWidth(ui->discoveryUrlComboBox);
 }
 
 ///
@@ -207,6 +177,8 @@ void ConnectionDialog::setupConnections()
         resetDiscovery();
         _lastEnteredEndpointUrl = ui->discoveryUrlComboBox->itemText(index);
     });
+    connect(ui->discoveryUrlComboBox, &HistoryComboBox::itemRemoved,
+            this, &ConnectionDialog::forgetEndpointUrl);
     connect(ui->discoveryUrlComboBox->lineEdit(), &QLineEdit::textEdited,
             this, [this](const QString &text) {
         resetDiscovery();
@@ -638,7 +610,16 @@ void ConnectionDialog::saveLastEndpointUrl()
     ui->discoveryUrlComboBox->clear();
     ui->discoveryUrlComboBox->addItems(endpointHistory);
     ui->discoveryUrlComboBox->setEditText(endpointUrl);
-    updatePopupWidth(ui->discoveryUrlComboBox);
+}
+
+///
+/// \brief Forgets an endpoint URL the user removed from the history combo box.
+/// \param endpointUrl URL that was removed.
+///
+void ConnectionDialog::forgetEndpointUrl(const QString &endpointUrl)
+{
+    _endpointHistoryStore.remove(endpointUrl);
+    _lastEnteredEndpointUrl = ui->discoveryUrlComboBox->currentText();
 }
 
 ///

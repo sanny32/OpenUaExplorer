@@ -32,6 +32,7 @@ private slots:
     void initTestCase();
     void cleanup();
     void endpointHistoryIsDeduplicatedAndBounded();
+    void removedEndpointDoesNotReturnAsLastUsed();
     void endpointModelExposesSelectionRoles();
     void endpointModelSortsByRank();
     void endpointModelDataRolesHeaderAndClear();
@@ -72,6 +73,20 @@ void TestConnectionData::endpointHistoryIsDeduplicatedAndBounded()
     QCOMPARE(history.size(), 10);
     QCOMPARE(history.first(), QStringLiteral("opc.tcp://server-5:4840"));
     QCOMPARE(history.count(QStringLiteral("opc.tcp://server-5:4840")), 1);
+}
+
+void TestConnectionData::removedEndpointDoesNotReturnAsLastUsed()
+{
+    EndpointHistoryStore store;
+    store.save(QStringLiteral("opc.tcp://first:4840"));
+    store.save(QStringLiteral("opc.tcp://second:4840"));
+
+    store.remove(QStringLiteral("opc.tcp://second:4840"));
+
+    QCOMPARE(store.history(), QStringList{QStringLiteral("opc.tcp://first:4840")});
+
+    store.remove(QStringLiteral("opc.tcp://first:4840"));
+    QVERIFY(store.history().isEmpty());
 }
 
 void TestConnectionData::endpointModelExposesSelectionRoles()
