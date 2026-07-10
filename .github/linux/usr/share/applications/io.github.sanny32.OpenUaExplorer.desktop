@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=Open UaExplorer
+GenericName=OPC UA Client
+Comment=An OPC UA client application for exploring and monitoring OPC UA servers
+Exec=ouaexp
+TryExec=ouaexp
+Icon=io.github.sanny32.OpenUaExplorer
+Terminal=false
+Categories=Development;Engineering;Network;
+Keywords=OPC;UA;OPCUA;SCADA;Automation;Industrial;Monitoring;
+StartupNotify=true
+StartupWMClass=ouaexp
