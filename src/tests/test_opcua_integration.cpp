@@ -13,10 +13,7 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QElapsedTimer>
-#include <QProcess>
-#include <QProcessEnvironment>
 #include <QSignalSpy>
-#include <QStandardPaths>
 #include <QTest>
 
 #include <QtOpcUa/qopcuatype.h>
@@ -24,6 +21,7 @@
 #include "opcua/connectionprofile.h"
 #include "opcua/opcuaclientservice.h"
 #include "opcua/opcuatypes.h"
+#include "opcuatestserver.h"
 
 namespace {
 
@@ -59,7 +57,7 @@ private slots:
     void discoverConnectBrowseReadWrite();
 
 private:
-    QProcess _server;
+    OpcUaTestServer _server;
     QString _endpoint;
     QString _nodeId;
     QString _counterNodeId;
@@ -72,67 +70,15 @@ private:
 ///
 void TestOpcUaIntegration::initTestCase()
 {
-    // Prefer the interpreter the coverage/test runner pinned for us (guaranteed
-    // to have asyncua installed); otherwise fall back to whatever is on PATH.
-    QString python = qEnvironmentVariable("OUAEXP_TEST_PYTHON");
-    if (python.isEmpty() || !QFile::exists(python)) {
-        python = QStandardPaths::findExecutable(QStringLiteral("python"));
-        if (python.isEmpty())
-            python = QStandardPaths::findExecutable(QStringLiteral("python3"));
-    }
-    if (python.isEmpty())
-        QSKIP("Python interpreter not found; skipping OPC UA integration test.");
+    QString skipReason;
+    if (!_server.start({QStringLiteral("--port"), QStringLiteral("48401")}, &skipReason))
+        QSKIP(qPrintable(skipReason));
 
-    const QString script = QStringLiteral(OUAEXP_TEST_SERVER_SCRIPT);
-    if (!QFile::exists(script))
-        QSKIP(qPrintable(QStringLiteral("Test server script missing: %1").arg(script)));
-
-    // The Python server needs none of Qt's libraries, but the test runs with Qt
-    // (and the bundled OpenSSL) prepended to the loader path. Inheriting that
-    // breaks asyncua's native dependencies (cryptography loads the wrong
-    // libcrypto), so launch the server with a clean loader path.
-    QProcessEnvironment serverEnv = QProcessEnvironment::systemEnvironment();
-    serverEnv.remove(QStringLiteral("LD_LIBRARY_PATH"));
-    serverEnv.remove(QStringLiteral("DYLD_LIBRARY_PATH"));
-    _server.setProcessEnvironment(serverEnv);
-
-    _server.setProcessChannelMode(QProcess::MergedChannels);
-    _server.start(python, {script, QStringLiteral("--port"), QStringLiteral("48401")});
-    if (!_server.waitForStarted(5000))
-        QSKIP("Could not start the Python OPC UA server.");
-
-    QByteArray output;
-    QElapsedTimer timer;
-    timer.start();
-    while (timer.elapsed() < 25000 && !output.contains("READY")) {
-        if (_server.waitForReadyRead(1000))
-            output += _server.readAll();
-        if (_server.state() == QProcess::NotRunning) {
-            output += _server.readAll();
-            break;
-        }
-    }
-
-    for (const QByteArray &line : output.split('\n')) {
-        const QString text = QString::fromUtf8(line).trimmed();
-        if (text.startsWith(QStringLiteral("ENDPOINT ")))
-            _endpoint = text.mid(9).trimmed();
-        else if (text.startsWith(QStringLiteral("NODE ")))
-            _nodeId = text.mid(5).trimmed();
-        else if (text.startsWith(QStringLiteral("COUNTER ")))
-            _counterNodeId = text.mid(8).trimmed();
-        else if (text.startsWith(QStringLiteral("METHOD ")))
-            _methodNodeId = text.mid(7).trimmed();
-        else if (text.startsWith(QStringLiteral("OBJECTS ")))
-            _objectsNodeId = text.mid(8).trimmed();
-    }
-
-    if (_endpoint.isEmpty() || _nodeId.isEmpty()) {
-        QSKIP(qPrintable(QStringLiteral(
-            "OPC UA test server did not become ready (asyncua missing?). "
-            "Interpreter: %1\nOutput:\n%2")
-            .arg(python, QString::fromUtf8(output))));
-    }
+    _endpoint = _server.endpoint();
+    _nodeId = _server.nodeId();
+    _counterNodeId = _server.counterNodeId();
+    _methodNodeId = _server.methodNodeId();
+    _objectsNodeId = _server.objectsNodeId();
 }
 
 ///
@@ -140,10 +86,7 @@ void TestOpcUaIntegration::initTestCase()
 ///
 void TestOpcUaIntegration::cleanupTestCase()
 {
-    if (_server.state() != QProcess::NotRunning) {
-        _server.kill();
-        _server.waitForFinished(3000);
-    }
+    _server.stop();
 }
 
 ///
