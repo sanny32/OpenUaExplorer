@@ -230,9 +230,8 @@ void DialogOpcUaInfo::setupLayout()
 ///
 void DialogOpcUaInfo::setupLogo()
 {
-    const QString logoResource = AppIcons::isDarkTheme()
-        ? QStringLiteral(":/res/opcua-logo-dark.png")
-        : QStringLiteral(":/res/opcua-logo-light.png");
+    const QString logoResource = QStringLiteral(":/icons/%1/opcua-logo.png")
+        .arg(AppIcons::isDarkTheme() ? QStringLiteral("dark") : QStringLiteral("light"));
     ui->logoLabel->setPixmap(QPixmap(logoResource));
 }
 
