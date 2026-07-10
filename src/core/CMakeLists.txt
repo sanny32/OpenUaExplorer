@@ -32,6 +32,8 @@ add_library(ouaexp_core STATIC
     opcua/endpointhistorystore.h
     opcua/namespacecrawler.cpp
     opcua/namespacecrawler.h
+    opcua/nodesearchcrawler.cpp
+    opcua/nodesearchcrawler.h
     opcua/opcuabackend.h
     opcua/opcuaclientservice.cpp
     opcua/opcuaclientservice.h

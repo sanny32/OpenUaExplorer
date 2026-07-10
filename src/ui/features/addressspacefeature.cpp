@@ -64,6 +64,14 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
                      addressSpaceModule, &AddressSpaceModule::refresh);
     QObject::connect(addressSpaceModule, &AddressSpaceModule::childrenReady,
                      _widget, &AddressSpaceWidget::setBrowseChildren);
+    QObject::connect(_widget, &AddressSpaceWidget::searchRequested,
+                     addressSpaceModule, &AddressSpaceModule::search);
+    QObject::connect(_widget, &AddressSpaceWidget::searchCancelRequested,
+                     addressSpaceModule, &AddressSpaceModule::cancelSearch);
+    QObject::connect(addressSpaceModule, &AddressSpaceModule::searchProgress,
+                     _widget, &AddressSpaceWidget::setSearchProgress);
+    QObject::connect(addressSpaceModule, &AddressSpaceModule::searchFinished,
+                     _widget, &AddressSpaceWidget::setSearchResult);
     QObject::connect(_widget, &AddressSpaceWidget::referencesRequested,
                      referenceModule, &ReferenceModule::browseReferences);
     QObject::connect(referenceModule, &ReferenceModule::referencesReady,

@@ -11,6 +11,7 @@
 #include <QAbstractItemView>
 #include <QHeaderView>
 #include <QItemSelectionModel>
+#include <QLineEdit>
 #include <QMenu>
 #include <QPushButton>
 
@@ -21,6 +22,7 @@
 #include "models/addressspacemodel.h"
 #include "models/nodeinfomodel.h"
 #include "models/referencesmodel.h"
+#include "spinneraction.h"
 #include "tableview.h"
 #include "ui_addressspacewidget.h"
 
@@ -40,6 +42,7 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     setupTreeView();
     setupNodeInfoView();
     setupReferencesView();
+    setupSearch();
 
     connect(_treeModel, &AddressSpaceModel::browseRequested,
             this, &AddressSpaceWidget::browseRequested);
@@ -144,11 +147,17 @@ void AddressSpaceWidget::setNodeDetails(const OpcUaNodeDetails &details)
 ///
 void AddressSpaceWidget::clear()
 {
+    _searching = false;
+    _searchPattern.clear();
+    _searchMatched = false;
     _selectedNodeId.clear();
     _subscribedNodeIds.clear();
     _referencesByNodeId.clear();
     _pendingExpand.clear();
     _pendingSelect.clear();
+    ui->searchEdit->clear();
+    setSearchBusy(false);
+    setSearchFailure(QString());
     _treeModel->clear();
     _nodeInfoModel->clear();
     _referencesModel->clear();
@@ -395,6 +404,136 @@ void AddressSpaceWidget::setupReferencesView()
     ui->referencesTable->verticalHeader()->hide();
     ui->referencesTable->horizontalHeader()->setStretchLastSection(true);
     ui->referencesTable->setColumnWidth(ReferencesModel::ColReference, 150);
+}
+
+///
+/// \brief Wires the search box to the server-side address-space search.
+///
+void AddressSpaceWidget::setupSearch()
+{
+    _searchSpinner = new SpinnerAction(ui->searchEdit);
+    ui->searchEdit->addAction(_searchSpinner, QLineEdit::TrailingPosition);
+    setSearchBusy(false);
+    connect(ui->searchEdit, &QLineEdit::returnPressed, this, &AddressSpaceWidget::startSearch);
+    connect(ui->searchEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
+        setSearchFailure(QString());
+        if (text.trimmed() != _searchPattern)
+            cancelSearch();
+    });
+}
+
+///
+/// \brief Asks the server to search the tree root's subtree for the typed display name.
+///
+/// Pressing Return again with an unchanged pattern continues the crawl from the last
+/// match instead of restarting it, so repeated presses walk the matches in turn.
+///
+void AddressSpaceWidget::startSearch()
+{
+    const QString pattern = ui->searchEdit->text().trimmed();
+    if (pattern.isEmpty() || _searching)
+        return;
+
+    const QString startNodeId = _treeModel->nodeInfo(_treeModel->index(0, 0)).nodeId;
+    if (startNodeId.isEmpty()) {
+        setSearchFailure(tr("Connect to a server before searching."));
+        return;
+    }
+
+    _searching = true;
+    _searchPattern = pattern;
+    setSearchFailure(QString());
+    setSearchBusy(true);
+    emit searchRequested(startNodeId, pattern);
+}
+
+///
+/// \brief Abandons the running or paused search so the server drops its crawl state.
+///
+void AddressSpaceWidget::cancelSearch()
+{
+    setSearchBusy(false);
+    const bool hadSearch = _searching || !_searchPattern.isEmpty();
+    _searching = false;
+    _searchPattern.clear();
+    _searchMatched = false;
+    if (hadSearch)
+        emit searchCancelRequested();
+}
+
+///
+/// \brief Swaps the search box between its clear button and the busy spinner.
+///
+/// Both occupy the trailing icon slot, so showing them together crowds the box and
+/// shifts the text margin; only one is ever enabled.
+/// \param busy True while a search runs.
+///
+void AddressSpaceWidget::setSearchBusy(bool busy)
+{
+    ui->searchEdit->setClearButtonEnabled(!busy);
+    if (busy)
+        _searchSpinner->start();
+    else
+        _searchSpinner->stop();
+}
+
+///
+/// \brief Explains a failed search through the search box tooltip.
+/// \param text Message to show, or empty to drop the previous message.
+///
+void AddressSpaceWidget::setSearchFailure(const QString &text)
+{
+    ui->searchEdit->setToolTip(text);
+}
+
+///
+/// \brief Reports how many nodes the running search has visited.
+/// \param visitedNodes Number of unique nodes visited so far.
+///
+void AddressSpaceWidget::setSearchProgress(int visitedNodes)
+{
+    if (!_searching)
+        return;
+    ui->searchEdit->setToolTip(tr("Searching... %n node(s) visited", nullptr, visitedNodes));
+}
+
+///
+/// \brief Reveals the search match, or reports that the search found nothing.
+///
+/// The match is revealed through the pending-expansion machinery: its ancestors are
+/// expanded as their browse results arrive, and the match is selected once loaded.
+/// The crawl stays paused on the match so the next Return continues from it.
+/// \param ancestorNodeIds Node ids from the search root down to the match's parent.
+/// \param nodeId Matched NodeId, empty when no further node matched.
+/// \param error Search error, empty on success.
+///
+void AddressSpaceWidget::setSearchResult(const QStringList &ancestorNodeIds, const QString &nodeId,
+                                         const QString &error)
+{
+    if (!_searching)
+        return;
+    _searching = false;
+    setSearchBusy(false);
+
+    if (!error.isEmpty()) {
+        _searchPattern.clear();
+        _searchMatched = false;
+        setSearchFailure(tr("Search failed: %1").arg(error));
+        return;
+    }
+    if (nodeId.isEmpty()) {
+        const QString pattern = _searchPattern;
+        const bool exhausted = _searchMatched;
+        _searchPattern.clear();
+        _searchMatched = false;
+        setSearchFailure(exhausted ? tr("No more nodes matching '%1'.").arg(pattern)
+                                   : tr("No node matching '%1'.").arg(pattern));
+        return;
+    }
+
+    _searchMatched = true;
+    setSearchFailure(QString());
+    restoreExpansion(ancestorNodeIds, nodeId);
 }
 
 ///

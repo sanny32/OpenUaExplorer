@@ -34,6 +34,7 @@
 #include "formatters/attributeformatter.h"
 #include "loggingcategories.h"
 #include "namespacecrawler.h"
+#include "nodesearchcrawler.h"
 #include "pkimanager.h"
 #include "qtopcuabackend.h"
 #include "qtopcuaconnectionmanager.h"
@@ -69,6 +70,8 @@ public:
             cancelRequests();
             if (namespaceCrawler)
                 namespaceCrawler->cancel();
+            if (nodeSearchCrawler)
+                nodeSearchCrawler->cancel();
             monitoring.clear();
             monitoring.setClient(nullptr);
         });
@@ -200,6 +203,7 @@ public:
     std::array<QMetaObject::Connection,
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeConnections{};
     QPointer<NamespaceCrawler> namespaceCrawler;
+    QPointer<NodeSearchCrawler> nodeSearchCrawler;
 };
 
 ///
@@ -841,6 +845,53 @@ void QtOpcUaBackend::cancelNamespaceStatistics()
 {
     if (_d->namespaceCrawler)
         _d->namespaceCrawler->cancel();
+}
+
+///
+/// \brief Searches a subtree for a display name, emitting nodeSearchFinished() with the match.
+///
+/// Repeating the same request continues the previous crawl from the match it paused on,
+/// which walks the remaining siblings before descending, rather than restarting at the top.
+/// \param startNodeId Node whose subtree is searched.
+/// \param pattern Case-insensitive substring matched against display names.
+/// \param timeoutMs Per-browse timeout in milliseconds.
+///
+void QtOpcUaBackend::searchNode(const QString &startNodeId, const QString &pattern, int timeoutMs)
+{
+    QOpcUaClient *client = _d->connection.client();
+    if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit nodeSearchFinished({}, {}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    if (_d->nodeSearchCrawler && _d->nodeSearchCrawler->isPaused()
+        && _d->nodeSearchCrawler->matches(startNodeId, pattern)) {
+        _d->nodeSearchCrawler->resume();
+        return;
+    }
+    if (_d->nodeSearchCrawler) {
+        _d->nodeSearchCrawler->disconnect(this);
+        _d->nodeSearchCrawler->cancel();
+        _d->nodeSearchCrawler->deleteLater();
+    }
+    _d->nodeSearchCrawler = new NodeSearchCrawler(client, startNodeId, pattern, timeoutMs, this);
+    connect(_d->nodeSearchCrawler, &NodeSearchCrawler::progress,
+            this, &QtOpcUaBackend::nodeSearchProgress);
+    connect(_d->nodeSearchCrawler, &NodeSearchCrawler::finished, this,
+            [this](const QStringList &ancestorNodeIds, const QString &nodeId, const QString &error) {
+        emit nodeSearchFinished(ancestorNodeIds, nodeId, error);
+        if (_d->nodeSearchCrawler && !_d->nodeSearchCrawler->isPaused())
+            _d->nodeSearchCrawler->deleteLater();
+    });
+    _d->nodeSearchCrawler->start();
+}
+
+///
+/// \brief Cancels an in-progress node search, if any.
+///
+void QtOpcUaBackend::cancelNodeSearch()
+{
+    if (_d->nodeSearchCrawler)
+        _d->nodeSearchCrawler->cancel();
 }
 
 ///

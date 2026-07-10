@@ -219,6 +219,19 @@ public:
     ///
     void cancelNamespaceStatistics() override;
 
+    ///
+    /// \brief Searches a subtree for a display name, emitting nodeSearchFinished() with the match.
+    /// \param startNodeId Node whose subtree is searched.
+    /// \param pattern Case-insensitive substring matched against display names.
+    /// \param timeoutMs Per-browse timeout in milliseconds.
+    ///
+    void searchNode(const QString &startNodeId, const QString &pattern, int timeoutMs) override;
+
+    ///
+    /// \brief Cancels an in-progress node search, if any.
+    ///
+    void cancelNodeSearch() override;
+
 private:
     ///
     /// \brief Reads EventNotifier/Historizing of browsed children, then emits browseFinished().

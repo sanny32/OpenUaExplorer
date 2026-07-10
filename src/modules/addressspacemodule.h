@@ -44,6 +44,18 @@ public slots:
     ///
     void refresh(const QString &nodeId);
 
+    ///
+    /// \brief Searches a subtree on the server for a node whose display name matches.
+    /// \param startNodeId Node whose subtree is searched.
+    /// \param pattern Case-insensitive substring matched against display names.
+    ///
+    void search(const QString &startNodeId, const QString &pattern);
+
+    ///
+    /// \brief Cancels an in-progress node search, if any.
+    ///
+    void cancelSearch();
+
 signals:
     ///
     /// \brief Emitted when a node's children have been browsed.
@@ -53,9 +65,25 @@ signals:
     ///
     void childrenReady(QString parentNodeId, QVector<OpcUaNodeInfo> children, QString error);
 
+    ///
+    /// \brief Emitted periodically while a node search runs.
+    /// \param visitedNodes Number of unique nodes visited so far.
+    ///
+    void searchProgress(int visitedNodes);
+
+    ///
+    /// \brief Emitted when a node search finds a match, exhausts the subtree, or fails.
+    /// \param ancestorNodeIds Node ids from the start node down to the match's parent.
+    /// \param nodeId Matched NodeId, empty when nothing matched.
+    /// \param error Search error, empty on success.
+    ///
+    void searchFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
+
 private:
     void handleBrowseFinished(const QString &parentNodeId,
                               const QVector<OpcUaNodeInfo> &children,
+                              const QString &error);
+    void handleSearchFinished(const QStringList &ancestorNodeIds, const QString &nodeId,
                               const QString &error);
 
     OpcUaClientService *_clientService = nullptr;

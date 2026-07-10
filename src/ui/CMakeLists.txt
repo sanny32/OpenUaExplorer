@@ -174,6 +174,8 @@ add_library(ouaexp_ui STATIC
     widgets/headerview.h
     widgets/historycombobox.cpp
     widgets/historycombobox.h
+    widgets/spinneraction.cpp
+    widgets/spinneraction.h
     widgets/logwidget.cpp
     widgets/logwidget.h
     widgets/mainstatusbarwidget.cpp

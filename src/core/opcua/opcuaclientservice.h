@@ -241,6 +241,18 @@ public:
     ///
     void cancelNamespaceStatistics();
 
+    ///
+    /// \brief Searches a subtree for a display name, using the cached request timeout.
+    /// \param startNodeId Node whose subtree is searched.
+    /// \param pattern Case-insensitive substring matched against display names.
+    ///
+    void searchNode(const QString &startNodeId, const QString &pattern);
+
+    ///
+    /// \brief Cancels an in-progress node search, if any.
+    ///
+    void cancelNodeSearch();
+
 signals:
     ///
     /// \brief Emitted when the connection state changes.
@@ -393,6 +405,20 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void namespaceStatisticsReady(OpcUaNamespaceNodeCounts nodeCounts, QString error);
+
+    ///
+    /// \brief Emitted periodically while a node search crawl runs.
+    /// \param visitedNodes Number of unique nodes visited so far.
+    ///
+    void nodeSearchProgress(int visitedNodes);
+
+    ///
+    /// \brief Emitted when a node search finds a match, exhausts the subtree, or fails.
+    /// \param ancestorNodeIds Node ids from the start node down to the match's parent.
+    /// \param nodeId Matched NodeId, empty when nothing matched.
+    /// \param error Error description, empty on success.
+    ///
+    void nodeSearchFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
 private:
     OpcUaBackend *_backend;
     bool _ownsBackend;

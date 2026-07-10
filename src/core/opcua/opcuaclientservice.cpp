@@ -67,6 +67,10 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::namespaceStatisticsProgress);
     connect(_backend, &OpcUaBackend::namespaceStatisticsReady,
             this, &OpcUaClientService::namespaceStatisticsReady);
+    connect(_backend, &OpcUaBackend::nodeSearchProgress,
+            this, &OpcUaClientService::nodeSearchProgress);
+    connect(_backend, &OpcUaBackend::nodeSearchFinished,
+            this, &OpcUaClientService::nodeSearchFinished);
 }
 
 ///
@@ -363,4 +367,22 @@ void OpcUaClientService::requestNamespaceStatistics()
 void OpcUaClientService::cancelNamespaceStatistics()
 {
     _backend->cancelNamespaceStatistics();
+}
+
+///
+/// \brief Searches a subtree for a display name, using the cached request timeout.
+/// \param startNodeId Node whose subtree is searched.
+/// \param pattern Case-insensitive substring matched against display names.
+///
+void OpcUaClientService::searchNode(const QString &startNodeId, const QString &pattern)
+{
+    _backend->searchNode(startNodeId, pattern, _requestTimeoutMs);
+}
+
+///
+/// \brief Cancels an in-progress node search, if any.
+///
+void OpcUaClientService::cancelNodeSearch()
+{
+    _backend->cancelNodeSearch();
 }

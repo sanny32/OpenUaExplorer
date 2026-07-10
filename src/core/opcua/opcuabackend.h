@@ -297,6 +297,28 @@ public:
     ///
     virtual void cancelNamespaceStatistics() {}
 
+    ///
+    /// \brief Searches a subtree for a display name, emitting nodeSearchFinished() with the match.
+    ///
+    /// Backends that cannot crawl the address space may leave this default,
+    /// which reports that the operation is unsupported.
+    /// \param startNodeId Node whose subtree is searched.
+    /// \param pattern Case-insensitive substring matched against display names.
+    /// \param timeoutMs Per-browse timeout in milliseconds.
+    ///
+    virtual void searchNode(const QString &startNodeId, const QString &pattern, int timeoutMs)
+    {
+        Q_UNUSED(startNodeId)
+        Q_UNUSED(pattern)
+        Q_UNUSED(timeoutMs)
+        emit nodeSearchFinished({}, {}, tr("Searching the address space is not supported."));
+    }
+
+    ///
+    /// \brief Cancels an in-progress node search, if any.
+    ///
+    virtual void cancelNodeSearch() {}
+
 signals:
     ///
     /// \brief Emitted when the connection state changes.
@@ -449,4 +471,18 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void namespaceStatisticsReady(OpcUaNamespaceNodeCounts nodeCounts, QString error);
+
+    ///
+    /// \brief Emitted periodically while a node search crawl runs.
+    /// \param visitedNodes Number of unique nodes visited so far.
+    ///
+    void nodeSearchProgress(int visitedNodes);
+
+    ///
+    /// \brief Emitted when a node search finds a match, exhausts the subtree, or fails.
+    /// \param ancestorNodeIds Node ids from the start node down to the match's parent.
+    /// \param nodeId Matched NodeId, empty when nothing matched.
+    /// \param error Error description, empty on success.
+    ///
+    void nodeSearchFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
 };
