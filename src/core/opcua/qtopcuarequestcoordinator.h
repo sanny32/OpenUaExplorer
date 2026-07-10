@@ -15,6 +15,7 @@ public:
     /// \brief Categories whose requests supersede only requests of the same category.
     enum class Operation {
         Discovery,
+        FindServers,
         Browse,
         BrowseAttributeRead,
         ReferencesBrowse,

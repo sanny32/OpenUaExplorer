@@ -105,6 +105,22 @@ void mergeEndpointCapabilities(EndpointInfo *target, const EndpointInfo &source)
         target->serverCertificate = source.serverCertificate;
 }
 
+/// \brief Maps a Qt application type to its transport-neutral counterpart.
+OpcUaApplicationType applicationType(QOpcUaApplicationDescription::ApplicationType type)
+{
+    switch (type) {
+    case QOpcUaApplicationDescription::Client:
+        return OpcUaApplicationType::Client;
+    case QOpcUaApplicationDescription::ClientAndServer:
+        return OpcUaApplicationType::ClientAndServer;
+    case QOpcUaApplicationDescription::DiscoveryServer:
+        return OpcUaApplicationType::DiscoveryServer;
+    case QOpcUaApplicationDescription::Server:
+        break;
+    }
+    return OpcUaApplicationType::Server;
+}
+
 } // namespace
 
 namespace QtOpcUaTypeMapper {
@@ -136,6 +152,28 @@ QList<EndpointInfo> endpointInfos(const QVector<QOpcUaEndpointDescription> &endp
             mergeEndpointCapabilities(&*existing, info);
             continue;
         }
+        result.append(info);
+    }
+    return result;
+}
+
+/// \brief Maps Qt application descriptions to transport-neutral server records.
+QList<ServerInfo> serverInfos(const QVector<QOpcUaApplicationDescription> &servers)
+{
+    QList<ServerInfo> result;
+    result.reserve(servers.size());
+    for (const QOpcUaApplicationDescription &server : servers) {
+        ServerInfo info;
+        info.applicationName = server.applicationName().text();
+        info.applicationUri = server.applicationUri();
+        info.productUri = server.productUri();
+        info.applicationType = applicationType(server.applicationType());
+        info.gatewayServerUri = server.gatewayServerUri();
+        info.discoveryProfileUri = server.discoveryProfileUri();
+        const QVector<QString> discoveryUrls = server.discoveryUrls();
+        info.discoveryUrls.reserve(discoveryUrls.size());
+        for (const QString &url : discoveryUrls)
+            info.discoveryUrls.append(url);
         result.append(info);
     }
     return result;

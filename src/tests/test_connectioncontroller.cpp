@@ -214,6 +214,7 @@ class TestConnectionController : public QObject
 
 private slots:
     void serviceForwardsBackendState();
+    void serviceReportsFindServersUnsupported();
     void serviceUsesProfileRequestTimeout();
     void serviceForwardsMonitoringRequestsAndResults();
     void savedProfileWithoutSecretsDiscoversThenConnects();
@@ -240,6 +241,20 @@ void TestConnectionController::serviceForwardsBackendState()
 
     QCOMPARE(service.state(), OpcUaConnectionState::Connected);
     QCOMPARE(stateSpy.size(), 1);
+}
+
+void TestConnectionController::serviceReportsFindServersUnsupported()
+{
+    FakeOpcUaBackend backend;
+    OpcUaClientService service(&backend);
+    QSignalSpy serversSpy(&service, &OpcUaClientService::serversDiscovered);
+
+    service.findServers(QStringLiteral("opc.tcp://localhost:4840"));
+
+    QCOMPARE(serversSpy.size(), 1);
+    const QList<QVariant> arguments = serversSpy.takeFirst();
+    QVERIFY(arguments.at(0).value<QList<ServerInfo>>().isEmpty());
+    QVERIFY(!arguments.at(1).toString().isEmpty());
 }
 
 void TestConnectionController::serviceUsesProfileRequestTimeout()

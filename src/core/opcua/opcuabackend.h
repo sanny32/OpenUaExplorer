@@ -82,6 +82,23 @@ public:
                                    int timeoutMs) = 0;
 
     ///
+    /// \brief Lists the servers registered with a discovery server, bounded by a timeout.
+    ///
+    /// Backends without a FindServers service may leave this default, which
+    /// reports that the operation is unsupported.
+    /// \param url Discovery server URL.
+    /// \param backend Backend name to use.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    virtual void findServers(const QString &url, const QString &backend, int timeoutMs)
+    {
+        Q_UNUSED(url)
+        Q_UNUSED(backend)
+        Q_UNUSED(timeoutMs)
+        emit serversDiscovered({}, tr("Finding servers is not supported."));
+    }
+
+    ///
     /// \brief Connects to the endpoint described by a profile.
     /// \param profile Connection profile.
     /// \param password User password, if any.
@@ -299,6 +316,13 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void endpointsDiscovered(QList<EndpointInfo> endpoints, QString error);
+
+    ///
+    /// \brief Emitted when a FindServers request finishes.
+    /// \param servers Servers registered with the discovery server.
+    /// \param error Error description, empty on success.
+    ///
+    void serversDiscovered(QList<ServerInfo> servers, QString error);
 
     ///
     /// \brief Emitted when a browse finishes.

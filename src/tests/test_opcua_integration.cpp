@@ -55,6 +55,7 @@ private slots:
     void initTestCase();
     void cleanupTestCase();
     void discoverConnectBrowseReadWrite();
+    void findServersListsTheRunningServer();
 
 private:
     OpcUaTestServer _server;
@@ -246,6 +247,35 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     // 12. Disconnect.
     service.disconnectFromEndpoint();
     QVERIFY(waitForState(service, OpcUaConnectionState::Disconnected, 10000));
+}
+
+///
+/// \brief Asks the running server for its FindServers list and inspects the entry.
+///
+/// Every OPC UA server answers FindServers on its own discovery endpoint by
+/// describing itself, so no separate Local Discovery Server is needed here.
+///
+void TestOpcUaIntegration::findServersListsTheRunningServer()
+{
+    OpcUaClientService service;
+    if (!service.isAvailable())
+        QSKIP("No OPC UA backend is available.");
+
+    QSignalSpy serversSpy(&service, &OpcUaClientService::serversDiscovered);
+    service.findServers(_endpoint);
+    QVERIFY(serversSpy.wait(15000));
+
+    const QList<QVariant> arguments = serversSpy.takeFirst();
+    QVERIFY2(arguments.at(1).toString().isEmpty(), qPrintable(arguments.at(1).toString()));
+    const auto servers = arguments.at(0).value<QList<ServerInfo>>();
+    QVERIFY(!servers.isEmpty());
+
+    const ServerInfo &server = servers.constFirst();
+    QVERIFY(!server.applicationUri.isEmpty());
+    QVERIFY(!server.discoveryUrls.isEmpty());
+    QVERIFY(server.applicationType == OpcUaApplicationType::Server
+            || server.applicationType == OpcUaApplicationType::ClientAndServer);
+    QCOMPARE(service.state(), OpcUaConnectionState::Disconnected);
 }
 
 QTEST_GUILESS_MAIN(TestOpcUaIntegration)

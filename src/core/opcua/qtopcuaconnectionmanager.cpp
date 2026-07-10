@@ -181,6 +181,12 @@ void QtOpcUaConnectionManager::finishDiscovery(
     setState(OpcUaConnectionState::Disconnected);
 }
 
+/// \brief Returns to disconnected state, keeping the cached endpoints intact.
+void QtOpcUaConnectionManager::finishServerLookup()
+{
+    setState(OpcUaConnectionState::Disconnected);
+}
+
 /// \brief Configures the client and connects to the profile's discovered endpoint.
 bool QtOpcUaConnectionManager::connectToEndpoint(const ConnectionProfile &profile,
                                                  const QString &password,

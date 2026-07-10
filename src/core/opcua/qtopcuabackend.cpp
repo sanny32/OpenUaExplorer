@@ -16,6 +16,7 @@
 
 #include <QStringList>
 
+#include <QOpcUaApplicationDescription>
 #include <QOpcUaArgument>
 #include <QOpcUaBrowseRequest>
 #include <QOpcUaClient>
@@ -210,6 +211,7 @@ QtOpcUaBackend::QtOpcUaBackend(QObject *parent)
     , _d(new Private(this))
 {
     qRegisterMetaType<EndpointInfo>();
+    qRegisterMetaType<ServerInfo>();
     qRegisterMetaType<OpcUaNodeInfo>();
     qRegisterMetaType<OpcUaMethodArgument>();
     qRegisterMetaType<QVector<OpcUaMethodArgument>>();
@@ -350,6 +352,77 @@ void QtOpcUaBackend::discoverEndpoints(const QString &url, const QString &backen
         _d->connection.setError(message);
         _d->connection.finishDiscovery({});
         emit endpointsDiscovered({}, message);
+    }
+}
+
+///
+/// \brief Lists the servers registered with a discovery server, emitting serversDiscovered().
+/// \param url Discovery server URL (must be opc.tcp).
+/// \param backend Preferred backend.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::findServers(const QString &url, const QString &backend, int timeoutMs)
+{
+    if (_d->connection.state() != OpcUaConnectionState::Disconnected
+        && _d->connection.state() != OpcUaConnectionState::Unavailable) {
+        const QString message = tr("Finding servers requires an idle client.");
+        _d->connection.setError(message);
+        emit serversDiscovered({}, message);
+        return;
+    }
+    if (!_d->connection.prepareDiscovery(backend)) {
+        emit serversDiscovered({}, _d->connection.lastError());
+        return;
+    }
+    const QUrl serverUrl(url);
+    if (!serverUrl.isValid() || serverUrl.scheme() != QLatin1String("opc.tcp")) {
+        const QString message = tr("Invalid OPC UA discovery server URL: %1").arg(url);
+        _d->connection.setError(message);
+        emit serversDiscovered({}, message);
+        return;
+    }
+    _d->connection.setState(OpcUaConnectionState::Discovering);
+    constexpr auto operation = QtOpcUaRequestCoordinator::Operation::FindServers;
+    const auto token = _d->beginConnectionRequest(operation);
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(
+        _d->connection.client(), &QOpcUaClient::findServersFinished, this,
+        [this, connection, token, operation](
+            const QVector<QOpcUaApplicationDescription> &result,
+            QOpcUa::UaStatusCode status, const QUrl &) {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
+            return;
+        _d->connection.finishServerLookup();
+        const QList<ServerInfo> servers = QOpcUa::isSuccessStatus(status)
+            ? QtOpcUaTypeMapper::serverInfos(result)
+            : QList<ServerInfo>();
+        const QString message = QOpcUa::isSuccessStatus(status)
+            ? QString()
+            : tr("Finding servers failed: %1").arg(statusName(status));
+        emit serversDiscovered(servers, message);
+    });
+    _d->trackConnection(operation, *connection);
+    QTimer::singleShot(qMax(1000, timeoutMs), this,
+                       [this, connection, token, operation]() {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
+            return;
+        const QString message = tr("Finding servers timed out.");
+        _d->connection.setError(message);
+        _d->connection.finishServerLookup();
+        emit serversDiscovered({}, message);
+    });
+    if (!_d->connection.client()->findServers(serverUrl)) {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        _d->requests.settle(token);
+        const QString message = tr("The backend rejected the find servers request.");
+        _d->connection.setError(message);
+        _d->connection.finishServerLookup();
+        emit serversDiscovered({}, message);
     }
 }
 

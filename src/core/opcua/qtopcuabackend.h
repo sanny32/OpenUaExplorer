@@ -70,6 +70,14 @@ public:
                            int timeoutMs) override;
 
     ///
+    /// \brief Lists the servers registered with a discovery server, emitting serversDiscovered().
+    /// \param url Discovery server URL (must be opc.tcp).
+    /// \param backend Preferred backend.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void findServers(const QString &url, const QString &backend, int timeoutMs) override;
+
+    ///
     /// \brief Connects to the discovered endpoint that matches the profile's URL, policy, and mode.
     /// \param profile Connection settings.
     /// \param password Username password.

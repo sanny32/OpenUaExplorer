@@ -44,6 +44,7 @@ private slots:
     void attributesModelExposesStructuredValues();
     void open62541BackendIsAvailable();
     void encryptedPrivateKeyPasswordIsRejected();
+    void findServersRejectsNonOpcTcpUrl();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -265,6 +266,26 @@ void TestOpcUa::encryptedPrivateKeyPasswordIsRejected()
     QCOMPARE(errorSpy.size(), 1);
     QVERIFY(service.lastError().contains(
         QStringLiteral("Encrypted private keys"), Qt::CaseInsensitive));
+}
+
+///
+/// \brief TestOpcUa::findServersRejectsNonOpcTcpUrl
+///
+void TestOpcUa::findServersRejectsNonOpcTcpUrl()
+{
+    OpcUaClientService service;
+    const QStringList backends = service.availableBackends();
+    if (backends.isEmpty())
+        QSKIP("Qt OpcUa backend is not available.");
+
+    QSignalSpy serversSpy(&service, &OpcUaClientService::serversDiscovered);
+    service.findServers(QStringLiteral("http://localhost:4840"), backends.constFirst());
+
+    QCOMPARE(serversSpy.size(), 1);
+    const QList<QVariant> arguments = serversSpy.takeFirst();
+    QVERIFY(arguments.at(0).value<QList<ServerInfo>>().isEmpty());
+    QVERIFY(!arguments.at(1).toString().isEmpty());
+    QCOMPARE(service.state(), OpcUaConnectionState::Disconnected);
 }
 
 QTEST_MAIN(TestOpcUa)

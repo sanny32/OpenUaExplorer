@@ -33,6 +33,8 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::errorOccurred);
     connect(_backend, &OpcUaBackend::endpointsDiscovered,
             this, &OpcUaClientService::endpointsDiscovered);
+    connect(_backend, &OpcUaBackend::serversDiscovered,
+            this, &OpcUaClientService::serversDiscovered);
     connect(_backend, &OpcUaBackend::browseFinished,
             this, &OpcUaClientService::browseFinished);
     connect(_backend, &OpcUaBackend::referencesBrowseFinished,
@@ -151,6 +153,28 @@ void OpcUaClientService::discoverEndpointsWithTimeout(const QString &url,
                                                       int timeoutMs)
 {
     _backend->discoverEndpoints(url, backend, timeoutMs);
+}
+
+///
+/// \brief Lists the servers registered with a discovery server, with the default timeout.
+/// \param url Discovery server URL.
+/// \param backend Backend name to use.
+///
+void OpcUaClientService::findServers(const QString &url, const QString &backend)
+{
+    findServersWithTimeout(url, backend, 10000);
+}
+
+///
+/// \brief Lists the servers registered with a discovery server, bounded by a timeout.
+/// \param url Discovery server URL.
+/// \param backend Backend name to use.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void OpcUaClientService::findServersWithTimeout(const QString &url, const QString &backend,
+                                                int timeoutMs)
+{
+    _backend->findServers(url, backend, timeoutMs);
 }
 
 ///

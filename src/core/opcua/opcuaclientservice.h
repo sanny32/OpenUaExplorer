@@ -97,6 +97,22 @@ public:
                                       int timeoutMs);
 
     ///
+    /// \brief Lists the servers registered with a discovery server, with the default timeout.
+    /// \param url Discovery server URL.
+    /// \param backend Backend name to use.
+    ///
+    void findServers(const QString &url,
+                     const QString &backend = QStringLiteral("open62541"));
+
+    ///
+    /// \brief Lists the servers registered with a discovery server, bounded by a timeout.
+    /// \param url Discovery server URL.
+    /// \param backend Backend name to use.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void findServersWithTimeout(const QString &url, const QString &backend, int timeoutMs);
+
+    ///
     /// \brief Connects to the endpoint described by a profile, caching its request timeout.
     /// \param profile Connection profile.
     /// \param password User password, if any.
@@ -244,6 +260,13 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void endpointsDiscovered(QList<EndpointInfo> endpoints, QString error);
+
+    ///
+    /// \brief Emitted when a FindServers request finishes.
+    /// \param servers Servers registered with the discovery server.
+    /// \param error Error description, empty on success.
+    ///
+    void serversDiscovered(QList<ServerInfo> servers, QString error);
 
     ///
     /// \brief Emitted when a browse finishes.

@@ -115,6 +115,41 @@ struct EndpointInfo
 };
 
 ///
+/// \brief Application role advertised by an OPC UA application (OPC UA Part 4).
+///
+enum class OpcUaApplicationType {
+    /// \brief Application is a server only.
+    Server = 0,
+    /// \brief Application is a client only.
+    Client = 1,
+    /// \brief Application acts as both client and server.
+    ClientAndServer = 2,
+    /// \brief Application is a discovery server.
+    DiscoveryServer = 3
+};
+
+///
+/// \brief One OPC UA application returned by a FindServers request.
+///
+struct ServerInfo
+{
+    /// \brief ApplicationName text in the requested locale.
+    QString applicationName;
+    /// \brief Globally unique application identifier.
+    QString applicationUri;
+    /// \brief Product identifier of the application.
+    QString productUri;
+    /// \brief Role the application plays.
+    OpcUaApplicationType applicationType = OpcUaApplicationType::Server;
+    /// \brief URI of the gateway server, for gateway applications.
+    QString gatewayServerUri;
+    /// \brief URI of the discovery profile the application supports.
+    QString discoveryProfileUri;
+    /// \brief Discovery URLs the application can be reached at.
+    QStringList discoveryUrls;
+};
+
+///
 /// \brief One browsed OPC UA node.
 ///
 struct OpcUaNodeInfo
@@ -361,6 +396,7 @@ struct OpcUaHistoryValue
 using OpcUaNamespaceNodeCounts = QHash<int, int>;
 
 Q_DECLARE_METATYPE(EndpointInfo)
+Q_DECLARE_METATYPE(ServerInfo)
 Q_DECLARE_METATYPE(OpcUaNamespaceNodeCounts)
 Q_DECLARE_METATYPE(OpcUaNodeInfo)
 Q_DECLARE_METATYPE(OpcUaMethodArgument)
