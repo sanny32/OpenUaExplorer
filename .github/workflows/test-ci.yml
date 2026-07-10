@@ -50,11 +50,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             dbus \
+            gnome-keyring \
             ninja-build \
             libsecret-1-dev \
             libssl-dev \
             libgl1-mesa-dev \
-            libxkbcommon-x11-0
+            libxkbcommon-x11-0 \
+            python3-dbus \
+            python3-gi
 
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'
@@ -106,7 +109,9 @@ jobs:
 
       - name: Build and run tests (Linux)
         if: runner.os == 'Linux'
-        run: dbus-run-session -- cmake --build build --config Release --parallel --target ouaexp ouaexp_check
+        run: >
+          dbus-run-session -- bash tools/with_session_services.sh
+          cmake --build build --config Release --parallel --target ouaexp ouaexp_check
 
       - name: Build and run tests
         if: runner.os != 'Linux'
@@ -133,11 +138,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             dbus \
+            gnome-keyring \
             ninja-build \
             libsecret-1-dev \
             libssl-dev \
             libgl1-mesa-dev \
-            libxkbcommon-x11-0
+            libxkbcommon-x11-0 \
+            python3-dbus \
+            python3-gi
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -156,7 +164,9 @@ jobs:
           key: qtopcua-coverage-${{ matrix.os }}-${{ matrix.qt }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
 
       - name: Run coverage
-        run: dbus-run-session -- python tools/coverage.py --strict -- -G Ninja
+        run: >
+          dbus-run-session -- bash tools/with_session_services.sh
+          python tools/coverage.py --strict -- -G Ninja
 
       - name: Upload coverage report
         if: always()

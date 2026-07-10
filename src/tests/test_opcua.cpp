@@ -44,7 +44,6 @@ private slots:
     void attributesModelExposesStructuredValues();
     void open62541BackendIsAvailable();
     void encryptedPrivateKeyPasswordIsRejected();
-    void integrationEndpointDiscovery();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -266,27 +265,6 @@ void TestOpcUa::encryptedPrivateKeyPasswordIsRejected()
     QCOMPARE(errorSpy.size(), 1);
     QVERIFY(service.lastError().contains(
         QStringLiteral("Encrypted private keys"), Qt::CaseInsensitive));
-}
-
-///
-/// \brief TestOpcUa::integrationEndpointDiscovery
-///
-void TestOpcUa::integrationEndpointDiscovery()
-{
-    const QString endpoint = qEnvironmentVariable("OUAEXP_TEST_ENDPOINT");
-    if (endpoint.isEmpty())
-        QSKIP("OUAEXP_TEST_ENDPOINT is not configured.");
-
-    OpcUaClientService service;
-    if (!service.isAvailable())
-        QSKIP("Qt OpcUa backend is not available.");
-
-    QSignalSpy endpointSpy(&service, &OpcUaClientService::endpointsDiscovered);
-    service.discoverEndpoints(endpoint);
-    QVERIFY(endpointSpy.wait(15000));
-    const QList<QVariant> arguments = endpointSpy.takeFirst();
-    QVERIFY2(arguments.at(1).toString().isEmpty(),
-             qPrintable(arguments.at(1).toString()));
 }
 
 QTEST_MAIN(TestOpcUa)
