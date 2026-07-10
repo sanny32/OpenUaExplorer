@@ -123,7 +123,7 @@ jobs:
       - name: Stage package root
         run: |
           rm -rf pkgroot
-          bash .github/linux/deb/bundle.sh \
+          bash .github/linux/bundle.sh \
             "$PWD/pkgroot" \
             "$PWD/build/app/ouaexp" \
             "$QT_ROOT_DIR" \

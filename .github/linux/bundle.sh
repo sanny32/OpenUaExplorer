@@ -8,6 +8,9 @@
 # plugins in plugins/, and a bin/qt.conf that points Qt at both. Only libraries
 # that live inside the Qt prefix are copied; anything from the distribution stays
 # a package dependency, so the system OpenGL, xcb and C++ runtimes are used.
+#
+# The staged tree is a plain /usr hierarchy that carries no packaging metadata, so
+# the .deb and the .rpm workflow both build their package from this same output.
 
 set -euo pipefail
 
