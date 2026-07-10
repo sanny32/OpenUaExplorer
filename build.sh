@@ -873,38 +873,25 @@ ensure_linuxdeployqt() {
 
 deploy_linux_with_linuxdeployqt() {
     local appdir="$1"
-    local build_dir="$2"
     local app="$appdir/usr/bin/ouaexp"
     local qmake
     local linuxdeployqt
-    local opcua_plugin
-    local qtopcua_install
 
-    if [ ! -x "$app" ]; then
-        log_error "Installed executable not found: $app"
+    if [ ! -x "$app" ] || [ -L "$app" ]; then
+        log_error "Installed executable not found or not a real file: $app"
         exit 1
     fi
 
     qmake="$(qmake_from_qt_prefix)"
     linuxdeployqt="$(ensure_linuxdeployqt)"
 
+    # The bundled Qt OpcUa library and its opcua plugin are already in the AppDir,
+    # installed by cmake/install_linux.cmake, so linuxdeployqt picks them up along
+    # with the rest and resolves their dependencies too.
     "$linuxdeployqt" "$app" \
         -qmake="$qmake" \
         -extra-plugins=iconengines,platformthemes \
         -unsupported-allow-new-glibc
-
-    qtopcua_install="$build_dir/_deps/qtopcua-install"
-    opcua_plugin="$qtopcua_install/plugins/opcua"
-    if [ ! -d "$opcua_plugin" ] && [ -d "$qtopcua_install" ]; then
-        opcua_plugin="$(find "$qtopcua_install" -type d -path '*/plugins/opcua' -print -quit)"
-    fi
-    if [ -d "$opcua_plugin" ]; then
-        mkdir -p "$appdir/usr/plugins"
-        cp -a "$opcua_plugin" "$appdir/usr/plugins/"
-        log_info "Copied Qt OpcUa plugin into $appdir/usr/plugins/opcua"
-    else
-        log_warn "Qt OpcUa plugin not found at $opcua_plugin"
-    fi
 
     log_info "Deployed Linux AppDir into $appdir"
 }
@@ -935,7 +922,7 @@ install_project() {
     if [ "$(uname -s)" = "Linux" ] && [ "$QT_FROM_AQT" -eq 1 ]; then
         mkdir -p "$prefix"
         DESTDIR="$prefix" "$CMAKE_BIN" --install "$build_dir" --prefix /usr
-        deploy_linux_with_linuxdeployqt "$prefix" "$build_dir"
+        deploy_linux_with_linuxdeployqt "$prefix"
     elif [ "$(uname -s)" = "Linux" ] && [ "$QT_FROM_AQT" -eq 0 ] && [ ! -w "$prefix" ]; then
         run_as_root "$CMAKE_BIN" --install "$build_dir" --prefix "$prefix"
     else
@@ -969,6 +956,11 @@ build_project() {
     )
     if [ -n "${OPENSSL_ROOT_DIR:-}" ]; then
         cmake_args+=("-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR")
+    fi
+    # A Qt from aqtinstall is not on the system, so the install tree is turned into a
+    # self-contained AppDir by linuxdeployqt, which needs the FHS layout.
+    if [ "$(uname -s)" = "Linux" ] && [ "$QT_FROM_AQT" -eq 1 ]; then
+        cmake_args+=(-DOUAEXP_INSTALL_PRIVATE_LIBDIR=OFF)
     fi
 
     "$CMAKE_BIN" "${cmake_args[@]}"
