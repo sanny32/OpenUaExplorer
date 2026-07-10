@@ -239,7 +239,7 @@ jobs:
         run: sha256sum "${{ steps.version.outputs.package }}" > "${{ steps.version.outputs.package }}.sha256"
 
       - name: Upload package artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ouaexp-rpm-${{ steps.version.outputs.arch }}
           path: |

@@ -148,7 +148,7 @@ jobs:
           Write-Host "SHA256: $hash"
 
       - name: Upload installer artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ouaexp-win64-setup
           path: |
