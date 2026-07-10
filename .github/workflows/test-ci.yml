@@ -53,6 +53,7 @@ jobs:
             gnome-keyring \
             ninja-build \
             libsecret-1-dev \
+            libsecret-tools \
             libssl-dev \
             libgl1-mesa-dev \
             libxkbcommon-x11-0 \
@@ -141,6 +142,7 @@ jobs:
             gnome-keyring \
             ninja-build \
             libsecret-1-dev \
+            libsecret-tools \
             libssl-dev \
             libgl1-mesa-dev \
             libxkbcommon-x11-0 \

@@ -24,9 +24,27 @@ if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
     export XDG_RUNTIME_DIR
 fi
 
-# An empty password unlocks (and, on a fresh machine, creates) the default keyring.
-eval "$(printf '' | gnome-keyring-daemon --unlock --components=secrets)"
+# Clients ask the secret service for the "default" collection, which resolves through
+# this alias file. Without it -- and without an actual login keyring behind it -- the
+# daemon tries to open a GTK prompt to create one, which cannot work on a headless
+# machine: the prompt dies and every write fails. An empty password does not create the
+# keyring either, so the daemon is unlocked with a throwaway one instead.
+keyring_dir="${XDG_DATA_HOME:-$HOME/.local/share}/keyrings"
+rm -rf "$keyring_dir"
+mkdir -p "$keyring_dir"
+printf 'login' >"$keyring_dir/default"
+
+eval "$(printf '%s' "${OUAEXP_KEYRING_PASSWORD:-ouaexp-ci}" \
+    | gnome-keyring-daemon --unlock --components=secrets)"
 export GNOME_KEYRING_CONTROL
+
+# Fail here, loudly, rather than let every SecretStore test quietly skip itself.
+if ! printf 'probe' | timeout 30 secret-tool store \
+        --label=ouaexp-ci-probe service ouaexp-ci-probe key probe; then
+    echo "The secret service is not usable; SecretStore tests would skip." >&2
+    exit 1
+fi
+timeout 10 secret-tool clear service ouaexp-ci-probe key probe || true
 
 # The portal needs dbus-python and PyGObject, which come from apt rather than pip,
 # so it runs under the system interpreter instead of whatever "python" resolves to.
