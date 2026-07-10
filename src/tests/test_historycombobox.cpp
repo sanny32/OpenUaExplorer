@@ -8,7 +8,12 @@
 
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QImage>
+#include <QItemSelectionModel>
+#include <QScopedPointer>
 #include <QSignalSpy>
+#include <QStyle>
+#include <QStyleFactory>
 #include <QTest>
 
 #include "widgets/historycombobox.h"
@@ -25,6 +30,7 @@ private slots:
     void removingTheCurrentEntryReplacesTheEditText();
     void deleteKeyRemovesTheHighlightedEntry();
     void clickingEntryTextStillActivatesIt();
+    void removeButtonStaysLegibleOnASelectedEntry();
 
 private:
     static QAbstractItemView *openPopup(HistoryComboBox &comboBox);
@@ -125,6 +131,55 @@ void TestHistoryComboBox::clickingEntryTextStillActivatesIt()
     QCOMPARE(activatedSpy.size(), 1);
     QCOMPARE(comboBox.count(), 3);
     QCOMPARE(comboBox.currentText(), QStringLiteral("opc.tcp://beta:4840"));
+}
+
+///
+/// \brief Renders a selected entry and measures the cross against the fill behind it.
+///
+/// The pale highlight is the case that used to break: styles paint it without touching
+/// QPalette::Highlight, and HighlightedText is white, so a cross that blindly trusts that
+/// role vanishes.
+///
+void TestHistoryComboBox::removeButtonStaysLegibleOnASelectedEntry()
+{
+    const QScopedPointer<QStyle> fusion(QStyleFactory::create(QStringLiteral("Fusion")));
+    if (!fusion)
+        QSKIP("The Fusion style is unavailable.");
+
+    HistoryComboBox comboBox;
+    QAbstractItemView *view = openPopup(comboBox);
+    if (!view)
+        QSKIP("The combo box popup is unavailable on this platform.");
+
+    view->setStyle(fusion.data());
+    QPalette palette = view->palette();
+    palette.setColor(QPalette::Base, Qt::white);
+    palette.setColor(QPalette::Text, Qt::black);
+    palette.setColor(QPalette::Highlight, QColor(235, 235, 235));
+    palette.setColor(QPalette::HighlightedText, Qt::white);
+    view->setPalette(palette);
+
+    const QModelIndex index = comboBox.model()->index(0, 0);
+    view->selectionModel()->select(index, QItemSelectionModel::ClearAndSelect);
+
+    QImage rendering(view->viewport()->size(), QImage::Format_ARGB32);
+    rendering.fill(Qt::white);
+    view->viewport()->render(&rendering);
+
+    const QRect buttonRect = HistoryComboBox::removeButtonRect(view->visualRect(index));
+    const int fill = rendering.pixelColor(buttonRect.left() - 2, buttonRect.center().y()).lightness();
+
+    int strongestContrast = 0;
+    for (int y = buttonRect.top(); y <= buttonRect.bottom(); ++y) {
+        for (int x = buttonRect.left(); x <= buttonRect.right(); ++x)
+            strongestContrast = qMax(strongestContrast,
+                                     qAbs(rendering.pixelColor(x, y).lightness() - fill));
+    }
+
+    QVERIFY2(strongestContrast > 40,
+             qPrintable(QStringLiteral("The cross blends into the selected entry "
+                                       "(strongest contrast was %1, fill lightness %2).")
+                            .arg(strongestContrast).arg(fill)));
 }
 
 QTEST_MAIN(TestHistoryComboBox)

@@ -9,6 +9,8 @@
 #include <QAbstractItemView>
 #include <QApplication>
 #include <QFontMetrics>
+#include <QIcon>
+#include <QImage>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMouseEvent>
@@ -121,15 +123,36 @@ public:
             && !viewItem.state.testFlag(QStyle::State_MouseOver))
             return;
 
-        drawRemoveButton(painter, HistoryComboBox::removeButtonRect(viewItem.rect),
-                         index.row() == _hoveredRow);
+        const QRect buttonRect = HistoryComboBox::removeButtonRect(viewItem.rect);
+        const QColor color = AppColors::mostLegible(
+            paintedBackground(viewItem, buttonRect.center(), style),
+            viewItem.palette.color(QPalette::Text),
+            viewItem.palette.color(QPalette::HighlightedText));
+
+        drawRemoveButton(painter, buttonRect, color, index.row() == _hoveredRow);
     }
 
 private:
-    static void drawRemoveButton(QPainter *painter, const QRect &rect, bool hovered)
+    static QColor paintedBackground(const QStyleOptionViewItem &option, const QPoint &point,
+                                    QStyle *style)
     {
-        QColor color = AppColors::iconStroke();
+        QStyleOptionViewItem probe = option;
+        probe.text.clear();
+        probe.icon = QIcon();
+        probe.rect = option.rect.translated(-point);
 
+        QImage sample(1, 1, QImage::Format_ARGB32);
+        sample.fill(option.palette.color(QPalette::Base));
+
+        QPainter samplePainter(&sample);
+        style->drawControl(QStyle::CE_ItemViewItem, &probe, &samplePainter, option.widget);
+        samplePainter.end();
+
+        return sample.pixelColor(0, 0);
+    }
+
+    static void drawRemoveButton(QPainter *painter, const QRect &rect, QColor color, bool hovered)
+    {
         painter->save();
         painter->setRenderHint(QPainter::Antialiasing, true);
 

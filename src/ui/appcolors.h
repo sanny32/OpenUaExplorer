@@ -59,12 +59,18 @@ inline QColor fieldLabel()
 }
 
 ///
-/// \brief Stroke colour for glyphs painted to match the themed icon set.
-/// \return Theme-matching stroke colour, identical to the icon resources' stroke.
+/// \brief Picks whichever of two foregrounds stands out more against a background.
+/// \param background Colour the foreground will be drawn on.
+/// \param first Preferred foreground, kept on ties.
+/// \param second Fallback foreground.
+/// \return The foreground furthest from the background in lightness.
 ///
-inline QColor iconStroke()
+inline QColor mostLegible(const QColor &background, const QColor &first, const QColor &second)
 {
-    return AppIcons::isDarkTheme() ? QColor(0xe2e8f0) : QColor(0x1e293b);
+    const int reference = background.lightness();
+    return qAbs(first.lightness() - reference) >= qAbs(second.lightness() - reference)
+        ? first
+        : second;
 }
 
 ///
