@@ -1,0 +1,123 @@
+name: Build Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+  # A `paths` filter on the `push` event would also apply to tag pushes and
+  # silently skip release builds, so installer changes are smoke-tested via PRs.
+  pull_request:
+    paths:
+      - .github/windows/**
+      - .github/workflows/build-installer-windows.yaml
+
+concurrency:
+  group: installer-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  installer:
+    name: Build NSIS installer
+    runs-on: windows-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          $cmake = Get-Content src/CMakeLists.txt -Raw
+          if ($cmake -notmatch 'project\(ouaexp\s+VERSION\s+(\d+)\.(\d+)\.(\d+)') {
+            Write-Error 'Could not read the project version from src/CMakeLists.txt'
+            exit 1
+          }
+          $major, $minor, $patch = $Matches[1], $Matches[2], $Matches[3]
+
+          # Mirror src/cmake/project_version.cmake: dev and release branches carry
+          # a -dev suffix, tags are taken verbatim.
+          $ref = '${{ github.ref }}'
+          if ($ref -match '^refs/tags/v(.+)$') {
+            $display = $Matches[1]
+            if ($display -match '^(\d+)\.(\d+)\.(\d+)') {
+              $major, $minor, $patch = $Matches[1], $Matches[2], $Matches[3]
+            }
+          } elseif ($ref -match '^refs/heads/(dev|release/.*)$') {
+            $display = "$major.$minor-dev"
+          } else {
+            $display = "$major.$minor.$patch"
+          }
+
+          "display=$display"                              >> $env:GITHUB_OUTPUT
+          "file=$major.$minor.$patch.0"                   >> $env:GITHUB_OUTPUT
+          "setup=OpenUaExplorer-$display-win64-setup.exe" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $display (file version $major.$minor.$patch.0)"
+
+      - name: Build and stage install tree
+        shell: powershell
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+          .\build.ps1 -InstallPrefix "$env:GITHUB_WORKSPACE\stage"
+
+      - name: Ensure NSIS is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+            choco install nsis -y --no-progress
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+          $nsisDir = "${env:ProgramFiles(x86)}\NSIS"
+          if (Test-Path $nsisDir) { $nsisDir >> $env:GITHUB_PATH }
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          makensis /V3 `
+            "/DSTAGE_DIR=$env:GITHUB_WORKSPACE\stage" `
+            "/DSRC_DIR=$env:GITHUB_WORKSPACE" `
+            "/DAPP_VERSION=${{ steps.version.outputs.display }}" `
+            "/DFILE_VERSION=${{ steps.version.outputs.file }}" `
+            "/DOUT_FILE=$env:GITHUB_WORKSPACE\${{ steps.version.outputs.setup }}" `
+            .github\windows\ouaexp.nsi
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Compute checksum
+        shell: pwsh
+        run: |
+          $setup = "${{ steps.version.outputs.setup }}"
+          $hash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          "$hash  $setup" | Out-File "$setup.sha256" -Encoding ascii
+          Write-Host "SHA256: $hash"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenUaExplorer-win64-setup
+          path: |
+            ${{ steps.version.outputs.setup }}
+            ${{ steps.version.outputs.setup }}.sha256
+          if-no-files-found: error
+
+      - name: Attach installer to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $setup = "${{ steps.version.outputs.setup }}"
+          gh release view $tag | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title $tag --generate-notes
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+          gh release upload $tag $setup "$setup.sha256" --clobber
+          if ($LASTEXITCODE -ne 0) { exit 1 }
