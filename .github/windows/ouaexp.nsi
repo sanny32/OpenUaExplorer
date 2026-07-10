@@ -81,6 +81,11 @@ VIAddVersionKey "LegalCopyright"  "Copyright (C) ${PRODUCT_PUBLISHER}"
 !define MUI_ICON   "${SRC_DIR}\src\app\res\icons\light\app.ico"
 !define MUI_UNICON "${SRC_DIR}\src\app\res\icons\light\app.ico"
 
+; 164x314 artwork shown on the Welcome and Finish pages of both the installer
+; and the uninstaller.
+!define MUI_WELCOMEFINISHPAGE_BITMAP   "${SRC_DIR}\.github\windows\nsis3-ouaexp.bmp"
+!define MUI_UNWELCOMEFINISHPAGE_BITMAP "${SRC_DIR}\.github\windows\nsis3-ouaexp.bmp"
+
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXE_NAME}"
 !define MUI_FINISHPAGE_RUN_TEXT "Run ${PRODUCT_NAME}"
 !define MUI_FINISHPAGE_LINK "Visit the project on GitHub"
