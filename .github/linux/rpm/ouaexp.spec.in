@@ -35,6 +35,10 @@ ExclusiveArch:  x86_64
 Requires:       libssl.so.3()(64bit)
 Requires:       libcrypto.so.3()(64bit)
 
+# The icon is shipped into the hicolor theme, whose directories and cache trigger
+# belong to hicolor-icon-theme.
+Requires:       hicolor-icon-theme
+
 %description
 OpenUaExplorer is an open source OPC UA client for browsing, inspecting,
 and monitoring OPC UA servers.

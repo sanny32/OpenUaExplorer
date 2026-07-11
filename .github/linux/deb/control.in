@@ -8,7 +8,10 @@ Standards-Version: 4.6.2
 Package: ouaexp
 Architecture: @ARCH@
 # Qt loads OpenSSL with dlopen, so dpkg-shlibdeps cannot see the dependency.
-Depends: ${shlibs:Depends}, ${misc:Depends}, libssl3 | libssl3t64
+# The icon is shipped into the hicolor theme, whose directories and cache trigger
+# belong to hicolor-icon-theme.
+Depends: ${shlibs:Depends}, ${misc:Depends}, libssl3 | libssl3t64,
+         hicolor-icon-theme
 Description: OPC UA client for exploring and monitoring OPC UA servers
  OpenUaExplorer is an open source OPC UA client for browsing, inspecting,
  and monitoring OPC UA servers.
