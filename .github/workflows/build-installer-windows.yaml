@@ -45,9 +45,8 @@ jobs:
           $major, $minor, $patch = $Matches[1], $Matches[2], $Matches[3]
 
           # Mirror src/cmake/project_version.cmake: tags supply the version and an
-          # optional pre-release suffix such as v1.0.0-b1, everything else is a dev
-          # snapshot named after the commit it was built from, the same way the
-          # Debian package is.
+          # optional pre-release suffix such as v1.0.0-b1, everything else is a
+          # <major>.<minor>-dev snapshot named after the commit it was built from.
           $prerelease = ''
           $ref = '${{ github.ref }}'
           if ($ref -match '^refs/tags/v(.+)$') {
@@ -61,7 +60,7 @@ jobs:
             $appVersion = $tagVersion
           } else {
             $sha = (git rev-parse --short HEAD).Trim()
-            $appVersion = "$major.$minor.$patch~dev.g$sha"
+            $appVersion = "$major.$minor-dev.g$sha"
           }
 
           # VIProductVersion rejects suffixes, so the resource keeps a numeric version.

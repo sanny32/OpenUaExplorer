@@ -67,12 +67,13 @@ jobs:
           minor="${BASH_REMATCH[2]}"
           patch="${BASH_REMATCH[3]}"
 
-          # Mirror src/cmake/project_version.cmake, then map onto an RPM version.
-          # RPM compares Version first and only then Release, so a pre-release
-          # cannot be encoded in Version - it would sort *above* its own final
-          # release, since 1.0.0b1 > 1.0.0. It goes into Release instead, where
-          # the leading 0. keeps every pre-release below the final release's 1,
-          # and dev snapshots take 0.0. to stay below every tagged pre-release.
+          # Mirror src/cmake/project_version.cmake, then map onto an RPM version the
+          # same way the Debian package does. A pre-release must sort *before* its
+          # final release, and plain '1.0.0b1' would sort above '1.0.0', so the
+          # suffix is attached with '~': rpm gives a tilde a lower weight than the
+          # end of the string, which puts '1.0.0~b1' and the '1.0~dev' snapshots
+          # below every release. A '-' may not appear in Version, so it is mapped
+          # onto '.' the way it already is in the pre-release part of a tag.
           prerelease=''
           ref='${{ github.ref }}'
           if [[ $ref =~ ^refs/tags/v(.+)$ ]]; then
@@ -86,16 +87,15 @@ jobs:
             patch="${BASH_REMATCH[3]}"
             prerelease="${BASH_REMATCH[5]}"
             if [ -n "$prerelease" ]; then
-              # A Release may not contain '-', which is the field separator.
-              release="0.1.${prerelease//-/.}"
+              version="$major.$minor.$patch~${prerelease//-/.}"
             else
-              release='1'
+              version="$major.$minor.$patch"
             fi
           else
-            release="0.0.dev.g$(git rev-parse --short HEAD)"
+            version="$major.$minor~dev.g$(git rev-parse --short HEAD)"
           fi
 
-          version="$major.$minor.$patch"
+          release='1'
           arch="$(uname -m)"
           package="ouaexp-$version-$release.$arch.rpm"
 
