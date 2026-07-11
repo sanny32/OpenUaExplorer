@@ -55,13 +55,17 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          read -r major minor patch < <(
-            sed -nE 's/^project\(ouaexp[[:space:]]+VERSION[[:space:]]+([0-9]+)\.([0-9]+)\.([0-9]+).*/\1 \2 \3/p' src/CMakeLists.txt
-          )
-          if [ -z "${patch:-}" ]; then
+          version="$(
+            sed -nE '/^project\(ouaexp([[:space:]]|$)/,/\)/ s/.*VERSION[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' src/CMakeLists.txt \
+              | head -n1
+          )"
+          if [[ ! $version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
             echo "::error::Could not read the project version from src/CMakeLists.txt"
             exit 1
           fi
+          major="${BASH_REMATCH[1]}"
+          minor="${BASH_REMATCH[2]}"
+          patch="${BASH_REMATCH[3]}"
 
           # Mirror src/cmake/project_version.cmake, then map onto an RPM version.
           # RPM compares Version first and only then Release, so a pre-release
