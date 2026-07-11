@@ -95,6 +95,19 @@ jobs:
             version="$major.$minor~dev.g$(git rev-parse --short HEAD)"
           fi
 
+          # AppStream carries the upstream version rather than the RPM one, so it spells a
+          # pre-release the way the tag does instead of mapping it onto rpm's ordering. The
+          # release date is the date of the commit being built, so rebuilding a commit
+          # yields the same file.
+          if [ -n "$prerelease" ]; then
+            app_version="$major.$minor.$patch-$prerelease"
+          elif [[ $ref =~ ^refs/tags/v ]]; then
+            app_version="$major.$minor.$patch"
+          else
+            app_version="$major.$minor.$patch-dev.g$(git rev-parse --short HEAD)"
+          fi
+          release_date="$(git log -1 --format=%cs)"
+
           release='1'
           arch="$(uname -m)"
           package="ouaexp-$version-$release.$arch.rpm"
@@ -102,6 +115,8 @@ jobs:
           {
             echo "prerelease=$prerelease"
             echo "version=$version"
+            echo "appVersion=$app_version"
+            echo "releaseDate=$release_date"
             echo "release=$release"
             echo "arch=$arch"
             echo "package=$package"
@@ -144,6 +159,15 @@ jobs:
             "$PWD/build/_deps/qtopcua-install"
 
           cp -r .github/linux/usr/. pkgroot/usr/
+
+          metainfo=pkgroot/usr/share/metainfo/io.github.sanny32.OpenUaExplorer.metainfo.xml
+          mkdir -p "$(dirname "$metainfo")"
+          sed -e "s|@VERSION@|${{ steps.version.outputs.appVersion }}|" \
+              -e "s|@RELEASE_DATE@|${{ steps.version.outputs.releaseDate }}|" \
+              .github/linux/metainfo/io.github.sanny32.OpenUaExplorer.metainfo.xml.in \
+              > "$metainfo"
+          chmod 0644 "$metainfo"
+
           install -D -m 0644 LICENSE pkgroot/usr/share/licenses/ouaexp/LICENSE
 
           find pkgroot -type d -exec chmod 0755 {} +

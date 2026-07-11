@@ -55,8 +55,10 @@
     </screenshot>
   </screenshots>
 
+  <!-- The workflow substitutes the version it is building and the date of the commit
+       it is building from, so the entry cannot drift from the package it ships in. -->
   <releases>
-    <release version="1.0.0" date="2026-07-10"/>
+    <release version="@VERSION@" date="@RELEASE_DATE@"/>
   </releases>
 
   <content_rating type="oars-1.1"/>
