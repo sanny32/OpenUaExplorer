@@ -10,7 +10,7 @@
   <project_license>MIT</project_license>
 
   <developer id="io.github.sanny32">
-    <name>OpenUaExplorer contributors</name>
+    <name>Ananev Alexandr</name>
   </developer>
 
   <description>
@@ -27,15 +27,18 @@
   </description>
 
   <categories>
-    <category>Development</category>
-    <category>Engineering</category>
-    <category>Network</category>
+    <category>Utility</category>
+    <category>Engineering</category>    
   </categories>
 
   <keywords>
-    <keyword>OPC UA</keyword>
+    <keyword>OPC</keyword>
+    <keyword>UA</keyword>
+    <keyword>OPCUA</keyword>
     <keyword>SCADA</keyword>
     <keyword>Automation</keyword>
+    <keyword>Industrial</keyword>
+    <keyword>Monitoring</keyword>
   </keywords>
 
   <url type="homepage">https://github.com/sanny32/OpenUaExplorer</url>

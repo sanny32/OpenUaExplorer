@@ -9,13 +9,14 @@
       <stop offset="0%" stop-color="#2D3A5A"/>
       <stop offset="100%" stop-color="#1A1F2E"/>
     </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.25"/>
-    </filter>
   </defs>
 
+  <!-- No filter is used: librsvg through 2.52, the version Ubuntu 22.04 ships, fails to
+       apply feDropShadow, and an element whose filter cannot be applied is not rendered
+       at all, so the whole icon came out empty in the GNOME application grid. -->
+
   <!-- U letter (left part + diagonal strip) -->
-  <g filter="url(#shadow)">
+  <g>
     <path d="M0 0 H33 V92 C33 112.43 49.57 129 70 129 H82 C79.78 137.02 76.58 145.8 70 162 C31.34 162 0 130.66 0 92 Z" fill="url(#gradU)" transform="translate(1,46)"/>
     <path d="M0 0 C10.56 0 21.12 0 32 0 C32 5.40376138 31.9021832 6.94575565 29.71875 11.4453125 C29.2139209 12.50556641 28.7090918 13.56582031 28.18896484 14.65820312 C27.35292725 16.37426758 27.35292725 16.37426758 26.5 18.125 C25.30860652 20.61411444 24.12654764 23.10761398 22.9453125 25.6015625 C22.6317984 26.26122009 22.3182843 26.92087769 21.99526978 27.6005249 C19.47227009 32.9340456 17.05892663 38.31192551 14.6796875 43.7109375 C14.32066345 44.52523224 13.9616394 45.33952698 13.59173584 46.17849731 C12.16472822 49.419995 10.74038416 52.66260826 9.32397461 55.90875244 C8.3322289 58.1806501 7.33446696 60.44982764 6.3359375 62.71875 C6.04266571 63.39674652 5.74939392 64.07474304 5.44723511 64.77328491 C3.89888235 68.28054488 2.33488447 70.88682071 0 74 C0 49.58 0 25.16 0 0 Z" fill="url(#gradU)" transform="translate(107,46)"/>
     <!-- A letter -->
