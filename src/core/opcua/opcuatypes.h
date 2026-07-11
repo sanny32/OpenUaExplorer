@@ -10,6 +10,7 @@
 
 #include <QByteArray>
 #include <QDateTime>
+#include <QHash>
 #include <QList>
 #include <QString>
 #include <QStringList>
@@ -114,6 +115,41 @@ struct EndpointInfo
 };
 
 ///
+/// \brief Application role advertised by an OPC UA application (OPC UA Part 4).
+///
+enum class OpcUaApplicationType {
+    /// \brief Application is a server only.
+    Server = 0,
+    /// \brief Application is a client only.
+    Client = 1,
+    /// \brief Application acts as both client and server.
+    ClientAndServer = 2,
+    /// \brief Application is a discovery server.
+    DiscoveryServer = 3
+};
+
+///
+/// \brief One OPC UA application returned by a FindServers request.
+///
+struct ServerInfo
+{
+    /// \brief ApplicationName text in the requested locale.
+    QString applicationName;
+    /// \brief Globally unique application identifier.
+    QString applicationUri;
+    /// \brief Product identifier of the application.
+    QString productUri;
+    /// \brief Role the application plays.
+    OpcUaApplicationType applicationType = OpcUaApplicationType::Server;
+    /// \brief URI of the gateway server, for gateway applications.
+    QString gatewayServerUri;
+    /// \brief URI of the discovery profile the application supports.
+    QString discoveryProfileUri;
+    /// \brief Discovery URLs the application can be reached at.
+    QStringList discoveryUrls;
+};
+
+///
 /// \brief One browsed OPC UA node.
 ///
 struct OpcUaNodeInfo
@@ -136,6 +172,25 @@ struct OpcUaNodeInfo
     bool historizing = false;
     /// \brief Whether the node may have children.
     bool hasChildren = true;
+};
+
+///
+/// \brief One input or output argument of an OPC UA method.
+///
+struct OpcUaMethodArgument
+{
+    /// \brief Argument name.
+    QString name;
+    /// \brief DataType NodeId string.
+    QString dataTypeId;
+    /// \brief QOpcUa::Types numeric value mapped from the DataType.
+    int valueType = 0;
+    /// \brief OPC UA ValueRank (-1 for scalar arguments).
+    int valueRank = -1;
+    /// \brief Argument Description text.
+    QString description;
+    /// \brief Argument value; carries an output value, unused for input metadata.
+    QVariant value;
 };
 
 ///
@@ -335,8 +390,17 @@ struct OpcUaHistoryValue
     QDateTime serverTimestamp;
 };
 
+///
+/// \brief Node counts keyed by OPC UA namespace index.
+///
+using OpcUaNamespaceNodeCounts = QHash<int, int>;
+
 Q_DECLARE_METATYPE(EndpointInfo)
+Q_DECLARE_METATYPE(ServerInfo)
+Q_DECLARE_METATYPE(OpcUaNamespaceNodeCounts)
 Q_DECLARE_METATYPE(OpcUaNodeInfo)
+Q_DECLARE_METATYPE(OpcUaMethodArgument)
+Q_DECLARE_METATYPE(QVector<OpcUaMethodArgument>)
 Q_DECLARE_METATYPE(OpcUaNodeDetails)
 Q_DECLARE_METATYPE(OpcUaDataValue)
 Q_DECLARE_METATYPE(OpcUaEvent)

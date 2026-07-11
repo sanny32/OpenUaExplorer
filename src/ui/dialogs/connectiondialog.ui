@@ -47,7 +47,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="discoveryUrlComboBox">
+             <widget class="HistoryComboBox" name="discoveryUrlComboBox">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                 <horstretch>1</horstretch>
@@ -834,6 +834,11 @@
    <class>ColoredPushButton</class>
    <extends>QPushButton</extends>
    <header>widgets/coloredpushbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>HistoryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>widgets/historycombobox.h</header>
   </customwidget>
   <customwidget>
    <class>ThemedIconLabel</class>

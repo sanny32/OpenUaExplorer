@@ -87,14 +87,8 @@ signals:
 private:
     void selectPeriod(int mode, qint64 windowMs);
     void resetToDefaults();
-    void rebuildSubscriptionCombo();
-    void selectSubscription(const QString &name);
-    void handleSubscriptionActivated(int index);
-    void promptNewSubscription();
 
     Ui::TrendSettingsDialog *ui;
     QButtonGroup *_periodGroup = nullptr;
     QStandardItemModel *_seriesModel = nullptr;
-    QVector<SubscriptionItem> _subscriptions;
-    int _previousSubscriptionIndex = 0;
 };

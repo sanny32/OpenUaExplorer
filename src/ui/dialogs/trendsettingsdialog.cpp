@@ -13,9 +13,13 @@
 #include <QColorDialog>
 #include <QComboBox>
 #include <QEvent>
+#include <QIcon>
 #include <QListView>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPen>
+#include <QPixmap>
+#include <QPolygonF>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QStandardItem>
@@ -23,15 +27,11 @@
 #include <QStyledItemDelegate>
 
 #include "appcolors.h"
-#include "dialogs/newsubscriptiondialog.h"
-#include "widgets/subscriptiondelegate.h"
+#include "widgets/subscriptioncombobox.h"
 
 namespace {
 
 constexpr qint64 kLiveWindowMs = 60000;
-
-/// \brief Item-data role flagging the combo entry that opens the new-subscription dialog.
-constexpr int kCreateNewRole = Qt::UserRole + 1;
 
 /// \brief Item-data role carrying a series' line colour (QColor).
 constexpr int kColorRole = Qt::UserRole + 1;
@@ -42,6 +42,45 @@ constexpr int kSwatchWidth = 40;
 constexpr int kSwatchHeight = 18;
 constexpr int kSwatchMargin = 8;
 constexpr int kRowHeight = 30;
+
+///
+/// \brief Draws a small glyph previewing how samples are connected.
+///
+/// The straight line is a single horizontal stroke; the step line is drawn as a
+/// flat-topped plateau (_П_), mirroring the hold-last-value corners the chart
+/// inserts, so the combo entries read at a glance.
+///
+/// \param step True to draw the step-line glyph, false for the straight line.
+/// \param color Stroke colour, taken from the current text palette.
+/// \return Rendered icon at the combo's icon size.
+///
+QIcon lineTypeIcon(bool step, const QColor &color)
+{
+    constexpr int kWidth = 32;
+    constexpr int kHeight = 16;
+    constexpr qreal kLow = 12.0;
+    constexpr qreal kHigh = 4.0;
+
+    QPixmap pixmap(kWidth, kHeight);
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    QPen pen(color, 1.6);
+    pen.setJoinStyle(Qt::MiterJoin);
+    pen.setCapStyle(Qt::RoundCap);
+    painter.setPen(pen);
+
+    QPolygonF line;
+    if (step) {
+        line << QPointF(4.0, kLow) << QPointF(12.0, kLow) << QPointF(12.0, kHigh)
+             << QPointF(20.0, kHigh) << QPointF(20.0, kLow) << QPointF(28.0, kLow);
+    } else {
+        line << QPointF(4.0, 8.0) << QPointF(28.0, 8.0);
+    }
+    painter.drawPolyline(line);
+    painter.end();
+    return QIcon(pixmap);
+}
 
 ///
 /// \brief List delegate that draws a colour swatch and edits it on click.
@@ -132,11 +171,17 @@ TrendSettingsDialog::TrendSettingsDialog(QWidget *parent)
     ui->seriesList->setModel(_seriesModel);
     ui->seriesList->setItemDelegate(new SeriesColorDelegate(this));
 
+    const QColor lineGlyphColor = palette().color(QPalette::Text);
+    ui->lineTypeCombo->setItemIcon(static_cast<int>(TrendLineType::Line),
+                                   lineTypeIcon(false, lineGlyphColor));
+    ui->lineTypeCombo->setItemIcon(static_cast<int>(TrendLineType::Step),
+                                   lineTypeIcon(true, lineGlyphColor));
+
     ui->okButton->setColors(
         { AppColors::accent(), AppColors::accentHover(), AppColors::accentPressed() });
 
-    connect(ui->subscriptionCombo, QOverload<int>::of(&QComboBox::activated),
-            this, &TrendSettingsDialog::handleSubscriptionActivated);
+    connect(ui->subscriptionCombo, &SubscriptionComboBox::subscriptionCreationRequested,
+            this, &TrendSettingsDialog::subscriptionCreationRequested);
 
     connect(ui->resetButton, &QPushButton::clicked, this,
             &TrendSettingsDialog::resetToDefaults);
@@ -162,11 +207,12 @@ void TrendSettingsDialog::setDisplaySettings(const TrendDisplaySettings &setting
     ui->showLegendCheck->setChecked(settings.showLegend);
     ui->showGridCheck->setChecked(settings.showGrid);
     ui->smoothLinesCheck->setChecked(settings.smoothLines);
+    ui->lineTypeCombo->setCurrentIndex(static_cast<int>(settings.lineType));
     ui->showPointsCheck->setChecked(settings.showPoints);
     ui->showTooltipCheck->setChecked(settings.showValueTooltip);
     ui->labelModeCombo->setCurrentIndex(static_cast<int>(settings.labelMode));
     ui->autoScrollCheck->setChecked(settings.autoScrollLive);
-    selectSubscription(settings.liveSubscription);
+    ui->subscriptionCombo->setCurrentSubscription(settings.liveSubscription);
     selectPeriod(settings.mode, settings.windowMs);
 }
 
@@ -181,11 +227,12 @@ TrendDisplaySettings TrendSettingsDialog::displaySettings() const
     settings.showLegend = ui->showLegendCheck->isChecked();
     settings.showGrid = ui->showGridCheck->isChecked();
     settings.smoothLines = ui->smoothLinesCheck->isChecked();
+    settings.lineType = static_cast<TrendLineType>(ui->lineTypeCombo->currentIndex());
     settings.showPoints = ui->showPointsCheck->isChecked();
     settings.showValueTooltip = ui->showTooltipCheck->isChecked();
     settings.labelMode = static_cast<TrendLabelMode>(ui->labelModeCombo->currentIndex());
     settings.autoScrollLive = ui->autoScrollCheck->isChecked();
-    const QString subscription = ui->subscriptionCombo->currentData().toString();
+    const QString subscription = ui->subscriptionCombo->currentSubscription();
     if (!subscription.isEmpty())
         settings.liveSubscription = subscription;
 
@@ -214,79 +261,7 @@ TrendDisplaySettings TrendSettingsDialog::displaySettings() const
 ///
 void TrendSettingsDialog::setSubscriptions(const QVector<SubscriptionItem> &subscriptions)
 {
-    _subscriptions = subscriptions;
-    const QString current = ui->subscriptionCombo->currentData().toString();
-    rebuildSubscriptionCombo();
-    if (!current.isEmpty())
-        selectSubscription(current);
-}
-
-///
-/// \brief Rebuilds the subscription combo with the known names plus a create-new entry.
-///
-void TrendSettingsDialog::rebuildSubscriptionCombo()
-{
-    QSignalBlocker blocker(ui->subscriptionCombo);
-    ui->subscriptionCombo->clear();
-    for (const SubscriptionItem &item : _subscriptions)
-        ui->subscriptionCombo->addItem(item.label(), item.name);
-
-    ui->subscriptionCombo->insertSeparator(ui->subscriptionCombo->count());
-    ui->subscriptionCombo->addItem(SubscriptionDelegate::createNewLabel());
-    ui->subscriptionCombo->setItemData(ui->subscriptionCombo->count() - 1, true, kCreateNewRole);
-}
-
-///
-/// \brief Selects the combo entry for a subscription name, defaulting to the first.
-/// \param name Subscription name to select.
-///
-void TrendSettingsDialog::selectSubscription(const QString &name)
-{
-    const int index = ui->subscriptionCombo->findData(name);
-    ui->subscriptionCombo->setCurrentIndex(index >= 0 ? index : 0);
-    _previousSubscriptionIndex = ui->subscriptionCombo->currentIndex();
-}
-
-///
-/// \brief Opens the new-subscription dialog when its entry is chosen, else records the choice.
-/// \param index Newly activated combo index.
-///
-void TrendSettingsDialog::handleSubscriptionActivated(int index)
-{
-    if (ui->subscriptionCombo->itemData(index, kCreateNewRole).toBool()) {
-        promptNewSubscription();
-        return;
-    }
-    _previousSubscriptionIndex = index;
-}
-
-///
-/// \brief Prompts for a new subscription, adds it to the combo and requests its creation.
-///
-void TrendSettingsDialog::promptNewSubscription()
-{
-    QStringList existing;
-    existing.reserve(_subscriptions.size());
-    for (const SubscriptionItem &item : _subscriptions)
-        existing.append(item.name);
-
-    NewSubscriptionDialog dialog(existing, this);
-    if (dialog.exec() != QDialog::Accepted) {
-        ui->subscriptionCombo->setCurrentIndex(_previousSubscriptionIndex);
-        return;
-    }
-
-    SubscriptionItem item;
-    item.name = dialog.subscriptionName();
-    item.publishingInterval = dialog.publishingInterval();
-    _subscriptions.append(item);
-
-    const int insertAt = ui->subscriptionCombo->count() - 2;
-    ui->subscriptionCombo->insertItem(insertAt, item.label(), item.name);
-    ui->subscriptionCombo->setCurrentIndex(insertAt);
-    _previousSubscriptionIndex = insertAt;
-
-    emit subscriptionCreationRequested(item.name, item.publishingInterval);
+    ui->subscriptionCombo->setSubscriptions(subscriptions);
 }
 
 ///

@@ -10,11 +10,15 @@
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
+#include <QFileDialog>
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QMenu>
+#include <QMessageBox>
 #include <QMimeData>
 #include <QPushButton>
+#include <QSaveFile>
+#include <QTextStream>
 
 #include "appicons.h"
 #include "appsettings.h"
@@ -151,6 +155,63 @@ bool DataAccessWidget::hasSelection() const
 void DataAccessWidget::clear()
 {
     _dataModel->clear();
+}
+
+///
+/// \brief Reports whether the data-access table has any rows.
+/// \return True when at least one node is listed.
+///
+bool DataAccessWidget::hasData() const
+{
+    return _dataModel->rowCount() > 0;
+}
+
+///
+/// \brief Prompts for a file and exports the data-access rows as CSV.
+///
+void DataAccessWidget::exportToCsv()
+{
+    if (_dataModel->rowCount() == 0) {
+        QMessageBox::information(this, tr("Export Data"),
+                                 tr("There are no data-access rows to export."));
+        return;
+    }
+
+    const QString fileName = QFileDialog::getSaveFileName(
+        this, tr("Export Data"), tr("data-access.csv"),
+        tr("CSV Files (*.csv);;All Files (*)"));
+    if (fileName.isEmpty())
+        return;
+
+    QSaveFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, tr("Export Data"),
+                             tr("Could not open '%1' for writing.").arg(fileName));
+        return;
+    }
+
+    QTextStream stream(&file);
+    stream.setEncoding(QStringConverter::Utf8);
+    stream << _dataModel->toCsv();
+    if (!file.commit()) {
+        QMessageBox::warning(this, tr("Export Data"),
+                             tr("Could not save '%1'.").arg(fileName));
+    }
+}
+
+///
+/// \brief Returns the listed nodes paired with their subscription assignment.
+/// \return NodeId and subscription-name pairs in row order.
+///
+QVector<QPair<QString, QString>> DataAccessWidget::monitoredNodes() const
+{
+    QVector<QPair<QString, QString>> nodes;
+    nodes.reserve(_dataModel->rowCount());
+    for (int row = 0; row < _dataModel->rowCount(); ++row) {
+        const DataAccessItem item = _dataModel->itemAt(row);
+        nodes.append({item.nodeId, item.subscriptionName});
+    }
+    return nodes;
 }
 
 ///
@@ -408,7 +469,7 @@ void DataAccessWidget::showDataContextMenu(const QPoint &pos)
                                            this, &DataAccessWidget::removeSelectedNodes);
     removeAction->setEnabled(hasSelection);
 
-    QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
+    QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Clear"),
                                               this, &DataAccessWidget::removeAllNodes);
     removeAllAction->setEnabled(_dataModel->rowCount() > 0);
 

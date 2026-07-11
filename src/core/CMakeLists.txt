@@ -3,6 +3,8 @@ add_library(ouaexp_core STATIC
     appsettings.h
     loggingcategories.cpp
     loggingcategories.h
+    updatechecker.cpp
+    updatechecker.h
     utils.cpp
     utils.h
 
@@ -28,6 +30,10 @@ add_library(ouaexp_core STATIC
     opcua/connectionprofilevalidator.h
     opcua/endpointhistorystore.cpp
     opcua/endpointhistorystore.h
+    opcua/namespacecrawler.cpp
+    opcua/namespacecrawler.h
+    opcua/nodesearchcrawler.cpp
+    opcua/nodesearchcrawler.h
     opcua/opcuabackend.h
     opcua/opcuaclientservice.cpp
     opcua/opcuaclientservice.h
@@ -83,6 +89,12 @@ add_library(ouaexp_core STATIC
     models/subscriptionsmodel.h
     models/trendseries.cpp
     models/trendseries.h
+
+    session/recentsessionstore.cpp
+    session/recentsessionstore.h
+    session/sessiondata.h
+    session/sessionstore.cpp
+    session/sessionstore.h
 )
 
 target_include_directories(ouaexp_core PUBLIC
@@ -99,6 +111,7 @@ target_link_libraries(ouaexp_core PUBLIC
 
 ouaexp_configure_dependencies(ouaexp_core)
 ouaexp_apply_coverage(ouaexp_core)
+ouaexp_apply_pch(ouaexp_core)
 
 if(MSVC)
     target_compile_options(ouaexp_core PUBLIC /utf-8)

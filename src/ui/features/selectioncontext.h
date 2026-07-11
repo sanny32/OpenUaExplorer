@@ -82,6 +82,12 @@ public slots:
     void requestAddToTrend(const OpcUaNodeInfo &node);
 
     ///
+    /// \brief Requests monitoring a node selected from a feature in the node monitor.
+    /// \param node Variable node to monitor.
+    ///
+    void requestMonitorNode(const OpcUaNodeInfo &node);
+
+    ///
     /// \brief Requests monitoring a variable node selected from a feature.
     /// \param node Variable node to subscribe.
     ///
@@ -92,6 +98,13 @@ public slots:
     /// \param node Variable node to unsubscribe.
     ///
     void requestUnsubscribe(const OpcUaNodeInfo &node);
+
+    ///
+    /// \brief Requests calling a method node selected from a feature.
+    /// \param object Object node that owns the method.
+    /// \param method Method node to call.
+    ///
+    void requestCallMethod(const OpcUaNodeInfo &object, const OpcUaNodeInfo &method);
 
 signals:
     ///
@@ -137,6 +150,12 @@ signals:
     void addToTrendRequested(OpcUaNodeInfo node);
 
     ///
+    /// \brief Emitted when a feature requests monitoring a node in the node monitor.
+    /// \param node Variable node to monitor.
+    ///
+    void monitorNodeRequested(OpcUaNodeInfo node);
+
+    ///
     /// \brief Emitted when a feature requests monitoring a variable node.
     /// \param node Variable node to subscribe.
     ///
@@ -147,6 +166,13 @@ signals:
     /// \param node Variable node to unsubscribe.
     ///
     void unsubscribeRequested(OpcUaNodeInfo node);
+
+    ///
+    /// \brief Emitted when a feature requests calling a method node.
+    /// \param object Object node that owns the method.
+    /// \param method Method node to call.
+    ///
+    void callMethodRequested(OpcUaNodeInfo object, OpcUaNodeInfo method);
 
 private:
     OpcUaNodeInfo _currentNode;

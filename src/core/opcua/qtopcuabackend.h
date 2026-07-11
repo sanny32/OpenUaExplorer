@@ -70,6 +70,14 @@ public:
                            int timeoutMs) override;
 
     ///
+    /// \brief Lists the servers registered with a discovery server, emitting serversDiscovered().
+    /// \param url Discovery server URL (must be opc.tcp).
+    /// \param backend Preferred backend.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void findServers(const QString &url, const QString &backend, int timeoutMs) override;
+
+    ///
     /// \brief Connects to the discovered endpoint that matches the profile's URL, policy, and mode.
     /// \param profile Connection settings.
     /// \param password Username password.
@@ -145,6 +153,24 @@ public:
                     int valueType, int timeoutMs) override;
 
     ///
+    /// \brief Reads a method's InputArguments/OutputArguments, emitting methodInfoReady().
+    /// \param methodNodeId Method node whose argument metadata is read.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void readMethodInfo(const QString &methodNodeId, int timeoutMs) override;
+
+    ///
+    /// \brief Calls a method on its owning object, emitting methodCallFinished() with the outputs.
+    /// \param objectNodeId Object node that owns the method.
+    /// \param methodNodeId Method node to call.
+    /// \param args Input argument values in call order.
+    /// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void callMethod(const QString &objectNodeId, const QString &methodNodeId,
+                    const QVariantList &args, const QList<int> &argTypes, int timeoutMs) override;
+
+    ///
     /// \brief Enables Value monitoring for a node.
     /// \param nodeId Node to monitor.
     /// \param publishingInterval Publishing interval in milliseconds.
@@ -176,6 +202,36 @@ public:
     ///
     void readServerSessionName(int timeoutMs) override;
 
+    ///
+    /// \brief Reads the server NamespaceArray, emitting namespacesReady() with the URIs.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void requestNamespaces(int timeoutMs) override;
+
+    ///
+    /// \brief Crawls the address space, emitting namespaceStatisticsReady() with per-namespace counts.
+    /// \param timeoutMs Per-browse timeout in milliseconds.
+    ///
+    void requestNamespaceStatistics(int timeoutMs) override;
+
+    ///
+    /// \brief Cancels an in-progress namespace statistics crawl, if any.
+    ///
+    void cancelNamespaceStatistics() override;
+
+    ///
+    /// \brief Searches a subtree for a display name, emitting nodeSearchFinished() with the match.
+    /// \param startNodeId Node whose subtree is searched.
+    /// \param pattern Case-insensitive substring matched against display names.
+    /// \param timeoutMs Per-browse timeout in milliseconds.
+    ///
+    void searchNode(const QString &startNodeId, const QString &pattern, int timeoutMs) override;
+
+    ///
+    /// \brief Cancels an in-progress node search, if any.
+    ///
+    void cancelNodeSearch() override;
+
 private:
     ///
     /// \brief Reads EventNotifier/Historizing of browsed children, then emits browseFinished().
@@ -189,6 +245,17 @@ private:
     ///
     void enrichAndFinishBrowse(const QString &parentNodeId,
                                QVector<OpcUaNodeInfo> nodes, int timeoutMs);
+
+    ///
+    /// \brief Reads the Value of the located argument-property nodes and emits methodInfoReady().
+    /// \param methodNodeId Method whose metadata is being resolved.
+    /// \param inputArgumentsNodeId InputArguments property NodeId, or empty when absent.
+    /// \param outputArgumentsNodeId OutputArguments property NodeId, or empty when absent.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void readMethodArgumentValues(const QString &methodNodeId,
+                                  const QString &inputArgumentsNodeId,
+                                  const QString &outputArgumentsNodeId, int timeoutMs);
 
     class Private;
     Private *_d;

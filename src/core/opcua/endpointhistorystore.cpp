@@ -50,3 +50,27 @@ void EndpointHistoryStore::save(const QString &endpointUrl) const
     settings.setValue(QLatin1String(endpointUrlHistoryKey), result);
     settings.sync();
 }
+
+///
+/// \brief Drops an endpoint URL from the history, clearing it as the last-used URL.
+/// \param endpointUrl URL to forget; blank values are ignored.
+///
+void EndpointHistoryStore::remove(const QString &endpointUrl) const
+{
+    const QString normalized = endpointUrl.trimmed();
+    if (normalized.isEmpty())
+        return;
+
+    QSettings settings;
+    QStringList result =
+        settings.value(QLatin1String(endpointUrlHistoryKey)).toStringList();
+    result.removeAll(normalized);
+    settings.setValue(QLatin1String(endpointUrlHistoryKey), result);
+
+    const QString lastEndpoint =
+        settings.value(QLatin1String(lastEndpointUrlKey)).toString().trimmed();
+    if (lastEndpoint == normalized)
+        settings.remove(QLatin1String(lastEndpointUrlKey));
+
+    settings.sync();
+}

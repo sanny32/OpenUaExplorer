@@ -72,6 +72,7 @@ def configure(build_dir: Path, config: str, extra: list[str]) -> None:
         "-S", SRC_DIR,
         "-B", build_dir,
         "-DOUAEXP_ENABLE_COVERAGE=ON",
+        "-DOUAEXP_BUILD_TESTS=ON",
         f"-DCMAKE_BUILD_TYPE={config}",
         # Coverage and LTO are incompatible; force it off for this build.
         "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF",
@@ -127,6 +128,47 @@ def report_msvc(build_dir: Path, out_dir: Path, config: str) -> tuple[Path, int]
     return xml, rc
 
 
+def find_python_with_asyncua() -> str | None:
+    """Return the first interpreter that can import asyncua, or None.
+
+    Tries this runner's own interpreter first, then any `python`/`python3` on
+    PATH; the OPC UA integration test needs the server's interpreter to have
+    asyncua, and the plain PATH lookup it would otherwise do can land on one
+    that does not.
+    """
+    seen: set[str] = set()
+    candidates = [sys.executable, shutil.which("python"), shutil.which("python3")]
+    for candidate in candidates:
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        probe = subprocess.run([candidate, "-c", "import asyncua"],
+                               capture_output=True)
+        if probe.returncode == 0:
+            return candidate
+    return None
+
+
+def report_skipped_tests(build_dir: Path) -> None:
+    """Print any QtTest SKIP reasons from the last ctest run.
+
+    ctest hides the output of skipped tests (they exit 0, so it reports them as
+    passing), which can silently drop whole test bodies - notably the OPC UA
+    integration test - out of the coverage numbers. Surface those reasons here so
+    a skip is visible in the runner's own output on every platform.
+    """
+    log = build_dir / "Testing" / "Temporary" / "LastTest.log"
+    if not log.exists():
+        return
+    skips = [line.rstrip() for line in
+             log.read_text(encoding="utf-8", errors="replace").splitlines()
+             if line.lstrip().startswith("SKIP")]
+    if skips:
+        print("\nSkipped tests (their code is not reflected in coverage):")
+        for line in skips:
+            print(f"  {line.strip()}")
+
+
 def print_summary(xml: Path) -> None:
     if not xml.exists():
         sys.exit(f"error: expected report not produced: {xml}")
@@ -174,6 +216,17 @@ def main() -> int:
     # argparse keeps the leading '--' separator in the remainder; drop it.
     extra = [a for a in args.cmake_args if a != "--"]
 
+    # The OPC UA integration test spawns its Python server, which needs asyncua.
+    # Different `python`/`python3` on PATH can point at interpreters that lack it,
+    # so probe the candidates here and pin the one that can actually import it.
+    server_python = find_python_with_asyncua()
+    if server_python:
+        print(f"Integration test server interpreter: {server_python}")
+        os.environ["OUAEXP_TEST_PYTHON"] = server_python
+    else:
+        print("WARNING: no interpreter with 'asyncua' found; "
+              "the OPC UA integration test will skip.")
+
     build_dir: Path = args.build_dir
     out_dir = build_dir / "coverage"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -194,6 +247,7 @@ def main() -> int:
                        "--output-on-failure"], check=False).returncode
         xml = report_gcov(build_dir, out_dir, compiler)
 
+    report_skipped_tests(build_dir)
     print_summary(xml)
 
     if test_rc != 0:

@@ -10,6 +10,7 @@
 
 #include <QHash>
 #include <QSet>
+#include <QStringList>
 #include <QWidget>
 
 #include "models/addressspaceitem.h"
@@ -26,6 +27,7 @@ class AppSettings;
 class AddressSpaceModel;
 class NodeInfoModel;
 class ReferencesModel;
+class SpinnerAction;
 
 ///
 /// \brief Widget for browsing the OPC UA address space and selected node details.
@@ -97,6 +99,22 @@ public:
     OpcUaNodeInfo selectedNode() const;
 
     ///
+    /// \brief Returns the node ids of the expanded tree items, parents before children.
+    /// \return Expanded node ids in top-down order.
+    ///
+    QStringList expandedNodeIds() const;
+
+    ///
+    /// \brief Re-expands saved tree nodes and reselects a node as they load.
+    ///
+    /// Expansion is applied incrementally: nodes already loaded are expanded now,
+    /// and deeper nodes are expanded as their parents' browse results arrive.
+    /// \param expandedNodeIds Node ids to expand, parents before children.
+    /// \param selectedNodeId Node id to select once it is loaded, or empty.
+    ///
+    void restoreExpansion(const QStringList &expandedNodeIds, const QString &selectedNodeId);
+
+    ///
     /// \brief Detaches the node details panel so MainWindow can host it in a dock.
     /// \return Node details panel.
     ///
@@ -114,7 +132,34 @@ public:
     ///
     void restoreViewState(AppSettings &settings);
 
+    ///
+    /// \brief Reports how many nodes the running search has visited.
+    /// \param visitedNodes Number of unique nodes visited so far.
+    ///
+    void setSearchProgress(int visitedNodes);
+
+    ///
+    /// \brief Reveals the search match, or reports that the search found nothing.
+    /// \param ancestorNodeIds Node ids from the search root down to the match's parent.
+    /// \param nodeId Matched NodeId, empty when nothing matched.
+    /// \param error Search error, empty on success.
+    ///
+    void setSearchResult(const QStringList &ancestorNodeIds, const QString &nodeId,
+                         const QString &error);
+
 signals:
+    ///
+    /// \brief Emitted when the user starts a server-side search of the address space.
+    /// \param startNodeId Node whose subtree is searched.
+    /// \param pattern Case-insensitive substring matched against display names.
+    ///
+    void searchRequested(QString startNodeId, QString pattern);
+
+    ///
+    /// \brief Emitted when the user abandons a running search.
+    ///
+    void searchCancelRequested();
+
     ///
     /// \brief Emitted when a node's children must be browsed.
     /// \param nodeId NodeId to browse.
@@ -164,6 +209,12 @@ signals:
     void addToTrendRequested(OpcUaNodeInfo node);
 
     ///
+    /// \brief Emitted when the user requests monitoring a node in the node monitor.
+    /// \param node Variable node to monitor.
+    ///
+    void monitorNodeRequested(OpcUaNodeInfo node);
+
+    ///
     /// \brief Emitted when the user requests monitoring a variable node.
     /// \param node Variable node to subscribe.
     ///
@@ -175,10 +226,23 @@ signals:
     ///
     void unsubscribeRequested(OpcUaNodeInfo node);
 
+    ///
+    /// \brief Emitted when the user requests calling a method node.
+    /// \param object Object node that owns the method.
+    /// \param method Method node to call.
+    ///
+    void callMethodRequested(OpcUaNodeInfo object, OpcUaNodeInfo method);
+
 private:
     void setupTreeView();
     void setupNodeInfoView();
     void setupReferencesView();
+    void setupSearch();
+    void startSearch();
+    void cancelSearch();
+    void setSearchBusy(bool busy);
+    void setSearchFailure(const QString &text);
+    void applyPendingExpansion();
     void showTreeContextMenu(const QPoint &pos);
     void onCurrentNodeChanged(const QModelIndex &current);
     void updateReferencesForNode(const QString &nodeId);
@@ -192,4 +256,10 @@ private:
     QString                 _selectedNodeId;
     QSet<QString>           _subscribedNodeIds;
     QHash<QString, QVector<ReferenceItem>> _referencesByNodeId;
+    QStringList             _pendingExpand;
+    QString                 _pendingSelect;
+    SpinnerAction          *_searchSpinner = nullptr;
+    QString                 _searchPattern;
+    bool                    _searchMatched = false;
+    bool                    _searching = false;
 };

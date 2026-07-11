@@ -59,6 +59,21 @@ inline QColor fieldLabel()
 }
 
 ///
+/// \brief Picks whichever of two foregrounds stands out more against a background.
+/// \param background Colour the foreground will be drawn on.
+/// \param first Preferred foreground, kept on ties.
+/// \param second Fallback foreground.
+/// \return The foreground furthest from the background in lightness.
+///
+inline QColor mostLegible(const QColor &background, const QColor &first, const QColor &second)
+{
+    const int reference = background.lightness();
+    return qAbs(first.lightness() - reference) >= qAbs(second.lightness() - reference)
+        ? first
+        : second;
+}
+
+///
 /// \brief Muted grey used for small captions.
 /// \return Caption text colour.
 ///

@@ -26,6 +26,23 @@ set(QTOPCUA_VERSION "${Qt6Core_VERSION}")
 set(QTOPCUA_SOURCE_DIR "${CMAKE_BINARY_DIR}/_deps/qtopcua-src")
 set(QTOPCUA_BUILD_DIR "${CMAKE_BINARY_DIR}/_deps/qtopcua-build")
 set(QTOPCUA_INSTALL_DIR "${CMAKE_BINARY_DIR}/_deps/qtopcua-install")
+set(OPCUA_OPEN62541_VERSION "")
+
+function(ouaexp_detect_open62541_version source_dir)
+    set(open62541_header "${source_dir}/src/3rdparty/open62541/open62541.h")
+    if(NOT EXISTS "${open62541_header}")
+        set(OPCUA_OPEN62541_VERSION "" PARENT_SCOPE)
+        return()
+    endif()
+
+    file(STRINGS "${open62541_header}" version_line
+        REGEX "^#define[ \t]+UA_OPEN62541_VERSION[ \t]+\"[^\"]*\"")
+    if(version_line MATCHES "^#define[ \t]+UA_OPEN62541_VERSION[ \t]+\"([^\"]*)\"")
+        set(OPCUA_OPEN62541_VERSION "${CMAKE_MATCH_1}" PARENT_SCOPE)
+    else()
+        set(OPCUA_OPEN62541_VERSION "" PARENT_SCOPE)
+    endif()
+endfunction()
 
 function(ouaexp_remove_incomplete_qtopcua_source)
     if(NOT EXISTS "${QTOPCUA_SOURCE_DIR}")
@@ -79,6 +96,7 @@ endfunction()
 find_package(Qt6OpcUa CONFIG QUIET)
 
 if(TARGET Qt6::OpcUa)
+    ouaexp_detect_open62541_version("${QTOPCUA_SOURCE_DIR}")
     return()
 endif()
 
@@ -86,13 +104,16 @@ FetchContent_Declare(qtopcua
     GIT_REPOSITORY https://code.qt.io/qt/qtopcua.git
     GIT_TAG "v${QTOPCUA_VERSION}"
     GIT_SHALLOW TRUE
+    SOURCE_DIR "${QTOPCUA_SOURCE_DIR}"
+    BINARY_DIR "${QTOPCUA_BUILD_DIR}"
+    SOURCE_SUBDIR cmake-populate-only
 )
 
 ouaexp_remove_incomplete_qtopcua_source()
+FetchContent_MakeAvailable(qtopcua)
 FetchContent_GetProperties(qtopcua)
-if(NOT qtopcua_POPULATED)
-    FetchContent_Populate(qtopcua)
-endif()
+
+ouaexp_detect_open62541_version("${qtopcua_SOURCE_DIR}")
 
 # Qt's bundled open62541 backend hard-codes dataEncoding="Default Binary" on every
 # HistoryRead request (qopen62541backend.cpp). Strict UA servers (e.g. Unified

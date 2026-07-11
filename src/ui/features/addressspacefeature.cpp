@@ -15,6 +15,7 @@
 #include "appsettings.h"
 #include "dataaccessmodule.h"
 #include "featurehost.h"
+#include "session/sessiondata.h"
 #include "opcua/standardnodeid.h"
 #include "servicemodulemanager.h"
 #include "referencemodule.h"
@@ -53,19 +54,27 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
     _nodeDetailsDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetFloatable);
     _nodeDetailsDock->setWidget(_widget->takeNodeDetailsPanel());
 
-    auto *addressSpacePlugin = host.dataModules()->module<AddressSpaceModule>();
-    auto *referencePlugin = host.dataModules()->module<ReferenceModule>();
-    auto *dataAccessPlugin = host.dataModules()->module<DataAccessModule>();
+    auto *addressSpaceModule = host.dataModules()->module<AddressSpaceModule>();
+    auto *referenceModule = host.dataModules()->module<ReferenceModule>();
+    auto *dataAccessModule = host.dataModules()->module<DataAccessModule>();
 
     QObject::connect(_widget, &AddressSpaceWidget::browseRequested,
-                     addressSpacePlugin, &AddressSpaceModule::browse);
+                     addressSpaceModule, &AddressSpaceModule::browse);
     QObject::connect(_widget, &AddressSpaceWidget::refreshRequested,
-                     addressSpacePlugin, &AddressSpaceModule::refresh);
-    QObject::connect(addressSpacePlugin, &AddressSpaceModule::childrenReady,
+                     addressSpaceModule, &AddressSpaceModule::refresh);
+    QObject::connect(addressSpaceModule, &AddressSpaceModule::childrenReady,
                      _widget, &AddressSpaceWidget::setBrowseChildren);
+    QObject::connect(_widget, &AddressSpaceWidget::searchRequested,
+                     addressSpaceModule, &AddressSpaceModule::search);
+    QObject::connect(_widget, &AddressSpaceWidget::searchCancelRequested,
+                     addressSpaceModule, &AddressSpaceModule::cancelSearch);
+    QObject::connect(addressSpaceModule, &AddressSpaceModule::searchProgress,
+                     _widget, &AddressSpaceWidget::setSearchProgress);
+    QObject::connect(addressSpaceModule, &AddressSpaceModule::searchFinished,
+                     _widget, &AddressSpaceWidget::setSearchResult);
     QObject::connect(_widget, &AddressSpaceWidget::referencesRequested,
-                     referencePlugin, &ReferenceModule::browseReferences);
-    QObject::connect(referencePlugin, &ReferenceModule::referencesReady,
+                     referenceModule, &ReferenceModule::browseReferences);
+    QObject::connect(referenceModule, &ReferenceModule::referencesReady,
                      _widget, &AddressSpaceWidget::setBrowseReferences);
     QObject::connect(_widget, &AddressSpaceWidget::nodeSelected,
                      host.selection(), &SelectionContext::selectNode);
@@ -77,14 +86,18 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
                      host.selection(), &SelectionContext::requestEventsHistory);
     QObject::connect(_widget, &AddressSpaceWidget::addToTrendRequested,
                      host.selection(), &SelectionContext::requestAddToTrend);
+    QObject::connect(_widget, &AddressSpaceWidget::monitorNodeRequested,
+                     host.selection(), &SelectionContext::requestMonitorNode);
     QObject::connect(_widget, &AddressSpaceWidget::subscribeRequested,
                      host.selection(), &SelectionContext::requestSubscribe);
     QObject::connect(_widget, &AddressSpaceWidget::unsubscribeRequested,
                      host.selection(), &SelectionContext::requestUnsubscribe);
+    QObject::connect(_widget, &AddressSpaceWidget::callMethodRequested,
+                     host.selection(), &SelectionContext::requestCallMethod);
     QObject::connect(host.selection(), &SelectionContext::detailsReady,
                      _widget, &AddressSpaceWidget::setNodeDetails);
-    if (dataAccessPlugin) {
-        QObject::connect(dataAccessPlugin, &DataAccessModule::monitoringFinished, _widget,
+    if (dataAccessModule) {
+        QObject::connect(dataAccessModule, &DataAccessModule::monitoringFinished, _widget,
                          [this](const QString &nodeId, bool subscribed, bool success, const QString &) {
             if (success)
                 _widget->setNodeSubscribed(nodeId, subscribed);
@@ -131,6 +144,28 @@ void AddressSpaceFeature::clearRuntimeState()
 {
     if (_widget)
         _widget->clear();
+}
+
+///
+/// \brief Saves the expanded tree nodes and selected node into the session.
+/// \param session Session payload to write to.
+///
+void AddressSpaceFeature::saveSession(SessionData &session) const
+{
+    if (!_widget)
+        return;
+    session.expandedNodes = _widget->expandedNodeIds();
+    session.selectedNode = _widget->selectedNode().nodeId;
+}
+
+///
+/// \brief Restores the expanded tree nodes and selected node from the session.
+/// \param session Session payload to read from.
+///
+void AddressSpaceFeature::restoreSession(const SessionData &session)
+{
+    if (_widget)
+        _widget->restoreExpansion(session.expandedNodes, session.selectedNode);
 }
 
 ///

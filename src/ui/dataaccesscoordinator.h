@@ -8,11 +8,15 @@
 
 #pragma once
 
+#include <QHash>
 #include <QObject>
+#include <QPair>
 #include <QSet>
+#include <QVector>
 
 #include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
+#include "session/sessiondata.h"
 
 class AppSettings;
 class AttributeModule;
@@ -193,7 +197,61 @@ public:
     ///
     void clearRuntimeState();
 
+    ///
+    /// \brief Exports the currently visible central-area view to a file.
+    ///
+    void exportActiveView();
+
+    ///
+    /// \brief Returns the user-created subscriptions for a saved session.
+    /// \return Non-built-in subscriptions in row order.
+    ///
+    QVector<SubscriptionItem> sessionSubscriptions() const;
+
+    ///
+    /// \brief Returns the listed data-access nodes with their subscription for a saved session.
+    /// \return NodeId and subscription-name pairs in row order.
+    ///
+    QVector<QPair<QString, QString>> monitoredNodes() const;
+
+    ///
+    /// \brief Returns the charted trend node ids for a saved session.
+    /// \return Charted node ids.
+    ///
+    QStringList trendNodes() const;
+
+    ///
+    /// \brief Returns the trend chart tabs with their settings for a saved session.
+    /// \return Trend tabs in tab order.
+    ///
+    QVector<SessionTrendTab> trendTabs() const;
+
+    ///
+    /// \brief Restores monitored data-access nodes from a loaded session.
+    /// \param nodes NodeId and subscription-name pairs to re-add and monitor.
+    ///
+    void restoreMonitoredNodes(const QVector<QPair<QString, QString>> &nodes);
+
+    ///
+    /// \brief Restores charted trend nodes from a loaded session.
+    /// \param nodeIds Node ids to chart.
+    ///
+    void restoreTrendNodes(const QStringList &nodeIds);
+
+    ///
+    /// \brief Restores trend chart tabs and their settings from a loaded session.
+    /// \param tabs Trend tabs to recreate.
+    ///
+    void restoreTrendTabs(const QVector<SessionTrendTab> &tabs);
+
+    ///
+    /// \brief Recreates user subscriptions from a loaded session.
+    /// \param subscriptions Subscriptions to add if absent.
+    ///
+    void restoreSubscriptions(const QVector<SubscriptionItem> &subscriptions);
+
 private:
+    SubscriptionItem subscriptionByName(const QString &name) const;
     void onAttributeDetailsReady(const OpcUaNodeDetails &details, const QString &error);
     void onDetailsReady(const OpcUaNodeDetails &details, const QString &error);
     void onSelectionCleared();
@@ -240,4 +298,5 @@ private:
     QSet<QString> _subscribedNodeIds;
     QSet<QString> _pendingMonitoringNodeIds;
     QSet<QString> _pendingDataAccessNodeIds;
+    QHash<QString, QString> _pendingRestoreSubscriptions;
 };

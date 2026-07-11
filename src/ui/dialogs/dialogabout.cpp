@@ -41,8 +41,6 @@ DialogAbout::DialogAbout(QWidget *parent)
     : AppBaseDialog(parent)
     , ui(new Ui::DialogAbout)
 {
-    Q_INIT_RESOURCE(ui_resources);
-
     ui->setupUi(this);
     ui->logoLabel->setIcon("app", QSize(128, 128));
     ui->illustrationLabel->setIcon("automation.png", QSize(360, 180));

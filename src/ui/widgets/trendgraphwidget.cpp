@@ -241,9 +241,13 @@ void TrendGraphWidget::applyLiveValues(const QVector<OpcUaDataValue> &values)
         const int before = it->points().size();
         if (!it->appendLive(value))
             continue;
-        if (it->points().size() == before)
+        const QVector<QPointF> &points = it->points();
+        if (points.size() == before)
             continue;
-        const QPointF &point = it->points().constLast();
+        const QPointF &point = points.constLast();
+        if (_display.lineType == TrendLineType::Step && points.size() >= 2)
+            _chart->appendPoint(value.nodeId, toChartX(point.x()),
+                                points.at(points.size() - 2).y(), value.status);
         _chart->appendPoint(value.nodeId, toChartX(point.x()), point.y(), value.status);
     }
 }
@@ -388,9 +392,13 @@ void TrendGraphWidget::setDisplaySettings(const TrendDisplaySettings &settings)
     const bool intervalChanged =
         settings.mode != modeState() || settings.windowMs != windowState();
     const bool liveUpdateChanged = settings.liveSubscription != _display.liveSubscription;
+    const bool lineTypeChanged = settings.lineType != _display.lineType;
 
     _display = settings;
     applyDisplaySettings();
+    if (lineTypeChanged)
+        for (const TrendSeries &series : std::as_const(_series))
+            refeedSeries(series);
     if (intervalChanged)
         applyModeState(settings.mode, settings.windowMs);
     else if (liveUpdateChanged && _mode == Mode::Live)
@@ -431,6 +439,7 @@ QVector<TrendSeriesInfo> TrendGraphWidget::seriesInfos() const
     result.reserve(ordered.size());
     for (const TrendSeries &series : std::as_const(ordered))
         result.append({ series.nodeId(), series.seriesLabel(mode),
+                        series.displayName(), series.displayPath(),
                         series.color(), series.isVisible() });
     return result;
 }
@@ -791,7 +800,13 @@ qreal TrendGraphWidget::toChartX(qreal epochMs) const
 }
 
 ///
-/// \brief Pushes a series' buffered points into the chart with the active mode.
+/// \brief Pushes a series' buffered points into the chart, honouring the line type.
+///
+/// OPC UA monitored items report on value change, so the value is constant between
+/// samples. In Step mode a corner is inserted at each new time to keep the previous
+/// value flat until it steps, matching how the dense server history draws instead of
+/// sloping between sparse live samples; in Line mode the raw points are fed straight.
+///
 /// \param series Series whose points are re-fed.
 ///
 void TrendGraphWidget::refeedSeries(const TrendSeries &series)
@@ -799,10 +814,12 @@ void TrendGraphWidget::refeedSeries(const TrendSeries &series)
     const QVector<QPointF> &points = series.points();
     const QVector<QString> &statuses = series.statuses();
     QVector<ChartPoint> mapped;
-    mapped.reserve(points.size());
+    mapped.reserve(points.size() * 2);
     for (int i = 0; i < points.size(); ++i) {
-        mapped.append(ChartPoint{toChartX(points.at(i).x()), points.at(i).y(),
-                                 i < statuses.size() ? statuses.at(i) : QString()});
+        const QString status = i < statuses.size() ? statuses.at(i) : QString();
+        if (_display.lineType == TrendLineType::Step && i > 0)
+            mapped.append(ChartPoint{toChartX(points.at(i).x()), points.at(i - 1).y(), status});
+        mapped.append(ChartPoint{toChartX(points.at(i).x()), points.at(i).y(), status});
     }
     _chart->setPoints(series.nodeId(), mapped);
 }
@@ -860,7 +877,7 @@ bool TrendGraphWidget::dropNode(const QMimeData *mimeData)
 /// \brief Shows the chart context menu: view actions plus node removal.
 ///
 /// Auto Scale, Fit, and Settings are always offered; per-node Remove entries
-/// and Remove All appear only while the chart has series.
+/// and Clear appear only while the chart has series.
 ///
 /// \param globalPos Menu position in global screen coordinates.
 ///
@@ -899,7 +916,7 @@ void TrendGraphWidget::showSeriesContextMenu(const QPoint &globalPos)
                            [this, nodeId]() { removeNode(nodeId); });
         }
 
-        menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove All"),
+        menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Clear"),
                        this, [this]() { clear(); });
     }
 

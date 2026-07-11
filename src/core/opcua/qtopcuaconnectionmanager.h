@@ -60,6 +60,12 @@ public:
     /// \brief Stores a discovery result and returns to disconnected state.
     void finishDiscovery(const QVector<QOpcUaEndpointDescription> &endpoints);
 
+    /// \brief Returns to disconnected state, keeping the cached endpoints intact.
+    ///
+    /// FindServers resolves servers rather than endpoints, so the endpoint list a
+    /// pending connectToEndpoint() still selects from must survive the request.
+    void finishServerLookup();
+
     /// \brief Configures the client and connects to the profile's discovered endpoint.
     bool connectToEndpoint(const ConnectionProfile &profile, const QString &password,
                            const QString &privateKeyPassword);

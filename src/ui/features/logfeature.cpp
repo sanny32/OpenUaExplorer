@@ -39,6 +39,11 @@ void LogFeature::initialize(FeatureHost &host)
 
     host.addDock(Qt::BottomDockWidgetArea, _dock);
     host.resizeDocks({_dock}, {245}, Qt::Vertical);
+
+    host.registerCommand(QStringLiteral("log.export"), [this] {
+        if (_widget)
+            _widget->exportLog();
+    });
 }
 
 ///

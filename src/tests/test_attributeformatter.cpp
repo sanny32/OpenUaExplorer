@@ -8,6 +8,8 @@
 
 #include <QDateTime>
 #include <QTest>
+#include <QTimeZone>
+#include <QUuid>
 #include <QVariant>
 
 #include <QOpcUaLocalizedText>
@@ -46,6 +48,9 @@ private slots:
     void formatAttributeDispatchesPerAttribute();
     void attributeAppliesToNodeClassMatrix();
     void valueTypeForDataTypeMapping();
+    void scalarFromTextConvertsSupportedTypes();
+    void scalarFromTextRangeChecksIntegers();
+    void scalarFromTextRejectsMalformedInput();
 };
 
 void TestAttributeFormatter::isValueArrayClassifiesValues()
@@ -96,7 +101,7 @@ void TestAttributeFormatter::isoTimestampWithZoneRoundTrips()
     QCOMPARE(isoTimestampWithZone(QDateTime()), QString());
     QCOMPARE(isoTimestampWithZone(QDateTime(), TimestampMode::Utc), QString());
 
-    const QDateTime dt(QDate(2024, 12, 31), QTime(23, 59, 58, 123), Qt::UTC);
+    const QDateTime dt(QDate(2024, 12, 31), QTime(23, 59, 58, 123), QTimeZone::UTC);
     const QDateTime local = dt.toLocalTime();
     const QString localExpected = local.toOffsetFromUtc(local.offsetFromUtc())
                                       .toString(Qt::ISODateWithMs)
@@ -371,6 +376,103 @@ void TestAttributeFormatter::valueTypeForDataTypeMapping()
     // Unknown identifier, or a non-zero namespace, maps to Undefined.
     QCOMPARE(valueTypeForDataType(QStringLiteral("ns=0;i=9999")), QOpcUa::Types::Undefined);
     QCOMPARE(valueTypeForDataType(QStringLiteral("ns=2;i=6")), QOpcUa::Types::Undefined);
+}
+
+void TestAttributeFormatter::scalarFromTextConvertsSupportedTypes()
+{
+    bool ok = false;
+
+    QCOMPARE(scalarFromText(QStringLiteral("true"), QOpcUa::Types::Boolean, &ok), QVariant(true));
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("TRUE"), QOpcUa::Types::Boolean, &ok), QVariant(true));
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("1"), QOpcUa::Types::Boolean, &ok), QVariant(true));
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("false"), QOpcUa::Types::Boolean, &ok), QVariant(false));
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("0"), QOpcUa::Types::Boolean, &ok), QVariant(false));
+    QVERIFY(ok);
+
+    QCOMPARE(scalarFromText(QStringLiteral("-5"), QOpcUa::Types::SByte, &ok).value<qint8>(), qint8(-5));
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("200"), QOpcUa::Types::Byte, &ok).value<quint8>(), quint8(200));
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("-1000"), QOpcUa::Types::Int16, &ok).value<qint16>(), qint16(-1000));
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("60000"), QOpcUa::Types::UInt16, &ok).value<quint16>(), quint16(60000));
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("-2147483648"), QOpcUa::Types::Int32, &ok).toInt(), -2147483647 - 1);
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("42"), QOpcUa::Types::UInt32, &ok).toUInt(), 42u);
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("7"), QOpcUa::Types::StatusCode, &ok).toUInt(), 7u);
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("-5000000000"), QOpcUa::Types::Int64, &ok).toLongLong(),
+             Q_INT64_C(-5000000000));
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("5000000000"), QOpcUa::Types::UInt64, &ok).toULongLong(),
+             Q_UINT64_C(5000000000));
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("1.5"), QOpcUa::Types::Float, &ok).toFloat(), 1.5f);
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("2.25"), QOpcUa::Types::Double, &ok).toDouble(), 2.25);
+    QVERIFY(ok);
+
+    const QDateTime when(QDate(2024, 1, 2), QTime(3, 4, 5, 6), QTimeZone::UTC);
+    QCOMPARE(scalarFromText(when.toString(Qt::ISODateWithMs), QOpcUa::Types::DateTime, &ok).toDateTime(),
+             when);
+    QVERIFY(ok);
+
+    const QUuid uuid = QUuid::createUuid();
+    QCOMPARE(scalarFromText(uuid.toString(), QOpcUa::Types::Guid, &ok).toUuid(), uuid);
+    QVERIFY(ok);
+
+    QCOMPARE(scalarFromText(QStringLiteral("AQID"), QOpcUa::Types::ByteString, &ok).toByteArray(),
+             QByteArray::fromBase64("AQID"));
+    QVERIFY(ok);
+
+    QCOMPARE(scalarFromText(QStringLiteral("hello"), QOpcUa::Types::String, &ok).toString(),
+             QStringLiteral("hello"));
+    QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("ns=1;s=x"), QOpcUa::Types::NodeId, &ok).toString(),
+             QStringLiteral("ns=1;s=x"));
+    QVERIFY(ok);
+}
+
+void TestAttributeFormatter::scalarFromTextRangeChecksIntegers()
+{
+    bool ok = false;
+
+    scalarFromText(QStringLiteral("128"), QOpcUa::Types::SByte, &ok);
+    QVERIFY(!ok);
+    scalarFromText(QStringLiteral("-129"), QOpcUa::Types::SByte, &ok);
+    QVERIFY(!ok);
+    scalarFromText(QStringLiteral("256"), QOpcUa::Types::Byte, &ok);
+    QVERIFY(!ok);
+    scalarFromText(QStringLiteral("32768"), QOpcUa::Types::Int16, &ok);
+    QVERIFY(!ok);
+    scalarFromText(QStringLiteral("-32769"), QOpcUa::Types::Int16, &ok);
+    QVERIFY(!ok);
+    scalarFromText(QStringLiteral("65536"), QOpcUa::Types::UInt16, &ok);
+    QVERIFY(!ok);
+}
+
+void TestAttributeFormatter::scalarFromTextRejectsMalformedInput()
+{
+    bool ok = false;
+
+    scalarFromText(QStringLiteral("maybe"), QOpcUa::Types::Boolean, &ok);
+    QVERIFY(!ok);
+    scalarFromText(QStringLiteral("not-a-number"), QOpcUa::Types::Int32, &ok);
+    QVERIFY(!ok);
+    scalarFromText(QStringLiteral("not-a-date"), QOpcUa::Types::DateTime, &ok);
+    QVERIFY(!ok);
+    scalarFromText(QStringLiteral("not-a-guid"), QOpcUa::Types::Guid, &ok);
+    QVERIFY(!ok);
+
+    const QVariant unsupported = scalarFromText(QStringLiteral("x"), QOpcUa::Types::ExtensionObject, &ok);
+    QVERIFY(!ok);
+    QVERIFY(!unsupported.isValid());
 }
 
 QTEST_GUILESS_MAIN(TestAttributeFormatter)

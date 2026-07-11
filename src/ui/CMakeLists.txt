@@ -3,15 +3,19 @@ include("${PROJECT_SOURCE_DIR}/cmake/qlementine.cmake")
 set(UI_FILES
     mainwindow.ui
 
+    dialogs/callmethoddialog.ui
     dialogs/certificatedetailsdialog.ui
     dialogs/certificatetrustdialog.ui
     dialogs/connectioncredentialsdialog.ui
     dialogs/connectiondialog.ui
     dialogs/customintervaldialog.ui
     dialogs/dialogabout.ui
+    dialogs/dialogopcuainfo.ui
     dialogs/certificatesdialog.ui
     dialogs/editfavoritedialog.ui
     dialogs/endpointsettingsdialog.ui
+    dialogs/namespaceinspectordialog.ui
+    dialogs/nodemonitordialog.ui
     dialogs/settingsdialog.ui
     dialogs/subscriptionsdialog.ui
     dialogs/textviewdialog.ui
@@ -56,7 +60,6 @@ add_library(ouaexp_ui STATIC
     qlementineappstyle.h
     qlementinethemefactory.cpp
     qlementinethemefactory.h
-    ui_resources.qrc
     mainwindow.cpp
     mainwindow.h
     connectioncoordinator.cpp
@@ -88,6 +91,8 @@ add_library(ouaexp_ui STATIC
 
     dialogs/appbasedialog.cpp
     dialogs/appbasedialog.h
+    dialogs/callmethoddialog.cpp
+    dialogs/callmethoddialog.h
     dialogs/certificatedetailsdialog.cpp
     dialogs/certificatedetailsdialog.h
     dialogs/certificatesdialog.cpp
@@ -102,10 +107,18 @@ add_library(ouaexp_ui STATIC
     dialogs/customintervaldialog.h
     dialogs/dialogabout.cpp
     dialogs/dialogabout.h
+    dialogs/dialogopcuainfo.cpp
+    dialogs/dialogopcuainfo.h
     dialogs/editfavoritedialog.cpp
     dialogs/editfavoritedialog.h
     dialogs/endpointsettingsdialog.cpp
     dialogs/endpointsettingsdialog.h
+    dialogs/messageboxdialog.cpp
+    dialogs/messageboxdialog.h
+    dialogs/namespaceinspectordialog.cpp
+    dialogs/namespaceinspectordialog.h
+    dialogs/nodemonitordialog.cpp
+    dialogs/nodemonitordialog.h
     dialogs/newsubscriptiondialog.cpp
     dialogs/newsubscriptiondialog.h
     dialogs/settingsdialog.cpp
@@ -135,6 +148,8 @@ add_library(ouaexp_ui STATIC
     widgets/dataview.h
     widgets/dataaccesswidget.cpp
     widgets/dataaccesswidget.h
+    widgets/subscriptioncombobox.cpp
+    widgets/subscriptioncombobox.h
     widgets/subscriptionswidget.cpp
     widgets/subscriptionswidget.h
     widgets/eventswidget.cpp
@@ -157,6 +172,10 @@ add_library(ouaexp_ui STATIC
     widgets/fixedgap.h
     widgets/headerview.cpp
     widgets/headerview.h
+    widgets/historycombobox.cpp
+    widgets/historycombobox.h
+    widgets/spinneraction.cpp
+    widgets/spinneraction.h
     widgets/logwidget.cpp
     widgets/logwidget.h
     widgets/mainstatusbarwidget.cpp
@@ -204,11 +223,12 @@ target_include_directories(ouaexp_ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/widgets
 )
 
-target_link_libraries(ouaexp_ui PUBLIC ouaexp_plugins)
+target_link_libraries(ouaexp_ui PUBLIC ouaexp_modules)
 target_link_libraries(ouaexp_ui PRIVATE ouaexp_charting)
 
 ouaexp_configure_qt_target(ouaexp_ui)
 ouaexp_configure_qlementine_app_style(ouaexp_ui)
+ouaexp_apply_pch(ouaexp_ui)
 
 if(MSVC)
     target_compile_options(ouaexp_ui PUBLIC /utf-8)

@@ -13,16 +13,19 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+endif()
 
 set(PRODUCT_NAME "Open UaExplorer")
-set(ORGANIZATION_NAME "OpenUaExplorer contributers")
+set(ORGANIZATION_NAME "OpenUaExplorer contributors")
 
 option(OUAEXP_BUILD_TESTS "Build OpenUaExplorer tests" OFF)
 
 include("${PROJECT_SOURCE_DIR}/cmake/qt.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/dependencies.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/qtopcua.cmake")
+include("${PROJECT_SOURCE_DIR}/cmake/pch.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/project_version.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/coverage.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/uninstall.cmake")
@@ -45,11 +48,12 @@ add_compile_definitions(
     BUILD_YEAR="${CURRENT_YEAR}"
     APP_OPENSSL_VERSION="${OPENSSL_VERSION}"
     APP_QTKEYCHAIN_VERSION="${QTKEYCHAIN_VERSION}"
+    OPCUA_OPEN62541_VERSION="${OPCUA_OPEN62541_VERSION}"
 )
 
 add_subdirectory(core)
 add_subdirectory(charting)
-add_subdirectory(plugins)
+add_subdirectory(modules)
 add_subdirectory(ui)
 add_subdirectory(app)
 if(OUAEXP_BUILD_TESTS)

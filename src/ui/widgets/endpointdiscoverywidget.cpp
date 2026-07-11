@@ -38,10 +38,12 @@ void applyRowHover(QStyleOptionViewItem &option, const QAbstractItemView *view,
                    const QModelIndex &index)
 {
     const int hovered = view ? view->property(kHoveredRowProperty).toInt() : -1;
-    if (index.row() == hovered)
+    if (index.row() == hovered) {
         option.state |= QStyle::State_MouseOver;
-    else
+        option.state |= QStyle::State_Selected;
+    } else {
         option.state &= ~QStyle::State_MouseOver;
+    }
 }
 
 ///

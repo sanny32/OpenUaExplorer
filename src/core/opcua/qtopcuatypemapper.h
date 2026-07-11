@@ -10,6 +10,7 @@
 #include <QVariant>
 #include <QVector>
 
+#include <QOpcUaApplicationDescription>
 #include <QOpcUaEndpointDescription>
 #include <QOpcUaNode>
 #include <QOpcUaReferenceDescription>
@@ -22,6 +23,9 @@ using Translate = std::function<QString(const char *)>;
 
 /// \brief Maps discovered Qt endpoints to transport-neutral endpoint records.
 QList<EndpointInfo> endpointInfos(const QVector<QOpcUaEndpointDescription> &endpoints);
+
+/// \brief Maps Qt application descriptions to transport-neutral server records.
+QList<ServerInfo> serverInfos(const QVector<QOpcUaApplicationDescription> &servers);
 
 /// \brief Maps Qt browse references to transport-neutral node records.
 QVector<OpcUaNodeInfo> nodeInfos(const QVector<QOpcUaReferenceDescription> &references);

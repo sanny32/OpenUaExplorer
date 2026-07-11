@@ -1,0 +1,168 @@
+name: Build Windows installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Checkout branch'
+        required: false
+        default: dev
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: installer-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: '6.9.3'
+  QT_MODULES: qtcharts
+  OPENSSL_URL: 'https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-3.5.7.zip'
+
+jobs:
+  installer:
+    name: Build NSIS installer
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          $cmake = Get-Content src/CMakeLists.txt -Raw
+          if ($cmake -notmatch 'project\(ouaexp\s+VERSION\s+(\d+)\.(\d+)\.(\d+)') {
+            Write-Error 'Could not read the project version from src/CMakeLists.txt'
+            exit 1
+          }
+          $major, $minor, $patch = $Matches[1], $Matches[2], $Matches[3]
+
+          # Mirror src/cmake/project_version.cmake: dev and release branches carry
+          # a -dev suffix, tags supply the version and an optional pre-release
+          # suffix such as v1.0.0-b1.
+          $prerelease = ''
+          $ref = '${{ github.ref }}'
+          if ($ref -match '^refs/tags/v(.+)$') {
+            $tagVersion = $Matches[1]
+            if ($tagVersion -notmatch '^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$') {
+              Write-Error "Tag v$tagVersion is not <major>.<minor>.<patch>[-prerelease]"
+              exit 1
+            }
+            $major, $minor, $patch = $Matches[1], $Matches[2], $Matches[3]
+            if ($Matches[4]) { $prerelease = $Matches[4] }
+            $appVersion = $tagVersion
+          } elseif ($ref -match '^refs/heads/(dev|release/.*)$') {
+            $appVersion = "$major.$minor-dev"
+          } else {
+            $appVersion = "$major.$minor.$patch"
+          }
+
+          # VIProductVersion rejects suffixes, so the resource keeps a numeric version.
+          $fileVersion = "$major.$minor.$patch.0"
+          $setupName = "ouaexp-$appVersion-win64-setup.exe"
+
+          "appVersion=$appVersion"    >> $env:GITHUB_OUTPUT
+          "fileVersion=$fileVersion"  >> $env:GITHUB_OUTPUT
+          "setup=$setupName"          >> $env:GITHUB_OUTPUT
+          "prerelease=$prerelease"    >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $appVersion (file version $fileVersion, prerelease '$prerelease')"
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: ${{ env.QT_MODULES }}
+          cache: true
+
+      - name: Set up OpenSSL
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri '${{ env.OPENSSL_URL }}' -OutFile openssl.zip
+          Expand-Archive openssl.zip -DestinationPath C:\openssl-dist -Force
+          $root = (Get-ChildItem C:\openssl-dist -Recurse -Directory -Filter x64 |
+            Select-Object -First 1).FullName
+          "OPENSSL_ROOT_DIR=$root" >> $env:GITHUB_ENV
+
+      - name: Cache Qt OpcUa build
+        uses: actions/cache@v5
+        with:
+          path: build/_deps/qtopcua-install
+          key: qtopcua-windows-latest-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
+
+      - name: Configure
+        run: >
+          cmake -S src -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DOUAEXP_BUILD_TESTS=OFF
+          "-DPROJECT_PRERELEASE=${{ steps.version.outputs.prerelease }}"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel --target ouaexp
+
+      # The install rules run windeployqt, so the staged tree is the complete,
+      # self-contained payload the installer ships.
+      - name: Stage install tree
+        run: cmake --install build --config Release --prefix "${{ github.workspace }}\stage"
+
+      - name: Ensure NSIS is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+            choco install nsis -y --no-progress
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+          $nsisDir = "${env:ProgramFiles(x86)}\NSIS"
+          if (Test-Path $nsisDir) { $nsisDir >> $env:GITHUB_PATH }
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          makensis /V3 `
+            "/DSTAGE_DIR=${{ github.workspace }}\stage" `
+            "/DSRC_DIR=${{ github.workspace }}" `
+            "/DAPP_VERSION=${{ steps.version.outputs.appVersion }}" `
+            "/DFILE_VERSION=${{ steps.version.outputs.fileVersion }}" `
+            "/DOUT_FILE=${{ github.workspace }}\${{ steps.version.outputs.setup }}" `
+            .github\windows\ouaexp.nsi
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Compute checksum
+        shell: pwsh
+        run: |
+          $setup = "${{ steps.version.outputs.setup }}"
+          $hash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          "$hash  $setup" | Out-File "$setup.sha256" -Encoding ascii
+          Write-Host "SHA256: $hash"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ouaexp-win64-setup
+          path: |
+            ${{ steps.version.outputs.setup }}
+            ${{ steps.version.outputs.setup }}.sha256
+          if-no-files-found: error
+
+      - name: Attach installer to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          prerelease: ${{ steps.version.outputs.prerelease != '' }}
+          files: |
+            ${{ steps.version.outputs.setup }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true

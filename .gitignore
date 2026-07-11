@@ -29,7 +29,6 @@ ui_*.h
 *.jsc
 Makefile*
 *build-*
-!.github/workflows/test-build-*
 build/
 .deps/
 *.qm
@@ -66,10 +65,13 @@ __pycache__
 .vscode
 AGENTS.md
 
+# .github
+!.github/workflows/*build-*
+
 # Local build and test commands
 build_with_vs.cmd
 test_with_vs.cmd
 run_test.sh
 
-# Coverage (tools/coverage.py)
-LastCoverageResults.log
+# Log files
+*.log

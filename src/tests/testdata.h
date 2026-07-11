@@ -11,6 +11,7 @@
 #include <QDateTime>
 #include <QPair>
 #include <QStringList>
+#include <QTimeZone>
 #include <QVector>
 
 #include "models/addressspaceitem.h"
@@ -71,7 +72,7 @@ inline QStringList subscriptionNames()
 ///
 inline QVector<DataAccessItem> dataAccessItems()
 {
-    const QDateTime timestamp(QDate(2024, 1, 1), QTime(12, 15, 23, 250), Qt::UTC);
+    const QDateTime timestamp(QDate(2024, 1, 1), QTime(12, 15, 23, 250), QTimeZone::UTC);
     return {
         {"ns=2;s=Device1.Measurements.Temperature", "Temperature", "23.45",  "Double",  timestamp, "Good", "Default"},
         {"ns=2;s=Device1.Measurements.Pressure",    "Pressure",    "1.013",  "Double",  timestamp, "Good", "Default"},
@@ -209,7 +210,7 @@ inline QVector<EventItem> eventItems()
 ///
 inline QVector<OpcUaHistoryValue> historyItems()
 {
-    const QDateTime base(QDate(2026, 6, 25), QTime(12, 10, 0), Qt::UTC);
+    const QDateTime base(QDate(2026, 6, 25), QTime(12, 10, 0), QTimeZone::UTC);
     QVector<OpcUaHistoryValue> samples;
     for (int i = 0; i < 3; ++i) {
         OpcUaHistoryValue sample;

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file test_plugins.cpp
+/// \file test_modules.cpp
 /// \brief Tests the module framework registration and the module data API.
 ///
 
@@ -12,6 +12,7 @@
 #include <QSignalSpy>
 #include <QString>
 #include <QTest>
+#include <QTimeZone>
 
 #include "addressspacemodule.h"
 #include "attributemodule.h"
@@ -26,13 +27,13 @@
 ///
 /// \brief Unit tests for the module manager and built-in modules.
 ///
-class TestPlugins : public QObject
+class TestModules : public QObject
 {
     Q_OBJECT
 
 private slots:
-    void registersAllPlugins();
-    void pluginsHaveDistinctNamesAndCategories();
+    void registersAllModules();
+    void modulesHaveDistinctNamesAndCategories();
     void subscribeApiReachesClientService();
     void eventSubscribeApiReachesClientService();
     void eventHistoryApiReachesClientService();
@@ -44,7 +45,7 @@ namespace {
 /// \brief Registers the six built-in modules with a manager.
 /// \param manager Manager to populate.
 ///
-void registerBuiltInPlugins(ServiceModuleManager &manager)
+void registerBuiltInModules(ServiceModuleManager &manager)
 {
     manager.registerModule(new ServerModule);
     manager.registerModule(new AddressSpaceModule);
@@ -59,20 +60,20 @@ void registerBuiltInPlugins(ServiceModuleManager &manager)
 ///
 /// \brief Every registered module is owned by the manager.
 ///
-void TestPlugins::registersAllPlugins()
+void TestModules::registersAllModules()
 {
     ServiceModuleManager manager;
-    registerBuiltInPlugins(manager);
+    registerBuiltInModules(manager);
     QCOMPARE(manager.modules().size(), 6);
 }
 
 ///
 /// \brief Each module exposes a distinct name and logging category.
 ///
-void TestPlugins::pluginsHaveDistinctNamesAndCategories()
+void TestModules::modulesHaveDistinctNamesAndCategories()
 {
     ServiceModuleManager manager;
-    registerBuiltInPlugins(manager);
+    registerBuiltInModules(manager);
 
     QSet<QString> names;
     QSet<QString> categories;
@@ -87,7 +88,7 @@ void TestPlugins::pluginsHaveDistinctNamesAndCategories()
 ///
 /// \brief The DataAccessModule subscribe API forwards to the client service.
 ///
-void TestPlugins::subscribeApiReachesClientService()
+void TestModules::subscribeApiReachesClientService()
 {
     OpcUaClientService service;
     DataAccessModule module;
@@ -103,7 +104,7 @@ void TestPlugins::subscribeApiReachesClientService()
 ///
 /// \brief The EventsModule subscribe API forwards to the client service.
 ///
-void TestPlugins::eventSubscribeApiReachesClientService()
+void TestModules::eventSubscribeApiReachesClientService()
 {
     OpcUaClientService service;
     EventsModule module;
@@ -119,7 +120,7 @@ void TestPlugins::eventSubscribeApiReachesClientService()
 ///
 /// \brief The EventsModule event history API forwards to the client service.
 ///
-void TestPlugins::eventHistoryApiReachesClientService()
+void TestModules::eventHistoryApiReachesClientService()
 {
     OpcUaClientService service;
     EventsModule module;
@@ -128,13 +129,13 @@ void TestPlugins::eventHistoryApiReachesClientService()
 
     QSignalSpy spy(&module, &EventsModule::eventsHistoryReady);
     module.readHistory(QStringLiteral("ns=0;i=2253"),
-                       QDateTime(QDate(2026, 6, 25), QTime(12, 0), Qt::UTC),
-                       QDateTime(QDate(2026, 6, 25), QTime(13, 0), Qt::UTC),
+                       QDateTime(QDate(2026, 6, 25), QTime(12, 0), QTimeZone::UTC),
+                       QDateTime(QDate(2026, 6, 25), QTime(13, 0), QTimeZone::UTC),
                        1000);
     QTRY_COMPARE(spy.count(), 1);
     QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=0;i=2253"));
 }
 
-QTEST_MAIN(TestPlugins)
+QTEST_MAIN(TestModules)
 
-#include "test_plugins.moc"
+#include "test_modules.moc"

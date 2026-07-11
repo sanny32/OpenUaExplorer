@@ -12,6 +12,7 @@
 #include <QSpinBox>
 #include <QTableView>
 #include <QTest>
+#include <QTimeZone>
 #include <QToolButton>
 
 #include "opcua/opcuatypes.h"
@@ -77,8 +78,8 @@ void TestDataHistoryWidget::exportFileNameDescribesQuery()
     QVERIFY(endEdit);
     QVERIFY(maxEdit);
 
-    startEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(12, 41, 36), Qt::UTC));
-    endEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(13, 41, 36), Qt::UTC));
+    startEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(12, 41, 36), QTimeZone::UTC));
+    endEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(13, 41, 36), QTimeZone::UTC));
     maxEdit->setValue(1000);
 
     QCOMPARE(widget.suggestedDataHistoryCsvFileName(),

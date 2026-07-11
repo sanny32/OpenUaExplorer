@@ -57,10 +57,19 @@
      </property>
      <addaction name="actionNoRecentConnections"/>
     </widget>
+    <widget class="QMenu" name="menuRecentSessions">
+     <property name="title">
+      <string>Recent Sessions</string>
+     </property>
+     <addaction name="actionNoRecentSessions"/>
+    </widget>
     <addaction name="actionNewConnection"/>
+    <addaction name="actionFileDisconnect"/>
+    <addaction name="menuRecentConnections"/>
+    <addaction name="separator"/>
     <addaction name="actionOpenSession"/>
     <addaction name="actionSaveSession"/>
-    <addaction name="menuRecentConnections"/>
+    <addaction name="menuRecentSessions"/>
     <addaction name="separator"/>
     <addaction name="actionExportData"/>
     <addaction name="actionExportLog"/>
@@ -134,8 +143,6 @@
     <addaction name="separator"/>
     <addaction name="actionNamespaceInspector"/>
     <addaction name="actionNodeMonitor"/>
-    <addaction name="separator"/>
-    <addaction name="actionDeveloperTools"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -200,6 +207,14 @@
    </property>
   </action>
   <action name="actionDisconnect">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Disconnect</string>
+   </property>
+  </action>
+  <action name="actionFileDisconnect">
    <property name="enabled">
     <bool>false</bool>
    </property>
@@ -303,6 +318,14 @@
    </property>
    <property name="text">
     <string>No Recent Connections</string>
+   </property>
+  </action>
+  <action name="actionNoRecentSessions">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>No Recent Sessions</string>
    </property>
   </action>
   <action name="actionExportData">
@@ -511,14 +534,6 @@
     <string>Node Monitor</string>
    </property>
   </action>
-  <action name="actionDeveloperTools">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Developer Tools</string>
-   </property>
-  </action>
   <action name="actionDocumentation">
    <property name="enabled">
     <bool>false</bool>
@@ -528,9 +543,6 @@
    </property>
   </action>
   <action name="actionOpcUaInfo">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>OPC UA Info</string>
    </property>

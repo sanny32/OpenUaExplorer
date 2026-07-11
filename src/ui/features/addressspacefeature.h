@@ -49,6 +49,18 @@ public:
     ///
     void clearRuntimeState() override;
 
+    ///
+    /// \brief Saves the expanded tree nodes and selected node into the session.
+    /// \param session Session payload to write to.
+    ///
+    void saveSession(SessionData &session) const override;
+
+    ///
+    /// \brief Restores the expanded tree nodes and selected node from the session.
+    /// \param session Session payload to read from.
+    ///
+    void restoreSession(const SessionData &session) override;
+
 private:
     void browseAddressSpace();
 

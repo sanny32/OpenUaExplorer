@@ -107,6 +107,20 @@ QPushButton *DialogButtonBox::button(StandardButton which) const
 }
 
 ///
+/// \brief Returns the standard button role backing a button instance.
+/// \param button Button created by setStandardButtons().
+/// \return Matching standard button, or NoButton when unknown.
+///
+QDialogButtonBox::StandardButton DialogButtonBox::standardButton(QAbstractButton *button) const
+{
+    for (auto it = _standardButtons.cbegin(); it != _standardButtons.cend(); ++it) {
+        if (it.value() == button)
+            return static_cast<StandardButton>(it.key());
+    }
+    return NoButton;
+}
+
+///
 /// \brief Paints a standard button with an explicit colour set.
 /// \param which Standard button to colour.
 /// \param colors Light-theme colour set (the dark variant is derived).

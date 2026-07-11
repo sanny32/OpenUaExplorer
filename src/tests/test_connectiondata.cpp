@@ -6,6 +6,7 @@
 /// \brief Unit tests for endpoint history, the endpoint model, certificate status, and validation.
 ///
 
+#include <QColor>
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>
@@ -31,8 +32,11 @@ private slots:
     void initTestCase();
     void cleanup();
     void endpointHistoryIsDeduplicatedAndBounded();
+    void removedEndpointDoesNotReturnAsLastUsed();
     void endpointModelExposesSelectionRoles();
     void endpointModelSortsByRank();
+    void endpointModelDataRolesHeaderAndClear();
+    void endpointModelRanksPolicyStrengths();
     void certificateStatusCoversDateBoundaries();
     void corruptCertificateIsReportedAsInvalid();
     void profileValidationCoversCredentials();
@@ -69,6 +73,20 @@ void TestConnectionData::endpointHistoryIsDeduplicatedAndBounded()
     QCOMPARE(history.size(), 10);
     QCOMPARE(history.first(), QStringLiteral("opc.tcp://server-5:4840"));
     QCOMPARE(history.count(QStringLiteral("opc.tcp://server-5:4840")), 1);
+}
+
+void TestConnectionData::removedEndpointDoesNotReturnAsLastUsed()
+{
+    EndpointHistoryStore store;
+    store.save(QStringLiteral("opc.tcp://first:4840"));
+    store.save(QStringLiteral("opc.tcp://second:4840"));
+
+    store.remove(QStringLiteral("opc.tcp://second:4840"));
+
+    QCOMPARE(store.history(), QStringList{QStringLiteral("opc.tcp://first:4840")});
+
+    store.remove(QStringLiteral("opc.tcp://first:4840"));
+    QVERIFY(store.history().isEmpty());
 }
 
 void TestConnectionData::endpointModelExposesSelectionRoles()
@@ -130,6 +148,111 @@ void TestConnectionData::endpointModelSortsByRank()
              QStringLiteral("None"));
     QCOMPARE(model.data(model.index(2, 0), EndpointModel::StatusRole).toString(),
              QStringLiteral("Not secure"));
+}
+
+void TestConnectionData::endpointModelDataRolesHeaderAndClear()
+{
+    const auto make = [](const QString &policy, int modeValue, const QString &modeText) {
+        EndpointInfo endpoint;
+        endpoint.endpointUrl = QStringLiteral("opc.tcp://host/%1").arg(policy);
+        endpoint.securityPolicy =
+            QStringLiteral("http://opcfoundation.org/UA/SecurityPolicy#") + policy;
+        endpoint.securityModeValue = modeValue;
+        endpoint.securityMode = modeText;
+        return endpoint;
+    };
+
+    EndpointModel model;
+    model.setEndpoints({
+        make(QStringLiteral("Aes256_Sha256_RsaPss"), 3, QStringLiteral("Sign & Encrypt")),
+        make(QStringLiteral("Basic256"), 2, QStringLiteral("Sign")),
+        make(QStringLiteral("None"), 1, QStringLiteral("None")),
+    });
+    QCOMPARE(model.rowCount(), 3);
+    QCOMPARE(model.columnCount(), int(EndpointModel::ColumnCount));
+
+    // Qt::DisplayRole per column of the recommended (row 0) endpoint.
+    QCOMPARE(model.data(model.index(0, EndpointModel::PolicyColumn), Qt::DisplayRole).toString(),
+             QStringLiteral("Aes256_Sha256_RsaPss"));
+    QCOMPARE(model.data(model.index(0, EndpointModel::ModeColumn), Qt::DisplayRole).toString(),
+             QStringLiteral("Sign & Encrypt"));
+    QCOMPARE(model.data(model.index(0, EndpointModel::StatusColumn), Qt::DisplayRole).toString(),
+             QStringLiteral("Recommended"));
+    QCOMPARE(model.data(model.index(1, EndpointModel::StatusColumn), Qt::DisplayRole).toString(),
+             QStringLiteral("Good"));
+    QCOMPARE(model.data(model.index(2, EndpointModel::StatusColumn), Qt::DisplayRole).toString(),
+             QStringLiteral("Not secure"));
+
+    // Icons follow the security mode value.
+    QCOMPARE(model.data(model.index(0, 0), EndpointModel::IconRole).toString(),
+             QStringLiteral("lock"));         // mode 3
+    QCOMPARE(model.data(model.index(1, 0), EndpointModel::IconRole).toString(),
+             QStringLiteral("shield-check")); // mode 2
+    QCOMPARE(model.data(model.index(2, 0), EndpointModel::IconRole).toString(),
+             QStringLiteral("unlock"));       // mode 1
+
+    // Status colours: recommended (green), secure (amber), insecure (red).
+    QCOMPARE(model.data(model.index(0, 0), EndpointModel::StatusColorRole).value<QColor>(),
+             QColor(0x2e, 0x9e, 0x44));
+    QCOMPARE(model.data(model.index(1, 0), EndpointModel::StatusColorRole).value<QColor>(),
+             QColor(0xc0, 0x7d, 0x00));
+    QCOMPARE(model.data(model.index(2, 0), EndpointModel::StatusColorRole).value<QColor>(),
+             QColor(0xd1, 0x34, 0x38));
+
+    // EndpointRole carries the whole endpoint.
+    const auto carried =
+        model.data(model.index(0, 0), EndpointModel::EndpointRole).value<EndpointInfo>();
+    QCOMPARE(carried.securityPolicy,
+             QStringLiteral("http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss"));
+
+    // Out-of-range / invalid indices return an invalid variant.
+    QVERIFY(!model.data(QModelIndex(), EndpointModel::PolicyRole).isValid());
+    QVERIFY(!model.data(model.index(0, 0), Qt::CheckStateRole).isValid());
+
+    // Header titles and role names.
+    QCOMPARE(model.headerData(EndpointModel::PolicyColumn, Qt::Horizontal).toString(),
+             QStringLiteral("Security Policy"));
+    QCOMPARE(model.headerData(EndpointModel::ModeColumn, Qt::Horizontal).toString(),
+             QStringLiteral("Security Mode"));
+    // Non-horizontal or non-display headers defer to the base implementation.
+    QVERIFY(!model.headerData(EndpointModel::PolicyColumn, Qt::Horizontal,
+                              Qt::DecorationRole).isValid());
+    QVERIFY(model.headerData(0, Qt::Vertical).isValid());
+    const QHash<int, QByteArray> roles = model.roleNames();
+    QCOMPARE(roles.value(EndpointModel::PolicyRole), QByteArrayLiteral("policy"));
+    QCOMPARE(roles.value(EndpointModel::EndpointRole), QByteArrayLiteral("endpoint"));
+
+    // endpoints() exposes the ranked list; clear() empties the model.
+    QCOMPARE(model.endpoints().size(), 3);
+    model.clear();
+    QCOMPARE(model.rowCount(), 0);
+    QVERIFY(model.endpoints().isEmpty());
+    QVERIFY(model.endpointAt(5).endpointUrl.isEmpty()); // out-of-range row
+}
+
+void TestConnectionData::endpointModelRanksPolicyStrengths()
+{
+    const auto make = [](const QString &policy) {
+        EndpointInfo endpoint;
+        endpoint.securityPolicy =
+            QStringLiteral("http://opcfoundation.org/UA/SecurityPolicy#") + policy;
+        endpoint.securityModeValue = 3; // secure, so policy strength decides the rank
+        return endpoint;
+    };
+
+    EndpointModel model;
+    model.setEndpoints({
+        make(QStringLiteral("Basic128Rsa15")),        // strength 2
+        make(QStringLiteral("Aes128_Sha256_RsaOaep")), // strength 5
+        make(QStringLiteral("FuturePolicy")),          // unknown -> strength 1
+    });
+
+    QCOMPARE(model.data(model.index(0, 0), EndpointModel::PolicyRole).toString(),
+             QStringLiteral("Aes128_Sha256_RsaOaep"));
+    QCOMPARE(model.data(model.index(1, 0), EndpointModel::PolicyRole).toString(),
+             QStringLiteral("Basic128Rsa15"));
+    QCOMPARE(model.data(model.index(2, 0), EndpointModel::PolicyRole).toString(),
+             QStringLiteral("FuturePolicy"));
 }
 
 void TestConnectionData::certificateStatusCoversDateBoundaries()

@@ -54,6 +54,18 @@ public:
     QString nodeId() const;
 
     ///
+    /// \brief Returns the human-readable node name captured for this series.
+    /// \return Display name, possibly empty.
+    ///
+    QString displayName() const;
+
+    ///
+    /// \brief Returns the human-readable node path captured for this series.
+    /// \return Display path, possibly empty.
+    ///
+    QString displayPath() const;
+
+    ///
     /// \brief Returns the legend label (path preferred over name, then NodeId).
     /// \return Display label.
     ///

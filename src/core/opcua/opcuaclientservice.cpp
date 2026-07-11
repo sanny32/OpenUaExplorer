@@ -33,6 +33,8 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::errorOccurred);
     connect(_backend, &OpcUaBackend::endpointsDiscovered,
             this, &OpcUaClientService::endpointsDiscovered);
+    connect(_backend, &OpcUaBackend::serversDiscovered,
+            this, &OpcUaClientService::serversDiscovered);
     connect(_backend, &OpcUaBackend::browseFinished,
             this, &OpcUaClientService::browseFinished);
     connect(_backend, &OpcUaBackend::referencesBrowseFinished,
@@ -47,6 +49,10 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::historyEventsReady);
     connect(_backend, &OpcUaBackend::writeFinished,
             this, &OpcUaClientService::writeFinished);
+    connect(_backend, &OpcUaBackend::methodInfoReady,
+            this, &OpcUaClientService::methodInfoReady);
+    connect(_backend, &OpcUaBackend::methodCallFinished,
+            this, &OpcUaClientService::methodCallFinished);
     connect(_backend, &OpcUaBackend::monitoringFinished,
             this, &OpcUaClientService::monitoringFinished);
     connect(_backend, &OpcUaBackend::eventsReady,
@@ -55,6 +61,16 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
             this, &OpcUaClientService::eventMonitoringFinished);
     connect(_backend, &OpcUaBackend::serverSessionNameResolved,
             this, &OpcUaClientService::serverSessionNameResolved);
+    connect(_backend, &OpcUaBackend::namespacesReady,
+            this, &OpcUaClientService::namespacesReady);
+    connect(_backend, &OpcUaBackend::namespaceStatisticsProgress,
+            this, &OpcUaClientService::namespaceStatisticsProgress);
+    connect(_backend, &OpcUaBackend::namespaceStatisticsReady,
+            this, &OpcUaClientService::namespaceStatisticsReady);
+    connect(_backend, &OpcUaBackend::nodeSearchProgress,
+            this, &OpcUaClientService::nodeSearchProgress);
+    connect(_backend, &OpcUaBackend::nodeSearchFinished,
+            this, &OpcUaClientService::nodeSearchFinished);
 }
 
 ///
@@ -141,6 +157,28 @@ void OpcUaClientService::discoverEndpointsWithTimeout(const QString &url,
                                                       int timeoutMs)
 {
     _backend->discoverEndpoints(url, backend, timeoutMs);
+}
+
+///
+/// \brief Lists the servers registered with a discovery server, with the default timeout.
+/// \param url Discovery server URL.
+/// \param backend Backend name to use.
+///
+void OpcUaClientService::findServers(const QString &url, const QString &backend)
+{
+    findServersWithTimeout(url, backend, 10000);
+}
+
+///
+/// \brief Lists the servers registered with a discovery server, bounded by a timeout.
+/// \param url Discovery server URL.
+/// \param backend Backend name to use.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void OpcUaClientService::findServersWithTimeout(const QString &url, const QString &backend,
+                                                int timeoutMs)
+{
+    _backend->findServers(url, backend, timeoutMs);
 }
 
 ///
@@ -240,6 +278,28 @@ void OpcUaClientService::writeValue(const QString &nodeId, const QVariant &value
 }
 
 ///
+/// \brief Reads a method's argument metadata using the cached request timeout.
+/// \param methodNodeId Method node whose InputArguments/OutputArguments are read.
+///
+void OpcUaClientService::readMethodInfo(const QString &methodNodeId)
+{
+    _backend->readMethodInfo(methodNodeId, _requestTimeoutMs);
+}
+
+///
+/// \brief Calls a method on its owning object using the cached request timeout.
+/// \param objectNodeId Object node that owns the method.
+/// \param methodNodeId Method node to call.
+/// \param args Input argument values in call order.
+/// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
+///
+void OpcUaClientService::callMethod(const QString &objectNodeId, const QString &methodNodeId,
+                                    const QVariantList &args, const QList<int> &argTypes)
+{
+    _backend->callMethod(objectNodeId, methodNodeId, args, argTypes, _requestTimeoutMs);
+}
+
+///
 /// \brief Enables Value monitoring, or re-applies the interval to an already monitored node.
 /// \param nodeId Node to monitor.
 /// \param publishingInterval Publishing interval in milliseconds.
@@ -283,4 +343,46 @@ void OpcUaClientService::unsubscribeEvents(const QString &nodeId)
 void OpcUaClientService::readServerSessionName()
 {
     _backend->readServerSessionName(_requestTimeoutMs);
+}
+
+///
+/// \brief Reads the server NamespaceArray using the cached request timeout.
+///
+void OpcUaClientService::requestNamespaces()
+{
+    _backend->requestNamespaces(_requestTimeoutMs);
+}
+
+///
+/// \brief Crawls the address space to count nodes per namespace, using the cached request timeout.
+///
+void OpcUaClientService::requestNamespaceStatistics()
+{
+    _backend->requestNamespaceStatistics(_requestTimeoutMs);
+}
+
+///
+/// \brief Cancels an in-progress namespace statistics crawl, if any.
+///
+void OpcUaClientService::cancelNamespaceStatistics()
+{
+    _backend->cancelNamespaceStatistics();
+}
+
+///
+/// \brief Searches a subtree for a display name, using the cached request timeout.
+/// \param startNodeId Node whose subtree is searched.
+/// \param pattern Case-insensitive substring matched against display names.
+///
+void OpcUaClientService::searchNode(const QString &startNodeId, const QString &pattern)
+{
+    _backend->searchNode(startNodeId, pattern, _requestTimeoutMs);
+}
+
+///
+/// \brief Cancels an in-progress node search, if any.
+///
+void OpcUaClientService::cancelNodeSearch()
+{
+    _backend->cancelNodeSearch();
 }

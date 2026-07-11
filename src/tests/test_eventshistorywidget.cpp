@@ -11,6 +11,7 @@
 #include <QSpinBox>
 #include <QTableView>
 #include <QTest>
+#include <QTimeZone>
 #include <QToolButton>
 
 #include "widgets/eventshistorywidget.h"
@@ -43,7 +44,7 @@ OpcUaEvent makeEvent()
 {
     OpcUaEvent event;
     event.sourceNodeId = QStringLiteral("ns=0;i=2253");
-    event.time = QDateTime(QDate(2026, 6, 25), QTime(12, 41, 36), Qt::UTC);
+    event.time = QDateTime(QDate(2026, 6, 25), QTime(12, 41, 36), QTimeZone::UTC);
     event.severity = 500;
     event.sourceName = QStringLiteral("Server");
     event.message = QStringLiteral("Started");
@@ -86,8 +87,8 @@ void TestEventsHistoryWidget::exportFileNameDescribesQuery()
     QVERIFY(endEdit);
     QVERIFY(maxEdit);
 
-    startEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(12, 41, 36), Qt::UTC));
-    endEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(13, 41, 36), Qt::UTC));
+    startEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(12, 41, 36), QTimeZone::UTC));
+    endEdit->setDateTime(QDateTime(QDate(2026, 6, 25), QTime(13, 41, 36), QTimeZone::UTC));
     maxEdit->setValue(1000);
 
     QCOMPARE(widget.suggestedEventsHistoryCsvFileName(),

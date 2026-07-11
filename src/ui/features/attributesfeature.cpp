@@ -42,20 +42,20 @@ void AttributesFeature::initialize(FeatureHost &host)
     _dock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetFloatable);
     _dock->setWidget(_widget);
 
-    auto *attributePlugin = host.dataModules()->module<AttributeModule>();
+    auto *attributeModule = host.dataModules()->module<AttributeModule>();
     SelectionContext *selection = host.selection();
 
     QObject::connect(_widget, &AttributesWidget::writeRequested,
-                     attributePlugin, &AttributeModule::write);
+                     attributeModule, &AttributeModule::write);
     QObject::connect(selection, &SelectionContext::detailsReady,
                      _widget, &AttributesWidget::setNodeDetails);
 
     QObject::connect(selection, &SelectionContext::nodeSelected,
-                     attributePlugin, [attributePlugin](const OpcUaNodeInfo &node) {
+                     attributeModule, [attributeModule](const OpcUaNodeInfo &node) {
                          if (!node.nodeId.isEmpty())
-                             attributePlugin->read(node.nodeId);
+                             attributeModule->read(node.nodeId);
                      });
-    QObject::connect(attributePlugin, &AttributeModule::attributesReady,
+    QObject::connect(attributeModule, &AttributeModule::attributesReady,
                      selection, &SelectionContext::setDetails);
     QObject::connect(theApp(), &Application::timestampModeChanged,
                      _widget, &AttributesWidget::setTimestampMode);

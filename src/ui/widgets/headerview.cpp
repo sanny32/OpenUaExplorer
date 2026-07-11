@@ -164,14 +164,14 @@ int HeaderView::minimumWrappedSectionWidth(int logicalIndex) const
 }
 
 ///
-/// \brief Returns a size hint tall enough for two wrapped header lines.
+/// \brief Returns a size hint tall enough for a single header line.
 /// \return Header size hint.
 ///
 QSize HeaderView::sizeHint() const
 {
     QSize size = QHeaderView::sizeHint();
     const QFontMetrics fm(font());
-    size.setHeight(qMax(size.height(), fm.lineSpacing() * 2 + 14));
+    size.setHeight(qMax(size.height(), fm.lineSpacing() + 14));
     return size;
 }
 

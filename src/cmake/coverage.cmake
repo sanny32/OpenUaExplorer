@@ -25,7 +25,7 @@ function(ouaexp_apply_coverage target)
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(${target} PRIVATE --coverage -O0 -g)
-        target_link_options(${target} PRIVATE --coverage)
+        target_link_options(${target} PUBLIC --coverage)
     elseif(MSVC)
         # /Zi emits PDBs for OpenCppCoverage; /OPT:NOREF,NOICF keep line mapping intact.
         target_compile_options(${target} PRIVATE /Zi /Od)

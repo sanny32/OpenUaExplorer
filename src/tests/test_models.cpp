@@ -12,6 +12,7 @@
 #include <QDateTime>
 #include <QSignalSpy>
 #include <QTest>
+#include <QTimeZone>
 
 #include "appsettings.h"
 #include "testdata.h"
@@ -57,6 +58,7 @@ private slots:
     void eventsModelAddEventsAppendsAndCaps();
     void historyModelHeaderRolesAndMutators();
     void historyModelExportsCsv();
+    void dataAccessModelExportsCsv();
     void eventsModelExportsCsv();
     void eventsModelDisplaysKnownEventTypeNames();
     void referencesModelHeaderAndEdges();
@@ -345,7 +347,7 @@ void TestModels::dataAccessTimestampModeReformats()
     DataAccessModel model;
     OpcUaNodeDetails details;
     details.nodeId = QStringLiteral("ns=2;s=TS");
-    details.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), Qt::UTC);
+    details.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), QTimeZone::UTC);
     model.addOrUpdate(details);
 
     const QModelIndex timestampIndex = model.index(0, DataAccessModel::ColTimestamp);
@@ -376,7 +378,7 @@ void TestModels::attributesModelTimestampModeReformats()
     value.displayValue = QStringLiteral("42");
     OpcUaNodeAttribute timestamp;
     timestamp.name = QStringLiteral("Source Timestamp");
-    timestamp.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), Qt::UTC);
+    timestamp.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), QTimeZone::UTC);
     value.children.append(timestamp);
 
     AttributesModel model;
@@ -504,8 +506,8 @@ void TestModels::historyModelHeaderRolesAndMutators()
 void TestModels::historyModelExportsCsv()
 {
     OpcUaHistoryValue value;
-    value.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 6), Qt::UTC);
-    value.serverTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 6, 7), Qt::UTC);
+    value.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 6), QTimeZone::UTC);
+    value.serverTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 6, 7), QTimeZone::UTC);
     value.value = QStringLiteral("12,\"quoted\"\nline");
     value.status = QStringLiteral("Good,Clamped");
 
@@ -517,6 +519,31 @@ void TestModels::historyModelExportsCsv()
              QStringLiteral("#,Source Timestamp,Server Timestamp,Value,Status\n"
                             "1,2024-01-02 03:04:05.006Z,2024-01-02 03:04:06.007Z,"
                             "\"12,\"\"quoted\"\"\nline\",\"Good,Clamped\"\n"));
+}
+
+///
+/// \brief DataAccessModel exports listed rows as escaped CSV with a header.
+///
+void TestModels::dataAccessModelExportsCsv()
+{
+    DataAccessItem item;
+    item.nodeId = QStringLiteral("ns=2;s=Temp");
+    item.displayName = QStringLiteral("Temperature");
+    item.value = QStringLiteral("12,\"quoted\"\nline");
+    item.dataType = QStringLiteral("Double");
+    item.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 6), QTimeZone::UTC);
+    item.status = QStringLiteral("Good,Clamped");
+    item.subscriptionName = QStringLiteral("Default");
+
+    DataAccessModel model;
+    model.setTimestampMode(AppSettings::TimestampMode::Utc);
+    model.setItems({item});
+
+    QCOMPARE(model.toCsv(),
+             QStringLiteral("#,Node Id,Display Name,Value,Data Type,Source Timestamp,"
+                            "Status,Subscription\n"
+                            "1,ns=2;s=Temp,Temperature,\"12,\"\"quoted\"\"\nline\",Double,"
+                            "2024-01-02 03:04:05.006Z,\"Good,Clamped\",Default\n"));
 }
 
 ///

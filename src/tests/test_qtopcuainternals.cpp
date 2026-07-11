@@ -5,6 +5,7 @@
 #include <QSignalSpy>
 #include <QTimeZone>
 
+#include <QOpcUaApplicationDescription>
 #include <QOpcUaBinaryDataEncoding>
 #include <QOpcUaDataValue>
 #include <QOpcUaEndpointDescription>
@@ -62,6 +63,7 @@ class TestQtOpcUaInternals : public QObject
 
 private slots:
     void mapsEndpointsAndReferences();
+    void mapsApplicationDescriptions();
     void mapsReadResultsAndBrowseEnrichment();
     void mapsHistoryResults();
     void mapsEventFields();
@@ -72,6 +74,7 @@ private slots:
     void invalidatesAllRequests();
     void boundsTimeouts();
     void backendSwitchClearsDiscoveryState();
+    void serverLookupKeepsDiscoveredEndpoints();
 };
 
 /// \brief Verifies structural mapping of discovery and browse results.
@@ -88,13 +91,25 @@ void TestQtOpcUaInternals::mapsEndpointsAndReferences()
     endpoint.setServerCertificate(QByteArrayLiteral("certificate"));
     endpoint.setUserIdentityTokens({anonymous, username});
 
-    const QList<EndpointInfo> endpoints = QtOpcUaTypeMapper::endpointInfos({endpoint});
+    QOpcUaEndpointDescription duplicate = endpoint;
+    duplicate.setServerCertificate(QByteArrayLiteral("alternate-certificate"));
+    duplicate.setUserIdentityTokens({anonymous});
+    const QList<EndpointInfo> endpoints = QtOpcUaTypeMapper::endpointInfos({duplicate, endpoint});
     QCOMPARE(endpoints.size(), 1);
     QCOMPARE(endpoints.first().index, 0);
     QCOMPARE(endpoints.first().endpointUrl, endpoint.endpointUrl());
     QVERIFY(endpoints.first().supportsAnonymous);
     QVERIFY(endpoints.first().supportsUsername);
     QVERIFY(!endpoints.first().supportsCertificate);
+
+    QOpcUaEndpointDescription httpsEndpoint = endpoint;
+    httpsEndpoint.setEndpointUrl(QStringLiteral("opc.https://localhost:53443"));
+    const QVector<QOpcUaEndpointDescription> transportFiltered =
+        QtOpcUaResultMapper::endpointsWithSupportedPolicy({endpoint, httpsEndpoint},
+                                                          {QStringLiteral("policy")},
+                                                          QStringLiteral("opc.tcp"));
+    QCOMPARE(transportFiltered.size(), 1);
+    QCOMPARE(transportFiltered.first().endpointUrl(), endpoint.endpointUrl());
 
     QOpcUaReferenceDescription reference;
     reference.setTargetNodeId(QOpcUaExpandedNodeId(QStringLiteral("ns=2;s=Value")));
@@ -106,6 +121,43 @@ void TestQtOpcUaInternals::mapsEndpointsAndReferences()
     QCOMPARE(nodes.size(), 1);
     QCOMPARE(nodes.first().nodeId, QStringLiteral("ns=2;s=Value"));
     QCOMPARE(nodes.first().browseName, QStringLiteral("Value"));
+}
+
+/// \brief Verifies mapping of FindServers results to transport-neutral server records.
+void TestQtOpcUaInternals::mapsApplicationDescriptions()
+{
+    QOpcUaApplicationDescription server;
+    server.setApplicationName(QOpcUaLocalizedText(QStringLiteral("en"),
+                                                  QStringLiteral("Simulation Server")));
+    server.setApplicationUri(QStringLiteral("urn:localhost:Simulation"));
+    server.setProductUri(QStringLiteral("urn:vendor:Simulation"));
+    server.setApplicationType(QOpcUaApplicationDescription::ClientAndServer);
+    server.setGatewayServerUri(QStringLiteral("urn:localhost:Gateway"));
+    server.setDiscoveryProfileUri(QStringLiteral("urn:profile"));
+    server.setDiscoveryUrls({QStringLiteral("opc.tcp://localhost:53530/OPCUA/Simulation"),
+                             QStringLiteral("opc.tcp://192.168.1.10:53530/OPCUA/Simulation")});
+
+    QOpcUaApplicationDescription discovery;
+    discovery.setApplicationName(QOpcUaLocalizedText(QStringLiteral("en"),
+                                                    QStringLiteral("Local Discovery Server")));
+    discovery.setApplicationUri(QStringLiteral("urn:localhost:LDS"));
+    discovery.setApplicationType(QOpcUaApplicationDescription::DiscoveryServer);
+
+    const QList<ServerInfo> servers = QtOpcUaTypeMapper::serverInfos({server, discovery});
+    QCOMPARE(servers.size(), 2);
+    QCOMPARE(servers.first().applicationName, QStringLiteral("Simulation Server"));
+    QCOMPARE(servers.first().applicationUri, QStringLiteral("urn:localhost:Simulation"));
+    QCOMPARE(servers.first().productUri, QStringLiteral("urn:vendor:Simulation"));
+    QCOMPARE(servers.first().applicationType, OpcUaApplicationType::ClientAndServer);
+    QCOMPARE(servers.first().gatewayServerUri, QStringLiteral("urn:localhost:Gateway"));
+    QCOMPARE(servers.first().discoveryProfileUri, QStringLiteral("urn:profile"));
+    QCOMPARE(servers.first().discoveryUrls.size(), 2);
+    QCOMPARE(servers.first().discoveryUrls.first(),
+             QStringLiteral("opc.tcp://localhost:53530/OPCUA/Simulation"));
+
+    QCOMPARE(servers.last().applicationType, OpcUaApplicationType::DiscoveryServer);
+    QVERIFY(servers.last().discoveryUrls.isEmpty());
+    QVERIFY(QtOpcUaTypeMapper::serverInfos({}).isEmpty());
 }
 
 /// \brief Verifies mapping of attribute reads used by Value reads and browse enrichment.
@@ -309,6 +361,26 @@ void TestQtOpcUaInternals::backendSwitchClearsDiscoveryState()
     QVERIFY(!manager.prepareDiscovery(QStringLiteral("missing-backend")));
     QCOMPARE(invalidatedSpy.size(), 1);
     QVERIFY(manager.endpointDescriptions().isEmpty());
+}
+
+/// \brief Verifies a FindServers request does not invalidate the cached endpoint list.
+void TestQtOpcUaInternals::serverLookupKeepsDiscoveredEndpoints()
+{
+    QtOpcUaConnectionManager manager;
+    const QStringList backends = manager.availableBackends();
+    if (backends.isEmpty())
+        QSKIP("Qt OpcUa backend is not available.");
+
+    QVERIFY(manager.prepareDiscovery(backends.constFirst()));
+    QOpcUaEndpointDescription endpoint;
+    endpoint.setEndpointUrl(QStringLiteral("opc.tcp://localhost:4840"));
+    manager.finishDiscovery({endpoint});
+
+    manager.setState(OpcUaConnectionState::Discovering);
+    manager.finishServerLookup();
+    QCOMPARE(manager.state(), OpcUaConnectionState::Disconnected);
+    QCOMPARE(manager.endpointDescriptions().size(), 1);
+    QCOMPARE(manager.endpointDescriptions().first().endpointUrl(), endpoint.endpointUrl());
 }
 
 QTEST_GUILESS_MAIN(TestQtOpcUaInternals)

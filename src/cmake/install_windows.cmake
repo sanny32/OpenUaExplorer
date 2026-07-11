@@ -17,6 +17,8 @@ if(TARGET Qt${QT_VERSION_MAJOR}::QOpen62541Plugin)
 endif()
 
 if(WINDEPLOYQT_EXECUTABLE)
+    get_filename_component(_QT_BIN_DIR "${WINDEPLOYQT_EXECUTABLE}" DIRECTORY)
+
     install(CODE "
         set(_installed_exe \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.exe\")
         get_filename_component(_installed_exe_dir \"\${_installed_exe}\" DIRECTORY)
@@ -24,6 +26,12 @@ if(WINDEPLOYQT_EXECUTABLE)
 
         if(NOT EXISTS \"\${_installed_exe}\")
             message(FATAL_ERROR \"Installed executable not found: \${_installed_exe}\")
+        endif()
+
+        set(_qt_opcua_dll \"${_QT_BIN_DIR}/Qt${QT_VERSION_MAJOR}OpcUa.dll\")
+        if(NOT EXISTS \"\${_qt_opcua_dll}\")
+            file(COPY \"\${_installed_exe_dir}/Qt${QT_VERSION_MAJOR}OpcUa.dll\"
+                DESTINATION \"${_QT_BIN_DIR}\")
         endif()
 
         if(CMAKE_INSTALL_CONFIG_NAME MATCHES \"^[Dd]ebug$\")
@@ -41,7 +49,7 @@ if(WINDEPLOYQT_EXECUTABLE)
 
         list(APPEND _windeploy_args
             --no-system-dxc-compiler
-            --skip-plugin-types generic,networkinformation,qmltooling,tls
+            --skip-plugin-types generic,networkinformation,qmltooling
             --exclude-plugins qgif,qjpeg,qpdf,qsqlibase,qsqlmimer,qsqloci,qsqlodbc,qsqlpsql)
 
         list(APPEND _windeploy_args \"\${_installed_exe}\")

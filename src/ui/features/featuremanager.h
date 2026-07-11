@@ -23,6 +23,7 @@ class AppSettings;
 class FeatureHost;
 class FeaturePlugin;
 class QMainWindow;
+struct SessionData;
 
 ///
 /// \brief Owns UI features and replays their dock layout contributions.
@@ -97,6 +98,18 @@ public:
     /// \brief Clears runtime state in every feature.
     ///
     void clearRuntimeState();
+
+    ///
+    /// \brief Collects every feature's contribution to a saved working session.
+    /// \param session Session payload to write to.
+    ///
+    void saveSession(SessionData &session) const;
+
+    ///
+    /// \brief Restores every feature's state from a loaded working session.
+    /// \param session Session payload to read from.
+    ///
+    void restoreSession(const SessionData &session);
 
     ///
     /// \brief Records a dock placement contribution.

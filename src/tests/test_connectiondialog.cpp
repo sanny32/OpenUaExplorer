@@ -6,29 +6,35 @@
 /// \brief UI tests for ConnectionDialog: discovery, certificate selection, and layout.
 ///
 
+#include <QApplication>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
 #include <QHBoxLayout>
+#include <QImage>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPainter>
 #include <QPushButton>
 #include <QSettings>
 #include <QSizePolicy>
 #include <QSpinBox>
 #include <QStandardPaths>
 #include <QSslCertificate>
+#include <QStyleFactory>
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTest>
 
 #include "appsettings.h"
 #include "dialogs/connectiondialog.h"
+#include "models/endpointmodel.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/opcuaclientservice.h"
 #include "opcua/pkimanager.h"
 #include "widgets/certificatesummarywidget.h"
+#include "widgets/endpointdiscoverywidget.h"
 
 ///
 /// \brief Minimal OPC UA backend double that only counts discovery calls.
@@ -82,6 +88,7 @@ private slots:
     void certificateStatusRowsAlignBadgeToRight();
     void advancedSettingsControlsAlignToGrid();
     void advancedSettingsSeedFromStoredDefaults();
+    void endpointHoverUsesSelectionBackgroundInFusion();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -118,6 +125,57 @@ void verifyRightAlignedCertificateStatus(ConnectionDialog &dialog, const QString
     QVERIFY(layout->itemAt(1)->expandingDirections().testFlag(Qt::Horizontal));
     QCOMPARE(layout->itemAt(2)->widget(), iconLabel);
     QCOMPARE(layout->itemAt(3)->widget(), badgeLabel);
+}
+
+///
+/// \brief Reports whether a named Qt style can be created.
+/// \param styleName Style name to look up.
+/// \return True when Qt lists the style.
+///
+bool hasStyle(const QString &styleName)
+{
+    for (const QString &key : QStyleFactory::keys()) {
+        if (key.compare(styleName, Qt::CaseInsensitive) == 0)
+            return true;
+    }
+    return false;
+}
+
+///
+/// \brief Builds a minimal endpoint row for dialog UI tests.
+/// \param url Endpoint URL to show.
+/// \return Endpoint row data.
+///
+EndpointInfo makeDialogEndpoint(const QString &url)
+{
+    EndpointInfo endpoint;
+    endpoint.endpointUrl = url;
+    endpoint.securityPolicy = QStringLiteral("None");
+    endpoint.securityMode = QStringLiteral("None");
+    endpoint.securityModeValue = 1;
+    endpoint.supportsAnonymous = true;
+    return endpoint;
+}
+
+///
+/// \brief Samples a cell background away from its text.
+/// \param view Table view to render.
+/// \param row Model row to sample.
+/// \param column Model column to sample.
+/// \return Rendered pixel colour.
+///
+QColor cellBackgroundColor(QTableView *view, int row, int column)
+{
+    const QModelIndex index = view->model()->index(row, column);
+    const QRect rect = view->visualRect(index);
+    QImage image(view->viewport()->size(), QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+
+    QPainter painter(&image);
+    view->viewport()->render(&painter);
+    painter.end();
+
+    return image.pixelColor(rect.right() - 4, rect.center().y());
 }
 
 }
@@ -335,6 +393,33 @@ void TestConnectionDialog::advancedSettingsSeedFromStoredDefaults()
              defaults.secureChannelLifetimeMs);
     QCOMPARE(dialog.findChild<QSpinBox *>(QStringLiteral("maxMessageSizeSpinBox"))->value(),
              defaults.maxMessageSizeBytes);
+}
+
+void TestConnectionDialog::endpointHoverUsesSelectionBackgroundInFusion()
+{
+    if (!hasStyle(QStringLiteral("Fusion")))
+        QSKIP("Fusion style is unavailable.");
+    QApplication::setStyle(QStyleFactory::create(QStringLiteral("Fusion")));
+
+    ConnectionDialog dialog;
+    dialog.resize(900, 600);
+    auto *endpoints = dialog.findChild<EndpointDiscoveryWidget *>(
+        QStringLiteral("endpointsWidget"));
+    auto *endpointView = dialog.findChild<QTableView *>(
+        QStringLiteral("endpointListWidget"));
+    QVERIFY(endpoints);
+    QVERIFY(endpointView);
+
+    endpoints->setEndpoints({
+        makeDialogEndpoint(QStringLiteral("opc.tcp://localhost:4840")),
+        makeDialogEndpoint(QStringLiteral("opc.tcp://localhost:4841"))
+    });
+
+    QVERIFY(dialog.layout()->activate());
+    endpointView->setProperty("hoveredRow", 1);
+
+    QCOMPARE(cellBackgroundColor(endpointView, 1, EndpointModel::PolicyColumn),
+             cellBackgroundColor(endpointView, 0, EndpointModel::PolicyColumn));
 }
 
 QTEST_MAIN(TestConnectionDialog)

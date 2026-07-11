@@ -97,6 +97,22 @@ public:
                                       int timeoutMs);
 
     ///
+    /// \brief Lists the servers registered with a discovery server, with the default timeout.
+    /// \param url Discovery server URL.
+    /// \param backend Backend name to use.
+    ///
+    void findServers(const QString &url,
+                     const QString &backend = QStringLiteral("open62541"));
+
+    ///
+    /// \brief Lists the servers registered with a discovery server, bounded by a timeout.
+    /// \param url Discovery server URL.
+    /// \param backend Backend name to use.
+    /// \param timeoutMs Request timeout in milliseconds.
+    ///
+    void findServersWithTimeout(const QString &url, const QString &backend, int timeoutMs);
+
+    ///
     /// \brief Connects to the endpoint described by a profile, caching its request timeout.
     /// \param profile Connection profile.
     /// \param password User password, if any.
@@ -164,6 +180,22 @@ public:
     void writeValue(const QString &nodeId, const QVariant &value, int valueType);
 
     ///
+    /// \brief Reads a method's argument metadata using the cached request timeout.
+    /// \param methodNodeId Method node whose InputArguments/OutputArguments are read.
+    ///
+    void readMethodInfo(const QString &methodNodeId);
+
+    ///
+    /// \brief Calls a method on its owning object using the cached request timeout.
+    /// \param objectNodeId Object node that owns the method.
+    /// \param methodNodeId Method node to call.
+    /// \param args Input argument values in call order.
+    /// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
+    ///
+    void callMethod(const QString &objectNodeId, const QString &methodNodeId,
+                    const QVariantList &args, const QList<int> &argTypes);
+
+    ///
     /// \brief Enables Value monitoring, or re-applies the interval to an already monitored node.
     /// \param nodeId Node to monitor.
     /// \param publishingInterval Publishing interval in milliseconds.
@@ -194,6 +226,33 @@ public:
     ///
     void readServerSessionName();
 
+    ///
+    /// \brief Reads the server NamespaceArray using the cached request timeout.
+    ///
+    void requestNamespaces();
+
+    ///
+    /// \brief Crawls the address space to count nodes per namespace, using the cached request timeout.
+    ///
+    void requestNamespaceStatistics();
+
+    ///
+    /// \brief Cancels an in-progress namespace statistics crawl, if any.
+    ///
+    void cancelNamespaceStatistics();
+
+    ///
+    /// \brief Searches a subtree for a display name, using the cached request timeout.
+    /// \param startNodeId Node whose subtree is searched.
+    /// \param pattern Case-insensitive substring matched against display names.
+    ///
+    void searchNode(const QString &startNodeId, const QString &pattern);
+
+    ///
+    /// \brief Cancels an in-progress node search, if any.
+    ///
+    void cancelNodeSearch();
+
 signals:
     ///
     /// \brief Emitted when the connection state changes.
@@ -213,6 +272,13 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void endpointsDiscovered(QList<EndpointInfo> endpoints, QString error);
+
+    ///
+    /// \brief Emitted when a FindServers request finishes.
+    /// \param servers Servers registered with the discovery server.
+    /// \param error Error description, empty on success.
+    ///
+    void serversDiscovered(QList<ServerInfo> servers, QString error);
 
     ///
     /// \brief Emitted when a browse finishes.
@@ -270,6 +336,25 @@ signals:
     void writeFinished(QString nodeId, bool success, QString error);
 
     ///
+    /// \brief Emitted when a method's argument metadata has been read.
+    /// \param methodNodeId Method whose metadata was read.
+    /// \param inputs Input argument descriptions in call order.
+    /// \param outputs Output argument descriptions in result order.
+    /// \param error Error description, empty on success.
+    ///
+    void methodInfoReady(QString methodNodeId, QVector<OpcUaMethodArgument> inputs,
+                         QVector<OpcUaMethodArgument> outputs, QString error);
+
+    ///
+    /// \brief Emitted when a method call finishes.
+    /// \param methodNodeId Called method.
+    /// \param result Raw output value: a single value, or a list for several output arguments.
+    /// \param success Whether the call succeeded.
+    /// \param error Error description, empty on success.
+    ///
+    void methodCallFinished(QString methodNodeId, QVariant result, bool success, QString error);
+
+    ///
     /// \brief Emitted after a monitoring request finishes.
     /// \param nodeId Affected node.
     /// \param subscribed True for subscribe and false for unsubscribe.
@@ -300,6 +385,40 @@ signals:
     /// \param sessionName Resolved session name, empty when unavailable.
     ///
     void serverSessionNameResolved(QString sessionName);
+
+    ///
+    /// \brief Emitted when the server NamespaceArray has been read.
+    /// \param namespaces Namespace URIs indexed by namespace index.
+    /// \param error Error description, empty on success.
+    ///
+    void namespacesReady(QStringList namespaces, QString error);
+
+    ///
+    /// \brief Emitted periodically while a namespace statistics crawl runs.
+    /// \param visitedNodes Number of unique nodes visited so far.
+    ///
+    void namespaceStatisticsProgress(int visitedNodes);
+
+    ///
+    /// \brief Emitted when a namespace statistics crawl finishes or is cancelled.
+    /// \param nodeCounts Node counts keyed by namespace index.
+    /// \param error Error description, empty on success.
+    ///
+    void namespaceStatisticsReady(OpcUaNamespaceNodeCounts nodeCounts, QString error);
+
+    ///
+    /// \brief Emitted periodically while a node search crawl runs.
+    /// \param visitedNodes Number of unique nodes visited so far.
+    ///
+    void nodeSearchProgress(int visitedNodes);
+
+    ///
+    /// \brief Emitted when a node search finds a match, exhausts the subtree, or fails.
+    /// \param ancestorNodeIds Node ids from the start node down to the match's parent.
+    /// \param nodeId Matched NodeId, empty when nothing matched.
+    /// \param error Error description, empty on success.
+    ///
+    void nodeSearchFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
 private:
     OpcUaBackend *_backend;
     bool _ownsBackend;

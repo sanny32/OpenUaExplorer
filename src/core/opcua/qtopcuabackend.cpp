@@ -16,6 +16,8 @@
 
 #include <QStringList>
 
+#include <QOpcUaApplicationDescription>
+#include <QOpcUaArgument>
 #include <QOpcUaBrowseRequest>
 #include <QOpcUaClient>
 #include <QOpcUaEndpointDescription>
@@ -31,6 +33,8 @@
 
 #include "formatters/attributeformatter.h"
 #include "loggingcategories.h"
+#include "namespacecrawler.h"
+#include "nodesearchcrawler.h"
 #include "pkimanager.h"
 #include "qtopcuabackend.h"
 #include "qtopcuaconnectionmanager.h"
@@ -64,6 +68,10 @@ public:
         QObject::connect(&connection, &QtOpcUaConnectionManager::clientInvalidated,
                           q, [this]() {
             cancelRequests();
+            if (namespaceCrawler)
+                namespaceCrawler->cancel();
+            if (nodeSearchCrawler)
+                nodeSearchCrawler->cancel();
             monitoring.clear();
             monitoring.setClient(nullptr);
         });
@@ -194,6 +202,8 @@ public:
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeNodes{};
     std::array<QMetaObject::Connection,
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeConnections{};
+    QPointer<NamespaceCrawler> namespaceCrawler;
+    QPointer<NodeSearchCrawler> nodeSearchCrawler;
 };
 
 ///
@@ -205,11 +215,15 @@ QtOpcUaBackend::QtOpcUaBackend(QObject *parent)
     , _d(new Private(this))
 {
     qRegisterMetaType<EndpointInfo>();
+    qRegisterMetaType<ServerInfo>();
     qRegisterMetaType<OpcUaNodeInfo>();
+    qRegisterMetaType<OpcUaMethodArgument>();
+    qRegisterMetaType<QVector<OpcUaMethodArgument>>();
     qRegisterMetaType<OpcUaNodeDetails>();
     qRegisterMetaType<OpcUaDataValue>();
     qRegisterMetaType<OpcUaEvent>();
     qRegisterMetaType<OpcUaHistoryValue>();
+    qRegisterMetaType<OpcUaNamespaceNodeCounts>();
 }
 
 ///
@@ -294,13 +308,14 @@ void QtOpcUaBackend::discoverEndpoints(const QString &url, const QString &backen
         emit endpointsDiscovered({}, message);
         return;
     }
+    const QString discoveryScheme = discoveryUrl.scheme();
     _d->connection.setState(OpcUaConnectionState::Discovering);
     constexpr auto operation = QtOpcUaRequestCoordinator::Operation::Discovery;
     const auto token = _d->beginConnectionRequest(operation);
     auto connection = std::make_shared<QMetaObject::Connection>();
     *connection = connect(
         _d->connection.client(), &QOpcUaClient::endpointsRequestFinished, this,
-        [this, connection, token, operation](
+        [this, connection, token, operation, discoveryScheme](
             const QVector<QOpcUaEndpointDescription> &result,
             QOpcUa::UaStatusCode status, const QUrl &) {
         disconnect(*connection);
@@ -311,7 +326,8 @@ void QtOpcUaBackend::discoverEndpoints(const QString &url, const QString &backen
         if (!_d->requests.settle(token))
             return;
         const QVector<QOpcUaEndpointDescription> usable = QOpcUa::isSuccessStatus(status)
-            ? QtOpcUaResultMapper::endpointsWithSupportedPolicy(result, supportedPolicies)
+            ? QtOpcUaResultMapper::endpointsWithSupportedPolicy(result, supportedPolicies,
+                                                                discoveryScheme)
             : QVector<QOpcUaEndpointDescription>();
         _d->connection.finishDiscovery(usable);
         const QList<EndpointInfo> endpoints = QtOpcUaTypeMapper::endpointInfos(usable);
@@ -340,6 +356,77 @@ void QtOpcUaBackend::discoverEndpoints(const QString &url, const QString &backen
         _d->connection.setError(message);
         _d->connection.finishDiscovery({});
         emit endpointsDiscovered({}, message);
+    }
+}
+
+///
+/// \brief Lists the servers registered with a discovery server, emitting serversDiscovered().
+/// \param url Discovery server URL (must be opc.tcp).
+/// \param backend Preferred backend.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::findServers(const QString &url, const QString &backend, int timeoutMs)
+{
+    if (_d->connection.state() != OpcUaConnectionState::Disconnected
+        && _d->connection.state() != OpcUaConnectionState::Unavailable) {
+        const QString message = tr("Finding servers requires an idle client.");
+        _d->connection.setError(message);
+        emit serversDiscovered({}, message);
+        return;
+    }
+    if (!_d->connection.prepareDiscovery(backend)) {
+        emit serversDiscovered({}, _d->connection.lastError());
+        return;
+    }
+    const QUrl serverUrl(url);
+    if (!serverUrl.isValid() || serverUrl.scheme() != QLatin1String("opc.tcp")) {
+        const QString message = tr("Invalid OPC UA discovery server URL: %1").arg(url);
+        _d->connection.setError(message);
+        emit serversDiscovered({}, message);
+        return;
+    }
+    _d->connection.setState(OpcUaConnectionState::Discovering);
+    constexpr auto operation = QtOpcUaRequestCoordinator::Operation::FindServers;
+    const auto token = _d->beginConnectionRequest(operation);
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(
+        _d->connection.client(), &QOpcUaClient::findServersFinished, this,
+        [this, connection, token, operation](
+            const QVector<QOpcUaApplicationDescription> &result,
+            QOpcUa::UaStatusCode status, const QUrl &) {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
+            return;
+        _d->connection.finishServerLookup();
+        const QList<ServerInfo> servers = QOpcUa::isSuccessStatus(status)
+            ? QtOpcUaTypeMapper::serverInfos(result)
+            : QList<ServerInfo>();
+        const QString message = QOpcUa::isSuccessStatus(status)
+            ? QString()
+            : tr("Finding servers failed: %1").arg(statusName(status));
+        emit serversDiscovered(servers, message);
+    });
+    _d->trackConnection(operation, *connection);
+    QTimer::singleShot(qMax(1000, timeoutMs), this,
+                       [this, connection, token, operation]() {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
+            return;
+        const QString message = tr("Finding servers timed out.");
+        _d->connection.setError(message);
+        _d->connection.finishServerLookup();
+        emit serversDiscovered({}, message);
+    });
+    if (!_d->connection.client()->findServers(serverUrl)) {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        _d->requests.settle(token);
+        const QString message = tr("The backend rejected the find servers request.");
+        _d->connection.setError(message);
+        _d->connection.finishServerLookup();
+        emit serversDiscovered({}, message);
     }
 }
 
@@ -684,6 +771,130 @@ void QtOpcUaBackend::readServerSessionName(int timeoutMs)
 }
 
 ///
+/// \brief Reads the server NamespaceArray, emitting namespacesReady() with the URIs.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::requestNamespaces(int timeoutMs)
+{
+    QOpcUaClient *client = _d->connection.client();
+    if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit namespacesReady({}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    const QStringList cached = client->namespaceArray();
+    auto settled = std::make_shared<bool>(false);
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(client, &QOpcUaClient::namespaceArrayUpdated, this,
+        [this, settled, connection](const QStringList &namespaces) {
+            if (*settled)
+                return;
+            *settled = true;
+            disconnect(*connection);
+            emit namespacesReady(namespaces, QString());
+        });
+    QTimer::singleShot(QtOpcUaRequestCoordinator::boundedTimeout(timeoutMs), this,
+        [this, settled, connection, cached]() {
+            if (*settled)
+                return;
+            *settled = true;
+            disconnect(*connection);
+            if (!cached.isEmpty())
+                emit namespacesReady(cached, QString());
+            else
+                emit namespacesReady({}, tr("Reading the server namespace table timed out."));
+        });
+    if (!client->updateNamespaceArray() && !*settled) {
+        *settled = true;
+        disconnect(*connection);
+        if (!cached.isEmpty())
+            emit namespacesReady(cached, QString());
+        else
+            emit namespacesReady({}, tr("Could not read the server namespace table."));
+    }
+}
+
+///
+/// \brief Crawls the address space, emitting namespaceStatisticsReady() with per-namespace counts.
+/// \param timeoutMs Per-browse timeout in milliseconds.
+///
+void QtOpcUaBackend::requestNamespaceStatistics(int timeoutMs)
+{
+    QOpcUaClient *client = _d->connection.client();
+    if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit namespaceStatisticsReady({}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    if (_d->namespaceCrawler)
+        _d->namespaceCrawler->deleteLater();
+    _d->namespaceCrawler = new NamespaceCrawler(client, timeoutMs, this);
+    connect(_d->namespaceCrawler, &NamespaceCrawler::progress,
+            this, &QtOpcUaBackend::namespaceStatisticsProgress);
+    connect(_d->namespaceCrawler, &NamespaceCrawler::finished, this,
+            [this](const OpcUaNamespaceNodeCounts &counts, const QString &error) {
+        emit namespaceStatisticsReady(counts, error);
+        if (_d->namespaceCrawler)
+            _d->namespaceCrawler->deleteLater();
+    });
+    _d->namespaceCrawler->start();
+}
+
+///
+/// \brief Cancels an in-progress namespace statistics crawl, if any.
+///
+void QtOpcUaBackend::cancelNamespaceStatistics()
+{
+    if (_d->namespaceCrawler)
+        _d->namespaceCrawler->cancel();
+}
+
+///
+/// \brief Searches a subtree for a display name, emitting nodeSearchFinished() with the match.
+///
+/// Repeating the same request continues the previous crawl from the match it paused on,
+/// which walks the remaining siblings before descending, rather than restarting at the top.
+/// \param startNodeId Node whose subtree is searched.
+/// \param pattern Case-insensitive substring matched against display names.
+/// \param timeoutMs Per-browse timeout in milliseconds.
+///
+void QtOpcUaBackend::searchNode(const QString &startNodeId, const QString &pattern, int timeoutMs)
+{
+    QOpcUaClient *client = _d->connection.client();
+    if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit nodeSearchFinished({}, {}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    if (_d->nodeSearchCrawler && _d->nodeSearchCrawler->isPaused()
+        && _d->nodeSearchCrawler->matches(startNodeId, pattern)) {
+        _d->nodeSearchCrawler->resume();
+        return;
+    }
+    if (_d->nodeSearchCrawler) {
+        _d->nodeSearchCrawler->disconnect(this);
+        _d->nodeSearchCrawler->cancel();
+        _d->nodeSearchCrawler->deleteLater();
+    }
+    _d->nodeSearchCrawler = new NodeSearchCrawler(client, startNodeId, pattern, timeoutMs, this);
+    connect(_d->nodeSearchCrawler, &NodeSearchCrawler::progress,
+            this, &QtOpcUaBackend::nodeSearchProgress);
+    connect(_d->nodeSearchCrawler, &NodeSearchCrawler::finished, this,
+            [this](const QStringList &ancestorNodeIds, const QString &nodeId, const QString &error) {
+        emit nodeSearchFinished(ancestorNodeIds, nodeId, error);
+        if (_d->nodeSearchCrawler && !_d->nodeSearchCrawler->isPaused())
+            _d->nodeSearchCrawler->deleteLater();
+    });
+    _d->nodeSearchCrawler->start();
+}
+
+///
+/// \brief Cancels an in-progress node search, if any.
+///
+void QtOpcUaBackend::cancelNodeSearch()
+{
+    if (_d->nodeSearchCrawler)
+        _d->nodeSearchCrawler->cancel();
+}
+
+///
 /// \brief Writes a node's Value attribute, emitting writeFinished() with the outcome.
 /// \param nodeId Node to write.
 /// \param value Typed value.
@@ -739,6 +950,211 @@ void QtOpcUaBackend::writeValue(const QString &nodeId, const QVariant &value,
             emit writeFinished(nodeId, false, tr("The backend rejected the write request."));
         }
     }
+}
+
+///
+/// \brief Maps a method argument-property Value to transport-neutral argument records.
+/// \param value Property Value holding one or more QOpcUaArgument entries.
+/// \return Arguments in declaration order.
+///
+static QVector<OpcUaMethodArgument> argumentsFromVariant(const QVariant &value)
+{
+    QVector<OpcUaMethodArgument> arguments;
+    const auto append = [&arguments](const QOpcUaArgument &argument) {
+        OpcUaMethodArgument entry;
+        entry.name = argument.name();
+        entry.dataTypeId = argument.dataTypeId();
+        entry.valueType = static_cast<int>(valueTypeForDataType(argument.dataTypeId()));
+        entry.valueRank = argument.valueRank();
+        entry.description = argument.description().text();
+        arguments.append(entry);
+    };
+    if (value.typeId() == QMetaType::QVariantList) {
+        for (const QVariant &entry : value.toList()) {
+            if (entry.canConvert<QOpcUaArgument>())
+                append(entry.value<QOpcUaArgument>());
+        }
+    } else if (value.canConvert<QOpcUaArgument>()) {
+        append(value.value<QOpcUaArgument>());
+    }
+    return arguments;
+}
+
+///
+/// \brief Reads a method's InputArguments/OutputArguments, emitting methodInfoReady().
+/// \param methodNodeId Method node whose argument metadata is read.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::readMethodInfo(const QString &methodNodeId, int timeoutMs)
+{
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit methodInfoReady(methodNodeId, {}, {}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    QOpcUaNode *node = _d->connection.client()->node(methodNodeId);
+    if (!node) {
+        emit methodInfoReady(methodNodeId, {}, {}, tr("Could not create node %1.").arg(methodNodeId));
+        return;
+    }
+
+    QOpcUaBrowseRequest request;
+    request.setBrowseDirection(QOpcUaBrowseRequest::BrowseDirection::Forward);
+    request.setReferenceTypeId(QOpcUa::ReferenceTypeId::HasProperty);
+    request.setIncludeSubtypes(true);
+
+    _d->runNodeRequest(node, QtOpcUaRequestCoordinator::Operation::MethodInfo, timeoutMs,
+        &QOpcUaNode::browseFinished,
+        [this, methodNodeId, timeoutMs](const QVector<QOpcUaReferenceDescription> &references,
+                                        QOpcUa::UaStatusCode status) {
+            if (!QOpcUa::isSuccessStatus(status)) {
+                emit methodInfoReady(methodNodeId, {}, {},
+                    tr("Reading method arguments failed for %1: %2").arg(methodNodeId, statusName(status)));
+                return;
+            }
+            QString inputArgumentsNodeId;
+            QString outputArgumentsNodeId;
+            for (const OpcUaNodeInfo &reference : QtOpcUaTypeMapper::nodeInfos(references)) {
+                if (reference.browseName.endsWith(QLatin1String("InputArguments")))
+                    inputArgumentsNodeId = reference.nodeId;
+                else if (reference.browseName.endsWith(QLatin1String("OutputArguments")))
+                    outputArgumentsNodeId = reference.nodeId;
+            }
+            if (inputArgumentsNodeId.isEmpty() && outputArgumentsNodeId.isEmpty()) {
+                emit methodInfoReady(methodNodeId, {}, {}, QString());
+                return;
+            }
+            readMethodArgumentValues(methodNodeId, inputArgumentsNodeId,
+                                     outputArgumentsNodeId, timeoutMs);
+        },
+        [node, request]() { return node->browse(request); },
+        [this, methodNodeId]() {
+            emit methodInfoReady(methodNodeId, {}, {}, tr("Reading method arguments timed out."));
+        },
+        [this, methodNodeId]() {
+            emit methodInfoReady(methodNodeId, {}, {},
+                                 tr("The backend rejected the method argument request."));
+        });
+}
+
+///
+/// \brief Reads the Value of the located argument-property nodes and emits methodInfoReady().
+/// \param methodNodeId Method whose metadata is being resolved.
+/// \param inputArgumentsNodeId InputArguments property NodeId, or empty when absent.
+/// \param outputArgumentsNodeId OutputArguments property NodeId, or empty when absent.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::readMethodArgumentValues(const QString &methodNodeId,
+                                              const QString &inputArgumentsNodeId,
+                                              const QString &outputArgumentsNodeId, int timeoutMs)
+{
+    QOpcUaClient *client = _d->connection.client();
+    if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit methodInfoReady(methodNodeId, {}, {}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    QVector<QOpcUaReadItem> items;
+    if (!inputArgumentsNodeId.isEmpty())
+        items.append(QOpcUaReadItem(inputArgumentsNodeId, QOpcUa::NodeAttribute::Value));
+    if (!outputArgumentsNodeId.isEmpty())
+        items.append(QOpcUaReadItem(outputArgumentsNodeId, QOpcUa::NodeAttribute::Value));
+
+    constexpr auto operation = QtOpcUaRequestCoordinator::Operation::MethodInfo;
+    const auto token = _d->beginConnectionRequest(operation);
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(client, &QOpcUaClient::readNodeAttributesFinished, this,
+                         [this, connection, token, operation, methodNodeId,
+                          inputArgumentsNodeId, outputArgumentsNodeId](
+                             const QVector<QOpcUaReadResult> &results,
+                             QOpcUa::UaStatusCode serviceResult) {
+        // readNodeAttributesFinished is connection-wide; ignore completions of other reads.
+        if (!results.isEmpty() && results.constFirst().attribute() != QOpcUa::NodeAttribute::Value)
+            return;
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
+            return;
+        if (!QOpcUa::isSuccessStatus(serviceResult)) {
+            emit methodInfoReady(methodNodeId, {}, {},
+                tr("Reading method arguments failed: %1").arg(statusName(serviceResult)));
+            return;
+        }
+        QVector<OpcUaMethodArgument> inputs;
+        QVector<OpcUaMethodArgument> outputs;
+        for (const QOpcUaReadResult &result : results) {
+            if (result.attribute() != QOpcUa::NodeAttribute::Value)
+                continue;
+            if (!inputArgumentsNodeId.isEmpty() && result.nodeId() == inputArgumentsNodeId)
+                inputs = argumentsFromVariant(result.value());
+            else if (!outputArgumentsNodeId.isEmpty() && result.nodeId() == outputArgumentsNodeId)
+                outputs = argumentsFromVariant(result.value());
+        }
+        emit methodInfoReady(methodNodeId, inputs, outputs, QString());
+    });
+    _d->trackConnection(operation, *connection);
+    QTimer::singleShot(QtOpcUaRequestCoordinator::boundedTimeout(timeoutMs), this,
+                       [this, connection, token, operation, methodNodeId]() {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (!_d->requests.settle(token))
+            return;
+        emit methodInfoReady(methodNodeId, {}, {}, tr("Reading method arguments timed out."));
+    });
+    if (!client->readNodeAttributes(items)) {
+        disconnect(*connection);
+        _d->clearConnection(operation);
+        if (_d->requests.settle(token))
+            emit methodInfoReady(methodNodeId, {}, {},
+                                 tr("The backend rejected the method argument request."));
+    }
+}
+
+///
+/// \brief Calls a method on its owning object, emitting methodCallFinished() with the outputs.
+/// \param objectNodeId Object node that owns the method.
+/// \param methodNodeId Method node to call.
+/// \param args Input argument values in call order.
+/// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::callMethod(const QString &objectNodeId, const QString &methodNodeId,
+                                const QVariantList &args, const QList<int> &argTypes, int timeoutMs)
+{
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit methodCallFinished(methodNodeId, QVariant(), false,
+                                tr("The OPC UA client is not connected."));
+        return;
+    }
+    QOpcUaNode *node = _d->connection.client()->node(objectNodeId);
+    if (!node) {
+        emit methodCallFinished(methodNodeId, QVariant(), false,
+                                tr("Could not create node %1.").arg(objectNodeId));
+        return;
+    }
+
+    QList<QOpcUa::TypedVariant> typedArgs;
+    typedArgs.reserve(args.size());
+    for (int i = 0; i < args.size(); ++i) {
+        const QOpcUa::Types type = i < argTypes.size()
+            ? static_cast<QOpcUa::Types>(argTypes.at(i))
+            : QOpcUa::Types::Undefined;
+        typedArgs.append(QOpcUa::TypedVariant(args.at(i), type));
+    }
+
+    _d->runNodeRequest(node, QtOpcUaRequestCoordinator::Operation::Call, timeoutMs,
+        &QOpcUaNode::methodCallFinished,
+        [this, methodNodeId](const QString &, const QVariant &result, QOpcUa::UaStatusCode status) {
+            const bool success = QOpcUa::isSuccessStatus(status);
+            emit methodCallFinished(methodNodeId, result, success,
+                                    success ? QString() : statusName(status));
+        },
+        [node, methodNodeId, typedArgs]() { return node->callMethod(methodNodeId, typedArgs); },
+        [this, methodNodeId]() {
+            emit methodCallFinished(methodNodeId, QVariant(), false, tr("Method call timed out."));
+        },
+        [this, methodNodeId]() {
+            emit methodCallFinished(methodNodeId, QVariant(), false,
+                                    tr("The backend rejected the method call request."));
+        });
 }
 
 ///

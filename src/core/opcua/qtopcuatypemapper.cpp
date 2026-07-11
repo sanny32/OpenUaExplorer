@@ -3,6 +3,8 @@
 
 #include "qtopcuatypemapper.h"
 
+#include <algorithm>
+
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaBinaryDataEncoding>
 #include <QOpcUaExtensionObject>
@@ -85,6 +87,40 @@ QList<QPair<QString, QOpcUa::NodeAttribute>> attributeFields(
     return fields;
 }
 
+/// \brief Returns true when two endpoint rows represent the same selectable profile.
+bool isSameEndpointProfile(const EndpointInfo &left, const EndpointInfo &right)
+{
+    return left.endpointUrl == right.endpointUrl
+        && left.securityPolicy == right.securityPolicy
+        && left.securityModeValue == right.securityModeValue;
+}
+
+/// \brief Adds token capabilities from source to target.
+void mergeEndpointCapabilities(EndpointInfo *target, const EndpointInfo &source)
+{
+    target->supportsAnonymous |= source.supportsAnonymous;
+    target->supportsUsername |= source.supportsUsername;
+    target->supportsCertificate |= source.supportsCertificate;
+    if (target->serverCertificate.isEmpty())
+        target->serverCertificate = source.serverCertificate;
+}
+
+/// \brief Maps a Qt application type to its transport-neutral counterpart.
+OpcUaApplicationType applicationType(QOpcUaApplicationDescription::ApplicationType type)
+{
+    switch (type) {
+    case QOpcUaApplicationDescription::Client:
+        return OpcUaApplicationType::Client;
+    case QOpcUaApplicationDescription::ClientAndServer:
+        return OpcUaApplicationType::ClientAndServer;
+    case QOpcUaApplicationDescription::DiscoveryServer:
+        return OpcUaApplicationType::DiscoveryServer;
+    case QOpcUaApplicationDescription::Server:
+        break;
+    }
+    return OpcUaApplicationType::Server;
+}
+
 } // namespace
 
 namespace QtOpcUaTypeMapper {
@@ -108,6 +144,36 @@ QList<EndpointInfo> endpointInfos(const QVector<QOpcUaEndpointDescription> &endp
             info.supportsUsername |= token.tokenType() == QOpcUaUserTokenPolicy::Username;
             info.supportsCertificate |= token.tokenType() == QOpcUaUserTokenPolicy::Certificate;
         }
+        const auto existing = std::find_if(result.begin(), result.end(),
+                                           [&info](const EndpointInfo &candidate) {
+                                               return isSameEndpointProfile(candidate, info);
+                                           });
+        if (existing != result.end()) {
+            mergeEndpointCapabilities(&*existing, info);
+            continue;
+        }
+        result.append(info);
+    }
+    return result;
+}
+
+/// \brief Maps Qt application descriptions to transport-neutral server records.
+QList<ServerInfo> serverInfos(const QVector<QOpcUaApplicationDescription> &servers)
+{
+    QList<ServerInfo> result;
+    result.reserve(servers.size());
+    for (const QOpcUaApplicationDescription &server : servers) {
+        ServerInfo info;
+        info.applicationName = server.applicationName().text();
+        info.applicationUri = server.applicationUri();
+        info.productUri = server.productUri();
+        info.applicationType = applicationType(server.applicationType());
+        info.gatewayServerUri = server.gatewayServerUri();
+        info.discoveryProfileUri = server.discoveryProfileUri();
+        const QVector<QString> discoveryUrls = server.discoveryUrls();
+        info.discoveryUrls.reserve(discoveryUrls.size());
+        for (const QString &url : discoveryUrls)
+            info.discoveryUrls.append(url);
         result.append(info);
     }
     return result;

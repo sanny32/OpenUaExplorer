@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
+        <file alias="res/about.json">res/about.json</file>
         <file alias="icons/light/add.svg">res/icons/light/add.svg</file>
         <file alias="icons/light/app.svg">res/icons/light/app.svg</file>
         <file alias="icons/light/browse.svg">res/icons/light/browse.svg</file>
@@ -119,5 +120,7 @@
         <file alias="icons/dark/download.svg">res/icons/dark/download.svg</file>
         <file alias="icons/light/key-round.svg">res/icons/light/key-round.svg</file>
         <file alias="icons/dark/key-round.svg">res/icons/dark/key-round.svg</file>
+        <file alias="icons/light/opcua-logo.png">res/icons/light/opcua-logo.png</file>
+        <file alias="icons/dark/opcua-logo.png">res/icons/dark/opcua-logo.png</file>
     </qresource>
 </RCC>

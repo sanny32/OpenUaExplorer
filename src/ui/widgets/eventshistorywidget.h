@@ -68,6 +68,11 @@ public:
     void clear();
 
     ///
+    /// \brief Prompts for a file and exports the displayed event history as CSV.
+    ///
+    void exportEventsHistoryToCsv();
+
+    ///
     /// \brief Persists the events history table header state.
     /// \param settings Settings store to write to.
     ///
@@ -102,7 +107,6 @@ private:
     void updateActionButtons();
     void clearEventsHistoryNode();
     void requestEventsHistoryRead();
-    void exportEventsHistoryToCsv();
     void applyEventsHistoryTimestampMode(AppSettings::TimestampMode mode);
     void updateEventsHistoryZoneSuffix(QDateTimeEdit *edit);
 

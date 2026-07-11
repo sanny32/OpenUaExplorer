@@ -37,12 +37,12 @@ public:
     /// \param toolBar Main toolbar.
     /// \param clientService Shared OPC UA client service.
     /// \param connectionController Shared connection controller.
-    /// \param dataModules Shared data-plugin registry.
+    /// \param dataModules Shared data-module registry.
     /// \param features Feature registry receiving contributions.
     /// \param selection Shared selected-node context.
     ///
-    /// Features obtain built-in data plugins by type through dataModules(), so the
-    /// host stays unaware of any concrete plugin.
+    /// Features obtain built-in data modules by type through dataModules(), so the
+    /// host stays unaware of any concrete module.
     ///
     FeatureHost(QMainWindow *mainWindow,
                 QMenu *viewMenu,
@@ -84,8 +84,8 @@ public:
     ConnectionController *connectionController() const;
 
     ///
-    /// \brief Returns the data-plugin registry.
-    /// \return Data-plugin registry.
+    /// \brief Returns the data-module registry.
+    /// \return Data-module registry.
     ///
     ServiceModuleManager *dataModules() const;
 

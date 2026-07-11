@@ -12,6 +12,7 @@
 #include <QOpcUaConnectionSettings>
 #include <QOpcUaErrorState>
 #include <QOpcUaPkiConfiguration>
+#include <QOpcUaUserTokenPolicy>
 
 #include "formatters/attributeformatter.h"
 #include "certificatetrustdecider.h"
@@ -25,6 +26,17 @@ namespace {
 QString backendTr(const char *text)
 {
     return QCoreApplication::translate("QtOpcUaBackend", text);
+}
+
+/// \brief Builds the identity this client reports to servers when no certificate is configured.
+QOpcUaApplicationIdentity applicationIdentity()
+{
+    QOpcUaApplicationIdentity identity;
+    identity.setApplicationName(PkiManager::applicationName());
+    identity.setApplicationUri(PkiManager::applicationUri());
+    identity.setProductUri(PkiManager::productUri());
+    identity.setApplicationType(QOpcUaApplicationDescription::Client);
+    return identity;
 }
 
 /// \brief Returns a user-facing description of a Qt OPC UA client error.
@@ -67,6 +79,28 @@ QString connectionStepName(QOpcUaErrorState::ConnectionStep step)
     case QOpcUaErrorState::ConnectionStep::ActivateSession: return backendTr("Activate session");
     }
     return backendTr("Step %1").arg(static_cast<int>(step));
+}
+
+/// \brief Returns true when an endpoint advertises the requested user-token type.
+bool supportsAuthentication(const QOpcUaEndpointDescription &endpoint,
+                            ConnectionProfile::Authentication authentication)
+{
+    QOpcUaUserTokenPolicy::TokenType tokenType = QOpcUaUserTokenPolicy::Anonymous;
+    switch (authentication) {
+    case ConnectionProfile::Authentication::Username:
+        tokenType = QOpcUaUserTokenPolicy::Username;
+        break;
+    case ConnectionProfile::Authentication::Certificate:
+        tokenType = QOpcUaUserTokenPolicy::Certificate;
+        break;
+    case ConnectionProfile::Authentication::Anonymous:
+        tokenType = QOpcUaUserTokenPolicy::Anonymous;
+        break;
+    }
+    for (const QOpcUaUserTokenPolicy &token : endpoint.userIdentityTokens())
+        if (token.tokenType() == tokenType)
+            return true;
+    return false;
 }
 
 } // namespace
@@ -144,6 +178,12 @@ void QtOpcUaConnectionManager::finishDiscovery(
     const QVector<QOpcUaEndpointDescription> &endpoints)
 {
     _endpoints = endpoints;
+    setState(OpcUaConnectionState::Disconnected);
+}
+
+/// \brief Returns to disconnected state, keeping the cached endpoints intact.
+void QtOpcUaConnectionManager::finishServerLookup()
+{
     setState(OpcUaConnectionState::Disconnected);
 }
 
@@ -316,7 +356,7 @@ void QtOpcUaConnectionManager::configureClient(const ConnectionProfile &profile,
     }
     _client->setAuthenticationInformation(authentication);
     _client->setPkiConfiguration(QOpcUaPkiConfiguration());
-    _client->setApplicationIdentity(QOpcUaApplicationIdentity());
+    _client->setApplicationIdentity(applicationIdentity());
     if (!profile.clientCertificateFile.isEmpty()) {
         QString error;
         _pki.ensureDirectories(&error);
@@ -329,8 +369,13 @@ void QtOpcUaConnectionManager::configureClient(const ConnectionProfile &profile,
         configuration.setIssuerListDirectory(paths.issuerCertificates);
         configuration.setIssuerRevocationListDirectory(paths.issuerCrl);
         _client->setPkiConfiguration(configuration);
-        if (configuration.isKeyAndCertificateFileSet())
-            _client->setApplicationIdentity(configuration.applicationIdentity());
+        if (configuration.isKeyAndCertificateFileSet()) {
+            QOpcUaApplicationIdentity identity = configuration.applicationIdentity();
+            if (identity.isValid()) {
+                identity.setApplicationName(PkiManager::applicationName());
+                _client->setApplicationIdentity(identity);
+            }
+        }
         _activeClientCertificateFile = profile.clientCertificateFile;
     }
     QOpcUaConnectionSettings settings;
@@ -348,7 +393,8 @@ int QtOpcUaConnectionManager::endpointIndex(const ConnectionProfile &profile) co
         const QOpcUaEndpointDescription &candidate = _endpoints.at(i);
         if (candidate.endpointUrl() == profile.endpointUrl
             && candidate.securityPolicy() == profile.securityPolicy
-            && static_cast<int>(candidate.securityMode()) == profile.securityMode) {
+            && static_cast<int>(candidate.securityMode()) == profile.securityMode
+            && supportsAuthentication(candidate, profile.authentication)) {
             return i;
         }
     }

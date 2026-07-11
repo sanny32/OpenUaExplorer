@@ -48,6 +48,10 @@ void AddressSpaceModule::initialize(ServiceContext &context)
     _clientService = context.clientService();
     connect(_clientService, &OpcUaClientService::browseFinished,
             this, &AddressSpaceModule::handleBrowseFinished);
+    connect(_clientService, &OpcUaClientService::nodeSearchProgress,
+            this, &AddressSpaceModule::searchProgress);
+    connect(_clientService, &OpcUaClientService::nodeSearchFinished,
+            this, &AddressSpaceModule::handleSearchFinished);
 }
 
 ///
@@ -67,6 +71,45 @@ void AddressSpaceModule::refresh(const QString &nodeId)
 {
     _clientService->browse(nodeId.isEmpty()
         ? QString::fromLatin1(StandardNodeId::ObjectsFolder) : nodeId);
+}
+
+///
+/// \brief Searches a subtree on the server for a node whose display name matches.
+/// \param startNodeId Node whose subtree is searched.
+/// \param pattern Case-insensitive substring matched against display names.
+///
+void AddressSpaceModule::search(const QString &startNodeId, const QString &pattern)
+{
+    qCInfo(lcAddressSpace).noquote()
+        << tr("Searching node '%1' for '%2'.").arg(startNodeId, pattern);
+    _clientService->searchNode(startNodeId, pattern);
+}
+
+///
+/// \brief Cancels an in-progress node search, if any.
+///
+void AddressSpaceModule::cancelSearch()
+{
+    _clientService->cancelNodeSearch();
+}
+
+///
+/// \brief Logs and republishes the outcome of a search.
+/// \param ancestorNodeIds Node ids from the start node down to the match's parent.
+/// \param nodeId Matched NodeId, empty when nothing matched.
+/// \param error Search error, empty on success.
+///
+void AddressSpaceModule::handleSearchFinished(const QStringList &ancestorNodeIds,
+                                              const QString &nodeId,
+                                              const QString &error)
+{
+    if (!error.isEmpty())
+        qCWarning(lcAddressSpace).noquote() << tr("Search failed: %1").arg(error);
+    else if (nodeId.isEmpty())
+        qCInfo(lcAddressSpace).noquote() << tr("Search found no matching node.");
+    else
+        qCInfo(lcAddressSpace).noquote() << tr("Search found node '%1'.").arg(nodeId);
+    emit searchFinished(ancestorNodeIds, nodeId, error);
 }
 
 ///

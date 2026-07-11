@@ -15,9 +15,10 @@ OpenUaExplorer is an open source OPC UA client for browsing, inspecting, and mon
 
 ## Building
 
-The repository ships a `build.sh` helper that builds OpenUaExplorer on both
-Linux and macOS. It detects your platform, installs the required build tools and
-Qt 6, configures the project and builds it — usually in a single command:
+The repository ships helper scripts that install the required build tools and
+Qt 6, configure the project and build it — usually in a single command:
+`build.sh` on Linux and macOS, and `build.ps1` on
+[Windows](#windows).
 
 ```sh
 ./build.sh
@@ -30,6 +31,9 @@ Options:
 | `--tests`           | Build and run the test suite after building.             |
 | `--install[=PREFIX]`| Install after building (optionally into `PREFIX`).       |
 | `--help`            | Show usage.                                              |
+
+The Windows script exposes the same options as PowerShell switches — see
+[Windows](#windows).
 
 ### Linux
 
@@ -92,6 +96,64 @@ Build, then install (into `$HOME/Applications` by default):
 
 ```sh
 ./build.sh --install
+```
+
+### Windows
+
+Windows builds use the `build.ps1` PowerShell script. The build is continuously
+tested on:
+
+- <img src="docs/icons/logo_windows.svg" width="16" height="16" /> **Windows** 10 and 11 (x64, MSVC)
+
+`build.ps1` installs the toolchain (Python, CMake, Ninja, OpenSSL and the Visual
+Studio C++ Build Tools), then downloads Qt 6 (Base, SVG and Charts) with
+[aqtinstall](https://github.com/miurahr/aqtinstall) when no suitable Qt is
+already installed under `C:\Qt`, builds Qt OPC UA from source, and builds the app
+with Ninja and MSVC.
+
+Prerequisites — install these once:
+
+- A **package manager**: [winget](https://aka.ms/getwinget) (ships with Windows
+  11 and recent Windows 10) or [Chocolatey](https://chocolatey.org/install).
+  `build.ps1` uses it to install any missing build tools. Confirm it is available
+  with `winget --version` (or `choco --version`).
+- **Visual Studio 2022** with the *Desktop development with C++* workload, or let
+  the script install the Build Tools through your package manager.
+
+PowerShell blocks unsigned scripts by default, so run it with an execution-policy
+override (no administrator rights required):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build.ps1
+```
+
+Alternatively, allow local scripts once for your user, then call it directly:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+.\build.ps1
+```
+
+Options:
+
+| Option                    | Description                                          |
+|---------------------------|------------------------------------------------------|
+| `-Tests`                  | Build and run the test suite after building.         |
+| `-Install`                | Install after building.                              |
+| `-InstallPrefix <PREFIX>` | Install after building into `PREFIX`.                |
+| `-Help`                   | Show usage.                                          |
+
+Build only:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build.ps1
+```
+
+Build, then install (into `C:\Program Files\Open UaExplorer` by default; the
+default location needs an elevated *Administrator* PowerShell):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build.ps1 -Install
 ```
 
 ### Manual CMake build

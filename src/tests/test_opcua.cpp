@@ -12,6 +12,7 @@
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
+#include <QSysInfo>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -37,12 +38,13 @@ private slots:
     void initTestCase();
     void profileRoundTripDoesNotStoreSecrets();
     void pkiPathsUseExpectedLayout();
+    void applicationNameIdentifiesProductAndHost();
     void generatedCertificateProvidesApplicationIdentity();
     void lazyModelRequestsAndAppliesBrowse();
     void attributesModelExposesStructuredValues();
     void open62541BackendIsAvailable();
     void encryptedPrivateKeyPasswordIsRejected();
-    void integrationEndpointDiscovery();
+    void findServersRejectsNonOpcTcpUrl();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -104,6 +106,22 @@ void TestOpcUa::pkiPathsUseExpectedLayout()
 }
 
 ///
+/// \brief TestOpcUa::applicationNameIdentifiesProductAndHost
+///
+void TestOpcUa::applicationNameIdentifiesProductAndHost()
+{
+    QString productName = QString::fromUtf8(APP_PRODUCT_NAME);
+    productName.remove(QLatin1Char(' '));
+    QString host = QSysInfo::machineHostName().trimmed();
+    if (host.isEmpty())
+        host = QStringLiteral("localhost");
+    host.remove(QLatin1Char(' '));
+
+    QCOMPARE(PkiManager::applicationName(), QStringLiteral("%1@%2").arg(productName, host));
+    QCOMPARE(PkiManager::productUri(), QStringLiteral("%1:%1").arg(productName));
+}
+
+///
 /// \brief TestOpcUa::generatedCertificateProvidesApplicationIdentity
 ///
 void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
@@ -146,6 +164,7 @@ void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
     configuration.setPrivateKeyFile(privateKeyFile);
     QCOMPARE(configuration.applicationIdentity().applicationUri(),
              PkiManager::applicationUri());
+    QVERIFY(configuration.applicationIdentity().isValid());
 
     QString existingCertificateFile;
     QString existingPrivateKeyFile;
@@ -250,24 +269,23 @@ void TestOpcUa::encryptedPrivateKeyPasswordIsRejected()
 }
 
 ///
-/// \brief TestOpcUa::integrationEndpointDiscovery
+/// \brief TestOpcUa::findServersRejectsNonOpcTcpUrl
 ///
-void TestOpcUa::integrationEndpointDiscovery()
+void TestOpcUa::findServersRejectsNonOpcTcpUrl()
 {
-    const QString endpoint = qEnvironmentVariable("OUAEXP_TEST_ENDPOINT");
-    if (endpoint.isEmpty())
-        QSKIP("OUAEXP_TEST_ENDPOINT is not configured.");
-
     OpcUaClientService service;
-    if (!service.isAvailable())
+    const QStringList backends = service.availableBackends();
+    if (backends.isEmpty())
         QSKIP("Qt OpcUa backend is not available.");
 
-    QSignalSpy endpointSpy(&service, &OpcUaClientService::endpointsDiscovered);
-    service.discoverEndpoints(endpoint);
-    QVERIFY(endpointSpy.wait(15000));
-    const QList<QVariant> arguments = endpointSpy.takeFirst();
-    QVERIFY2(arguments.at(1).toString().isEmpty(),
-             qPrintable(arguments.at(1).toString()));
+    QSignalSpy serversSpy(&service, &OpcUaClientService::serversDiscovered);
+    service.findServers(QStringLiteral("http://localhost:4840"), backends.constFirst());
+
+    QCOMPARE(serversSpy.size(), 1);
+    const QList<QVariant> arguments = serversSpy.takeFirst();
+    QVERIFY(arguments.at(0).value<QList<ServerInfo>>().isEmpty());
+    QVERIFY(!arguments.at(1).toString().isEmpty());
+    QCOMPARE(service.state(), OpcUaConnectionState::Disconnected);
 }
 
 QTEST_MAIN(TestOpcUa)

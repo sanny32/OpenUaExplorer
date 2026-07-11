@@ -8,9 +8,15 @@
 
 #pragma once
 
+#include <QByteArray>
+#include <QList>
 #include <QMainWindow>
+#include <QString>
 
+#include "dialogs/namespaceinspectordialog.h"
 #include "opcua/opcuatypes.h"
+#include "session/recentsessionstore.h"
+#include "session/sessiondata.h"
 
 namespace Ui {
 class MainWindow;
@@ -41,6 +47,10 @@ protected:
 
 private slots:
     void on_actionNewConnection_triggered();
+    void on_actionOpenSession_triggered();
+    void on_actionSaveSession_triggered();
+    void on_actionExportData_triggered();
+    void on_actionExportLog_triggered();
     void on_actionConnect_triggered();
     void on_actionDisconnect_triggered();
     void on_actionBrowse_triggered();
@@ -48,6 +58,8 @@ private slots:
     void on_actionRefresh_triggered();
     void on_actionEndpointSettings_triggered();
     void on_actionCertificates_triggered();
+    void on_actionNamespaceInspector_triggered();
+    void on_actionNodeMonitor_triggered();
     void on_actionRead_triggered();
     void on_actionReadSelected_triggered();
     void on_actionWrite_triggered();
@@ -66,6 +78,8 @@ private slots:
     void on_actionExit_triggered();
     void on_actionSettings_triggered();
     void on_actionTheme_triggered();
+    void on_actionOpcUaInfo_triggered();
+    void on_actionCheckForUpdates_triggered();
     void on_actionAbout_triggered();
     void on_actionViewDataAccess_triggered();
     void on_actionManageSubscriptions_triggered();
@@ -83,24 +97,53 @@ private:
     void bindIcons();
     void configureHistoryUi();
     void setupOpcUaClient();
-    void setupPlugins();
+    void setupUpdateChecker();
+    void setupModules();
     void updateClientUi(OpcUaConnectionState state);
+    bool saveSessionToFile(const QString &path);
+    bool saveCurrentSession();
+    void openSessionFromFile(const QString &path);
+    void recordRecentSession(const QString &path);
+    void rebuildRecentSessionsMenu();
+    void openRecentSession();
+    void applyPendingSession();
+    SessionData sessionWorkspace() const;
+    SessionData collectSessionData() const;
+    void setCurrentSessionPath(const QString &path);
+    void closeCurrentSession();
+    QString sessionDisplayName() const;
+    void updateWindowTitle();
+    void updateModifiedState();
+    bool maybeSaveSession();
     void initializeAddressSpace();
+    class NodeMonitorDialog *createNodeMonitor();
+    void openNodeMonitor(const OpcUaNodeInfo &node);
+    void closeNodeMonitors();
+    void openCallMethod(const OpcUaNodeInfo &object, const OpcUaNodeInfo &method);
 
 private:
     Ui::MainWindow *ui;
     class ConnectionController *_connectionController;
     class OpcUaClientService *_clientService;
-    class ServiceModuleManager *_pluginManager = nullptr;
+    class UpdateChecker *_updateChecker = nullptr;
+    class ServiceModuleManager *_moduleManager = nullptr;
     class FeatureManager *_featureManager = nullptr;
     class SelectionContext *_selectionContext = nullptr;
-    class ServerModule *_serverPlugin = nullptr;
-    class AddressSpaceModule *_addressSpacePlugin = nullptr;
-    class AttributeModule *_attributePlugin = nullptr;
-    class ReferenceModule *_referencePlugin = nullptr;
-    class DataAccessModule *_dataAccessPlugin = nullptr;
-    class EventsModule *_eventsPlugin = nullptr;
+    class ServerModule *_serverModule = nullptr;
+    class AddressSpaceModule *_addressSpaceModule = nullptr;
+    class AttributeModule *_attributeModule = nullptr;
+    class ReferenceModule *_referenceModule = nullptr;
+    class DataAccessModule *_dataAccessModule = nullptr;
+    class EventsModule *_eventsModule = nullptr;
     class ThemeCoordinator *_themeCoordinator = nullptr;
     class ConnectionCoordinator *_connectionCoordinator = nullptr;
     class DataAccessCoordinator *_dataAccessCoordinator = nullptr;
+    QList<class NodeMonitorDialog *> _nodeMonitors;
+    NamespaceInspectorCache _namespaceCache;
+    RecentSessionStore _recentSessions;
+    SessionData _pendingSession;
+    QString _pendingSessionPath;
+    bool _hasPendingSession = false;
+    QString _sessionPath;
+    QByteArray _savedSessionFingerprint;
 };

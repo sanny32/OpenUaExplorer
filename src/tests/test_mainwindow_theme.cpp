@@ -7,6 +7,8 @@
 ///
 
 #include <QAction>
+#include <QApplication>
+#include <QDialog>
 #include <QDockWidget>
 #include <QGuiApplication>
 #include <QMenu>
@@ -16,6 +18,7 @@
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
 #include <QtGlobal>
@@ -41,6 +44,7 @@ private slots:
     void colorSchemePreferenceAppliesAndPersists();
     void systemPreferenceFollowsTheCurrentScheme();
     void nodeDetailsDockFollowsViewAction();
+    void opcUaInfoActionOpensDialog();
     void historyActionsFollowQtSupport();
 
 private:
@@ -187,6 +191,31 @@ void TestMainWindowTheme::nodeDetailsDockFollowsViewAction()
     QVERIFY(!dock->isHidden());
     action->trigger();
     QVERIFY(dock->isHidden());
+}
+
+///
+/// \brief Help exposes the OPC UA information dialog.
+///
+void TestMainWindowTheme::opcUaInfoActionOpensDialog()
+{
+    MainWindow window;
+    auto *action = window.findChild<QAction *>(QStringLiteral("actionOpcUaInfo"));
+    QVERIFY(action);
+    QVERIFY(action->isEnabled());
+
+    bool dialogSeen = false;
+    QTimer::singleShot(0, action, &QAction::trigger);
+    QTimer::singleShot(50, [&dialogSeen]() {
+        for (QWidget *widget : QApplication::topLevelWidgets()) {
+            if (widget->windowTitle() != QStringLiteral("OPC UA Info"))
+                continue;
+            dialogSeen = true;
+            if (auto *dialog = qobject_cast<QDialog *>(widget))
+                dialog->accept();
+        }
+    });
+
+    QTRY_VERIFY(dialogSeen);
 }
 
 ///

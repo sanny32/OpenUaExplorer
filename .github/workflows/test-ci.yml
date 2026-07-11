@@ -2,16 +2,16 @@ name: Test CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
     paths:
       - 'src/**'
       - 'tools/**'
-      - '.github/workflows/test.yml'
+      - '.github/workflows/test-ci.yml'
   pull_request:
     paths:
       - 'src/**'
       - 'tools/**'
-      - '.github/workflows/test.yml'
+      - '.github/workflows/test-ci.yml'
 
 # Cancel superseded runs on the same ref to save CI minutes.
 concurrency:
@@ -50,11 +50,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             dbus \
+            gnome-keyring \
             ninja-build \
             libsecret-1-dev \
+            libsecret-tools \
             libssl-dev \
             libgl1-mesa-dev \
-            libxkbcommon-x11-0
+            libxkbcommon-x11-0 \
+            python3-dbus \
+            python3-gi
 
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'
@@ -106,8 +110,69 @@ jobs:
 
       - name: Build and run tests (Linux)
         if: runner.os == 'Linux'
-        run: dbus-run-session -- cmake --build build --config Release --parallel --target ouaexp ouaexp_check
+        run: >
+          dbus-run-session -- bash tools/with_session_services.sh
+          cmake --build build --config Release --parallel --target ouaexp ouaexp_check
 
       - name: Build and run tests
         if: runner.os != 'Linux'
         run: cmake --build build --config Release --parallel --target ouaexp ouaexp_check
+
+  coverage:
+    name: Coverage (${{ matrix.os }}, Qt ${{ matrix.qt }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            qt: '6.9.3'
+
+    env:
+      QT_QPA_PLATFORM: offscreen
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            dbus \
+            gnome-keyring \
+            ninja-build \
+            libsecret-1-dev \
+            libsecret-tools \
+            libssl-dev \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0 \
+            python3-dbus \
+            python3-gi
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt }}
+          modules: qtcharts
+          cache: true
+
+      - name: Install test dependencies
+        run: python -m pip install -r tools/requirements.txt
+
+      - name: Cache Qt OpcUa build
+        uses: actions/cache@v5
+        with:
+          path: build-coverage/_deps/qtopcua-install
+          key: qtopcua-coverage-${{ matrix.os }}-${{ matrix.qt }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
+
+      - name: Run coverage
+        run: >
+          dbus-run-session -- bash tools/with_session_services.sh
+          python tools/coverage.py --strict -- -G Ninja
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-report
+          path: build-coverage/coverage

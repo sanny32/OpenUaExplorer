@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QModelIndex>
+#include <QPair>
 #include <QVector>
 #include <QWidget>
 
@@ -103,6 +104,23 @@ public:
     /// \brief Removes all data-access rows.
     ///
     void clear();
+
+    ///
+    /// \brief Reports whether the data-access table has any rows.
+    /// \return True when at least one node is listed.
+    ///
+    bool hasData() const;
+
+    ///
+    /// \brief Prompts for a file and exports the data-access rows as CSV.
+    ///
+    void exportToCsv();
+
+    ///
+    /// \brief Returns the listed nodes paired with their subscription assignment.
+    /// \return NodeId and subscription-name pairs in row order.
+    ///
+    QVector<QPair<QString, QString>> monitoredNodes() const;
 
     ///
     /// \brief Persists the data view header state.
