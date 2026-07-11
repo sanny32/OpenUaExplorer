@@ -420,6 +420,8 @@ signals:
     ///
     void nodeSearchFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
 private:
+    void connectBackendSignals();
+
     OpcUaBackend *_backend;
     bool _ownsBackend;
     int _requestTimeoutMs = 15000;

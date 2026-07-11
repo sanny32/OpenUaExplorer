@@ -23,8 +23,7 @@
 #include "widgets/addressspacewidget.h"
 
 ///
-/// \brief Returns the human-readable feature name.
-/// \return Feature name.
+/// \brief Label used by feature registration and translated dock commands.
 ///
 QString AddressSpaceFeature::name() const
 {
@@ -32,10 +31,20 @@ QString AddressSpaceFeature::name() const
 }
 
 ///
-/// \brief Creates the feature UI and wires it to host services.
-/// \param host Host services and contribution points.
+/// \brief Builds the feature as a sequence of UI creation, wiring, layout, and commands.
 ///
 void AddressSpaceFeature::initialize(FeatureHost &host)
+{
+    createDocks(host);
+    wireModules(host);
+    contributeLayout(host);
+    registerCommands(host);
+}
+
+///
+/// \brief Creates both docks around a single AddressSpaceWidget-owned details panel.
+///
+void AddressSpaceFeature::createDocks(FeatureHost &host)
 {
     _widget = new AddressSpaceWidget;
     _addressDock = new QDockWidget(
@@ -53,7 +62,13 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
     _nodeDetailsDock->setMinimumSize(300, 180);
     _nodeDetailsDock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetFloatable);
     _nodeDetailsDock->setWidget(_widget->takeNodeDetailsPanel());
+}
 
+///
+/// \brief Routes widget intents through modules and the shared selection context.
+///
+void AddressSpaceFeature::wireModules(FeatureHost &host)
+{
     auto *addressSpaceModule = host.dataModules()->module<AddressSpaceModule>();
     auto *referenceModule = host.dataModules()->module<ReferenceModule>();
     auto *dataAccessModule = host.dataModules()->module<DataAccessModule>();
@@ -103,7 +118,13 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
                 _widget->setNodeSubscribed(nodeId, subscribed);
         });
     }
+}
 
+///
+/// \brief Contributes the default dock placement without persisting user layout state.
+///
+void AddressSpaceFeature::contributeLayout(FeatureHost &host)
+{
     host.addDock(Qt::LeftDockWidgetArea, _addressDock);
     host.addDock(Qt::LeftDockWidgetArea, _nodeDetailsDock);
     host.splitDock(_addressDock, _nodeDetailsDock, Qt::Vertical);
@@ -111,15 +132,20 @@ void AddressSpaceFeature::initialize(FeatureHost &host)
 
     if (QDockWidget *attributesDock = host.dock(QStringLiteral("attributesDock")))
         host.resizeDocks({_addressDock, attributesDock}, {300, 390}, Qt::Horizontal);
+}
 
+///
+/// \brief Exposes address-space browsing to MainWindow actions without coupling to MainWindow.
+///
+void AddressSpaceFeature::registerCommands(FeatureHost &host)
+{
     host.registerCommand(QStringLiteral("addressSpace.browse"), [this] {
         browseAddressSpace();
     });
 }
 
 ///
-/// \brief Persists feature-owned view state.
-/// \param settings Settings store to write to.
+/// \brief Stores tree/view presentation state, leaving live server data out of settings.
 ///
 void AddressSpaceFeature::saveState(AppSettings &settings) const
 {
@@ -128,8 +154,7 @@ void AddressSpaceFeature::saveState(AppSettings &settings) const
 }
 
 ///
-/// \brief Restores feature-owned view state.
-/// \param settings Settings store to read from.
+/// \brief Restores only presentation state saved by saveState().
 ///
 void AddressSpaceFeature::restoreState(AppSettings &settings)
 {
@@ -138,7 +163,7 @@ void AddressSpaceFeature::restoreState(AppSettings &settings)
 }
 
 ///
-/// \brief Clears runtime data when the OPC UA session is no longer usable.
+/// \brief Clears node data that belongs to the active OPC UA session.
 ///
 void AddressSpaceFeature::clearRuntimeState()
 {
@@ -147,8 +172,7 @@ void AddressSpaceFeature::clearRuntimeState()
 }
 
 ///
-/// \brief Saves the expanded tree nodes and selected node into the session.
-/// \param session Session payload to write to.
+/// \brief Adds address-space navigation state to an already collected session payload.
 ///
 void AddressSpaceFeature::saveSession(SessionData &session) const
 {
@@ -159,8 +183,7 @@ void AddressSpaceFeature::saveSession(SessionData &session) const
 }
 
 ///
-/// \brief Restores the expanded tree nodes and selected node from the session.
-/// \param session Session payload to read from.
+/// \brief Replays saved tree expansion and selection after the session workspace is loaded.
 ///
 void AddressSpaceFeature::restoreSession(const SessionData &session)
 {
@@ -169,7 +192,7 @@ void AddressSpaceFeature::restoreSession(const SessionData &session)
 }
 
 ///
-/// \brief Seeds the address-space tree with the Objects-folder root node.
+/// \brief Seeds browsing from the standard Objects folder.
 ///
 void AddressSpaceFeature::browseAddressSpace()
 {

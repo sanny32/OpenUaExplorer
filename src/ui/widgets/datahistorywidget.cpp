@@ -24,6 +24,7 @@
 #include "models/historymodel.h"
 #include "nodelineedit.h"
 #include "tableview.h"
+#include "tableviewconfig.h"
 #include "ui_datahistorywidget.h"
 
 namespace {
@@ -194,29 +195,17 @@ void DataHistoryWidget::setupDataHistoryView()
     ui->dataHistoryTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->dataHistoryTable->verticalHeader()->hide();
 
-    auto *historyHeader = ui->dataHistoryTable->headerView();
-    connect(historyHeader, &HeaderView::sectionAlignmentChanged, this,
-            [this](int logicalIndex, Qt::Alignment alignment) {
-                _dataHistoryModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
-            });
-
-    historyHeader->setStretchLastSection(false);
-    historyHeader->setSectionResizeMode(HistoryModel::ColNumber,          QHeaderView::Fixed);
-    historyHeader->setSectionResizeMode(HistoryModel::ColSourceTimestamp, QHeaderView::Interactive);
-    historyHeader->setSectionResizeMode(HistoryModel::ColServerTimestamp, QHeaderView::Interactive);
-    historyHeader->setSectionResizeMode(HistoryModel::ColValue,           QHeaderView::Stretch);
-    historyHeader->setSectionResizeMode(HistoryModel::ColStatus,          QHeaderView::Interactive);
-
-    historyHeader->setSectionAlignment(HistoryModel::ColNumber,          Qt::AlignCenter);
-    historyHeader->setSectionAlignment(HistoryModel::ColSourceTimestamp, Qt::AlignCenter);
-    historyHeader->setSectionAlignment(HistoryModel::ColServerTimestamp, Qt::AlignCenter);
-    historyHeader->setSectionAlignment(HistoryModel::ColValue,           Qt::AlignCenter);
-    historyHeader->setSectionAlignment(HistoryModel::ColStatus,          Qt::AlignCenter);
-
-    ui->dataHistoryTable->setColumnWidth(HistoryModel::ColNumber,          48 );
-    ui->dataHistoryTable->setColumnWidth(HistoryModel::ColSourceTimestamp, 200);
-    ui->dataHistoryTable->setColumnWidth(HistoryModel::ColServerTimestamp, 200);
-    ui->dataHistoryTable->setColumnWidth(HistoryModel::ColStatus,          90 );
+    TableViewConfig::apply(ui->dataHistoryTable,
+        {
+            {HistoryModel::ColNumber, QHeaderView::Fixed, 48, Qt::AlignCenter},
+            {HistoryModel::ColSourceTimestamp, QHeaderView::Interactive, 200, Qt::AlignCenter},
+            {HistoryModel::ColServerTimestamp, QHeaderView::Interactive, 200, Qt::AlignCenter},
+            {HistoryModel::ColValue, QHeaderView::Stretch, -1, Qt::AlignCenter},
+            {HistoryModel::ColStatus, QHeaderView::Interactive, 90, Qt::AlignCenter},
+        },
+        [this](int logicalIndex, Qt::Alignment alignment) {
+            _dataHistoryModel->setColumnAlignment(logicalIndex, alignment);
+        });
 
     ui->dataHistoryNodeEdit->setNodeAcceptor([](const OpcUaNodeInfo &node) {
         return OpcUa::canReadHistory(node);

@@ -23,6 +23,7 @@
 #include "formatters/attributeformatter.h"
 #include "severitydelegate.h"
 #include "tableview.h"
+#include "tableviewconfig.h"
 #include "ui_eventswidget.h"
 
 namespace {
@@ -183,25 +184,17 @@ void EventsWidget::setupEventsView()
     ui->eventsTable->setItemDelegateForColumn(EventsModel::ColSeverity,
                                               new SeverityDelegate(this));
 
-    auto *eventsHeader = ui->eventsTable->headerView();
-    connect(eventsHeader, &HeaderView::sectionAlignmentChanged, this,
-            [this](int logicalIndex, Qt::Alignment alignment) {
-                _eventsModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
-            });
-
-    eventsHeader->setStretchLastSection(false);
-    eventsHeader->setSectionResizeMode(EventsModel::ColTime,      QHeaderView::Interactive);
-    eventsHeader->setSectionResizeMode(EventsModel::ColSeverity,  QHeaderView::Fixed);
-    eventsHeader->setSectionResizeMode(EventsModel::ColSource,    QHeaderView::Interactive);
-    eventsHeader->setSectionResizeMode(EventsModel::ColMessage,   QHeaderView::Stretch);
-    eventsHeader->setSectionResizeMode(EventsModel::ColEventType, QHeaderView::Interactive);
-
-    eventsHeader->setSectionAlignment(EventsModel::ColSeverity, Qt::AlignCenter);
-
-    ui->eventsTable->setColumnWidth(EventsModel::ColTime,      200);
-    ui->eventsTable->setColumnWidth(EventsModel::ColSeverity,  70 );
-    ui->eventsTable->setColumnWidth(EventsModel::ColSource,    140);
-    ui->eventsTable->setColumnWidth(EventsModel::ColEventType, 180);
+    TableViewConfig::apply(ui->eventsTable,
+        {
+            {EventsModel::ColTime, QHeaderView::Interactive, 200},
+            {EventsModel::ColSeverity, QHeaderView::Fixed, 70, Qt::AlignCenter},
+            {EventsModel::ColSource, QHeaderView::Interactive, 140},
+            {EventsModel::ColMessage, QHeaderView::Stretch},
+            {EventsModel::ColEventType, QHeaderView::Interactive, 180},
+        },
+        [this](int logicalIndex, Qt::Alignment alignment) {
+            _eventsModel->setColumnAlignment(logicalIndex, alignment);
+        });
 }
 
 ///

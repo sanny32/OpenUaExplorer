@@ -26,6 +26,7 @@
 #include "formatters/attributeformatter.h"
 #include "severitydelegate.h"
 #include "tableview.h"
+#include "tableviewconfig.h"
 #include "ui_eventshistorywidget.h"
 
 namespace {
@@ -209,25 +210,17 @@ void EventsHistoryWidget::setupEventsHistoryView()
     ui->eventsHistoryTable->setItemDelegateForColumn(EventsModel::ColSeverity,
                                                      new SeverityDelegate(this));
 
-    auto *eventsHeader = ui->eventsHistoryTable->headerView();
-    connect(eventsHeader, &HeaderView::sectionAlignmentChanged, this,
-            [this](int logicalIndex, Qt::Alignment alignment) {
-                _eventsHistoryModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
-            });
-
-    eventsHeader->setStretchLastSection(false);
-    eventsHeader->setSectionResizeMode(EventsModel::ColTime,      QHeaderView::Interactive);
-    eventsHeader->setSectionResizeMode(EventsModel::ColSeverity,  QHeaderView::Fixed);
-    eventsHeader->setSectionResizeMode(EventsModel::ColSource,    QHeaderView::Interactive);
-    eventsHeader->setSectionResizeMode(EventsModel::ColMessage,   QHeaderView::Stretch);
-    eventsHeader->setSectionResizeMode(EventsModel::ColEventType, QHeaderView::Interactive);
-
-    eventsHeader->setSectionAlignment(EventsModel::ColSeverity, Qt::AlignCenter);
-
-    ui->eventsHistoryTable->setColumnWidth(EventsModel::ColTime,      200);
-    ui->eventsHistoryTable->setColumnWidth(EventsModel::ColSeverity,  70 );
-    ui->eventsHistoryTable->setColumnWidth(EventsModel::ColSource,    140);
-    ui->eventsHistoryTable->setColumnWidth(EventsModel::ColEventType, 180);
+    TableViewConfig::apply(ui->eventsHistoryTable,
+        {
+            {EventsModel::ColTime, QHeaderView::Interactive, 200},
+            {EventsModel::ColSeverity, QHeaderView::Fixed, 70, Qt::AlignCenter},
+            {EventsModel::ColSource, QHeaderView::Interactive, 140},
+            {EventsModel::ColMessage, QHeaderView::Stretch},
+            {EventsModel::ColEventType, QHeaderView::Interactive, 180},
+        },
+        [this](int logicalIndex, Qt::Alignment alignment) {
+            _eventsHistoryModel->setColumnAlignment(logicalIndex, alignment);
+        });
 
     ui->eventsHistoryNodeEdit->setNodeAcceptor([](const OpcUaNodeInfo &node) {
         return OpcUa::canReadEventHistory(node);

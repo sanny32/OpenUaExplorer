@@ -27,6 +27,14 @@ OpcUaClientService::OpcUaClientService(OpcUaBackend *backend, QObject *parent)
     , _ownsBackend(false)
 {
     Q_ASSERT(_backend);
+    connectBackendSignals();
+}
+
+///
+/// \brief Re-emits backend notifications through the stable service-facing signal set.
+///
+void OpcUaClientService::connectBackendSignals()
+{
     connect(_backend, &OpcUaBackend::stateChanged,
             this, &OpcUaClientService::stateChanged);
     connect(_backend, &OpcUaBackend::errorOccurred,

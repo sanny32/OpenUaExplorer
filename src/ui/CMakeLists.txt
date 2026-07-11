@@ -68,6 +68,8 @@ add_library(ouaexp_ui STATIC
     dataaccesscoordinator.h
     favoritescoordinator.cpp
     favoritescoordinator.h
+    sessioncoordinator.cpp
+    sessioncoordinator.h
     themecoordinator.cpp
     themecoordinator.h
     ${UI_FILES}
@@ -196,6 +198,8 @@ add_library(ouaexp_ui STATIC
     widgets/severitydelegate.h
     widgets/tableview.cpp
     widgets/tableview.h
+    widgets/tableviewconfig.cpp
+    widgets/tableviewconfig.h
     widgets/themedaction.cpp
     widgets/themedaction.h
     widgets/themediconlabel.cpp
