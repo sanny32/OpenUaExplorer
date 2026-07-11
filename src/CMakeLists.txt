@@ -18,7 +18,7 @@ if(NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
 endif()
 
 set(PRODUCT_NAME "Open UaExplorer")
-set(ORGANIZATION_NAME "OpenUaExplorer contributors")
+set(ORGANIZATION_NAME "Ananev Alexandr")
 
 option(OUAEXP_BUILD_TESTS "Build OpenUaExplorer tests" OFF)
 

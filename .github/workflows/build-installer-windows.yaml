@@ -44,9 +44,10 @@ jobs:
           }
           $major, $minor, $patch = $Matches[1], $Matches[2], $Matches[3]
 
-          # Mirror src/cmake/project_version.cmake: dev and release branches carry
-          # a -dev suffix, tags supply the version and an optional pre-release
-          # suffix such as v1.0.0-b1.
+          # Mirror src/cmake/project_version.cmake: tags supply the version and an
+          # optional pre-release suffix such as v1.0.0-b1, everything else is a dev
+          # snapshot named after the commit it was built from, the same way the
+          # Debian package is.
           $prerelease = ''
           $ref = '${{ github.ref }}'
           if ($ref -match '^refs/tags/v(.+)$') {
@@ -58,10 +59,9 @@ jobs:
             $major, $minor, $patch = $Matches[1], $Matches[2], $Matches[3]
             if ($Matches[4]) { $prerelease = $Matches[4] }
             $appVersion = $tagVersion
-          } elseif ($ref -match '^refs/heads/(dev|release/.*)$') {
-            $appVersion = "$major.$minor-dev"
           } else {
-            $appVersion = "$major.$minor.$patch"
+            $sha = (git rev-parse --short HEAD).Trim()
+            $appVersion = "$major.$minor.$patch~dev.g$sha"
           }
 
           # VIProductVersion rejects suffixes, so the resource keeps a numeric version.

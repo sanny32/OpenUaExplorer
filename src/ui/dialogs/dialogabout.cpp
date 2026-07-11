@@ -70,7 +70,7 @@ void DialogAbout::setupContent()
     ui->descriptionLabel->setText(
         tr("OPC UA Client for browsing, monitoring and interacting<br>with industrial data."));
 
-    ui->copyrightLabel->setText(tr("Copyright %1 Alexandr Ananev").arg(QStringLiteral(BUILD_YEAR)));
+    ui->copyrightLabel->setText(tr("Copyright © %1 Alexandr Ananev").arg(QStringLiteral(BUILD_YEAR)));
 
     ui->websiteIconLabel->setIcon("website", QSize(16, 16));
     ui->websiteLinkLabel->setText(QStringLiteral("<a href=\"https://sanny32.github.io/OpenUaExplorer\">Website</a>"));

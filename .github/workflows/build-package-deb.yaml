@@ -83,7 +83,7 @@ jobs:
               upstream="$major.$minor.$patch"
             fi
           else
-            upstream="$major.$minor.$patch~dev$(date -u +%Y%m%d).g$(git rev-parse --short HEAD)"
+            upstream="$major.$minor.$patch~dev.g$(git rev-parse --short HEAD)"
           fi
 
           deb_version="$upstream-1"

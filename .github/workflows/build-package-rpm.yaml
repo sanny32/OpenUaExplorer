@@ -92,7 +92,7 @@ jobs:
               release='1'
             fi
           else
-            release="0.0.dev$(date -u +%Y%m%d).g$(git rev-parse --short HEAD)"
+            release="0.0.dev.g$(git rev-parse --short HEAD)"
           fi
 
           version="$major.$minor.$patch"
