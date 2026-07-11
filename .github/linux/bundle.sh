@@ -89,6 +89,12 @@ opcua_plugin_dir="$(find "$QTOPCUA_DIR" -type d -name opcua -print -quit)"
 [ -n "$opcua_plugin_dir" ] || die "No opcua plugin directory under $QTOPCUA_DIR"
 cp -a "$opcua_plugin_dir" "$APP_PLUGIN_DIR/"
 
+# The Qt OpcUa build detaches the debug information of its backend into a .debug
+# file that sits in the same plugin directory. Nothing loads it, it is larger than
+# the rest of the bundle put together, and it is not an object a package may ship:
+# lintian rejects it as unstripped and as having a bad dynamic table.
+find "$APP_PLUGIN_DIR" -type f -name '*.debug' -delete
+
 log "Resolving private library dependencies"
 
 # A library belongs in the bundle only when it comes from one of the two prefixes we

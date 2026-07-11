@@ -1,0 +1,9 @@
+# The Qt plugins are taken from the official Qt binaries, and those link their own
+# copy of libjpeg into the JPEG image format plugin. The plugin is not built here,
+# so the system libjpeg cannot be substituted for the embedded one, and dropping
+# the plugin would leave the application unable to display JPEG images.
+ouaexp: embedded-library
+
+# The application is a GUI program that is started from the desktop menu, and it
+# takes no options worth documenting, so it ships no manual page.
+ouaexp: no-manual-page

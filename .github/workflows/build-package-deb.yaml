@@ -136,6 +136,8 @@ jobs:
           cp -r .github/linux/usr/. pkgroot/usr/
           install -D -m 0644 .github/linux/deb/copyright \
             pkgroot/usr/share/doc/ouaexp/copyright
+          install -D -m 0644 .github/linux/deb/lintian-overrides \
+            pkgroot/usr/share/lintian/overrides/ouaexp
 
           find pkgroot -type d -exec chmod 0755 {} +
 
