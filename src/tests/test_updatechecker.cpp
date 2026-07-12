@@ -250,9 +250,8 @@ void TestUpdateChecker::reportsNetworkError()
     QSignalSpy failed(&checker, &UpdateChecker::checkFailed);
     checker.checkForUpdates();
 
-    QString errorMessage = failed.takeFirst().at(0).toString();
-    QVERIFY(!errorMessage.isEmpty());
-    QCOMPARE(errorMessage, QStringLiteral("Unknown error"));
+    QVERIFY(failed.wait(1000));
+    QCOMPARE(failed.takeFirst().at(0).toString(), QStringLiteral("Unknown error"));
 }
 
 ///
