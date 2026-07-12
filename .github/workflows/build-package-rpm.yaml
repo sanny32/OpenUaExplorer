@@ -250,8 +250,7 @@ jobs:
       # rather than on a user's machine. The program is a GUI application with no
       # batch mode, so it is checked by resolving its libraries instead of
       # starting it. The images are the RPM distributions build.sh is tested on in
-      # test-build-linux.yaml; ALT Linux is left out because its apt-rpm cannot
-      # install a local file with its dependencies resolved.
+      # test-build-linux.yaml.
       - name: Verify the package installs
         env:
           PKG: ${{ steps.version.outputs.package }}
@@ -261,6 +260,7 @@ jobs:
             rockylinux/rockylinux:10.1
             registry.red-soft.ru/redos8c/ubi:latest
             opensuse/tumbleweed
+            alt:p11
         run: |
           status=0
           for image in $IMAGES; do
@@ -268,10 +268,16 @@ jobs:
             if ! docker run --rm -e PKG -v "$PWD:/pkg" -w /pkg "$image" bash -eux -c '
               # The package is not signed, so zypper has to be told to install it
               # anyway; dnf only rejects unsigned packages from a repository.
+              # ALT Linux carries apt-rpm, which reads an argument as a local file
+              # rather than a package name only when it contains a slash, and needs
+              # its package lists fetched before it can resolve anything.
               if command -v dnf > /dev/null; then
                 dnf -y install "./$PKG"
-              else
+              elif command -v zypper > /dev/null; then
                 zypper --non-interactive --no-gpg-checks install "./$PKG"
+              else
+                apt-get update
+                apt-get install -y "./$PKG"
               fi
 
               test -L /usr/bin/ouaexp
@@ -282,8 +288,10 @@ jobs:
 
               if command -v dnf > /dev/null; then
                 dnf -y remove ouaexp
-              else
+              elif command -v zypper > /dev/null; then
                 zypper --non-interactive remove ouaexp
+              else
+                apt-get remove -y ouaexp
               fi
             '; then
               echo "::error::The package does not install on $image"
