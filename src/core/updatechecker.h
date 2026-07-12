@@ -33,6 +33,13 @@ public:
     explicit UpdateChecker(QObject *parent = nullptr);
 
     ///
+    /// \brief Builds the checker with a supplied network manager.
+    /// \param networkManager Network manager used for release requests.
+    /// \param parent Parent object.
+    ///
+    explicit UpdateChecker(QNetworkAccessManager *networkManager, QObject *parent = nullptr);
+
+    ///
     /// \brief Starts an asynchronous check against the GitHub releases API.
     ///
     /// Does nothing when a check is already in flight. Emits checkStarted() and

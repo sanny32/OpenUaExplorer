@@ -94,6 +94,20 @@ UpdateChecker::UpdateChecker(QObject *parent)
 }
 
 ///
+/// \brief Builds the checker with a supplied network manager.
+/// \param networkManager Network manager used for release requests.
+/// \param parent Parent object.
+///
+UpdateChecker::UpdateChecker(QNetworkAccessManager *networkManager, QObject *parent)
+    : QObject(parent)
+    , _networkManager(networkManager)
+{
+    if (_networkManager && !_networkManager->parent())
+        _networkManager->setParent(this);
+    connect(_networkManager, &QNetworkAccessManager::finished, this, &UpdateChecker::onReplyFinished);
+}
+
+///
 /// \brief Compares two version strings, honouring pre-release suffixes.
 /// \param candidate Version to test.
 /// \param current Version to compare against.
