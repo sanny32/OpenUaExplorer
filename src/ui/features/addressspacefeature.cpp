@@ -7,6 +7,7 @@
 ///
 
 #include "addressspacefeature.h"
+#include "featurecommands.h"
 
 #include <QCoreApplication>
 #include <QDockWidget>
@@ -139,7 +140,7 @@ void AddressSpaceFeature::contributeLayout(FeatureHost &host)
 ///
 void AddressSpaceFeature::registerCommands(FeatureHost &host)
 {
-    host.registerCommand(QStringLiteral("addressSpace.browse"), [this] {
+    host.registerCommand(FeatureCommandIds::addressSpaceBrowse(), [this] {
         browseAddressSpace();
     });
 }

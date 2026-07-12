@@ -30,6 +30,7 @@
 #include "widgets/subscriptionswidget.h"
 #include "dialogs/settingsdialog.h"
 #include "features/builtinfeatures.h"
+#include "features/featurecommands.h"
 #include "features/featurehost.h"
 #include "features/featuremanager.h"
 #include "features/selectioncontext.h"
@@ -174,7 +175,7 @@ void MainWindow::on_actionExportData_triggered()
 ///
 void MainWindow::on_actionExportLog_triggered()
 {
-    _featureManager->triggerCommand(QStringLiteral("log.export"));
+    _featureManager->triggerCommand(FeatureCommandIds::logExport());
 }
 
 ///
@@ -835,7 +836,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
 ///
 void MainWindow::initializeAddressSpace()
 {
-    _featureManager->triggerCommand(QStringLiteral("addressSpace.browse"));
+    _featureManager->triggerCommand(FeatureCommandIds::addressSpaceBrowse());
 }
 
 ///

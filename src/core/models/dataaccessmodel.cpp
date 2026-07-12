@@ -15,6 +15,7 @@
 #include <QPalette>
 
 #include "dataaccessmodel.h"
+#include "csvexporter.h"
 #include "formatters/attributeformatter.h"
 
 namespace {
@@ -25,22 +26,6 @@ OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
         : OpcUaFormat::TimestampMode::LocalTime;
 }
 
-///
-/// \brief Escapes a single CSV field.
-/// \param value Field text.
-/// \return Escaped CSV field text.
-///
-QString csvField(QString value)
-{
-    const bool quote = value.contains(QLatin1Char(','))
-        || value.contains(QLatin1Char('"'))
-        || value.contains(QLatin1Char('\n'))
-        || value.contains(QLatin1Char('\r'));
-    if (!quote)
-        return value;
-    value.replace(QStringLiteral("\""), QStringLiteral("\"\""));
-    return QStringLiteral("\"%1\"").arg(value);
-}
 }
 
 ///
@@ -187,20 +172,7 @@ DataAccessItem DataAccessModel::itemAt(int row) const
 ///
 QString DataAccessModel::toCsv() const
 {
-    QStringList lines;
-    QStringList header;
-    for (int column = 0; column < ColCount; ++column)
-        header.append(csvField(headerData(column, Qt::Horizontal).toString()));
-    lines.append(header.join(QLatin1Char(',')));
-
-    for (int row = 0; row < rowCount(); ++row) {
-        QStringList fields;
-        for (int column = 0; column < ColCount; ++column)
-            fields.append(csvField(data(index(row, column)).toString()));
-        lines.append(fields.join(QLatin1Char(',')));
-    }
-
-    return lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
+    return CsvExporter::tableToCsv(*this);
 }
 
 ///
@@ -210,7 +182,6 @@ void DataAccessModel::clear()
 {
     setItems({});
 }
-
 
 ///
 /// \brief Returns the number of rows.
@@ -315,7 +286,7 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
                                                                        toFormatMode(_timestampMode));
         case ColStatus:       return item.status;
         case ColSubscription: return item.subscriptionName.isEmpty()
-                                     ? QStringLiteral("—")
+                                     ? QStringLiteral("\u2014")
                                      : item.subscriptionName;
         default:              return QVariant();
         }

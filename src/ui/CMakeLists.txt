@@ -66,6 +66,8 @@ add_library(ouaexp_ui STATIC
     connectioncoordinator.h
     dataaccesscoordinator.cpp
     dataaccesscoordinator.h
+    dataaccessmonitoringstate.cpp
+    dataaccessmonitoringstate.h
     favoritescoordinator.cpp
     favoritescoordinator.h
     sessioncoordinator.cpp
@@ -82,6 +84,7 @@ add_library(ouaexp_ui STATIC
     features/builtinfeatures.h
     features/featurehost.cpp
     features/featurehost.h
+    features/featurecommands.h
     features/featuremanager.cpp
     features/featuremanager.h
     features/featureplugin.cpp
@@ -214,6 +217,8 @@ add_library(ouaexp_ui STATIC
     widgets/themepreviewbutton.h
     widgets/trendgraphwidget.cpp
     widgets/trendgraphwidget.h
+    widgets/trendgraphstate.cpp
+    widgets/trendgraphstate.h
     widgets/trendgraphtoolbar.cpp
     widgets/trendgraphtoolbar.h
     widgets/trendpanelwidget.cpp

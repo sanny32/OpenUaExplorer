@@ -97,7 +97,7 @@ void DataAccessCoordinator::subscribeSelected()
         return;
     }
     _dataView->addNode(_selectedNodeDetails);
-    _pendingMonitoringNodeIds.insert(_selectedNodeDetails.nodeId);
+    _monitoringState.beginRequest(_selectedNodeDetails.nodeId);
     updateMonitoringActions();
     _dataAccess->subscribe(_selectedNodeDetails.nodeId);
 }
@@ -108,10 +108,10 @@ void DataAccessCoordinator::subscribeSelected()
 void DataAccessCoordinator::unsubscribeSelected()
 {
     if (_selectedNodeDetails.nodeId.isEmpty()
-        || !_subscribedNodeIds.contains(_selectedNodeDetails.nodeId)) {
+        || !_monitoringState.isSubscribed(_selectedNodeDetails.nodeId)) {
         return;
     }
-    _pendingMonitoringNodeIds.insert(_selectedNodeDetails.nodeId);
+    _monitoringState.beginRequest(_selectedNodeDetails.nodeId);
     updateMonitoringActions();
     _dataAccess->unsubscribe(_selectedNodeDetails.nodeId);
 }
@@ -280,8 +280,7 @@ void DataAccessCoordinator::clearRuntimeState()
 {
     _dataView->clearRuntimeData();
     _trendPanel->clearRuntimeData();
-    _subscribedNodeIds.clear();
-    _pendingMonitoringNodeIds.clear();
+    _monitoringState.clear();
     _pendingDataAccessNodeIds.clear();
     _pendingRestoreSubscriptions.clear();
     updateMonitoringActions();
@@ -537,12 +536,8 @@ void DataAccessCoordinator::onWriteFinished(const QString &nodeId, bool success,
 void DataAccessCoordinator::onMonitoringFinished(const QString &nodeId, bool subscribed,
                                                  bool success, const QString &error)
 {
-    _pendingMonitoringNodeIds.remove(nodeId);
+    _monitoringState.finishRequest(nodeId, subscribed, success);
     if (success) {
-        if (subscribed)
-            _subscribedNodeIds.insert(nodeId);
-        else
-            _subscribedNodeIds.remove(nodeId);
         _dataView->setNodeSubscribed(nodeId, subscribed);
     } else {
         QMessageBox::warning(_dialogParent,
@@ -676,9 +671,9 @@ void DataAccessCoordinator::onSubscribeRequested(const OpcUaNodeInfo &node)
 ///
 void DataAccessCoordinator::onUnsubscribeRequested(const OpcUaNodeInfo &node)
 {
-    if (node.nodeId.isEmpty() || !_subscribedNodeIds.contains(node.nodeId))
+    if (node.nodeId.isEmpty() || !_monitoringState.isSubscribed(node.nodeId))
         return;
-    _pendingMonitoringNodeIds.insert(node.nodeId);
+    _monitoringState.beginRequest(node.nodeId);
     updateMonitoringActions();
     _dataAccess->unsubscribe(node.nodeId);
 }
@@ -722,9 +717,9 @@ void DataAccessCoordinator::updateMonitoringActions()
     const bool variable = connected && OpcUa::isVariable(_selectedNodeDetails.nodeClass)
         && !_selectedNodeDetails.nodeId.isEmpty();
     const bool subscribed = variable
-        && _subscribedNodeIds.contains(_selectedNodeDetails.nodeId);
+        && _monitoringState.isSubscribed(_selectedNodeDetails.nodeId);
     const bool pending = variable
-        && _pendingMonitoringNodeIds.contains(_selectedNodeDetails.nodeId);
+        && _monitoringState.isPending(_selectedNodeDetails.nodeId);
     _actions.subscribe->setEnabled(variable && !subscribed && !pending);
     _actions.unsubscribe->setEnabled(subscribed && !pending);
 }

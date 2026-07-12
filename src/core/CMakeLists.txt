@@ -67,6 +67,8 @@ add_library(ouaexp_core STATIC
     models/attributesmodel.cpp
     models/attributesmodel.h
     models/columnalignmentstore.h
+    models/csvexporter.cpp
+    models/csvexporter.h
     models/dataaccessitem.h
     models/dataaccessmodel.cpp
     models/dataaccessmodel.h

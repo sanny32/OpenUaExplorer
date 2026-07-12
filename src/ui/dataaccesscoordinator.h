@@ -14,6 +14,7 @@
 #include <QSet>
 #include <QVector>
 
+#include "dataaccessmonitoringstate.h"
 #include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
 #include "session/sessiondata.h"
@@ -295,8 +296,7 @@ private:
     DataAccessActions _actions;
     QWidget *_dialogParent;
     OpcUaNodeDetails _selectedNodeDetails;
-    QSet<QString> _subscribedNodeIds;
-    QSet<QString> _pendingMonitoringNodeIds;
+    DataAccessMonitoringState _monitoringState;
     QSet<QString> _pendingDataAccessNodeIds;
     QHash<QString, QString> _pendingRestoreSubscriptions;
 };

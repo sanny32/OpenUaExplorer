@@ -21,6 +21,7 @@
 #include "models/subscriptionitem.h"
 #include "models/trendseries.h"
 #include "opcua/opcuatypes.h"
+#include "trendgraphstate.h"
 #include "trendsettings.h"
 
 namespace Ui {
@@ -309,6 +310,5 @@ private:
     qint64 _windowEndMs = 0;
     TrendDisplaySettings _display;
     QVector<SubscriptionItem> _subscriptions;
-    QSet<QString> _subscribed;
-    QSet<QString> _pendingHistory;
+    TrendGraphState _state;
 };
