@@ -35,43 +35,15 @@ jobs:
 
       - name: Determine version
         id: version
+        uses: ./.github/actions/project-version
+
+      - name: Determine installer name
+        id: package
         shell: pwsh
         run: |
-          $cmake = Get-Content src/CMakeLists.txt -Raw
-          if ($cmake -notmatch 'project\(ouaexp\s+VERSION\s+(\d+)\.(\d+)\.(\d+)') {
-            Write-Error 'Could not read the project version from src/CMakeLists.txt'
-            exit 1
-          }
-          $major, $minor, $patch = $Matches[1], $Matches[2], $Matches[3]
-
-          # Mirror src/cmake/project_version.cmake: tags supply the version and an
-          # optional pre-release suffix such as v1.0.0-b1, everything else is a
-          # <major>.<minor>-dev snapshot named after the commit it was built from.
-          $prerelease = ''
-          $ref = '${{ github.ref }}'
-          if ($ref -match '^refs/tags/v(.+)$') {
-            $tagVersion = $Matches[1]
-            if ($tagVersion -notmatch '^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$') {
-              Write-Error "Tag v$tagVersion is not <major>.<minor>.<patch>[-prerelease]"
-              exit 1
-            }
-            $major, $minor, $patch = $Matches[1], $Matches[2], $Matches[3]
-            if ($Matches[4]) { $prerelease = $Matches[4] }
-            $appVersion = $tagVersion
-          } else {
-            $sha = (git rev-parse --short HEAD).Trim()
-            $appVersion = "$major.$minor-dev.g$sha"
-          }
-
-          # VIProductVersion rejects suffixes, so the resource keeps a numeric version.
-          $fileVersion = "$major.$minor.$patch.0"
-          $setupName = "ouaexp-$appVersion-win64-setup.exe"
-
-          "appVersion=$appVersion"    >> $env:GITHUB_OUTPUT
-          "fileVersion=$fileVersion"  >> $env:GITHUB_OUTPUT
-          "setup=$setupName"          >> $env:GITHUB_OUTPUT
-          "prerelease=$prerelease"    >> $env:GITHUB_OUTPUT
-          Write-Host "Version: $appVersion (file version $fileVersion, prerelease '$prerelease')"
+          $setup = "ouaexp-${{ steps.version.outputs.appVersion }}-win64-setup.exe"
+          "setup=$setup" >> $env:GITHUB_OUTPUT
+          Write-Host "Building $setup"
 
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
@@ -134,14 +106,14 @@ jobs:
             "/DSRC_DIR=${{ github.workspace }}" `
             "/DAPP_VERSION=${{ steps.version.outputs.appVersion }}" `
             "/DFILE_VERSION=${{ steps.version.outputs.fileVersion }}" `
-            "/DOUT_FILE=${{ github.workspace }}\${{ steps.version.outputs.setup }}" `
+            "/DOUT_FILE=${{ github.workspace }}\${{ steps.package.outputs.setup }}" `
             .github\windows\ouaexp.nsi
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: Compute checksum
         shell: pwsh
         run: |
-          $setup = "${{ steps.version.outputs.setup }}"
+          $setup = "${{ steps.package.outputs.setup }}"
           $hash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
           "$hash  $setup" | Out-File "$setup.sha256" -Encoding ascii
           Write-Host "SHA256: $hash"
@@ -151,8 +123,8 @@ jobs:
         with:
           name: ouaexp-win64-setup
           path: |
-            ${{ steps.version.outputs.setup }}
-            ${{ steps.version.outputs.setup }}.sha256
+            ${{ steps.package.outputs.setup }}
+            ${{ steps.package.outputs.setup }}.sha256
           if-no-files-found: error
 
       - name: Attach installer to release
@@ -162,6 +134,6 @@ jobs:
           draft: true
           prerelease: ${{ steps.version.outputs.prerelease != '' }}
           files: |
-            ${{ steps.version.outputs.setup }}
+            ${{ steps.package.outputs.setup }}
           generate_release_notes: true
           fail_on_unmatched_files: true

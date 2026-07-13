@@ -55,72 +55,17 @@ jobs:
 
       - name: Determine version
         id: version
+        uses: ./.github/actions/project-version
+
+      - name: Determine package name
+        id: package
         run: |
-          version="$(
-            sed -nE '/^project\(ouaexp([[:space:]]|$)/,/\)/ s/.*VERSION[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' src/CMakeLists.txt \
-              | head -n1
-          )"
-          if [[ ! $version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            echo "::error::Could not read the project version from src/CMakeLists.txt"
-            exit 1
-          fi
-          major="${BASH_REMATCH[1]}"
-          minor="${BASH_REMATCH[2]}"
-          patch="${BASH_REMATCH[3]}"
-
-          # Mirror src/cmake/project_version.cmake, then map onto an RPM version the
-          # same way the Debian package does. A pre-release must sort *before* its
-          # final release, and plain '1.0.0b1' would sort above '1.0.0', so the
-          # suffix is attached with '~': rpm gives a tilde a lower weight than the
-          # end of the string, which puts '1.0.0~b1' and the '1.0~dev' snapshots
-          # below every release. A '-' may not appear in Version, so it is mapped
-          # onto '.' the way it already is in the pre-release part of a tag.
-          prerelease=''
-          ref='${{ github.ref }}'
-          if [[ $ref =~ ^refs/tags/v(.+)$ ]]; then
-            tag_version="${BASH_REMATCH[1]}"
-            if [[ ! $tag_version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-(.+))?$ ]]; then
-              echo "::error::Tag v$tag_version is not <major>.<minor>.<patch>[-prerelease]"
-              exit 1
-            fi
-            major="${BASH_REMATCH[1]}"
-            minor="${BASH_REMATCH[2]}"
-            patch="${BASH_REMATCH[3]}"
-            prerelease="${BASH_REMATCH[5]}"
-            if [ -n "$prerelease" ]; then
-              version="$major.$minor.$patch~${prerelease//-/.}"
-            else
-              version="$major.$minor.$patch"
-            fi
-          else
-            version="$major.$minor~dev.g$(git rev-parse --short HEAD)"
-          fi
-
-          # AppStream carries the upstream version rather than the RPM one, so it spells a
-          # pre-release the way the tag does instead of mapping it onto rpm's ordering. The
-          # release date is the date of the commit being built, so rebuilding a commit
-          # yields the same file.
-          if [ -n "$prerelease" ]; then
-            app_version="$major.$minor.$patch-$prerelease"
-          elif [[ $ref =~ ^refs/tags/v ]]; then
-            app_version="$major.$minor.$patch"
-          else
-            app_version="$major.$minor.$patch-dev.g$(git rev-parse --short HEAD)"
-          fi
-          release_date="$(git log -1 --format=%cs)"
-
-          release='1'
           arch="$(uname -m)"
-          package="ouaexp-$version-$release.$arch.rpm"
+          package="ouaexp-${{ steps.version.outputs.rpmVersion }}-${{ steps.version.outputs.rpmRelease }}.$arch.rpm"
 
           {
-            echo "prerelease=$prerelease"
-            echo "version=$version"
-            echo "appVersion=$app_version"
-            echo "releaseDate=$release_date"
-            echo "release=$release"
             echo "arch=$arch"
-            echo "package=$package"
+            echo "name=$package"
           } >> "$GITHUB_OUTPUT"
           echo "Building $package"
 
@@ -225,13 +170,13 @@ jobs:
 
           # '|' and '(' appear in the pattern, so '#' delimits the substitution.
           sed -e "s#@NAME@#ouaexp#" \
-              -e "s#@VERSION@#${{ steps.version.outputs.version }}#" \
-              -e "s#@RELEASE@#${{ steps.version.outputs.release }}#" \
+              -e "s#@VERSION@#${{ steps.version.outputs.rpmVersion }}#" \
+              -e "s#@RELEASE@#${{ steps.version.outputs.rpmRelease }}#" \
               -e "s#@REQUIRES_EXCLUDE@#${requires_exclude}#" \
               .github/linux/rpm/ouaexp.spec.in > rpmbuild/SPECS/ouaexp.spec
 
           cat >> rpmbuild/SPECS/ouaexp.spec <<EOF
-          * $(date -u +'%a %b %d %Y') ${{ env.MAINTAINER }} - ${{ steps.version.outputs.version }}-${{ steps.version.outputs.release }}
+          * $(date -u +'%a %b %d %Y') ${{ env.MAINTAINER }} - ${{ steps.version.outputs.rpmVersion }}-${{ steps.version.outputs.rpmRelease }}
           - Automated build of ${{ github.sha }}.
           EOF
 
@@ -243,25 +188,25 @@ jobs:
             --define "_topdir $PWD/rpmbuild" \
             --define "_stagedir $PWD/pkgroot"
 
-          mv "rpmbuild/RPMS/${{ steps.version.outputs.arch }}/${{ steps.version.outputs.package }}" .
+          mv "rpmbuild/RPMS/${{ steps.package.outputs.arch }}/${{ steps.package.outputs.name }}" .
 
       - name: Inspect package
         run: |
-          rpm -qpi "${{ steps.version.outputs.package }}"
-          rpm -qpl "${{ steps.version.outputs.package }}"
+          rpm -qpi "${{ steps.package.outputs.name }}"
+          rpm -qpl "${{ steps.package.outputs.name }}"
           echo '--- provides ---'
-          rpm -qp --provides "${{ steps.version.outputs.package }}"
+          rpm -qp --provides "${{ steps.package.outputs.name }}"
           echo '--- requires ---'
-          rpm -qp --requires "${{ steps.version.outputs.package }}"
+          rpm -qp --requires "${{ steps.package.outputs.name }}"
 
           # A leaked provide or require of a bundled soname means the exclusions
           # in the spec no longer match what bundle.sh copied: the package would
           # then pull a distribution Qt in, or hand its private one out.
-          if rpm -qp --provides "${{ steps.version.outputs.package }}" | grep -E '^lib(Qt6|open62541|ssl|crypto)'; then
+          if rpm -qp --provides "${{ steps.package.outputs.name }}" | grep -E '^lib(Qt6|open62541|ssl|crypto)'; then
             echo "::error::The bundled libraries are offered as provides"
             exit 1
           fi
-          if rpm -qp --requires "${{ steps.version.outputs.package }}" | grep -E '^lib(Qt6|open62541|ssl|crypto)'; then
+          if rpm -qp --requires "${{ steps.package.outputs.name }}" | grep -E '^lib(Qt6|open62541|ssl|crypto)'; then
             echo "::error::The bundled libraries are requested as requires"
             exit 1
           fi
@@ -274,7 +219,7 @@ jobs:
       # test-build-linux.yaml.
       - name: Verify the package installs
         env:
-          PKG: ${{ steps.version.outputs.package }}
+          PKG: ${{ steps.package.outputs.name }}
           IMAGES: >-
             fedora:43
             fedora:44
@@ -335,15 +280,15 @@ jobs:
           exit "$status"
 
       - name: Compute checksum
-        run: sha256sum "${{ steps.version.outputs.package }}" > "${{ steps.version.outputs.package }}.sha256"
+        run: sha256sum "${{ steps.package.outputs.name }}" > "${{ steps.package.outputs.name }}.sha256"
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v6
         with:
-          name: ouaexp-rpm-${{ steps.version.outputs.arch }}
+          name: ouaexp-rpm-${{ steps.package.outputs.arch }}
           path: |
-            ${{ steps.version.outputs.package }}
-            ${{ steps.version.outputs.package }}.sha256
+            ${{ steps.package.outputs.name }}
+            ${{ steps.package.outputs.name }}.sha256
           if-no-files-found: error
 
       - name: Attach package to release
@@ -353,6 +298,6 @@ jobs:
           draft: true
           prerelease: ${{ steps.version.outputs.prerelease != '' }}
           files: |
-            ${{ steps.version.outputs.package }}
+            ${{ steps.package.outputs.name }}
           generate_release_notes: true
           fail_on_unmatched_files: true

@@ -50,67 +50,17 @@ jobs:
 
       - name: Determine version
         id: version
+        uses: ./.github/actions/project-version
+
+      - name: Determine package name
+        id: package
         run: |
-          version="$(
-            sed -nE '/^project\(ouaexp([[:space:]]|$)/,/\)/ s/.*VERSION[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' src/CMakeLists.txt \
-              | head -n1
-          )"
-          if [[ ! $version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            echo "::error::Could not read the project version from src/CMakeLists.txt"
-            exit 1
-          fi
-          major="${BASH_REMATCH[1]}"
-          minor="${BASH_REMATCH[2]}"
-          patch="${BASH_REMATCH[3]}"
-
-          # Mirror src/cmake/project_version.cmake, then map onto a Debian version.
-          # A pre-release must sort *before* its final release, and '-' separates the
-          # Debian revision, so 'v1.0.0-b1' becomes '1.0.0~b1' and dev snapshots get a
-          # '~dev' suffix that keeps them below every tagged release.
-          prerelease=''
-          ref='${{ github.ref }}'
-          if [[ $ref =~ ^refs/tags/v(.+)$ ]]; then
-            tag_version="${BASH_REMATCH[1]}"
-            if [[ ! $tag_version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-(.+))?$ ]]; then
-              echo "::error::Tag v$tag_version is not <major>.<minor>.<patch>[-prerelease]"
-              exit 1
-            fi
-            major="${BASH_REMATCH[1]}"
-            minor="${BASH_REMATCH[2]}"
-            patch="${BASH_REMATCH[3]}"
-            prerelease="${BASH_REMATCH[5]}"
-            if [ -n "$prerelease" ]; then
-              upstream="$major.$minor.$patch~$prerelease"
-            else
-              upstream="$major.$minor.$patch"
-            fi
-          else
-            upstream="$major.$minor~dev.g$(git rev-parse --short HEAD)"
-          fi
-
-          # AppStream carries the upstream version rather than the Debian one, so it has
-          # no revision and spells a pre-release the way the tag does. The release date is
-          # the date of the commit being built, so rebuilding a commit yields the same file.
-          if [ -n "$prerelease" ]; then
-            app_version="$major.$minor.$patch-$prerelease"
-          elif [[ $ref =~ ^refs/tags/v ]]; then
-            app_version="$major.$minor.$patch"
-          else
-            app_version="$major.$minor.$patch-dev.g$(git rev-parse --short HEAD)"
-          fi
-          release_date="$(git log -1 --format=%cs)"
-
-          deb_version="$upstream-1"
           arch="$(dpkg-architecture -qDEB_HOST_ARCH)"
-          package="ouaexp_${deb_version}_${arch}.deb"
+          package="ouaexp_${{ steps.version.outputs.debVersion }}_${arch}.deb"
 
           {
-            echo "prerelease=$prerelease"
-            echo "debVersion=$deb_version"
-            echo "appVersion=$app_version"
-            echo "releaseDate=$release_date"
             echo "arch=$arch"
-            echo "package=$package"
+            echo "name=$package"
           } >> "$GITHUB_OUTPUT"
           echo "Building $package"
 
@@ -195,7 +145,7 @@ jobs:
         run: |
           mkdir -p debian pkgroot/DEBIAN
 
-          sed -e "s|@ARCH@|${{ steps.version.outputs.arch }}|" \
+          sed -e "s|@ARCH@|${{ steps.package.outputs.arch }}|" \
               -e "s|@MAINTAINER@|${{ env.MAINTAINER }}|" \
               .github/linux/deb/control.in > debian/control
 
@@ -229,24 +179,24 @@ jobs:
           ( cd pkgroot && find . -type f ! -path './DEBIAN/*' -printf '%P\0' \
               | xargs -0 md5sum > DEBIAN/md5sums )
           fakeroot dpkg-deb --root-owner-group --build pkgroot \
-            "${{ steps.version.outputs.package }}"
+            "${{ steps.package.outputs.name }}"
 
       - name: Inspect package
         run: |
-          dpkg-deb --info "${{ steps.version.outputs.package }}"
-          dpkg-deb --contents "${{ steps.version.outputs.package }}"
+          dpkg-deb --info "${{ steps.package.outputs.name }}"
+          dpkg-deb --contents "${{ steps.package.outputs.name }}"
 
           # The bundled OpenSSL is the whole reason the package installs on a
           # distribution that has no OpenSSL 3, so a dependency on the system libssl
           # means the bundle is not being resolved and the package is back to
           # requiring one.
-          if dpkg-deb -f "${{ steps.version.outputs.package }}" Depends | grep -q libssl; then
+          if dpkg-deb -f "${{ steps.package.outputs.name }}" Depends | grep -q libssl; then
             echo "::error::The package still depends on the distribution OpenSSL"
             exit 1
           fi
 
           lintian --no-tag-display-limit --fail-on error \
-            "${{ steps.version.outputs.package }}"
+            "${{ steps.package.outputs.name }}"
 
       # Installing from the .deb resolves the generated Depends against the archive,
       # so a missing runtime dependency fails here rather than on a user's machine.
@@ -254,7 +204,7 @@ jobs:
       # resolving its libraries instead of starting it.
       - name: Verify the package installs
         env:
-          PKG: ${{ steps.version.outputs.package }}
+          PKG: ${{ steps.package.outputs.name }}
           IMAGES: >-
             debian:12
             debian:13
@@ -298,15 +248,15 @@ jobs:
           exit "$status"
 
       - name: Compute checksum
-        run: sha256sum "${{ steps.version.outputs.package }}" > "${{ steps.version.outputs.package }}.sha256"
+        run: sha256sum "${{ steps.package.outputs.name }}" > "${{ steps.package.outputs.name }}.sha256"
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v6
         with:
-          name: ouaexp-deb-${{ steps.version.outputs.arch }}
+          name: ouaexp-deb-${{ steps.package.outputs.arch }}
           path: |
-            ${{ steps.version.outputs.package }}
-            ${{ steps.version.outputs.package }}.sha256
+            ${{ steps.package.outputs.name }}
+            ${{ steps.package.outputs.name }}.sha256
           if-no-files-found: error
 
       - name: Attach package to release
@@ -316,6 +266,6 @@ jobs:
           draft: true
           prerelease: ${{ steps.version.outputs.prerelease != '' }}
           files: |
-            ${{ steps.version.outputs.package }}
+            ${{ steps.package.outputs.name }}
           generate_release_notes: true
           fail_on_unmatched_files: true
