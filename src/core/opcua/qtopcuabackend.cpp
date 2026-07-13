@@ -454,10 +454,10 @@ void QtOpcUaBackend::disconnectFromEndpoint()
 ///
 /// \brief Browses a node's children, emitting browseFinished() with the references or an error.
 /// \param nodeId Node to browse.
-/// \param timeoutMs Request timeout in milliseconds.
 ///
-void QtOpcUaBackend::browse(const QString &nodeId, int timeoutMs)
+void QtOpcUaBackend::browse(const QString &nodeId)
 {
+    const int timeoutMs = requestTimeout();
     if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit browseFinished(nodeId, {}, tr("The OPC UA client is not connected."));
         return;
@@ -546,10 +546,10 @@ void QtOpcUaBackend::enrichAndFinishBrowse(const QString &parentNodeId,
 ///
 /// \brief Browses a node's forward references, emitting referencesBrowseFinished().
 /// \param nodeId Node to browse.
-/// \param timeoutMs Request timeout in milliseconds.
 ///
-void QtOpcUaBackend::browseReferences(const QString &nodeId, int timeoutMs)
+void QtOpcUaBackend::browseReferences(const QString &nodeId)
 {
+    const int timeoutMs = requestTimeout();
     if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit referencesBrowseFinished(nodeId, {},
                                       tr("The OPC UA client is not connected."));
@@ -587,10 +587,10 @@ void QtOpcUaBackend::browseReferences(const QString &nodeId, int timeoutMs)
 ///
 /// \brief Reads a node's full attribute set, emitting nodeDetailsReady() with the formatted result.
 /// \param nodeId Node to read.
-/// \param timeoutMs Request timeout in milliseconds.
 ///
-void QtOpcUaBackend::readNode(const QString &nodeId, int timeoutMs)
+void QtOpcUaBackend::readNode(const QString &nodeId)
 {
+    const int timeoutMs = requestTimeout();
     if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit nodeDetailsReady({}, tr("The OPC UA client is not connected."));
         return;
@@ -616,10 +616,10 @@ void QtOpcUaBackend::readNode(const QString &nodeId, int timeoutMs)
 ///
 /// \brief Batch-reads the Value attribute of several nodes, emitting dataValuesReady().
 /// \param nodeIds Nodes whose Value attributes should be read.
-/// \param timeoutMs Request timeout in milliseconds.
 ///
-void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
+void QtOpcUaBackend::readValues(const QStringList &nodeIds)
 {
+    const int timeoutMs = requestTimeout();
     if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit dataValuesReady({}, tr("The OPC UA client is not connected."));
         return;
@@ -672,11 +672,11 @@ void QtOpcUaBackend::readValues(const QStringList &nodeIds, int timeoutMs)
 /// \param start Inclusive range start.
 /// \param end Inclusive range end.
 /// \param numValuesPerNode Maximum samples to return, or 0 for no limit.
-/// \param timeoutMs Request timeout in milliseconds.
 ///
 void QtOpcUaBackend::readHistoryRaw(const QString &nodeId, const QDateTime &start,
-                                    const QDateTime &end, quint32 numValuesPerNode, int timeoutMs)
+                                    const QDateTime &end, quint32 numValuesPerNode)
 {
+    const int timeoutMs = requestTimeout();
     if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit historyDataReady(nodeId, {}, tr("The OPC UA client is not connected."));
         return;
@@ -744,10 +744,10 @@ void QtOpcUaBackend::readHistoryRaw(const QString &nodeId, const QDateTime &star
 
 ///
 /// \brief Reads the SessionDiagnosticsArray and resolves this client's session name.
-/// \param timeoutMs Request timeout in milliseconds.
 ///
-void QtOpcUaBackend::readServerSessionName(int timeoutMs)
+void QtOpcUaBackend::readServerSessionName()
 {
+    const int timeoutMs = requestTimeout();
     if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit serverSessionNameResolved(QString());
         return;
@@ -772,10 +772,10 @@ void QtOpcUaBackend::readServerSessionName(int timeoutMs)
 
 ///
 /// \brief Reads the server NamespaceArray, emitting namespacesReady() with the URIs.
-/// \param timeoutMs Request timeout in milliseconds.
 ///
-void QtOpcUaBackend::requestNamespaces(int timeoutMs)
+void QtOpcUaBackend::requestNamespaces()
 {
+    const int timeoutMs = requestTimeout();
     QOpcUaClient *client = _d->connection.client();
     if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit namespacesReady({}, tr("The OPC UA client is not connected."));
@@ -815,10 +815,10 @@ void QtOpcUaBackend::requestNamespaces(int timeoutMs)
 
 ///
 /// \brief Crawls the address space, emitting namespaceStatisticsReady() with per-namespace counts.
-/// \param timeoutMs Per-browse timeout in milliseconds.
 ///
-void QtOpcUaBackend::requestNamespaceStatistics(int timeoutMs)
+void QtOpcUaBackend::requestNamespaceStatistics()
 {
+    const int timeoutMs = requestTimeout();
     QOpcUaClient *client = _d->connection.client();
     if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit namespaceStatisticsReady({}, tr("The OPC UA client is not connected."));
@@ -854,10 +854,10 @@ void QtOpcUaBackend::cancelNamespaceStatistics()
 /// which walks the remaining siblings before descending, rather than restarting at the top.
 /// \param startNodeId Node whose subtree is searched.
 /// \param pattern Case-insensitive substring matched against display names.
-/// \param timeoutMs Per-browse timeout in milliseconds.
 ///
-void QtOpcUaBackend::searchNode(const QString &startNodeId, const QString &pattern, int timeoutMs)
+void QtOpcUaBackend::searchNode(const QString &startNodeId, const QString &pattern)
 {
+    const int timeoutMs = requestTimeout();
     QOpcUaClient *client = _d->connection.client();
     if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit nodeSearchFinished({}, {}, tr("The OPC UA client is not connected."));
@@ -899,11 +899,10 @@ void QtOpcUaBackend::cancelNodeSearch()
 /// \param nodeId Node to write.
 /// \param value Typed value.
 /// \param valueType QOpcUa::Types numeric value or Undefined.
-/// \param timeoutMs Request timeout in milliseconds.
 ///
-void QtOpcUaBackend::writeValue(const QString &nodeId, const QVariant &value,
-                                int valueType, int timeoutMs)
+void QtOpcUaBackend::writeValue(const QString &nodeId, const QVariant &value, int valueType)
 {
+    const int timeoutMs = requestTimeout();
     if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit writeFinished(nodeId, false, tr("The OPC UA client is not connected."));
         return;
@@ -983,10 +982,10 @@ static QVector<OpcUaMethodArgument> argumentsFromVariant(const QVariant &value)
 ///
 /// \brief Reads a method's InputArguments/OutputArguments, emitting methodInfoReady().
 /// \param methodNodeId Method node whose argument metadata is read.
-/// \param timeoutMs Request timeout in milliseconds.
 ///
-void QtOpcUaBackend::readMethodInfo(const QString &methodNodeId, int timeoutMs)
+void QtOpcUaBackend::readMethodInfo(const QString &methodNodeId)
 {
+    const int timeoutMs = requestTimeout();
     if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit methodInfoReady(methodNodeId, {}, {}, tr("The OPC UA client is not connected."));
         return;
@@ -1114,11 +1113,11 @@ void QtOpcUaBackend::readMethodArgumentValues(const QString &methodNodeId,
 /// \param methodNodeId Method node to call.
 /// \param args Input argument values in call order.
 /// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
-/// \param timeoutMs Request timeout in milliseconds.
 ///
 void QtOpcUaBackend::callMethod(const QString &objectNodeId, const QString &methodNodeId,
-                                const QVariantList &args, const QList<int> &argTypes, int timeoutMs)
+                                const QVariantList &args, const QList<int> &argTypes)
 {
+    const int timeoutMs = requestTimeout();
     if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit methodCallFinished(methodNodeId, QVariant(), false,
                                 tr("The OPC UA client is not connected."));
@@ -1186,12 +1185,11 @@ void QtOpcUaBackend::unsubscribe(const QString &nodeId)
 /// \param start Inclusive range start.
 /// \param end Inclusive range end.
 /// \param numValuesPerNode Maximum events to return, or 0 for no limit.
-/// \param timeoutMs Request timeout in milliseconds.
 ///
 void QtOpcUaBackend::readHistoryEvents(const QString &nodeId, const QDateTime &start,
-                                       const QDateTime &end, quint32 numValuesPerNode,
-                                       int timeoutMs)
+                                       const QDateTime &end, quint32 numValuesPerNode)
 {
+    const int timeoutMs = requestTimeout();
     if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
         emit historyEventsReady(nodeId, {}, tr("The OPC UA client is not connected."));
         return;

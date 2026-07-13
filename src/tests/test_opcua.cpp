@@ -21,7 +21,8 @@
 
 #include "opcua/certificateinfo.h"
 #include "opcua/connectionprofilestore.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
+#include "opcua/qtopcuabackend.h"
 #include "opcua/pkimanager.h"
 #include "opcua/standardnodeid.h"
 #include "models/addressspacemodel.h"
@@ -246,21 +247,21 @@ void TestOpcUa::attributesModelExposesStructuredValues()
 ///
 void TestOpcUa::open62541BackendIsAvailable()
 {
-    const OpcUaClientService service;
+    const QtOpcUaBackend service;
     QVERIFY2(service.availableBackends().contains(QStringLiteral("open62541")),
              qPrintable(service.availableBackends().join(QStringLiteral(", "))));
 }
 
 void TestOpcUa::encryptedPrivateKeyPasswordIsRejected()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     const QStringList backends = service.availableBackends();
     if (backends.isEmpty())
         QSKIP("Qt OpcUa backend is not available.");
 
     ConnectionProfile profile;
     profile.backend = backends.constFirst();
-    QSignalSpy errorSpy(&service, &OpcUaClientService::errorOccurred);
+    QSignalSpy errorSpy(&service, &OpcUaBackend::errorOccurred);
     service.connectToEndpoint(profile, {}, QStringLiteral("encrypted-key-password"));
 
     QCOMPARE(errorSpy.size(), 1);
@@ -273,13 +274,13 @@ void TestOpcUa::encryptedPrivateKeyPasswordIsRejected()
 ///
 void TestOpcUa::findServersRejectsNonOpcTcpUrl()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     const QStringList backends = service.availableBackends();
     if (backends.isEmpty())
         QSKIP("Qt OpcUa backend is not available.");
 
-    QSignalSpy serversSpy(&service, &OpcUaClientService::serversDiscovered);
-    service.findServers(QStringLiteral("http://localhost:4840"), backends.constFirst());
+    QSignalSpy serversSpy(&service, &OpcUaBackend::serversDiscovered);
+    service.findServers(QStringLiteral("http://localhost:4840"), backends.constFirst(), 5000);
 
     QCOMPARE(serversSpy.size(), 1);
     const QList<QVariant> arguments = serversSpy.takeFirst();

@@ -10,25 +10,24 @@
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
-#include <QFileDialog>
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QMenu>
-#include <QMessageBox>
 #include <QMimeData>
 #include <QPushButton>
-#include <QSaveFile>
-#include <QTextStream>
 
 #include "appicons.h"
 #include "appsettings.h"
 #include "dataaccesswidget.h"
+#include "dialogs/messageboxdialog.h"
 #include "dialogs/newsubscriptiondialog.h"
+#include "fileexport.h"
 #include "headerview.h"
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
 #include "subscriptiondelegate.h"
 #include "tableview.h"
+#include "tableviewconfig.h"
 #include "ui_dataaccesswidget.h"
 
 namespace {
@@ -172,31 +171,12 @@ bool DataAccessWidget::hasData() const
 void DataAccessWidget::exportToCsv()
 {
     if (_dataModel->rowCount() == 0) {
-        QMessageBox::information(this, tr("Export Data"),
-                                 tr("There are no data-access rows to export."));
+        MessageBoxDialog::information(this, tr("Export Data"),
+                                      tr("There are no data-access rows to export."));
         return;
     }
 
-    const QString fileName = QFileDialog::getSaveFileName(
-        this, tr("Export Data"), tr("data-access.csv"),
-        tr("CSV Files (*.csv);;All Files (*)"));
-    if (fileName.isEmpty())
-        return;
-
-    QSaveFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("Export Data"),
-                             tr("Could not open '%1' for writing.").arg(fileName));
-        return;
-    }
-
-    QTextStream stream(&file);
-    stream.setEncoding(QStringConverter::Utf8);
-    stream << _dataModel->toCsv();
-    if (!file.commit()) {
-        QMessageBox::warning(this, tr("Export Data"),
-                             tr("Could not save '%1'.").arg(fileName));
-    }
+    FileExport::exportModelToCsv(this, tr("Export Data"), tr("data-access.csv"), *_dataModel);
 }
 
 ///
@@ -382,36 +362,20 @@ void DataAccessWidget::setupDataView()
     connect(ui->dataView, &QWidget::customContextMenuRequested,
             this, &DataAccessWidget::showDataContextMenu);
 
-    auto *header = ui->dataView->headerView();
-    connect(header, &HeaderView::sectionAlignmentChanged, this,
-            [this](int logicalIndex, Qt::Alignment alignment) {
-                _dataModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
-            });
-
-    header->setStretchLastSection(false);
-    header->setSectionResizeMode(DataAccessModel::ColNumber,       QHeaderView::Fixed);
-    header->setSectionResizeMode(DataAccessModel::ColNodeId,       QHeaderView::Interactive);
-    header->setSectionResizeMode(DataAccessModel::ColDisplayName,  QHeaderView::Interactive);
-    header->setSectionResizeMode(DataAccessModel::ColValue,        QHeaderView::Interactive);
-    header->setSectionResizeMode(DataAccessModel::ColDataType,     QHeaderView::Interactive);
-    header->setSectionResizeMode(DataAccessModel::ColTimestamp,    QHeaderView::Interactive);
-    header->setSectionResizeMode(DataAccessModel::ColStatus,       QHeaderView::Interactive);
-    header->setSectionResizeMode(DataAccessModel::ColSubscription, QHeaderView::Interactive);
-
-    header->setSectionAlignment(DataAccessModel::ColNumber,     Qt::AlignCenter);
-    header->setSectionAlignment(DataAccessModel::ColValue,      Qt::AlignCenter);
-    header->setSectionAlignment(DataAccessModel::ColDataType,   Qt::AlignCenter);
-    header->setSectionAlignment(DataAccessModel::ColTimestamp,  Qt::AlignCenter);
-    header->setSectionAlignment(DataAccessModel::ColStatus,     Qt::AlignCenter);
-
-    ui->dataView->setColumnWidth(DataAccessModel::ColNumber,       36 );
-    ui->dataView->setColumnWidth(DataAccessModel::ColNodeId,       220);
-    ui->dataView->setColumnWidth(DataAccessModel::ColDisplayName,  120);
-    ui->dataView->setColumnWidth(DataAccessModel::ColValue,        70 );
-    ui->dataView->setColumnWidth(DataAccessModel::ColDataType,     82 );
-    ui->dataView->setColumnWidth(DataAccessModel::ColTimestamp,    150);
-    ui->dataView->setColumnWidth(DataAccessModel::ColStatus,       86 );
-    ui->dataView->setColumnWidth(DataAccessModel::ColSubscription, 100);
+    TableViewConfig::apply(ui->dataView,
+        {
+            {DataAccessModel::ColNumber, QHeaderView::Fixed, 36, Qt::AlignCenter},
+            {DataAccessModel::ColNodeId, QHeaderView::Interactive, 220},
+            {DataAccessModel::ColDisplayName, QHeaderView::Interactive, 120},
+            {DataAccessModel::ColValue, QHeaderView::Interactive, 70, Qt::AlignCenter},
+            {DataAccessModel::ColDataType, QHeaderView::Interactive, 82, Qt::AlignCenter},
+            {DataAccessModel::ColTimestamp, QHeaderView::Interactive, 150, Qt::AlignCenter},
+            {DataAccessModel::ColStatus, QHeaderView::Interactive, 86, Qt::AlignCenter},
+            {DataAccessModel::ColSubscription, QHeaderView::Interactive, 100},
+        },
+        [this](int logicalIndex, Qt::Alignment alignment) {
+            _dataModel->setColumnAlignment(logicalIndex, alignment);
+        });
 
     connect(ui->dataView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, [this] {

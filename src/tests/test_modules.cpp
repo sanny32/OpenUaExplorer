@@ -18,7 +18,8 @@
 #include "attributemodule.h"
 #include "dataaccessmodule.h"
 #include "eventsmodule.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
+#include "opcua/qtopcuabackend.h"
 #include "servicecontext.h"
 #include "servicemodulemanager.h"
 #include "referencemodule.h"
@@ -34,9 +35,9 @@ class TestModules : public QObject
 private slots:
     void registersAllModules();
     void modulesHaveDistinctNamesAndCategories();
-    void subscribeApiReachesClientService();
-    void eventSubscribeApiReachesClientService();
-    void eventHistoryApiReachesClientService();
+    void subscribeApiReachesBackend();
+    void eventSubscribeApiReachesBackend();
+    void eventHistoryApiReachesBackend();
 };
 
 namespace {
@@ -86,11 +87,11 @@ void TestModules::modulesHaveDistinctNamesAndCategories()
 }
 
 ///
-/// \brief The DataAccessModule subscribe API forwards to the client service.
+/// \brief The DataAccessModule subscribe API forwards to the backend.
 ///
-void TestModules::subscribeApiReachesClientService()
+void TestModules::subscribeApiReachesBackend()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     DataAccessModule module;
     ServiceContext context(&service, nullptr);
     module.initialize(context);
@@ -102,11 +103,11 @@ void TestModules::subscribeApiReachesClientService()
 }
 
 ///
-/// \brief The EventsModule subscribe API forwards to the client service.
+/// \brief The EventsModule subscribe API forwards to the backend.
 ///
-void TestModules::eventSubscribeApiReachesClientService()
+void TestModules::eventSubscribeApiReachesBackend()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     EventsModule module;
     ServiceContext context(&service, nullptr);
     module.initialize(context);
@@ -118,11 +119,11 @@ void TestModules::eventSubscribeApiReachesClientService()
 }
 
 ///
-/// \brief The EventsModule event history API forwards to the client service.
+/// \brief The EventsModule event history API forwards to the backend.
 ///
-void TestModules::eventHistoryApiReachesClientService()
+void TestModules::eventHistoryApiReachesBackend()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     EventsModule module;
     ServiceContext context(&service, nullptr);
     module.initialize(context);

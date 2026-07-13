@@ -11,7 +11,7 @@
 #include "opcua/opcuatypes.h"
 #include "servicemodule.h"
 
-class OpcUaClientService;
+class OpcUaBackend;
 
 ///
 /// \brief Provides the reference browse API: request a node's references and deliver them.
@@ -52,5 +52,5 @@ private:
                                   const QVector<OpcUaNodeInfo> &references,
                                   const QString &error);
 
-    OpcUaClientService *_clientService = nullptr;
+    OpcUaBackend *_backend = nullptr;
 };

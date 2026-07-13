@@ -12,7 +12,7 @@
 
 #include <QMainWindow>
 
-#include "featureplugin.h"
+#include "featuremodule.h"
 
 ///
 /// \brief Constructs an empty feature registry.
@@ -24,18 +24,18 @@ FeatureManager::FeatureManager(QObject *parent)
 }
 
 ///
-/// \brief Destroys the feature registry and owned feature plugins.
+/// \brief Destroys the feature registry and owned feature modules.
 ///
 FeatureManager::~FeatureManager() = default;
 
 ///
-/// \brief Takes ownership of a feature plugin.
+/// \brief Takes ownership of a feature module.
 /// \param feature Feature to register.
 ///
-void FeatureManager::registerFeature(FeaturePlugin *feature)
+void FeatureManager::registerFeature(FeatureModule *feature)
 {
     if (feature)
-        _features.push_back(std::unique_ptr<FeaturePlugin>(feature));
+        _features.push_back(std::unique_ptr<FeatureModule>(feature));
 }
 
 ///
@@ -44,7 +44,7 @@ void FeatureManager::registerFeature(FeaturePlugin *feature)
 ///
 void FeatureManager::initializeAll(FeatureHost &host)
 {
-    for (const std::unique_ptr<FeaturePlugin> &feature : _features)
+    for (const std::unique_ptr<FeatureModule> &feature : _features)
         feature->initialize(host);
 }
 
@@ -54,7 +54,7 @@ void FeatureManager::initializeAll(FeatureHost &host)
 ///
 void FeatureManager::saveState(AppSettings &settings) const
 {
-    for (const std::unique_ptr<FeaturePlugin> &feature : _features)
+    for (const std::unique_ptr<FeatureModule> &feature : _features)
         feature->saveState(settings);
 }
 
@@ -64,7 +64,7 @@ void FeatureManager::saveState(AppSettings &settings) const
 ///
 void FeatureManager::restoreState(AppSettings &settings)
 {
-    for (const std::unique_ptr<FeaturePlugin> &feature : _features)
+    for (const std::unique_ptr<FeatureModule> &feature : _features)
         feature->restoreState(settings);
 }
 
@@ -73,7 +73,7 @@ void FeatureManager::restoreState(AppSettings &settings)
 ///
 void FeatureManager::clearRuntimeState()
 {
-    for (const std::unique_ptr<FeaturePlugin> &feature : _features)
+    for (const std::unique_ptr<FeatureModule> &feature : _features)
         feature->clearRuntimeState();
 }
 
@@ -83,7 +83,7 @@ void FeatureManager::clearRuntimeState()
 ///
 void FeatureManager::saveSession(SessionData &session) const
 {
-    for (const std::unique_ptr<FeaturePlugin> &feature : _features)
+    for (const std::unique_ptr<FeatureModule> &feature : _features)
         feature->saveSession(session);
 }
 
@@ -93,7 +93,7 @@ void FeatureManager::saveSession(SessionData &session) const
 ///
 void FeatureManager::restoreSession(const SessionData &session)
 {
-    for (const std::unique_ptr<FeaturePlugin> &feature : _features)
+    for (const std::unique_ptr<FeatureModule> &feature : _features)
         feature->restoreSession(session);
 }
 

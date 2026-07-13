@@ -13,21 +13,21 @@
 #include <QToolButton>
 
 #include "opcua/connectioncontroller.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "widgets/favoriteswidget.h"
 
 ///
 /// \brief Builds a favourites coordinator.
 /// \param controller Connection controller that owns saved profiles.
-/// \param clientService Client service used to decide whether a favourite can be added.
+/// \param backend Backend used to decide whether a favourite can be added.
 /// \param parent Parent widget and QObject owner.
 ///
 FavoritesCoordinator::FavoritesCoordinator(ConnectionController *controller,
-                                           OpcUaClientService *clientService,
+                                           OpcUaBackend *backend,
                                            QWidget *parent)
     : QObject(parent)
     , _controller(controller)
-    , _clientService(clientService)
+    , _backend(backend)
     , _widget(new FavoritesWidget(parent))
 {
     connect(_widget, &FavoritesWidget::connectRequested,
@@ -52,7 +52,7 @@ void FavoritesCoordinator::open(QToolButton *anchor)
 {
     const QList<ConnectionProfile> profiles = _controller->profiles();
     const ConnectionProfile active = _controller->activeProfile();
-    const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
+    const bool connected = _backend->state() == OpcUaConnectionState::Connected;
     const bool alreadyFavorite = std::any_of(
         profiles.cbegin(), profiles.cend(), [&active](const ConnectionProfile &profile) {
             return profile.isSameEndpoint(active);

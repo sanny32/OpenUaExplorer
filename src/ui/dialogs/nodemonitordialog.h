@@ -22,7 +22,7 @@ namespace Ui {
 class NodeMonitorDialog;
 }
 
-class OpcUaClientService;
+class OpcUaBackend;
 class IChartView;
 class ThemedPushButton;
 class QMimeData;
@@ -46,11 +46,11 @@ class NodeMonitorDialog : public AppBaseDialog
 
 public:
     ///
-    /// \brief Builds the dialog and wires it to the client service.
-    /// \param service OPC UA client service used to subscribe and read the node.
+    /// \brief Builds the dialog and wires it to the backend.
+    /// \param service OPC UA backend used to subscribe and read the node.
     /// \param parent Parent widget.
     ///
-    explicit NodeMonitorDialog(OpcUaClientService *service, QWidget *parent = nullptr);
+    explicit NodeMonitorDialog(OpcUaBackend *service, QWidget *parent = nullptr);
 
     ///
     /// \brief Destroys the dialog and its generated UI.
@@ -129,7 +129,7 @@ private:
     bool dropNode(const QMimeData *mimeData);
 
     Ui::NodeMonitorDialog *ui;
-    OpcUaClientService *_service;
+    OpcUaBackend *_service;
     std::unique_ptr<IChartView> _chart;
     ThemedPushButton *_settingsButton = nullptr;
     TrendSeries _series;

@@ -17,7 +17,7 @@ class ServiceContext;
 ///
 /// \brief Base class for a compiled-in functional area (address space, attributes, data access, ...).
 ///
-/// Each module owns its area's OpcUaClientService wiring and logs that area's operations
+/// Each module owns its area's OpcUaBackend wiring and logs that area's operations
 /// under its own logging category, so the activity log's Source column names the module.
 ///
 class ServiceModule : public QObject
@@ -50,7 +50,7 @@ public:
 
     ///
     /// \brief Wires the module to the shared services once, at startup.
-    /// \param context Host context granting access to the client service, widgets, and hub.
+    /// \param context Host context granting access to the backend, widgets, and hub.
     ///
     virtual void initialize(ServiceContext &context) = 0;
 };

@@ -66,8 +66,14 @@ add_library(ouaexp_ui STATIC
     connectioncoordinator.h
     dataaccesscoordinator.cpp
     dataaccesscoordinator.h
+    dataaccessmonitoringstate.cpp
+    dataaccessmonitoringstate.h
     favoritescoordinator.cpp
     favoritescoordinator.h
+    fileexport.cpp
+    fileexport.h
+    sessioncoordinator.cpp
+    sessioncoordinator.h
     themecoordinator.cpp
     themecoordinator.h
     ${UI_FILES}
@@ -80,10 +86,11 @@ add_library(ouaexp_ui STATIC
     features/builtinfeatures.h
     features/featurehost.cpp
     features/featurehost.h
+    features/featurecommands.h
     features/featuremanager.cpp
     features/featuremanager.h
-    features/featureplugin.cpp
-    features/featureplugin.h
+    features/featuremodule.cpp
+    features/featuremodule.h
     features/logfeature.cpp
     features/logfeature.h
     features/selectioncontext.cpp
@@ -196,6 +203,8 @@ add_library(ouaexp_ui STATIC
     widgets/severitydelegate.h
     widgets/tableview.cpp
     widgets/tableview.h
+    widgets/tableviewconfig.cpp
+    widgets/tableviewconfig.h
     widgets/themedaction.cpp
     widgets/themedaction.h
     widgets/themediconlabel.cpp
@@ -210,6 +219,8 @@ add_library(ouaexp_ui STATIC
     widgets/themepreviewbutton.h
     widgets/trendgraphwidget.cpp
     widgets/trendgraphwidget.h
+    widgets/trendgraphstate.cpp
+    widgets/trendgraphstate.h
     widgets/trendgraphtoolbar.cpp
     widgets/trendgraphtoolbar.h
     widgets/trendpanelwidget.cpp

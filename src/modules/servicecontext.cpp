@@ -8,16 +8,16 @@
 
 #include "servicecontext.h"
 
-ServiceContext::ServiceContext(OpcUaClientService *clientService,
+ServiceContext::ServiceContext(OpcUaBackend *backend,
                              ConnectionController *connectionController)
-    : _clientService(clientService)
+    : _backend(backend)
     , _connectionController(connectionController)
 {
 }
 
-OpcUaClientService *ServiceContext::clientService() const
+OpcUaBackend *ServiceContext::backend() const
 {
-    return _clientService;
+    return _backend;
 }
 
 ConnectionController *ServiceContext::connectionController() const

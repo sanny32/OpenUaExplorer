@@ -21,7 +21,7 @@
 /// \param mainWindow Main window receiving feature UI.
 /// \param viewMenu View menu receiving dock toggle actions.
 /// \param toolBar Main toolbar.
-/// \param clientService Shared OPC UA client service.
+/// \param backend Shared OPC UA backend.
 /// \param connectionController Shared connection controller.
 /// \param dataModules Shared data-module registry.
 /// \param features Feature registry receiving contributions.
@@ -30,7 +30,7 @@
 FeatureHost::FeatureHost(QMainWindow *mainWindow,
                          QMenu *viewMenu,
                          QToolBar *toolBar,
-                         OpcUaClientService *clientService,
+                         OpcUaBackend *backend,
                          ConnectionController *connectionController,
                          ServiceModuleManager *dataModules,
                          FeatureManager *features,
@@ -38,7 +38,7 @@ FeatureHost::FeatureHost(QMainWindow *mainWindow,
     : _mainWindow(mainWindow)
     , _viewMenu(viewMenu)
     , _toolBar(toolBar)
-    , _clientService(clientService)
+    , _backend(backend)
     , _connectionController(connectionController)
     , _dataModules(dataModules)
     , _features(features)
@@ -74,12 +74,12 @@ QToolBar *FeatureHost::toolBar() const
 }
 
 ///
-/// \brief Returns the OPC UA client service.
-/// \return Client service.
+/// \brief Returns the OPC UA backend.
+/// \return Backend.
 ///
-OpcUaClientService *FeatureHost::clientService() const
+OpcUaBackend *FeatureHost::backend() const
 {
-    return _clientService;
+    return _backend;
 }
 
 ///

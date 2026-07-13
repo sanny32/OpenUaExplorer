@@ -6,6 +6,8 @@
 /// \brief Implements the application class.
 ///
 
+#include <QFileInfo>
+
 #include "appstyle.h"
 #include "application.h"
 #include "loggingcategories.h"
@@ -26,6 +28,10 @@ Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
     , _theme(this)
 {
+#ifdef Q_OS_LINUX
+    configureCertificateStore();
+#endif
+
     setOrganizationName(QStringLiteral(APP_PRODUCT_NAME));
     setApplicationName(QStringLiteral(APP_VERSION));
     setApplicationVersion(QStringLiteral(APP_VERSION));
@@ -71,6 +77,50 @@ void Application::setTimestampMode(AppSettings::TimestampMode mode)
     settings.setTimestampMode(mode);
     emit timestampModeChanged(mode);
 }
+
+#ifdef Q_OS_LINUX
+///
+/// \brief Points OpenSSL at the trust store of the distribution it is running on.
+///
+/// The packaged build carries its own OpenSSL, which has /etc/ssl compiled into it as
+/// the place to look for CA certificates: that is where Debian, Ubuntu, Astra and
+/// openSUSE keep them, and Fedora and RHEL symlink it onto their own. ALT keeps them
+/// in /var/lib/ssl and has no such symlink, so there the store has to be found at run
+/// time. It is looked up only when the compiled-in path is absent, and never against
+/// an environment that already names one.
+///
+void Application::configureCertificateStore()
+{
+    if (QFileInfo::exists(QStringLiteral("/etc/ssl/certs")))
+        return;
+
+    if (qEnvironmentVariableIsSet("SSL_CERT_FILE") || qEnvironmentVariableIsSet("SSL_CERT_DIR"))
+        return;
+
+    static const char *const bundles[] = {
+        "/var/lib/ssl/cert.pem",
+        "/etc/pki/tls/certs/ca-bundle.crt",
+    };
+    static const char *const directories[] = {
+        "/var/lib/ssl/certs",
+        "/etc/pki/tls/certs",
+    };
+
+    for (const char *const bundle : bundles) {
+        if (QFileInfo::exists(QString::fromLatin1(bundle))) {
+            qputenv("SSL_CERT_FILE", bundle);
+            break;
+        }
+    }
+
+    for (const char *const directory : directories) {
+        if (QFileInfo::exists(QString::fromLatin1(directory))) {
+            qputenv("SSL_CERT_DIR", directory);
+            break;
+        }
+    }
+}
+#endif
 
 ///
 /// \brief Generates the application client certificate when the auto-generated pair is absent.

@@ -8,7 +8,7 @@
 
 #pragma once
 
-class OpcUaClientService;
+class OpcUaBackend;
 class ConnectionController;
 
 ///
@@ -22,17 +22,17 @@ class ServiceContext
 public:
     ///
     /// \brief Captures the core services shared with the modules.
-    /// \param clientService OPC UA client service performing all operations.
+    /// \param backend OPC UA backend performing all operations.
     /// \param connectionController Connection/profile controller.
     ///
-    ServiceContext(OpcUaClientService *clientService,
+    ServiceContext(OpcUaBackend *backend,
                   ConnectionController *connectionController);
 
     ///
-    /// \brief Returns the OPC UA client service.
-    /// \return Client service.
+    /// \brief Returns the OPC UA backend.
+    /// \return Backend.
     ///
-    OpcUaClientService *clientService() const;
+    OpcUaBackend *backend() const;
 
     ///
     /// \brief Returns the connection controller.
@@ -41,6 +41,6 @@ public:
     ConnectionController *connectionController() const;
 
 private:
-    OpcUaClientService *_clientService;
+    OpcUaBackend *_backend;
     ConnectionController *_connectionController;
 };

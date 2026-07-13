@@ -20,7 +20,6 @@
 #include "eventsmodule.h"
 #include "features/selectioncontext.h"
 #include "opcua/opcuabackend.h"
-#include "opcua/opcuaclientservice.h"
 #include "servicecontext.h"
 #include "widgets/dataview.h"
 #include "widgets/trendpanelwidget.h"
@@ -44,11 +43,11 @@ public:
     void connectToEndpoint(const ConnectionProfile &, const QString &,
                            const QString &) override {}
     void disconnectFromEndpoint() override {}
-    void browse(const QString &, int) override {}
-    void browseReferences(const QString &, int) override {}
-    void readNode(const QString &nodeId, int) override { readNodeIds.append(nodeId); }
-    void readValues(const QStringList &, int) override {}
-    void writeValue(const QString &, const QVariant &, int, int) override {}
+    void browse(const QString &) override {}
+    void browseReferences(const QString &) override {}
+    void readNode(const QString &nodeId) override { readNodeIds.append(nodeId); }
+    void readValues(const QStringList &) override {}
+    void writeValue(const QString &, const QVariant &, int) override {}
     void subscribe(const QString &nodeId, double) override { subscribedNodeIds.append(nodeId); }
     void unsubscribe(const QString &nodeId) override { unsubscribedNodeIds.append(nodeId); }
 
@@ -70,8 +69,7 @@ public:
 struct CoordinatorHarness
 {
     CoordinatorHarness()
-        : service(&backend)
-        , context(&service, nullptr)
+        : context(&backend, nullptr)
     {
         dataAccess.initialize(context);
         events.initialize(context);
@@ -95,7 +93,7 @@ struct CoordinatorHarness
 
         coordinator = new DataAccessCoordinator(&dataView, &trendPanel, &dataAccess,
                                                 &events, &attributes, &selection,
-                                                &service, actions, &window);
+                                                &backend, actions, &window);
     }
 
     QAction *newAction()
@@ -124,7 +122,6 @@ struct CoordinatorHarness
 
     QWidget window;
     CoordinatorFakeBackend backend;
-    OpcUaClientService service;
     ServiceContext context;
     DataAccessModule dataAccess;
     EventsModule events;

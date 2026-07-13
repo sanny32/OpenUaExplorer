@@ -11,14 +11,8 @@
 #include <QAction>
 #include <QCloseEvent>
 #include <QDesktopServices>
-#include <QDir>
 #include <QEvent>
 #include <QFileDialog>
-#include <QFileInfo>
-#include <QMenu>
-#include <QMessageBox>
-#include <QRegularExpression>
-#include <QStringList>
 #include <QTimer>
 #include <QUrl>
 
@@ -36,15 +30,17 @@
 #include "widgets/subscriptionswidget.h"
 #include "dialogs/settingsdialog.h"
 #include "features/builtinfeatures.h"
+#include "features/featurecommands.h"
 #include "features/featurehost.h"
 #include "features/featuremanager.h"
 #include "features/selectioncontext.h"
 #include "mainwindow.h"
 #include "connectioncoordinator.h"
 #include "dataaccesscoordinator.h"
+#include "sessioncoordinator.h"
 #include "themecoordinator.h"
 #include "opcua/connectioncontroller.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "addressspacemodule.h"
 #include "attributemodule.h"
 #include "dataaccessmodule.h"
@@ -53,115 +49,10 @@
 #include "servicemodulemanager.h"
 #include "referencemodule.h"
 #include "servermodule.h"
-#include "session/sessionstore.h"
 #include "updatechecker.h"
 #include "ui_mainwindow.h"
 #include "widgets/maintoolbar.h"
 #include "widgets/themedtoolbutton.h"
-
-namespace {
-
-///
-/// \brief Makes a string safe for use as a file name.
-/// \param value Source text.
-/// \param fallback Text used when the result becomes empty.
-/// \return File name without filesystem separators or control characters.
-///
-QString fileNameSegment(QString value, const QString &fallback)
-{
-    value = value.trimmed();
-    static const QRegularExpression invalidChars(QStringLiteral(R"([<>:"/\\|?*\x00-\x1f]+)"));
-    value.replace(invalidChars, QStringLiteral("_"));
-    value.replace(QRegularExpression(QStringLiteral(R"(\s+)")), QStringLiteral("_"));
-    while (value.endsWith(QLatin1Char('.')) || value.endsWith(QLatin1Char(' ')))
-        value.chop(1);
-    return value.isEmpty() ? fallback : value;
-}
-
-///
-/// \brief Builds an order-independent fingerprint of a session's saveable workspace.
-/// \param data Session payload whose subscriptions, monitored nodes and trend nodes are hashed.
-/// \return Byte string that changes only when the workspace content changes.
-///
-/// Cosmetic navigation state (expanded and selected nodes) and the connection profile are
-/// excluded, so re-opening the same server or expanding the tree does not read as an edit.
-///
-QByteArray sessionFingerprint(const SessionData &data)
-{
-    QStringList subscriptions;
-    subscriptions.reserve(data.subscriptions.size());
-    for (const SubscriptionItem &item : data.subscriptions) {
-        subscriptions.append(item.name + QLatin1Char('\x1f')
-                             + QString::number(item.publishingInterval, 'g', 10));
-    }
-    subscriptions.sort();
-
-    QStringList nodes;
-    nodes.reserve(data.dataAccessNodes.size());
-    for (const SessionNode &node : data.dataAccessNodes)
-        nodes.append(node.nodeId + QLatin1Char('\x1f') + node.subscriptionName);
-    nodes.sort();
-
-    QStringList trends;
-    trends.reserve(data.trendTabs.size());
-    for (const SessionTrendTab &tab : data.trendTabs) {
-        QString entry;
-        entry += QString::number(tab.autoScale) + QString::number(tab.showLegend)
-            + QString::number(tab.showGrid) + QString::number(tab.smoothLines)
-            + QString::number(tab.lineType) + QString::number(tab.showPoints)
-            + QString::number(tab.showValueTooltip) + QString::number(tab.labelMode)
-            + QString::number(tab.autoScrollLive) + QLatin1Char('\x1f') + tab.liveSubscription
-            + QLatin1Char('\x1f') + QString::number(tab.mode)
-            + QLatin1Char('\x1f') + QString::number(tab.windowMs);
-        for (const SessionTrendSeries &series : tab.series) {
-            entry += QLatin1Char('\x1f') + series.nodeId + QLatin1Char('\x1d')
-                + series.displayName + QLatin1Char('\x1d') + series.displayPath
-                + QLatin1Char('\x1d') + series.color + QLatin1Char('\x1d')
-                + QString::number(series.visible);
-        }
-        trends.append(entry);
-    }
-
-    QStringList monitors;
-    monitors.reserve(data.nodeMonitors.size());
-    for (const SessionNodeMonitor &monitor : data.nodeMonitors) {
-        monitors.append(monitor.nodeId + QLatin1Char('\x1f') + monitor.subscriptionName
-            + QLatin1Char('\x1f') + QString::number(monitor.alwaysOnTop)
-            + QString::number(monitor.autoScale) + QString::number(monitor.stepLines)
-            + QString::number(monitor.showGrid) + QString::number(monitor.showLegend)
-            + QString::number(monitor.showPoints) + QString::number(monitor.showValueTooltip));
-    }
-    monitors.sort();
-
-    const QString blob = subscriptions.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
-        + nodes.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
-        + trends.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
-        + monitors.join(QLatin1Char('\n'));
-    return blob.toUtf8();
-}
-
-///
-/// \brief Reports whether a session carries a workspace worth saving.
-/// \param data Session payload to inspect.
-/// \return True when it has subscriptions, monitored nodes, monitor windows, or charted series.
-///
-/// The trend panel always keeps one empty default tab, so an empty tab alone does
-/// not count as content.
-///
-bool sessionHasContent(const SessionData &data)
-{
-    if (!data.subscriptions.isEmpty() || !data.dataAccessNodes.isEmpty()
-        || !data.nodeMonitors.isEmpty())
-        return true;
-    for (const SessionTrendTab &tab : data.trendTabs) {
-        if (!tab.series.isEmpty())
-            return true;
-    }
-    return false;
-}
-
-} // namespace
-
 
 ///
 /// \brief Builds the window, wires up menus, docks, icons, and the OPC UA client.
@@ -171,11 +62,9 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , _connectionController(new ConnectionController(this))
-    , _clientService(_connectionController->clientService())
+    , _backend(_connectionController->backend())
 {
     ui->setupUi(this);
-
-    updateWindowTitle();
 
     const bool manualThemeSupported = theApp()->theme().isManualToggleSupported();
     ui->actionTheme->setVisible(manualThemeSupported);
@@ -195,16 +84,18 @@ MainWindow::MainWindow(QWidget *parent)
     setupOpcUaClient();
     setupUpdateChecker();
     setupModules();
+    setupSessionCoordinator();
     resetLayout();
     restoreSettings();
     ui->actionOpenSession->setEnabled(true);
     ui->actionExportLog->setEnabled(true);
-    updateClientUi(_clientService->state());
-    rebuildRecentSessionsMenu();
+    updateClientUi(_backend->state());
+    _sessionCoordinator->rebuildRecentSessionsMenu();
 
     auto *modifiedTimer = new QTimer(this);
     modifiedTimer->setInterval(500);
-    connect(modifiedTimer, &QTimer::timeout, this, &MainWindow::updateModifiedState);
+    connect(modifiedTimer, &QTimer::timeout,
+            _sessionCoordinator, &SessionCoordinator::updateModifiedState);
     modifiedTimer->start();
 }
 
@@ -235,7 +126,7 @@ void MainWindow::changeEvent(QEvent *event)
 ///
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (!maybeSaveSession()) {
+    if (!_sessionCoordinator->maybeSaveSession()) {
         event->ignore();
         return;
     }
@@ -260,7 +151,7 @@ void MainWindow::on_actionOpenSession_triggered()
         this, tr("Open Session"), QString(),
         tr("Session Files (*.ouas);;All Files (*)"));
     if (!path.isEmpty())
-        openSessionFromFile(path);
+        _sessionCoordinator->openSessionFromFile(path);
 }
 
 ///
@@ -268,28 +159,7 @@ void MainWindow::on_actionOpenSession_triggered()
 ///
 void MainWindow::on_actionSaveSession_triggered()
 {
-    saveCurrentSession();
-}
-
-///
-/// \brief Saves the session, writing to the current file or prompting for a new one.
-/// \return True when the session was saved, false when the user cancelled.
-///
-bool MainWindow::saveCurrentSession()
-{
-    if (!_sessionPath.isEmpty())
-        return saveSessionToFile(_sessionPath);
-
-    const ConnectionProfile &profile = _connectionController->activeProfile();
-    QString base = !profile.sessionName.isEmpty() ? profile.sessionName : profile.name;
-    base.remove(QRegularExpression(QStringLiteral(R"(^[A-Za-z][A-Za-z0-9.+-]*://)")));
-    const QString suggested = fileNameSegment(base, tr("session")) + QStringLiteral(".ouas");
-    const QString path = QFileDialog::getSaveFileName(
-        this, tr("Save Session"), suggested,
-        tr("Session Files (*.ouas);;All Files (*)"));
-    if (path.isEmpty())
-        return false;
-    return saveSessionToFile(path);
+    _sessionCoordinator->saveCurrentSession();
 }
 
 ///
@@ -305,7 +175,7 @@ void MainWindow::on_actionExportData_triggered()
 ///
 void MainWindow::on_actionExportLog_triggered()
 {
-    _featureManager->triggerCommand(QStringLiteral("log.export"));
+    _featureManager->triggerCommand(FeatureCommandIds::logExport());
 }
 
 ///
@@ -373,7 +243,7 @@ void MainWindow::on_actionCertificates_triggered()
 ///
 void MainWindow::on_actionNamespaceInspector_triggered()
 {
-    NamespaceInspectorDialog dialog(_clientService, &_namespaceCache, this);
+    NamespaceInspectorDialog dialog(_backend, &_namespaceCache, this);
     dialog.exec();
 }
 
@@ -389,12 +259,12 @@ void MainWindow::on_actionNodeMonitor_triggered()
 }
 
 ///
-/// \brief Creates an independent modeless node monitor bound to the client service.
+/// \brief Creates an independent modeless node monitor bound to the backend.
 /// \return The new node monitor instance, tracked until it is closed.
 ///
 NodeMonitorDialog *MainWindow::createNodeMonitor()
 {
-    auto *monitor = new NodeMonitorDialog(_clientService, this);
+    auto *monitor = new NodeMonitorDialog(_backend, this);
     monitor->setAttribute(Qt::WA_DeleteOnClose, true);
     if (SubscriptionsWidget *subscriptions = ui->dataView->subscriptions()) {
         monitor->setSubscriptions(subscriptions->subscriptions());
@@ -449,7 +319,7 @@ void MainWindow::closeNodeMonitors()
 ///
 void MainWindow::openCallMethod(const OpcUaNodeInfo &object, const OpcUaNodeInfo &method)
 {
-    auto *dialog = new CallMethodDialog(_clientService, this);
+    auto *dialog = new CallMethodDialog(_backend, this);
     dialog->setAttribute(Qt::WA_DeleteOnClose, true);
     dialog->setTarget(object, method);
     dialog->show();
@@ -747,274 +617,6 @@ void MainWindow::restoreSettings()
 }
 
 ///
-/// \brief Serializes the active connection and monitoring workspace to a session file.
-/// \param path Destination file path.
-///
-bool MainWindow::saveSessionToFile(const QString &path)
-{
-    const SessionData data = collectSessionData();
-
-    QString error;
-    if (!SessionStore::save(path, data, &error)) {
-        QMessageBox::warning(this, tr("Save Session"),
-                             tr("Could not save the session:\n%1").arg(error));
-        return false;
-    }
-
-    _savedSessionFingerprint = sessionFingerprint(data);
-    setCurrentSessionPath(path);
-    recordRecentSession(path);
-    return true;
-}
-
-///
-/// \brief Gathers only the saveable monitoring workspace, cheaply, for change detection.
-/// \return Subscriptions, monitored nodes and trend tabs, without profile or navigation state.
-///
-SessionData MainWindow::sessionWorkspace() const
-{
-    SessionData data;
-    data.subscriptions = _dataAccessCoordinator->sessionSubscriptions();
-    const QVector<QPair<QString, QString>> nodes = _dataAccessCoordinator->monitoredNodes();
-    for (const QPair<QString, QString> &node : nodes)
-        data.dataAccessNodes.append({node.first, node.second});
-    data.trendTabs = _dataAccessCoordinator->trendTabs();
-    for (NodeMonitorDialog *monitor : _nodeMonitors) {
-        if (monitor->nodeId().isEmpty())
-            continue;
-        data.nodeMonitors.append(monitor->captureSession());
-    }
-    return data;
-}
-
-///
-/// \brief Gathers the current connection and monitoring workspace into a session payload.
-/// \return Session snapshot suitable for persistence or fingerprinting.
-///
-SessionData MainWindow::collectSessionData() const
-{
-    SessionData data = sessionWorkspace();
-    data.profile = _connectionController->activeProfile();
-    _featureManager->saveSession(data);
-    return data;
-}
-
-///
-/// \brief Loads a session file and connects, deferring the workspace restore to connect time.
-/// \param path Source file path.
-///
-void MainWindow::openSessionFromFile(const QString &path)
-{
-    SessionData data;
-    QString error;
-    if (!SessionStore::load(path, data, &error)) {
-        QMessageBox::warning(this, tr("Open Session"),
-                             tr("Could not open the session:\n%1").arg(error));
-        return;
-    }
-
-    _pendingSession = data;
-    _pendingSessionPath = path;
-    _hasPendingSession = true;
-    recordRecentSession(path);
-
-    if (data.profile.authentication == ConnectionProfile::Authentication::Anonymous)
-        _connectionController->connectSavedProfileWithCredentials(data.profile, QString(), QString());
-    else
-        _connectionCoordinator->openConnectionDialog(&data.profile);
-}
-
-///
-/// \brief Records a session file as most-recent and refreshes the Recent Sessions menu.
-/// \param path Session file path that was opened or saved.
-///
-void MainWindow::recordRecentSession(const QString &path)
-{
-    _recentSessions.record(path);
-    rebuildRecentSessionsMenu();
-}
-
-///
-/// \brief Rebuilds the Recent Sessions menu from the stored history, hiding missing files.
-///
-void MainWindow::rebuildRecentSessionsMenu()
-{
-    ui->menuRecentSessions->clear();
-
-    QStringList existing;
-    const QStringList recent = _recentSessions.sessions();
-    for (const QString &path : recent) {
-        if (QFileInfo::exists(path))
-            existing.append(path);
-    }
-
-    if (existing.isEmpty()) {
-        ui->menuRecentSessions->addAction(tr("No Recent Sessions"))->setEnabled(false);
-        return;
-    }
-
-    for (const QString &path : existing) {
-        QAction *action = ui->menuRecentSessions->addAction(QFileInfo(path).completeBaseName());
-        action->setData(path);
-        action->setToolTip(QDir::toNativeSeparators(path));
-        connect(action, &QAction::triggered, this, &MainWindow::openRecentSession);
-    }
-}
-
-///
-/// \brief Opens the recent session carried by the triggering menu action.
-///
-void MainWindow::openRecentSession()
-{
-    auto *action = qobject_cast<QAction *>(sender());
-    if (!action)
-        return;
-    const QString path = action->data().toString();
-    if (!path.isEmpty())
-        openSessionFromFile(path);
-}
-
-///
-/// \brief Restores the pending session's workspace once its endpoint is connected.
-///
-void MainWindow::applyPendingSession()
-{
-    if (!_hasPendingSession)
-        return;
-
-    if (!_connectionController->activeProfile().isSameEndpoint(_pendingSession.profile))
-        return;
-
-    _hasPendingSession = false;
-    const SessionData session = _pendingSession;
-    const QString sessionPath = _pendingSessionPath;
-    _pendingSession = {};
-    _pendingSessionPath.clear();
-
-    _dataAccessCoordinator->restoreSubscriptions(session.subscriptions);
-
-    QVector<QPair<QString, QString>> nodes;
-    nodes.reserve(session.dataAccessNodes.size());
-    for (const SessionNode &node : session.dataAccessNodes)
-        nodes.append({node.nodeId, node.subscriptionName});
-    _dataAccessCoordinator->restoreMonitoredNodes(nodes);
-
-    if (!session.trendTabs.isEmpty())
-        _dataAccessCoordinator->restoreTrendTabs(session.trendTabs);
-    else
-        _dataAccessCoordinator->restoreTrendNodes(session.trendNodes);
-
-    _featureManager->restoreSession(session);
-
-    for (const SessionNodeMonitor &monitorState : session.nodeMonitors) {
-        NodeMonitorDialog *monitor = createNodeMonitor();
-        monitor->restoreSession(monitorState);
-        monitor->show();
-    }
-
-    _savedSessionFingerprint = sessionFingerprint(session);
-    setCurrentSessionPath(sessionPath);
-}
-
-///
-/// \brief Records the file backing the open session and refreshes the window title.
-/// \param path Session file path, or empty when no session file is associated.
-///
-void MainWindow::setCurrentSessionPath(const QString &path)
-{
-    _sessionPath = path;
-    updateWindowTitle();
-    updateModifiedState();
-}
-
-///
-/// \brief Forgets the open session so a later close raises no save prompt.
-///
-void MainWindow::closeCurrentSession()
-{
-    if (_sessionPath.isEmpty() && _savedSessionFingerprint.isEmpty())
-        return;
-    _savedSessionFingerprint.clear();
-    setCurrentSessionPath(QString());
-}
-
-///
-/// \brief Returns the session name shown in the window title.
-/// \return Open session file's base name, or a placeholder when none is open.
-///
-QString MainWindow::sessionDisplayName() const
-{
-    if (_sessionPath.isEmpty())
-        return tr("Untitled");
-    return QFileInfo(_sessionPath).completeBaseName();
-}
-
-///
-/// \brief Sets the window title to the product name followed by the session name.
-///
-void MainWindow::updateWindowTitle()
-{
-    setWindowTitle(QStringLiteral("%1 — %2[*]")
-                       .arg(QString::fromUtf8(APP_PRODUCT_NAME), sessionDisplayName()));
-}
-
-///
-/// \brief Marks the window modified when the session has unsaved changes.
-///
-/// Drives the "[*]" marker in the window title. An open session is modified when its
-/// workspace differs from the saved snapshot; an untitled session is modified once it
-/// holds any content worth saving.
-///
-void MainWindow::updateModifiedState()
-{
-    const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
-    const SessionData data = sessionWorkspace();
-    const bool modified = connected
-        && (_sessionPath.isEmpty() ? sessionHasContent(data)
-                                   : sessionFingerprint(data) != _savedSessionFingerprint);
-    if (modified != isWindowModified())
-        setWindowModified(modified);
-}
-
-///
-/// \brief Offers to save an open session that has unsaved changes before it is discarded.
-/// \return True to proceed with closing, false when the user cancels.
-///
-bool MainWindow::maybeSaveSession()
-{
-    if (_clientService->state() != OpcUaConnectionState::Connected)
-        return true;
-
-    const SessionData data = sessionWorkspace();
-
-    QString message;
-    if (_sessionPath.isEmpty()) {
-        if (!sessionHasContent(data))
-            return true;
-        message = tr("The current session has unsaved changes.\nDo you want to save them?");
-    } else {
-        if (sessionFingerprint(data) == _savedSessionFingerprint)
-            return true;
-        message = tr("The session \"%1\" has unsaved changes.\nDo you want to save them?")
-                      .arg(sessionDisplayName());
-    }
-
-    const DialogButtonBox::StandardButton choice = MessageBoxDialog::warning(
-        this, tr("Save Session"), message,
-        DialogButtonBox::Save | DialogButtonBox::Discard | DialogButtonBox::Cancel,
-        DialogButtonBox::Save);
-
-    switch (choice) {
-    case DialogButtonBox::Save:
-        return saveCurrentSession();
-    case DialogButtonBox::Discard:
-        return true;
-    default:
-        return false;
-    }
-}
-
-///
 /// \brief Removes HistoryRead entry points when the linked Qt OPC UA API cannot serve them.
 ///
 void MainWindow::configureHistoryUi()
@@ -1036,11 +638,11 @@ void MainWindow::configureHistoryUi()
 }
 
 ///
-/// \brief Wires the client service and connection controller signals to the UI.
+/// \brief Wires the backend and connection controller signals to the UI.
 ///
 void MainWindow::setupOpcUaClient()
 {
-    connect(_clientService, &OpcUaClientService::stateChanged,
+    connect(_backend, &OpcUaBackend::stateChanged,
             this, &MainWindow::updateClientUi);
 
     ConnectionActions connectionActions;
@@ -1052,7 +654,7 @@ void MainWindow::setupOpcUaClient()
     connectionActions.refresh = ui->actionRefresh;
     connectionActions.endpointSettings = ui->actionEndpointSettings;
     _connectionCoordinator = new ConnectionCoordinator(_connectionController,
-                                                       _clientService,
+                                                       _backend,
                                                        ui->menuRecentConnections,
                                                        ui->mainToolBar->favoritesButton(),
                                                        connectionActions,
@@ -1134,7 +736,7 @@ void MainWindow::setupModules()
     FeatureHost host(this,
                      ui->menuView,
                      ui->mainToolBar,
-                     _clientService,
+                     _backend,
                      _connectionController,
                      _moduleManager,
                      _featureManager,
@@ -1142,7 +744,7 @@ void MainWindow::setupModules()
     registerBuiltinFeatures(*_featureManager);
     _featureManager->initializeAll(host);
 
-    ServiceContext context(_clientService, _connectionController);
+    ServiceContext context(_backend, _connectionController);
     _moduleManager->initializeAll(context);
 
     DataAccessActions dataAccessActions;
@@ -1167,7 +769,7 @@ void MainWindow::setupModules()
                                                        _eventsModule,
                                                        _attributeModule,
                                                        _selectionContext,
-                                                       _clientService,
+                                                       _backend,
                                                        dataAccessActions,
                                                        this);
 
@@ -1175,6 +777,32 @@ void MainWindow::setupModules()
             this, &MainWindow::openNodeMonitor);
     connect(_selectionContext, &SelectionContext::callMethodRequested,
             this, &MainWindow::openCallMethod);
+}
+
+void MainWindow::setupSessionCoordinator()
+{
+    SessionCoordinatorContext context;
+    context.window = this;
+    context.recentSessionsMenu = ui->menuRecentSessions;
+    context.connectionController = _connectionController;
+    context.connectionCoordinator = _connectionCoordinator;
+    context.dataAccessCoordinator = _dataAccessCoordinator;
+    context.featureManager = _featureManager;
+    context.backend = _backend;
+    context.captureNodeMonitors = [this] {
+        QVector<SessionNodeMonitor> monitors;
+        for (NodeMonitorDialog *monitor : _nodeMonitors) {
+            if (!monitor->nodeId().isEmpty())
+                monitors.append(monitor->captureSession());
+        }
+        return monitors;
+    };
+    context.restoreNodeMonitor = [this](const SessionNodeMonitor &monitorState) {
+        NodeMonitorDialog *monitor = createNodeMonitor();
+        monitor->restoreSession(monitorState);
+        monitor->show();
+    };
+    _sessionCoordinator = new SessionCoordinator(context, this);
 }
 
 ///
@@ -1192,14 +820,14 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     ui->actionExportData->setEnabled(connected);
     if (connected) {
         initializeAddressSpace();
-        applyPendingSession();
+        _sessionCoordinator->applyPendingSession();
     } else if (idle) {
         _dataAccessCoordinator->clearRuntimeState();
         _selectionContext->clear();
         _featureManager->clearRuntimeState();
         _namespaceCache = {};
         closeNodeMonitors();
-        closeCurrentSession();
+        _sessionCoordinator->closeCurrentSession();
     }
 }
 
@@ -1208,7 +836,7 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
 ///
 void MainWindow::initializeAddressSpace()
 {
-    _featureManager->triggerCommand(QStringLiteral("addressSpace.browse"));
+    _featureManager->triggerCommand(FeatureCommandIds::addressSpaceBrowse());
 }
 
 ///

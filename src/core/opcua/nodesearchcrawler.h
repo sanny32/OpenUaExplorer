@@ -9,29 +9,21 @@
 #pragma once
 
 #include <QHash>
-#include <QObject>
-#include <QPointer>
 #include <QQueue>
-#include <QSet>
 #include <QString>
 #include <QStringList>
-#include <QTimer>
 
-#include <QOpcUaNode>
-#include <QOpcUaReferenceDescription>
+#include "addressspacecrawler.h"
 
 class QOpcUaClient;
 
 ///
-/// \brief Breadth-first crawler that locates the first node whose display name matches a pattern.
+/// \brief Breadth-first crawler that locates the nodes whose display name matches a pattern.
 ///
-/// Runs on its own QOpcUaNode instances so it never touches the shared browse
-/// pipeline used by the address-space browser, whose requests supersede one
-/// another. Browsing is serialized: one node is browsed at a time, and each
-/// discovered target is visited exactly once. The crawl stops at the first match
-/// or once the visit budget is exhausted.
+/// A match pauses the crawl instead of ending it, so resume() reports the next match from
+/// the same breadth-first position. The crawl gives up once the visit budget is exhausted.
 ///
-class NodeSearchCrawler : public QObject
+class NodeSearchCrawler : public AddressSpaceCrawler
 {
     Q_OBJECT
 
@@ -61,11 +53,6 @@ public:
     void resume();
 
     ///
-    /// \brief Stops the crawl and emits finished() with no match.
-    ///
-    void cancel();
-
-    ///
     /// \brief Reports whether the crawl is paused on a reported match.
     /// \return True when resume() would continue the crawl.
     ///
@@ -81,12 +68,6 @@ public:
 
 signals:
     ///
-    /// \brief Emitted after each browse with the running unique-node total.
-    /// \param visitedNodes Number of unique nodes visited so far.
-    ///
-    void progress(int visitedNodes);
-
-    ///
     /// \brief Emitted when the crawl finds a match, exhausts the subtree, or fails.
     ///
     /// A match pauses the crawl instead of ending it, so this may be emitted once per
@@ -98,56 +79,19 @@ signals:
     void finished(QStringList ancestorNodeIds, QString nodeId, QString error);
 
 protected:
-    ///
-    /// \brief Reports whether a client is available to browse with.
-    /// \return True when browsing may proceed.
-    ///
-    virtual bool clientAvailable() const;
-
-    ///
-    /// \brief Starts an asynchronous browse of one node, arming the timeout.
-    ///
-    /// The result must be handed back through deliverChildren(). Overridden by tests to
-    /// walk a synthetic tree without a live server.
-    /// \param nodeId Node whose children are browsed.
-    /// \return True when the browse started; false to skip the node.
-    ///
-    virtual bool startBrowse(const QString &nodeId);
-
-    ///
-    /// \brief Feeds a completed browse back into the crawl.
-    /// \param children Forward hierarchical references of the node being browsed.
-    ///
-    void deliverChildren(const QVector<QOpcUaReferenceDescription> &children);
-
-    ///
-    /// \brief Returns the client the crawl browses with.
-    /// \return Client pointer, possibly null.
-    ///
-    QOpcUaClient *client() const;
+    void visitChild(const QString &childId, const QOpcUaReferenceDescription &child,
+                    const QString &parentNodeId) override;
+    void emitFinished(const QString &error) override;
+    void continueCrawl() override;
+    bool shouldStop(QString *error) const override;
 
 private:
-    void browseNext();
-    void handleChildren(const QVector<QOpcUaReferenceDescription> &children);
     void deliverNextMatch();
-    void releaseCurrent();
-    void finish(const QStringList &ancestorNodeIds, const QString &nodeId, const QString &error);
     QStringList ancestorsOf(const QString &nodeId) const;
 
-    QPointer<QOpcUaClient> _client;
     QString _startNodeId;
     QString _pattern;
-    int _timeoutMs;
-    QQueue<QString> _queue;
     QQueue<QString> _pendingMatches;
-    QSet<QString> _visited;
     QHash<QString, QString> _parentOf;
-    QString _currentNodeId;
-    QPointer<QOpcUaNode> _current;
-    QMetaObject::Connection _currentConnection;
-    QTimer _timeoutTimer;
-    bool _running = false;
     bool _paused = false;
-    bool _cancelled = false;
-    bool _finished = false;
 };

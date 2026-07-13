@@ -21,7 +21,6 @@
 #include <QIcon>
 #include <QImage>
 #include <QMenu>
-#include <QMessageBox>
 #include <QMimeData>
 #include <QPainter>
 #include <QPixmap>
@@ -32,6 +31,7 @@
 #include "charttypes.h"
 #include "chartviewfactory.h"
 #include "dialogs/customintervaldialog.h"
+#include "dialogs/messageboxdialog.h"
 #include "dialogs/trendsettingsdialog.h"
 #include "formatters/durationformatter.h"
 #include "ichartview.h"
@@ -203,7 +203,7 @@ void TrendGraphWidget::removeNode(const QString &nodeId)
         return;
     _chart->removeSeries(nodeId);
     unsubscribeNode(nodeId);
-    _pendingHistory.remove(nodeId);
+    _state.removePendingHistory(nodeId);
     emit nodeRemoved(nodeId);
 }
 
@@ -317,9 +317,8 @@ QImage TrendGraphWidget::renderToImage(const QSize &size) const
 bool TrendGraphWidget::consumeHistory(const QString &nodeId, const QString &error,
                                       const QVector<OpcUaHistoryValue> &values)
 {
-    if (!_pendingHistory.contains(nodeId))
+    if (!_state.consumePendingHistory(nodeId))
         return false;
-    _pendingHistory.remove(nodeId);
     if (error.isEmpty() && hasNode(nodeId)) {
         applyHistory(nodeId, values);
         autoScale();
@@ -332,10 +331,10 @@ bool TrendGraphWidget::consumeHistory(const QString &nodeId, const QString &erro
 ///
 void TrendGraphWidget::clear()
 {
-    const QSet<QString> subscribed = _subscribed;
+    const QSet<QString> subscribed = _state.subscribedNodes();
     for (const QString &nodeId : subscribed)
         unsubscribeNode(nodeId);
-    _pendingHistory.clear();
+    _state.clearPendingHistory();
     _series.clear();
     _chart->clearAll();
 }
@@ -547,7 +546,7 @@ void TrendGraphWidget::enterHistoryMode(qint64 windowMs)
     ui->toolbar->selectHistoryWindow(windowMs);
     ui->toolbar->setRefreshEnabled(true);
     _liveTimer->stop();
-    const QSet<QString> subscribed = _subscribed;
+    const QSet<QString> subscribed = _state.subscribedNodes();
     for (const QString &nodeId : subscribed)
         unsubscribeNode(nodeId);
     applyWindow();
@@ -606,7 +605,7 @@ void TrendGraphWidget::enterCustomInterval(const QDateTime &start, const QDateTi
     ui->toolbar->selectCustom();
     ui->toolbar->setRefreshEnabled(true);
     _liveTimer->stop();
-    const QSet<QString> subscribed = _subscribed;
+    const QSet<QString> subscribed = _state.subscribedNodes();
     for (const QString &nodeId : subscribed)
         unsubscribeNode(nodeId);
     applyWindow();
@@ -662,7 +661,7 @@ void TrendGraphWidget::updateIntervalBar(qint64 startMs, qint64 endMs)
             dt = dt.toUTC();
         return dt.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
     };
-    ui->toolbar->setInterval(QStringLiteral("%1 — %2").arg(format(startMs), format(endMs)),
+    ui->toolbar->setInterval(QStringLiteral("%1 \u2014 %2").arg(format(startMs), format(endMs)),
                              formatDuration(endMs - startMs));
 }
 
@@ -672,10 +671,8 @@ void TrendGraphWidget::updateIntervalBar(qint64 startMs, qint64 endMs)
 ///
 void TrendGraphWidget::subscribeNode(const QString &nodeId)
 {
-    if (_subscribed.contains(nodeId))
-        return;
-    _subscribed.insert(nodeId);
-    emit subscribeRequested(nodeId, liveIntervalMs());
+    if (_state.subscribe(nodeId))
+        emit subscribeRequested(nodeId, liveIntervalMs());
 }
 
 ///
@@ -699,7 +696,8 @@ double TrendGraphWidget::liveIntervalMs() const
 ///
 void TrendGraphWidget::resubscribeLiveNodes()
 {
-    for (const QString &nodeId : std::as_const(_subscribed))
+    const QSet<QString> subscribed = _state.subscribedNodes();
+    for (const QString &nodeId : subscribed)
         emit subscribeRequested(nodeId, liveIntervalMs());
 }
 
@@ -736,7 +734,7 @@ void TrendGraphWidget::applySubscriptionRename(const QString &oldName, const QSt
 ///
 void TrendGraphWidget::unsubscribeNode(const QString &nodeId)
 {
-    if (_subscribed.remove(nodeId))
+    if (_state.unsubscribe(nodeId))
         emit unsubscribeRequested(nodeId);
 }
 
@@ -750,7 +748,7 @@ void TrendGraphWidget::requestHistory(const QString &nodeId)
         ? QDateTime::fromMSecsSinceEpoch(_windowEndMs)
         : QDateTime::currentDateTime();
     const QDateTime start = end.addMSecs(-_windowMs);
-    _pendingHistory.insert(nodeId);
+    _state.addPendingHistory(nodeId);
     emit historyReadRequested(nodeId, start, end, 0);
 }
 
@@ -767,8 +765,9 @@ void TrendGraphWidget::exportChart()
 
     const QImage image = renderToImage(size() * 2);
     if (!image.save(fileName)) {
-        QMessageBox::warning(this, tr("Export Trend"),
-                             tr("Could not save '%1'.").arg(fileName));
+        MessageBoxDialog::warning(this, tr("Export Trend"),
+                                  tr("Could not save '%1'.").arg(fileName),
+                                  DialogButtonBox::Ok);
     }
 }
 

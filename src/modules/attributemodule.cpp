@@ -10,7 +10,7 @@
 
 #include <QLoggingCategory>
 
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "servicecontext.h"
 
 namespace {
@@ -40,14 +40,14 @@ const QLoggingCategory &AttributeModule::logCategory() const
 
 ///
 /// \brief Observes read and write completions to log them and republish the results.
-/// \param context Host context providing the client service.
+/// \param context Host context providing the backend.
 ///
 void AttributeModule::initialize(ServiceContext &context)
 {
-    _clientService = context.clientService();
-    connect(_clientService, &OpcUaClientService::nodeDetailsReady,
+    _backend = context.backend();
+    connect(_backend, &OpcUaBackend::nodeDetailsReady,
             this, &AttributeModule::handleNodeDetailsReady);
-    connect(_clientService, &OpcUaClientService::writeFinished,
+    connect(_backend, &OpcUaBackend::writeFinished,
             this, &AttributeModule::handleWriteFinished);
 }
 
@@ -57,7 +57,7 @@ void AttributeModule::initialize(ServiceContext &context)
 ///
 void AttributeModule::read(const QString &nodeId)
 {
-    _clientService->readNode(nodeId);
+    _backend->readNode(nodeId);
 }
 
 ///
@@ -68,7 +68,7 @@ void AttributeModule::read(const QString &nodeId)
 ///
 void AttributeModule::write(const QString &nodeId, const QVariant &value, int valueType)
 {
-    _clientService->writeValue(nodeId, value, valueType);
+    _backend->writeValue(nodeId, value, valueType);
 }
 
 ///

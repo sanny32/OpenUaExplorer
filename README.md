@@ -45,6 +45,7 @@ openSUSE (`zypper`) and Arch (`pacman`).
 The build is continuously tested on:
 
 - <img src="docs/icons/logo_ubuntu.svg" width="16" height="16" /> **Ubuntu Linux** 22.04, 24.04 and 26.04
+- <img src="docs/icons/logo_debian.svg" width="16" height="16" /> **Debian** 12 and 13
 - <img src="docs/icons/logo_fedora.svg" width="16" height="16" /> **Fedora Linux** 43 and 44
 - <img src="docs/icons/logo_rocky.png" width="16" height="16" /> **Rocky Linux** 10.1
 - <img src="docs/icons/logo_redos.png" width="16" height="16" /> **RED OS** 8

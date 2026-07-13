@@ -11,6 +11,7 @@
 #include <QColor>
 #include <QDateTime>
 #include <QSignalSpy>
+#include <QStandardItemModel>
 #include <QTest>
 #include <QTimeZone>
 
@@ -18,6 +19,7 @@
 #include "testdata.h"
 #include "opcua/opcuatypes.h"
 #include "models/attributesmodel.h"
+#include "models/csvexporter.h"
 #include "models/dataaccessmodel.h"
 #include "models/eventsmodel.h"
 #include "models/historymodel.h"
@@ -58,6 +60,7 @@ private slots:
     void eventsModelAddEventsAppendsAndCaps();
     void historyModelHeaderRolesAndMutators();
     void historyModelExportsCsv();
+    void csvExporterEscapesDisplayedTable();
     void dataAccessModelExportsCsv();
     void eventsModelExportsCsv();
     void eventsModelDisplaysKnownEventTypeNames();
@@ -522,6 +525,30 @@ void TestModels::historyModelExportsCsv()
 }
 
 ///
+/// \brief CsvExporter writes headers and escapes display text consistently.
+///
+void TestModels::csvExporterEscapesDisplayedTable()
+{
+    QStandardItemModel empty(0, 2);
+    empty.setHeaderData(0, Qt::Horizontal, QStringLiteral("Plain"));
+    empty.setHeaderData(1, Qt::Horizontal, QStringLiteral("Needs,Quote"));
+    QCOMPARE(CsvExporter::tableToCsv(empty), QStringLiteral("Plain,\"Needs,Quote\"\n"));
+
+    QStandardItemModel model(1, 4);
+    model.setHeaderData(0, Qt::Horizontal, QStringLiteral("Text"));
+    model.setHeaderData(1, Qt::Horizontal, QStringLiteral("Comma"));
+    model.setHeaderData(2, Qt::Horizontal, QStringLiteral("Quote"));
+    model.setHeaderData(3, Qt::Horizontal, QStringLiteral("Break"));
+    model.setData(model.index(0, 0), QStringLiteral("plain"));
+    model.setData(model.index(0, 1), QStringLiteral("a,b"));
+    model.setData(model.index(0, 2), QStringLiteral("a\"b"));
+    model.setData(model.index(0, 3), QStringLiteral("a\r\nb"));
+
+    QCOMPARE(CsvExporter::tableToCsv(model),
+             QStringLiteral("Text,Comma,Quote,Break\n"
+                            "plain,\"a,b\",\"a\"\"b\",\"a\r\nb\"\n"));
+}
+///
 /// \brief DataAccessModel exports listed rows as escaped CSV with a header.
 ///
 void TestModels::dataAccessModelExportsCsv()
@@ -928,7 +955,7 @@ void TestModels::dataAccessHeaderRolesAndHelpers()
     QVERIFY(model.data(model.index(0, DataAccessModel::ColTimestamp)).isValid()
             || model.data(model.index(0, DataAccessModel::ColTimestamp)).toString().isEmpty());
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColSubscription)).toString(),
-             QStringLiteral("—"));
+             QStringLiteral("\u2014"));
     QVERIFY(model.data(model.index(0, DataAccessModel::ColNumber),
                        Qt::TextAlignmentRole).isValid());
 

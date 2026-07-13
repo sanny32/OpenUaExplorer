@@ -17,7 +17,7 @@
 
 class ConnectionController;
 class FeatureManager;
-class OpcUaClientService;
+class OpcUaBackend;
 class ServiceModuleManager;
 class QDockWidget;
 class QMenu;
@@ -35,7 +35,7 @@ public:
     /// \param mainWindow Main window receiving feature UI.
     /// \param viewMenu View menu receiving dock toggle actions.
     /// \param toolBar Main toolbar.
-    /// \param clientService Shared OPC UA client service.
+    /// \param backend Shared OPC UA backend.
     /// \param connectionController Shared connection controller.
     /// \param dataModules Shared data-module registry.
     /// \param features Feature registry receiving contributions.
@@ -47,7 +47,7 @@ public:
     FeatureHost(QMainWindow *mainWindow,
                 QMenu *viewMenu,
                 QToolBar *toolBar,
-                OpcUaClientService *clientService,
+                OpcUaBackend *backend,
                 ConnectionController *connectionController,
                 ServiceModuleManager *dataModules,
                 FeatureManager *features,
@@ -72,10 +72,10 @@ public:
     QToolBar *toolBar() const;
 
     ///
-    /// \brief Returns the OPC UA client service.
-    /// \return Client service.
+    /// \brief Returns the OPC UA backend.
+    /// \return Backend.
     ///
-    OpcUaClientService *clientService() const;
+    OpcUaBackend *backend() const;
 
     ///
     /// \brief Returns the connection controller.
@@ -144,7 +144,7 @@ private:
     QMainWindow *_mainWindow;
     QMenu *_viewMenu;
     QToolBar *_toolBar;
-    OpcUaClientService *_clientService;
+    OpcUaBackend *_backend;
     ConnectionController *_connectionController;
     ServiceModuleManager *_dataModules;
     FeatureManager *_features;

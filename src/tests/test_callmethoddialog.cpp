@@ -12,7 +12,8 @@
 #include <QTest>
 
 #include "dialogs/callmethoddialog.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
+#include "opcua/qtopcuabackend.h"
 
 ///
 /// \brief Tests CallMethodDialog table layout and targeting.
@@ -29,7 +30,7 @@ private slots:
 
 void TestCallMethodDialog::tablesHaveArgumentColumns()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     CallMethodDialog dialog(&service);
 
     auto *inputTable = dialog.findChild<QTableView *>(QStringLiteral("inputTable"));
@@ -44,7 +45,7 @@ void TestCallMethodDialog::tablesHaveArgumentColumns()
 
 void TestCallMethodDialog::windowTitleShowsMethodAndObject()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     CallMethodDialog dialog(&service);
 
     OpcUaNodeInfo object;
@@ -61,7 +62,7 @@ void TestCallMethodDialog::windowTitleShowsMethodAndObject()
 
 void TestCallMethodDialog::missingConnectionEnablesCall()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     CallMethodDialog dialog(&service);
 
     OpcUaNodeInfo object;

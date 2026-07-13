@@ -20,7 +20,8 @@
 
 #include "opcua/certificatetrustdecider.h"
 #include "opcua/connectionprofile.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
+#include "opcua/qtopcuabackend.h"
 #include "opcua/opcuatypes.h"
 #include "opcua/pkimanager.h"
 #include "opcuatestserver.h"
@@ -33,7 +34,7 @@ constexpr auto userPassword = "s3cret";
 ///
 /// \brief Spins the event loop until the service reaches \a target or times out.
 ///
-bool waitForState(const OpcUaClientService &service, OpcUaConnectionState target,
+bool waitForState(const OpcUaBackend &service, OpcUaConnectionState target,
                   int timeoutMs)
 {
     QElapsedTimer timer;
@@ -53,7 +54,7 @@ bool waitForState(const OpcUaClientService &service, OpcUaConnectionState target
 /// A rejected connection leaves the service in Disconnected, so waiting for Connected
 /// alone would burn the whole timeout on the negative cases.
 ///
-bool waitForConnectionResult(const OpcUaClientService &service, int timeoutMs)
+bool waitForConnectionResult(const OpcUaBackend &service, int timeoutMs)
 {
     QElapsedTimer timer;
     timer.start();
@@ -98,24 +99,24 @@ private slots:
     void certificateAuthenticationRejectsUntrustedCertificate();
 
 private:
-    bool discoverEndpoint(OpcUaClientService &service, const QString &url,
+    bool discoverEndpoint(OpcUaBackend &service, const QString &url,
                           EndpointInfo *endpoint, bool secured);
     bool generateClientCertificate(QString *certificateFile, QString *privateKeyFile);
 };
 
 ///
 /// \brief Discovers endpoints and selects the unsecured or the Basic256Sha256 one.
-/// \param service Client service to discover with.
+/// \param service Backend to discover with.
 /// \param url Discovery URL.
 /// \param endpoint Receives the selected endpoint.
 /// \param secured Whether to select the SignAndEncrypt endpoint instead of the open one.
 /// \return True when a matching endpoint was advertised.
 ///
-bool TestOpcUaAuthIntegration::discoverEndpoint(OpcUaClientService &service, const QString &url,
+bool TestOpcUaAuthIntegration::discoverEndpoint(OpcUaBackend &service, const QString &url,
                                                 EndpointInfo *endpoint, bool secured)
 {
-    QSignalSpy discoverSpy(&service, &OpcUaClientService::endpointsDiscovered);
-    service.discoverEndpoints(url);
+    QSignalSpy discoverSpy(&service, &OpcUaBackend::endpointsDiscovered);
+    service.discoverEndpoints(url, QStringLiteral("open62541"), 10000);
     if (!discoverSpy.wait(15000))
         return false;
     const QList<QVariant> arguments = discoverSpy.takeFirst();
@@ -159,7 +160,7 @@ bool TestOpcUaAuthIntegration::generateClientCertificate(QString *certificateFil
 ///
 void TestOpcUaAuthIntegration::usernameAuthenticationConnectsAndReads()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     if (!service.isAvailable())
         QSKIP("No OPC UA backend is available.");
 
@@ -184,11 +185,11 @@ void TestOpcUaAuthIntegration::usernameAuthenticationConnectsAndReads()
     profile.securityMode = endpoint.securityModeValue;
     profile.authentication = ConnectionProfile::Authentication::Username;
     profile.username = QLatin1String(userName);
-    service.connectToEndpoint(profile, QLatin1String(userPassword));
+    service.connectToEndpoint(profile, QLatin1String(userPassword), QString());
     QVERIFY2(waitForState(service, OpcUaConnectionState::Connected, 15000),
              qPrintable(service.lastError()));
 
-    QSignalSpy readSpy(&service, &OpcUaClientService::dataValuesReady);
+    QSignalSpy readSpy(&service, &OpcUaBackend::dataValuesReady);
     service.readValues({server.nodeId()});
     QVERIFY(readSpy.wait(15000));
     const auto values = readSpy.takeFirst().at(0).value<QVector<OpcUaDataValue>>();
@@ -204,7 +205,7 @@ void TestOpcUaAuthIntegration::usernameAuthenticationConnectsAndReads()
 ///
 void TestOpcUaAuthIntegration::usernameAuthenticationRejectsWrongPassword()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     if (!service.isAvailable())
         QSKIP("No OPC UA backend is available.");
 
@@ -227,7 +228,7 @@ void TestOpcUaAuthIntegration::usernameAuthenticationRejectsWrongPassword()
     profile.securityMode = endpoint.securityModeValue;
     profile.authentication = ConnectionProfile::Authentication::Username;
     profile.username = QLatin1String(userName);
-    service.connectToEndpoint(profile, QStringLiteral("wrong-password"));
+    service.connectToEndpoint(profile, QStringLiteral("wrong-password"), QString());
     QVERIFY2(!waitForConnectionResult(service, 10000),
              "The server accepted a wrong password.");
     QVERIFY2(service.lastError().contains(QStringLiteral("Access denied")),
@@ -239,7 +240,7 @@ void TestOpcUaAuthIntegration::usernameAuthenticationRejectsWrongPassword()
 ///
 void TestOpcUaAuthIntegration::certificateAuthenticationConnectsAndReads()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     if (!service.isAvailable())
         QSKIP("No OPC UA backend is available.");
 
@@ -272,13 +273,13 @@ void TestOpcUaAuthIntegration::certificateAuthenticationConnectsAndReads()
     profile.authentication = ConnectionProfile::Authentication::Certificate;
     profile.clientCertificateFile = certificateFile;
     profile.privateKeyFile = privateKeyFile;
-    service.connectToEndpoint(profile);
+    service.connectToEndpoint(profile, QString(), QString());
     QVERIFY2(waitForState(service, OpcUaConnectionState::Connected, 20000),
              qPrintable(service.lastError()));
     QVERIFY2(!decider.lastCertificate.isEmpty(),
              "The server certificate was never presented for a trust decision.");
 
-    QSignalSpy readSpy(&service, &OpcUaClientService::dataValuesReady);
+    QSignalSpy readSpy(&service, &OpcUaBackend::dataValuesReady);
     service.readValues({server.nodeId()});
     QVERIFY(readSpy.wait(15000));
     const auto values = readSpy.takeFirst().at(0).value<QVector<OpcUaDataValue>>();
@@ -294,7 +295,7 @@ void TestOpcUaAuthIntegration::certificateAuthenticationConnectsAndReads()
 ///
 void TestOpcUaAuthIntegration::certificateAuthenticationRejectsUntrustedCertificate()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     if (!service.isAvailable())
         QSKIP("No OPC UA backend is available.");
 
@@ -325,7 +326,7 @@ void TestOpcUaAuthIntegration::certificateAuthenticationRejectsUntrustedCertific
     profile.authentication = ConnectionProfile::Authentication::Certificate;
     profile.clientCertificateFile = certificateFile;
     profile.privateKeyFile = privateKeyFile;
-    service.connectToEndpoint(profile);
+    service.connectToEndpoint(profile, QString(), QString());
     QVERIFY2(!waitForConnectionResult(service, 15000),
              "The server accepted an untrusted client certificate.");
 

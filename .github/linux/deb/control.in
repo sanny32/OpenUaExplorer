@@ -7,8 +7,7 @@ Standards-Version: 4.6.2
 
 Package: ouaexp
 Architecture: @ARCH@
-# Qt loads OpenSSL with dlopen, so dpkg-shlibdeps cannot see the dependency.
-Depends: ${shlibs:Depends}, ${misc:Depends}, libssl3 | libssl3t64
+Depends: ${shlibs:Depends}, ${misc:Depends}, ca-certificates, hicolor-icon-theme, libgtk-3-0 | libgtk-3-0t64
 Description: OPC UA client for exploring and monitoring OPC UA servers
  OpenUaExplorer is an open source OPC UA client for browsing, inspecting,
  and monitoring OPC UA servers.
@@ -17,9 +16,3 @@ Description: OPC UA client for exploring and monitoring OPC UA servers
   * View Data Access, subscriptions, events, and history panels.
   * Plot live and historical values on charts.
   * Connect anonymously, with a username, or with a client certificate.
- .
- The package is self-contained: it carries the Qt libraries it was built
- against, together with the Qt OpcUa module and its open62541 backend, in a
- private directory under /usr/lib/ouaexp. Only the C, C++, OpenGL and xcb
- runtimes come from the distribution, so the package installs on any
- Debian-compatible system that is at least as new as the one it was built on.

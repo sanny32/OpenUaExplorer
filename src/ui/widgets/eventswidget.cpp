@@ -7,44 +7,22 @@
 ///
 
 #include <QAbstractButton>
-#include <QFileDialog>
 #include <QHeaderView>
 #include <QLineEdit>
-#include <QMessageBox>
-#include <QRegularExpression>
-#include <QSaveFile>
-#include <QTextStream>
 
 #include "appsettings.h"
 #include "eventswidget.h"
+#include "fileexport.h"
 #include "headerview.h"
 #include "models/eventsmodel.h"
 #include "nodelineedit.h"
+#include "utils.h"
 #include "formatters/attributeformatter.h"
 #include "severitydelegate.h"
 #include "tableview.h"
+#include "tableviewconfig.h"
 #include "ui_eventswidget.h"
 
-namespace {
-
-///
-/// \brief Makes a string safe for use as one file-name segment.
-/// \param value Segment text.
-/// \param fallback Text used when the segment becomes empty.
-/// \return File-name segment without filesystem separators or control characters.
-///
-QString fileNameSegment(QString value, const QString &fallback)
-{
-    value = value.trimmed();
-    static const QRegularExpression invalidChars(QStringLiteral(R"([<>:"/\\|?*\x00-\x1f]+)"));
-    value.replace(invalidChars, QStringLiteral("_"));
-    value.replace(QRegularExpression(QStringLiteral(R"(\s+)")), QStringLiteral("_"));
-    while (value.endsWith(QLatin1Char('.')) || value.endsWith(QLatin1Char(' ')))
-        value.chop(1);
-    return value.isEmpty() ? fallback : value;
-}
-
-} // namespace
 
 ///
 /// \brief Builds the events widget and its table view.
@@ -104,7 +82,7 @@ QString EventsWidget::suggestedEventsCsvFileName() const
 {
     const QString displayName = ui->eventsNodeEdit->nodeDisplayName();
     const QString displayPath = ui->eventsNodeEdit->nodeDisplayPath();
-    const QString source = fileNameSegment(
+    const QString source = Utils::fileNameSegment(
         !displayName.isEmpty() ? displayName
         : (displayPath.isEmpty() ? ui->eventsNodeEdit->nodeId() : displayPath),
         QStringLiteral("events"));
@@ -183,25 +161,17 @@ void EventsWidget::setupEventsView()
     ui->eventsTable->setItemDelegateForColumn(EventsModel::ColSeverity,
                                               new SeverityDelegate(this));
 
-    auto *eventsHeader = ui->eventsTable->headerView();
-    connect(eventsHeader, &HeaderView::sectionAlignmentChanged, this,
-            [this](int logicalIndex, Qt::Alignment alignment) {
-                _eventsModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
-            });
-
-    eventsHeader->setStretchLastSection(false);
-    eventsHeader->setSectionResizeMode(EventsModel::ColTime,      QHeaderView::Interactive);
-    eventsHeader->setSectionResizeMode(EventsModel::ColSeverity,  QHeaderView::Fixed);
-    eventsHeader->setSectionResizeMode(EventsModel::ColSource,    QHeaderView::Interactive);
-    eventsHeader->setSectionResizeMode(EventsModel::ColMessage,   QHeaderView::Stretch);
-    eventsHeader->setSectionResizeMode(EventsModel::ColEventType, QHeaderView::Interactive);
-
-    eventsHeader->setSectionAlignment(EventsModel::ColSeverity, Qt::AlignCenter);
-
-    ui->eventsTable->setColumnWidth(EventsModel::ColTime,      200);
-    ui->eventsTable->setColumnWidth(EventsModel::ColSeverity,  70 );
-    ui->eventsTable->setColumnWidth(EventsModel::ColSource,    140);
-    ui->eventsTable->setColumnWidth(EventsModel::ColEventType, 180);
+    TableViewConfig::apply(ui->eventsTable,
+        {
+            {EventsModel::ColTime, QHeaderView::Interactive, 200},
+            {EventsModel::ColSeverity, QHeaderView::Fixed, 70, Qt::AlignCenter},
+            {EventsModel::ColSource, QHeaderView::Interactive, 140},
+            {EventsModel::ColMessage, QHeaderView::Stretch},
+            {EventsModel::ColEventType, QHeaderView::Interactive, 180},
+        },
+        [this](int logicalIndex, Qt::Alignment alignment) {
+            _eventsModel->setColumnAlignment(logicalIndex, alignment);
+        });
 }
 
 ///
@@ -288,24 +258,6 @@ void EventsWidget::exportEventsToCsv()
     if (_eventsModel->rowCount() == 0)
         return;
 
-    const QString fileName = QFileDialog::getSaveFileName(
-        this, tr("Export Events"), suggestedEventsCsvFileName(),
-        tr("CSV Files (*.csv);;All Files (*)"));
-    if (fileName.isEmpty())
-        return;
-
-    QSaveFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("Export Events"),
-                             tr("Could not open '%1' for writing.").arg(fileName));
-        return;
-    }
-
-    QTextStream stream(&file);
-    stream.setEncoding(QStringConverter::Utf8);
-    stream << _eventsModel->toCsv();
-    if (!file.commit()) {
-        QMessageBox::warning(this, tr("Export Events"),
-                             tr("Could not save '%1'.").arg(fileName));
-    }
+    FileExport::exportModelToCsv(this, tr("Export Events"), suggestedEventsCsvFileName(),
+                                 *_eventsModel);
 }

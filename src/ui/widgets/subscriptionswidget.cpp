@@ -27,6 +27,7 @@
 #include "publishingintervaldelegate.h"
 #include "subscriptionswidget.h"
 #include "tableview.h"
+#include "tableviewconfig.h"
 #include "ui_subscriptionswidget.h"
 
 namespace {
@@ -191,14 +192,14 @@ void SubscriptionsWidget::setupSubscriptionsView()
     connect(ui->subscriptionsTable, &QWidget::customContextMenuRequested,
             this, &SubscriptionsWidget::showSubscriptionsContextMenu);
 
-    auto *subsHeader = ui->subscriptionsTable->headerView();
-    connect(subsHeader, &HeaderView::sectionAlignmentChanged, this,
-            [this](int logicalIndex, Qt::Alignment alignment) {
-                _subscriptionsModel->setColumnAlignment(logicalIndex, alignment | Qt::AlignVCenter);
-            });
-    subsHeader->setSectionResizeMode(SubscriptionsModel::ColName,               QHeaderView::Interactive);
-    subsHeader->setSectionResizeMode(SubscriptionsModel::ColPublishingInterval, QHeaderView::Stretch);
-    ui->subscriptionsTable->setColumnWidth(SubscriptionsModel::ColName, 120);
+    TableViewConfig::apply(ui->subscriptionsTable,
+        {
+            {SubscriptionsModel::ColName, QHeaderView::Interactive, 120},
+            {SubscriptionsModel::ColPublishingInterval, QHeaderView::Stretch},
+        },
+        [this](int logicalIndex, Qt::Alignment alignment) {
+            _subscriptionsModel->setColumnAlignment(logicalIndex, alignment);
+        });
 
     connect(ui->subscriptionsTable->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, [this] {

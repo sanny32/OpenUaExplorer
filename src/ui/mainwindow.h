@@ -8,15 +8,12 @@
 
 #pragma once
 
-#include <QByteArray>
 #include <QList>
 #include <QMainWindow>
 #include <QString>
 
 #include "dialogs/namespaceinspectordialog.h"
 #include "opcua/opcuatypes.h"
-#include "session/recentsessionstore.h"
-#include "session/sessiondata.h"
 
 namespace Ui {
 class MainWindow;
@@ -100,21 +97,7 @@ private:
     void setupUpdateChecker();
     void setupModules();
     void updateClientUi(OpcUaConnectionState state);
-    bool saveSessionToFile(const QString &path);
-    bool saveCurrentSession();
-    void openSessionFromFile(const QString &path);
-    void recordRecentSession(const QString &path);
-    void rebuildRecentSessionsMenu();
-    void openRecentSession();
-    void applyPendingSession();
-    SessionData sessionWorkspace() const;
-    SessionData collectSessionData() const;
-    void setCurrentSessionPath(const QString &path);
-    void closeCurrentSession();
-    QString sessionDisplayName() const;
-    void updateWindowTitle();
-    void updateModifiedState();
-    bool maybeSaveSession();
+    void setupSessionCoordinator();
     void initializeAddressSpace();
     class NodeMonitorDialog *createNodeMonitor();
     void openNodeMonitor(const OpcUaNodeInfo &node);
@@ -124,7 +107,7 @@ private:
 private:
     Ui::MainWindow *ui;
     class ConnectionController *_connectionController;
-    class OpcUaClientService *_clientService;
+    class OpcUaBackend *_backend;
     class UpdateChecker *_updateChecker = nullptr;
     class ServiceModuleManager *_moduleManager = nullptr;
     class FeatureManager *_featureManager = nullptr;
@@ -138,12 +121,7 @@ private:
     class ThemeCoordinator *_themeCoordinator = nullptr;
     class ConnectionCoordinator *_connectionCoordinator = nullptr;
     class DataAccessCoordinator *_dataAccessCoordinator = nullptr;
+    class SessionCoordinator *_sessionCoordinator = nullptr;
     QList<class NodeMonitorDialog *> _nodeMonitors;
     NamespaceInspectorCache _namespaceCache;
-    RecentSessionStore _recentSessions;
-    SessionData _pendingSession;
-    QString _pendingSessionPath;
-    bool _hasPendingSession = false;
-    QString _sessionPath;
-    QByteArray _savedSessionFingerprint;
 };

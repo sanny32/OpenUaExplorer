@@ -12,7 +12,7 @@
 
 #include "opcua/connectioncontroller.h"
 #include "opcua/connectionprofile.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "servicecontext.h"
 
 namespace {
@@ -68,14 +68,14 @@ const QLoggingCategory &ServerModule::logCategory() const
 }
 
 ///
-/// \brief Subscribes to the client service connection state changes.
-/// \param context Host context providing the client service and controller.
+/// \brief Subscribes to the backend connection state changes.
+/// \param context Host context providing the backend and controller.
 ///
 void ServerModule::initialize(ServiceContext &context)
 {
-    _clientService = context.clientService();
+    _backend = context.backend();
     _connectionController = context.connectionController();
-    connect(_clientService, &OpcUaClientService::stateChanged,
+    connect(_backend, &OpcUaBackend::stateChanged,
             this, &ServerModule::handleStateChanged);
 }
 

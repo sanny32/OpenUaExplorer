@@ -21,76 +21,76 @@ permissions:
 env:
   QT_VERSION: '6.9.3'
   QT_MODULES: qtcharts
+  QT_TOOLS: tools_opensslv3_src
+  MAINTAINER: Alexandr Ananev <mail@ananev.org>
+  DEBIAN_FRONTEND: noninteractive
 
 jobs:
   deb:
     name: Build .deb
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
     timeout-minutes: 90
 
+    outputs:
+      arch: ${{ steps.package.outputs.arch }}
+      name: ${{ steps.package.outputs.name }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+
     steps:
+      - name: Install checkout dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git sudo unzip xz-utils zstd
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
           ref: ${{ inputs.branch }}
 
+      - name: Trust workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      # The container ships a Python too old for the aqtinstall install-qt-action
+      # runs below, and for the wheels the build tools are installed from.
+      - name: Set up Python
+        uses: ./.github/actions/setup-python
+
+      # The GTK and Wayland libraries are not linked against: the Qt platform and
+      # platform theme plugins load them, and they stay a dependency of the package
+      # rather than being bundled. They are installed because bundle.sh resolves the
+      # plugins against this container, and dpkg-shlibdeps turns them into Depends.
       - name: Install build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build pkg-config patchelf \
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential perl pkg-config \
             dpkg-dev fakeroot lintian \
             desktop-file-utils appstream-util \
-            libgl1-mesa-dev libssl-dev libsecret-1-dev \
+            libgl1-mesa-dev libsecret-1-dev \
+            libgtk-3-0 libwayland-cursor0 \
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0
+          python3 -m pip install --upgrade 'cmake>=3.22,<4' ninja patchelf
+          cmake --version
+          ninja --version
+          patchelf --version
 
       - name: Determine version
         id: version
+        uses: ./.github/actions/project-version
+
+      - name: Determine package name
+        id: package
         run: |
-          read -r major minor patch < <(
-            sed -nE 's/^project\(ouaexp[[:space:]]+VERSION[[:space:]]+([0-9]+)\.([0-9]+)\.([0-9]+).*/\1 \2 \3/p' src/CMakeLists.txt
-          )
-          if [ -z "${patch:-}" ]; then
-            echo "::error::Could not read the project version from src/CMakeLists.txt"
-            exit 1
-          fi
-
-          # Mirror src/cmake/project_version.cmake, then map onto a Debian version.
-          # A pre-release must sort *before* its final release, and '-' separates the
-          # Debian revision, so 'v1.0.0-b1' becomes '1.0.0~b1' and dev snapshots get a
-          # '~dev' suffix that keeps them below every tagged release.
-          prerelease=''
-          ref='${{ github.ref }}'
-          if [[ $ref =~ ^refs/tags/v(.+)$ ]]; then
-            tag_version="${BASH_REMATCH[1]}"
-            if [[ ! $tag_version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-(.+))?$ ]]; then
-              echo "::error::Tag v$tag_version is not <major>.<minor>.<patch>[-prerelease]"
-              exit 1
-            fi
-            major="${BASH_REMATCH[1]}"
-            minor="${BASH_REMATCH[2]}"
-            patch="${BASH_REMATCH[3]}"
-            prerelease="${BASH_REMATCH[5]}"
-            if [ -n "$prerelease" ]; then
-              upstream="$major.$minor.$patch~$prerelease"
-            else
-              upstream="$major.$minor.$patch"
-            fi
-          else
-            upstream="$major.$minor.$patch~dev$(date -u +%Y%m%d).g$(git rev-parse --short HEAD)"
-          fi
-
-          deb_version="$upstream-1"
           arch="$(dpkg-architecture -qDEB_HOST_ARCH)"
-          package="ouaexp_${deb_version}_${arch}.deb"
+          package="ouaexp_${{ steps.version.outputs.debVersion }}_${arch}.deb"
 
           {
-            echo "prerelease=$prerelease"
-            echo "debVersion=$deb_version"
             echo "arch=$arch"
-            echo "package=$package"
+            echo "name=$package"
           } >> "$GITHUB_OUTPUT"
           echo "Building $package"
 
@@ -99,19 +99,32 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           modules: ${{ env.QT_MODULES }}
+          tools: ${{ env.QT_TOOLS }}
           cache: true
+          setup-python: false
+
+      # The package carries its own OpenSSL rather than depending on the
+      # distribution's libssl3, which does not exist before OpenSSL 3 - on Astra
+      # Linux 1.7, for one. It is linked into the Qt OpcUa backend below, and bundled.
+      - name: Set up OpenSSL
+        uses: ./.github/actions/setup-openssl
+        with:
+          qt-version: ${{ env.QT_VERSION }}
 
       - name: Cache Qt OpcUa build
         uses: actions/cache@v5
         with:
           path: build/_deps/qtopcua-install
-          key: qtopcua-ubuntu-22.04-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
+          key: qtopcua-ubuntu-20.04-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
 
+      # OPENSSL_ROOT_DIR is passed explicitly because qtopcua.cmake forwards the CMake
+      # variable, not the environment one, to the Qt OpcUa sub-build.
       - name: Configure
         run: >
           cmake -S src -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           -DOUAEXP_BUILD_TESTS=OFF
+          "-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR"
           "-DPROJECT_PRERELEASE=${{ steps.version.outputs.prerelease }}"
 
       - name: Build
@@ -127,11 +140,23 @@ jobs:
             "$PWD/pkgroot" \
             "$PWD/build/app/ouaexp" \
             "$QT_ROOT_DIR" \
-            "$PWD/build/_deps/qtopcua-install"
+            "$PWD/build/_deps/qtopcua-install" \
+            "$OPENSSL_ROOT_DIR"
 
           cp -r .github/linux/usr/. pkgroot/usr/
+
+          metainfo=pkgroot/usr/share/metainfo/io.github.sanny32.OpenUaExplorer.metainfo.xml
+          mkdir -p "$(dirname "$metainfo")"
+          sed -e "s|@VERSION@|${{ steps.version.outputs.appVersion }}|" \
+              -e "s|@RELEASE_DATE@|${{ steps.version.outputs.releaseDate }}|" \
+              .github/linux/metainfo/io.github.sanny32.OpenUaExplorer.metainfo.xml.in \
+              > "$metainfo"
+          chmod 0644 "$metainfo"
+
           install -D -m 0644 .github/linux/deb/copyright \
             pkgroot/usr/share/doc/ouaexp/copyright
+          install -D -m 0644 .github/linux/deb/lintian-overrides \
+            pkgroot/usr/share/lintian/overrides/ouaexp
 
           find pkgroot -type d -exec chmod 0755 {} +
 
@@ -144,8 +169,8 @@ jobs:
         run: |
           mkdir -p debian pkgroot/DEBIAN
 
-          sed -e "s|@ARCH@|${{ steps.version.outputs.arch }}|" \
-              -e "s|@MAINTAINER@|Alexandr Ananev <mail@ananev.org>|" \
+          sed -e "s|@ARCH@|${{ steps.package.outputs.arch }}|" \
+              -e "s|@MAINTAINER@|${{ env.MAINTAINER }}|" \
               .github/linux/deb/control.in > debian/control
 
           cat > debian/changelog <<EOF
@@ -153,8 +178,17 @@ jobs:
 
             * Automated build of ${{ github.sha }}.
 
-           -- Alexandr Ananev <mail@ananev.org>  $(date -uR)
+           -- ${{ env.MAINTAINER }}  $(date -uR)
           EOF
+
+          # The GTK platform theme is left out of the scan. It is the only thing that
+          # needs GTK, and the packages that ship it are named differently on the
+          # releases the package targets - libgtk-3-0 became libgtk-3-0t64, and
+          # libgdk-pixbuf2.0-0 became libgdk-pixbuf-2.0-0 - so the names this
+          # container resolves them to are wrong on half of them. control.in depends
+          # on GTK by hand instead, as an alternative between the two names.
+          plugins="$(find pkgroot/usr/lib/ouaexp/plugins -name '*.so' \
+            ! -name 'libqgtk3.so')"
 
           # The bundled Qt libraries have no shlibs entries of their own; -l lets
           # dpkg-shlibdeps resolve them while --ignore-missing-info keeps that from
@@ -165,7 +199,16 @@ jobs:
             -Tdebian/substvars \
             pkgroot/usr/lib/ouaexp/bin/ouaexp \
             pkgroot/usr/lib/ouaexp/lib/*.so* \
-            pkgroot/usr/lib/ouaexp/plugins/*/*.so
+            $plugins
+
+          # The GCC runtime moved from libgcc1 to libgcc-s1 in Debian 11, and this
+          # container resolves it to the new name, which the older releases the
+          # package targets - Astra Linux 1.7, for one - do not have. The library is
+          # the same one under either name, so the old one is offered as an
+          # alternative. It is added here rather than in control.in because
+          # dpkg-shlibdeps is what emits the dependency.
+          sed -i 's/libgcc-s1 ([^)]*)/& | libgcc1/' debian/substvars
+          cat debian/substvars
 
           dpkg-gencontrol -pouaexp -Ppkgroot -Tdebian/substvars
 
@@ -178,48 +221,92 @@ jobs:
           ( cd pkgroot && find . -type f ! -path './DEBIAN/*' -printf '%P\0' \
               | xargs -0 md5sum > DEBIAN/md5sums )
           fakeroot dpkg-deb --root-owner-group --build pkgroot \
-            "${{ steps.version.outputs.package }}"
+            "${{ steps.package.outputs.name }}"
 
       - name: Inspect package
         run: |
-          dpkg-deb --info "${{ steps.version.outputs.package }}"
-          dpkg-deb --contents "${{ steps.version.outputs.package }}"
-          lintian --no-tag-display-limit --fail-on error \
-            "${{ steps.version.outputs.package }}"
+          dpkg-deb --info "${{ steps.package.outputs.name }}"
+          dpkg-deb --contents "${{ steps.package.outputs.name }}"
+
+          # The bundled OpenSSL is the whole reason the package installs on a
+          # distribution that has no OpenSSL 3, so a dependency on the system libssl
+          # means the bundle is not being resolved and the package is back to
+          # requiring one.
+          if dpkg-deb -f "${{ steps.package.outputs.name }}" Depends | grep -q libssl; then
+            echo "::error::The package still depends on the distribution OpenSSL"
+            exit 1
+          fi
+
+          # The lintian this container ships predates --fail-on, and its exit status
+          # does not distinguish errors from warnings, so the tags are what is checked.
+          lintian --no-tag-display-limit "${{ steps.package.outputs.name }}" \
+            > lintian.log || true
+          cat lintian.log
+
+          if grep -q '^E:' lintian.log; then
+            echo "::error::lintian reported errors"
+            exit 1
+          fi
+
+      - name: Compute checksum
+        run: sha256sum "${{ steps.package.outputs.name }}" > "${{ steps.package.outputs.name }}.sha256"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ouaexp-deb-${{ steps.package.outputs.arch }}
+          path: |
+            ${{ steps.package.outputs.name }}
+            ${{ steps.package.outputs.name }}.sha256
+          if-no-files-found: error
+
+  # The package is verified in a job of its own because the container the build runs
+  # in has no Docker: the daemon lives on the runner, and a bind mount from inside
+  # the container would name paths the daemon cannot see. The runner itself has both.
+  verify:
+    name: Verify .deb
+    runs-on: ubuntu-latest
+    needs: deb
+    timeout-minutes: 30
+
+    steps:
+      # The verifying action is in the repository, so it has to be checked out even
+      # though nothing is built here.
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: ouaexp-deb-${{ needs.deb.outputs.arch }}
 
       # Installing from the .deb resolves the generated Depends against the archive,
       # so a missing runtime dependency fails here rather than on a user's machine.
       # The program is a GUI application with no batch mode, so it is checked by
       # resolving its libraries instead of starting it.
       - name: Verify the package installs
-        run: |
-          sudo apt-get install -y "./${{ steps.version.outputs.package }}"
-          test -L /usr/bin/ouaexp
-          if ldd -r /usr/lib/ouaexp/bin/ouaexp | grep -E 'not found|undefined symbol'; then
-            echo "::error::The installed binary has unresolved libraries or symbols"
-            exit 1
-          fi
-          sudo apt-get remove -y ouaexp
-
-      - name: Compute checksum
-        run: sha256sum "${{ steps.version.outputs.package }}" > "${{ steps.version.outputs.package }}.sha256"
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v6
+        uses: ./.github/actions/verify-linux-package
         with:
-          name: ouaexp-deb-${{ steps.version.outputs.arch }}
-          path: |
-            ${{ steps.version.outputs.package }}
-            ${{ steps.version.outputs.package }}.sha256
-          if-no-files-found: error
+          package: ${{ needs.deb.outputs.name }}
+          package-manager: deb
+          images: >-
+            debian:12
+            debian:13
+            ubuntu:22.04
+            ubuntu:24.04
+            ubuntu:26.04
+            registry.astralinux.ru/astra/ubi17:latest
+            registry.astralinux.ru/astra/ubi18:latest
 
       - name: Attach package to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v3
         with:
           draft: true
-          prerelease: ${{ steps.version.outputs.prerelease != '' }}
+          prerelease: ${{ needs.deb.outputs.prerelease != '' }}
           files: |
-            ${{ steps.version.outputs.package }}
+            ${{ needs.deb.outputs.name }}
           generate_release_notes: true
           fail_on_unmatched_files: true

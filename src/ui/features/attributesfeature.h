@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "featureplugin.h"
+#include "featuremodule.h"
 
 class AttributesWidget;
 class QDockWidget;
@@ -16,7 +16,7 @@ class QDockWidget;
 ///
 /// \brief Hosts the selected-node attributes dock.
 ///
-class AttributesFeature : public FeaturePlugin
+class AttributesFeature : public FeatureModule
 {
 public:
     ///

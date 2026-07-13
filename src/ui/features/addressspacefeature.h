@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "featureplugin.h"
+#include "featuremodule.h"
 
 class AddressSpaceWidget;
 class FeatureHost;
@@ -17,51 +17,49 @@ class QDockWidget;
 ///
 /// \brief Hosts the address-space tree and node-details docks.
 ///
-class AddressSpaceFeature : public FeaturePlugin
+class AddressSpaceFeature : public FeatureModule
 {
 public:
     ///
-    /// \brief Returns the human-readable feature name.
-    /// \return Feature name.
+    /// \brief Label used by the feature registry and translated UI surfaces.
     ///
     QString name() const override;
 
     ///
-    /// \brief Creates the feature UI and wires it to host services.
-    /// \param host Host services and contribution points.
+    /// \brief Creates the address-space docks and wires them to modules contributed by the host.
     ///
     void initialize(FeatureHost &host) override;
 
     ///
-    /// \brief Persists feature-owned view state.
-    /// \param settings Settings store to write to.
+    /// \brief Stores tree/view presentation state, leaving live server data out of settings.
     ///
     void saveState(AppSettings &settings) const override;
 
     ///
-    /// \brief Restores feature-owned view state.
-    /// \param settings Settings store to read from.
+    /// \brief Restores only presentation state saved by saveState().
     ///
     void restoreState(AppSettings &settings) override;
 
     ///
-    /// \brief Clears runtime data when the OPC UA session is no longer usable.
+    /// \brief Clears node data that belongs to the active OPC UA session.
     ///
     void clearRuntimeState() override;
 
     ///
-    /// \brief Saves the expanded tree nodes and selected node into the session.
-    /// \param session Session payload to write to.
+    /// \brief Adds address-space navigation state to an already collected session payload.
     ///
     void saveSession(SessionData &session) const override;
 
     ///
-    /// \brief Restores the expanded tree nodes and selected node from the session.
-    /// \param session Session payload to read from.
+    /// \brief Replays saved tree expansion and selection after the session workspace is loaded.
     ///
     void restoreSession(const SessionData &session) override;
 
 private:
+    void createDocks(FeatureHost &host);
+    void wireModules(FeatureHost &host);
+    void contributeLayout(FeatureHost &host);
+    void registerCommands(FeatureHost &host);
     void browseAddressSpace();
 
     QDockWidget *_addressDock = nullptr;

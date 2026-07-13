@@ -71,6 +71,7 @@ private:
     void refreshIcons();
     void scrollToBottom();
     void registerSource(const QString &source);
+    QString rowsAsText(const QList<int> &rows) const;
     void copyRows(const QList<int> &rows);
     void copySelection();
     void copyAll();

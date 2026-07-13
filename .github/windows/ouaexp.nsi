@@ -28,7 +28,7 @@ ManifestSupportedOS all
 ; Configuration
 
 !define PRODUCT_NAME      "Open UaExplorer"
-!define PRODUCT_PUBLISHER "OpenUaExplorer contributors"
+!define PRODUCT_PUBLISHER "Ananev Alexandr"
 !define PRODUCT_WEB_SITE  "https://github.com/sanny32/OpenUaExplorer"
 !define EXE_NAME          "ouaexp.exe"
 

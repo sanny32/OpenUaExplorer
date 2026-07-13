@@ -1,0 +1,140 @@
+name: Determine project version
+description: >-
+  Derives the version of the build from the project and the ref, and maps it onto
+  the version each package format needs.
+
+inputs:
+  cmakelists:
+    description: 'The CMakeLists.txt that declares the project version'
+    required: false
+    default: src/CMakeLists.txt
+  revision:
+    description: 'The packaging revision of an unchanged upstream version'
+    required: false
+    default: '1'
+
+outputs:
+  version:
+    description: 'The upstream version, <major>.<minor>.<patch>'
+    value: ${{ steps.version.outputs.version }}
+  major:
+    description: 'The major version'
+    value: ${{ steps.version.outputs.major }}
+  minor:
+    description: 'The minor version'
+    value: ${{ steps.version.outputs.minor }}
+  patch:
+    description: 'The patch version'
+    value: ${{ steps.version.outputs.patch }}
+  prerelease:
+    description: 'The pre-release suffix of the tag, empty when there is none'
+    value: ${{ steps.version.outputs.prerelease }}
+  sha:
+    description: 'The short commit the build was made from'
+    value: ${{ steps.version.outputs.sha }}
+  releaseDate:
+    description: 'The date of that commit, as AppStream spells it'
+    value: ${{ steps.version.outputs.releaseDate }}
+  appVersion:
+    description: 'The version the application reports, and AppStream carries'
+    value: ${{ steps.version.outputs.appVersion }}
+  debVersion:
+    description: 'The Debian version, revision included'
+    value: ${{ steps.version.outputs.debVersion }}
+  rpmVersion:
+    description: 'The RPM Version field'
+    value: ${{ steps.version.outputs.rpmVersion }}
+  rpmRelease:
+    description: 'The RPM Release field'
+    value: ${{ steps.version.outputs.rpmRelease }}
+  fileVersion:
+    description: 'The four-part numeric version a Windows resource needs'
+    value: ${{ steps.version.outputs.fileVersion }}
+
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      env:
+        CMAKELISTS: ${{ inputs.cmakelists }}
+        REVISION: ${{ inputs.revision }}
+      run: |
+        version="$(
+          sed -nE '/^project\(ouaexp([[:space:]]|$)/,/\)/ s/.*VERSION[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' "$CMAKELISTS" \
+            | head -n1
+        )"
+        if [[ ! $version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+          echo "::error::Could not read the project version from $CMAKELISTS"
+          exit 1
+        fi
+        major="${BASH_REMATCH[1]}"
+        minor="${BASH_REMATCH[2]}"
+        patch="${BASH_REMATCH[3]}"
+
+        # Mirror src/cmake/project_version.cmake: a tag supplies the version and an
+        # optional pre-release suffix such as v1.0.0-b1, everything else is a
+        # <major>.<minor>-dev snapshot named after the commit it was built from. The
+        # version the packages carry has to agree with the one the application
+        # reports, so appVersion is the single source both are derived from.
+        prerelease=''
+        tagged=''
+        sha="$(git rev-parse --short HEAD)"
+        if [[ $GITHUB_REF =~ ^refs/tags/v(.+)$ ]]; then
+          tag_version="${BASH_REMATCH[1]}"
+          if [[ ! $tag_version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-(.+))?$ ]]; then
+            echo "::error::Tag v$tag_version is not <major>.<minor>.<patch>[-prerelease]"
+            exit 1
+          fi
+          tagged='yes'
+          major="${BASH_REMATCH[1]}"
+          minor="${BASH_REMATCH[2]}"
+          patch="${BASH_REMATCH[3]}"
+          prerelease="${BASH_REMATCH[5]}"
+          version="$major.$minor.$patch"
+          app_version="$tag_version"
+        else
+          app_version="$major.$minor-dev.g$sha"
+        fi
+
+        # A pre-release must sort *before* the release it precedes, and both dpkg and
+        # rpm order a '~' below the end of a string, so the suffix is attached with
+        # one: '1.0.0~b1' and the '1.0~dev' snapshots stay below every release, where
+        # a plain '1.0.0b1' would sort above '1.0.0'. In a Debian version a '-'
+        # separates the revision and in an RPM Version it is not allowed at all, so
+        # rpm maps it onto '.' the way the pre-release part of a tag already does.
+        if [ -n "$prerelease" ]; then
+          deb_upstream="$version~$prerelease"
+          rpm_version="$version~${prerelease//-/.}"
+        elif [ -n "$tagged" ]; then
+          deb_upstream="$version"
+          rpm_version="$version"
+        else
+          deb_upstream="$major.$minor~dev.g$sha"
+          rpm_version="$deb_upstream"
+        fi
+
+        # The release date is the date of the commit being built, so rebuilding a
+        # commit yields the same AppStream metadata.
+        release_date="$(git log -1 --format=%cs)"
+
+        # VIProductVersion rejects a suffix, so a Windows resource keeps a numeric
+        # version of its own.
+        file_version="$major.$minor.$patch.0"
+
+        {
+          echo "version=$version"
+          echo "major=$major"
+          echo "minor=$minor"
+          echo "patch=$patch"
+          echo "prerelease=$prerelease"
+          echo "sha=$sha"
+          echo "releaseDate=$release_date"
+          echo "appVersion=$app_version"
+          echo "debVersion=$deb_upstream-$REVISION"
+          echo "rpmVersion=$rpm_version"
+          echo "rpmRelease=$REVISION"
+          echo "fileVersion=$file_version"
+        } >> "$GITHUB_OUTPUT"
+
+        echo "Version $app_version from ${GITHUB_REF#refs/} (g$sha, ${release_date})"

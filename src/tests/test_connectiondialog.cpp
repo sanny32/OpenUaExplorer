@@ -31,7 +31,6 @@
 #include "dialogs/connectiondialog.h"
 #include "models/endpointmodel.h"
 #include "opcua/opcuabackend.h"
-#include "opcua/opcuaclientservice.h"
 #include "opcua/pkimanager.h"
 #include "widgets/certificatesummarywidget.h"
 #include "widgets/endpointdiscoverywidget.h"
@@ -62,11 +61,11 @@ public:
     void connectToEndpoint(const ConnectionProfile &, const QString &,
                            const QString &) override {}
     void disconnectFromEndpoint() override {}
-    void browse(const QString &, int) override {}
-    void browseReferences(const QString &, int) override {}
-    void readNode(const QString &, int) override {}
-    void readValues(const QStringList &, int) override {}
-    void writeValue(const QString &, const QVariant &, int, int) override {}
+    void browse(const QString &) override {}
+    void browseReferences(const QString &) override {}
+    void readNode(const QString &) override {}
+    void readValues(const QStringList &) override {}
+    void writeValue(const QString &, const QVariant &, int) override {}
 
     int discoveryCalls = 0;
 };
@@ -212,9 +211,8 @@ void TestConnectionDialog::usernamePasswordDefaultsAreEmpty()
 void TestConnectionDialog::discoveryPopulatesEndpointModelAndAuthentication()
 {
     DialogFakeBackend backend;
-    OpcUaClientService service(&backend);
     ConnectionDialog dialog;
-    dialog.setClientService(&service);
+    dialog.setBackend(&backend);
 
     auto *endpointView = dialog.findChild<QTableView *>(
         QStringLiteral("endpointListWidget"));

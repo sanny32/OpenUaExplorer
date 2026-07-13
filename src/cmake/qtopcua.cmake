@@ -166,6 +166,12 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
     if(OPENSSL_ROOT_DIR)
         list(APPEND QTOPCUA_CONFIGURE_OPTIONS
             "-DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}")
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            list(APPEND QTOPCUA_CONFIGURE_OPTIONS
+                "-DOPENSSL_INCLUDE_DIR=${OPENSSL_ROOT_DIR}/include"
+                "-DOPENSSL_SSL_LIBRARY=${OPENSSL_ROOT_DIR}/lib/libssl.so"
+                "-DOPENSSL_CRYPTO_LIBRARY=${OPENSSL_ROOT_DIR}/lib/libcrypto.so")
+        endif()
     endif()
     if(CMAKE_OSX_ARCHITECTURES)
         list(APPEND QTOPCUA_CONFIGURE_OPTIONS

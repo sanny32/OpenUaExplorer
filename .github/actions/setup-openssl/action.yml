@@ -1,0 +1,89 @@
+name: Set up OpenSSL
+description: >-
+  Provides the OpenSSL the build links against and exports OPENSSL_ROOT_DIR.
+  On Linux it builds the OpenSSL the Qt installer ships as source, because that
+  is the one the package bundles; on Windows it installs the Qt-provided binaries.
+
+inputs:
+  qt-version:
+    description: 'The Qt whose OpenSSL source is built; part of the cache key'
+    required: false
+    default: ''
+  prefix:
+    description: 'Where the Linux build is installed, relative to the workspace'
+    required: false
+    default: build/openssl
+outputs:
+  root:
+    description: 'The OpenSSL prefix, as exported in OPENSSL_ROOT_DIR'
+    value: ${{ steps.root.outputs.root }}
+
+runs:
+  using: composite
+  steps:
+    - name: Identify the platform
+      id: platform
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        . /etc/os-release
+        echo "id=$ID-$VERSION_ID" >> "$GITHUB_OUTPUT"
+
+    # The Linux build takes minutes and its result depends only on the source the
+    # Qt installer ships and on how openssl.sh configures it, so the whole prefix
+    # is restored from a cache instead. The key is pinned to the platform: the
+    # libraries carry its glibc and cannot be reused across releases.
+    - name: Cache OpenSSL build
+      if: runner.os == 'Linux'
+      uses: actions/cache@v5
+      with:
+        path: ${{ inputs.prefix }}
+        key: openssl-${{ steps.platform.outputs.id }}-${{ runner.arch }}-${{ inputs.qt-version }}-${{ hashFiles('.github/linux/openssl.sh') }}
+
+    # IQTA_TOOLS is where install-qt-action unpacks the tools, so the Qt install
+    # has to have run before this action.
+    - name: Build OpenSSL
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        PREFIX: ${{ inputs.prefix }}
+      run: |
+        if [ -z "${IQTA_TOOLS:-}" ]; then
+          echo "::error::IQTA_TOOLS is not set; install Qt with tools_opensslv3_src first"
+          exit 1
+        fi
+        root="$GITHUB_WORKSPACE/$PREFIX"
+        bash .github/linux/openssl.sh "$IQTA_TOOLS/OpenSSLv3/src" "$root"
+        echo "OPENSSL_ROOT_DIR=$root" >> "$GITHUB_ENV"
+
+    - name: Install OpenSSL (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $root = 'C:\Qt\Tools\OpenSSLv3\Win_x64'
+        if (-not (Test-Path (Join-Path $root 'bin'))) {
+          python -m pip install --upgrade aqtinstall
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+          python -m aqt install-tool windows desktop tools_opensslv3_x64 --outputdir C:\Qt
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+        }
+        if (-not (Test-Path (Join-Path $root 'bin'))) {
+          Write-Error "OpenSSL was not installed in $root"
+          exit 1
+        }
+        "OPENSSL_ROOT_DIR=$root" >> $env:GITHUB_ENV
+
+    - name: Install OpenSSL (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        brew install openssl@3
+        echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
+
+    - name: Report the prefix
+      id: root
+      shell: bash
+      run: |
+        echo "root=$OPENSSL_ROOT_DIR" >> "$GITHUB_OUTPUT"
+        echo "OpenSSL is in $OPENSSL_ROOT_DIR"

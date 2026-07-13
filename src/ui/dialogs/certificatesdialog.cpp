@@ -16,7 +16,6 @@
 #include <QItemSelectionModel>
 #include <QLabel>
 #include <QLineEdit>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QSortFilterProxyModel>
 #include <QSslCertificate>
@@ -28,6 +27,7 @@
 #include "certificatedetailsdialog.h"
 #include "certificatesdialog.h"
 #include "formatters/datetimeformatter.h"
+#include "messageboxdialog.h"
 #include "opcua/certificateinfo.h"
 #include "textviewdialog.h"
 #include "ui_certificatesdialog.h"
@@ -394,8 +394,9 @@ void CertificatesDialog::importCertificate()
         return;
     const QByteArray der = readCertificateAsDer(path);
     if (der.isEmpty()) {
-        QMessageBox::warning(this, tr("Import Certificate"),
-                             tr("The selected file is not a readable certificate."));
+        MessageBoxDialog::warning(this, tr("Import Certificate"),
+                                  tr("The selected file is not a readable certificate."),
+                                  DialogButtonBox::Ok);
         return;
     }
 
@@ -404,8 +405,8 @@ void CertificatesDialog::importCertificate()
         QStandardItem *item = _model->item(row, 0);
         if (item->data(TargetRole).toInt() != TargetRemoved
             && PkiManager::fingerprint(item->data(DerRole).toByteArray()) == fingerprint) {
-            QMessageBox::information(this, tr("Import Certificate"),
-                                    tr("This certificate is already in the trust store."));
+            MessageBoxDialog::information(this, tr("Import Certificate"),
+                                          tr("This certificate is already in the trust store."));
             return;
         }
     }
@@ -561,8 +562,8 @@ void CertificatesDialog::viewPrivateKey()
 
     QFile file(keyPath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QMessageBox::critical(this, tr("Private Key"),
-                              tr("Could not read the private key file."));
+        MessageBoxDialog::critical(this, tr("Private Key"),
+                                   tr("Could not read the private key file."));
         return;
     }
 
@@ -586,8 +587,9 @@ void CertificatesDialog::chooseAndStageClientCertificate(const QString &title)
         return;
     const QByteArray der = readCertificateAsDer(certificate);
     if (der.isEmpty()) {
-        QMessageBox::warning(this, title,
-                             tr("The selected file is not a readable certificate."));
+        MessageBoxDialog::warning(this, title,
+                                  tr("The selected file is not a readable certificate."),
+                                  DialogButtonBox::Ok);
         return;
     }
     _clientOp = ClientImportReplace;
@@ -651,8 +653,9 @@ void CertificatesDialog::exportClientCertificate()
     }
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly) || file.write(output) != output.size()) {
-        QMessageBox::warning(this, tr("Export Certificate"),
-                             tr("Could not write the certificate to %1.").arg(path));
+        MessageBoxDialog::warning(this, tr("Export Certificate"),
+                                  tr("Could not write the certificate to %1.").arg(path),
+                                  DialogButtonBox::Ok);
     }
 }
 
@@ -665,12 +668,12 @@ void CertificatesDialog::apply()
 
     if (_clientOp == ClientRemove) {
         if (!_pki.removeClientCertificate(&error)) {
-            QMessageBox::warning(this, tr("Certificates"), error);
+            MessageBoxDialog::warning(this, tr("Certificates"), error, DialogButtonBox::Ok);
             return;
         }
     } else if (_clientOp == ClientImportReplace) {
         if (!_pki.importClientCertificate(_pendingCertificateSource, _pendingKeySource, &error)) {
-            QMessageBox::warning(this, tr("Certificates"), error);
+            MessageBoxDialog::warning(this, tr("Certificates"), error, DialogButtonBox::Ok);
             return;
         }
     }
@@ -691,7 +694,7 @@ void CertificatesDialog::apply()
             ok = _pki.setCertificateCategory(der, category, &error);
         }
         if (!ok) {
-            QMessageBox::warning(this, tr("Certificates"), error);
+            MessageBoxDialog::warning(this, tr("Certificates"), error, DialogButtonBox::Ok);
             break;
         }
     }
@@ -707,11 +710,11 @@ void CertificatesDialog::apply()
 void CertificatesDialog::reject()
 {
     if (hasPendingChanges()) {
-        const QMessageBox::StandardButton choice = QMessageBox::question(
+        const DialogButtonBox::StandardButton choice = MessageBoxDialog::question(
             this, tr("Discard Changes"),
             tr("Discard the pending certificate changes?"),
-            QMessageBox::Discard | QMessageBox::Cancel);
-        if (choice != QMessageBox::Discard)
+            DialogButtonBox::Discard | DialogButtonBox::Cancel);
+        if (choice != DialogButtonBox::Discard)
             return;
     }
     AppBaseDialog::reject();

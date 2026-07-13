@@ -30,13 +30,13 @@ add_library(ouaexp_core STATIC
     opcua/connectionprofilevalidator.h
     opcua/endpointhistorystore.cpp
     opcua/endpointhistorystore.h
+    opcua/addressspacecrawler.cpp
+    opcua/addressspacecrawler.h
     opcua/namespacecrawler.cpp
     opcua/namespacecrawler.h
     opcua/nodesearchcrawler.cpp
     opcua/nodesearchcrawler.h
     opcua/opcuabackend.h
-    opcua/opcuaclientservice.cpp
-    opcua/opcuaclientservice.h
     opcua/opcuatypes.h
     opcua/pkimanager.cpp
     opcua/pkimanager.h
@@ -67,6 +67,8 @@ add_library(ouaexp_core STATIC
     models/attributesmodel.cpp
     models/attributesmodel.h
     models/columnalignmentstore.h
+    models/csvexporter.cpp
+    models/csvexporter.h
     models/dataaccessitem.h
     models/dataaccessmodel.cpp
     models/dataaccessmodel.h

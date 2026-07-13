@@ -1,0 +1,21 @@
+# The Qt plugins are taken from the official Qt binaries, and those link their own
+# copy of libjpeg into the JPEG image format plugin. The plugin is not built here,
+# so the system libjpeg cannot be substituted for the embedded one, and dropping
+# the plugin would leave the application unable to display JPEG images.
+ouaexp: embedded-library
+
+# The application is a GUI program that is started from the desktop menu, and it
+# takes no options worth documenting, so it ships no manual page. The tag was
+# renamed, and the package is checked by whichever lintian the build container
+# happens to ship, so both names are overridden.
+ouaexp: no-manual-page
+ouaexp: binary-without-manpage usr/bin/ouaexp
+
+# The package is not going to the Debian archive, so there is no intent-to-package
+# bug for it to close.
+ouaexp: new-package-should-close-itp-bug
+
+# The ICU data library carries no code and links against nothing, so it has neither
+# dependencies to declare nor an soname. It comes from the official Qt binaries,
+# which Qt6Core loads it through, and it is bundled as it is shipped.
+ouaexp: shared-lib-without-dependency-information usr/lib/ouaexp/lib/libicudata.so.*

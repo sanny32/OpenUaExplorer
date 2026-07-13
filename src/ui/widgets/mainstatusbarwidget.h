@@ -38,7 +38,7 @@ public:
 
     ///
     /// \brief Subscribes to the controller's connection state and reflects it in the labels.
-    /// \param controller Connection controller providing the client service and active profile.
+    /// \param controller Connection controller providing the backend and active profile.
     ///
     void setConnectionController(ConnectionController *controller);
 

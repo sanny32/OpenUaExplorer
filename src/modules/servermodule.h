@@ -11,7 +11,7 @@
 #include "opcua/opcuatypes.h"
 #include "servicemodule.h"
 
-class OpcUaClientService;
+class OpcUaBackend;
 class ConnectionController;
 
 ///
@@ -35,6 +35,6 @@ public:
 private:
     void handleStateChanged(OpcUaConnectionState state);
 
-    OpcUaClientService *_clientService = nullptr;
+    OpcUaBackend *_backend = nullptr;
     ConnectionController *_connectionController = nullptr;
 };

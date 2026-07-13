@@ -14,7 +14,6 @@
 #include <QFileInfo>
 #include <QLineEdit>
 #include <QSslCertificate>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QSizePolicy>
@@ -27,7 +26,8 @@
 #include "appsettings.h"
 #include "certificatedetailsdialog.h"
 #include "connectiondialog.h"
-#include "opcua/opcuaclientservice.h"
+#include "messageboxdialog.h"
+#include "opcua/opcuabackend.h"
 #include "opcua/connectionprofilevalidator.h"
 #include "opcua/pkimanager.h"
 #include "ui_connectiondialog.h"
@@ -236,16 +236,16 @@ ConnectionDialog::~ConnectionDialog()
 }
 
 ///
-/// \brief Sets the client service used for discovery and subscribes to its results.
-/// \param service OPC UA client service.
+/// \brief Sets the backend used for discovery and subscribes to its results.
+/// \param backend OPC UA backend.
 ///
-void ConnectionDialog::setClientService(OpcUaClientService *service)
+void ConnectionDialog::setBackend(OpcUaBackend *backend)
 {
     if (_service)
         disconnect(_service, nullptr, this, nullptr);
-    _service = service;
+    _service = backend;
     if (_service) {
-        connect(_service, &OpcUaClientService::endpointsDiscovered,
+        connect(_service, &OpcUaBackend::endpointsDiscovered,
                 this, &ConnectionDialog::handleEndpoints);
     }
 }
@@ -362,17 +362,18 @@ void ConnectionDialog::discoverEndpoints()
 {
     if (!_service) {
         _connectAfterDiscovery = false;
-        QMessageBox::critical(this, tr("OPC UA Unavailable"),
-                              tr("The OPC UA client service is unavailable."));
+        MessageBoxDialog::critical(this, tr("OPC UA Unavailable"),
+                                   tr("The OPC UA backend is unavailable."));
         return;
     }
     saveLastEndpointUrl();
     const QString url = ui->discoveryUrlComboBox->currentText();
+    const ConnectionProfile settings = profile();
     resetDiscovery();
     ui->statusLabel->setText(tr("Discovering endpoints..."));
     ui->getEndpointsButton->setEnabled(false);
     ui->connectButton->setEnabled(false);
-    _service->discoverEndpoints(url);
+    _service->discoverEndpoints(url, settings.backend, settings.endpointTimeoutMs);
 }
 
 ///
@@ -533,7 +534,7 @@ void ConnectionDialog::generateClientCertificate()
             PkiManager::clientCertificateCommonName(),
             PkiManager::applicationUri(),
             &_clientCertificateFile, &_privateKeyFile, &error)) {
-        QMessageBox::critical(this, tr("Certificate Generation Failed"), error);
+        MessageBoxDialog::critical(this, tr("Certificate Generation Failed"), error);
         return;
     }
     ui->privateKeyPasswordEdit->clear();
@@ -586,8 +587,9 @@ void ConnectionDialog::validateAndAccept()
     }
     if (ConnectionProfileValidator::validate(profile())
         == ConnectionProfileValidator::Error::MissingUsername) {
-        QMessageBox::warning(this, tr("Missing Username"),
-                             tr("Enter a username for this endpoint."));
+        MessageBoxDialog::warning(this, tr("Missing Username"),
+                                  tr("Enter a username for this endpoint."),
+                                  DialogButtonBox::Ok);
         return;
     }
     saveSessionDefaults();

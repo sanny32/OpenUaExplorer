@@ -22,37 +22,37 @@
 #include "favoritescoordinator.h"
 #include "loggingcategories.h"
 #include "opcua/connectioncontroller.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 
 ///
 /// \brief Builds the coordinator and wires the connection flows.
 /// \param controller Connection controller owning profiles and recents.
-/// \param clientService Client service driving the connection state.
+/// \param backend Backend driving the connection state.
 /// \param recentMenu Recent Connections menu rebuilt from the history.
 /// \param favoritesButton Toolbar button anchoring the favourites popup.
 /// \param actions Menu and toolbar actions steered by the coordinator.
 /// \param dialogParent Parent widget for dialogs; also the QObject owner.
 ///
 ConnectionCoordinator::ConnectionCoordinator(ConnectionController *controller,
-                                             OpcUaClientService *clientService,
+                                             OpcUaBackend *backend,
                                              QMenu *recentMenu,
                                              QToolButton *favoritesButton,
                                              const ConnectionActions &actions,
                                              QWidget *dialogParent)
     : QObject(dialogParent)
     , _controller(controller)
-    , _clientService(clientService)
+    , _backend(backend)
     , _recentMenu(recentMenu)
     , _favoritesButton(favoritesButton)
     , _actions(actions)
     , _dialogParent(dialogParent)
-    , _favorites(new FavoritesCoordinator(controller, clientService, dialogParent))
+    , _favorites(new FavoritesCoordinator(controller, backend, dialogParent))
 {
     connect(_controller, &ConnectionController::recentsChanged,
             this, &ConnectionCoordinator::rebuildRecentMenu);
     connect(_controller, &ConnectionController::errorOccurred,
             this, &ConnectionCoordinator::onClientError);
-    connect(_clientService, &OpcUaClientService::stateChanged,
+    connect(_backend, &OpcUaBackend::stateChanged,
             this, &ConnectionCoordinator::updateActions);
     connect(_favoritesButton, &QToolButton::clicked,
             this, &ConnectionCoordinator::openFavorites);
@@ -64,7 +64,7 @@ ConnectionCoordinator::ConnectionCoordinator(ConnectionController *controller,
             this, &ConnectionCoordinator::addCurrentToFavorites);
     _controller->setCertificateTrustDecider(this);
     rebuildRecentMenu();
-    updateActions(_clientService->state());
+    updateActions(_backend->state());
 }
 
 ///
@@ -74,7 +74,7 @@ ConnectionCoordinator::ConnectionCoordinator(ConnectionController *controller,
 void ConnectionCoordinator::openConnectionDialog(const ConnectionProfile *preset)
 {
     ConnectionDialog dialog(_dialogParent);
-    dialog.setClientService(_clientService);
+    dialog.setBackend(_backend);
     if (preset)
         dialog.setProfile(*preset);
     if (dialog.exec() != QDialog::Accepted)
@@ -101,7 +101,7 @@ void ConnectionCoordinator::openConnectionDialog(const ConnectionProfile *preset
 ///
 void ConnectionCoordinator::disconnectFromServer()
 {
-    _clientService->disconnectFromEndpoint();
+    _backend->disconnectFromEndpoint();
 }
 
 ///
@@ -111,7 +111,7 @@ void ConnectionCoordinator::showEndpointSettings()
 {
     EndpointSettingsDialog dialog(_dialogParent);
     dialog.setProfile(_controller->activeProfile());
-    dialog.setServerCertificate(_clientService->activeServerCertificate());
+    dialog.setServerCertificate(_backend->activeServerCertificate());
     dialog.exec();
 }
 

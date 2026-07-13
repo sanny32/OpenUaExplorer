@@ -13,7 +13,7 @@
 
 #include "mainstatusbarwidget.h"
 #include "opcua/connectioncontroller.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "opcua/standardnodeid.h"
 #include "ui_mainstatusbarwidget.h"
 
@@ -189,18 +189,18 @@ QString authenticationSummary(const ConnectionProfile &profile)
 
 ///
 /// \brief Subscribes to the controller's connection state and reflects it in the labels.
-/// \param controller Connection controller providing the client service and active profile.
+/// \param controller Connection controller providing the backend and active profile.
 ///
 void MainStatusBarWidget::setConnectionController(ConnectionController *controller)
 {
     _controller = controller;
-    connect(controller->clientService(), &OpcUaClientService::stateChanged,
+    connect(controller->backend(), &OpcUaBackend::stateChanged,
             this, &MainStatusBarWidget::updateConnectionState);
-    connect(controller->clientService(), &OpcUaClientService::dataValuesReady,
+    connect(controller->backend(), &OpcUaBackend::dataValuesReady,
             this, &MainStatusBarWidget::handleServerTime);
-    connect(controller->clientService(), &OpcUaClientService::serverSessionNameResolved,
+    connect(controller->backend(), &OpcUaBackend::serverSessionNameResolved,
             this, &MainStatusBarWidget::handleServerSessionName);
-    updateConnectionState(controller->clientService()->state());
+    updateConnectionState(controller->backend()->state());
 }
 
 ///
@@ -219,11 +219,11 @@ void MainStatusBarWidget::updateConnectionState(OpcUaConnectionState state)
                        active ? authenticationSummary(profile) : QString());
 
     if (connected) {
-        _controller->clientService()->readValues(
+        _controller->backend()->readValues(
             { StandardNodeId::serverCurrentTime() });
        
         if (profile.sessionName.isEmpty())
-            _controller->clientService()->readServerSessionName();
+            _controller->backend()->readServerSessionName();
     } else {
         _serverTimeKnown = false;
     }
@@ -236,7 +236,7 @@ void MainStatusBarWidget::updateConnectionState(OpcUaConnectionState state)
 void MainStatusBarWidget::handleServerSessionName(const QString &sessionName)
 {
     if (sessionName.isEmpty()
-        || _controller->clientService()->state() != OpcUaConnectionState::Connected
+        || _controller->backend()->state() != OpcUaConnectionState::Connected
         || !_controller->activeProfile().sessionName.isEmpty())
         return;
     ui->sessionLabel->setText(sessionDisplayName(sessionName));

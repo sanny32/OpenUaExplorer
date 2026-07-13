@@ -11,12 +11,12 @@
 #include <QGuiApplication>
 #include <QHeaderView>
 #include <QMenu>
-#include <QMessageBox>
 #include <QStringList>
 #include <QVector>
 
 #include "appsettings.h"
 #include "attributeswidget.h"
+#include "dialogs/messageboxdialog.h"
 #include "formatters/attributeformatter.h"
 #include "headerview.h"
 #include "themedaction.h"
@@ -386,8 +386,9 @@ void AttributesWidget::writeCurrentValue()
     const QVariant value = OpcUaFormat::scalarFromText(
         ui->valueEdit->text(), static_cast<QOpcUa::Types>(valueType), &ok);
     if (!ok) {
-        QMessageBox::warning(this, tr("Invalid Value"),
-                             tr("The value is invalid or outside the selected type range."));
+        MessageBoxDialog::warning(this, tr("Invalid Value"),
+                                  tr("The value is invalid or outside the selected type range."),
+                                  DialogButtonBox::Ok);
         return;
     }
     emit writeRequested(_nodeId, value, valueType);

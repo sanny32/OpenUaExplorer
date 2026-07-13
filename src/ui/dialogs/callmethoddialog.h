@@ -20,7 +20,7 @@ namespace Ui {
 class CallMethodDialog;
 }
 
-class OpcUaClientService;
+class OpcUaBackend;
 class QPushButton;
 
 ///
@@ -110,11 +110,11 @@ class CallMethodDialog : public AppBaseDialog
 
 public:
     ///
-    /// \brief Builds the dialog and wires it to the client service.
-    /// \param service OPC UA client service used to read metadata and call the method.
+    /// \brief Builds the dialog and wires it to the backend.
+    /// \param service OPC UA backend used to read metadata and call the method.
     /// \param parent Parent widget.
     ///
-    explicit CallMethodDialog(OpcUaClientService *service, QWidget *parent = nullptr);
+    explicit CallMethodDialog(OpcUaBackend *service, QWidget *parent = nullptr);
 
     ///
     /// \brief Destroys the dialog and its generated UI.
@@ -153,7 +153,7 @@ private:
     void setCallEnabled(bool enabled);
 
     Ui::CallMethodDialog *ui;
-    OpcUaClientService *_service;
+    OpcUaBackend *_service;
     MethodArgumentModel *_inputModel;
     MethodArgumentModel *_outputModel;
     QPushButton *_callButton = nullptr;

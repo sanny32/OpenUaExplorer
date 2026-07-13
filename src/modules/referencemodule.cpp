@@ -10,7 +10,7 @@
 
 #include <QLoggingCategory>
 
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "servicecontext.h"
 
 namespace {
@@ -40,12 +40,12 @@ const QLoggingCategory &ReferenceModule::logCategory() const
 
 ///
 /// \brief Observes reference browse completions to log them and republish the references.
-/// \param context Host context providing the client service.
+/// \param context Host context providing the backend.
 ///
 void ReferenceModule::initialize(ServiceContext &context)
 {
-    _clientService = context.clientService();
-    connect(_clientService, &OpcUaClientService::referencesBrowseFinished,
+    _backend = context.backend();
+    connect(_backend, &OpcUaBackend::referencesBrowseFinished,
             this, &ReferenceModule::handleReferencesFinished);
 }
 
@@ -55,7 +55,7 @@ void ReferenceModule::initialize(ServiceContext &context)
 ///
 void ReferenceModule::browseReferences(const QString &nodeId)
 {
-    _clientService->browseReferences(nodeId);
+    _backend->browseReferences(nodeId);
 }
 
 ///

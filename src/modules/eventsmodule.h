@@ -11,7 +11,7 @@
 #include "opcua/opcuatypes.h"
 #include "servicemodule.h"
 
-class OpcUaClientService;
+class OpcUaBackend;
 
 ///
 /// \brief Provides the event API: monitor live events and read event history.
@@ -92,5 +92,5 @@ private:
     void handleEventMonitoringFinished(const QString &nodeId, bool subscribed,
                                        bool success, const QString &error);
 
-    OpcUaClientService *_clientService = nullptr;
+    OpcUaBackend *_backend = nullptr;
 };

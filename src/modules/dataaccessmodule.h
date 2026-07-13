@@ -14,7 +14,7 @@
 #include "opcua/opcuatypes.h"
 #include "servicemodule.h"
 
-class OpcUaClientService;
+class OpcUaBackend;
 
 ///
 /// \brief Provides the data-access API: read values and manage monitoring.
@@ -100,5 +100,5 @@ private:
     void handleMonitoringFinished(const QString &nodeId, bool subscribed,
                                   bool success, const QString &error);
 
-    OpcUaClientService *_clientService = nullptr;
+    OpcUaBackend *_backend = nullptr;
 };
