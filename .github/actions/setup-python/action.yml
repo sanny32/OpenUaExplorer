@@ -1,0 +1,48 @@
+name: Set up Python
+description: >-
+  Provides a Python newer than the one the build container ships and puts it
+  first on PATH. The packages are built in an old container to keep the glibc
+  the binaries reference low, and its Python is too old for aqtinstall, which
+  install-qt-action runs out of PATH.
+
+inputs:
+  version:
+    description: 'The Python to install from the deadsnakes PPA'
+    required: false
+    default: '3.12'
+  prefix:
+    description: 'Where the interpreter is linked from, and prepended to PATH'
+    required: false
+    default: /opt/python/bin
+
+runs:
+  using: composite
+  steps:
+    # The system interpreter is left in place rather than replaced: apt on these
+    # releases is built against it, and the tooling this action needs - the PPA
+    # one, for one - runs on it.
+    - name: Install Python ${{ inputs.version }}
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        PREFIX: ${{ inputs.prefix }}
+      run: |
+        python="python$VERSION"
+
+        add-apt-repository -y ppa:deadsnakes/ppa
+        apt-get install -y --no-install-recommends "$python" "${python}-venv"
+
+        # The distribution strips ensurepip out of the standard library and ships
+        # it in the -venv package, so pip has to be bootstrapped explicitly.
+        "$python" -m ensurepip --upgrade
+
+        mkdir -p "$PREFIX"
+        ln -sf "/usr/bin/$python" "$PREFIX/python3"
+        ln -sf "/usr/bin/$python" "$PREFIX/python"
+        echo "$PREFIX" >> "$GITHUB_PATH"
+
+    - name: Report the interpreter
+      shell: bash
+      run: |
+        python3 --version
+        python3 -m pip --version

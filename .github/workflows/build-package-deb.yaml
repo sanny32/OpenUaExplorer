@@ -38,7 +38,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            ca-certificates curl git python3 python3-dev python3-pip sudo unzip xz-utils zstd
+            ca-certificates curl git software-properties-common sudo unzip xz-utils zstd
 
       - name: Checkout
         uses: actions/checkout@v5
@@ -47,6 +47,11 @@ jobs:
 
       - name: Trust workspace
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      # The container ships a Python too old for the aqtinstall install-qt-action
+      # runs below, and for the wheels the build tools are installed from.
+      - name: Set up Python
+        uses: ./.github/actions/setup-python
 
       - name: Install build dependencies
         run: |
@@ -87,7 +92,6 @@ jobs:
           tools: ${{ env.QT_TOOLS }}
           cache: true
           setup-python: false
-          py7zrversion: ==0.20.8
 
       # The package carries its own OpenSSL rather than depending on the
       # distribution's libssl3, which does not exist before OpenSSL 3 - on Astra
