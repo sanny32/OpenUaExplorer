@@ -169,15 +169,29 @@ while [ "$copied_any" -eq 1 ]; do
     done < <(elf_files)
 done
 
+# Stripping comes first: strip rewrites the section headers of what patchelf has
+# already rewritten, and the two together leave an object whose sections no longer
+# describe the file. Qt reads a plugin's metadata out of its .qtmetadata section, so
+# a plugin that survives this as a loadable library still stops being a plugin.
+log "Stripping binaries"
+strip --strip-unneeded "$APP_BIN_DIR/$APP_NAME"
+find "$APP_LIB_DIR" "$APP_PLUGIN_DIR" -type f -name '*.so*' \
+    -exec strip --strip-unneeded {} +
+
 log "Rewriting RPATHs"
 patchelf --force-rpath --set-rpath "$APP_BIN_RPATH" "$APP_BIN_DIR/$APP_NAME"
 find "$APP_LIB_DIR" -type f -name '*.so*' -exec patchelf --force-rpath --set-rpath "$APP_LIB_RPATH" {} \;
 find "$APP_PLUGIN_DIR" -type f -name '*.so' -exec patchelf --force-rpath --set-rpath "$APP_PLUGIN_RPATH" {} \;
 
-log "Stripping binaries"
-strip --strip-unneeded "$APP_BIN_DIR/$APP_NAME"
-find "$APP_LIB_DIR" "$APP_PLUGIN_DIR" -type f -name '*.so*' \
-    -exec strip --strip-unneeded {} +
+# Qt finds a plugin's metadata by name of the section it lives in, and both strip and
+# patchelf are able to leave the section behind while the library still loads. The
+# program would then start and die on "no Qt platform plugin could be initialized",
+# which is a bad way to learn that the bundle is broken.
+log "Checking that the plugins kept their metadata"
+while read -r plugin; do
+    readelf --sections --wide "$plugin" | grep -q '\.qtmetadata' \
+        || die "The metadata section is gone from $plugin"
+done < <(find "$APP_PLUGIN_DIR" -type f -name '*.so')
 
 find "$APP_LIB_DIR" "$APP_PLUGIN_DIR" -type f -exec chmod 0644 {} +
 chmod 0755 "$APP_BIN_DIR/$APP_NAME"

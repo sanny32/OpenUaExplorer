@@ -70,7 +70,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            build-essential perl pkg-config patchelf \
+            build-essential perl pkg-config \
             rpm file \
             desktop-file-utils appstream-util \
             libgl1-mesa-dev libsecret-1-dev \
@@ -78,9 +78,10 @@ jobs:
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0
-          python3 -m pip install --upgrade 'cmake>=3.22,<4' ninja
+          python3 -m pip install --upgrade 'cmake>=3.22,<4' ninja patchelf
           cmake --version
           ninja --version
+          patchelf --version
 
       - name: Determine version
         id: version
