@@ -9,20 +9,17 @@
 #include <QAbstractButton>
 #include <QDateTime>
 #include <QDateTimeEdit>
-#include <QFileDialog>
 #include <QHeaderView>
-#include <QMessageBox>
-#include <QRegularExpression>
-#include <QSaveFile>
 #include <QSpinBox>
-#include <QTextStream>
 #include <QTimeZone>
 
 #include "appsettings.h"
 #include "eventshistorywidget.h"
+#include "fileexport.h"
 #include "headerview.h"
 #include "models/eventsmodel.h"
 #include "nodelineedit.h"
+#include "utils.h"
 #include "formatters/attributeformatter.h"
 #include "severitydelegate.h"
 #include "tableview.h"
@@ -32,33 +29,6 @@
 namespace {
 
 constexpr int eventsHistoryDateTimeEditMinimumWidth = 190;
-
-///
-/// \brief Makes a string safe for use as one file-name segment.
-/// \param value Segment text.
-/// \param fallback Text used when the segment becomes empty.
-/// \return File-name segment without filesystem separators or control characters.
-///
-QString fileNameSegment(QString value, const QString &fallback)
-{
-    value = value.trimmed();
-    static const QRegularExpression invalidChars(QStringLiteral(R"([<>:"/\\|?*\x00-\x1f]+)"));
-    value.replace(invalidChars, QStringLiteral("_"));
-    value.replace(QRegularExpression(QStringLiteral(R"(\s+)")), QStringLiteral("_"));
-    while (value.endsWith(QLatin1Char('.')) || value.endsWith(QLatin1Char(' ')))
-        value.chop(1);
-    return value.isEmpty() ? fallback : value;
-}
-
-///
-/// \brief Formats a date-time for compact file names.
-/// \param value Date-time value.
-/// \return File-name-safe date-time text.
-///
-QString fileNameDateTime(const QDateTime &value)
-{
-    return value.toString(QStringLiteral("yyyyMMdd_HHmmss"));
-}
 
 ///
 /// \brief Formats a date-time's UTC offset as a "+HH:mm" zone indicator.
@@ -148,14 +118,14 @@ QString EventsHistoryWidget::suggestedEventsHistoryCsvFileName() const
 {
     const QString displayName = ui->eventsHistoryNodeEdit->nodeDisplayName();
     const QString displayPath = ui->eventsHistoryNodeEdit->nodeDisplayPath();
-    const QString tag = fileNameSegment(
+    const QString tag = Utils::fileNameSegment(
         !displayName.isEmpty() ? displayName
         : (displayPath.isEmpty() ? ui->eventsHistoryNodeEdit->nodeId() : displayPath),
         QStringLiteral("events_history"));
     QStringList parts = {
         tag,
-        fileNameDateTime(ui->eventsHistoryStartEdit->dateTime()),
-        fileNameDateTime(ui->eventsHistoryEndEdit->dateTime())
+        Utils::fileNameDateTime(ui->eventsHistoryStartEdit->dateTime()),
+        Utils::fileNameDateTime(ui->eventsHistoryEndEdit->dateTime())
     };
     if (ui->eventsHistoryMaxEdit->value() > ui->eventsHistoryMaxEdit->minimum())
         parts.append(QStringLiteral("max%1").arg(ui->eventsHistoryMaxEdit->value()));
@@ -296,26 +266,8 @@ void EventsHistoryWidget::exportEventsHistoryToCsv()
     if (_eventsHistoryModel->rowCount() == 0)
         return;
 
-    const QString fileName = QFileDialog::getSaveFileName(
-        this, tr("Export Events History"), suggestedEventsHistoryCsvFileName(),
-        tr("CSV Files (*.csv);;All Files (*)"));
-    if (fileName.isEmpty())
-        return;
-
-    QSaveFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("Export Events History"),
-                             tr("Could not open '%1' for writing.").arg(fileName));
-        return;
-    }
-
-    QTextStream stream(&file);
-    stream.setEncoding(QStringConverter::Utf8);
-    stream << _eventsHistoryModel->toCsv();
-    if (!file.commit()) {
-        QMessageBox::warning(this, tr("Export Events History"),
-                             tr("Could not save '%1'.").arg(fileName));
-    }
+    FileExport::exportModelToCsv(this, tr("Export Events History"),
+                                 suggestedEventsHistoryCsvFileName(), *_eventsHistoryModel);
 }
 
 ///

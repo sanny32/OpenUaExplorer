@@ -20,7 +20,7 @@ namespace Ui {
 class NamespaceInspectorDialog;
 }
 
-class OpcUaClientService;
+class OpcUaBackend;
 class QStandardItemModel;
 
 ///
@@ -52,12 +52,12 @@ class NamespaceInspectorDialog : public AppBaseDialog
 
 public:
     ///
-    /// \brief Builds the dialog and wires it to the client service.
-    /// \param service OPC UA client service used to read namespaces and crawl node counts.
+    /// \brief Builds the dialog and wires it to the backend.
+    /// \param service OPC UA backend used to read namespaces and crawl node counts.
     /// \param cache Per-connection cache reused across dialog instances, or nullptr to disable caching.
     /// \param parent Parent widget.
     ///
-    explicit NamespaceInspectorDialog(OpcUaClientService *service,
+    explicit NamespaceInspectorDialog(OpcUaBackend *service,
                                       NamespaceInspectorCache *cache,
                                       QWidget *parent = nullptr);
 
@@ -87,7 +87,7 @@ private:
     static bool isSystemNamespace(int index, const QString &uri);
 
     Ui::NamespaceInspectorDialog *ui;
-    OpcUaClientService *_service;
+    OpcUaBackend *_service;
     NamespaceInspectorCache *_cache;
     QStandardItemModel *_model;
     QStringList _uris;

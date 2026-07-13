@@ -21,7 +21,6 @@
 #include <QIcon>
 #include <QImage>
 #include <QMenu>
-#include <QMessageBox>
 #include <QMimeData>
 #include <QPainter>
 #include <QPixmap>
@@ -32,6 +31,7 @@
 #include "charttypes.h"
 #include "chartviewfactory.h"
 #include "dialogs/customintervaldialog.h"
+#include "dialogs/messageboxdialog.h"
 #include "dialogs/trendsettingsdialog.h"
 #include "formatters/durationformatter.h"
 #include "ichartview.h"
@@ -765,8 +765,9 @@ void TrendGraphWidget::exportChart()
 
     const QImage image = renderToImage(size() * 2);
     if (!image.save(fileName)) {
-        QMessageBox::warning(this, tr("Export Trend"),
-                             tr("Could not save '%1'.").arg(fileName));
+        MessageBoxDialog::warning(this, tr("Export Trend"),
+                                  tr("Could not save '%1'.").arg(fileName),
+                                  DialogButtonBox::Ok);
     }
 }
 

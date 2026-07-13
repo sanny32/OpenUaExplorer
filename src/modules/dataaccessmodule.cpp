@@ -10,7 +10,7 @@
 
 #include <QLoggingCategory>
 
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "servicecontext.h"
 
 namespace {
@@ -40,16 +40,16 @@ const QLoggingCategory &DataAccessModule::logCategory() const
 
 ///
 /// \brief Observes value reads and monitoring completions to republish and log them.
-/// \param context Host context providing the client service.
+/// \param context Host context providing the backend.
 ///
 void DataAccessModule::initialize(ServiceContext &context)
 {
-    _clientService = context.clientService();
-    connect(_clientService, &OpcUaClientService::dataValuesReady,
+    _backend = context.backend();
+    connect(_backend, &OpcUaBackend::dataValuesReady,
             this, &DataAccessModule::handleValuesReady);
-    connect(_clientService, &OpcUaClientService::historyDataReady,
+    connect(_backend, &OpcUaBackend::historyDataReady,
             this, &DataAccessModule::handleHistoryReady);
-    connect(_clientService, &OpcUaClientService::monitoringFinished,
+    connect(_backend, &OpcUaBackend::monitoringFinished,
             this, &DataAccessModule::handleMonitoringFinished);
 }
 
@@ -59,7 +59,7 @@ void DataAccessModule::initialize(ServiceContext &context)
 ///
 void DataAccessModule::read(const QStringList &nodeIds)
 {
-    _clientService->readValues(nodeIds);
+    _backend->readValues(nodeIds);
 }
 
 ///
@@ -76,7 +76,7 @@ void DataAccessModule::readHistory(const QString &nodeId, const QDateTime &start
         << tr("Reading raw history for node '%1' (%2 — %3, max=%4).")
                .arg(nodeId, start.toString(Qt::ISODate), end.toString(Qt::ISODate))
                .arg(maxValues);
-    _clientService->readHistoryRaw(nodeId, start, end, maxValues);
+    _backend->readHistoryRaw(nodeId, start, end, maxValues);
 }
 
 ///
@@ -89,7 +89,7 @@ void DataAccessModule::subscribe(const QString &nodeId, double publishingInterva
     qCInfo(lcDataAccess).noquote()
         << tr("Creating monitored item for node '%1' (publishingInterval=%2 ms).")
                .arg(nodeId).arg(publishingInterval);
-    _clientService->subscribe(nodeId, publishingInterval);
+    _backend->subscribe(nodeId, publishingInterval);
 }
 
 ///
@@ -99,7 +99,7 @@ void DataAccessModule::subscribe(const QString &nodeId, double publishingInterva
 void DataAccessModule::unsubscribe(const QString &nodeId)
 {
     qCInfo(lcDataAccess).noquote() << tr("Disabling monitoring for node '%1'.").arg(nodeId);
-    _clientService->unsubscribe(nodeId);
+    _backend->unsubscribe(nodeId);
 }
 
 ///

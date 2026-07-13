@@ -9,11 +9,11 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QFileDialog>
-#include <QMessageBox>
 #include <QSaveFile>
 
 #include "appcolors.h"
 #include "certificatedetailsdialog.h"
+#include "messageboxdialog.h"
 #include "ui_certificatedetailsdialog.h"
 
 ///
@@ -83,7 +83,7 @@ void CertificateDetailsDialog::exportCertificate()
     if (!file.open(QIODevice::WriteOnly)
         || file.write(certificate) != certificate.size()
         || !file.commit()) {
-        QMessageBox::critical(this, tr("Export Failed"),
-                              tr("Could not write the certificate file."));
+        MessageBoxDialog::critical(this, tr("Export Failed"),
+                                   tr("Could not write the certificate file."));
     }
 }

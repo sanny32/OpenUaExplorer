@@ -13,11 +13,11 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonParseError>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QUuid>
 
 #include "formatters/attributeformatter.h"
+#include "messageboxdialog.h"
 #include "ui_writevaluedialog.h"
 #include "writevaluedialog.h"
 
@@ -144,16 +144,18 @@ void WriteValueDialog::validateAndAccept()
         QJsonParseError parseError;
         const QJsonDocument document = QJsonDocument::fromJson(text.toUtf8(), &parseError);
         if (parseError.error != QJsonParseError::NoError || !document.isArray()) {
-            QMessageBox::warning(this, tr("Invalid Value"),
-                                 tr("Array values must be entered as a JSON array."));
+            MessageBoxDialog::warning(this, tr("Invalid Value"),
+                                      tr("Array values must be entered as a JSON array."),
+                                      DialogButtonBox::Ok);
             return;
         }
         QVariantList converted;
         for (const QVariant &entry : document.array().toVariantList()) {
             const QVariant item = convertScalar(entry.toString(), valueType(), &ok);
             if (!ok) {
-                QMessageBox::warning(this, tr("Invalid Value"),
-                                     tr("An array element is invalid for the selected type."));
+                MessageBoxDialog::warning(this, tr("Invalid Value"),
+                                          tr("An array element is invalid for the selected type."),
+                                          DialogButtonBox::Ok);
                 return;
             }
             converted.append(item);
@@ -162,8 +164,9 @@ void WriteValueDialog::validateAndAccept()
     } else {
         _value = convertScalar(text, valueType(), &ok);
         if (!ok) {
-            QMessageBox::warning(this, tr("Invalid Value"),
-                                 tr("The value is invalid or outside the selected type range."));
+            MessageBoxDialog::warning(this, tr("Invalid Value"),
+                                      tr("The value is invalid or outside the selected type range."),
+                                      DialogButtonBox::Ok);
             return;
         }
     }

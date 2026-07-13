@@ -8,11 +8,11 @@
 
 #include <QDateTime>
 #include <QDialogButtonBox>
-#include <QMessageBox>
 #include <QPushButton>
 
 #include "appcolors.h"
 #include "customintervaldialog.h"
+#include "messageboxdialog.h"
 #include "ui_customintervaldialog.h"
 
 namespace {
@@ -142,8 +142,9 @@ void CustomIntervalDialog::updateEnabledState()
 void CustomIntervalDialog::validateAndAccept()
 {
     if (!isRelative() && fromDateTime() >= toDateTime()) {
-        QMessageBox::warning(this, tr("Custom interval"),
-                             tr("The 'From' time must be earlier than the 'To' time."));
+        MessageBoxDialog::warning(this, tr("Custom interval"),
+                                  tr("The 'From' time must be earlier than the 'To' time."),
+                                  DialogButtonBox::Ok);
         return;
     }
     accept();

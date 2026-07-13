@@ -7,17 +7,17 @@
 ///
 
 #include <QAction>
-#include <QMessageBox>
 
 #include "application.h"
 #include "appsettings.h"
 #include "attributemodule.h"
 #include "dataaccesscoordinator.h"
 #include "dataaccessmodule.h"
+#include "dialogs/messageboxdialog.h"
 #include "dialogs/writevaluedialog.h"
 #include "eventsmodule.h"
 #include "features/selectioncontext.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "widgets/dataaccesswidget.h"
 #include "widgets/datahistorywidget.h"
 #include "widgets/dataview.h"
@@ -34,7 +34,7 @@
 /// \param events Events module used for event monitoring and history.
 /// \param attributes Attribute module used for node reads and writes.
 /// \param selection Selection mediator shared with the UI features.
-/// \param clientService Client service queried for the connection state.
+/// \param backend Backend queried for the connection state.
 /// \param actions Menu and toolbar actions steered by the coordinator.
 /// \param dialogParent Parent widget for dialogs; also the QObject owner.
 ///
@@ -44,7 +44,7 @@ DataAccessCoordinator::DataAccessCoordinator(DataView *dataView,
                                              EventsModule *events,
                                              AttributeModule *attributes,
                                              SelectionContext *selection,
-                                             OpcUaClientService *clientService,
+                                             OpcUaBackend *backend,
                                              const DataAccessActions &actions,
                                              QWidget *dialogParent)
     : QObject(dialogParent)
@@ -54,14 +54,14 @@ DataAccessCoordinator::DataAccessCoordinator(DataView *dataView,
     , _events(events)
     , _attributes(attributes)
     , _selection(selection)
-    , _clientService(clientService)
+    , _backend(backend)
     , _actions(actions)
     , _dialogParent(dialogParent)
 {
     wireDataView();
     wireSelectionContext();
     wireModules();
-    connect(_clientService, &OpcUaClientService::stateChanged,
+    connect(_backend, &OpcUaBackend::stateChanged,
             this, &DataAccessCoordinator::onClientStateChanged);
 }
 
@@ -506,7 +506,8 @@ void DataAccessCoordinator::onHistoryReady(const QString &nodeId,
     if (error.isEmpty())
         _dataView->setDataHistoryResults(values);
     else
-        QMessageBox::warning(_dialogParent, tr("Data History Read Failed"), error);
+        MessageBoxDialog::warning(_dialogParent, tr("Data History Read Failed"), error,
+                                  DialogButtonBox::Ok);
 }
 
 ///
@@ -522,7 +523,8 @@ void DataAccessCoordinator::onWriteFinished(const QString &nodeId, bool success,
         _attributes->read(nodeId);
         _dataAccess->read({nodeId});
     } else {
-        QMessageBox::warning(_dialogParent, tr("Write Failed"), error);
+        MessageBoxDialog::warning(_dialogParent, tr("Write Failed"), error,
+                                  DialogButtonBox::Ok);
     }
 }
 
@@ -540,9 +542,10 @@ void DataAccessCoordinator::onMonitoringFinished(const QString &nodeId, bool sub
     if (success) {
         _dataView->setNodeSubscribed(nodeId, subscribed);
     } else {
-        QMessageBox::warning(_dialogParent,
-                             subscribed ? tr("Subscribe Failed") : tr("Unsubscribe Failed"),
-                             error);
+        MessageBoxDialog::warning(_dialogParent,
+                                  subscribed ? tr("Subscribe Failed") : tr("Unsubscribe Failed"),
+                                  error,
+                                  DialogButtonBox::Ok);
     }
     updateMonitoringActions();
 }
@@ -575,7 +578,8 @@ void DataAccessCoordinator::onEventsHistoryReady(const QString &nodeId,
     if (error.isEmpty())
         _dataView->setEventsHistoryResults(events);
     else
-        QMessageBox::warning(_dialogParent, tr("Events History Read Failed"), error);
+        MessageBoxDialog::warning(_dialogParent, tr("Events History Read Failed"), error,
+                                  DialogButtonBox::Ok);
 }
 
 ///
@@ -591,10 +595,11 @@ void DataAccessCoordinator::onEventMonitoringFinished(const QString &nodeId, boo
     if (success) {
         _dataView->events()->setEventMonitoringState(nodeId, subscribed);
     } else {
-        QMessageBox::warning(_dialogParent,
-                             subscribed ? tr("Event Subscribe Failed")
-                                        : tr("Event Unsubscribe Failed"),
-                             error);
+        MessageBoxDialog::warning(_dialogParent,
+                                  subscribed ? tr("Event Subscribe Failed")
+                                             : tr("Event Unsubscribe Failed"),
+                                  error,
+                                  DialogButtonBox::Ok);
     }
 }
 
@@ -713,7 +718,7 @@ void DataAccessCoordinator::showWriteDialog(const QString &nodeId, const QVarian
 ///
 void DataAccessCoordinator::updateMonitoringActions()
 {
-    const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
+    const bool connected = _backend->state() == OpcUaConnectionState::Connected;
     const bool variable = connected && OpcUa::isVariable(_selectedNodeDetails.nodeClass)
         && !_selectedNodeDetails.nodeId.isEmpty();
     const bool subscribed = variable
@@ -729,7 +734,7 @@ void DataAccessCoordinator::updateMonitoringActions()
 ///
 void DataAccessCoordinator::updateSelectionActions()
 {
-    const bool connected = _clientService->state() == OpcUaConnectionState::Connected;
+    const bool connected = _backend->state() == OpcUaConnectionState::Connected;
     const bool actionable = connected && _dataView->dataAccess()->hasSelection();
     _actions.removeFromDataAccess->setEnabled(actionable);
     _actions.setSubscriptionNone->setEnabled(actionable);

@@ -17,7 +17,7 @@
 ///
 /// \brief Side-effect-free formatting of OPC UA values and node attributes.
 ///
-/// These helpers were extracted from OpcUaClientService so they can be unit
+/// These helpers were extracted from OpcUaBackend so they can be unit
 /// tested without a live connection or a backend plugin. Every function is a
 /// pure transformation of its inputs.
 ///

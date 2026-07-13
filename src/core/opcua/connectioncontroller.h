@@ -11,7 +11,7 @@
 
 class CertificateTrustDecider;
 class ConnectionProfileStore;
-class OpcUaClientService;
+class OpcUaBackend;
 class RecentConnectionStore;
 
 ///
@@ -30,13 +30,13 @@ public:
 
     ///
     /// \brief Constructs the controller with injected dependencies, used for testing.
-    /// \param clientService OPC UA client service.
+    /// \param backend OPC UA backend.
     /// \param secretStore Secret store for profile passwords.
     /// \param profileStore Persistent profile store.
     /// \param recentStore Persistent recent-connection store.
     /// \param parent Owning QObject.
     ///
-    ConnectionController(OpcUaClientService *clientService,
+    ConnectionController(OpcUaBackend *backend,
                          SecretStore *secretStore,
                          ConnectionProfileStore *profileStore,
                          RecentConnectionStore *recentStore,
@@ -48,10 +48,10 @@ public:
     ~ConnectionController() override;
 
     ///
-    /// \brief Gives access to the underlying client service.
-    /// \return The OPC UA client service.
+    /// \brief Gives access to the underlying OPC UA backend.
+    /// \return The OPC UA backend.
     ///
-    OpcUaClientService *clientService() const;
+    OpcUaBackend *backend() const;
 
     ///
     /// \brief Returns the saved connection profiles.
@@ -73,7 +73,7 @@ public:
 
     ///
     /// \brief Sets the delegate that decides whether to trust a server certificate.
-    /// \param decider Trust decider, forwarded to the client service.
+    /// \param decider Trust decider, forwarded to the backend.
     ///
     void setCertificateTrustDecider(CertificateTrustDecider *decider);
 
@@ -148,11 +148,13 @@ private slots:
     void handleEndpoints(const QList<EndpointInfo> &endpoints, const QString &error);
 
 private:
+    void connectBackend(const ConnectionProfile &profile, const QString &password,
+                        const QString &privateKeyPassword);
     void discoverPendingProfile();
     void forgetProfile(const QString &id);
     void touchFavorite(const ConnectionProfile &profile);
 
-    OpcUaClientService *_clientService;
+    OpcUaBackend *_backend;
     SecretStore *_secretStore;
     ConnectionProfileStore *_profileStore;
     RecentConnectionStore *_recentStore;

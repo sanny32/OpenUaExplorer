@@ -25,7 +25,7 @@
 #include "ichartview.h"
 #include "models/addressspacemimedata.h"
 #include "nodemonitordialog.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "ui_nodemonitordialog.h"
 #include "widgets/subscriptioncombobox.h"
 #include "widgets/themedpushbutton.h"
@@ -57,11 +57,11 @@ QColor qualityColor(const QString &status)
 } // namespace
 
 ///
-/// \brief Builds the dialog and wires it to the client service.
-/// \param service OPC UA client service used to subscribe and read the node.
+/// \brief Builds the dialog and wires it to the backend.
+/// \param service OPC UA backend used to subscribe and read the node.
 /// \param parent Parent widget.
 ///
-NodeMonitorDialog::NodeMonitorDialog(OpcUaClientService *service, QWidget *parent)
+NodeMonitorDialog::NodeMonitorDialog(OpcUaBackend *service, QWidget *parent)
     : AppBaseDialog(parent)
     , ui(new Ui::NodeMonitorDialog)
     , _service(service)
@@ -105,9 +105,9 @@ NodeMonitorDialog::NodeMonitorDialog(OpcUaClientService *service, QWidget *paren
     connect(ui->closeButton, &QPushButton::clicked,
             this, &QDialog::close);
 
-    connect(_service, &OpcUaClientService::dataValuesReady,
+    connect(_service, &OpcUaBackend::dataValuesReady,
             this, &NodeMonitorDialog::handleDataValues);
-    connect(_service, &OpcUaClientService::nodeDetailsReady,
+    connect(_service, &OpcUaBackend::nodeDetailsReady,
             this, &NodeMonitorDialog::handleNodeDetails);
 
     _liveTimer = new QTimer(this);

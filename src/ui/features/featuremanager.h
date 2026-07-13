@@ -21,7 +21,7 @@
 
 class AppSettings;
 class FeatureHost;
-class FeaturePlugin;
+class FeatureModule;
 class QMainWindow;
 struct SessionData;
 
@@ -66,15 +66,15 @@ public:
     explicit FeatureManager(QObject *parent = nullptr);
 
     ///
-    /// \brief Destroys the feature registry and owned feature plugins.
+    /// \brief Destroys the feature registry and owned feature modules.
     ///
     ~FeatureManager() override;
 
     ///
-    /// \brief Takes ownership of a feature plugin.
+    /// \brief Takes ownership of a feature module.
     /// \param feature Feature to register.
     ///
-    void registerFeature(FeaturePlugin *feature);
+    void registerFeature(FeatureModule *feature);
 
     ///
     /// \brief Initializes every feature in registration order.
@@ -164,7 +164,7 @@ public:
     bool triggerCommand(const QString &id) const;
 
 private:
-    std::vector<std::unique_ptr<FeaturePlugin>> _features;
+    std::vector<std::unique_ptr<FeatureModule>> _features;
     QList<DockContribution> _dockContributions;
     QList<SplitContribution> _splitContributions;
     QList<ResizeContribution> _resizeContributions;

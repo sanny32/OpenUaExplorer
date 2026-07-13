@@ -2,24 +2,24 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file featureplugin.cpp
-/// \brief Implements the base class for UI feature plugins.
+/// \file featuremodule.cpp
+/// \brief Implements the base class for UI feature modules.
 ///
 
-#include "featureplugin.h"
+#include "featuremodule.h"
 
 #include <QtGlobal>
 
 ///
-/// \brief Destroys the feature plugin.
+/// \brief Destroys the feature module.
 ///
-FeaturePlugin::~FeaturePlugin() = default;
+FeatureModule::~FeatureModule() = default;
 
 ///
 /// \brief Persists feature-owned view state.
 /// \param settings Settings store to write to.
 ///
-void FeaturePlugin::saveState(AppSettings &settings) const
+void FeatureModule::saveState(AppSettings &settings) const
 {
     Q_UNUSED(settings)
 }
@@ -28,7 +28,7 @@ void FeaturePlugin::saveState(AppSettings &settings) const
 /// \brief Restores feature-owned view state.
 /// \param settings Settings store to read from.
 ///
-void FeaturePlugin::restoreState(AppSettings &settings)
+void FeatureModule::restoreState(AppSettings &settings)
 {
     Q_UNUSED(settings)
 }
@@ -36,7 +36,7 @@ void FeaturePlugin::restoreState(AppSettings &settings)
 ///
 /// \brief Clears runtime data when the OPC UA session is no longer usable.
 ///
-void FeaturePlugin::clearRuntimeState()
+void FeatureModule::clearRuntimeState()
 {
 }
 
@@ -44,7 +44,7 @@ void FeaturePlugin::clearRuntimeState()
 /// \brief Contributes feature state to a saved working session.
 /// \param session Session payload to write to.
 ///
-void FeaturePlugin::saveSession(SessionData &session) const
+void FeatureModule::saveSession(SessionData &session) const
 {
     Q_UNUSED(session)
 }
@@ -53,7 +53,7 @@ void FeaturePlugin::saveSession(SessionData &session) const
 /// \brief Restores feature state from a loaded working session.
 /// \param session Session payload to read from.
 ///
-void FeaturePlugin::restoreSession(const SessionData &session)
+void FeatureModule::restoreSession(const SessionData &session)
 {
     Q_UNUSED(session)
 }

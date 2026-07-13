@@ -13,7 +13,6 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMenu>
-#include <QMessageBox>
 #include <QRegularExpression>
 #include <QStringList>
 
@@ -22,26 +21,13 @@
 #include "dialogs/messageboxdialog.h"
 #include "features/featuremanager.h"
 #include "opcua/connectioncontroller.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "session/recentsessionstore.h"
 #include "session/sessionstore.h"
+#include "utils.h"
 #include "widgets/dialogbuttonbox.h"
 
 namespace {
-
-///
-/// \brief Produces a save-dialog file name segment from profile/session text.
-///
-QString fileNameSegment(QString value, const QString &fallback)
-{
-    value = value.trimmed();
-    static const QRegularExpression invalidChars(QStringLiteral(R"([<>:"/\\|?*\x00-\x1f]+)"));
-    value.replace(invalidChars, QStringLiteral("_"));
-    value.replace(QRegularExpression(QStringLiteral(R"(\s+)")), QStringLiteral("_"));
-    while (value.endsWith(QLatin1Char('.')) || value.endsWith(QLatin1Char(' ')))
-        value.chop(1);
-    return value.isEmpty() ? fallback : value;
-}
 
 ///
 /// \brief Builds an order-independent fingerprint of saveable workspace content.
@@ -141,7 +127,8 @@ bool SessionCoordinator::saveCurrentSession()
     const ConnectionProfile &profile = _context.connectionController->activeProfile();
     QString base = !profile.sessionName.isEmpty() ? profile.sessionName : profile.name;
     base.remove(QRegularExpression(QStringLiteral(R"(^[A-Za-z][A-Za-z0-9.+-]*://)")));
-    const QString suggested = fileNameSegment(base, tr("session")) + QStringLiteral(".ouas");
+    const QString suggested = Utils::fileNameSegment(base, tr("session"))
+        + QStringLiteral(".ouas");
     const QString path = QFileDialog::getSaveFileName(
         _context.window, tr("Save Session"), suggested,
         tr("Session Files (*.ouas);;All Files (*)"));
@@ -158,8 +145,9 @@ void SessionCoordinator::openSessionFromFile(const QString &path)
     SessionData data;
     QString error;
     if (!SessionStore::load(path, data, &error)) {
-        QMessageBox::warning(_context.window, tr("Open Session"),
-                             tr("Could not open the session:\n%1").arg(error));
+        MessageBoxDialog::warning(_context.window, tr("Open Session"),
+                                  tr("Could not open the session:\n%1").arg(error),
+                                  DialogButtonBox::Ok);
         return;
     }
 
@@ -258,7 +246,7 @@ void SessionCoordinator::closeCurrentSession()
 ///
 void SessionCoordinator::updateModifiedState()
 {
-    const bool connected = _context.clientService->state() == OpcUaConnectionState::Connected;
+    const bool connected = _context.backend->state() == OpcUaConnectionState::Connected;
     const SessionData data = sessionWorkspace();
     const bool modified = connected
         && (_sessionPath.isEmpty() ? sessionHasContent(data)
@@ -272,7 +260,7 @@ void SessionCoordinator::updateModifiedState()
 ///
 bool SessionCoordinator::maybeSaveSession()
 {
-    if (_context.clientService->state() != OpcUaConnectionState::Connected)
+    if (_context.backend->state() != OpcUaConnectionState::Connected)
         return true;
 
     const SessionData data = sessionWorkspace();
@@ -313,8 +301,9 @@ bool SessionCoordinator::saveSessionToFile(const QString &path)
 
     QString error;
     if (!SessionStore::save(path, data, &error)) {
-        QMessageBox::warning(_context.window, tr("Save Session"),
-                             tr("Could not save the session:\n%1").arg(error));
+        MessageBoxDialog::warning(_context.window, tr("Save Session"),
+                                  tr("Could not save the session:\n%1").arg(error),
+                                  DialogButtonBox::Ok);
         return false;
     }
 

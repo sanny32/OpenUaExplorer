@@ -6,20 +6,19 @@
 /// \brief Implements the namespace inspector dialog.
 ///
 
-#include <QFileDialog>
 #include <QFont>
 #include <QFontMetrics>
 #include <QHeaderView>
-#include <QMessageBox>
 #include <QPainter>
 #include <QPixmap>
-#include <QSaveFile>
 #include <QShowEvent>
 #include <QStandardItemModel>
 
 #include "appcolors.h"
+#include "fileexport.h"
+#include "messageboxdialog.h"
 #include "namespaceinspectordialog.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "ui_namespaceinspectordialog.h"
 #include "widgets/headerview.h"
 
@@ -56,12 +55,12 @@ QPixmap statusDot(const QColor &color)
 } // namespace
 
 ///
-/// \brief Builds the dialog and wires it to the client service.
-/// \param service OPC UA client service used to read namespaces and crawl node counts.
+/// \brief Builds the dialog and wires it to the backend.
+/// \param service OPC UA backend used to read namespaces and crawl node counts.
 /// \param cache Per-connection cache reused across dialog instances, or nullptr to disable caching.
 /// \param parent Parent widget.
 ///
-NamespaceInspectorDialog::NamespaceInspectorDialog(OpcUaClientService *service,
+NamespaceInspectorDialog::NamespaceInspectorDialog(OpcUaBackend *service,
                                                    NamespaceInspectorCache *cache,
                                                    QWidget *parent)
     : AppBaseDialog(parent)
@@ -110,11 +109,11 @@ NamespaceInspectorDialog::NamespaceInspectorDialog(OpcUaClientService *service,
     connect(ui->namespaceTable->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &NamespaceInspectorDialog::updateSelectedPanel);
 
-    connect(_service, &OpcUaClientService::namespacesReady,
+    connect(_service, &OpcUaBackend::namespacesReady,
             this, &NamespaceInspectorDialog::handleNamespaces);
-    connect(_service, &OpcUaClientService::namespaceStatisticsProgress,
+    connect(_service, &OpcUaBackend::namespaceStatisticsProgress,
             this, &NamespaceInspectorDialog::handleStatisticsProgress);
-    connect(_service, &OpcUaClientService::namespaceStatisticsReady,
+    connect(_service, &OpcUaBackend::namespaceStatisticsReady,
             this, &NamespaceInspectorDialog::handleStatistics);
 
     updateSelectedPanel();
@@ -348,12 +347,6 @@ void NamespaceInspectorDialog::exportNamespaces()
     if (_uris.isEmpty())
         return;
 
-    const QString fileName = QFileDialog::getSaveFileName(
-        this, tr("Export Namespaces"), QStringLiteral("namespaces.csv"),
-        tr("CSV File (*.csv);;All Files (*)"));
-    if (fileName.isEmpty())
-        return;
-
     QString csv = QStringLiteral("Index,URI,Nodes,Kind\n");
     for (int index = 0; index < _uris.size(); ++index) {
         const QString uri = _uris.at(index);
@@ -366,13 +359,8 @@ void NamespaceInspectorDialog::exportNamespaces()
                    .arg(QString::number(index), quotedUri, nodes, kind);
     }
 
-    QSaveFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly)
-        || file.write(csv.toUtf8()) < 0
-        || !file.commit()) {
-        QMessageBox::critical(this, tr("Export Failed"),
-                              tr("Could not write the namespace file."));
-    }
+    FileExport::saveText(this, tr("Export Namespaces"), QStringLiteral("namespaces.csv"),
+                         FileExport::csvFilter(), csv);
 }
 
 ///

@@ -13,7 +13,7 @@
 #include "opcua/opcuatypes.h"
 #include "servicemodule.h"
 
-class OpcUaClientService;
+class OpcUaBackend;
 
 ///
 /// \brief Provides the attribute API: read a node's attributes and write its value.
@@ -68,5 +68,5 @@ private:
     void handleNodeDetailsReady(const OpcUaNodeDetails &details, const QString &error);
     void handleWriteFinished(const QString &nodeId, bool success, const QString &error);
 
-    OpcUaClientService *_clientService = nullptr;
+    OpcUaBackend *_backend = nullptr;
 };

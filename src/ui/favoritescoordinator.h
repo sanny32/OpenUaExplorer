@@ -14,7 +14,7 @@
 
 class ConnectionController;
 class FavoritesWidget;
-class OpcUaClientService;
+class OpcUaBackend;
 class QToolButton;
 class QWidget;
 
@@ -29,11 +29,11 @@ public:
     ///
     /// \brief Builds a favourites coordinator.
     /// \param controller Connection controller that owns saved profiles.
-    /// \param clientService Client service used to decide whether a favourite can be added.
+    /// \param backend Backend used to decide whether a favourite can be added.
     /// \param parent Parent widget and QObject owner.
     ///
     FavoritesCoordinator(ConnectionController *controller,
-                         OpcUaClientService *clientService,
+                         OpcUaBackend *backend,
                          QWidget *parent);
 
     ///
@@ -51,6 +51,6 @@ private:
     void refreshVisible();
 
     ConnectionController *_controller;
-    OpcUaClientService *_clientService;
+    OpcUaBackend *_backend;
     FavoritesWidget *_widget;
 };

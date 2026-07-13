@@ -13,18 +13,15 @@
 #include <QComboBox>
 #include <QDateTime>
 #include <QEvent>
-#include <QFile>
-#include <QFileDialog>
 #include <QGuiApplication>
 #include <QMenu>
-#include <QMessageBox>
 #include <QMetaObject>
 #include <QPointer>
 #include <QSignalBlocker>
-#include <QTextStream>
 
 #include "appicons.h"
 #include "appsettings.h"
+#include "fileexport.h"
 #include "headerview.h"
 #include "loggingcategories.h"
 #include "logwidget.h"
@@ -313,40 +310,24 @@ void LogWidget::scrollToBottom()
 ///
 void LogWidget::exportLog()
 {
-    const QString fileName = QFileDialog::getSaveFileName(
-        this, tr("Export Log"),
-        Utils::executableBaseName() + QStringLiteral(".log"),
-        tr("Log files (*.log);;Text files (*.txt);;All files (*)"));
-    if (fileName.isEmpty())
-        return;
+    QList<int> rows;
+    rows.reserve(_model->rowCount());
+    for (int row = 0; row < _model->rowCount(); ++row)
+        rows.append(row);
 
-    QFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("Export Log"),
-                             tr("Could not open the file for writing:\n%1")
-                                 .arg(file.errorString()));
-        return;
-    }
-
-    QTextStream stream(&file);
-    const int rows = _model->rowCount();
-    for (int row = 0; row < rows; ++row) {
-        stream << _model->index(row, LogModel::ColTimestamp).data().toString() << '\t'
-               << _model->index(row, LogModel::ColLevel).data().toString() << '\t'
-               << _model->index(row, LogModel::ColSource).data().toString() << '\t'
-               << _model->index(row, LogModel::ColMessage).data().toString() << '\n';
-    }
+    FileExport::saveText(this, tr("Export Log"),
+                         Utils::executableBaseName() + QStringLiteral(".log"),
+                         tr("Log files (*.log);;Text files (*.txt);;All files (*)"),
+                         rowsAsText(rows) + QLatin1Char('\n'));
 }
 
 ///
-/// \brief Copies the given log rows to the clipboard as tab-separated text.
-/// \param rows Row indices to copy, in the order they should appear.
+/// \brief Renders the given log rows as tab-separated lines.
+/// \param rows Row indices to render, in the order they should appear.
+/// \return Tab-separated text without a trailing newline.
 ///
-void LogWidget::copyRows(const QList<int> &rows)
+QString LogWidget::rowsAsText(const QList<int> &rows) const
 {
-    if (rows.isEmpty())
-        return;
-
     QStringList lines;
     lines.reserve(rows.size());
     for (const int row : rows) {
@@ -358,8 +339,19 @@ void LogWidget::copyRows(const QList<int> &rows)
         };
         lines.append(cells.join(QLatin1Char('\t')));
     }
+    return lines.join(QLatin1Char('\n'));
+}
 
-    QGuiApplication::clipboard()->setText(lines.join(QLatin1Char('\n')));
+///
+/// \brief Copies the given log rows to the clipboard as tab-separated text.
+/// \param rows Row indices to copy, in the order they should appear.
+///
+void LogWidget::copyRows(const QList<int> &rows)
+{
+    if (rows.isEmpty())
+        return;
+
+    QGuiApplication::clipboard()->setText(rowsAsText(rows));
 }
 
 ///

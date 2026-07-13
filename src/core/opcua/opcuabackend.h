@@ -58,6 +58,20 @@ public:
     virtual QString lastError() const = 0;
 
     ///
+    /// \brief Sets the timeout applied to the operations of the established session.
+    ///
+    /// Discovery is not covered: it runs before a session exists and carries its own timeout.
+    /// \param timeoutMs Request timeout in milliseconds; values below 1000 are clamped.
+    ///
+    void setRequestTimeout(int timeoutMs) { _requestTimeoutMs = qMax(1000, timeoutMs); }
+
+    ///
+    /// \brief Returns the timeout applied to the operations of the established session.
+    /// \return Request timeout in milliseconds.
+    ///
+    int requestTimeout() const { return _requestTimeoutMs; }
+
+    ///
     /// \brief Sets the delegate consulted for server-certificate trust decisions.
     /// \param decider Trust decider.
     ///
@@ -116,49 +130,41 @@ public:
     ///
     /// \brief Browses a node's children.
     /// \param nodeId Node to browse.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    virtual void browse(const QString &nodeId, int timeoutMs) = 0;
+    virtual void browse(const QString &nodeId) = 0;
 
     ///
     /// \brief Browses a node's forward references.
     /// \param nodeId Node to browse.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    virtual void browseReferences(const QString &nodeId, int timeoutMs) = 0;
+    virtual void browseReferences(const QString &nodeId) = 0;
 
     ///
     /// \brief Reads a node's attributes.
     /// \param nodeId Node to read.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    virtual void readNode(const QString &nodeId, int timeoutMs) = 0;
+    virtual void readNode(const QString &nodeId) = 0;
 
     ///
     /// \brief Reads the Value attribute of several nodes.
     /// \param nodeIds Nodes to read.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    virtual void readValues(const QStringList &nodeIds, int timeoutMs) = 0;
+    virtual void readValues(const QStringList &nodeIds) = 0;
 
     ///
     /// \brief Writes a value to a node.
     /// \param nodeId Target node.
     /// \param value Value to write.
     /// \param valueType OPC UA type of the value.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    virtual void writeValue(const QString &nodeId, const QVariant &value,
-                            int valueType, int timeoutMs) = 0;
+    virtual void writeValue(const QString &nodeId, const QVariant &value, int valueType) = 0;
 
     ///
     /// \brief Reads a method's InputArguments/OutputArguments, emitting methodInfoReady().
     /// \param methodNodeId Method node whose argument metadata is read.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    virtual void readMethodInfo(const QString &methodNodeId, int timeoutMs)
+    virtual void readMethodInfo(const QString &methodNodeId)
     {
-        Q_UNUSED(timeoutMs)
         emit methodInfoReady(methodNodeId, {}, {}, tr("Calling methods is not supported."));
     }
 
@@ -168,15 +174,13 @@ public:
     /// \param methodNodeId Method node to call.
     /// \param args Input argument values, ordered to match the method's InputArguments.
     /// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
     virtual void callMethod(const QString &objectNodeId, const QString &methodNodeId,
-                            const QVariantList &args, const QList<int> &argTypes, int timeoutMs)
+                            const QVariantList &args, const QList<int> &argTypes)
     {
         Q_UNUSED(objectNodeId)
         Q_UNUSED(args)
         Q_UNUSED(argTypes)
-        Q_UNUSED(timeoutMs)
         emit methodCallFinished(methodNodeId, QVariant(), false,
                                 tr("Calling methods is not supported."));
     }
@@ -187,15 +191,13 @@ public:
     /// \param start Inclusive range start.
     /// \param end Inclusive range end.
     /// \param numValuesPerNode Maximum samples to return, or 0 for no limit.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
     virtual void readHistoryRaw(const QString &nodeId, const QDateTime &start,
-                                const QDateTime &end, quint32 numValuesPerNode, int timeoutMs)
+                                const QDateTime &end, quint32 numValuesPerNode)
     {
         Q_UNUSED(start)
         Q_UNUSED(end)
         Q_UNUSED(numValuesPerNode)
-        Q_UNUSED(timeoutMs)
         emit historyDataReady(nodeId, {}, tr("History read is not supported."));
     }
 
@@ -205,15 +207,13 @@ public:
     /// \param start Inclusive range start.
     /// \param end Inclusive range end.
     /// \param numValuesPerNode Maximum events to return, or 0 for no limit.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
     virtual void readHistoryEvents(const QString &nodeId, const QDateTime &start,
-                                   const QDateTime &end, quint32 numValuesPerNode, int timeoutMs)
+                                   const QDateTime &end, quint32 numValuesPerNode)
     {
         Q_UNUSED(start)
         Q_UNUSED(end)
         Q_UNUSED(numValuesPerNode)
-        Q_UNUSED(timeoutMs)
         emit historyEventsReady(nodeId, {}, tr("Event history read is not supported."));
     }
 
@@ -262,20 +262,17 @@ public:
     ///
     /// Backends that cannot read the server diagnostics may leave the default
     /// no-op, which resolves to an empty name.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    virtual void readServerSessionName(int timeoutMs) { Q_UNUSED(timeoutMs); }
+    virtual void readServerSessionName() {}
 
     ///
     /// \brief Reads the server NamespaceArray, emitting namespacesReady() with the URIs.
     ///
     /// Backends that cannot read the namespace table may leave this default,
     /// which reports that the operation is unsupported.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    virtual void requestNamespaces(int timeoutMs)
+    virtual void requestNamespaces()
     {
-        Q_UNUSED(timeoutMs)
         emit namespacesReady({}, tr("Reading the namespace table is not supported."));
     }
 
@@ -284,11 +281,9 @@ public:
     ///
     /// Backends that cannot crawl the address space may leave this default,
     /// which reports that the operation is unsupported.
-    /// \param timeoutMs Per-request timeout in milliseconds.
     ///
-    virtual void requestNamespaceStatistics(int timeoutMs)
+    virtual void requestNamespaceStatistics()
     {
-        Q_UNUSED(timeoutMs)
         emit namespaceStatisticsReady({}, tr("Counting namespace nodes is not supported."));
     }
 
@@ -304,13 +299,11 @@ public:
     /// which reports that the operation is unsupported.
     /// \param startNodeId Node whose subtree is searched.
     /// \param pattern Case-insensitive substring matched against display names.
-    /// \param timeoutMs Per-browse timeout in milliseconds.
     ///
-    virtual void searchNode(const QString &startNodeId, const QString &pattern, int timeoutMs)
+    virtual void searchNode(const QString &startNodeId, const QString &pattern)
     {
         Q_UNUSED(startNodeId)
         Q_UNUSED(pattern)
-        Q_UNUSED(timeoutMs)
         emit nodeSearchFinished({}, {}, tr("Searching the address space is not supported."));
     }
 
@@ -485,4 +478,7 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void nodeSearchFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
+
+private:
+    int _requestTimeoutMs = 15000;
 };

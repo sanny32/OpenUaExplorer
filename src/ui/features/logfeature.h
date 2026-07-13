@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "featureplugin.h"
+#include "featuremodule.h"
 
 class LogWidget;
 class QDockWidget;
@@ -16,7 +16,7 @@ class QDockWidget;
 ///
 /// \brief Hosts the activity log dock.
 ///
-class LogFeature : public FeaturePlugin
+class LogFeature : public FeatureModule
 {
 public:
     ///

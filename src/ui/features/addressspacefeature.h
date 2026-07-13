@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "featureplugin.h"
+#include "featuremodule.h"
 
 class AddressSpaceWidget;
 class FeatureHost;
@@ -17,7 +17,7 @@ class QDockWidget;
 ///
 /// \brief Hosts the address-space tree and node-details docks.
 ///
-class AddressSpaceFeature : public FeaturePlugin
+class AddressSpaceFeature : public FeatureModule
 {
 public:
     ///

@@ -24,7 +24,7 @@ class AttributeModule;
 class DataAccessModule;
 class DataView;
 class EventsModule;
-class OpcUaClientService;
+class OpcUaBackend;
 class QAction;
 class SelectionContext;
 class TrendPanelWidget;
@@ -71,7 +71,7 @@ public:
     /// \param events Events module used for event monitoring and history.
     /// \param attributes Attribute module used for node reads and writes.
     /// \param selection Selection mediator shared with the UI features.
-    /// \param clientService Client service queried for the connection state.
+    /// \param backend Backend queried for the connection state.
     /// \param actions Menu and toolbar actions steered by the coordinator.
     /// \param dialogParent Parent widget for dialogs; also the QObject owner.
     ///
@@ -81,7 +81,7 @@ public:
                           EventsModule *events,
                           AttributeModule *attributes,
                           SelectionContext *selection,
-                          OpcUaClientService *clientService,
+                          OpcUaBackend *backend,
                           const DataAccessActions &actions,
                           QWidget *dialogParent);
 
@@ -292,7 +292,7 @@ private:
     EventsModule *_events;
     AttributeModule *_attributes;
     SelectionContext *_selection;
-    OpcUaClientService *_clientService;
+    OpcUaBackend *_backend;
     DataAccessActions _actions;
     QWidget *_dialogParent;
     OpcUaNodeDetails _selectedNodeDetails;

@@ -107,7 +107,7 @@ private:
 private:
     Ui::MainWindow *ui;
     class ConnectionController *_connectionController;
-    class OpcUaClientService *_clientService;
+    class OpcUaBackend *_backend;
     class UpdateChecker *_updateChecker = nullptr;
     class ServiceModuleManager *_moduleManager = nullptr;
     class FeatureManager *_featureManager = nullptr;

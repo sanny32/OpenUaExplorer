@@ -22,7 +22,6 @@
 #include "opcua/connectioncontroller.h"
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuabackend.h"
-#include "opcua/opcuaclientservice.h"
 #include "opcua/recentconnectionstore.h"
 
 ///
@@ -44,11 +43,11 @@ public:
     void connectToEndpoint(const ConnectionProfile &, const QString &,
                            const QString &) override { ++connectCalls; }
     void disconnectFromEndpoint() override { ++disconnectCalls; }
-    void browse(const QString &, int) override {}
-    void browseReferences(const QString &, int) override {}
-    void readNode(const QString &, int) override {}
-    void readValues(const QStringList &, int) override {}
-    void writeValue(const QString &, const QVariant &, int, int) override {}
+    void browse(const QString &) override {}
+    void browseReferences(const QString &) override {}
+    void readNode(const QString &) override {}
+    void readValues(const QStringList &) override {}
+    void writeValue(const QString &, const QVariant &, int) override {}
 
     void completeDiscovery() { emit endpointsDiscovered({}, QString()); }
 
@@ -148,8 +147,7 @@ public:
 struct ConnectionHarness
 {
     ConnectionHarness()
-        : service(&backend)
-        , controller(&service, &secrets, &profiles, &recents)
+        : controller(&backend, &secrets, &profiles, &recents)
         , recentMenu(&window)
         , favoritesButton(&window)
     {
@@ -161,7 +159,7 @@ struct ConnectionHarness
         actions.refresh = newAction();
         actions.endpointSettings = newAction();
 
-        coordinator = new ConnectionCoordinator(&controller, &service, &recentMenu,
+        coordinator = new ConnectionCoordinator(&controller, &backend, &recentMenu,
                                                 &favoritesButton, actions, &window);
     }
 
@@ -169,7 +167,6 @@ struct ConnectionHarness
 
     QWidget window;
     ConnectionFakeBackend backend;
-    OpcUaClientService service;
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;

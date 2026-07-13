@@ -40,7 +40,7 @@
 #include "sessioncoordinator.h"
 #include "themecoordinator.h"
 #include "opcua/connectioncontroller.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "addressspacemodule.h"
 #include "attributemodule.h"
 #include "dataaccessmodule.h"
@@ -62,7 +62,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , _connectionController(new ConnectionController(this))
-    , _clientService(_connectionController->clientService())
+    , _backend(_connectionController->backend())
 {
     ui->setupUi(this);
 
@@ -89,7 +89,7 @@ MainWindow::MainWindow(QWidget *parent)
     restoreSettings();
     ui->actionOpenSession->setEnabled(true);
     ui->actionExportLog->setEnabled(true);
-    updateClientUi(_clientService->state());
+    updateClientUi(_backend->state());
     _sessionCoordinator->rebuildRecentSessionsMenu();
 
     auto *modifiedTimer = new QTimer(this);
@@ -243,7 +243,7 @@ void MainWindow::on_actionCertificates_triggered()
 ///
 void MainWindow::on_actionNamespaceInspector_triggered()
 {
-    NamespaceInspectorDialog dialog(_clientService, &_namespaceCache, this);
+    NamespaceInspectorDialog dialog(_backend, &_namespaceCache, this);
     dialog.exec();
 }
 
@@ -259,12 +259,12 @@ void MainWindow::on_actionNodeMonitor_triggered()
 }
 
 ///
-/// \brief Creates an independent modeless node monitor bound to the client service.
+/// \brief Creates an independent modeless node monitor bound to the backend.
 /// \return The new node monitor instance, tracked until it is closed.
 ///
 NodeMonitorDialog *MainWindow::createNodeMonitor()
 {
-    auto *monitor = new NodeMonitorDialog(_clientService, this);
+    auto *monitor = new NodeMonitorDialog(_backend, this);
     monitor->setAttribute(Qt::WA_DeleteOnClose, true);
     if (SubscriptionsWidget *subscriptions = ui->dataView->subscriptions()) {
         monitor->setSubscriptions(subscriptions->subscriptions());
@@ -319,7 +319,7 @@ void MainWindow::closeNodeMonitors()
 ///
 void MainWindow::openCallMethod(const OpcUaNodeInfo &object, const OpcUaNodeInfo &method)
 {
-    auto *dialog = new CallMethodDialog(_clientService, this);
+    auto *dialog = new CallMethodDialog(_backend, this);
     dialog->setAttribute(Qt::WA_DeleteOnClose, true);
     dialog->setTarget(object, method);
     dialog->show();
@@ -638,11 +638,11 @@ void MainWindow::configureHistoryUi()
 }
 
 ///
-/// \brief Wires the client service and connection controller signals to the UI.
+/// \brief Wires the backend and connection controller signals to the UI.
 ///
 void MainWindow::setupOpcUaClient()
 {
-    connect(_clientService, &OpcUaClientService::stateChanged,
+    connect(_backend, &OpcUaBackend::stateChanged,
             this, &MainWindow::updateClientUi);
 
     ConnectionActions connectionActions;
@@ -654,7 +654,7 @@ void MainWindow::setupOpcUaClient()
     connectionActions.refresh = ui->actionRefresh;
     connectionActions.endpointSettings = ui->actionEndpointSettings;
     _connectionCoordinator = new ConnectionCoordinator(_connectionController,
-                                                       _clientService,
+                                                       _backend,
                                                        ui->menuRecentConnections,
                                                        ui->mainToolBar->favoritesButton(),
                                                        connectionActions,
@@ -736,7 +736,7 @@ void MainWindow::setupModules()
     FeatureHost host(this,
                      ui->menuView,
                      ui->mainToolBar,
-                     _clientService,
+                     _backend,
                      _connectionController,
                      _moduleManager,
                      _featureManager,
@@ -744,7 +744,7 @@ void MainWindow::setupModules()
     registerBuiltinFeatures(*_featureManager);
     _featureManager->initializeAll(host);
 
-    ServiceContext context(_clientService, _connectionController);
+    ServiceContext context(_backend, _connectionController);
     _moduleManager->initializeAll(context);
 
     DataAccessActions dataAccessActions;
@@ -769,7 +769,7 @@ void MainWindow::setupModules()
                                                        _eventsModule,
                                                        _attributeModule,
                                                        _selectionContext,
-                                                       _clientService,
+                                                       _backend,
                                                        dataAccessActions,
                                                        this);
 
@@ -788,7 +788,7 @@ void MainWindow::setupSessionCoordinator()
     context.connectionCoordinator = _connectionCoordinator;
     context.dataAccessCoordinator = _dataAccessCoordinator;
     context.featureManager = _featureManager;
-    context.clientService = _clientService;
+    context.backend = _backend;
     context.captureNodeMonitors = [this] {
         QVector<SessionNodeMonitor> monitors;
         for (NodeMonitorDialog *monitor : _nodeMonitors) {

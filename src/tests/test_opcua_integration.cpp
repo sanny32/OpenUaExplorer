@@ -3,7 +3,7 @@
 
 ///
 /// \file test_opcua_integration.cpp
-/// \brief Drives OpcUaClientService against a real (Python asyncua) OPC UA server.
+/// \brief Drives OpcUaBackend against a real (Python asyncua) OPC UA server.
 ///
 /// The server is launched as a child process (tools/opcua_test_server.py). When
 /// Python or the asyncua package is unavailable, or no OPC UA backend is
@@ -19,7 +19,8 @@
 #include <QtOpcUa/qopcuatype.h>
 
 #include "opcua/connectionprofile.h"
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
+#include "opcua/qtopcuabackend.h"
 #include "opcua/opcuatypes.h"
 #include "opcuatestserver.h"
 
@@ -28,7 +29,7 @@ namespace {
 ///
 /// \brief Spins the event loop until the service reaches \a target or times out.
 ///
-bool waitForState(const OpcUaClientService &service, OpcUaConnectionState target,
+bool waitForState(const OpcUaBackend &service, OpcUaConnectionState target,
                   int timeoutMs)
 {
     QElapsedTimer timer;
@@ -95,13 +96,13 @@ void TestOpcUaIntegration::cleanupTestCase()
 ///
 void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     if (!service.isAvailable())
         QSKIP("No OPC UA backend is available.");
 
     // 1. Discover endpoints.
-    QSignalSpy discoverSpy(&service, &OpcUaClientService::endpointsDiscovered);
-    service.discoverEndpoints(_endpoint);
+    QSignalSpy discoverSpy(&service, &OpcUaBackend::endpointsDiscovered);
+    service.discoverEndpoints(_endpoint, QStringLiteral("open62541"), 10000);
     QVERIFY(discoverSpy.wait(15000));
     const QList<QVariant> discoverArgs = discoverSpy.takeFirst();
     QVERIFY2(discoverArgs.at(1).toString().isEmpty(),
@@ -128,12 +129,12 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     profile.securityPolicy = chosen.securityPolicy;
     profile.securityMode = chosen.securityModeValue;
     profile.authentication = ConnectionProfile::Authentication::Anonymous;
-    service.connectToEndpoint(profile);
+    service.connectToEndpoint(profile, QString(), QString());
     QVERIFY2(waitForState(service, OpcUaConnectionState::Connected, 15000),
              qPrintable(service.lastError()));
 
     // 3. Browse the Objects folder and find our variable.
-    QSignalSpy browseSpy(&service, &OpcUaClientService::browseFinished);
+    QSignalSpy browseSpy(&service, &OpcUaBackend::browseFinished);
     service.browse(QStringLiteral("ns=0;i=85"));
     QVERIFY(browseSpy.wait(15000));
     const QList<QVariant> browseArgs = browseSpy.takeFirst();
@@ -145,7 +146,7 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
         hasNode |= child.nodeId == _nodeId;
     QVERIFY2(hasNode, "The test variable was not found while browsing Objects.");
 
-    QSignalSpy referencesSpy(&service, &OpcUaClientService::referencesBrowseFinished);
+    QSignalSpy referencesSpy(&service, &OpcUaBackend::referencesBrowseFinished);
     service.browseReferences(_nodeId);
     QVERIFY(referencesSpy.wait(15000));
     const QList<QVariant> referencesArgs = referencesSpy.takeFirst();
@@ -154,7 +155,7 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     QVERIFY(!referencesArgs.at(1).value<QVector<OpcUaNodeInfo>>().isEmpty());
 
     // 3b. Read the full attribute set (drives the readNode formatting path).
-    QSignalSpy detailsSpy(&service, &OpcUaClientService::nodeDetailsReady);
+    QSignalSpy detailsSpy(&service, &OpcUaBackend::nodeDetailsReady);
     service.readNode(_nodeId);
     QVERIFY(detailsSpy.wait(15000));
     const QList<QVariant> detailsArgs = detailsSpy.takeFirst();
@@ -165,7 +166,7 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     QVERIFY(!details.attributes.isEmpty());
 
     // 4. Read the initial value (42).
-    QSignalSpy readSpy(&service, &OpcUaClientService::dataValuesReady);
+    QSignalSpy readSpy(&service, &OpcUaBackend::dataValuesReady);
     service.readValues({_nodeId});
     QVERIFY(readSpy.wait(15000));
     const auto initial = readSpy.takeFirst().at(0).value<QVector<OpcUaDataValue>>();
@@ -173,14 +174,14 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     QCOMPARE(initial.first().value.toDouble(), 42.0);
 
     // 5. Write a new value (99).
-    QSignalSpy writeSpy(&service, &OpcUaClientService::writeFinished);
+    QSignalSpy writeSpy(&service, &OpcUaBackend::writeFinished);
     service.writeValue(_nodeId, 99.0, static_cast<int>(QOpcUa::Types::Double));
     QVERIFY(writeSpy.wait(15000));
     const QList<QVariant> writeArgs = writeSpy.takeFirst();
     QVERIFY2(writeArgs.at(1).toBool(), qPrintable(writeArgs.at(2).toString()));
 
     // 6. Read it back (99).
-    QSignalSpy readBackSpy(&service, &OpcUaClientService::dataValuesReady);
+    QSignalSpy readBackSpy(&service, &OpcUaBackend::dataValuesReady);
     service.readValues({_nodeId});
     QVERIFY(readBackSpy.wait(15000));
     const auto updated = readBackSpy.takeFirst().at(0).value<QVector<OpcUaDataValue>>();
@@ -188,7 +189,7 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     QCOMPARE(updated.first().value.toDouble(), 99.0);
 
     // 7. Read the server namespace table.
-    QSignalSpy namespacesSpy(&service, &OpcUaClientService::namespacesReady);
+    QSignalSpy namespacesSpy(&service, &OpcUaBackend::namespacesReady);
     service.requestNamespaces();
     QVERIFY(namespacesSpy.wait(15000));
     const QList<QVariant> namespacesArgs = namespacesSpy.takeFirst();
@@ -197,7 +198,7 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     QVERIFY(!namespacesArgs.at(0).toStringList().isEmpty());
 
     // 8. Crawl the address space for per-namespace node counts.
-    QSignalSpy statsSpy(&service, &OpcUaClientService::namespaceStatisticsReady);
+    QSignalSpy statsSpy(&service, &OpcUaBackend::namespaceStatisticsReady);
     service.requestNamespaceStatistics();
     QVERIFY(statsSpy.wait(30000));
     QVERIFY2(statsSpy.takeFirst().at(1).toString().isEmpty(),
@@ -205,8 +206,8 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
 
     // 9. Monitor the changing counter, receive a data change, then stop.
     QVERIFY(!_counterNodeId.isEmpty());
-    QSignalSpy monitorSpy(&service, &OpcUaClientService::monitoringFinished);
-    QSignalSpy counterDataSpy(&service, &OpcUaClientService::dataValuesReady);
+    QSignalSpy monitorSpy(&service, &OpcUaBackend::monitoringFinished);
+    QSignalSpy counterDataSpy(&service, &OpcUaBackend::dataValuesReady);
     service.subscribe(_counterNodeId, 200.0);
     QVERIFY(monitorSpy.wait(15000));
     const QList<QVariant> monitorArgs = monitorSpy.takeFirst();
@@ -215,20 +216,20 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     QVERIFY2(monitorArgs.at(2).toBool(), qPrintable(monitorArgs.at(3).toString()));
     QVERIFY(counterDataSpy.wait(15000)); // the counter ticks ~5x/s
 
-    QSignalSpy unsubscribeSpy(&service, &OpcUaClientService::monitoringFinished);
+    QSignalSpy unsubscribeSpy(&service, &OpcUaBackend::monitoringFinished);
     service.unsubscribe(_counterNodeId);
     QVERIFY(unsubscribeSpy.wait(15000));
     QVERIFY(!unsubscribeSpy.takeFirst().at(1).toBool());
 
     // 10. Read a method's argument metadata and call it (6 * 7 = 42).
     QVERIFY(!_methodNodeId.isEmpty() && !_objectsNodeId.isEmpty());
-    QSignalSpy methodInfoSpy(&service, &OpcUaClientService::methodInfoReady);
+    QSignalSpy methodInfoSpy(&service, &OpcUaBackend::methodInfoReady);
     service.readMethodInfo(_methodNodeId);
     QVERIFY(methodInfoSpy.wait(15000));
     QVERIFY2(methodInfoSpy.takeFirst().at(3).toString().isEmpty(),
              "reading method info reported an error");
 
-    QSignalSpy methodCallSpy(&service, &OpcUaClientService::methodCallFinished);
+    QSignalSpy methodCallSpy(&service, &OpcUaBackend::methodCallFinished);
     service.callMethod(_objectsNodeId, _methodNodeId, {6.0, 7.0},
                        {static_cast<int>(QOpcUa::Types::Double),
                         static_cast<int>(QOpcUa::Types::Double)});
@@ -239,7 +240,7 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
 
     // 11. Drive the raw-history read path (the server keeps no history, so the
     //     result may be empty; this exercises the client request/response code).
-    QSignalSpy historySpy(&service, &OpcUaClientService::historyDataReady);
+    QSignalSpy historySpy(&service, &OpcUaBackend::historyDataReady);
     service.readHistoryRaw(_counterNodeId, QDateTime::currentDateTimeUtc().addSecs(-60),
                            QDateTime::currentDateTimeUtc(), 100);
     QVERIFY(historySpy.wait(15000));
@@ -257,12 +258,12 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
 ///
 void TestOpcUaIntegration::findServersListsTheRunningServer()
 {
-    OpcUaClientService service;
+    QtOpcUaBackend service;
     if (!service.isAvailable())
         QSKIP("No OPC UA backend is available.");
 
-    QSignalSpy serversSpy(&service, &OpcUaClientService::serversDiscovered);
-    service.findServers(_endpoint);
+    QSignalSpy serversSpy(&service, &OpcUaBackend::serversDiscovered);
+    service.findServers(_endpoint, QStringLiteral("open62541"), 10000);
     QVERIFY(serversSpy.wait(15000));
 
     const QList<QVariant> arguments = serversSpy.takeFirst();

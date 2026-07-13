@@ -10,7 +10,7 @@
 
 #include <QLoggingCategory>
 
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "opcua/standardnodeid.h"
 #include "servicecontext.h"
 
@@ -41,16 +41,16 @@ const QLoggingCategory &AddressSpaceModule::logCategory() const
 
 ///
 /// \brief Observes browse completions to log them and republish the children.
-/// \param context Host context providing the client service.
+/// \param context Host context providing the backend.
 ///
 void AddressSpaceModule::initialize(ServiceContext &context)
 {
-    _clientService = context.clientService();
-    connect(_clientService, &OpcUaClientService::browseFinished,
+    _backend = context.backend();
+    connect(_backend, &OpcUaBackend::browseFinished,
             this, &AddressSpaceModule::handleBrowseFinished);
-    connect(_clientService, &OpcUaClientService::nodeSearchProgress,
+    connect(_backend, &OpcUaBackend::nodeSearchProgress,
             this, &AddressSpaceModule::searchProgress);
-    connect(_clientService, &OpcUaClientService::nodeSearchFinished,
+    connect(_backend, &OpcUaBackend::nodeSearchFinished,
             this, &AddressSpaceModule::handleSearchFinished);
 }
 
@@ -60,7 +60,7 @@ void AddressSpaceModule::initialize(ServiceContext &context)
 ///
 void AddressSpaceModule::browse(const QString &nodeId)
 {
-    _clientService->browse(nodeId);
+    _backend->browse(nodeId);
 }
 
 ///
@@ -69,7 +69,7 @@ void AddressSpaceModule::browse(const QString &nodeId)
 ///
 void AddressSpaceModule::refresh(const QString &nodeId)
 {
-    _clientService->browse(nodeId.isEmpty()
+    _backend->browse(nodeId.isEmpty()
         ? QString::fromLatin1(StandardNodeId::ObjectsFolder) : nodeId);
 }
 
@@ -82,7 +82,7 @@ void AddressSpaceModule::search(const QString &startNodeId, const QString &patte
 {
     qCInfo(lcAddressSpace).noquote()
         << tr("Searching node '%1' for '%2'.").arg(startNodeId, pattern);
-    _clientService->searchNode(startNodeId, pattern);
+    _backend->searchNode(startNodeId, pattern);
 }
 
 ///
@@ -90,7 +90,7 @@ void AddressSpaceModule::search(const QString &startNodeId, const QString &patte
 ///
 void AddressSpaceModule::cancelSearch()
 {
-    _clientService->cancelNodeSearch();
+    _backend->cancelNodeSearch();
 }
 
 ///

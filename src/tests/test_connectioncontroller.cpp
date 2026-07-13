@@ -3,7 +3,7 @@
 
 ///
 /// \file test_connectioncontroller.cpp
-/// \brief Unit tests for ConnectionController and OpcUaClientService using fake dependencies.
+/// \brief Unit tests for ConnectionController and OpcUaBackend using fake dependencies.
 ///
 
 #include <algorithm>
@@ -15,7 +15,6 @@
 #include "opcua/connectioncontroller.h"
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuabackend.h"
-#include "opcua/opcuaclientservice.h"
 #include "opcua/recentconnectionstore.h"
 
 ///
@@ -57,17 +56,17 @@ public:
     }
 
     void disconnectFromEndpoint() override { ++disconnectCalls; }
-    void browse(const QString &, int timeoutMs) override
+    void browse(const QString &) override
     {
-        browseTimeout = timeoutMs;
+        browseTimeout = requestTimeout();
     }
-    void browseReferences(const QString &, int timeoutMs) override
+    void browseReferences(const QString &) override
     {
-        referencesBrowseTimeout = timeoutMs;
+        referencesBrowseTimeout = requestTimeout();
     }
-    void readNode(const QString &, int) override {}
-    void readValues(const QStringList &, int) override {}
-    void writeValue(const QString &, const QVariant &, int, int) override {}
+    void readNode(const QString &) override {}
+    void readValues(const QStringList &) override {}
+    void writeValue(const QString &, const QVariant &, int) override {}
     void subscribe(const QString &nodeId, double publishingInterval) override
     {
         subscribedNodeId = nodeId;
@@ -206,17 +205,15 @@ public:
 };
 
 ///
-/// \brief Tests connect/save flows and timeout propagation through the controller and service.
+/// \brief Tests connect/save flows and timeout propagation through the controller and backend.
 ///
 class TestConnectionController : public QObject
 {
     Q_OBJECT
 
 private slots:
-    void serviceForwardsBackendState();
-    void serviceReportsFindServersUnsupported();
-    void serviceUsesProfileRequestTimeout();
-    void serviceForwardsMonitoringRequestsAndResults();
+    void backendReportsFindServersUnsupported();
+    void connectingAppliesTheProfileRequestTimeout();
     void savedProfileWithoutSecretsDiscoversThenConnects();
     void savedProfileLoadsBothSecrets();
     void discoveryFailureDoesNotConnect();
@@ -230,26 +227,16 @@ private slots:
     void connectingRecordsRecentConnection();
 };
 
-void TestConnectionController::serviceForwardsBackendState()
+///
+/// \brief A backend that does not implement FindServers reports the operation as unsupported.
+///
+void TestConnectionController::backendReportsFindServersUnsupported()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
-    QSignalSpy stateSpy(&service, &OpcUaClientService::stateChanged);
+    QSignalSpy serversSpy(&backend, &OpcUaBackend::serversDiscovered);
 
-    backend.currentState = OpcUaConnectionState::Connected;
-    emit backend.stateChanged(backend.currentState);
-
-    QCOMPARE(service.state(), OpcUaConnectionState::Connected);
-    QCOMPARE(stateSpy.size(), 1);
-}
-
-void TestConnectionController::serviceReportsFindServersUnsupported()
-{
-    FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
-    QSignalSpy serversSpy(&service, &OpcUaClientService::serversDiscovered);
-
-    service.findServers(QStringLiteral("opc.tcp://localhost:4840"));
+    backend.findServers(QStringLiteral("opc.tcp://localhost:4840"),
+                        QStringLiteral("fake"), 5000);
 
     QCOMPARE(serversSpy.size(), 1);
     const QList<QVariant> arguments = serversSpy.takeFirst();
@@ -257,53 +244,36 @@ void TestConnectionController::serviceReportsFindServersUnsupported()
     QVERIFY(!arguments.at(1).toString().isEmpty());
 }
 
-void TestConnectionController::serviceUsesProfileRequestTimeout()
+///
+/// \brief Connecting a profile applies its request timeout to the backend's session requests.
+///
+void TestConnectionController::connectingAppliesTheProfileRequestTimeout()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+
     ConnectionProfile profile;
     profile.requestTimeoutMs = 2345;
+    controller.connectNewProfile(profile, QString(), QString());
 
-    service.connectToEndpoint(profile);
-    service.browse(QStringLiteral("ns=0;i=85"));
-    service.browseReferences(QStringLiteral("ns=0;i=85"));
+    backend.browse(QStringLiteral("ns=0;i=85"));
+    backend.browseReferences(QStringLiteral("ns=0;i=85"));
 
+    QCOMPARE(backend.requestTimeout(), profile.requestTimeoutMs);
     QCOMPARE(backend.browseTimeout, profile.requestTimeoutMs);
     QCOMPARE(backend.referencesBrowseTimeout, profile.requestTimeoutMs);
-}
-
-///
-/// \brief Monitoring calls reach the backend and their completion is forwarded.
-///
-void TestConnectionController::serviceForwardsMonitoringRequestsAndResults()
-{
-    FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
-    QSignalSpy finishedSpy(&service, &OpcUaClientService::monitoringFinished);
-    const QString nodeId = QStringLiteral("ns=2;s=Temperature");
-
-    service.subscribe(nodeId);
-    QCOMPARE(backend.subscribedNodeId, nodeId);
-    QCOMPARE(backend.subscriptionPublishingInterval, 1000.0);
-
-    emit backend.monitoringFinished(nodeId, true, true, QString());
-    QCOMPARE(finishedSpy.size(), 1);
-    QCOMPARE(finishedSpy.constFirst().at(0).toString(), nodeId);
-    QCOMPARE(finishedSpy.constFirst().at(1).toBool(), true);
-    QCOMPARE(finishedSpy.constFirst().at(2).toBool(), true);
-
-    service.unsubscribe(nodeId);
-    QCOMPARE(backend.unsubscribedNodeId, nodeId);
 }
 
 void TestConnectionController::savedProfileWithoutSecretsDiscoversThenConnects()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;
-    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
 
     ConnectionProfile profile;
     profile.id = QStringLiteral("anonymous");
@@ -323,11 +293,10 @@ void TestConnectionController::savedProfileWithoutSecretsDiscoversThenConnects()
 void TestConnectionController::savedProfileLoadsBothSecrets()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;
-    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
 
     ConnectionProfile profile;
     profile.id = QStringLiteral("secured");
@@ -351,11 +320,10 @@ void TestConnectionController::savedProfileLoadsBothSecrets()
 void TestConnectionController::discoveryFailureDoesNotConnect()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;
-    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
     QSignalSpy errorSpy(&controller, &ConnectionController::errorOccurred);
 
     ConnectionProfile profile;
@@ -371,11 +339,10 @@ void TestConnectionController::discoveryFailureDoesNotConnect()
 void TestConnectionController::savePersistsProfileAndSecrets()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;
-    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
     QSignalSpy changedSpy(&controller, &ConnectionController::profilesChanged);
 
     ConnectionProfile profile;
@@ -396,11 +363,10 @@ void TestConnectionController::savePersistsProfileAndSecrets()
 void TestConnectionController::savingSameEndpointReplacesFavorite()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;
-    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
 
     ConnectionProfile first;
     first.id = QStringLiteral("first");
@@ -425,11 +391,10 @@ void TestConnectionController::savingSameEndpointReplacesFavorite()
 void TestConnectionController::savingSameEndpointDifferentSecurityKeepsBoth()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;
-    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
 
     ConnectionProfile signEncrypt;
     signEncrypt.id = QStringLiteral("sign-encrypt");
@@ -451,11 +416,10 @@ void TestConnectionController::savingSameEndpointDifferentSecurityKeepsBoth()
 void TestConnectionController::savingSameEndpointDifferentAuthenticationKeepsBoth()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;
-    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
 
     ConnectionProfile anonymous;
     anonymous.id = QStringLiteral("anonymous");
@@ -479,11 +443,10 @@ void TestConnectionController::savingSameEndpointDifferentAuthenticationKeepsBot
 void TestConnectionController::removeFavoriteDeletesProfileAndSecrets()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;
-    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
 
     ConnectionProfile profile;
     profile.id = QStringLiteral("fav");
@@ -503,11 +466,10 @@ void TestConnectionController::removeFavoriteDeletesProfileAndSecrets()
 void TestConnectionController::reorderFavoritesPersistsOrderAndNotifies()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;
-    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
     QSignalSpy changedSpy(&controller, &ConnectionController::profilesChanged);
 
     controller.reorderFavorites({QStringLiteral("b"), QStringLiteral("a")});
@@ -519,12 +481,11 @@ void TestConnectionController::reorderFavoritesPersistsOrderAndNotifies()
 void TestConnectionController::reorderFavoritesFailureReportsError()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;
     profiles.setOrderSucceeds = false;
-    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
     QSignalSpy changedSpy(&controller, &ConnectionController::profilesChanged);
     QSignalSpy errorSpy(&controller, &ConnectionController::errorOccurred);
 
@@ -537,11 +498,10 @@ void TestConnectionController::reorderFavoritesFailureReportsError()
 void TestConnectionController::connectingRecordsRecentConnection()
 {
     FakeOpcUaBackend backend;
-    OpcUaClientService service(&backend);
     FakeSecretStore secrets;
     FakeProfileStore profiles;
     FakeRecentStore recents;
-    ConnectionController controller(&service, &secrets, &profiles, &recents);
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
     QSignalSpy recentsSpy(&controller, &ConnectionController::recentsChanged);
 
     ConnectionProfile first;

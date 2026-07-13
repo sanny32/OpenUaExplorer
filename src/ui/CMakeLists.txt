@@ -70,6 +70,8 @@ add_library(ouaexp_ui STATIC
     dataaccessmonitoringstate.h
     favoritescoordinator.cpp
     favoritescoordinator.h
+    fileexport.cpp
+    fileexport.h
     sessioncoordinator.cpp
     sessioncoordinator.h
     themecoordinator.cpp
@@ -87,8 +89,8 @@ add_library(ouaexp_ui STATIC
     features/featurecommands.h
     features/featuremanager.cpp
     features/featuremanager.h
-    features/featureplugin.cpp
-    features/featureplugin.h
+    features/featuremodule.cpp
+    features/featuremodule.h
     features/logfeature.cpp
     features/logfeature.h
     features/selectioncontext.cpp

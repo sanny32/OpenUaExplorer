@@ -14,7 +14,7 @@ class ConnectionController;
 class ConnectionCoordinator;
 class DataAccessCoordinator;
 class FeatureManager;
-class OpcUaClientService;
+class OpcUaBackend;
 class QMenu;
 class QWidget;
 
@@ -32,7 +32,7 @@ struct SessionCoordinatorContext
     ConnectionCoordinator *connectionCoordinator = nullptr;
     DataAccessCoordinator *dataAccessCoordinator = nullptr;
     FeatureManager *featureManager = nullptr;
-    OpcUaClientService *clientService = nullptr;
+    OpcUaBackend *backend = nullptr;
     std::function<QVector<SessionNodeMonitor>()> captureNodeMonitors;
     std::function<void(const SessionNodeMonitor &)> restoreNodeMonitor;
 };

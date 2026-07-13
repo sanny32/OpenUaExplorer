@@ -10,20 +10,18 @@
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
-#include <QFileDialog>
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QMenu>
-#include <QMessageBox>
 #include <QMimeData>
 #include <QPushButton>
-#include <QSaveFile>
-#include <QTextStream>
 
 #include "appicons.h"
 #include "appsettings.h"
 #include "dataaccesswidget.h"
+#include "dialogs/messageboxdialog.h"
 #include "dialogs/newsubscriptiondialog.h"
+#include "fileexport.h"
 #include "headerview.h"
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
@@ -173,31 +171,12 @@ bool DataAccessWidget::hasData() const
 void DataAccessWidget::exportToCsv()
 {
     if (_dataModel->rowCount() == 0) {
-        QMessageBox::information(this, tr("Export Data"),
-                                 tr("There are no data-access rows to export."));
+        MessageBoxDialog::information(this, tr("Export Data"),
+                                      tr("There are no data-access rows to export."));
         return;
     }
 
-    const QString fileName = QFileDialog::getSaveFileName(
-        this, tr("Export Data"), tr("data-access.csv"),
-        tr("CSV Files (*.csv);;All Files (*)"));
-    if (fileName.isEmpty())
-        return;
-
-    QSaveFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("Export Data"),
-                             tr("Could not open '%1' for writing.").arg(fileName));
-        return;
-    }
-
-    QTextStream stream(&file);
-    stream.setEncoding(QStringConverter::Utf8);
-    stream << _dataModel->toCsv();
-    if (!file.commit()) {
-        QMessageBox::warning(this, tr("Export Data"),
-                             tr("Could not save '%1'.").arg(fileName));
-    }
+    FileExport::exportModelToCsv(this, tr("Export Data"), tr("data-access.csv"), *_dataModel);
 }
 
 ///

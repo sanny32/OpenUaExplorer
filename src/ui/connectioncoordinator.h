@@ -15,7 +15,7 @@
 
 class ConnectionController;
 class FavoritesCoordinator;
-class OpcUaClientService;
+class OpcUaBackend;
 class QAction;
 class QMenu;
 class QToolButton;
@@ -50,14 +50,14 @@ public:
     ///
     /// \brief Builds the coordinator and wires the connection flows.
     /// \param controller Connection controller owning profiles and recents.
-    /// \param clientService Client service driving the connection state.
+    /// \param backend Backend driving the connection state.
     /// \param recentMenu Recent Connections menu rebuilt from the history.
     /// \param favoritesButton Toolbar button anchoring the favourites popup.
     /// \param actions Menu and toolbar actions steered by the coordinator.
     /// \param dialogParent Parent widget for dialogs; also the QObject owner.
     ///
     ConnectionCoordinator(ConnectionController *controller,
-                          OpcUaClientService *clientService,
+                          OpcUaBackend *backend,
                           QMenu *recentMenu,
                           QToolButton *favoritesButton,
                           const ConnectionActions &actions,
@@ -99,7 +99,7 @@ private:
     void onClientError(const QString &message);
 
     ConnectionController *_controller;
-    OpcUaClientService *_clientService;
+    OpcUaBackend *_backend;
     QMenu *_recentMenu;
     QToolButton *_favoritesButton;
     ConnectionActions _actions;

@@ -8,7 +8,8 @@
 #include <QDateTime>
 
 #include "connectionprofilestore.h"
-#include "opcuaclientservice.h"
+#include "opcuabackend.h"
+#include "qtopcuabackend.h"
 #include "recentconnectionstore.h"
 
 ///
@@ -17,44 +18,44 @@
 /// \param parent Owning QObject.
 ///
 ConnectionController::ConnectionController(QObject *parent)
-    : ConnectionController(new OpcUaClientService,
+    : ConnectionController(new QtOpcUaBackend,
                            new SecretStore,
                            new ConnectionProfileStore,
                            new RecentConnectionStore,
                            parent)
 {
-    _clientService->setParent(this);
+    _backend->setParent(this);
     _secretStore->setParent(this);
     _ownsDependencies = true;
 }
 
 ///
 /// \brief Constructs the controller with injected dependencies, used for testing.
-/// \param clientService OPC UA client service.
+/// \param backend OPC UA backend.
 /// \param secretStore Secret store for profile passwords.
 /// \param profileStore Persistent profile store.
 /// \param recentStore Persistent recent-connection store.
 /// \param parent Owning QObject.
 ///
-ConnectionController::ConnectionController(OpcUaClientService *clientService,
+ConnectionController::ConnectionController(OpcUaBackend *backend,
                                            SecretStore *secretStore,
                                            ConnectionProfileStore *profileStore,
                                            RecentConnectionStore *recentStore,
                                            QObject *parent)
     : QObject(parent)
-    , _clientService(clientService)
+    , _backend(backend)
     , _secretStore(secretStore)
     , _profileStore(profileStore)
     , _recentStore(recentStore)
     , _ownsDependencies(false)
 {
-    Q_ASSERT(_clientService);
+    Q_ASSERT(_backend);
     Q_ASSERT(_secretStore);
     Q_ASSERT(_profileStore);
     Q_ASSERT(_recentStore);
     connect(_secretStore, &SecretStore::readFinished,
             this, &ConnectionController::handleSecretRead);
-    connect(_clientService, &OpcUaClientService::endpointsDiscovered,
+    connect(_backend, &OpcUaBackend::endpointsDiscovered,
             this, &ConnectionController::handleEndpoints);
 }
 
@@ -70,12 +71,12 @@ ConnectionController::~ConnectionController()
 }
 
 ///
-/// \brief Gives access to the underlying client service.
-/// \return The OPC UA client service.
+/// \brief Gives access to the underlying OPC UA backend.
+/// \return The OPC UA backend.
 ///
-OpcUaClientService *ConnectionController::clientService() const
+OpcUaBackend *ConnectionController::backend() const
 {
-    return _clientService;
+    return _backend;
 }
 
 ///
@@ -107,11 +108,25 @@ const ConnectionProfile &ConnectionController::activeProfile() const
 
 ///
 /// \brief Sets the delegate that decides whether to trust a server certificate.
-/// \param decider Trust decider, forwarded to the client service.
+/// \param decider Trust decider, forwarded to the backend.
 ///
 void ConnectionController::setCertificateTrustDecider(CertificateTrustDecider *decider)
 {
-    _clientService->setCertificateTrustDecider(decider);
+    _backend->setCertificateTrustDecider(decider);
+}
+
+///
+/// \brief Applies the profile's request timeout to the backend, then connects.
+/// \param profile Profile to connect with.
+/// \param password User password, if any.
+/// \param privateKeyPassword Private-key password, if any.
+///
+void ConnectionController::connectBackend(const ConnectionProfile &profile,
+                                          const QString &password,
+                                          const QString &privateKeyPassword)
+{
+    _backend->setRequestTimeout(profile.requestTimeoutMs);
+    _backend->connectToEndpoint(profile, password, privateKeyPassword);
 }
 
 ///
@@ -129,7 +144,7 @@ void ConnectionController::connectNewProfile(const ConnectionProfile &profile,
     _recentStore->record(profile);
     emit recentsChanged();
     touchFavorite(profile);
-    _clientService->connectToEndpoint(profile, password, privateKeyPassword);
+    connectBackend(profile, password, privateKeyPassword);
 }
 
 ///
@@ -314,8 +329,7 @@ void ConnectionController::handleEndpoints(const QList<EndpointInfo> &,
         return;
     }
     _activeProfile = _pendingProfile;
-    _clientService->connectToEndpoint(_pendingProfile, _pendingPassword,
-                                      _pendingPrivateKeyPassword);
+    connectBackend(_pendingProfile, _pendingPassword, _pendingPrivateKeyPassword);
 }
 
 ///
@@ -324,7 +338,6 @@ void ConnectionController::handleEndpoints(const QList<EndpointInfo> &,
 void ConnectionController::discoverPendingProfile()
 {
     _waitingForDiscovery = true;
-    _clientService->discoverEndpointsWithTimeout(
-        _pendingProfile.endpointUrl, _pendingProfile.backend,
-        _pendingProfile.endpointTimeoutMs);
+    _backend->discoverEndpoints(_pendingProfile.endpointUrl, _pendingProfile.backend,
+                                _pendingProfile.endpointTimeoutMs);
 }

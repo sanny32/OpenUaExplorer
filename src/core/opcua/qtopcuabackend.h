@@ -95,30 +95,26 @@ public:
     ///
     /// \brief Browses a node's children, emitting browseFinished() with the references or an error.
     /// \param nodeId Node to browse.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    void browse(const QString &nodeId, int timeoutMs) override;
+    void browse(const QString &nodeId) override;
 
     ///
     /// \brief Browses a node's forward references, emitting referencesBrowseFinished().
     /// \param nodeId Node to browse.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    void browseReferences(const QString &nodeId, int timeoutMs) override;
+    void browseReferences(const QString &nodeId) override;
 
     ///
     /// \brief Reads a node's full attribute set, emitting nodeDetailsReady() with the formatted result.
     /// \param nodeId Node to read.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    void readNode(const QString &nodeId, int timeoutMs) override;
+    void readNode(const QString &nodeId) override;
 
     ///
     /// \brief Batch-reads the Value attribute of several nodes, emitting dataValuesReady().
     /// \param nodeIds Nodes whose Value attributes should be read.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    void readValues(const QStringList &nodeIds, int timeoutMs) override;
+    void readValues(const QStringList &nodeIds) override;
 
     ///
     /// \brief Reads the raw history of a node's Value, emitting historyDataReady() with the samples.
@@ -126,10 +122,9 @@ public:
     /// \param start Inclusive range start.
     /// \param end Inclusive range end.
     /// \param numValuesPerNode Maximum samples to return, or 0 for no limit.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
     void readHistoryRaw(const QString &nodeId, const QDateTime &start, const QDateTime &end,
-                        quint32 numValuesPerNode, int timeoutMs) override;
+                        quint32 numValuesPerNode) override;
 
     ///
     /// \brief Reads historical events for a node, emitting historyEventsReady().
@@ -137,27 +132,23 @@ public:
     /// \param start Inclusive range start.
     /// \param end Inclusive range end.
     /// \param numValuesPerNode Maximum events to return, or 0 for no limit.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
     void readHistoryEvents(const QString &nodeId, const QDateTime &start, const QDateTime &end,
-                           quint32 numValuesPerNode, int timeoutMs) override;
+                           quint32 numValuesPerNode) override;
 
     ///
     /// \brief Writes a node's Value attribute, emitting writeFinished() with the outcome.
     /// \param nodeId Node to write.
     /// \param value Typed value.
     /// \param valueType QOpcUa::Types numeric value or Undefined.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    void writeValue(const QString &nodeId, const QVariant &value,
-                    int valueType, int timeoutMs) override;
+    void writeValue(const QString &nodeId, const QVariant &value, int valueType) override;
 
     ///
     /// \brief Reads a method's InputArguments/OutputArguments, emitting methodInfoReady().
     /// \param methodNodeId Method node whose argument metadata is read.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    void readMethodInfo(const QString &methodNodeId, int timeoutMs) override;
+    void readMethodInfo(const QString &methodNodeId) override;
 
     ///
     /// \brief Calls a method on its owning object, emitting methodCallFinished() with the outputs.
@@ -165,10 +156,9 @@ public:
     /// \param methodNodeId Method node to call.
     /// \param args Input argument values in call order.
     /// \param argTypes QOpcUa::Types numeric values matching \a args positionally.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
     void callMethod(const QString &objectNodeId, const QString &methodNodeId,
-                    const QVariantList &args, const QList<int> &argTypes, int timeoutMs) override;
+                    const QVariantList &args, const QList<int> &argTypes) override;
 
     ///
     /// \brief Enables Value monitoring for a node.
@@ -198,21 +188,18 @@ public:
 
     ///
     /// \brief Reads the SessionDiagnosticsArray and resolves this client's session name.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    void readServerSessionName(int timeoutMs) override;
+    void readServerSessionName() override;
 
     ///
     /// \brief Reads the server NamespaceArray, emitting namespacesReady() with the URIs.
-    /// \param timeoutMs Request timeout in milliseconds.
     ///
-    void requestNamespaces(int timeoutMs) override;
+    void requestNamespaces() override;
 
     ///
     /// \brief Crawls the address space, emitting namespaceStatisticsReady() with per-namespace counts.
-    /// \param timeoutMs Per-browse timeout in milliseconds.
     ///
-    void requestNamespaceStatistics(int timeoutMs) override;
+    void requestNamespaceStatistics() override;
 
     ///
     /// \brief Cancels an in-progress namespace statistics crawl, if any.
@@ -223,9 +210,8 @@ public:
     /// \brief Searches a subtree for a display name, emitting nodeSearchFinished() with the match.
     /// \param startNodeId Node whose subtree is searched.
     /// \param pattern Case-insensitive substring matched against display names.
-    /// \param timeoutMs Per-browse timeout in milliseconds.
     ///
-    void searchNode(const QString &startNodeId, const QString &pattern, int timeoutMs) override;
+    void searchNode(const QString &startNodeId, const QString &pattern) override;
 
     ///
     /// \brief Cancels an in-progress node search, if any.

@@ -11,7 +11,7 @@
 #include "opcua/opcuatypes.h"
 #include "servicemodule.h"
 
-class OpcUaClientService;
+class OpcUaBackend;
 
 ///
 /// \brief Provides the address-space browse API: request children and deliver them as a signal.
@@ -86,5 +86,5 @@ private:
     void handleSearchFinished(const QStringList &ancestorNodeIds, const QString &nodeId,
                               const QString &error);
 
-    OpcUaClientService *_clientService = nullptr;
+    OpcUaBackend *_backend = nullptr;
 };

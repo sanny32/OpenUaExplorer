@@ -10,7 +10,7 @@
 
 #include <QLoggingCategory>
 
-#include "opcua/opcuaclientservice.h"
+#include "opcua/opcuabackend.h"
 #include "servicecontext.h"
 
 namespace {
@@ -40,16 +40,16 @@ const QLoggingCategory &EventsModule::logCategory() const
 
 ///
 /// \brief Observes event notifications and monitoring completions to republish and log them.
-/// \param context Host context providing the client service.
+/// \param context Host context providing the backend.
 ///
 void EventsModule::initialize(ServiceContext &context)
 {
-    _clientService = context.clientService();
-    connect(_clientService, &OpcUaClientService::eventsReady,
+    _backend = context.backend();
+    connect(_backend, &OpcUaBackend::eventsReady,
             this, &EventsModule::handleEventsReady);
-    connect(_clientService, &OpcUaClientService::historyEventsReady,
+    connect(_backend, &OpcUaBackend::historyEventsReady,
             this, &EventsModule::handleEventsHistoryReady);
-    connect(_clientService, &OpcUaClientService::eventMonitoringFinished,
+    connect(_backend, &OpcUaBackend::eventMonitoringFinished,
             this, &EventsModule::handleEventMonitoringFinished);
 }
 
@@ -63,7 +63,7 @@ void EventsModule::subscribeEvents(const QString &nodeId, double publishingInter
     qCInfo(lcEvents).noquote()
         << tr("Creating event monitored item for node '%1' (publishingInterval=%2 ms).")
                .arg(nodeId).arg(publishingInterval);
-    _clientService->subscribeEvents(nodeId, publishingInterval);
+    _backend->subscribeEvents(nodeId, publishingInterval);
 }
 
 ///
@@ -73,7 +73,7 @@ void EventsModule::subscribeEvents(const QString &nodeId, double publishingInter
 void EventsModule::unsubscribeEvents(const QString &nodeId)
 {
     qCInfo(lcEvents).noquote() << tr("Disabling event monitoring for node '%1'.").arg(nodeId);
-    _clientService->unsubscribeEvents(nodeId);
+    _backend->unsubscribeEvents(nodeId);
 }
 
 ///
@@ -92,7 +92,7 @@ void EventsModule::readHistory(const QString &nodeId, const QDateTime &start,
               .arg(start.toUTC().toString(Qt::ISODateWithMs),
                    end.toUTC().toString(Qt::ISODateWithMs))
               .arg(maxValues);
-    _clientService->readHistoryEvents(nodeId, start, end, maxValues);
+    _backend->readHistoryEvents(nodeId, start, end, maxValues);
 }
 
 ///

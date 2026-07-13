@@ -39,10 +39,10 @@ public:
     ~ConnectionDialog() override;
 
     ///
-    /// \brief Sets the client service used for discovery and subscribes to its results.
-    /// \param service OPC UA client service.
+    /// \brief Sets the backend used for discovery and subscribes to its results.
+    /// \param backend OPC UA backend.
     ///
-    void setClientService(class OpcUaClientService *service);
+    void setBackend(class OpcUaBackend *backend);
 
     ///
     /// \brief Pre-fills the dialog from a saved profile so a favourite opens ready to connect.
@@ -100,7 +100,7 @@ private:
                                 const QString &certificatePath = QString());
 
     Ui::ConnectionDialog *ui;
-    class OpcUaClientService *_service = nullptr;
+    class OpcUaBackend *_service = nullptr;
     EndpointHistoryStore _endpointHistoryStore;
     QString _presetId;
     bool _connectAfterDiscovery = false;

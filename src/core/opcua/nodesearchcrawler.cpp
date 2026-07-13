@@ -6,7 +6,7 @@
 /// \brief Implements the display-name address-space search crawler.
 ///
 
-#include <QOpcUaClient>
+#include <QOpcUaLocalizedText>
 
 #include "nodesearchcrawler.h"
 
@@ -20,20 +20,10 @@
 ///
 NodeSearchCrawler::NodeSearchCrawler(QOpcUaClient *client, const QString &startNodeId,
                                      const QString &pattern, int timeoutMs, QObject *parent)
-    : QObject(parent)
-    , _client(client)
+    : AddressSpaceCrawler(client, timeoutMs, parent)
     , _startNodeId(startNodeId)
     , _pattern(pattern)
-    , _timeoutMs(qMax(1000, timeoutMs))
 {
-    _timeoutTimer.setSingleShot(true);
-    connect(&_timeoutTimer, &QTimer::timeout, this, [this]() {
-        releaseCurrent();
-        if (_cancelled)
-            finish({}, QString(), QString());
-        else
-            browseNext();
-    });
 }
 
 ///
@@ -41,156 +31,51 @@ NodeSearchCrawler::NodeSearchCrawler(QOpcUaClient *client, const QString &startN
 ///
 void NodeSearchCrawler::start()
 {
-    if (_running || _finished)
+    if (isRunning() || isFinished())
         return;
-    _running = true;
     if (!clientAvailable()) {
-        finish({}, QString(), tr("The OPC UA client is not connected."));
+        finish(tr("The OPC UA client is not connected."));
         return;
     }
     if (_startNodeId.isEmpty() || _pattern.isEmpty()) {
-        finish({}, QString(), QString());
+        finish(QString());
         return;
     }
-    _visited.insert(_startNodeId);
-    _queue.enqueue(_startNodeId);
-    browseNext();
+    beginCrawl(_startNodeId);
 }
 
 ///
-/// \brief Stops the crawl and emits finished() with no match.
+/// \brief Remembers a child's parent and buffers it when its display name matches.
+/// \param childId NodeId of the child.
+/// \param child Reference description the child was discovered through.
+/// \param parentNodeId Node that was browsed to find the child.
 ///
-void NodeSearchCrawler::cancel()
+void NodeSearchCrawler::visitChild(const QString &childId,
+                                   const QOpcUaReferenceDescription &child,
+                                   const QString &parentNodeId)
 {
-    if (_finished)
-        return;
-    _cancelled = true;
-    finish({}, QString(), QString());
+    _parentOf.insert(childId, parentNodeId);
+    if (child.displayName().text().contains(_pattern, Qt::CaseInsensitive))
+        _pendingMatches.enqueue(childId);
 }
 
 ///
-/// \brief Browses the next queued node, skipping any that cannot be created or started.
-///
-void NodeSearchCrawler::browseNext()
-{
-    if (_finished)
-        return;
-    if (_cancelled) {
-        finish({}, QString(), QString());
-        return;
-    }
-    if (!clientAvailable()) {
-        finish({}, QString(), tr("The OPC UA client is no longer available."));
-        return;
-    }
-    if (_visited.size() >= MaxVisitedNodes) {
-        finish({}, QString(),
-               tr("The search stopped after visiting %1 nodes.").arg(MaxVisitedNodes));
-        return;
-    }
-    while (!_queue.isEmpty()) {
-        const QString nodeId = _queue.dequeue();
-        _currentNodeId = nodeId;
-        if (!startBrowse(nodeId))
-            continue;
-        return;
-    }
-    finish({}, QString(), QString());
-}
-
-///
-/// \brief Reports whether a client is available to browse with.
-/// \return True when browsing may proceed.
-///
-bool NodeSearchCrawler::clientAvailable() const
-{
-    return !_client.isNull();
-}
-
-///
-/// \brief Returns the client the crawl browses with.
-/// \return Client pointer, possibly null.
-///
-QOpcUaClient *NodeSearchCrawler::client() const
-{
-    return _client;
-}
-
-///
-/// \brief Starts an asynchronous browse of one node, arming the timeout.
-/// \param nodeId Node whose children are browsed.
-/// \return True when the browse started; false to skip the node.
-///
-bool NodeSearchCrawler::startBrowse(const QString &nodeId)
-{
-    QOpcUaNode *node = _client->node(nodeId);
-    if (!node)
-        return false;
-    _current = node;
-    _currentConnection = connect(node, &QOpcUaNode::browseFinished, this,
-        [this](const QVector<QOpcUaReferenceDescription> &children, QOpcUa::UaStatusCode) {
-            deliverChildren(children);
-        });
-    if (!node->browseChildren()) {
-        releaseCurrent();
-        return false;
-    }
-    _timeoutTimer.start(_timeoutMs);
-    return true;
-}
-
-///
-/// \brief Feeds a completed browse back into the crawl.
-/// \param children Forward hierarchical references of the node being browsed.
-///
-void NodeSearchCrawler::deliverChildren(const QVector<QOpcUaReferenceDescription> &children)
-{
-    _timeoutTimer.stop();
-    releaseCurrent();
-    handleChildren(children);
-}
-
-///
-/// \brief Matches child display names, enqueues unvisited children, and continues the crawl.
-///
-/// Every child is enqueued, including matching ones, so that a match never hides its
-/// own subtree or the siblings that follow it from a later resume().
-/// \param children Forward hierarchical references returned by the last browse.
-///
-void NodeSearchCrawler::handleChildren(const QVector<QOpcUaReferenceDescription> &children)
-{
-    if (_finished)
-        return;
-    if (_cancelled) {
-        finish({}, QString(), QString());
-        return;
-    }
-    const QString parentNodeId = _currentNodeId;
-    for (const QOpcUaReferenceDescription &child : children) {
-        if (child.targetNodeId().serverIndex() != 0)
-            continue;
-        const QString childId = child.targetNodeId().nodeId();
-        if (childId.isEmpty() || _visited.contains(childId))
-            continue;
-        _visited.insert(childId);
-        _parentOf.insert(childId, parentNodeId);
-        if (child.displayName().text().contains(_pattern, Qt::CaseInsensitive))
-            _pendingMatches.enqueue(childId);
-        _queue.enqueue(childId);
-    }
-    emit progress(_visited.size());
-    deliverNextMatch();
-}
-
-///
-/// \brief Reports the next match found so far, or keeps browsing when none is buffered.
+/// \brief Reports the next buffered match, or keeps browsing when none is buffered.
 ///
 /// Reporting a match pauses the crawl rather than ending it, so resume() can continue
 /// from the same breadth-first position instead of restarting from the start node.
 ///
+void NodeSearchCrawler::continueCrawl()
+{
+    deliverNextMatch();
+}
+
+///
+/// \brief Reports the next buffered match, or browses on when none is buffered.
+///
 void NodeSearchCrawler::deliverNextMatch()
 {
-    if (_finished || _cancelled)
+    if (isFinished() || isCancelled())
         return;
     if (!_pendingMatches.isEmpty()) {
         const QString nodeId = _pendingMatches.dequeue();
@@ -206,10 +91,34 @@ void NodeSearchCrawler::deliverNextMatch()
 ///
 void NodeSearchCrawler::resume()
 {
-    if (_finished || !_paused)
+    if (isFinished() || !_paused)
         return;
     _paused = false;
     deliverNextMatch();
+}
+
+///
+/// \brief Stops the crawl once the visit budget is exhausted.
+/// \param error Set to the budget message when the crawl must stop.
+/// \return True once the visit budget is exhausted.
+///
+bool NodeSearchCrawler::shouldStop(QString *error) const
+{
+    if (visited().size() < MaxVisitedNodes)
+        return false;
+    if (error)
+        *error = tr("The search stopped after visiting %1 nodes.").arg(MaxVisitedNodes);
+    return true;
+}
+
+///
+/// \brief Reports that the crawl ended without a further match.
+/// \param error Error description, empty on success or cancellation.
+///
+void NodeSearchCrawler::emitFinished(const QString &error)
+{
+    _paused = false;
+    emit finished({}, QString(), error);
 }
 
 ///
@@ -218,7 +127,7 @@ void NodeSearchCrawler::resume()
 ///
 bool NodeSearchCrawler::isPaused() const
 {
-    return _paused && !_finished;
+    return _paused && !isFinished();
 }
 
 ///
@@ -229,40 +138,7 @@ bool NodeSearchCrawler::isPaused() const
 ///
 bool NodeSearchCrawler::matches(const QString &startNodeId, const QString &pattern) const
 {
-    return !_finished && _startNodeId == startNodeId && _pattern == pattern;
-}
-
-///
-/// \brief Disconnects and schedules deletion of the node being browsed.
-///
-void NodeSearchCrawler::releaseCurrent()
-{
-    if (_currentConnection) {
-        QObject::disconnect(_currentConnection);
-        _currentConnection = {};
-    }
-    if (_current) {
-        _current->deleteLater();
-        _current = nullptr;
-    }
-}
-
-///
-/// \brief Emits finished() exactly once and tears down any in-flight browse.
-/// \param ancestorNodeIds Node ids from the start node down to the match's parent.
-/// \param nodeId Matched NodeId, empty when nothing matched.
-/// \param error Error description, empty on success or cancellation.
-///
-void NodeSearchCrawler::finish(const QStringList &ancestorNodeIds, const QString &nodeId,
-                               const QString &error)
-{
-    if (_finished)
-        return;
-    _finished = true;
-    _paused = false;
-    _timeoutTimer.stop();
-    releaseCurrent();
-    emit finished(ancestorNodeIds, nodeId, error);
+    return !isFinished() && _startNodeId == startNodeId && _pattern == pattern;
 }
 
 ///

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 ///
-/// \file featureplugin.h
-/// \brief Declares the base class for UI feature plugins.
+/// \file featuremodule.h
+/// \brief Declares the base class for UI feature modules.
 ///
 
 #pragma once
@@ -17,13 +17,13 @@ struct SessionData;
 ///
 /// \brief Base class for a dock-style UI feature hosted by MainWindow.
 ///
-class FeaturePlugin
+class FeatureModule
 {
 public:
     ///
-    /// \brief Destroys the feature plugin.
+    /// \brief Destroys the feature module.
     ///
-    virtual ~FeaturePlugin();
+    virtual ~FeatureModule();
 
     ///
     /// \brief Returns the human-readable feature name.

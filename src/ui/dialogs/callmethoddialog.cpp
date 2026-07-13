@@ -7,14 +7,14 @@
 ///
 
 #include <QHeaderView>
-#include <QMessageBox>
 #include <QPushButton>
 #include <QSize>
 
 #include "appcolors.h"
 #include "callmethoddialog.h"
 #include "formatters/attributeformatter.h"
-#include "opcua/opcuaclientservice.h"
+#include "messageboxdialog.h"
+#include "opcua/opcuabackend.h"
 #include "ui_callmethoddialog.h"
 #include "widgets/tableview.h"
 
@@ -207,11 +207,11 @@ void setupArgumentView(TableView *view)
 } // namespace
 
 ///
-/// \brief Builds the dialog and wires it to the client service.
-/// \param service OPC UA client service used to read metadata and call the method.
+/// \brief Builds the dialog and wires it to the backend.
+/// \param service OPC UA backend used to read metadata and call the method.
 /// \param parent Parent widget.
 ///
-CallMethodDialog::CallMethodDialog(OpcUaClientService *service, QWidget *parent)
+CallMethodDialog::CallMethodDialog(OpcUaBackend *service, QWidget *parent)
     : AppBaseDialog(parent)
     , ui(new Ui::CallMethodDialog)
     , _service(service)
@@ -233,9 +233,9 @@ CallMethodDialog::CallMethodDialog(OpcUaClientService *service, QWidget *parent)
     connect(_callButton, &QPushButton::clicked, this, &CallMethodDialog::callMethod);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::close);
 
-    connect(_service, &OpcUaClientService::methodInfoReady,
+    connect(_service, &OpcUaBackend::methodInfoReady,
             this, &CallMethodDialog::handleMethodInfo);
-    connect(_service, &OpcUaClientService::methodCallFinished,
+    connect(_service, &OpcUaBackend::methodCallFinished,
             this, &CallMethodDialog::handleMethodCall);
 
     setCallEnabled(false);
@@ -338,8 +338,9 @@ void CallMethodDialog::callMethod()
         const QVariant value = OpcUaFormat::scalarFromText(
             text, static_cast<QOpcUa::Types>(argument.valueType), &ok);
         if (!ok) {
-            QMessageBox::warning(this, tr("Invalid Argument"),
-                tr("The value of '%1' is invalid for its data type.").arg(argument.name));
+            MessageBoxDialog::warning(this, tr("Invalid Argument"),
+                tr("The value of '%1' is invalid for its data type.").arg(argument.name),
+                DialogButtonBox::Ok);
             return;
         }
         values.append(value);
