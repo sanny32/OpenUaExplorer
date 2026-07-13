@@ -38,7 +38,7 @@ bool TrendGraphState::subscribe(const QString &nodeId)
 ///
 bool TrendGraphState::unsubscribe(const QString &nodeId)
 {
-    return _subscribedNodes.remove(nodeId) > 0;
+    return _subscribedNodes.remove(nodeId);
 }
 
 ///
@@ -75,7 +75,7 @@ void TrendGraphState::addPendingHistory(const QString &nodeId)
 ///
 bool TrendGraphState::consumePendingHistory(const QString &nodeId)
 {
-    return _pendingHistoryNodes.remove(nodeId) > 0;
+    return _pendingHistoryNodes.remove(nodeId);
 }
 
 ///
