@@ -201,6 +201,15 @@ jobs:
             pkgroot/usr/lib/ouaexp/lib/*.so* \
             $plugins
 
+          # The GCC runtime moved from libgcc1 to libgcc-s1 in Debian 11, and this
+          # container resolves it to the new name, which the older releases the
+          # package targets - Astra Linux 1.7, for one - do not have. The library is
+          # the same one under either name, so the old one is offered as an
+          # alternative. It is added here rather than in control.in because
+          # dpkg-shlibdeps is what emits the dependency.
+          sed -i 's/libgcc-s1 ([^)]*)/& | libgcc1/' debian/substvars
+          cat debian/substvars
+
           dpkg-gencontrol -pouaexp -Ppkgroot -Tdebian/substvars
 
       - name: Build package
@@ -288,6 +297,7 @@ jobs:
             ubuntu:22.04
             ubuntu:24.04
             ubuntu:26.04
+            registry.astralinux.ru/astra/ubi17:latest
             registry.astralinux.ru/astra/ubi18:latest
 
       - name: Attach package to release
