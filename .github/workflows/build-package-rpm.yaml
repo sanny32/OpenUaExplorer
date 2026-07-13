@@ -167,6 +167,7 @@ jobs:
           appstream-util validate-relax --nonet pkgroot/usr/share/metainfo/*.metainfo.xml
 
       - name: Generate spec file
+        shell: bash
         run: |
           mkdir -p rpmbuild/SPECS
 
