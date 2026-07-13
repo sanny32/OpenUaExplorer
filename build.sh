@@ -835,18 +835,23 @@ system_openssl3_available() {
     return 1
 }
 
-openssl_source_available() {
-    local source_root="$1"
+openssl_source_dir() {
+    local root="$1"
+    local candidate
 
-    [ -x "$source_root/Configure" ] \
-        || [ -n "$(find "$source_root" -maxdepth 3 -name Configure -type f -print -quit 2>/dev/null)" ]
+    for candidate in "$root/Tools/OpenSSLv3/src" "$root"; do
+        if [ -f "$candidate/Configure" ]; then
+            printf '%s\n' "$candidate"
+            return
+        fi
+    done
 }
 
 install_openssl_source() {
     local root="$1"
-    local source_root="$2"
 
-    if openssl_source_available "$source_root"; then
+    OPENSSL_SOURCE_DIR="$(openssl_source_dir "$root")"
+    if [ -n "$OPENSSL_SOURCE_DIR" ]; then
         return
     fi
 
@@ -855,8 +860,9 @@ install_openssl_source() {
     "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-tool \
         linux desktop tools_opensslv3_src -O "$root"
 
-    if ! openssl_source_available "$source_root"; then
-        log_error "aqtinstall completed, but OpenSSL sources were not found in $source_root"
+    OPENSSL_SOURCE_DIR="$(openssl_source_dir "$root")"
+    if [ -z "$OPENSSL_SOURCE_DIR" ]; then
+        log_error "aqtinstall completed, but no OpenSSL sources were found under $root"
         exit 1
     fi
 }
@@ -867,8 +873,9 @@ install_openssl_source() {
 # and building against it would produce a program that links and then fails to do any
 # TLS at run time. The source carried by the Qt installer is built for those systems.
 configure_linux_openssl() {
-    local root="$TOOLS_DIR/qt"
-    local source_dir="$root/Tools/OpenSSLv3/src"
+    # A directory of its own, and not the Qt one: aqtinstall 3.1.x unpacks the sources
+    # flat, which would scatter the OpenSSL tree over the root of the Qt installation.
+    local root="$TOOLS_DIR/openssl-src"
     local prefix="$TOOLS_DIR/openssl"
 
     if [ -n "${OPENSSL_ROOT_DIR:-}" ]; then
@@ -888,11 +895,11 @@ configure_linux_openssl() {
         exit 1
     fi
 
-    install_openssl_source "$root" "$source_dir"
+    install_openssl_source "$root"
 
     # The same script the packaging workflows use, so a locally built program links
     # against the OpenSSL the .deb and the .rpm carry.
-    bash "$PROJECT_DIR/.github/linux/openssl.sh" "$source_dir" "$prefix"
+    bash "$PROJECT_DIR/.github/linux/openssl.sh" "$OPENSSL_SOURCE_DIR" "$prefix"
 
     export OPENSSL_ROOT_DIR="$prefix"
     log_info "Using OpenSSL from $OPENSSL_ROOT_DIR"
