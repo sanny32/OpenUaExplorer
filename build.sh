@@ -818,10 +818,19 @@ gcc_version() {
     "$1" -dumpfullversion -dumpversion 2>/dev/null | head -n1
 }
 
+package_cxx_compilers() {
+    local package="$1"
+
+    dpkg -L "$package" 2>/dev/null \
+        | grep -E '/(g\+\+|c\+\+)(-[0-9.]+)?$' \
+        | sort -r
+}
+
 configure_linux_compiler() {
     local required="9"
     local version
-    local candidate
+    local cxx
+    local cc
 
     if [ -n "${CXX:-}" ]; then
         log_info "Using the compiler from the environment: $CXX"
@@ -843,24 +852,26 @@ configure_linux_compiler() {
 
     install_packages gcc-astra gcc-astra-libs
 
-    for candidate in 14 13 12 11 10 9; do
-        if [ ! -x "/usr/bin/gcc-$candidate" ] || [ ! -x "/usr/bin/g++-$candidate" ]; then
-            continue
-        fi
+    while IFS= read -r cxx; do
+        [ -x "$cxx" ] || continue
 
-        version="$(gcc_version "/usr/bin/gcc-$candidate")"
+        version="$(gcc_version "$cxx")"
         if [ -z "$version" ] || ! version_ge "$version" "$required"; then
             continue
         fi
 
-        CC="/usr/bin/gcc-$candidate"
-        CXX="/usr/bin/g++-$candidate"
+        cc="$(dirname "$cxx")/$(basename "$cxx" | sed -e 's/g++/gcc/' -e 's/c++/cc/')"
+        [ -x "$cc" ] || continue
+
+        CC="$cc"
+        CXX="$cxx"
         export CC CXX
         log_info "Using GCC $version from gcc-astra: $CXX"
         return
-    done
+    done < <(package_cxx_compilers gcc-astra)
 
     log_error "gcc-astra is installed, but it provides no GCC $required or newer."
+    log_error "Compilers in the package: $(package_cxx_compilers gcc-astra | tr '\n' ' ')"
     exit 1
 }
 
