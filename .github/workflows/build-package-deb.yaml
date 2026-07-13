@@ -214,8 +214,16 @@ jobs:
             exit 1
           fi
 
-          lintian --no-tag-display-limit --fail-on error \
-            "${{ steps.package.outputs.name }}"
+          # The lintian this container ships predates --fail-on, and its exit status
+          # does not distinguish errors from warnings, so the tags are what is checked.
+          lintian --no-tag-display-limit "${{ steps.package.outputs.name }}" \
+            > lintian.log || true
+          cat lintian.log
+
+          if grep -q '^E:' lintian.log; then
+            echo "::error::lintian reported errors"
+            exit 1
+          fi
 
       # Installing from the .deb resolves the generated Depends against the archive,
       # so a missing runtime dependency fails here rather than on a user's machine.
