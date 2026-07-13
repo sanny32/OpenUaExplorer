@@ -53,6 +53,10 @@ jobs:
       - name: Set up Python
         uses: ./.github/actions/setup-python
 
+      # The GTK and Wayland libraries are not linked against: the Qt platform and
+      # platform theme plugins load them, and they stay a dependency of the package
+      # rather than being bundled. They are installed because bundle.sh resolves the
+      # plugins against this container, and dpkg-shlibdeps turns them into Depends.
       - name: Install build dependencies
         run: |
           apt-get update
@@ -61,6 +65,7 @@ jobs:
             dpkg-dev fakeroot lintian \
             desktop-file-utils appstream-util \
             libgl1-mesa-dev libsecret-1-dev \
+            libgtk-3-0 libwayland-cursor0 \
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0

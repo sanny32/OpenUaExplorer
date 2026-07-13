@@ -56,6 +56,11 @@ jobs:
       # The package is built inside an older Ubuntu container so the glibc and
       # libstdc++ symbol versions the bundled binaries reference stay as low as
       # possible. The bundle carries its own Qt; rpmbuild only wraps the staged tree.
+      #
+      # The GTK and Wayland libraries are not linked against: the Qt platform and
+      # platform theme plugins load them, and they stay a dependency of the package
+      # rather than being bundled. They are installed because bundle.sh resolves the
+      # plugins against this container, and rpmbuild turns their sonames into Requires.
       - name: Install build dependencies
         run: |
           apt-get update
@@ -64,6 +69,7 @@ jobs:
             rpm file \
             desktop-file-utils appstream-util \
             libgl1-mesa-dev libsecret-1-dev \
+            libgtk-3-0 libwayland-cursor0 \
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0
