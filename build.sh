@@ -814,6 +814,65 @@ configure_linux_qt() {
     fi
 }
 
+gcc_version() {
+    "$1" -dumpfullversion -dumpversion 2>/dev/null | head -n1
+}
+
+# GCC 8 does not build the Qt 6 headers: Qt's headersclean check compiles every public
+# header of a module as a translation unit of its own under -Werror and a hardened
+# warning set, and GCC 8 misfires on the Qt headers themselves - -Wshadow in qvariant.h
+# and -Wzero-as-null-pointer-constant in qcomparehelpers.h. Astra Linux 1.7 is the one
+# distribution here whose default compiler is that old, and it publishes a newer
+# toolchain of its own, gcc-astra, which carries GCC 12.
+configure_linux_compiler() {
+    local required="9"
+    local version
+    local candidate
+
+    if [ -n "${CXX:-}" ]; then
+        log_info "Using the compiler from the environment: $CXX"
+        return
+    fi
+
+    version="$(gcc_version gcc)"
+    if [ -n "$version" ] && version_ge "$version" "$required"; then
+        log_info "Using GCC $version"
+        return
+    fi
+
+    log_warn "GCC ${version:-unknown} is older than the required GCC $required."
+
+    if [ "$LINUX_ID" != "astra" ]; then
+        log_error "No compiler new enough for the Qt headers is available."
+        exit 1
+    fi
+
+    install_packages gcc-astra gcc-astra-libs
+
+    # gcc-astra installs next to the compiler of the distribution rather than replacing
+    # it, so its binaries are picked explicitly - by version, as the newest wins, and
+    # the package has carried different ones over time.
+    for candidate in 14 13 12 11 10 9; do
+        if [ ! -x "/usr/bin/gcc-$candidate" ] || [ ! -x "/usr/bin/g++-$candidate" ]; then
+            continue
+        fi
+
+        version="$(gcc_version "/usr/bin/gcc-$candidate")"
+        if [ -z "$version" ] || ! version_ge "$version" "$required"; then
+            continue
+        fi
+
+        CC="/usr/bin/gcc-$candidate"
+        CXX="/usr/bin/g++-$candidate"
+        export CC CXX
+        log_info "Using GCC $version from gcc-astra: $CXX"
+        return
+    done
+
+    log_error "gcc-astra is installed, but it provides no GCC $required or newer."
+    exit 1
+}
+
 system_openssl3_available() {
     if command -v pkg-config >/dev/null 2>&1 \
         && pkg-config --atleast-version=3 openssl 2>/dev/null; then
@@ -1059,6 +1118,16 @@ build_project() {
     if [ -n "${OPENSSL_ROOT_DIR:-}" ]; then
         cmake_args+=("-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR")
     fi
+    # Named rather than left to the environment, because Qt OpcUa is configured with the
+    # toolchain file of Qt, and that one pins the compiler the installed Qt was built
+    # with (/usr/bin/g++) unless CMAKE_CXX_COMPILER is already set. CC and CXX alone
+    # would therefore not reach it.
+    if [ -n "${CC:-}" ] && [ -n "${CXX:-}" ]; then
+        cmake_args+=(
+            "-DCMAKE_C_COMPILER=$CC"
+            "-DCMAKE_CXX_COMPILER=$CXX"
+        )
+    fi
     # A Qt from aqtinstall is not on the system, so the install tree is turned into a
     # self-contained AppDir by linuxdeployqt, which needs the FHS layout.
     if [ "$(uname -s)" = "Linux" ] && [ "$QT_FROM_AQT" -eq 1 ]; then
@@ -1087,6 +1156,8 @@ build_linux() {
 
     enable_rhel_build_repositories
     configure_linux_qt "$min_qt"
+    # Before OpenSSL: the sources are compiled with this compiler as well.
+    configure_linux_compiler
     configure_linux_openssl
     ensure_cmake "$min_cmake"
 

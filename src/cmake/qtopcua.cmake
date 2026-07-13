@@ -155,12 +155,13 @@ ouaexp_find_qtopcua_config(QTOPCUA_CONFIG_FILE)
 if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
     file(MAKE_DIRECTORY "${QTOPCUA_BUILD_DIR}")
     ouaexp_prepare_qtopcua_config_opt("${QTOPCUA_BUILD_DIR}")
-
+  
     set(QTOPCUA_CONFIGURE_OPTIONS
         -DINPUT_open62541=qt
         -DQT_BUILD_TESTS=OFF
         -DQT_BUILD_EXAMPLES=OFF
-        -DWARNINGS_ARE_ERRORS=OFF
+        "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+        "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
         "-DCMAKE_TOOLCHAIN_FILE=${Qt6_DIR}/qt.toolchain.cmake"
         "-DCMAKE_INSTALL_PREFIX=${QTOPCUA_INSTALL_DIR}"
     )
