@@ -87,6 +87,7 @@ jobs:
           tools: ${{ env.QT_TOOLS }}
           cache: true
           setup-python: false
+          py7zrversion: ==0.20.8
 
       # The package carries its own OpenSSL rather than depending on the
       # distribution's libssl3, which does not exist before OpenSSL 3 - on Astra

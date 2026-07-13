@@ -90,6 +90,7 @@ jobs:
           tools: ${{ env.QT_TOOLS }}
           cache: true
           setup-python: false
+          py7zrversion: ==0.20.8
 
       # The package carries its own OpenSSL rather than requesting the distribution's
       # libssl.so.3, which older distributions do not have. It is linked into the Qt
