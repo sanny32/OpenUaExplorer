@@ -78,19 +78,12 @@ jobs:
           cache: true
 
       # The package carries its own OpenSSL rather than requesting the distribution's
-      # libssl.so.3, which older distributions do not have. The Qt installer ships
-      # OpenSSL as source on Linux, so it is built here, linked into the Qt OpcUa
-      # backend below, and bundled.
-      - name: Cache OpenSSL build
-        uses: actions/cache@v5
+      # libssl.so.3, which older distributions do not have. It is linked into the Qt
+      # OpcUa backend below, and bundled.
+      - name: Set up OpenSSL
+        uses: ./.github/actions/setup-openssl
         with:
-          path: build/openssl
-          key: openssl-ubuntu-22.04-${{ env.QT_VERSION }}-${{ hashFiles('.github/linux/openssl.sh') }}
-
-      - name: Build OpenSSL
-        run: |
-          bash .github/linux/openssl.sh "$IQTA_TOOLS/OpenSSLv3/src" "$PWD/build/openssl"
-          echo "OPENSSL_ROOT_DIR=$PWD/build/openssl" >> "$GITHUB_ENV"
+          qt-version: ${{ env.QT_VERSION }}
 
       - name: Cache Qt OpcUa build
         uses: actions/cache@v5

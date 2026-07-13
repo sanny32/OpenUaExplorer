@@ -21,7 +21,6 @@ permissions:
 env:
   QT_VERSION: '6.9.3'
   QT_MODULES: qtcharts
-  OPENSSL_URL: 'https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-3.5.7.zip'
 
 jobs:
   installer:
@@ -59,13 +58,7 @@ jobs:
           cache: true
 
       - name: Set up OpenSSL
-        shell: pwsh
-        run: |
-          Invoke-WebRequest -Uri '${{ env.OPENSSL_URL }}' -OutFile openssl.zip
-          Expand-Archive openssl.zip -DestinationPath C:\openssl-dist -Force
-          $root = (Get-ChildItem C:\openssl-dist -Recurse -Directory -Filter x64 |
-            Select-Object -First 1).FullName
-          "OPENSSL_ROOT_DIR=$root" >> $env:GITHUB_ENV
+        uses: ./.github/actions/setup-openssl
 
       - name: Cache Qt OpcUa build
         uses: actions/cache@v5
