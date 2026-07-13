@@ -21,6 +21,8 @@ permissions:
 env:
   QT_VERSION: '6.9.3'
   QT_MODULES: qtcharts
+  # On Linux the Qt installer carries OpenSSL as source, not as a built library.
+  QT_TOOLS: tools_openssl_src
 
 jobs:
   deb:
@@ -41,7 +43,7 @@ jobs:
             build-essential cmake ninja-build pkg-config patchelf \
             dpkg-dev fakeroot lintian \
             desktop-file-utils appstream-util \
-            libgl1-mesa-dev libssl-dev libsecret-1-dev \
+            libgl1-mesa-dev libsecret-1-dev \
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0
@@ -117,7 +119,23 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           modules: ${{ env.QT_MODULES }}
+          tools: ${{ env.QT_TOOLS }}
           cache: true
+
+      # The package carries its own OpenSSL rather than depending on the
+      # distribution's libssl3, which does not exist before OpenSSL 3 - on Astra
+      # Linux 1.7, for one. The Qt installer ships OpenSSL as source on Linux, so it
+      # is built here, linked into the Qt OpcUa backend below, and bundled.
+      - name: Cache OpenSSL build
+        uses: actions/cache@v5
+        with:
+          path: build/openssl
+          key: openssl-ubuntu-22.04-${{ env.QT_VERSION }}-${{ hashFiles('.github/linux/openssl.sh') }}
+
+      - name: Build OpenSSL
+        run: |
+          bash .github/linux/openssl.sh "$IQTA_TOOLS/OpenSSLv3/src" "$PWD/build/openssl"
+          echo "OPENSSL_ROOT_DIR=$PWD/build/openssl" >> "$GITHUB_ENV"
 
       - name: Cache Qt OpcUa build
         uses: actions/cache@v5
@@ -125,11 +143,14 @@ jobs:
           path: build/_deps/qtopcua-install
           key: qtopcua-ubuntu-22.04-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
 
+      # OPENSSL_ROOT_DIR is passed explicitly because qtopcua.cmake forwards the CMake
+      # variable, not the environment one, to the Qt OpcUa sub-build.
       - name: Configure
         run: >
           cmake -S src -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           -DOUAEXP_BUILD_TESTS=OFF
+          "-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR"
           "-DPROJECT_PRERELEASE=${{ steps.version.outputs.prerelease }}"
 
       - name: Build
@@ -145,7 +166,8 @@ jobs:
             "$PWD/pkgroot" \
             "$PWD/build/app/ouaexp" \
             "$QT_ROOT_DIR" \
-            "$PWD/build/_deps/qtopcua-install"
+            "$PWD/build/_deps/qtopcua-install" \
+            "$OPENSSL_ROOT_DIR"
 
           cp -r .github/linux/usr/. pkgroot/usr/
 
@@ -213,6 +235,16 @@ jobs:
         run: |
           dpkg-deb --info "${{ steps.version.outputs.package }}"
           dpkg-deb --contents "${{ steps.version.outputs.package }}"
+
+          # The bundled OpenSSL is the whole reason the package installs on a
+          # distribution that has no OpenSSL 3, so a dependency on the system libssl
+          # means the bundle is not being resolved and the package is back to
+          # requiring one.
+          if dpkg-deb -f "${{ steps.version.outputs.package }}" Depends | grep -q libssl; then
+            echo "::error::The package still depends on the distribution OpenSSL"
+            exit 1
+          fi
+
           lintian --no-tag-display-limit --fail-on error \
             "${{ steps.version.outputs.package }}"
 
@@ -243,6 +275,19 @@ jobs:
                 echo "The installed binary has unresolved libraries or symbols"
                 exit 1
               fi
+
+              # The OpcUa backend links OpenSSL, so its libraries must resolve inside
+              # the bundle rather than against a system libssl that may not be there.
+              if ldd /usr/lib/ouaexp/plugins/opcua/*.so | grep -E "libssl|libcrypto" \
+                  | grep -qv /usr/lib/ouaexp/lib/; then
+                echo "OpenSSL resolves outside the bundle"
+                exit 1
+              fi
+
+              # The bundled OpenSSL was configured with --openssldir=/etc/ssl, which is
+              # where it looks for the trust store TLS verification needs.
+              test -d /etc/ssl/certs
+
               apt-get remove -y ouaexp
             '; then
               echo "::error::The package does not install on $image"

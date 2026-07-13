@@ -281,7 +281,7 @@ linux_general_packages() {
                 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
                 libxcb-xkb1 libxcb-util1
                 libssl-dev libsecret-1-dev libdbus-1-3
-                python3 python3-pip python3-venv
+                perl python3 python3-pip python3-venv
             )
             ;;
         rhel)
@@ -291,7 +291,7 @@ linux_general_packages() {
                 xcb-util-cursor-devel xcb-util-wm xcb-util-image
                 xcb-util-keysyms xcb-util-renderutil xcb-util libxkbcommon-x11
                 openssl-devel libsecret-devel dbus-libs
-                python3 python3-pip
+                perl python3 python3-pip
             )
             ;;
         altlinux)
@@ -301,7 +301,7 @@ linux_general_packages() {
                 libxcbutil-cursor libxcbutil-icccm libxcbutil-image
                 libxcbutil-keysyms libxcb-render-util libxcbutil libxkbcommon
                 openssl-devel libsecret-devel libdbus
-                python3 python3-base python3-module-pip
+                perl python3 python3-base python3-module-pip
             )
             ;;
         suse)
@@ -312,7 +312,7 @@ linux_general_packages() {
                 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
                 libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0
                 libopenssl-devel libsecret-devel libdbus-1-3
-                python3 python3-pip
+                perl python3 python3-pip
             )
             ;;
         arch)
@@ -321,7 +321,7 @@ linux_general_packages() {
                 xcb-util-cursor xcb-util-wm xcb-util-image xcb-util-keysyms
                 xcb-util-renderutil xcb-util libxkbcommon
                 openssl libsecret dbus
-                python python-pip
+                perl python python-pip
             )
             ;;
     esac
@@ -698,6 +698,11 @@ aqt_prefix_in() {
     done
 }
 
+ensure_aqt() {
+    ensure_python_tools
+    "$TOOLS_DIR/aqt-venv/bin/python3" -m pip install --upgrade aqtinstall
+}
+
 install_qt6_with_aqt() {
     local required="$1"
     local arch
@@ -705,8 +710,7 @@ install_qt6_with_aqt() {
     local root="$TOOLS_DIR/qt"
     local installed=0
 
-    ensure_python_tools
-    "$TOOLS_DIR/aqt-venv/bin/python3" -m pip install --upgrade aqtinstall
+    ensure_aqt
 
     QT_FROM_AQT=1
 
@@ -810,6 +814,71 @@ configure_linux_qt() {
     fi
 }
 
+system_openssl3_available() {
+    if command -v pkg-config >/dev/null 2>&1 \
+        && pkg-config --atleast-version=3 openssl 2>/dev/null; then
+        return 0
+    fi
+
+    # Not every distribution ships the pkg-config file with the headers, so the
+    # version is read from the header itself as well. OpenSSL 3 is the first release
+    # to define OPENSSL_VERSION_MAJOR.
+    local header
+    for header in /usr/include/openssl/opensslv.h \
+                  /usr/include/*/openssl/opensslv.h; do
+        if [ -f "$header" ] \
+            && grep -qE '^#[[:space:]]*define[[:space:]]+OPENSSL_VERSION_MAJOR[[:space:]]+3' "$header"; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+# Qt 6 opens libssl.so.3 with dlopen and Qt OpcUa links its open62541 backend against
+# OpenSSL, so an OpenSSL 3 is required no matter what the distribution ships. Older
+# distributions - Astra Linux 1.7 and Debian 10 among them - carry only OpenSSL 1.1,
+# and building against it would produce a program that links and then fails to do any
+# TLS at run time. The Qt installer carries the OpenSSL that Qt was tested against, as
+# source on Linux, so on those systems it is fetched and built the same way build.ps1
+# does it on Windows, where there is no system OpenSSL at all.
+configure_linux_openssl() {
+    local root="$TOOLS_DIR/qt"
+    local source_dir="$root/Tools/OpenSSLv3/src"
+    local prefix="$TOOLS_DIR/openssl"
+
+    if [ -n "${OPENSSL_ROOT_DIR:-}" ]; then
+        log_info "Using OpenSSL from $OPENSSL_ROOT_DIR"
+        return
+    fi
+
+    if system_openssl3_available; then
+        log_info "Using the OpenSSL 3 of the distribution."
+        return
+    fi
+
+    log_warn "The distribution has no OpenSSL 3; building the one that ships with Qt."
+
+    if ! command -v perl >/dev/null 2>&1; then
+        log_error "perl is required to build OpenSSL."
+        exit 1
+    fi
+
+    if [ ! -d "$source_dir" ]; then
+        ensure_aqt
+        log_info "Installing the OpenSSL sources with aqtinstall..."
+        "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-tool \
+            linux desktop tools_openssl_src -O "$root"
+    fi
+
+    # The same script the packaging workflows use, so a locally built program links
+    # against the OpenSSL the .deb and the .rpm carry.
+    bash "$PROJECT_DIR/.github/linux/openssl.sh" "$source_dir" "$prefix"
+
+    export OPENSSL_ROOT_DIR="$prefix"
+    log_info "Using OpenSSL from $OPENSSL_ROOT_DIR"
+}
+
 qmake_from_qt_prefix() {
     local qmake
 
@@ -884,6 +953,13 @@ deploy_linux_with_linuxdeployqt() {
 
     qmake="$(qmake_from_qt_prefix)"
     linuxdeployqt="$(ensure_linuxdeployqt)"
+
+    # An OpenSSL built by configure_linux_openssl is not on the loader's search path,
+    # so linuxdeployqt would not resolve it and the AppDir would be left without the
+    # libssl the OpcUa backend needs.
+    if [ -n "${OPENSSL_ROOT_DIR:-}" ] && [ -d "$OPENSSL_ROOT_DIR/lib" ]; then
+        export LD_LIBRARY_PATH="$OPENSSL_ROOT_DIR/lib:${LD_LIBRARY_PATH:-}"
+    fi
 
     # The bundled Qt OpcUa library and its opcua plugin are already in the AppDir,
     # installed by cmake/install_linux.cmake, so linuxdeployqt picks them up along
@@ -985,6 +1061,7 @@ build_linux() {
 
     enable_rhel_build_repositories
     configure_linux_qt "$min_qt"
+    configure_linux_openssl
     ensure_cmake "$min_cmake"
 
     build_project "gcc"

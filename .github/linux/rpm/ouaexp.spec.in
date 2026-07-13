@@ -6,7 +6,8 @@
 %global appdir %{_prefix}/lib/%{appname}
 
 # The binaries are stripped by bundle.sh and the Qt libraries come from the Qt
-# installer, so there is nothing worth putting in a -debuginfo subpackage.
+# installer, so there is nothing worth putting in a -debuginfo subpackage. The
+# bundled OpenSSL is built from the source the Qt installer ships.
 %global debug_package %{nil}
 %global _build_id_links none
 
@@ -25,15 +26,8 @@ Summary:        OPC UA client for exploring and monitoring OPC UA servers
 License:        MIT
 URL:            https://github.com/sanny32/OpenUaExplorer
 
-# The workflow builds an x86_64 bundle, and the OpenSSL dependency below names
-# the 64-bit soname, so the spec is not valid for any other architecture.
+# The workflow builds an x86_64 bundle.
 ExclusiveArch:  x86_64
-
-# Qt opens OpenSSL with dlopen, so the dependency is invisible to the generator.
-# The sonames are requested directly because the package that provides them is
-# named openssl-libs on Fedora, libopenssl3 on openSUSE and openssl-libs on RHEL.
-Requires:       libssl.so.3()(64bit)
-Requires:       libcrypto.so.3()(64bit)
 
 # The icon is shipped into the hicolor theme, whose directories and cache trigger
 # belong to hicolor-icon-theme.
@@ -47,11 +41,6 @@ and monitoring OPC UA servers.
   * View Data Access, subscriptions, events, and history panels.
   * Plot live and historical values on charts.
   * Connect anonymously, with a username, or with a client certificate.
-
-The package is self-contained: it carries the Qt libraries it was built
-against, together with the Qt OpcUa module and its open62541 backend, in a
-private directory under /usr/lib/ouaexp. Only the C, C++, OpenGL and xcb
-runtimes come from the distribution.
 
 # The tree was already built, bundled and staged by the workflow, so the only
 # thing left to do is to hand it to rpmbuild.

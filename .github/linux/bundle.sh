@@ -9,13 +9,18 @@
 # that live inside the Qt prefix are copied; anything from the distribution stays
 # a package dependency, so the system OpenGL, xcb and C++ runtimes are used.
 #
+# OpenSSL is bundled the same way when openssl.sh has built it, because depending
+# on the distribution's libssl3 excludes every distribution that still ships
+# OpenSSL 1.1, such as Astra Linux 1.7.
+#
 # The staged tree is a plain /usr hierarchy that carries no packaging metadata, so
 # the .deb and the .rpm workflow both build their package from this same output.
 
 set -euo pipefail
 
-if [ "$#" -ne 4 ]; then
-    echo "Usage: $0 <stage-dir> <executable> <qt-prefix> <qtopcua-install-dir>" >&2
+if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
+    echo "Usage: $0 <stage-dir> <executable> <qt-prefix> <qtopcua-install-dir>" \
+         "[openssl-prefix]" >&2
     exit 1
 fi
 
@@ -23,6 +28,7 @@ STAGE_DIR="$1"
 EXECUTABLE="$2"
 QT_PREFIX="$3"
 QTOPCUA_DIR="$4"
+OPENSSL_PREFIX="${5:-}"
 
 APP_NAME=ouaexp
 APP_ROOT="$STAGE_DIR/usr/lib/$APP_NAME"
@@ -57,6 +63,11 @@ die() {
 [ -x "$EXECUTABLE" ]     || die "Executable not found: $EXECUTABLE"
 [ -d "$QT_PREFIX/lib" ]  || die "Qt prefix has no lib directory: $QT_PREFIX"
 [ -d "$QTOPCUA_DIR" ]    || die "Qt OpcUa install directory not found: $QTOPCUA_DIR"
+
+if [ -n "$OPENSSL_PREFIX" ]; then
+    [ -d "$OPENSSL_PREFIX/lib" ] \
+        || die "OpenSSL prefix has no lib directory: $OPENSSL_PREFIX"
+fi
 
 command -v patchelf >/dev/null || die "patchelf is required"
 
@@ -95,15 +106,38 @@ cp -a "$opcua_plugin_dir" "$APP_PLUGIN_DIR/"
 # lintian rejects it as unstripped and as having a bad dynamic table.
 find "$APP_PLUGIN_DIR" -type f -name '*.debug' -delete
 
+# Qt OpcUa links its open62541 backend against OpenSSL, but Qt itself opens it with
+# dlopen, so the dependency walk below would never see it. Both are served by the
+# copy made here: dlopen searches the RUNPATH of the library that calls it, and every
+# bundled library ends up with $ORIGIN.
+if [ -n "$OPENSSL_PREFIX" ]; then
+    log "Copying OpenSSL"
+    for lib in libcrypto libssl; do
+        path="$(find "$OPENSSL_PREFIX/lib" -maxdepth 1 -type f -name "$lib.so.*" -print -quit)"
+        [ -n "$path" ] || die "No $lib in $OPENSSL_PREFIX/lib"
+        # The loader looks the library up under its soname, so that is the name it is
+        # stored under, exactly as with the Qt libraries below.
+        soname="$(patchelf --print-soname "$path")"
+        install -m 0644 "$path" "$APP_LIB_DIR/$soname"
+        log "  bundled $soname"
+    done
+fi
+
 log "Resolving private library dependencies"
 
-# A library belongs in the bundle only when it comes from one of the two prefixes we
-# built or downloaded. Distribution libraries are left alone and become Depends.
+# A library belongs in the bundle only when it comes from one of the prefixes we built
+# or downloaded. Distribution libraries are left alone and become Depends.
 is_private() {
     case "$1" in
         "$QT_PREFIX"/*|"$QTOPCUA_DIR"/*) return 0 ;;
-        *) return 1 ;;
     esac
+    # An empty prefix would turn the pattern into /*, which matches everything.
+    if [ -n "$OPENSSL_PREFIX" ]; then
+        case "$1" in
+            "$OPENSSL_PREFIX"/*) return 0 ;;
+        esac
+    fi
+    return 1
 }
 
 elf_files() {
@@ -114,7 +148,7 @@ elf_files() {
 # ldd prints the resolved path for each DT_NEEDED entry. The entry name is what the
 # loader will look for, so the copy is stored under that name and no symlink chain
 # has to be recreated.
-export LD_LIBRARY_PATH="$QT_PREFIX/lib:$QTOPCUA_DIR/lib:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="$QT_PREFIX/lib:$QTOPCUA_DIR/lib:${OPENSSL_PREFIX:+$OPENSSL_PREFIX/lib:}${LD_LIBRARY_PATH:-}"
 
 copied_any=1
 while [ "$copied_any" -eq 1 ]; do

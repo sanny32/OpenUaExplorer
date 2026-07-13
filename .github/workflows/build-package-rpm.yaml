@@ -21,6 +21,8 @@ permissions:
 env:
   QT_VERSION: '6.9.3'
   QT_MODULES: qtcharts
+  # On Linux the Qt installer carries OpenSSL as source, not as a built library.
+  QT_TOOLS: tools_openssl_src
   MAINTAINER: Alexandr Ananev <mail@ananev.org>
 
 jobs:
@@ -47,7 +49,7 @@ jobs:
             build-essential cmake ninja-build pkg-config patchelf \
             rpm file \
             desktop-file-utils appstream-util \
-            libgl1-mesa-dev libssl-dev libsecret-1-dev \
+            libgl1-mesa-dev libsecret-1-dev \
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0
@@ -128,7 +130,23 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           modules: ${{ env.QT_MODULES }}
+          tools: ${{ env.QT_TOOLS }}
           cache: true
+
+      # The package carries its own OpenSSL rather than requesting the distribution's
+      # libssl.so.3, which older distributions do not have. The Qt installer ships
+      # OpenSSL as source on Linux, so it is built here, linked into the Qt OpcUa
+      # backend below, and bundled.
+      - name: Cache OpenSSL build
+        uses: actions/cache@v5
+        with:
+          path: build/openssl
+          key: openssl-ubuntu-22.04-${{ env.QT_VERSION }}-${{ hashFiles('.github/linux/openssl.sh') }}
+
+      - name: Build OpenSSL
+        run: |
+          bash .github/linux/openssl.sh "$IQTA_TOOLS/OpenSSLv3/src" "$PWD/build/openssl"
+          echo "OPENSSL_ROOT_DIR=$PWD/build/openssl" >> "$GITHUB_ENV"
 
       - name: Cache Qt OpcUa build
         uses: actions/cache@v5
@@ -136,11 +154,14 @@ jobs:
           path: build/_deps/qtopcua-install
           key: qtopcua-ubuntu-22.04-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
 
+      # OPENSSL_ROOT_DIR is passed explicitly because qtopcua.cmake forwards the CMake
+      # variable, not the environment one, to the Qt OpcUa sub-build.
       - name: Configure
         run: >
           cmake -S src -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           -DOUAEXP_BUILD_TESTS=OFF
+          "-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR"
           "-DPROJECT_PRERELEASE=${{ steps.version.outputs.prerelease }}"
 
       - name: Build
@@ -156,7 +177,8 @@ jobs:
             "$PWD/pkgroot" \
             "$PWD/build/app/ouaexp" \
             "$QT_ROOT_DIR" \
-            "$PWD/build/_deps/qtopcua-install"
+            "$PWD/build/_deps/qtopcua-install" \
+            "$OPENSSL_ROOT_DIR"
 
           cp -r .github/linux/usr/. pkgroot/usr/
 
@@ -236,11 +258,11 @@ jobs:
           # A leaked provide or require of a bundled soname means the exclusions
           # in the spec no longer match what bundle.sh copied: the package would
           # then pull a distribution Qt in, or hand its private one out.
-          if rpm -qp --provides "${{ steps.version.outputs.package }}" | grep -E '^lib(Qt6|open62541)'; then
+          if rpm -qp --provides "${{ steps.version.outputs.package }}" | grep -E '^lib(Qt6|open62541|ssl|crypto)'; then
             echo "::error::The bundled libraries are offered as provides"
             exit 1
           fi
-          if rpm -qp --requires "${{ steps.version.outputs.package }}" | grep -E '^lib(Qt6|open62541)'; then
+          if rpm -qp --requires "${{ steps.version.outputs.package }}" | grep -E '^lib(Qt6|open62541|ssl|crypto)'; then
             echo "::error::The bundled libraries are requested as requires"
             exit 1
           fi
@@ -285,6 +307,18 @@ jobs:
                 echo "The installed binary has unresolved libraries or symbols"
                 exit 1
               fi
+
+              # The OpcUa backend links OpenSSL, so its libraries must resolve inside
+              # the bundle rather than against a system libssl that may not be there.
+              if ldd /usr/lib/ouaexp/plugins/opcua/*.so | grep -E "libssl|libcrypto" \
+                  | grep -qv /usr/lib/ouaexp/lib/; then
+                echo "OpenSSL resolves outside the bundle"
+                exit 1
+              fi
+
+              # The bundled OpenSSL was configured with --openssldir=/etc/ssl, which is
+              # where it looks for the trust store TLS verification needs.
+              test -d /etc/ssl/certs
 
               if command -v dnf > /dev/null; then
                 dnf -y remove ouaexp
