@@ -86,6 +86,7 @@ jobs:
           modules: ${{ env.QT_MODULES }}
           tools: ${{ env.QT_TOOLS }}
           cache: true
+          setup-python: false
 
       # The package carries its own OpenSSL rather than depending on the
       # distribution's libssl3, which does not exist before OpenSSL 3 - on Astra
