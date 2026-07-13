@@ -9,7 +9,7 @@ Package: ouaexp
 Architecture: @ARCH@
 # The icon is shipped into the hicolor theme, whose directories and cache trigger
 # belong to hicolor-icon-theme.
-Depends: ${shlibs:Depends}, ${misc:Depends}, hicolor-icon-theme
+Depends: ${shlibs:Depends}, ${misc:Depends}, ca-certificates, hicolor-icon-theme
 Description: OPC UA client for exploring and monitoring OPC UA servers
  OpenUaExplorer is an open source OPC UA client for browsing, inspecting,
  and monitoring OPC UA servers.

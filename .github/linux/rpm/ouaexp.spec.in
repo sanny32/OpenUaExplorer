@@ -32,6 +32,7 @@ ExclusiveArch:  x86_64
 # The icon is shipped into the hicolor theme, whose directories and cache trigger
 # belong to hicolor-icon-theme.
 Requires:       hicolor-icon-theme
+Requires:       ca-certificates
 
 %description
 OpenUaExplorer is an open source OPC UA client for browsing, inspecting,
