@@ -94,6 +94,11 @@ jobs:
             container: registry.red-soft.ru/redos8c/ubi:latest
             container-setup: dnf -y install git tar findutils
 
+          - name: AstraLinux-1.7
+            runner: ubuntu-latest
+            container: registry.astralinux.ru/astra/ubi17:latest
+            container-setup: apt-get update && apt-get install -y git tar findutils
+
           - name: AstraLinux-1.8
             runner: ubuntu-latest
             container: registry.astralinux.ru/astra/ubi18:latest

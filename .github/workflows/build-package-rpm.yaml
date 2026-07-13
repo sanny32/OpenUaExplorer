@@ -21,7 +21,6 @@ permissions:
 env:
   QT_VERSION: '6.9.3'
   QT_MODULES: qtcharts
-  # On Linux the Qt installer carries OpenSSL as source, not as a built library.
   QT_TOOLS: tools_openssl_src
   MAINTAINER: Alexandr Ananev <mail@ananev.org>
 

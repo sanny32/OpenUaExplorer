@@ -21,8 +21,8 @@ permissions:
 env:
   QT_VERSION: '6.9.3'
   QT_MODULES: qtcharts
-  # On Linux the Qt installer carries OpenSSL as source, not as a built library.
   QT_TOOLS: tools_openssl_src
+  MAINTAINER: Alexandr Ananev <mail@ananev.org>
 
 jobs:
   deb:
@@ -196,7 +196,7 @@ jobs:
           mkdir -p debian pkgroot/DEBIAN
 
           sed -e "s|@ARCH@|${{ steps.version.outputs.arch }}|" \
-              -e "s|@MAINTAINER@|Alexandr Ananev <mail@ananev.org>|" \
+              -e "s|@MAINTAINER@|${{ env.MAINTAINER }}|" \
               .github/linux/deb/control.in > debian/control
 
           cat > debian/changelog <<EOF
@@ -204,7 +204,7 @@ jobs:
 
             * Automated build of ${{ github.sha }}.
 
-           -- Alexandr Ananev <mail@ananev.org>  $(date -uR)
+           -- ${{ env.MAINTAINER }}  $(date -uR)
           EOF
 
           # The bundled Qt libraries have no shlibs entries of their own; -l lets
