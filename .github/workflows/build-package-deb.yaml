@@ -181,6 +181,15 @@ jobs:
            -- ${{ env.MAINTAINER }}  $(date -uR)
           EOF
 
+          # The GTK platform theme is left out of the scan. It is the only thing that
+          # needs GTK, and the packages that ship it are named differently on the
+          # releases the package targets - libgtk-3-0 became libgtk-3-0t64, and
+          # libgdk-pixbuf2.0-0 became libgdk-pixbuf-2.0-0 - so the names this
+          # container resolves them to are wrong on half of them. control.in depends
+          # on GTK by hand instead, as an alternative between the two names.
+          plugins="$(find pkgroot/usr/lib/ouaexp/plugins -name '*.so' \
+            ! -name 'libqgtk3.so')"
+
           # The bundled Qt libraries have no shlibs entries of their own; -l lets
           # dpkg-shlibdeps resolve them while --ignore-missing-info keeps that from
           # being fatal. Every other dependency is a real distribution package, and
@@ -190,7 +199,7 @@ jobs:
             -Tdebian/substvars \
             pkgroot/usr/lib/ouaexp/bin/ouaexp \
             pkgroot/usr/lib/ouaexp/lib/*.so* \
-            pkgroot/usr/lib/ouaexp/plugins/*/*.so
+            $plugins
 
           dpkg-gencontrol -pouaexp -Ppkgroot -Tdebian/substvars
 
