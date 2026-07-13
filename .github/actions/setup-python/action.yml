@@ -19,16 +19,23 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Identify the platform
+      id: platform
+      shell: bash
+      run: |
+        . /etc/os-release
+        echo "id=$ID-$VERSION_ID" >> "$GITHUB_OUTPUT"
+
     # The build takes minutes and its result depends only on the source and on
     # the container it is built in, so the whole prefix is restored from a cache
-    # instead. The key is pinned to the container: the interpreter links against
-    # its libraries and cannot be reused across images.
+    # instead. The key is pinned to the platform: the interpreter links against
+    # its libraries and cannot be reused across releases.
     - name: Cache Python
       id: cache
       uses: actions/cache@v5
       with:
         path: ${{ inputs.prefix }}
-        key: python-${{ env.OPENSSL_CACHE_PLATFORM || env.ImageOS }}-${{ runner.arch }}-${{ inputs.version }}
+        key: python-${{ steps.platform.outputs.id }}-${{ runner.arch }}-${{ inputs.version }}
 
     # The system interpreter is left in place rather than replaced: apt on these
     # releases is built against it.

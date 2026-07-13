@@ -24,7 +24,6 @@ env:
   QT_TOOLS: tools_opensslv3_src
   MAINTAINER: Alexandr Ananev <mail@ananev.org>
   DEBIAN_FRONTEND: noninteractive
-  OPENSSL_CACHE_PLATFORM: ubuntu-20.04
 
 jobs:
   deb:
