@@ -1,0 +1,93 @@
+name: Verify Linux package
+description: Install a Linux package in container images and check its runtime links.
+
+inputs:
+  package:
+    description: Package file name in the workflow workspace.
+    required: true
+  images:
+    description: Whitespace-separated Docker image list.
+    required: true
+  package-manager:
+    description: "Package family to install: deb or rpm."
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Verify package
+      shell: bash
+      env:
+        PKG: ${{ inputs.package }}
+        IMAGES: ${{ inputs.images }}
+        PACKAGE_MANAGER: ${{ inputs.package-manager }}
+      run: |
+        case "$PACKAGE_MANAGER" in
+          deb|rpm) ;;
+          *)
+            echo "::error::Unsupported package-manager: $PACKAGE_MANAGER"
+            exit 1
+            ;;
+        esac
+
+        status=0
+        for image in $IMAGES; do
+          echo "::group::$image"
+          if ! docker run --rm -e PKG -e PACKAGE_MANAGER -v "$PWD:/pkg" -w /pkg "$image" bash -eux -c '
+            install_package() {
+              if [ "$PACKAGE_MANAGER" = deb ]; then
+                export DEBIAN_FRONTEND=noninteractive
+                apt-get update
+                apt-get install -y "./$PKG"
+                return
+              fi
+
+              if command -v dnf > /dev/null; then
+                dnf -y install "./$PKG"
+              elif command -v zypper > /dev/null; then
+                zypper --non-interactive --no-gpg-checks install "./$PKG"
+              else
+                apt-get update
+                apt-get install -y "./$PKG"
+              fi
+            }
+
+            remove_package() {
+              if [ "$PACKAGE_MANAGER" = deb ]; then
+                apt-get remove -y ouaexp
+                return
+              fi
+
+              if command -v dnf > /dev/null; then
+                dnf -y remove ouaexp
+              elif command -v zypper > /dev/null; then
+                zypper --non-interactive remove ouaexp
+              else
+                apt-get remove -y ouaexp
+              fi
+            }
+
+            install_package
+
+            test -L /usr/bin/ouaexp
+            if ldd -r /usr/lib/ouaexp/bin/ouaexp | grep -E "not found|undefined symbol"; then
+              echo "The installed binary has unresolved libraries or symbols"
+              exit 1
+            fi
+
+            if ldd /usr/lib/ouaexp/plugins/opcua/*.so | grep -E "libssl|libcrypto" \
+                | grep -qv /usr/lib/ouaexp/lib/; then
+              echo "OpenSSL resolves outside the bundle"
+              exit 1
+            fi
+
+            test -d /etc/ssl/certs
+
+            remove_package
+          '; then
+            echo "::error::The package does not install on $image"
+            status=1
+          fi
+          echo "::endgroup::"
+        done
+        exit "$status"

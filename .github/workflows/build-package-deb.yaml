@@ -196,49 +196,17 @@ jobs:
       # The program is a GUI application with no batch mode, so it is checked by
       # resolving its libraries instead of starting it.
       - name: Verify the package installs
-        env:
-          PKG: ${{ steps.package.outputs.name }}
-          IMAGES: >-
+        uses: ./.github/actions/verify-linux-package
+        with:
+          package: ${{ steps.package.outputs.name }}
+          package-manager: deb
+          images: >-
             debian:12
             debian:13
             ubuntu:22.04
             ubuntu:24.04
             ubuntu:26.04
             registry.astralinux.ru/astra/ubi18:latest
-        run: |
-          status=0
-          for image in $IMAGES; do
-            echo "::group::$image"
-            if ! docker run --rm -e PKG -v "$PWD:/pkg" -w /pkg "$image" bash -eux -c '
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update
-              apt-get install -y "./$PKG"
-              test -L /usr/bin/ouaexp
-              if ldd -r /usr/lib/ouaexp/bin/ouaexp | grep -E "not found|undefined symbol"; then
-                echo "The installed binary has unresolved libraries or symbols"
-                exit 1
-              fi
-
-              # The OpcUa backend links OpenSSL, so its libraries must resolve inside
-              # the bundle rather than against a system libssl that may not be there.
-              if ldd /usr/lib/ouaexp/plugins/opcua/*.so | grep -E "libssl|libcrypto" \
-                  | grep -qv /usr/lib/ouaexp/lib/; then
-                echo "OpenSSL resolves outside the bundle"
-                exit 1
-              fi
-
-              # The bundled OpenSSL was configured with --openssldir=/etc/ssl, which is
-              # where it looks for the trust store TLS verification needs.
-              test -d /etc/ssl/certs
-
-              apt-get remove -y ouaexp
-            '; then
-              echo "::error::The package does not install on $image"
-              status=1
-            fi
-            echo "::endgroup::"
-          done
-          exit "$status"
 
       - name: Compute checksum
         run: sha256sum "${{ steps.package.outputs.name }}" > "${{ steps.package.outputs.name }}.sha256"
