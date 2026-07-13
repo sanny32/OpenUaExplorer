@@ -33,6 +33,11 @@ jobs:
     container: ubuntu:20.04
     timeout-minutes: 90
 
+    outputs:
+      arch: ${{ steps.package.outputs.arch }}
+      name: ${{ steps.package.outputs.name }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+
     steps:
       - name: Install checkout dependencies
         run: |
@@ -225,23 +230,6 @@ jobs:
             exit 1
           fi
 
-      # Installing from the .deb resolves the generated Depends against the archive,
-      # so a missing runtime dependency fails here rather than on a user's machine.
-      # The program is a GUI application with no batch mode, so it is checked by
-      # resolving its libraries instead of starting it.
-      - name: Verify the package installs
-        uses: ./.github/actions/verify-linux-package
-        with:
-          package: ${{ steps.package.outputs.name }}
-          package-manager: deb
-          images: >-
-            debian:12
-            debian:13
-            ubuntu:22.04
-            ubuntu:24.04
-            ubuntu:26.04
-            registry.astralinux.ru/astra/ubi18:latest
-
       - name: Compute checksum
         run: sha256sum "${{ steps.package.outputs.name }}" > "${{ steps.package.outputs.name }}.sha256"
 
@@ -254,13 +242,52 @@ jobs:
             ${{ steps.package.outputs.name }}.sha256
           if-no-files-found: error
 
+  # The package is verified in a job of its own because the container the build runs
+  # in has no Docker: the daemon lives on the runner, and a bind mount from inside
+  # the container would name paths the daemon cannot see. The runner itself has both.
+  verify:
+    name: Verify .deb
+    runs-on: ubuntu-latest
+    needs: deb
+    timeout-minutes: 30
+
+    steps:
+      # The verifying action is in the repository, so it has to be checked out even
+      # though nothing is built here.
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: ouaexp-deb-${{ needs.deb.outputs.arch }}
+
+      # Installing from the .deb resolves the generated Depends against the archive,
+      # so a missing runtime dependency fails here rather than on a user's machine.
+      # The program is a GUI application with no batch mode, so it is checked by
+      # resolving its libraries instead of starting it.
+      - name: Verify the package installs
+        uses: ./.github/actions/verify-linux-package
+        with:
+          package: ${{ needs.deb.outputs.name }}
+          package-manager: deb
+          images: >-
+            debian:12
+            debian:13
+            ubuntu:22.04
+            ubuntu:24.04
+            ubuntu:26.04
+            registry.astralinux.ru/astra/ubi18:latest
+
       - name: Attach package to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v3
         with:
           draft: true
-          prerelease: ${{ steps.version.outputs.prerelease != '' }}
+          prerelease: ${{ needs.deb.outputs.prerelease != '' }}
           files: |
-            ${{ steps.package.outputs.name }}
+            ${{ needs.deb.outputs.name }}
           generate_release_notes: true
           fail_on_unmatched_files: true
