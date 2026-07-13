@@ -51,6 +51,7 @@ signals:
     void timestampModeChanged(AppSettings::TimestampMode mode);
 
 private:
+    void configureCertificateStore();
     void ensureClientCertificate();
 
     AppTheme _theme;

@@ -87,7 +87,15 @@ runs:
               exit 1
             fi
 
-            test -d /etc/ssl/certs
+            # The bundled OpenSSL has /etc/ssl compiled into it, and the program falls
+            # back to the paths below when the distribution - ALT - keeps its trust
+            # store elsewhere. The list is the one in main.cpp: without a store, TLS
+            # verifies nothing and the update check fails.
+            if ! ls -d /etc/ssl/certs /var/lib/ssl/certs /etc/pki/tls/certs 2> /dev/null \
+                | grep -q .; then
+              echo "The distribution has no CA trust store the program knows of"
+              exit 1
+            fi
 
             remove_package
           '; then
