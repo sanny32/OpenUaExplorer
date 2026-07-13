@@ -23,35 +23,45 @@ env:
   QT_MODULES: qtcharts
   QT_TOOLS: tools_opensslv3_src
   MAINTAINER: Alexandr Ananev <mail@ananev.org>
+  DEBIAN_FRONTEND: noninteractive
+  OPENSSL_CACHE_PLATFORM: ubuntu-20.04
 
 jobs:
   rpm:
     name: Build .rpm
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
     timeout-minutes: 90
 
     steps:
+      - name: Install checkout dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git python3 python3-pip unzip xz-utils zstd
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
           ref: ${{ inputs.branch }}
 
-      # The package is built on Ubuntu because that is where the Qt installer and
-      # the Qt OpcUa cache live, and because the bundle carries its own Qt: the
-      # only thing rpmbuild has to do is wrap an already staged /usr tree. The
-      # oldest runner image is used so the glibc and libstdc++ symbol versions
-      # the binaries reference stay as low as possible.
+      # The package is built inside an older Ubuntu container so the glibc and
+      # libstdc++ symbol versions the bundled binaries reference stay as low as
+      # possible. The bundle carries its own Qt; rpmbuild only wraps the staged tree.
       - name: Install build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build pkg-config patchelf \
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential perl pkg-config patchelf \
             rpm file \
             desktop-file-utils appstream-util \
             libgl1-mesa-dev libsecret-1-dev \
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libxcb-util1 libxkbcommon-x11-0
+          python3 -m pip install --upgrade 'cmake>=3.22,<4' ninja
+          cmake --version
+          ninja --version
 
       - name: Determine version
         id: version
@@ -89,7 +99,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: build/_deps/qtopcua-install
-          key: qtopcua-ubuntu-22.04-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
+          key: qtopcua-ubuntu-20.04-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
 
       # OPENSSL_ROOT_DIR is passed explicitly because qtopcua.cmake forwards the CMake
       # variable, not the environment one, to the Qt OpcUa sub-build.
