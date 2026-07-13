@@ -35,6 +35,10 @@ APP_ROOT="$STAGE_DIR/usr/lib/$APP_NAME"
 APP_BIN_DIR="$APP_ROOT/bin"
 APP_LIB_DIR="$APP_ROOT/lib"
 APP_PLUGIN_DIR="$APP_ROOT/plugins"
+APP_INSTALLED_LIB_DIR="/usr/lib/$APP_NAME/lib"
+APP_BIN_RPATH="$APP_INSTALLED_LIB_DIR:\$ORIGIN/../lib"
+APP_LIB_RPATH="$APP_INSTALLED_LIB_DIR:\$ORIGIN"
+APP_PLUGIN_RPATH="$APP_INSTALLED_LIB_DIR:\$ORIGIN/../../lib"
 
 # Qt plugins the application can load at run time. Groups that the installed Qt
 # does not provide are skipped, so this list may name more than is ever present.
@@ -108,8 +112,7 @@ find "$APP_PLUGIN_DIR" -type f -name '*.debug' -delete
 
 # Qt OpcUa links its open62541 backend against OpenSSL, but Qt itself opens it with
 # dlopen, so the dependency walk below would never see it. Both are served by the
-# copy made here: dlopen searches the RPATH of the library that calls it, and every
-# bundled library ends up with $ORIGIN.
+# copy made here: the installed package uses a fixed private libdir RPATH.
 if [ -n "$OPENSSL_PREFIX" ]; then
     log "Copying OpenSSL"
     for lib in libcrypto libssl; do
@@ -167,9 +170,9 @@ while [ "$copied_any" -eq 1 ]; do
 done
 
 log "Rewriting RPATHs"
-patchelf --force-rpath --set-rpath "\$ORIGIN/../lib" "$APP_BIN_DIR/$APP_NAME"
-find "$APP_LIB_DIR" -type f -name '*.so*' -exec patchelf --force-rpath --set-rpath "\$ORIGIN" {} \;
-find "$APP_PLUGIN_DIR" -type f -name '*.so' -exec patchelf --force-rpath --set-rpath "\$ORIGIN/../../lib" {} \;
+patchelf --force-rpath --set-rpath "$APP_BIN_RPATH" "$APP_BIN_DIR/$APP_NAME"
+find "$APP_LIB_DIR" -type f -name '*.so*' -exec patchelf --force-rpath --set-rpath "$APP_LIB_RPATH" {} \;
+find "$APP_PLUGIN_DIR" -type f -name '*.so' -exec patchelf --force-rpath --set-rpath "$APP_PLUGIN_RPATH" {} \;
 
 log "Stripping binaries"
 strip --strip-unneeded "$APP_BIN_DIR/$APP_NAME"
