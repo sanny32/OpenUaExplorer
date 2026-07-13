@@ -38,7 +38,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            ca-certificates curl git software-properties-common sudo unzip xz-utils zstd
+            ca-certificates curl git sudo unzip xz-utils zstd
 
       - name: Checkout
         uses: actions/checkout@v5
