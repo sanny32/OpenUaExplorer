@@ -2,7 +2,7 @@ name: Set up OpenSSL
 description: >-
   Provides the OpenSSL the build links against and exports OPENSSL_ROOT_DIR.
   On Linux it builds the OpenSSL the Qt installer ships as source, because that
-  is the one the package bundles; elsewhere it takes a prebuilt one.
+  is the one the package bundles; on Windows it installs the Qt-provided binaries.
 
 inputs:
   qt-version:
@@ -13,11 +13,6 @@ inputs:
     description: 'Where the Linux build is installed, relative to the workspace'
     required: false
     default: build/openssl
-  windows-url:
-    description: 'The prebuilt OpenSSL the Windows build uses'
-    required: false
-    default: 'https://download.firedaemon.com/FireDaemon-OpenSSL/openssl-3.5.7.zip'
-
 outputs:
   root:
     description: 'The OpenSSL prefix, as exported in OPENSSL_ROOT_DIR'
@@ -53,23 +48,25 @@ runs:
         bash .github/linux/openssl.sh "$IQTA_TOOLS/OpenSSLv3/src" "$root"
         echo "OPENSSL_ROOT_DIR=$root" >> "$GITHUB_ENV"
 
-    - name: Download OpenSSL
+    - name: Install OpenSSL (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
-      env:
-        URL: ${{ inputs.windows-url }}
       run: |
-        Invoke-WebRequest -Uri $env:URL -OutFile openssl.zip
-        Expand-Archive openssl.zip -DestinationPath C:\openssl-dist -Force
-        $root = (Get-ChildItem C:\openssl-dist -Recurse -Directory -Filter x64 |
-          Select-Object -First 1).FullName
-        if (-not $root) {
-          Write-Error 'The archive holds no x64 build'
+        $root = 'C:\Qt\Tools\OpenSSLv3\Win_x64'
+        if (-not (Test-Path (Join-Path $root 'bin'))) {
+          python -m pip install --upgrade aqtinstall
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+          python -m aqt install-tool windows desktop tools_opensslv3_x64 --outputdir C:\Qt
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+        }
+        if (-not (Test-Path (Join-Path $root 'bin'))) {
+          Write-Error "OpenSSL was not installed in $root"
           exit 1
         }
         "OPENSSL_ROOT_DIR=$root" >> $env:GITHUB_ENV
 
-    - name: Install OpenSSL
+    - name: Install OpenSSL (macOS)
       if: runner.os == 'macOS'
       shell: bash
       run: |
