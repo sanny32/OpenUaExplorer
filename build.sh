@@ -818,12 +818,6 @@ gcc_version() {
     "$1" -dumpfullversion -dumpversion 2>/dev/null | head -n1
 }
 
-# GCC 8 does not build the Qt 6 headers: Qt's headersclean check compiles every public
-# header of a module as a translation unit of its own under -Werror and a hardened
-# warning set, and GCC 8 misfires on the Qt headers themselves - -Wshadow in qvariant.h
-# and -Wzero-as-null-pointer-constant in qcomparehelpers.h. Astra Linux 1.7 is the one
-# distribution here whose default compiler is that old, and it publishes a newer
-# toolchain of its own, gcc-astra, which carries GCC 12.
 configure_linux_compiler() {
     local required="9"
     local version
@@ -849,9 +843,6 @@ configure_linux_compiler() {
 
     install_packages gcc-astra gcc-astra-libs
 
-    # gcc-astra installs next to the compiler of the distribution rather than replacing
-    # it, so its binaries are picked explicitly - by version, as the newest wins, and
-    # the package has carried different ones over time.
     for candidate in 14 13 12 11 10 9; do
         if [ ! -x "/usr/bin/gcc-$candidate" ] || [ ! -x "/usr/bin/g++-$candidate" ]; then
             continue
@@ -932,8 +923,6 @@ install_openssl_source() {
 # and building against it would produce a program that links and then fails to do any
 # TLS at run time. The source carried by the Qt installer is built for those systems.
 configure_linux_openssl() {
-    # A directory of its own, and not the Qt one: aqtinstall 3.1.x unpacks the sources
-    # flat, which would scatter the OpenSSL tree over the root of the Qt installation.
     local root="$TOOLS_DIR/openssl-src"
     local prefix="$TOOLS_DIR/openssl"
 
@@ -1118,15 +1107,8 @@ build_project() {
     if [ -n "${OPENSSL_ROOT_DIR:-}" ]; then
         cmake_args+=("-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR")
     fi
-    # Named rather than left to the environment, because Qt OpcUa is configured with the
-    # toolchain file of Qt, and that one pins the compiler the installed Qt was built
-    # with (/usr/bin/g++) unless CMAKE_CXX_COMPILER is already set. CC and CXX alone
-    # would therefore not reach it.
-    if [ -n "${CC:-}" ] && [ -n "${CXX:-}" ]; then
-        cmake_args+=(
-            "-DCMAKE_C_COMPILER=$CC"
-            "-DCMAKE_CXX_COMPILER=$CXX"
-        )
+    if [ -n "${CXX:-}" ]; then
+        cmake_args+=("-DCMAKE_CXX_COMPILER=$CXX")
     fi
     # A Qt from aqtinstall is not on the system, so the install tree is turned into a
     # self-contained AppDir by linuxdeployqt, which needs the FHS layout.
@@ -1156,7 +1138,6 @@ build_linux() {
 
     enable_rhel_build_repositories
     configure_linux_qt "$min_qt"
-    # Before OpenSSL: the sources are compiled with this compiler as well.
     configure_linux_compiler
     configure_linux_openssl
     ensure_cmake "$min_cmake"
