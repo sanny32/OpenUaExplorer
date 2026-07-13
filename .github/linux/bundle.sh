@@ -167,9 +167,9 @@ while [ "$copied_any" -eq 1 ]; do
 done
 
 log "Rewriting RPATHs"
-patchelf --set-rpath '$ORIGIN/../lib' "$APP_BIN_DIR/$APP_NAME"
-find "$APP_LIB_DIR" -type f -name '*.so*' -exec patchelf --set-rpath '$ORIGIN' {} \;
-find "$APP_PLUGIN_DIR" -type f -name '*.so' -exec patchelf --set-rpath '$ORIGIN/../../lib' {} \;
+patchelf --set-rpath "\$ORIGIN/../lib" "$APP_BIN_DIR/$APP_NAME"
+find "$APP_LIB_DIR" -type f -name '*.so*' -exec patchelf --set-rpath "\$ORIGIN" {} \;
+find "$APP_PLUGIN_DIR" -type f -name '*.so' -exec patchelf --set-rpath "\$ORIGIN/../../lib" {} \;
 
 log "Stripping binaries"
 strip --strip-unneeded "$APP_BIN_DIR/$APP_NAME"
