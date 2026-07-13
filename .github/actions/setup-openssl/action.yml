@@ -46,7 +46,7 @@ runs:
         PREFIX: ${{ inputs.prefix }}
       run: |
         if [ -z "${IQTA_TOOLS:-}" ]; then
-          echo "::error::IQTA_TOOLS is not set; install Qt with tools_openssl_src first"
+          echo "::error::IQTA_TOOLS is not set; install Qt with tools_opensslv3_src first"
           exit 1
         fi
         root="$GITHUB_WORKSPACE/$PREFIX"

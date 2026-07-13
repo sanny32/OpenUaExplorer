@@ -835,13 +835,37 @@ system_openssl3_available() {
     return 1
 }
 
+openssl_source_available() {
+    local source_root="$1"
+
+    [ -x "$source_root/Configure" ] \
+        || [ -n "$(find "$source_root" -maxdepth 3 -name Configure -type f -print -quit 2>/dev/null)" ]
+}
+
+install_openssl_source() {
+    local root="$1"
+    local source_root="$2"
+
+    if openssl_source_available "$source_root"; then
+        return
+    fi
+
+    ensure_aqt
+    log_info "Installing the OpenSSL sources with aqtinstall..."
+    "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-tool \
+        linux desktop tools_opensslv3_src -O "$root"
+
+    if ! openssl_source_available "$source_root"; then
+        log_error "aqtinstall completed, but OpenSSL sources were not found in $source_root"
+        exit 1
+    fi
+}
+
 # Qt 6 opens libssl.so.3 with dlopen and Qt OpcUa links its open62541 backend against
 # OpenSSL, so an OpenSSL 3 is required no matter what the distribution ships. Older
 # distributions - Astra Linux 1.7 and Debian 10 among them - carry only OpenSSL 1.1,
 # and building against it would produce a program that links and then fails to do any
-# TLS at run time. The Qt installer carries the OpenSSL that Qt was tested against, as
-# source on Linux, so on those systems it is fetched and built the same way build.ps1
-# does it on Windows, where there is no system OpenSSL at all.
+# TLS at run time. The source carried by the Qt installer is built for those systems.
 configure_linux_openssl() {
     local root="$TOOLS_DIR/qt"
     local source_dir="$root/Tools/OpenSSLv3/src"
@@ -857,19 +881,14 @@ configure_linux_openssl() {
         return
     fi
 
-    log_warn "The distribution has no OpenSSL 3; building the one that ships with Qt."
+    log_warn "The distribution has no OpenSSL 3; building OpenSSL 3 from source."
 
     if ! command -v perl >/dev/null 2>&1; then
         log_error "perl is required to build OpenSSL."
         exit 1
     fi
 
-    if [ ! -d "$source_dir" ]; then
-        ensure_aqt
-        log_info "Installing the OpenSSL sources with aqtinstall..."
-        "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-tool \
-            linux desktop tools_openssl_src -O "$root"
-    fi
+    install_openssl_source "$root" "$source_dir"
 
     # The same script the packaging workflows use, so a locally built program links
     # against the OpenSSL the .deb and the .rpm carry.

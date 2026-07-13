@@ -21,7 +21,7 @@ permissions:
 env:
   QT_VERSION: '6.9.3'
   QT_MODULES: qtcharts
-  QT_TOOLS: tools_openssl_src
+  QT_TOOLS: tools_opensslv3_src
   MAINTAINER: Alexandr Ananev <mail@ananev.org>
 
 jobs:
