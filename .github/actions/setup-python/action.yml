@@ -30,11 +30,12 @@ runs:
         python="python$VERSION"
 
         add-apt-repository -y ppa:deadsnakes/ppa
-        apt-get install -y --no-install-recommends "$python" "${python}-venv"
+        apt-get install -y --no-install-recommends "$python"
 
-        # The distribution strips ensurepip out of the standard library and ships
-        # it in the -venv package, so pip has to be bootstrapped explicitly.
-        "$python" -m ensurepip --upgrade
+        # The distribution strips ensurepip out of the standard library, and the
+        # PPA does not package it for every version, so pip is bootstrapped from
+        # upstream rather than from the interpreter itself.
+        curl -fsSL https://bootstrap.pypa.io/get-pip.py | "$python" -
 
         mkdir -p "$PREFIX"
         ln -sf "/usr/bin/$python" "$PREFIX/python3"
