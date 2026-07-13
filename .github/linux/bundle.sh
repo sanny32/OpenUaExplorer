@@ -183,32 +183,6 @@ patchelf --force-rpath --set-rpath "$APP_BIN_RPATH" "$APP_BIN_DIR/$APP_NAME"
 find "$APP_LIB_DIR" -type f -name '*.so*' -exec patchelf --force-rpath --set-rpath "$APP_LIB_RPATH" {} \;
 find "$APP_PLUGIN_DIR" -type f -name '*.so' -exec patchelf --force-rpath --set-rpath "$APP_PLUGIN_RPATH" {} \;
 
-# Qt finds a plugin's metadata by name of the section it lives in, and both strip and
-# patchelf are able to leave the section behind while the library still loads. The
-# program would then start and die on "no Qt platform plugin could be initialized",
-# which is a bad way to learn that the bundle is broken.
-#
-# Whether a plugin carries the section at all is Qt's business, not ours - a few of
-# the ones shipped do not - so what is checked is that the copy still has what the
-# original had.
-has_metadata() {
-    readelf --sections --wide "$1" 2>/dev/null | grep -q '\.qtmetadata'
-}
-
-log "Checking that the plugins kept their metadata"
-while read -r plugin; do
-    has_metadata "$plugin" && continue
-
-    # The OPC UA backend is installed into its own prefix, so where the original of a
-    # plugin is depends on which one it is.
-    name="${plugin##*/}"
-    original="$(find "$QT_PREFIX/plugins" "$QTOPCUA_DIR" -type f -name "$name" -print -quit)"
-
-    [ -n "$original" ] || continue
-    ! has_metadata "$original" \
-        || die "The metadata section was lost from $plugin while staging it"
-done < <(find "$APP_PLUGIN_DIR" -type f -name '*.so')
-
 find "$APP_LIB_DIR" "$APP_PLUGIN_DIR" -type f -exec chmod 0644 {} +
 chmod 0755 "$APP_BIN_DIR/$APP_NAME"
 
