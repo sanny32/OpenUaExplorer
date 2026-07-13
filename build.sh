@@ -853,7 +853,9 @@ configure_linux_compiler() {
     install_packages gcc-astra gcc-astra-libs
 
     while IFS= read -r cxx; do
-        [ -f "$cxx" ] && [ -x "$cxx" ] || continue
+        if [ ! -f "$cxx" ] || [ ! -x "$cxx" ]; then
+            continue
+        fi
 
         version="$(gcc_version "$cxx")"
         if [ -z "$version" ] || ! version_ge "$version" "$required"; then
@@ -861,7 +863,9 @@ configure_linux_compiler() {
         fi
 
         cc="$(dirname "$cxx")/$(basename "$cxx" | sed -e 's/g++/gcc/' -e 's/c++/cc/')"
-        [ -f "$cc" ] && [ -x "$cc" ] || continue
+        if [ ! -f "$cc" ] || [ ! -x "$cc" ]; then
+            continue
+        fi
 
         CC="$cc"
         CXX="$cxx"
