@@ -34,6 +34,13 @@ ExclusiveArch:  x86_64
 Requires:       hicolor-icon-theme
 Requires:       ca-certificates
 
+# The rpmbuild this is built with is the one Debian packages, and its dependency
+# generator only reaches some of the staged files: the .rpm it produced asked for
+# neither libstdc++ nor the fontconfig, freetype, EGL and xkbcommon the bundled Qt
+# needs, and installing it left the program with unresolved symbols. The workflow
+# reads what the bundle needs out of the bundle itself and writes it in here.
+@REQUIRES@
+
 %description
 OpenUaExplorer is an open source OPC UA client for browsing, inspecting,
 and monitoring OPC UA servers.

@@ -192,11 +192,34 @@ jobs:
           fi
           requires_exclude="^(${sonames})[(]"
 
-          # '|' and '(' appear in the pattern, so '#' delimits the substitution.
+          # What the bundle needs from the distribution is every soname its files
+          # reference that it does not carry itself. This is what the dependency
+          # generator is supposed to work out, and does not - see the spec - so it is
+          # read out of the staged tree, which is the same thing dpkg-shlibdeps does
+          # for the .deb. The package is x86_64 only, hence the fixed suffix.
+          find pkgroot/usr/lib/ouaexp -type f \( -name '*.so*' -o -name ouaexp \) \
+            -exec patchelf --print-needed {} + \
+            | sort -u \
+            | while read -r soname; do
+                [ -e "pkgroot/usr/lib/ouaexp/lib/$soname" ] && continue
+                echo "Requires:       ${soname}()(64bit)"
+              done > rpmbuild/requires
+
+          if [ ! -s rpmbuild/requires ]; then
+            echo "::error::The bundle needs nothing from the distribution; that is wrong"
+            exit 1
+          fi
+          cat rpmbuild/requires
+
+          # '|' and '(' appear in the pattern, so '#' delimits the substitution. The
+          # requires are a list, so they are read in from the file rather than
+          # substituted into the line.
           sed -e "s#@NAME@#ouaexp#" \
               -e "s#@VERSION@#${{ steps.version.outputs.rpmVersion }}#" \
               -e "s#@RELEASE@#${{ steps.version.outputs.rpmRelease }}#" \
               -e "s#@REQUIRES_EXCLUDE@#${requires_exclude}#" \
+              -e "/@REQUIRES@/r rpmbuild/requires" \
+              -e "/@REQUIRES@/d" \
               .github/linux/rpm/ouaexp.spec.in > rpmbuild/SPECS/ouaexp.spec
 
           cat >> rpmbuild/SPECS/ouaexp.spec <<EOF
