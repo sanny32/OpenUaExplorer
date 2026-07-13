@@ -69,6 +69,12 @@ runs:
 
             install_package
 
+            # ALT packages ldd apart from the C library, in glibc-utils, and its image
+            # does not install it.
+            if [ "$(. /etc/os-release && echo "$ID")" = altlinux ]; then
+              apt-get install -y glibc-utils
+            fi
+
             test -L /usr/bin/ouaexp
             if ldd -r /usr/lib/ouaexp/bin/ouaexp | grep -E "not found|undefined symbol"; then
               echo "The installed binary has unresolved libraries or symbols"
