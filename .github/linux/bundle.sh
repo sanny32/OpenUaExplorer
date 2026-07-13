@@ -108,7 +108,7 @@ find "$APP_PLUGIN_DIR" -type f -name '*.debug' -delete
 
 # Qt OpcUa links its open62541 backend against OpenSSL, but Qt itself opens it with
 # dlopen, so the dependency walk below would never see it. Both are served by the
-# copy made here: dlopen searches the RUNPATH of the library that calls it, and every
+# copy made here: dlopen searches the RPATH of the library that calls it, and every
 # bundled library ends up with $ORIGIN.
 if [ -n "$OPENSSL_PREFIX" ]; then
     log "Copying OpenSSL"
@@ -167,9 +167,9 @@ while [ "$copied_any" -eq 1 ]; do
 done
 
 log "Rewriting RPATHs"
-patchelf --set-rpath "\$ORIGIN/../lib" "$APP_BIN_DIR/$APP_NAME"
-find "$APP_LIB_DIR" -type f -name '*.so*' -exec patchelf --set-rpath "\$ORIGIN" {} \;
-find "$APP_PLUGIN_DIR" -type f -name '*.so' -exec patchelf --set-rpath "\$ORIGIN/../../lib" {} \;
+patchelf --force-rpath --set-rpath "\$ORIGIN/../lib" "$APP_BIN_DIR/$APP_NAME"
+find "$APP_LIB_DIR" -type f -name '*.so*' -exec patchelf --force-rpath --set-rpath "\$ORIGIN" {} \;
+find "$APP_PLUGIN_DIR" -type f -name '*.so' -exec patchelf --force-rpath --set-rpath "\$ORIGIN/../../lib" {} \;
 
 log "Stripping binaries"
 strip --strip-unneeded "$APP_BIN_DIR/$APP_NAME"
