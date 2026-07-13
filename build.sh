@@ -815,7 +815,7 @@ configure_linux_qt() {
 }
 
 gcc_version() {
-    "$1" -dumpfullversion -dumpversion 2>/dev/null | head -n1
+    { "$1" -dumpfullversion -dumpversion 2>/dev/null || true; } | head -n1
 }
 
 package_cxx_compilers() {
@@ -853,7 +853,7 @@ configure_linux_compiler() {
     install_packages gcc-astra gcc-astra-libs
 
     while IFS= read -r cxx; do
-        [ -x "$cxx" ] || continue
+        [ -f "$cxx" ] && [ -x "$cxx" ] || continue
 
         version="$(gcc_version "$cxx")"
         if [ -z "$version" ] || ! version_ge "$version" "$required"; then
@@ -861,7 +861,7 @@ configure_linux_compiler() {
         fi
 
         cc="$(dirname "$cxx")/$(basename "$cxx" | sed -e 's/g++/gcc/' -e 's/c++/cc/')"
-        [ -x "$cc" ] || continue
+        [ -f "$cc" ] && [ -x "$cc" ] || continue
 
         CC="$cc"
         CXX="$cxx"
