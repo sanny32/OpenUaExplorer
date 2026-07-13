@@ -45,6 +45,9 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
 
+      - name: Trust workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       # The package is built inside an older Ubuntu container so the glibc and
       # libstdc++ symbol versions the bundled binaries reference stay as low as
       # possible. The bundle carries its own Qt; rpmbuild only wraps the staged tree.
