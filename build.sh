@@ -814,6 +814,71 @@ configure_linux_qt() {
     fi
 }
 
+gcc_version() {
+    { "$1" -dumpfullversion -dumpversion 2>/dev/null || true; } | head -n1
+}
+
+package_cxx_compilers() {
+    local package="$1"
+
+    dpkg -L "$package" 2>/dev/null \
+        | grep -E '/(g\+\+|c\+\+)(-[0-9.]+)?$' \
+        | sort -r
+}
+
+configure_linux_compiler() {
+    local required="9"
+    local version
+    local cxx
+    local cc
+
+    if [ -n "${CXX:-}" ]; then
+        log_info "Using the compiler from the environment: $CXX"
+        return
+    fi
+
+    version="$(gcc_version gcc)"
+    if [ -n "$version" ] && version_ge "$version" "$required"; then
+        log_info "Using GCC $version"
+        return
+    fi
+
+    log_warn "GCC ${version:-unknown} is older than the required GCC $required."
+
+    if [ "$LINUX_ID" != "astra" ]; then
+        log_error "No compiler new enough for the Qt headers is available."
+        exit 1
+    fi
+
+    install_packages gcc-astra gcc-astra-libs
+
+    while IFS= read -r cxx; do
+        if [ ! -f "$cxx" ] || [ ! -x "$cxx" ]; then
+            continue
+        fi
+
+        version="$(gcc_version "$cxx")"
+        if [ -z "$version" ] || ! version_ge "$version" "$required"; then
+            continue
+        fi
+
+        cc="$(dirname "$cxx")/$(basename "$cxx" | sed -e 's/g++/gcc/' -e 's/c++/cc/')"
+        if [ ! -f "$cc" ] || [ ! -x "$cc" ]; then
+            continue
+        fi
+
+        CC="$cc"
+        CXX="$cxx"
+        export CC CXX
+        log_info "Using GCC $version from gcc-astra: $CXX"
+        return
+    done < <(package_cxx_compilers gcc-astra)
+
+    log_error "gcc-astra is installed, but it provides no GCC $required or newer."
+    log_error "Compilers in the package: $(package_cxx_compilers gcc-astra | tr '\n' ' ')"
+    exit 1
+}
+
 system_openssl3_available() {
     if command -v pkg-config >/dev/null 2>&1 \
         && pkg-config --atleast-version=3 openssl 2>/dev/null; then
@@ -835,18 +900,23 @@ system_openssl3_available() {
     return 1
 }
 
-openssl_source_available() {
-    local source_root="$1"
+openssl_source_dir() {
+    local root="$1"
+    local candidate
 
-    [ -x "$source_root/Configure" ] \
-        || [ -n "$(find "$source_root" -maxdepth 3 -name Configure -type f -print -quit 2>/dev/null)" ]
+    for candidate in "$root/Tools/OpenSSLv3/src" "$root"; do
+        if [ -f "$candidate/Configure" ]; then
+            printf '%s\n' "$candidate"
+            return
+        fi
+    done
 }
 
 install_openssl_source() {
     local root="$1"
-    local source_root="$2"
 
-    if openssl_source_available "$source_root"; then
+    OPENSSL_SOURCE_DIR="$(openssl_source_dir "$root")"
+    if [ -n "$OPENSSL_SOURCE_DIR" ]; then
         return
     fi
 
@@ -855,8 +925,9 @@ install_openssl_source() {
     "$TOOLS_DIR/aqt-venv/bin/python3" -m aqt install-tool \
         linux desktop tools_opensslv3_src -O "$root"
 
-    if ! openssl_source_available "$source_root"; then
-        log_error "aqtinstall completed, but OpenSSL sources were not found in $source_root"
+    OPENSSL_SOURCE_DIR="$(openssl_source_dir "$root")"
+    if [ -z "$OPENSSL_SOURCE_DIR" ]; then
+        log_error "aqtinstall completed, but no OpenSSL sources were found under $root"
         exit 1
     fi
 }
@@ -867,8 +938,7 @@ install_openssl_source() {
 # and building against it would produce a program that links and then fails to do any
 # TLS at run time. The source carried by the Qt installer is built for those systems.
 configure_linux_openssl() {
-    local root="$TOOLS_DIR/qt"
-    local source_dir="$root/Tools/OpenSSLv3/src"
+    local root="$TOOLS_DIR/openssl-src"
     local prefix="$TOOLS_DIR/openssl"
 
     if [ -n "${OPENSSL_ROOT_DIR:-}" ]; then
@@ -888,11 +958,11 @@ configure_linux_openssl() {
         exit 1
     fi
 
-    install_openssl_source "$root" "$source_dir"
+    install_openssl_source "$root"
 
     # The same script the packaging workflows use, so a locally built program links
     # against the OpenSSL the .deb and the .rpm carry.
-    bash "$PROJECT_DIR/.github/linux/openssl.sh" "$source_dir" "$prefix"
+    bash "$PROJECT_DIR/.github/linux/openssl.sh" "$OPENSSL_SOURCE_DIR" "$prefix"
 
     export OPENSSL_ROOT_DIR="$prefix"
     log_info "Using OpenSSL from $OPENSSL_ROOT_DIR"
@@ -1052,6 +1122,9 @@ build_project() {
     if [ -n "${OPENSSL_ROOT_DIR:-}" ]; then
         cmake_args+=("-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR")
     fi
+    if [ -n "${CXX:-}" ]; then
+        cmake_args+=("-DCMAKE_CXX_COMPILER=$CXX")
+    fi
     # A Qt from aqtinstall is not on the system, so the install tree is turned into a
     # self-contained AppDir by linuxdeployqt, which needs the FHS layout.
     if [ "$(uname -s)" = "Linux" ] && [ "$QT_FROM_AQT" -eq 1 ]; then
@@ -1080,6 +1153,7 @@ build_linux() {
 
     enable_rhel_build_repositories
     configure_linux_qt "$min_qt"
+    configure_linux_compiler
     configure_linux_openssl
     ensure_cmake "$min_cmake"
 

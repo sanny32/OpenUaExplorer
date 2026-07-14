@@ -155,7 +155,7 @@ ouaexp_find_qtopcua_config(QTOPCUA_CONFIG_FILE)
 if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
     file(MAKE_DIRECTORY "${QTOPCUA_BUILD_DIR}")
     ouaexp_prepare_qtopcua_config_opt("${QTOPCUA_BUILD_DIR}")
-
+  
     set(QTOPCUA_CONFIGURE_OPTIONS
         -DINPUT_open62541=qt
         -DQT_BUILD_TESTS=OFF
@@ -163,6 +163,16 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
         "-DCMAKE_TOOLCHAIN_FILE=${Qt6_DIR}/qt.toolchain.cmake"
         "-DCMAKE_INSTALL_PREFIX=${QTOPCUA_INSTALL_DIR}"
     )
+
+    if(NOT "$ENV{CC}" STREQUAL "")
+        list(APPEND QTOPCUA_CONFIGURE_OPTIONS
+            "-DCMAKE_C_COMPILER=$ENV{CC}")
+    endif()
+    if(NOT "$ENV{CXX}" STREQUAL "")
+        list(APPEND QTOPCUA_CONFIGURE_OPTIONS
+            "-DCMAKE_CXX_COMPILER=$ENV{CXX}")
+    endif()
+
     if(OPENSSL_ROOT_DIR)
         list(APPEND QTOPCUA_CONFIGURE_OPTIONS
             "-DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}")

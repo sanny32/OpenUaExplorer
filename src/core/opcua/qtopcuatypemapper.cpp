@@ -81,9 +81,13 @@ QList<QPair<QString, QOpcUa::NodeAttribute>> attributeFields(
         {translate("Write Mask"), QOpcUa::NodeAttribute::WriteMask},
         {translate("User Write Mask"), QOpcUa::NodeAttribute::UserWriteMask}
     };
+#if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
+    // These attributes were added to QOpcUa::NodeAttribute in Qt 6.9; the project
+    // still supports Qt 6.6 (src/cmake/qt.cmake).
     fields.append(qMakePair(translate("Role Permissions"), QOpcUa::NodeAttribute::RolePermissions));
     fields.append(qMakePair(translate("User Role Permissions"), QOpcUa::NodeAttribute::UserRolePermissions));
     fields.append(qMakePair(translate("Access Restrictions"), QOpcUa::NodeAttribute::AccessRestrictions));
+#endif
     return fields;
 }
 
