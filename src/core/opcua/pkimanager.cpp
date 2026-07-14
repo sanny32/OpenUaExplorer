@@ -161,13 +161,27 @@ bool certificateHasApplicationUri(X509 *certificate, const QByteArray &expectedU
 ///
 bool certificateIsSelfSigned(X509 *certificate)
 {
-    if (X509_check_issued(certificate, certificate) != X509_V_OK)
+    if (X509_NAME_cmp(X509_get_subject_name(certificate),
+                      X509_get_issuer_name(certificate)) != 0) {
         return false;
+    }
 
     EVP_PKEY *publicKey = X509_get_pubkey(certificate);
     const bool verified = publicKey && X509_verify(certificate, publicKey) == 1;
     EVP_PKEY_free(publicKey);
     return verified;
+}
+
+///
+/// \brief Checks that a certificate is an end-entity application instance certificate.
+/// \param certificate Certificate to inspect.
+/// \return True when the certificate is not a CA certificate.
+/// \note OPC UA Part 6 requires basicConstraints CA:FALSE and no keyCertSign key usage;
+///       strict servers reject CA certificates offered as a client identity.
+///
+bool certificateIsApplicationInstance(X509 *certificate)
+{
+    return X509_check_ca(certificate) == 0;
 }
 
 ///
@@ -331,7 +345,8 @@ bool PkiManager::ensureDirectories(QString *error) const
 /// \brief Reports whether a matching auto-generated client certificate already exists.
 /// \param certificateFile Receives the existing DER certificate path.
 /// \param privateKeyFile Receives the existing PEM private key path.
-/// \return True when the generated key pair exists and has the current application URI.
+/// \return True when the generated key pair exists, has the current application URI and is a
+///         usable end-entity certificate.
 ///
 bool PkiManager::existingClientCertificate(QString *certificateFile,
                                            QString *privateKeyFile) const
@@ -355,7 +370,8 @@ bool PkiManager::existingClientCertificate(QString *certificateFile,
     const bool identityMatches =
         certificateHasApplicationUri(certificate, expectedUri)
         && certificateCommonName(certificate) == clientCertificateCommonName()
-        && certificateIsSelfSigned(certificate);
+        && certificateIsSelfSigned(certificate)
+        && certificateIsApplicationInstance(certificate);
     X509_free(certificate);
     if (!identityMatches)
         return false;
@@ -436,13 +452,13 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
         X509V3_set_ctx(&extensionContext, certificate, certificate, nullptr, nullptr, 0);
         const bool extensionsAdded =
             addExtension(certificate, &extensionContext,
-                         NID_basic_constraints, QByteArrayLiteral("critical,CA:TRUE"))
+                         NID_basic_constraints, QByteArrayLiteral("critical,CA:FALSE"))
             && addExtension(
                 certificate, &extensionContext,
                 NID_key_usage,
                 QByteArrayLiteral(
                     "critical,nonRepudiation,digitalSignature,keyEncipherment,"
-                    "dataEncipherment,keyCertSign,cRLSign"))
+                    "dataEncipherment"))
             && addExtension(certificate, &extensionContext,
                             NID_ext_key_usage, QByteArrayLiteral("clientAuth"))
             && addExtension(certificate, &extensionContext, NID_subject_alt_name, san)

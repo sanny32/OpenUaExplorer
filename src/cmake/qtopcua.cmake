@@ -1,4 +1,5 @@
 include(FetchContent)
+find_package(Git REQUIRED)
 
 function(ouaexp_copy_qtopcua_runtime target_name)
     if(WIN32)
@@ -93,6 +94,50 @@ function(ouaexp_find_qtopcua_config out_var)
     set(${out_var} "${config_file}" PARENT_SCOPE)
 endfunction()
 
+# Applies the cmake/patches fixes to the fetched Qt OpcUa backend. Each patch carries a header
+# explaining why it exists; one that no longer applies is a hard error rather than a silently
+# dropped workaround.
+function(ouaexp_patch_qtopcua source_dir)
+    if(NOT EXISTS "${source_dir}/.git")
+        return()
+    endif()
+    file(GLOB patches "${CMAKE_CURRENT_LIST_DIR}/patches/*.patch")
+    list(SORT patches)
+    foreach(patch IN LISTS patches)
+        get_filename_component(name "${patch}" NAME)
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} apply --reverse --check "${patch}"
+            WORKING_DIRECTORY "${source_dir}"
+            RESULT_VARIABLE already_applied
+            OUTPUT_QUIET ERROR_QUIET
+        )
+        if(already_applied EQUAL 0)
+            continue()
+        endif()
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} apply "${patch}"
+            WORKING_DIRECTORY "${source_dir}"
+            RESULT_VARIABLE applied
+            ERROR_VARIABLE apply_error
+        )
+        if(NOT applied EQUAL 0)
+            message(FATAL_ERROR
+                "The Qt OpcUa patch ${name} does not apply to qtopcua ${QTOPCUA_VERSION}: "
+                "${apply_error}Rebase the patch onto the new sources, or drop it if the "
+                "upstream defect it works around is fixed.")
+        endif()
+        message(STATUS "Applied Qt OpcUa patch ${name}")
+        set(OUAEXP_QTOPCUA_PATCHED TRUE PARENT_SCOPE)
+    endforeach()
+endfunction()
+
+ouaexp_patch_qtopcua("${QTOPCUA_SOURCE_DIR}")
+if(OUAEXP_QTOPCUA_PATCHED AND EXISTS "${QTOPCUA_INSTALL_DIR}")
+    message(STATUS "Qt OpcUa sources were patched; rebuilding the bundled backend")
+    file(REMOVE_RECURSE "${QTOPCUA_BUILD_DIR}" "${QTOPCUA_INSTALL_DIR}")
+    unset(Qt6OpcUa_DIR CACHE)
+endif()
+
 find_package(Qt6OpcUa CONFIG QUIET)
 
 if(TARGET Qt6::OpcUa)
@@ -115,40 +160,7 @@ FetchContent_GetProperties(qtopcua)
 
 ouaexp_detect_open62541_version("${qtopcua_SOURCE_DIR}")
 
-# Qt's bundled open62541 backend hard-codes dataEncoding="Default Binary" on every
-# HistoryRead request (qopen62541backend.cpp). Strict UA servers (e.g. Unified
-# Automation) reject that encoding for scalar variables and return an empty result,
-# so HistoryRead silently yields no data; UaExpert and the OPC UA spec send a null
-# dataEncoding instead. Qt exposes no API to override it, so we neutralise the line
-# at configure time. The replacement keys on the code text rather than a line number
-# so it survives across Qt OpcUa point releases; it is idempotent and warns loudly if
-# the upstream source changes, so the workaround is never silently a no-op.
-function(ouaexp_patch_qtopcua_history source_dir)
-    set(backend "${source_dir}/src/plugins/opcua/open62541/qopen62541backend.cpp")
-    if(NOT EXISTS "${backend}")
-        return()
-    endif()
-    file(READ "${backend}" contents)
-    if(contents MATCHES "ouaexp patch: dataEncoding left null")
-        return() # already patched
-    endif()
-    set(needle "uarequest.nodesToRead[i].dataEncoding = UA_QUALIFIEDNAME_ALLOC(0, \"Default Binary\");")
-    string(FIND "${contents}" "${needle}" found)
-    if(found EQUAL -1)
-        message(WARNING
-            "Qt OpcUa HistoryRead dataEncoding workaround did not match qtopcua "
-            "${QTOPCUA_VERSION}; the upstream source changed. Re-check whether the "
-            "HistoryRead dataEncoding fix is still required.")
-        return()
-    endif()
-    string(REPLACE "${needle}"
-        "// ouaexp patch: dataEncoding left null (Default Binary breaks history on strict UA servers)"
-        contents "${contents}")
-    file(WRITE "${backend}" "${contents}")
-    message(STATUS "Applied Qt OpcUa HistoryRead dataEncoding workaround")
-endfunction()
-
-ouaexp_patch_qtopcua_history("${qtopcua_SOURCE_DIR}")
+ouaexp_patch_qtopcua("${qtopcua_SOURCE_DIR}")
 
 ouaexp_find_qtopcua_config(QTOPCUA_CONFIG_FILE)
 
