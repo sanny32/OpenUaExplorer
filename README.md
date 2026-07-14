@@ -106,7 +106,7 @@ The build is continuously tested on:
 - <img src="docs/icons/logo_fedora.svg" width="16" height="16" /> **Fedora Linux** 43 and 44
 - <img src="docs/icons/logo_rocky.png" width="16" height="16" /> **Rocky Linux** 10.1
 - <img src="docs/icons/logo_redos.png" width="16" height="16" /> **RED OS** 8
-- <img src="docs/icons/logo_astra.png" width="18" height="18" /> **Astra Linux** 1.8
+- <img src="docs/icons/logo_astra.png" width="18" height="18" /> **Astra Linux** 1.7 and 1.8
 - <img src="docs/icons/logo_alt.png" width="16" height="16" /> **ALT Linux** 11
 - <img src="docs/icons/logo_opensuse.svg" width="16" height="16" /> **openSUSE Tumbleweed**
 - <img src="docs/icons/logo_arch.svg" width="16" height="16" /> **Arch Linux**
