@@ -24,7 +24,7 @@ env:
 
 jobs:
   installer:
-    name: Build NSIS installer
+    name: Build NSIS installer version '${{ inputs.branch || github.ref_name }}'
     runs-on: windows-latest
     timeout-minutes: 90
 

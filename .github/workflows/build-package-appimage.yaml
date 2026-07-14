@@ -30,7 +30,7 @@ jobs:
   # against. The oldest release the project targets sets that floor, so the AppImage
   # is built in the same container the .deb is.
   appimage:
-    name: Build AppImage
+    name: Build AppImage version '${{ inputs.branch || github.ref_name }}'
     runs-on: ubuntu-latest
     container: ubuntu:20.04
     timeout-minutes: 90

@@ -27,7 +27,7 @@ env:
 
 jobs:
   deb:
-    name: Build .deb
+    name: Build .deb version '${{ inputs.branch || github.ref_name }}'
     runs-on: ubuntu-latest
     container: ubuntu:20.04
     timeout-minutes: 90

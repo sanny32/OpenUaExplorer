@@ -25,7 +25,7 @@ env:
 
 jobs:
   installer:
-    name: Build DMG
+    name: Build DMG version '${{ inputs.branch || github.ref_name }}'
     runs-on: macos-26
     timeout-minutes: 90
 
