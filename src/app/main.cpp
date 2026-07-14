@@ -22,5 +22,11 @@ int main(int argc, char *argv[])
     MainWindow window;
     window.show();
 
+    // Connected here rather than inside MainWindow: the window is also built by tests,
+    // which run under a plain QApplication that has no such signal to connect to.
+    QObject::connect(&a, &Application::sessionFileRequested,
+                     &window, &MainWindow::openSessionFile);
+    a.deliverPendingSessionFile();
+
     return a.exec();
 }

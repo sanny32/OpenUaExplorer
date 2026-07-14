@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QApplication>
+#include <QString>
 
 #include "appsettings.h"
 #include "apptheme.h"
@@ -43,18 +44,39 @@ public:
     ///
     void setTimestampMode(AppSettings::TimestampMode mode);
 
+    ///
+    /// \brief Hands the main window the session file the shell started the program with.
+    ///
+    /// A file named on the command line, and on macOS one dropped on the bundle before the
+    /// window exists, is held back until this is called, because nothing is listening for
+    /// sessionFileRequested() until the main window has been built.
+    ///
+    void deliverPendingSessionFile();
+
 signals:
+    ///
+    /// \brief Emitted when the desktop shell asks the application to open a session file.
+    /// \param path Path to the session file.
+    ///
+    void sessionFileRequested(const QString &path);
+
     ///
     /// \brief Emitted when the OPC UA timestamp display preference changes.
     /// \param mode The newly applied timestamp mode.
     ///
     void timestampModeChanged(AppSettings::TimestampMode mode);
 
+protected:
+    bool event(QEvent *event) override;
+
 private:
     void configureCertificateStore();
     void ensureClientCertificate();
+    void requestSessionFile(const QString &path);
 
     AppTheme _theme;
+    QString _pendingSessionFile;
+    bool _sessionFileHandlerReady = false;
 };
 
 ///

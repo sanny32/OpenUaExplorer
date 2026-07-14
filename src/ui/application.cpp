@@ -7,6 +7,10 @@
 ///
 
 #include <QFileInfo>
+#include <QFileOpenEvent>
+#include <QTimer>
+
+#include <utility>
 
 #include "appstyle.h"
 #include "application.h"
@@ -45,6 +49,65 @@ Application::Application(int &argc, char **argv)
 #endif
     _theme.applyInitialScheme();
     ensureClientCertificate();
+
+    // The shell passes the file of a registered session type as the sole argument on
+    // Windows and Linux; macOS sends a QFileOpenEvent instead, which event() takes.
+    const QStringList args = arguments();
+    if (args.size() > 1 && !args.at(1).startsWith(QLatin1Char('-')))
+        requestSessionFile(args.at(1));
+}
+
+///
+/// \brief Hands the main window the session file the shell started the program with.
+///
+void Application::deliverPendingSessionFile()
+{
+    _sessionFileHandlerReady = true;
+
+    if (_pendingSessionFile.isEmpty())
+        return;
+
+    // Queued rather than emitted straight away: a session that fails to load opens a
+    // modal dialog, and a dialog whose exec() runs before the main event loop has
+    // started leaves the application quitting the moment it is dismissed, because
+    // Qt then sees the last window close before the window it belongs to is up.
+    QTimer::singleShot(0, this, [this]() {
+        emit sessionFileRequested(std::exchange(_pendingSessionFile, QString()));
+    });
+}
+
+///
+/// \brief Takes the macOS request to open a document into the session-file flow.
+/// \param event Event delivered to the application.
+/// \return True when the event was consumed here.
+///
+bool Application::event(QEvent *event)
+{
+    if (event->type() == QEvent::FileOpen) {
+        const QFileOpenEvent *fileEvent = static_cast<QFileOpenEvent *>(event);
+        requestSessionFile(fileEvent->file());
+        return true;
+    }
+
+    return QApplication::event(event);
+}
+
+///
+/// \brief Emits the request for a session file, or holds it back until a window can take it.
+/// \param path Path to the session file.
+///
+void Application::requestSessionFile(const QString &path)
+{
+    if (path.isEmpty())
+        return;
+
+    const QString absolutePath = QFileInfo(path).absoluteFilePath();
+    if (!_sessionFileHandlerReady) {
+        _pendingSessionFile = absolutePath;
+        return;
+    }
+
+    emit sessionFileRequested(absolutePath);
 }
 
 ///

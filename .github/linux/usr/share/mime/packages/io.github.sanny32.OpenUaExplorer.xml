@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-ouaexp-session">
+    <comment>Open UaExplorer session</comment>
+    <comment xml:lang="ru">Сессия Open UaExplorer</comment>
+
+    <!-- A session file is a JSON document, so it is a subclass of application/json.
+         The glob decides the type on its own; the magic only helps a file that is
+         being sniffed by content, and it is weak enough not to outrank a real
+         application/json glob match. -->
+    <sub-class-of type="application/json"/>
+    <generic-icon name="text-x-generic"/>
+    <icon name="application-x-ouaexp-session"/>
+
+    <glob pattern="*.ouas"/>
+    <magic priority="40">
+      <match type="string" value="{" offset="0:8">
+        <match type="string" value="&quot;schemaVersion&quot;" offset="1:64"/>
+      </match>
+    </magic>
+  </mime-type>
+</mime-info>

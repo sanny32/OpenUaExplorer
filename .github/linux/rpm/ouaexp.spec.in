@@ -34,6 +34,11 @@ ExclusiveArch:  x86_64
 Requires:       hicolor-icon-theme
 Requires:       ca-certificates
 
+# The session MIME type is registered by dropping its definition into
+# /usr/share/mime/packages, which only takes effect once update-mime-database has
+# run over it; the file trigger that does so ships with shared-mime-info.
+Requires:       shared-mime-info
+
 # The rpmbuild this is built with is the one Debian packages, and its dependency
 # generator only reaches some of the staged files: the .rpm it produced asked for
 # neither libstdc++ nor the fontconfig, freetype, EGL and xkbcommon the bundled Qt
@@ -70,6 +75,8 @@ cp -a %{_stagedir}/. %{buildroot}/
 %{appdir}/
 %{_datadir}/applications/io.github.sanny32.OpenUaExplorer.desktop
 %{_datadir}/icons/hicolor/scalable/apps/io.github.sanny32.OpenUaExplorer.svg
+%{_datadir}/icons/hicolor/scalable/mimetypes/application-x-ouaexp-session.svg
+%{_datadir}/mime/packages/io.github.sanny32.OpenUaExplorer.xml
 %{_datadir}/metainfo/io.github.sanny32.OpenUaExplorer.metainfo.xml
 
 # The workflow appends the entry for the build it is producing.

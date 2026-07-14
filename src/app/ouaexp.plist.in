@@ -21,6 +21,49 @@
     <string>@PROJECT_VERSION@</string>
     <key>CFBundleVersion</key>
     <string>@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_PATCH@</string>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Open UaExplorer Session</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>file-ouas</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>io.github.sanny32.ouaexp.session</string>
+            </array>
+        </dict>
+    </array>
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>io.github.sanny32.ouaexp.session</string>
+            <key>UTTypeDescription</key>
+            <string>Open UaExplorer Session</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.json</string>
+            </array>
+            <key>UTTypeIconFile</key>
+            <string>file-ouas</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>ouas</string>
+                </array>
+                <key>public.mime-type</key>
+                <array>
+                    <string>application/x-ouaexp-session</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
