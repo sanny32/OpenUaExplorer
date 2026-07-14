@@ -1,0 +1,93 @@
+Qt's plugin never fills UA_ClientConfig::sessionName, so open62541 puts a null string into
+CreateSessionRequest.SessionName. The OPC Foundation .NET stack (e.g. the UA Sample Server at
+opcua.demo-this.com) treats a null string differently from an empty one and faults the request
+with BadUnexpectedError -- its generic "internal exception" code -- so the connect dies right
+after the endpoint is selected, with or without security. Qt exposes no API for the session
+name either, so add one to QOpcUaConnectionSettings and fall back to the application name.
+
+diff --git a/src/opcua/client/qopcuaconnectionsettings.h b/src/opcua/client/qopcuaconnectionsettings.h
+--- a/src/opcua/client/qopcuaconnectionsettings.h
++++ b/src/opcua/client/qopcuaconnectionsettings.h
+@@ -8,6 +8,7 @@
+
+ #include <QtCore/qcontainerfwd.h>
+ #include <QtCore/qshareddata.h>
++#include <QtCore/qstring.h>
+
+ #include <chrono>
+
+@@ -30,6 +31,9 @@ public:
+     Q_OPCUA_EXPORT QStringList sessionLocaleIds() const;
+     Q_OPCUA_EXPORT void setSessionLocaleIds(const QStringList &localeIds);
+
++    Q_OPCUA_EXPORT QString sessionName() const;
++    Q_OPCUA_EXPORT void setSessionName(const QString &sessionName);
++
+     Q_OPCUA_EXPORT std::chrono::milliseconds secureChannelLifeTime() const;
+     Q_OPCUA_EXPORT void setSecureChannelLifeTime(std::chrono::milliseconds lifeTime);
+
+diff --git a/src/opcua/client/qopcuaconnectionsettings.cpp b/src/opcua/client/qopcuaconnectionsettings.cpp
+--- a/src/opcua/client/qopcuaconnectionsettings.cpp
++++ b/src/opcua/client/qopcuaconnectionsettings.cpp
+@@ -25,6 +25,7 @@ class QOpcUaConnectionSettingsData : public QSharedData
+ {
+ public:
+     QStringList sessionLocaleIds;
++    QString sessionName;
+
+     std::chrono::milliseconds secureChannelLifeTime = 10min;
+     std::chrono::milliseconds sessionTimeout = 20min;
+@@ -96,6 +97,7 @@ QOpcUaConnectionSettings::~QOpcUaConnectionSettings()
+ bool operator==(const QOpcUaConnectionSettings &lhs, const QOpcUaConnectionSettings &rhs) noexcept
+ {
+     return  lhs.data->sessionLocaleIds == rhs.data->sessionLocaleIds &&
++            lhs.data->sessionName == rhs.data->sessionName &&
+             lhs.data->connectTimeout == rhs.data->connectTimeout &&
+             lhs.data->secureChannelLifeTime == rhs.data->secureChannelLifeTime &&
+             lhs.data->sessionTimeout == rhs.data->sessionTimeout &&
+@@ -132,6 +134,26 @@ void QOpcUaConnectionSettings::setSessionLocaleIds(const QStringList &localeIds)
+     data->sessionLocaleIds = localeIds;
+ }
+
++/*!
++    Returns the session name, or an empty string when the backend names the session itself.
++*/
++QString QOpcUaConnectionSettings::sessionName() const
++{
++    return data->sessionName;
++}
++
++/*!
++    Sets \a sessionName as the client-defined name of the session.
++    When it is empty, the open62541 backend names the session after the application.
++*/
++void QOpcUaConnectionSettings::setSessionName(const QString &sessionName)
++{
++    if (data->sessionName == sessionName)
++        return;
++    data.detach();
++    data->sessionName = sessionName;
++}
++
+ /*!
+     Returns the secure channel lifetime.
+ */
+diff --git a/src/plugins/opcua/open62541/qopen62541backend.cpp b/src/plugins/opcua/open62541/qopen62541backend.cpp
+--- a/src/plugins/opcua/open62541/qopen62541backend.cpp
++++ b/src/plugins/opcua/open62541/qopen62541backend.cpp
+@@ -1230,6 +1230,13 @@ void Open62541AsyncBackend::connectToEndpoint(const QOpcUaEndpointDescription &e
+     conf->clientDescription.applicationName = UA_LOCALIZEDTEXT_ALLOC("", identity.applicationName().toUtf8().constData());
+     conf->clientDescription.applicationUri  = UA_STRING_ALLOC(identity.applicationUri().toUtf8().constData());
+     conf->clientDescription.productUri      = UA_STRING_ALLOC(identity.productUri().toUtf8().constData());
+     conf->clientDescription.applicationType = UA_APPLICATIONTYPE_CLIENT;
+
++    // ouaexp patch: a null SessionName faults the CreateSession of strict UA servers
++    const QString sessionName = m_currentConnectionSettings.sessionName().isEmpty()
++        ? identity.applicationName()
++        : m_currentConnectionSettings.sessionName();
++    UA_String_clear(&conf->sessionName);
++    conf->sessionName = UA_STRING_ALLOC(sessionName.toUtf8().constData());
++
+     conf->securityPolicyUri = UA_STRING_ALLOC(endpoint.securityPolicy().toUtf8().constData());
+     conf->securityMode = static_cast<UA_MessageSecurityMode>(endpoint.securityMode());
+

@@ -16,8 +16,10 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include <QOpcUaConnectionSettings>
 #include <QOpcUaPkiConfiguration>
 #include <QSslCertificate>
+#include <QSslCertificateExtension>
 
 #include "opcua/certificateinfo.h"
 #include "opcua/connectionprofilestore.h"
@@ -41,6 +43,8 @@ private slots:
     void pkiPathsUseExpectedLayout();
     void applicationNameIdentifiesProductAndHost();
     void generatedCertificateProvidesApplicationIdentity();
+    void generatedCertificateIsAnEndEntityCertificate();
+    void connectionSettingsCarryTheSessionName();
     void lazyModelRequestsAndAppliesBrowse();
     void attributesModelExposesStructuredValues();
     void open62541BackendIsAvailable();
@@ -152,9 +156,12 @@ void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
     const QSslCertificate generated = certificates.constFirst();
     QCOMPARE(generated.subjectInfo(QSslCertificate::CommonName), QStringList({commonName}));
     QCOMPARE(generated.issuerInfo(QSslCertificate::CommonName), QStringList({commonName}));
-    QVERIFY(generated.isSelfSigned());
-    QCOMPARE(CertificateInfo::fromDer(certificateData).serialNumber,
-             QString::fromLatin1(generated.serialNumber()).toUpper());
+
+    // Not QSslCertificate::isSelfSigned(): it demands the keyCertSign key usage of an issuer,
+    // which an end-entity application instance certificate does not carry.
+    const CertificateInfo info = CertificateInfo::fromDer(certificateData);
+    QVERIFY(info.selfSigned);
+    QCOMPARE(info.serialNumber, QString::fromLatin1(generated.serialNumber()).toUpper());
     const QString executableBaseName =
         QFileInfo(QCoreApplication::applicationFilePath()).completeBaseName();
     QCOMPARE(QFileInfo(certificateFile).completeBaseName(), executableBaseName);
@@ -176,6 +183,70 @@ void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
 
     QVERIFY(QFile::remove(certificateFile));
     QVERIFY(QFile::remove(privateKeyFile));
+}
+
+///
+/// \brief TestOpcUa::generatedCertificateIsAnEndEntityCertificate
+///
+/// OPC UA Part 6 requires an application instance certificate to be an end entity: strict
+/// servers reject a client that offers a CA certificate as its identity.
+///
+void TestOpcUa::generatedCertificateIsAnEndEntityCertificate()
+{
+    PkiManager pki;
+    QString certificateFile;
+    QString privateKeyFile;
+    QString error;
+    QVERIFY2(pki.generateClientCertificate(
+                 PkiManager::clientCertificateCommonName(),
+                 PkiManager::applicationUri(),
+                 &certificateFile,
+                 &privateKeyFile,
+                 &error),
+             qPrintable(error));
+
+    QFile certificate(certificateFile);
+    QVERIFY(certificate.open(QIODevice::ReadOnly));
+    const QList<QSslCertificate> certificates =
+        QSslCertificate::fromData(certificate.readAll(), QSsl::Der);
+    certificate.close();
+    QCOMPARE(certificates.size(), 1);
+
+    bool basicConstraintsSeen = false;
+    const auto extensions = certificates.constFirst().extensions();
+    for (const QSslCertificateExtension &extension : extensions) {
+        if (extension.name() != QLatin1String("basicConstraints"))
+            continue;
+        basicConstraintsSeen = true;
+        const QVariantMap value = extension.value().toMap();
+        QVERIFY(value.contains(QStringLiteral("ca")));
+        QVERIFY2(!value.value(QStringLiteral("ca")).toBool(),
+                 "The generated client certificate is a CA certificate.");
+    }
+    QVERIFY2(basicConstraintsSeen, "The generated client certificate has no basicConstraints.");
+
+    QVERIFY(QFile::remove(certificateFile));
+    QVERIFY(QFile::remove(privateKeyFile));
+}
+
+///
+/// \brief TestOpcUa::connectionSettingsCarryTheSessionName
+///
+/// Qt OPC UA has no session name of its own; the backend patch adds one, and without it
+/// open62541 sends a null SessionName that strict servers fault the CreateSession on.
+///
+void TestOpcUa::connectionSettingsCarryTheSessionName()
+{
+    QOpcUaConnectionSettings settings;
+    QVERIFY(settings.sessionName().isEmpty());
+
+    settings.setSessionName(QStringLiteral("OuaExp Session"));
+    QCOMPARE(settings.sessionName(), QStringLiteral("OuaExp Session"));
+
+    QOpcUaConnectionSettings copy = settings;
+    QCOMPARE(copy, settings);
+    copy.setSessionName(QStringLiteral("Other Session"));
+    QVERIFY(copy != settings);
 }
 
 ///

@@ -41,6 +41,33 @@ int publicKeyBits(const QByteArray &der)
     X509_free(certificate);
     return bits > 0 ? bits : 0;
 }
+
+///
+/// \brief Reports whether a DER certificate is issued by itself and signed by its own key.
+/// \param der Certificate bytes in DER encoding.
+/// \return True when the certificate is self-signed.
+/// \note Does not use QSslCertificate::isSelfSigned(), which relies on OpenSSL's
+///       X509_check_issued() and therefore only accepts an issuer carrying the keyCertSign
+///       key usage. An OPC UA application instance certificate is an end entity without it,
+///       so a genuinely self-signed one would be reported as issued by someone else.
+///
+bool isSelfSigned(const QByteArray &der)
+{
+    const unsigned char *data = reinterpret_cast<const unsigned char *>(der.constData());
+    X509 *certificate = d2i_X509(nullptr, &data, der.size());
+    if (!certificate)
+        return false;
+
+    bool selfSigned = X509_NAME_cmp(X509_get_subject_name(certificate),
+                                    X509_get_issuer_name(certificate)) == 0;
+    if (selfSigned) {
+        EVP_PKEY *publicKey = X509_get_pubkey(certificate);
+        selfSigned = publicKey && X509_verify(certificate, publicKey) == 1;
+        EVP_PKEY_free(publicKey);
+    }
+    X509_free(certificate);
+    return selfSigned;
+}
 }
 
 ///
@@ -80,7 +107,7 @@ CertificateInfo CertificateInfo::fromDer(const QByteArray &der, const QDateTime 
     }
     if (result.issuer.isEmpty())
         result.issuer = certificate.issuerDisplayName();
-    result.selfSigned = certificate.isSelfSigned();
+    result.selfSigned = isSelfSigned(der);
 
     result.effectiveDate = certificate.effectiveDate();
     result.expiryDate = certificate.expiryDate();

@@ -90,6 +90,7 @@ private:
     void applySessionDefaults();
     void saveSessionDefaults();
     int currentAuthentication() const;
+    void updateTrustServerCertificate(bool secureChannel);
     void saveLastEndpointUrl();
     void forgetEndpointUrl(const QString &endpointUrl);
     void resetDiscovery();

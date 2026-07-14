@@ -27,6 +27,7 @@
 #include "certificatedetailsdialog.h"
 #include "connectiondialog.h"
 #include "messageboxdialog.h"
+#include "opcua/certificateinfo.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/connectionprofilevalidator.h"
 #include "opcua/pkimanager.h"
@@ -467,10 +468,35 @@ void ConnectionDialog::updateAuthenticationFields()
     // certificate and trust settings depend on a secure channel.
     const bool secureChannel = certificate || _selectedSecurityModeValue > 1;
     ui->serverCertificateGroupBox->setEnabled(secureChannel);
-    ui->trustServerCertificateCheckBox->setEnabled(secureChannel);
     ui->trustListLabel->setEnabled(secureChannel);
     ui->trustListComboBox->setEnabled(secureChannel);
     ui->trustListManageButton->setEnabled(secureChannel);
+    updateTrustServerCertificate(secureChannel);
+}
+
+///
+/// \brief Offers automatic trust only for a server certificate inside its validity period.
+/// \param secureChannel Whether the selected endpoint secures the channel at all.
+/// \note Trusting an expired or not yet valid certificate would not help: it keeps failing
+///       validation on every connection, so the prompt comes back regardless.
+///
+void ConnectionDialog::updateTrustServerCertificate(bool secureChannel)
+{
+    const QByteArray certificate = ui->endpointsWidget->hasSelection()
+        ? ui->endpointsWidget->currentEndpoint().serverCertificate
+        : QByteArray();
+    const bool withinValidity = !certificate.isEmpty()
+        && CertificateInfo::fromDer(certificate).status == CertificateInfo::Status::Valid;
+    const bool trustable = secureChannel && withinValidity;
+
+    if (!trustable)
+        ui->trustServerCertificateCheckBox->setChecked(false);
+    ui->trustServerCertificateCheckBox->setEnabled(trustable);
+    ui->trustServerCertificateCheckBox->setToolTip(
+        secureChannel && !withinValidity
+            ? tr("The server certificate is outside its validity period. Trusting it would not "
+                 "help: it would still fail validation on every connection.")
+            : QString());
 }
 
 ///
