@@ -114,7 +114,7 @@ function(ouaexp_patch_qtopcua source_dir)
         get_filename_component(name "${patch}" NAME)
         ouaexp_normalize_patch("${patch}" patch)
         execute_process(
-            COMMAND ${GIT_EXECUTABLE} apply --reverse --check "${patch}"
+            COMMAND ${GIT_EXECUTABLE} apply --reverse --check -C1 "${patch}"
             WORKING_DIRECTORY "${source_dir}"
             RESULT_VARIABLE already_applied
             OUTPUT_QUIET ERROR_QUIET
@@ -123,7 +123,7 @@ function(ouaexp_patch_qtopcua source_dir)
             continue()
         endif()
         execute_process(
-            COMMAND ${GIT_EXECUTABLE} apply "${patch}"
+            COMMAND ${GIT_EXECUTABLE} apply -C1 "${patch}"
             WORKING_DIRECTORY "${source_dir}"
             RESULT_VARIABLE applied
             ERROR_VARIABLE apply_error
