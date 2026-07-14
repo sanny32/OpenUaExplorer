@@ -1,10 +1,14 @@
 # Building and testing details
 
 The helper scripts `build.sh` (Linux, macOS) and `build.ps1` (Windows) install
-the required build tools and Qt 6, configure the project and build it. This
+the required build tools and Qt, configure the project and build it. This
 document describes what exactly they install on each platform, and how to run
 the test suite and measure its coverage. For the common usage and options, see
 the [Building](README.md#building) section of the README.
+
+The minimum is Qt 6.9: the patches the build applies to the bundled Qt OPC UA
+backend (`src/cmake/patches`) rewrite plugin code that only reached Qt in that
+release.
 
 ## Linux
 
@@ -13,6 +17,16 @@ X11/XCB and OpenGL runtime libraries and Qt 6 (Base, Tools, SVG and Charts)
 through the distribution package manager. When the distribution ships a Qt
 older than the minimum required, it automatically downloads a suitable Qt 6
 with [aqtinstall](https://github.com/miurahr/aqtinstall).
+
+aqtinstall needs Python 3.9 or newer; on an older Python, pip falls back to an
+aqtinstall release that does not know any Qt past 6.7. When the system Python is
+older, `build.sh` builds Python 3.12 into `.build-tools` and uses it for
+aqtinstall.
+
+Which Qt aqtinstall may install is capped by the system glibc: Qt's binaries are
+linked against glibc 2.28 up to Qt 6.9 and against glibc 2.34 from Qt 6.10 on.
+On Astra Linux 1.7 (glibc 2.28) that leaves Qt 6.9 as the newest usable release;
+a newer Qt installs but does not start.
 
 ## macOS
 

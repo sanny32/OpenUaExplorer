@@ -71,8 +71,8 @@ The application runs on:
 ## Building
 
 The repository ships helper scripts that install the required build tools and
-Qt 6, configure the project and build it — usually in a single command:
-`build.sh` on Linux and macOS, and `build.ps1` on
+Qt 6.9 or newer, configure the project and build it — usually in a single
+command: `build.sh` on Linux and macOS, and `build.ps1` on
 [Windows](#windows). What exactly the scripts install, and how to run the test
 suite and measure coverage, is described in
 [BUILDING.md](BUILDING.md).
@@ -201,11 +201,11 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1 -Install
 
 ### Manual CMake build
 
-If you already have Qt 6 and a compiler installed, you can configure and build
-directly with CMake (point `CMAKE_PREFIX_PATH` at your Qt kit):
+If you already have Qt 6.9 or newer and a compiler installed, you can configure
+and build directly with CMake (point `CMAKE_PREFIX_PATH` at your Qt kit):
 
 ```sh
-cmake -S src -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/<kit>
+cmake -S src -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.9/<kit>
 cmake --build build --parallel
 ```
 

@@ -15,6 +15,9 @@ QT_VERSION=""
 CMAKE_BIN=""
 LINUX_ID=""
 LINUX_VERSION_ID=""
+PYTHON_BIN=""
+PYTHON_MIN_VERSION="3.9"
+PYTHON_BUILD_VERSION="3.12.13"
 
 log_info() {
     printf '\033[32mℹ %s\033[0m\n' "$*"
@@ -111,14 +114,124 @@ cmake_version() {
     "$1" --version 2>/dev/null | head -n1 | extract_version || true
 }
 
-ensure_python_tools() {
-    if [ -x "$TOOLS_DIR/aqt-venv/bin/python3" ]; then
+python_version() {
+    "$1" -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null || true
+}
+
+find_python() {
+    local candidate
+    local path
+    local found
+
+    for candidate in python3.13 python3.12 python3.11 python3.10 python3.9 python3; do
+        path="$(command -v "$candidate" 2>/dev/null)" || continue
+        found="$(python_version "$path")"
+        if [ -n "$found" ] && version_ge "$found" "$PYTHON_MIN_VERSION"; then
+            printf '%s\n' "$path"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+python_build_packages() {
+    case "$DISTRO" in
+        debian)
+            echo "zlib1g-dev libffi-dev"
+            ;;
+        rhel|altlinux|suse)
+            echo "zlib-devel libffi-devel"
+            ;;
+        arch)
+            echo "zlib libffi"
+            ;;
+    esac
+}
+
+build_python() {
+    local prefix="$TOOLS_DIR/python"
+    local archive="$TOOLS_DIR/Python-$PYTHON_BUILD_VERSION.tgz"
+    local source_dir="$TOOLS_DIR/Python-$PYTHON_BUILD_VERSION"
+    local build_log="$TOOLS_DIR/python-build.log"
+    local -a packages
+
+    if [ -x "$prefix/bin/python3" ] \
+        && version_ge "$(python_version "$prefix/bin/python3")" "$PYTHON_MIN_VERSION"; then
+        PYTHON_BIN="$prefix/bin/python3"
+        log_info "Using Python $(python_version "$PYTHON_BIN") from $PYTHON_BIN"
         return
     fi
 
+    if [ "$(uname -s)" != "Linux" ]; then
+        log_error "Python $PYTHON_MIN_VERSION or newer is required. Install it with 'brew install python'."
+        exit 1
+    fi
+
+    read -r -a packages <<<"$(python_build_packages)"
+    install_packages "${packages[@]}"
+
+    log_info "Building Python $PYTHON_BUILD_VERSION in $prefix (see $build_log)..."
     mkdir -p "$TOOLS_DIR"
-    python3 -m venv "$TOOLS_DIR/aqt-venv"
-    "$TOOLS_DIR/aqt-venv/bin/python3" -m pip install --upgrade pip
+    curl -fsSL -o "$archive" \
+        "https://www.python.org/ftp/python/$PYTHON_BUILD_VERSION/Python-$PYTHON_BUILD_VERSION.tgz"
+    rm -rf "$source_dir"
+    tar -xzf "$archive" -C "$TOOLS_DIR"
+
+    if ! (
+        cd "$source_dir"
+        ./configure --prefix="$prefix" --with-ensurepip=install
+        make -j"$(nproc)"
+        make install
+    ) >"$build_log" 2>&1; then
+        log_error "Cannot build Python $PYTHON_BUILD_VERSION; see $build_log"
+        exit 1
+    fi
+
+    rm -rf "$source_dir" "$archive"
+
+    if [ ! -x "$prefix/bin/python3" ]; then
+        log_error "Python $PYTHON_BUILD_VERSION was built, but $prefix/bin/python3 is missing."
+        exit 1
+    fi
+
+    PYTHON_BIN="$prefix/bin/python3"
+    log_info "Using Python $(python_version "$PYTHON_BIN") from $PYTHON_BIN"
+}
+
+ensure_python() {
+    local found
+    local system
+
+    if [ -n "$PYTHON_BIN" ]; then
+        return
+    fi
+
+    if found="$(find_python)"; then
+        PYTHON_BIN="$found"
+        log_info "Using Python $(python_version "$PYTHON_BIN") from $PYTHON_BIN"
+        return
+    fi
+
+    system="$(python_version "$(command -v python3 2>/dev/null || echo /nonexistent)")"
+    log_warn "Python ${system:-not found} is older than $PYTHON_MIN_VERSION, which aqtinstall needs to offer Qt $(required_qt_version) and newer."
+    build_python
+}
+
+ensure_python_tools() {
+    local venv_python="$TOOLS_DIR/aqt-venv/bin/python3"
+
+    ensure_python
+
+    if [ -x "$venv_python" ] \
+        && version_ge "$(python_version "$venv_python")" "$PYTHON_MIN_VERSION"; then
+        return
+    fi
+
+    rm -rf "$TOOLS_DIR/aqt-venv"
+    mkdir -p "$TOOLS_DIR"
+    "$PYTHON_BIN" -m venv "$TOOLS_DIR/aqt-venv"
+    "$venv_python" -m pip install --upgrade pip
 }
 
 ensure_cmake() {
@@ -671,16 +784,44 @@ qt_release_has_final_tag() {
         "refs/tags/v${version}" >/dev/null 2>&1
 }
 
+glibc_version() {
+    local version
+
+    version="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{ print $2 }')"
+    if [ -z "$version" ]; then
+        version="$(ldd --version 2>/dev/null | head -n1 | extract_version)"
+    fi
+
+    printf '%s\n' "$version"
+}
+
+qt_required_glibc() {
+    if version_ge "$1" "6.10"; then
+        echo "2.34"
+    else
+        echo "2.28"
+    fi
+}
+
 aqt_qt6_versions() {
     local versions
     local version
     local required="$1"
+    local glibc
+
+    glibc="$(glibc_version)"
 
     versions="$("$TOOLS_DIR/aqt-venv/bin/python3" -m aqt list-qt linux desktop 2>/dev/null \
         | tr ' ' '\n' | sed -nE '/^6\.[0-9]+\.[0-9]+$/p' | sort -Vr)"
 
     for version in $versions; do
-        if version_ge "$version" "$required" && [ -n "$(aqt_arch "$version")" ]; then
+        if ! version_ge "$version" "$required"; then
+            continue
+        fi
+        if [ -n "$glibc" ] && ! version_ge "$glibc" "$(qt_required_glibc "$version")"; then
+            continue
+        fi
+        if [ -n "$(aqt_arch "$version")" ]; then
             echo "$version"
         fi
     done
@@ -709,8 +850,20 @@ install_qt6_with_aqt() {
     local version
     local root="$TOOLS_DIR/qt"
     local installed=0
+    local glibc
 
     ensure_aqt
+
+    glibc="$(glibc_version)"
+    if [ -n "$glibc" ]; then
+        if ! version_ge "$glibc" "$(qt_required_glibc "$required")"; then
+            log_error "Qt $required binaries need glibc $(qt_required_glibc "$required") or newer, but this system has glibc $glibc. Build Qt from sources or upgrade the distribution."
+            exit 1
+        fi
+        if ! version_ge "$glibc" "2.34"; then
+            log_info "glibc $glibc: skipping Qt 6.10 and newer, whose binaries need glibc 2.34."
+        fi
+    fi
 
     QT_FROM_AQT=1
 

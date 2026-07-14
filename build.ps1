@@ -45,7 +45,7 @@ if (-not $AppVersionMatch) {
 }
 
 $MinimumCMakeVersion = [version]$MinimumCMakeMatch.Matches[0].Groups[1].Value
-$MinimumQtVersion    = if ($MinimumQtMatch) { [version]$MinimumQtMatch.Matches[0].Groups[1].Value } else { [version]"6.6" }
+$MinimumQtVersion    = if ($MinimumQtMatch) { [version]$MinimumQtMatch.Matches[0].Groups[1].Value } else { [version]"6.9" }
 
 $ProductName   = "Open UaExplorer"
 $DefaultPrefix = "C:/Program Files/$ProductName"
