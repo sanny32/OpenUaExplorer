@@ -96,7 +96,7 @@ The Windows script exposes the same options as PowerShell switches — see
 
 `build.sh` detects the distribution and installs the needed packages, so it
 needs `sudo` (or to be run as root) the first time. Supported package managers:
-Debian/Ubuntu (`apt`), Fedora/RHEL/Rocky (`dnf`), ALT Linux (`apt-rpm`),
+Debian/Ubuntu (`apt`), Fedora/RHEL/Rocky (`dnf`), ALT Linux (`apt-get`),
 openSUSE (`zypper`) and Arch (`pacman`).
 
 The build is continuously tested on:

@@ -80,6 +80,8 @@ private slots:
     void handleClientCertificateAction();
     void viewClientCertificateDetails();
     void viewServerCertificateDetails();
+    void toggleServerCertificateTrust();
+    void manageTrustList();
     void validateAndAccept();
 
 private:
@@ -90,7 +92,10 @@ private:
     void applySessionDefaults();
     void saveSessionDefaults();
     int currentAuthentication() const;
-    void updateTrustServerCertificate(bool secureChannel);
+    void setupServerTrustSection();
+    QByteArray selectedServerCertificate() const;
+    bool isTrusted(const QByteArray &certificate) const;
+    void updateServerTrustState();
     void saveLastEndpointUrl();
     void forgetEndpointUrl(const QString &endpointUrl);
     void resetDiscovery();
@@ -109,4 +114,5 @@ private:
     QString _clientCertificateFile;
     QString _privateKeyFile;
     int _selectedSecurityModeValue = 1;
+    bool _secureChannel = false;
 };
