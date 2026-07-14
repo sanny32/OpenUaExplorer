@@ -17,14 +17,11 @@ OpenUaExplorer is an open source OPC UA client for browsing, inspecting, and mon
 Prebuilt packages are published on the
 [Releases](https://github.com/sanny32/OpenUaExplorer/releases) page:
 
-- **Windows** — installer (`ouaexp-<version>-win64-setup.exe`).
-- **macOS** — disk image (`.dmg`, Apple silicon).
-- **Linux** — portable AppImage that runs on any recent distribution, plus
+- <img src="docs/icons/logo_windows.svg" width="16" height="16" /> **Windows** — installer (`ouaexp-<version>-win64-setup.exe`).
+- <img src="docs/icons/logo_apple.svg" width="16" height="16" /> **macOS** — disk image (`.dmg`, Apple silicon).
+- <img src="docs/icons/logo_linux.svg" width="16" height="16" /> **Linux** — portable AppImage that runs on any recent distribution, plus
   native `.deb` (Debian, Ubuntu) and `.rpm` (Fedora, openSUSE, ALT Linux and
   other RPM-based distributions) packages.
-
-> The first packaged release is on its way. Until it lands, build the app from
-> source as described in [Building](#building).
 
 ## Features
 
@@ -65,9 +62,9 @@ server works, for example `opc.tcp://opcua.demo-this.com:51210/UA/SampleServer`
 
 The application runs on:
 
-- **Windows** 10 or later (x64)
-- **macOS** 15 or later (Apple silicon)
-- **Linux** — any recent x86-64 distribution; the AppImage needs glibc 2.31 or
+- <img src="docs/icons/logo_windows.svg" width="16" height="16" /> **Windows** 10 or later (x64)
+- <img src="docs/icons/logo_apple.svg" width="16" height="16" /> **macOS** 15 or later (Apple silicon)
+- <img src="docs/icons/logo_linux.svg" width="16" height="16" /> **Linux** — any recent x86-64 distribution; the AppImage needs glibc 2.31 or
   newer, and native packages target the distributions listed under
   [Linux](#linux).
 
@@ -78,7 +75,7 @@ Qt 6, configure the project and build it — usually in a single command:
 `build.sh` on Linux and macOS, and `build.ps1` on
 [Windows](#windows). What exactly the scripts install, and how to run the test
 suite and measure coverage, is described in
-[docs/BUILDING.md](docs/BUILDING.md).
+[BUILDING.md](BUILDING.md).
 
 ```sh
 ./build.sh
