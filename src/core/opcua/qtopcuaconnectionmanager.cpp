@@ -379,6 +379,7 @@ void QtOpcUaConnectionManager::configureClient(const ConnectionProfile &profile,
         _activeClientCertificateFile = profile.clientCertificateFile;
     }
     QOpcUaConnectionSettings settings;
+    settings.setSessionName(profile.sessionName);
     settings.setSessionTimeout(std::chrono::milliseconds(profile.sessionTimeoutMs));
     settings.setConnectTimeout(std::chrono::milliseconds(profile.connectTimeoutMs));
     settings.setSecureChannelLifeTime(std::chrono::milliseconds(profile.secureChannelLifetimeMs));

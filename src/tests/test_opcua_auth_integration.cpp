@@ -73,14 +73,24 @@ bool waitForConnectionResult(const OpcUaBackend &service, int timeoutMs)
 class AcceptingTrustDecider : public CertificateTrustDecider
 {
 public:
+    explicit AcceptingTrustDecider(
+        CertificateTrustDecision decision = CertificateTrustDecision::TrustPermanently)
+        : _decision(decision)
+    {
+    }
+
     CertificateTrustDecision decide(const QByteArray &certificate, const QString &message) override
     {
-        Q_UNUSED(message)
         lastCertificate = certificate;
-        return CertificateTrustDecision::TrustPermanently;
+        lastMessage = message;
+        return _decision;
     }
 
     QByteArray lastCertificate;
+    QString lastMessage;
+
+private:
+    CertificateTrustDecision _decision;
 };
 
 } // namespace
@@ -97,6 +107,7 @@ private slots:
     void usernameAuthenticationRejectsWrongPassword();
     void certificateAuthenticationConnectsAndReads();
     void certificateAuthenticationRejectsUntrustedCertificate();
+    void expiredServerCertificateIsATrustDecision();
 
 private:
     bool discoverEndpoint(OpcUaBackend &service, const QString &url,
@@ -334,6 +345,65 @@ void TestOpcUaAuthIntegration::certificateAuthenticationRejectsUntrustedCertific
     // connection must fail on the user token rather than on channel validation.
     QVERIFY2(service.lastError().contains(QStringLiteral("Access denied")),
              qPrintable(service.lastError()));
+}
+
+///
+/// \brief Verifies an expired server certificate reaches the trust decision instead of failing.
+///
+/// A certificate that is untrusted is only one of the ways validation fails. When it fails on
+/// its validity period instead, the client must still present it as a trust decision and honour
+/// a temporary trust, which is what UaExpert does and what the Qt OpcUa backend does not do on
+/// its own.
+///
+void TestOpcUaAuthIntegration::expiredServerCertificateIsATrustDecision()
+{
+    QtOpcUaBackend service;
+    if (!service.isAvailable())
+        QSKIP("No OPC UA backend is available.");
+
+    QString certificateFile;
+    QString privateKeyFile;
+    QVERIFY(generateClientCertificate(&certificateFile, &privateKeyFile));
+
+    OpcUaTestServer server;
+    QString skipReason;
+    if (!server.start({QStringLiteral("--port"), QStringLiteral("48406"),
+                       QStringLiteral("--certificate-auth"),
+                       QStringLiteral("--expired-certificate"),
+                       QStringLiteral("--client-certificate"), certificateFile},
+                      &skipReason)) {
+        QSKIP(qPrintable(skipReason));
+    }
+
+    // Temporary trust, so the expired certificate never enters the trust list: adding it
+    // there would not help, as it keeps failing the validity check on the next connection.
+    AcceptingTrustDecider decider(CertificateTrustDecision::TrustOnce);
+    service.setCertificateTrustDecider(&decider);
+
+    EndpointInfo endpoint;
+    QVERIFY2(discoverEndpoint(service, server.endpoint(), &endpoint, true),
+             "No Basic256Sha256 SignAndEncrypt endpoint was advertised.");
+
+    ConnectionProfile profile;
+    profile.endpointUrl = endpoint.endpointUrl;
+    profile.securityPolicy = endpoint.securityPolicy;
+    profile.securityMode = endpoint.securityModeValue;
+    profile.authentication = ConnectionProfile::Authentication::Certificate;
+    profile.clientCertificateFile = certificateFile;
+    profile.privateKeyFile = privateKeyFile;
+    service.connectToEndpoint(profile, QString(), QString());
+    QVERIFY2(waitForState(service, OpcUaConnectionState::Connected, 20000),
+             qPrintable(service.lastError()));
+
+    QVERIFY2(!decider.lastCertificate.isEmpty(),
+             "The expired server certificate was never presented for a trust decision.");
+    QVERIFY2(decider.lastMessage.contains(QStringLiteral("Certificate validation")),
+             qPrintable(decider.lastMessage));
+    QVERIFY2(decider.lastMessage.contains(QStringLiteral("BadCertificateTimeInvalid")),
+             qPrintable(decider.lastMessage));
+
+    service.disconnectFromEndpoint();
+    QVERIFY(waitForState(service, OpcUaConnectionState::Disconnected, 10000));
 }
 
 QTEST_GUILESS_MAIN(TestOpcUaAuthIntegration)

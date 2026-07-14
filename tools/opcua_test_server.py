@@ -25,7 +25,9 @@ be requested instead:
         Basic256Sha256/SignAndEncrypt endpoint carrying only the X509 token,
         and accepts exactly the listed client certificates. Passing none makes
         every client certificate untrusted, which is how the tests drive the
-        rejection path.
+        rejection path. With --expired-certificate the server certificate is
+        already expired, which is how the tests drive the client path where a
+        certificate fails validation on its dates rather than on trust.
 
 The C++ tests launch this with QProcess, wait for READY, drive the client, then
 kill the process. Requires the 'asyncua' package (pip install asyncua); if it is
@@ -80,6 +82,70 @@ def create_server_certificate(certificate_dir, application_uri):
     return certificate_file, key_file
 
 
+def create_expired_server_certificate(certificate_dir, application_uri):
+    """Generates an already expired self-signed server key pair, as asyncua only issues valid ones.
+
+    Drives the client path where the server certificate fails validation on its validity
+    period rather than on trust, which a client must still be able to offer as a trust
+    decision instead of a hard failure.
+    """
+    import datetime
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+
+    certificate_file = certificate_dir / "server_cert.der"
+    key_file = certificate_dir / "server_key.pem"
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    subject = x509.Name([
+        x509.NameAttribute(NameOID.COMMON_NAME, "OuaExp Expired Test Server"),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "OuaExp Tests"),
+        x509.NameAttribute(NameOID.COUNTRY_NAME, "XX"),
+    ])
+    certificate = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(subject)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - datetime.timedelta(days=60))
+        .not_valid_after(now - datetime.timedelta(days=1))
+        .add_extension(x509.SubjectAlternativeName([
+            x509.UniformResourceIdentifier(application_uri),
+            x509.DNSName("127.0.0.1"),
+        ]), critical=False)
+        .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+        .add_extension(x509.KeyUsage(
+            digital_signature=True,
+            content_commitment=True,
+            key_encipherment=True,
+            data_encipherment=True,
+            key_agreement=False,
+            key_cert_sign=False,
+            crl_sign=False,
+            encipher_only=False,
+            decipher_only=False,
+        ), critical=True)
+        .add_extension(x509.ExtendedKeyUsage([
+            ExtendedKeyUsageOID.CLIENT_AUTH,
+            ExtendedKeyUsageOID.SERVER_AUTH,
+        ]), critical=False)
+        .sign(private_key=key, algorithm=hashes.SHA256())
+    )
+
+    key_file.write_bytes(key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ))
+    certificate_file.write_bytes(certificate.public_bytes(encoding=serialization.Encoding.DER))
+    return certificate_file, key_file
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=48401)
@@ -89,6 +155,8 @@ def main() -> int:
                         help="Enable a secured endpoint carrying the X509 user token.")
     parser.add_argument("--client-certificate", action="append", default=[], metavar="DER",
                         help="Trust this DER client certificate for X509 authentication.")
+    parser.add_argument("--expired-certificate", action="store_true",
+                        help="Secure the server with an already expired certificate.")
     args = parser.parse_args()
 
     try:
@@ -109,7 +177,9 @@ def main() -> int:
     server_certificate = None
     if args.certificate_auth:
         certificate_directory = tempfile.TemporaryDirectory(prefix="ouaexp-server-pki-")
-        server_certificate, server_key = create_server_certificate(
+        create_certificate = (create_expired_server_certificate if args.expired_certificate
+                              else create_server_certificate)
+        server_certificate, server_key = create_certificate(
             Path(certificate_directory.name), server.aio_obj.get_application_uri())
         server.load_certificate(str(server_certificate))
         server.load_private_key(str(server_key))

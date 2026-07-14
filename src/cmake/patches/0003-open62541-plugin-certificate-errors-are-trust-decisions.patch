@@ -1,0 +1,35 @@
+Qt's plugin asks the application whether to trust a rejected server certificate only when
+open62541 reports BadCertificateUntrusted. Every other certificate failure -- an expired
+certificate, a host name or application URI that does not match -- takes the generic error
+path, which reports ConnectionStep::Unknown and ignores the application's decision, so the
+client cannot offer the trust prompt UaExpert shows for those cases. Route the recoverable
+certificate errors into the same trust decision and report the actual status code instead
+of the hard-coded one. Revoked and malformed certificates keep failing hard.
+
+diff --git a/src/plugins/opcua/open62541/qopen62541backend.cpp b/src/plugins/opcua/open62541/qopen62541backend.cpp
+--- a/src/plugins/opcua/open62541/qopen62541backend.cpp
++++ b/src/plugins/opcua/open62541/qopen62541backend.cpp
+@@ -1348,11 +1348,21 @@ void Open62541AsyncBackend::connectToEndpoint(const QOpcUaEndpointDescription &e
+         }
+
+ #ifdef UA_ENABLE_ENCRYPTION
+-        if (ret == UA_STATUSCODE_BADCERTIFICATEUNTRUSTED) {
++        // ouaexp patch: every recoverable certificate error is a trust decision, not a hard failure
++        if (ret == UA_STATUSCODE_BADCERTIFICATEUNTRUSTED
++                || ret == UA_STATUSCODE_BADCERTIFICATETIMEINVALID
++                || ret == UA_STATUSCODE_BADCERTIFICATEISSUERTIMEINVALID
++                || ret == UA_STATUSCODE_BADCERTIFICATEHOSTNAMEINVALID
++                || ret == UA_STATUSCODE_BADCERTIFICATEURIINVALID
++                || ret == UA_STATUSCODE_BADCERTIFICATEUSENOTALLOWED
++                || ret == UA_STATUSCODE_BADCERTIFICATEISSUERUSENOTALLOWED
++                || ret == UA_STATUSCODE_BADCERTIFICATECHAININCOMPLETE
++                || ret == UA_STATUSCODE_BADCERTIFICATEREVOCATIONUNKNOWN
++                || ret == UA_STATUSCODE_BADCERTIFICATEISSUERREVOCATIONUNKNOWN) {
+             QOpcUaErrorState errorState;
+             errorState.setClientSideError(true);
+             errorState.setConnectionStep(QOpcUaErrorState::ConnectionStep::CertificateValidation);
+-            errorState.setErrorCode(QOpcUa::UaStatusCode::BadCertificateUntrusted);
++            errorState.setErrorCode(static_cast<QOpcUa::UaStatusCode>(ret));
+
+             emit QOpcUaBackend::connectError(&errorState);
+

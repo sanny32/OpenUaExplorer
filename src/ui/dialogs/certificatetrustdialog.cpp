@@ -10,6 +10,7 @@
 
 #include "appcolors.h"
 #include "certificatetrustdialog.h"
+#include "opcua/certificateinfo.h"
 #include "ui_certificatetrustdialog.h"
 
 ///
@@ -64,12 +65,23 @@ CertificateTrustDialog::~CertificateTrustDialog()
 /// \brief Shows the certificate's parsed details and validation message.
 /// \param certificate DER-encoded certificate.
 /// \param message Validation error description.
+/// \note Permanent trust is offered only inside the validity window: a certificate that is
+///       expired or not yet valid keeps failing validation after it is added to the trust
+///       list, so the prompt would just come back on the next connection.
 ///
 void CertificateTrustDialog::setCertificate(const QByteArray &certificate,
                                              const QString &message)
 {
     ui->messageLabel->setText(message);
     ui->detailsWidget->setCertificate(certificate);
+
+    const CertificateInfo info = CertificateInfo::fromDer(certificate);
+    const bool withinValidity = info.status == CertificateInfo::Status::Valid;
+    ui->trustPermanentlyButton->setEnabled(withinValidity);
+    ui->trustPermanentlyButton->setToolTip(withinValidity
+        ? QString()
+        : tr("This certificate is outside its validity period. Trusting it permanently would "
+             "not help: it would still fail validation on the next connection."));
 }
 
 ///

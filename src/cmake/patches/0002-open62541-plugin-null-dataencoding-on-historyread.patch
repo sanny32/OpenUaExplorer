@@ -1,0 +1,26 @@
+Qt's open62541 backend hard-codes dataEncoding="Default Binary" on every HistoryRead
+request. Strict UA servers (e.g. Unified Automation) reject that encoding for scalar
+variables and return an empty result, so HistoryRead silently yields no data; UaExpert
+and the OPC UA spec send a null dataEncoding instead. Qt exposes no API to override it.
+
+diff --git a/src/plugins/opcua/open62541/qopen62541backend.cpp b/src/plugins/opcua/open62541/qopen62541backend.cpp
+--- a/src/plugins/opcua/open62541/qopen62541backend.cpp
++++ b/src/plugins/opcua/open62541/qopen62541backend.cpp
+@@ -679,7 +679,7 @@ void Open62541AsyncBackend::readHistoryRaw(QOpcUaHistoryReadRawRequest request,
+     for (size_t i = 0; i < uarequest.nodesToReadSize; ++i) {
+         uarequest.nodesToRead[i].nodeId = Open62541Utils::nodeIdFromQString(request.nodesToRead().at(i).nodeId());
+         QOpen62541ValueConverter::scalarFromQt<UA_String, QString>(request.nodesToRead().at(i).indexRange(), &uarequest.nodesToRead[i].indexRange);
+-        uarequest.nodesToRead[i].dataEncoding = UA_QUALIFIEDNAME_ALLOC(0, "Default Binary");
++        // ouaexp patch: dataEncoding left null (Default Binary breaks history on strict UA servers)
+         if (!continuationPoints.isEmpty())
+             QOpen62541ValueConverter::scalarFromQt<UA_ByteString, QByteArray>(continuationPoints.at(i), &uarequest.nodesToRead[i].continuationPoint);
+     }
+@@ -736,7 +736,7 @@ void Open62541AsyncBackend::readHistoryEvents(const QOpcUaHistoryReadEventReques
+     for (size_t i = 0; i < uarequest.nodesToReadSize; ++i) {
+         uarequest.nodesToRead[i].nodeId = Open62541Utils::nodeIdFromQString(request.nodesToRead().at(i).nodeId());
+         QOpen62541ValueConverter::scalarFromQt<UA_String, QString>(request.nodesToRead().at(i).indexRange(), &uarequest.nodesToRead[i].indexRange);
+-        uarequest.nodesToRead[i].dataEncoding = UA_QUALIFIEDNAME_ALLOC(0, "Default Binary");
++        // ouaexp patch: dataEncoding left null (Default Binary breaks history on strict UA servers)
+         if (!continuationPoints.isEmpty())
+             QOpen62541ValueConverter::scalarFromQt<UA_ByteString, QByteArray>(continuationPoints.at(i), &uarequest.nodesToRead[i].continuationPoint);
+     }

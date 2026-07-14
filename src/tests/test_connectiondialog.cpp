@@ -6,6 +6,8 @@
 /// \brief UI tests for ConnectionDialog: discovery, certificate selection, and layout.
 ///
 
+#include <algorithm>
+
 #include <QApplication>
 #include <QComboBox>
 #include <QCoreApplication>
@@ -26,6 +28,7 @@
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTimer>
 
 #include "appsettings.h"
 #include "dialogs/connectiondialog.h"
@@ -33,6 +36,7 @@
 #include "opcua/opcuabackend.h"
 #include "opcua/pkimanager.h"
 #include "widgets/certificatesummarywidget.h"
+#include "widgets/dialogbuttonbox.h"
 #include "widgets/endpointdiscoverywidget.h"
 
 ///
@@ -87,6 +91,8 @@ private slots:
     void certificateStatusRowsAlignBadgeToRight();
     void advancedSettingsControlsAlignToGrid();
     void advancedSettingsSeedFromStoredDefaults();
+    void serverTrustStateFollowsTrustList();
+    void trustIsRefusedForACertificateOutsideItsValidity();
     void endpointHoverUsesSelectionBackgroundInFusion();
 
 private:
@@ -175,6 +181,60 @@ QColor cellBackgroundColor(QTableView *view, int row, int column)
     painter.end();
 
     return image.pixelColor(rect.right() - 4, rect.center().y());
+}
+
+///
+/// \brief Generates a client certificate and returns its DER bytes.
+/// \return DER-encoded certificate, or an empty array when generation is unavailable.
+///
+QByteArray generateCertificate()
+{
+    PkiManager pki;
+    QString certificateFile;
+    QString privateKeyFile;
+    QString error;
+    if (!pki.generateClientCertificate(PkiManager::clientCertificateCommonName(),
+                                       PkiManager::applicationUri(),
+                                       &certificateFile, &privateKeyFile, &error)) {
+        return {};
+    }
+    QFile file(certificateFile);
+    return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+}
+
+///
+/// \brief Answers the next modal question dialog, waiting for it to appear.
+/// \param answer Standard button to click once the dialog is up.
+///
+void answerNextQuestion(DialogButtonBox::StandardButton answer)
+{
+    QTimer::singleShot(0, qApp, [answer]() {
+        auto *modal = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+        if (!modal) {
+            answerNextQuestion(answer);
+            return;
+        }
+        auto *buttons = modal->findChild<DialogButtonBox *>();
+        QVERIFY(buttons);
+        QPushButton *button = buttons->button(answer);
+        QVERIFY(button);
+        QTest::mouseClick(button, Qt::LeftButton);
+    });
+}
+
+///
+/// \brief Reports whether the trust list holds a certificate.
+/// \param certificate DER-encoded certificate.
+/// \return True when the trusted store holds this certificate.
+///
+bool isInTrustList(const QByteArray &certificate)
+{
+    PkiManager pki;
+    const QString wanted = PkiManager::fingerprint(certificate);
+    const QList<QByteArray> trusted = pki.certificates(PkiManager::Category::Trusted);
+    return std::any_of(trusted.cbegin(), trusted.cend(), [&wanted](const QByteArray &stored) {
+        return PkiManager::fingerprint(stored) == wanted;
+    });
 }
 
 }
@@ -391,6 +451,83 @@ void TestConnectionDialog::advancedSettingsSeedFromStoredDefaults()
              defaults.secureChannelLifetimeMs);
     QCOMPARE(dialog.findChild<QSpinBox *>(QStringLiteral("maxMessageSizeSpinBox"))->value(),
              defaults.maxMessageSizeBytes);
+}
+
+void TestConnectionDialog::serverTrustStateFollowsTrustList()
+{
+    const QByteArray certificate = generateCertificate();
+    if (certificate.isEmpty())
+        QSKIP("Certificate generation is unavailable.");
+
+    DialogFakeBackend backend;
+    ConnectionDialog dialog;
+    dialog.setBackend(&backend);
+
+    auto *trustSection = dialog.findChild<QWidget *>(QStringLiteral("serverTrustSection"));
+    auto *trustStatus = dialog.findChild<QLabel *>(QStringLiteral("serverTrustStatusLabel"));
+    auto *trustButton = dialog.findChild<QPushButton *>(QStringLiteral("serverTrustButton"));
+    QVERIFY(trustSection);
+    QVERIFY(trustStatus);
+    QVERIFY(trustButton);
+
+    // Without an endpoint there is no certificate to reason about, so the section stays away.
+    QVERIFY(!trustSection->isVisibleTo(&dialog));
+
+    EndpointInfo endpoint = makeDialogEndpoint(QStringLiteral("opc.tcp://localhost:4840"));
+    endpoint.securityMode = QStringLiteral("Sign & Encrypt");
+    endpoint.securityModeValue = 3;
+    endpoint.serverCertificate = certificate;
+    emit backend.endpointsDiscovered({endpoint}, {});
+
+    QVERIFY(trustSection->isVisibleTo(&dialog));
+    QVERIFY(!isInTrustList(certificate));
+    QCOMPARE(trustStatus->text(), QStringLiteral("Not in trust list"));
+    QCOMPARE(trustButton->text(), QStringLiteral("Trust"));
+
+    // Declining the confirmation leaves the trust list untouched.
+    answerNextQuestion(DialogButtonBox::No);
+    QTest::mouseClick(trustButton, Qt::LeftButton);
+    QVERIFY(!isInTrustList(certificate));
+    QCOMPARE(trustButton->text(), QStringLiteral("Trust"));
+
+    answerNextQuestion(DialogButtonBox::Yes);
+    QTest::mouseClick(trustButton, Qt::LeftButton);
+    QVERIFY(isInTrustList(certificate));
+    QCOMPARE(trustStatus->text(), QStringLiteral("In trust list"));
+    QCOMPARE(trustButton->text(), QStringLiteral("Remove from trust list"));
+
+    answerNextQuestion(DialogButtonBox::No);
+    QTest::mouseClick(trustButton, Qt::LeftButton);
+    QVERIFY(isInTrustList(certificate));
+    QCOMPARE(trustButton->text(), QStringLiteral("Remove from trust list"));
+
+    answerNextQuestion(DialogButtonBox::Yes);
+    QTest::mouseClick(trustButton, Qt::LeftButton);
+    QVERIFY(!isInTrustList(certificate));
+    QCOMPARE(trustStatus->text(), QStringLiteral("Not in trust list"));
+    QCOMPARE(trustButton->text(), QStringLiteral("Trust"));
+}
+
+void TestConnectionDialog::trustIsRefusedForACertificateOutsideItsValidity()
+{
+    DialogFakeBackend backend;
+    ConnectionDialog dialog;
+    dialog.setBackend(&backend);
+
+    auto *trustButton = dialog.findChild<QPushButton *>(QStringLiteral("serverTrustButton"));
+    QVERIFY(trustButton);
+
+    // A certificate that fails the validity check keeps failing it on every connection, so
+    // trusting it would change nothing.
+    EndpointInfo endpoint = makeDialogEndpoint(QStringLiteral("opc.tcp://localhost:4840"));
+    endpoint.securityMode = QStringLiteral("Sign & Encrypt");
+    endpoint.securityModeValue = 3;
+    endpoint.serverCertificate = QByteArrayLiteral("not-a-certificate");
+    emit backend.endpointsDiscovered({endpoint}, {});
+
+    QCOMPARE(trustButton->text(), QStringLiteral("Trust"));
+    QVERIFY(!trustButton->isEnabled());
+    QVERIFY(!trustButton->toolTip().isEmpty());
 }
 
 void TestConnectionDialog::endpointHoverUsesSelectionBackgroundInFusion()

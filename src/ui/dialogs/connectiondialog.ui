@@ -656,74 +656,118 @@
            <item>
             <widget class="CertificateSummaryWidget" name="serverCertificateWidget" native="true"/>
            </item>
+           <item>
+            <widget class="Line" name="serverTrustLine">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QWidget" name="serverTrustSection" native="true">
+             <layout class="QGridLayout" name="serverTrustLayout" columnstretch="0,1">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <property name="horizontalSpacing">
+               <number>14</number>
+              </property>
+              <property name="verticalSpacing">
+               <number>8</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QLabel" name="serverTrustCaption">
+                <property name="text">
+                 <string>Trust status:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <layout class="QHBoxLayout" name="serverTrustStatusLayout">
+                <property name="spacing">
+                 <number>6</number>
+                </property>
+                <item>
+                 <widget class="ThemedIconLabel" name="serverTrustIcon">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="serverTrustStatusLabel">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string>Not in trust list</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="serverTrustSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="ThemedPushButton" name="serverTrustButton">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string>Trust</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
           </layout>
          </widget>
         </item>
         <item>
-         <widget class="Line" name="trustSectionLine">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="trustServerCertificateCheckBox">
+         <widget class="ThemedPushButton" name="trustListManageButton">
           <property name="text">
-           <string>Trust server certificate automatically</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
+           <string>Manage trust list...</string>
           </property>
          </widget>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="trustListLayout">
-          <item>
-           <widget class="QLabel" name="trustListLabel">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Trust List:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="trustListComboBox">
-            <item>
-             <property name="text">
-              <string>Default</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Current user</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Application</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item>
-           <widget class="ThemedPushButton" name="trustListManageButton">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Manage...</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
         </item>
         <item>
          <spacer name="certificatesBottomSpacer">
@@ -879,8 +923,7 @@
   <tabstop>maxMessageSizeSpinBox</tabstop>
   <tabstop>clientCertificateComboBox</tabstop>
   <tabstop>clientCertificateViewButton</tabstop>
-  <tabstop>trustServerCertificateCheckBox</tabstop>
-  <tabstop>trustListComboBox</tabstop>
+  <tabstop>serverTrustButton</tabstop>
   <tabstop>trustListManageButton</tabstop>
   <tabstop>cancelButton</tabstop>
   <tabstop>connectButton</tabstop>

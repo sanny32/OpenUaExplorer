@@ -6,12 +6,15 @@
 /// \brief Implements the OPC UA connection dialog.
 ///
 
+#include <algorithm>
+
 #include <QAction>
-#include <QCheckBox>
 #include <QComboBox>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QGridLayout>
+#include <QLabel>
 #include <QLineEdit>
 #include <QSslCertificate>
 #include <QPushButton>
@@ -25,8 +28,10 @@
 #include "appicons.h"
 #include "appsettings.h"
 #include "certificatedetailsdialog.h"
+#include "certificatesdialog.h"
 #include "connectiondialog.h"
 #include "messageboxdialog.h"
+#include "opcua/certificateinfo.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/connectionprofilevalidator.h"
 #include "opcua/pkimanager.h"
@@ -119,7 +124,7 @@ void ConnectionDialog::setupCertificatePanels()
         QSizePolicy::Expanding, ui->clientCertificateComboBox->sizePolicy().verticalPolicy());
     ui->clientCertificateLayout->setStretch(1, 1);
     ui->clientCertificateLayout->setStretch(2, 0);
-    ui->trustListManageButton->setText(tr("Generate..."));
+    setupServerTrustSection();
 
     PkiManager pki;
     if (pki.existingClientCertificate(&_clientCertificateFile, &_privateKeyFile)) {
@@ -211,8 +216,10 @@ void ConnectionDialog::setupConnections()
             this, &ConnectionDialog::viewClientCertificateDetails);
     connect(ui->serverCertificateWidget, &CertificateSummaryWidget::viewDetailsRequested,
             this, &ConnectionDialog::viewServerCertificateDetails);
+    connect(ui->serverTrustButton, &QPushButton::clicked,
+            this, &ConnectionDialog::toggleServerCertificateTrust);
     connect(ui->trustListManageButton, &QPushButton::clicked,
-            this, &ConnectionDialog::generateClientCertificate);
+            this, &ConnectionDialog::manageTrustList);
 }
 
 ///
@@ -467,10 +474,96 @@ void ConnectionDialog::updateAuthenticationFields()
     // certificate and trust settings depend on a secure channel.
     const bool secureChannel = certificate || _selectedSecurityModeValue > 1;
     ui->serverCertificateGroupBox->setEnabled(secureChannel);
-    ui->trustServerCertificateCheckBox->setEnabled(secureChannel);
-    ui->trustListLabel->setEnabled(secureChannel);
-    ui->trustListComboBox->setEnabled(secureChannel);
-    ui->trustListManageButton->setEnabled(secureChannel);
+    _secureChannel = secureChannel;
+    updateServerTrustState();
+}
+
+///
+/// \brief Styles the trust section and aligns it with the certificate card's caption column.
+///
+/// The section lives outside CertificateSummaryWidget, so its caption only lines up with the
+/// Subject/Issuer/Valid rows when it borrows the widest caption's width.
+///
+void ConnectionDialog::setupServerTrustSection()
+{
+    ui->serverTrustIcon->setIcon(QStringLiteral("check-circle"), QSize(18, 18));
+    ui->serverTrustCaption->setStyleSheet(
+        QStringLiteral("color: %1;").arg(AppColors::caption().name()));
+
+    int captionColumn = 0;
+    const QList<QLabel *> captions = ui->serverCertificateWidget->findChildren<QLabel *>();
+    for (const QLabel *caption : captions) {
+        if (caption->property("certCaption").toBool())
+            captionColumn = qMax(captionColumn, caption->sizeHint().width());
+    }
+    ui->serverTrustLayout->setColumnMinimumWidth(0, captionColumn);
+
+    updateServerTrustState();
+}
+
+///
+/// \brief Returns the server certificate of the selected endpoint.
+/// \return DER-encoded server certificate, or an empty array when nothing is selected.
+///
+QByteArray ConnectionDialog::selectedServerCertificate() const
+{
+    return ui->endpointsWidget->hasSelection()
+        ? ui->endpointsWidget->currentEndpoint().serverCertificate
+        : QByteArray();
+}
+
+///
+/// \brief Reports whether a certificate is stored in the trust list.
+/// \param certificate DER-encoded certificate.
+/// \return True when the trust list holds this certificate.
+///
+bool ConnectionDialog::isTrusted(const QByteArray &certificate) const
+{
+    if (certificate.isEmpty())
+        return false;
+
+    PkiManager pki;
+    const QString wanted = PkiManager::fingerprint(certificate);
+    const QList<QByteArray> trusted = pki.certificates(PkiManager::Category::Trusted);
+    return std::any_of(trusted.cbegin(), trusted.cend(), [&wanted](const QByteArray &stored) {
+        return PkiManager::fingerprint(stored) == wanted;
+    });
+}
+
+///
+/// \brief Shows whether the selected server certificate is in the trust list, and offers the
+///        matching action.
+/// \note The whole section hides without a certificate to reason about: an unsecured channel
+///       never validates one, so neither the state nor the policy applies.
+///
+void ConnectionDialog::updateServerTrustState()
+{
+    const QByteArray certificate = selectedServerCertificate();
+    const bool applicable = _secureChannel && !certificate.isEmpty();
+    const bool trusted = isTrusted(certificate);
+
+    ui->serverTrustLine->setVisible(applicable);
+    ui->serverTrustSection->setVisible(applicable);
+    if (!applicable)
+        return;
+
+    ui->serverTrustIcon->setVisible(trusted);
+    ui->serverTrustStatusLabel->setText(trusted ? tr("In trust list") : tr("Not in trust list"));
+    ui->serverTrustStatusLabel->setStyleSheet(
+        QStringLiteral("color: %1; font-weight: 600;")
+            .arg(trusted ? AppColors::statusSuccess().name() : AppColors::statusWarning().name()));
+    ui->serverTrustButton->setText(trusted ? tr("Remove from trust list") : tr("Trust"));
+
+    // A certificate outside its validity period keeps failing validation, so trusting it would
+    // change nothing. Removing one stays available, as the trust list still needs cleaning up.
+    const bool withinValidity =
+        CertificateInfo::fromDer(certificate).status == CertificateInfo::Status::Valid;
+    ui->serverTrustButton->setEnabled(trusted || withinValidity);
+    ui->serverTrustButton->setToolTip(
+        trusted || withinValidity
+            ? QString()
+            : tr("The server certificate is outside its validity period. Trusting it would not "
+                 "help: it would still fail validation on every connection."));
 }
 
 ///
@@ -566,6 +659,54 @@ void ConnectionDialog::viewClientCertificateDetails()
 void ConnectionDialog::viewServerCertificateDetails()
 {
     showCertificateDetails(ui->serverCertificateWidget->certificate());
+}
+
+///
+/// \brief Adds the selected server certificate to the trust list, or removes it from there.
+///
+/// Both directions change what the client accepts on every future connection, so each is
+/// confirmed first. Removal withdraws trust the user granted earlier, so it warns rather
+/// than merely asks.
+///
+void ConnectionDialog::toggleServerCertificateTrust()
+{
+    const QByteArray certificate = selectedServerCertificate();
+    if (certificate.isEmpty())
+        return;
+
+    const bool trusted = isTrusted(certificate);
+    const QString subject = CertificateInfo::fromDer(certificate).subject;
+    const DialogButtonBox::StandardButton answer = trusted
+        ? MessageBoxDialog::warning(
+              this, tr("Remove from Trust List"),
+              tr("Remove the certificate of \"%1\" from the trust list?").arg(subject),
+              DialogButtonBox::Yes | DialogButtonBox::No, DialogButtonBox::No)
+        : MessageBoxDialog::question(
+              this, tr("Trust Server Certificate"),
+              tr("Add the certificate of \"%1\" to the trust list?").arg(subject),
+              DialogButtonBox::Yes | DialogButtonBox::No, DialogButtonBox::No);
+    if (answer != DialogButtonBox::Yes)
+        return;
+
+    PkiManager pki;
+    QString error;
+    const bool changed = trusted ? pki.removeCertificate(certificate, &error)
+                                 : pki.trustServerCertificate(certificate, &error);
+    if (!changed) {
+        MessageBoxDialog::critical(this, tr("Trust List Failed"), error);
+        return;
+    }
+    updateServerTrustState();
+}
+
+///
+/// \brief Opens the trust store manager and picks up any change it made to the trust list.
+///
+void ConnectionDialog::manageTrustList()
+{
+    CertificatesDialog dialog(this);
+    dialog.exec();
+    updateServerTrustState();
 }
 
 ///

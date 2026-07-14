@@ -1,0 +1,22 @@
+open62541's housekeeping sends the keepalive ReadRequest driven by connectivityCheckInterval
+(which Qt's plugin enables) as soon as lastConnectivityCheck -- initially 0 -- is older than
+the interval, without checking that a session exists. During a connect to a remote server the
+handshake runs long enough for that tick to fire on the session-less SecureChannel opened for
+endpoint validation. Strict UA servers (e.g. Prosys) answer the read with a ServiceFault,
+open62541 takes it for the pending GetEndpoints response and aborts the connect with
+BadSessionClosed. Local servers complete the handshake before the tick, so only remote
+connections fail.
+
+diff --git a/src/3rdparty/open62541/open62541.c b/src/3rdparty/open62541/open62541.c
+--- a/src/3rdparty/open62541/open62541.c
++++ b/src/3rdparty/open62541/open62541.c
+@@ -60531,6 +60531,9 @@ __Client_backgroundConnectivity(UA_Client *client) {
+     if(!client->config.connectivityCheckInterval)
+         return;
+
++    if(client->sessionState != UA_SESSIONSTATE_ACTIVATED)
++        return; /* ouaexp patch: no keepalive read without a session */
++
+     if(client->pendingConnectivityCheck)
+         return;
+

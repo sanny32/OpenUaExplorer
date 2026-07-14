@@ -56,6 +56,7 @@ private slots:
     void initTestCase();
     void cleanupTestCase();
     void discoverConnectBrowseReadWrite();
+    void connectsWithAClientDefinedSessionName();
     void findServersListsTheRunningServer();
 
 private:
@@ -246,6 +247,60 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     QVERIFY(historySpy.wait(15000));
 
     // 12. Disconnect.
+    service.disconnectFromEndpoint();
+    QVERIFY(waitForState(service, OpcUaConnectionState::Disconnected, 10000));
+}
+
+///
+/// \brief Connects with the session name from the profile and reads through that session.
+///
+/// The backend patch names the session after the profile, falling back to the application
+/// name: Qt OPC UA itself sends none at all, which leaves open62541 putting a null
+/// SessionName into CreateSession that strict servers fault the request on.
+///
+void TestOpcUaIntegration::connectsWithAClientDefinedSessionName()
+{
+    QtOpcUaBackend service;
+    if (!service.isAvailable())
+        QSKIP("No OPC UA backend is available.");
+
+    QSignalSpy discoverSpy(&service, &OpcUaBackend::endpointsDiscovered);
+    service.discoverEndpoints(_endpoint, QStringLiteral("open62541"), 10000);
+    QVERIFY(discoverSpy.wait(15000));
+    const QList<QVariant> discoverArgs = discoverSpy.takeFirst();
+    QVERIFY2(discoverArgs.at(1).toString().isEmpty(), qPrintable(discoverArgs.at(1).toString()));
+
+    EndpointInfo chosen;
+    bool found = false;
+    for (const EndpointInfo &endpoint : discoverArgs.at(0).value<QList<EndpointInfo>>()) {
+        if (endpoint.securityPolicy.endsWith(QStringLiteral("#None"))
+            && endpoint.supportsAnonymous) {
+            chosen = endpoint;
+            found = true;
+            break;
+        }
+    }
+    QVERIFY2(found, "No unsecured anonymous endpoint was advertised.");
+
+    ConnectionProfile profile;
+    profile.endpointUrl = chosen.endpointUrl;
+    profile.securityPolicy = chosen.securityPolicy;
+    profile.securityMode = chosen.securityModeValue;
+    profile.authentication = ConnectionProfile::Authentication::Anonymous;
+    profile.sessionName = QStringLiteral("OuaExp Integration Session");
+    service.connectToEndpoint(profile, QString(), QString());
+    QVERIFY2(waitForState(service, OpcUaConnectionState::Connected, 15000),
+             qPrintable(service.lastError()));
+
+    // The value itself is whatever an earlier test wrote; that the read succeeds at all is
+    // what proves the session the server created for this name is usable.
+    QSignalSpy readSpy(&service, &OpcUaBackend::dataValuesReady);
+    service.readValues({_nodeId});
+    QVERIFY(readSpy.wait(15000));
+    const auto values = readSpy.takeFirst().at(0).value<QVector<OpcUaDataValue>>();
+    QCOMPARE(values.size(), 1);
+    QVERIFY(!values.first().value.isNull());
+
     service.disconnectFromEndpoint();
     QVERIFY(waitForState(service, OpcUaConnectionState::Disconnected, 10000));
 }
