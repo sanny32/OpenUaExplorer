@@ -15,9 +15,18 @@ concurrency:
 
 jobs:
   build:
-    name: Run build.sh on MacOS-26
-    runs-on: macos-26
+    name: Run build.sh on ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS-26
+            runner: macos-26
+
+          - name: macOS-15
+            runner: macos-15
 
     steps:
       - name: Checkout

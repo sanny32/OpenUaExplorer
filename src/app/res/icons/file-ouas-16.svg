@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+    <title>Open UaExplorer session file</title>
+    <!-- Whole-pixel rectangles only: no strokes, no opacity, no gradients. The frame is a
+         1 px contour, the corner is cut by a single 4 px diagonal, and the drawing is one
+         server panel over a T-shaped network. -->
+    <g fill="#6b7a94">
+        <rect x="2" y="1" width="8" height="1"/>
+        <rect x="2" y="1" width="1" height="14"/>
+        <rect x="2" y="14" width="12" height="1"/>
+        <rect x="13" y="4" width="1" height="11"/>
+        <rect x="10" y="1" width="1" height="1"/>
+        <rect x="11" y="2" width="1" height="1"/>
+        <rect x="12" y="3" width="1" height="1"/>
+    </g>
+    <g fill="#f2f4f8">
+        <rect x="3" y="2" width="8" height="1"/>
+        <rect x="3" y="3" width="9" height="1"/>
+        <rect x="3" y="4" width="10" height="10"/>
+    </g>
+    <g fill="#1e2941">
+        <rect x="4" y="6" width="8" height="4"/>
+    </g>
+    <g fill="#22c3f5">
+        <rect x="5" y="7" width="2" height="2"/>
+    </g>
+    <g fill="#0a84e6">
+        <rect x="7" y="10" width="2" height="2"/>
+        <rect x="4" y="11" width="8" height="2"/>
+    </g>
+</svg>

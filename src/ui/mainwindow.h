@@ -38,6 +38,13 @@ public:
     ///
     ~MainWindow() override;
 
+public slots:
+    ///
+    /// \brief Loads a session file the desktop shell asked the application to open.
+    /// \param path Path to the session file.
+    ///
+    void openSessionFile(const QString &path);
+
 protected:
     void changeEvent(QEvent *event) override;
     void closeEvent(QCloseEvent *event) override;

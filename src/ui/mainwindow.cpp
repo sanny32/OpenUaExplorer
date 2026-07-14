@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
+﻿// SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
 ///
@@ -152,6 +152,18 @@ void MainWindow::on_actionOpenSession_triggered()
         tr("Session Files (*.ouas);;All Files (*)"));
     if (!path.isEmpty())
         _sessionCoordinator->openSessionFromFile(path);
+}
+
+///
+/// \brief Loads a session file the desktop shell asked the application to open.
+/// \param path Path to the session file.
+///
+void MainWindow::openSessionFile(const QString &path)
+{
+    if (path.isEmpty())
+        return;
+
+    _sessionCoordinator->openSessionFromFile(path);
 }
 
 ///
@@ -860,3 +872,4 @@ void MainWindow::bindIcons()
     AppIcons::bindIcon(ui->actionFavorites,   "star");
     AppIcons::bindIcon(ui->actionNodeMonitor, "trend");
 }
+

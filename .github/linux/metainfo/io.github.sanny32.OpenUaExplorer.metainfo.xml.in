@@ -26,6 +26,10 @@
     </ul>
   </description>
 
+  <provides>
+    <mediatype>application/x-ouaexp-session</mediatype>
+  </provides>
+
   <categories>
     <category>Utility</category>
     <category>Engineering</category>    

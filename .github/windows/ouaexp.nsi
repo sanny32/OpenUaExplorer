@@ -35,6 +35,14 @@ ManifestSupportedOS all
 !define REG_APP_KEY       "Software\${PRODUCT_NAME}"
 !define REG_UNINST_KEY    "Software\Microsoft\Windows\CurrentVersion\Uninstall\OpenUaExplorer"
 
+; Session files. The icon is resource id 2 of the executable - see src/app/ouaexp.rc.in -
+; which is the second icon in id order, hence the ",1" index the shell expects.
+!define SESSION_EXT       ".ouas"
+!define SESSION_PROGID    "OpenUaExplorer.Session"
+!define SESSION_DESC      "Open UaExplorer Session"
+!define SESSION_MIME      "application/x-ouaexp-session"
+!define REG_CLASSES_KEY   "Software\Classes"
+
 !ifndef SRC_DIR
     !define SRC_DIR "${__FILEDIR__}\..\.."
 !endif
@@ -163,9 +171,35 @@ Section "Desktop shortcut" SEC_DESKTOP
     CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\${EXE_NAME}"
 SectionEnd
 
+; The ProgID owns the icon and the open verb; the extension only names it. Writing
+; both under HKLM\Software\Classes registers them for every user of the machine,
+; which is what an installer running elevated is expected to do - a per-user default
+; handler is the user's own choice to make and stays under HKCU.
+Section "Associate ${SESSION_EXT} session files" SEC_ASSOC
+    WriteRegStr HKLM "${REG_CLASSES_KEY}\${SESSION_PROGID}" "" "${SESSION_DESC}"
+    WriteRegStr HKLM "${REG_CLASSES_KEY}\${SESSION_PROGID}\DefaultIcon" "" "$INSTDIR\${EXE_NAME},1"
+    WriteRegStr HKLM "${REG_CLASSES_KEY}\${SESSION_PROGID}\shell\open\command" "" '"$INSTDIR\${EXE_NAME}" "%1"'
+
+    WriteRegStr HKLM "${REG_CLASSES_KEY}\${SESSION_EXT}" "" "${SESSION_PROGID}"
+    WriteRegStr HKLM "${REG_CLASSES_KEY}\${SESSION_EXT}" "Content Type" "${SESSION_MIME}"
+    WriteRegStr HKLM "${REG_CLASSES_KEY}\${SESSION_EXT}" "PerceivedType" "document"
+    WriteRegStr HKLM "${REG_CLASSES_KEY}\${SESSION_EXT}\OpenWithProgids" "${SESSION_PROGID}" ""
+
+    ; Lets the shell offer the program in "Open with" for any file, and gives the
+    ; entry the product name instead of the bare executable name.
+    WriteRegStr HKLM "${REG_CLASSES_KEY}\Applications\${EXE_NAME}" "FriendlyAppName" "${PRODUCT_NAME}"
+    WriteRegStr HKLM "${REG_CLASSES_KEY}\Applications\${EXE_NAME}\shell\open\command" "" '"$INSTDIR\${EXE_NAME}" "%1"'
+    WriteRegStr HKLM "${REG_CLASSES_KEY}\Applications\${EXE_NAME}\SupportedTypes" "${SESSION_EXT}" ""
+
+    ; The shell caches the icon of every known extension, so without this the new
+    ; association keeps the generic icon until the cache happens to be rebuilt.
+    System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, i 0, i 0)'
+SectionEnd
+
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
     !insertmacro MUI_DESCRIPTION_TEXT ${SEC_APP} "${PRODUCT_NAME} and the Qt runtime it needs."
     !insertmacro MUI_DESCRIPTION_TEXT ${SEC_DESKTOP} "Place a shortcut on the desktop."
+    !insertmacro MUI_DESCRIPTION_TEXT ${SEC_ASSOC} "Open ${SESSION_EXT} session files with ${PRODUCT_NAME} and show them with its icon."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;--------------------------------
@@ -189,6 +223,20 @@ Section "Uninstall"
     RMDir /r "$INSTDIR\plugins"
     RMDir /r "$INSTDIR"
 
+    ; The extension key is only dropped while it still names this ProgID: another
+    ; program may have taken the type over since, and that claim must survive.
+    ReadRegStr $R0 HKLM "${REG_CLASSES_KEY}\${SESSION_EXT}" ""
+    ${If} $R0 == "${SESSION_PROGID}"
+        DeleteRegKey HKLM "${REG_CLASSES_KEY}\${SESSION_EXT}"
+    ${Else}
+        DeleteRegValue HKLM "${REG_CLASSES_KEY}\${SESSION_EXT}\OpenWithProgids" "${SESSION_PROGID}"
+    ${EndIf}
+
+    DeleteRegKey HKLM "${REG_CLASSES_KEY}\${SESSION_PROGID}"
+    DeleteRegKey HKLM "${REG_CLASSES_KEY}\Applications\${EXE_NAME}"
+
     DeleteRegKey HKLM "${REG_UNINST_KEY}"
     DeleteRegKey HKLM "${REG_APP_KEY}"
+
+    System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, i 0, i 0)'
 SectionEnd

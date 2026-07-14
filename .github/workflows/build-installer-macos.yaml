@@ -1,0 +1,136 @@
+name: Build macOS disk image
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Checkout branch'
+        required: false
+        default: dev
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: installer-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: '6.9.3'
+  QT_MODULES: qtcharts
+  APP_BUNDLE: 'Open UaExplorer.app'
+
+jobs:
+  installer:
+    name: Build DMG version '${{ inputs.branch || github.ref_name }}'
+    runs-on: macos-26
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Determine version
+        id: version
+        uses: ./.github/actions/project-version
+
+      - name: Determine image name
+        id: package
+        shell: bash
+        run: |
+          dmg="ouaexp-${{ steps.version.outputs.appVersion }}-macos-arm64.dmg"
+          echo "dmg=$dmg" >> "$GITHUB_OUTPUT"
+          echo "Building $dmg"
+
+      - name: Install build dependencies
+        run: brew install ninja create-dmg
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: ${{ env.QT_MODULES }}
+          cache: true
+
+      - name: Set up OpenSSL
+        uses: ./.github/actions/setup-openssl
+
+      - name: Cache Qt OpcUa build
+        uses: actions/cache@v5
+        with:
+          path: build/_deps/qtopcua-install
+          key: qtopcua-macos-26-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
+
+      - name: Configure
+        run: >
+          cmake -S src -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_ARCHITECTURES=arm64
+          -DOUAEXP_BUILD_TESTS=OFF
+          "-DPROJECT_PRERELEASE=${{ steps.version.outputs.prerelease }}"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel --target ouaexp
+
+      # The install rules run macdeployqt and ad-hoc sign the bundle, so the staged
+      # tree is the complete, self-contained payload the disk image ships.
+      - name: Stage install tree
+        run: cmake --install build --config Release --prefix "$GITHUB_WORKSPACE/stage"
+
+      - name: Verify the staged bundle
+        run: |
+          app="$GITHUB_WORKSPACE/stage/$APP_BUNDLE"
+          if [ ! -d "$app" ]; then
+            echo "::error::The install did not produce $app"
+            exit 1
+          fi
+          codesign --verify --deep --strict --verbose=2 "$app"
+
+      # create-dmg lays the window out through Finder, and a stray .DS_Store or a
+      # left-over volume from an earlier attempt makes it fail, so the image is
+      # always built from a clean staging tree that holds nothing but the bundle.
+      - name: Build disk image
+        run: |
+          dmg="$GITHUB_WORKSPACE/${{ steps.package.outputs.dmg }}"
+          rm -f "$dmg"
+          find "$GITHUB_WORKSPACE/stage" -name .DS_Store -delete
+          create-dmg \
+            --volname "Open UaExplorer ${{ steps.version.outputs.appVersion }}" \
+            --window-pos 200 120 \
+            --window-size 640 400 \
+            --icon-size 128 \
+            --icon "$APP_BUNDLE" 160 190 \
+            --hide-extension "$APP_BUNDLE" \
+            --app-drop-link 480 190 \
+            --no-internet-enable \
+            "$dmg" \
+            "$GITHUB_WORKSPACE/stage"
+
+      - name: Compute checksum
+        run: |
+          dmg="${{ steps.package.outputs.dmg }}"
+          shasum -a 256 "$dmg" > "$dmg.sha256"
+          cat "$dmg.sha256"
+
+      - name: Upload disk image artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ouaexp-macos-arm64-dmg
+          path: |
+            ${{ steps.package.outputs.dmg }}
+            ${{ steps.package.outputs.dmg }}.sha256
+          if-no-files-found: error
+
+      - name: Attach disk image to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          prerelease: ${{ steps.version.outputs.prerelease != '' }}
+          files: |
+            ${{ steps.package.outputs.dmg }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true

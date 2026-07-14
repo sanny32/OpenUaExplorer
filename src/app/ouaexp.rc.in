@@ -1,6 +1,13 @@
 #include <windows.h>
 
-IDI_APP_ICON ICON DISCARDABLE "@ICON_FILE@"
+// Explorer shows the icon with the lowest resource id for the executable itself,
+// and the ProgID registered by the installer points its DefaultIcon at index 1,
+// which is the second icon in id order. Both therefore depend on this ordering.
+#define IDI_APP_ICON       1
+#define IDI_SESSION_ICON   2
+
+IDI_APP_ICON     ICON DISCARDABLE "@ICON_FILE@"
+IDI_SESSION_ICON ICON DISCARDABLE "@SESSION_ICON_FILE@"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION @VERSION_MAJOR@,@VERSION_MINOR@,@VERSION_PATCH@,0
