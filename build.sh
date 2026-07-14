@@ -118,15 +118,26 @@ python_version() {
     "$1" -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null || true
 }
 
+python_runs_aqt() {
+    "$1" -c 'import ssl, zlib, lzma, bz2, ctypes' >/dev/null 2>&1
+}
+
+python_usable() {
+    local found
+
+    found="$(python_version "$1")"
+    [ -n "$found" ] || return 1
+    version_ge "$found" "$PYTHON_MIN_VERSION" || return 1
+    python_runs_aqt "$1"
+}
+
 find_python() {
     local candidate
     local path
-    local found
 
     for candidate in python3.13 python3.12 python3.11 python3.10 python3.9 python3; do
         path="$(command -v "$candidate" 2>/dev/null)" || continue
-        found="$(python_version "$path")"
-        if [ -n "$found" ] && version_ge "$found" "$PYTHON_MIN_VERSION"; then
+        if python_usable "$path"; then
             printf '%s\n' "$path"
             return 0
         fi
@@ -138,13 +149,19 @@ find_python() {
 python_build_packages() {
     case "$DISTRO" in
         debian)
-            echo "zlib1g-dev libffi-dev"
+            echo "zlib1g-dev libffi-dev liblzma-dev libbz2-dev"
             ;;
-        rhel|altlinux|suse)
-            echo "zlib-devel libffi-devel"
+        rhel)
+            echo "zlib-devel libffi-devel xz-devel bzip2-devel"
+            ;;
+        altlinux)
+            echo "zlib-devel libffi-devel liblzma-devel libbz2-devel"
+            ;;
+        suse)
+            echo "zlib-devel libffi-devel xz-devel libbz2-devel"
             ;;
         arch)
-            echo "zlib libffi"
+            echo "zlib libffi xz bzip2"
             ;;
     esac
 }
@@ -156,8 +173,7 @@ build_python() {
     local build_log="$TOOLS_DIR/python-build.log"
     local -a packages
 
-    if [ -x "$prefix/bin/python3" ] \
-        && version_ge "$(python_version "$prefix/bin/python3")" "$PYTHON_MIN_VERSION"; then
+    if python_usable "$prefix/bin/python3"; then
         PYTHON_BIN="$prefix/bin/python3"
         log_info "Using Python $(python_version "$PYTHON_BIN") from $PYTHON_BIN"
         return
@@ -172,6 +188,7 @@ build_python() {
     install_packages "${packages[@]}"
 
     log_info "Building Python $PYTHON_BUILD_VERSION in $prefix (see $build_log)..."
+    rm -rf "$prefix" "$TOOLS_DIR/aqt-venv"
     mkdir -p "$TOOLS_DIR"
     curl -fsSL -o "$archive" \
         "https://www.python.org/ftp/python/$PYTHON_BUILD_VERSION/Python-$PYTHON_BUILD_VERSION.tgz"
@@ -190,8 +207,8 @@ build_python() {
 
     rm -rf "$source_dir" "$archive"
 
-    if [ ! -x "$prefix/bin/python3" ]; then
-        log_error "Python $PYTHON_BUILD_VERSION was built, but $prefix/bin/python3 is missing."
+    if ! python_usable "$prefix/bin/python3"; then
+        log_error "Python $PYTHON_BUILD_VERSION was built without the modules aqtinstall needs (ssl, zlib, lzma, bz2, ctypes); see $build_log"
         exit 1
     fi
 
@@ -223,8 +240,7 @@ ensure_python_tools() {
 
     ensure_python
 
-    if [ -x "$venv_python" ] \
-        && version_ge "$(python_version "$venv_python")" "$PYTHON_MIN_VERSION"; then
+    if python_usable "$venv_python"; then
         return
     fi
 
