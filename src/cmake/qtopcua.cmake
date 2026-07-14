@@ -208,6 +208,13 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
             "-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}")
     endif()
 
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT "$ENV{CXX}" STREQUAL "")
+        list(APPEND QTOPCUA_CONFIGURE_OPTIONS
+            "-DCMAKE_SHARED_LINKER_FLAGS=-static-libgcc -static-libstdc++"
+            "-DCMAKE_MODULE_LINKER_FLAGS=-static-libgcc -static-libstdc++"
+            "-DCMAKE_EXE_LINKER_FLAGS=-static-libgcc -static-libstdc++")
+    endif()
+
     # qt-cmake needs cmake and ninja on PATH, which QtCreator does not set.
     get_filename_component(CMAKE_BIN_DIR "${CMAKE_COMMAND}" DIRECTORY)
     find_program(NINJA NAMES ninja REQUIRED)
