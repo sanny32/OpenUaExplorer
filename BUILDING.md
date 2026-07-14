@@ -4,7 +4,7 @@ The helper scripts `build.sh` (Linux, macOS) and `build.ps1` (Windows) install
 the required build tools and Qt 6, configure the project and build it. This
 document describes what exactly they install on each platform, and how to run
 the test suite and measure its coverage. For the common usage and options, see
-the [Building](../README.md#building) section of the README.
+the [Building](README.md#building) section of the README.
 
 ## Linux
 
