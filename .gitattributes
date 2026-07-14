@@ -1,6 +1,0 @@
-# Patches are fed verbatim to `git apply`. Windows checkouts default to
-# core.autocrlf=true (GitHub's runners set it system-wide), and the CRLF
-# conversion turns the blank context lines inside a hunk into a lone CR,
-# which git rejects as a corrupt patch. Keep them byte-for-byte as committed.
-*.patch -text
-*.diff -text
