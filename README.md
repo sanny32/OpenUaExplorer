@@ -1,24 +1,84 @@
 # OpenUaExplorer
 
+[![Test CI](https://github.com/sanny32/OpenUaExplorer/actions/workflows/test-ci.yml/badge.svg)](https://github.com/sanny32/OpenUaExplorer/actions/workflows/test-ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/sanny32/OpenUaExplorer)](https://github.com/sanny32/OpenUaExplorer/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 OpenUaExplorer is an open source OPC UA client for browsing, inspecting, and monitoring OPC UA servers.
 
 ![OpenUaExplorer light theme](.github/assets/app-light.png)
+*A monitoring session in the light theme: live values, a trend graph and the activity log.*
 
 ![OpenUaExplorer dark theme](.github/assets/app-dark.png)
+*The same session in the dark theme.*
+
+## Download
+
+Prebuilt packages are published on the
+[Releases](https://github.com/sanny32/OpenUaExplorer/releases) page:
+
+- **Windows** — installer (`ouaexp-<version>-win64-setup.exe`).
+- **macOS** — disk image (`.dmg`, Apple silicon).
+- **Linux** — portable AppImage that runs on any recent distribution, plus
+  native `.deb` (Debian, Ubuntu) and `.rpm` (Fedora, openSUSE, ALT Linux and
+  other RPM-based distributions) packages.
+
+> The first packaged release is on its way. Until it lands, build the app from
+> source as described in [Building](#building).
 
 ## Features
 
-- Browse the OPC UA address space and inspect node attributes.
-- View Data Access, subscriptions, events, and history panels.
-- Use the built-in activity log while working with connections.
+- Discover server endpoints and connect with any standard security policy —
+  `None`, `Basic128Rsa15`, `Basic256`, `Basic256Sha256`, `Aes128_Sha256_RsaOaep`,
+  `Aes256_Sha256_RsaPss` — in `Sign` or `Sign & Encrypt` mode.
+- Authenticate anonymously, with username and password, or with an X.509
+  client certificate; manage certificates and trust decisions in the built-in
+  certificate store.
+- Browse the OPC UA address space, inspect node attributes and references,
+  write attribute values, and call methods from the node context menu.
+- Watch live values in the Data Access panel — just drag nodes onto it.
+- Create subscriptions with configurable publishing intervals and monitor
+  data changes and events.
+- Read data and event history for nodes that provide it.
+- Plot subscribed values as live trend graphs.
+- Keep favorite servers and recent connections at hand; save a session and
+  restore it later.
+- Follow client activity in the built-in log.
 - Switch between light and dark application themes.
+
+## Quick start
+
+You do not need your own server to try the client — any public OPC UA demo
+server works, for example `opc.tcp://opcua.demo-this.com:51210/UA/SampleServer`
+(Unified Automation) or
+`opc.tcp://uademo.prosysopc.com:53530/OPCUA/SimulationServer` (Prosys).
+
+1. Choose **File → New Connection**.
+2. Enter the endpoint URL of the server and click **Discover Endpoints**.
+3. Pick an endpoint with the security policy you want, choose the
+   authentication mode — **Anonymous** works for the demo servers — and click
+   **Connect**.
+4. Browse the address space on the left and drag a variable node onto the
+   **Data Access** panel to watch its value live.
+
+## System requirements
+
+The application runs on:
+
+- **Windows** 10 or later (x64)
+- **macOS** 15 or later (Apple silicon)
+- **Linux** — any recent x86-64 distribution; the AppImage needs glibc 2.31 or
+  newer, and native packages target the distributions listed under
+  [Linux](#linux).
 
 ## Building
 
 The repository ships helper scripts that install the required build tools and
 Qt 6, configure the project and build it — usually in a single command:
 `build.sh` on Linux and macOS, and `build.ps1` on
-[Windows](#windows).
+[Windows](#windows). What exactly the scripts install, and how to run the test
+suite and measure coverage, is described in
+[docs/BUILDING.md](docs/BUILDING.md).
 
 ```sh
 ./build.sh
@@ -54,11 +114,6 @@ The build is continuously tested on:
 - <img src="docs/icons/logo_opensuse.svg" width="16" height="16" /> **openSUSE Tumbleweed**
 - <img src="docs/icons/logo_arch.svg" width="16" height="16" /> **Arch Linux**
 
-It installs the toolchain (compiler, CMake, Ninja, pkg-config), the X11/XCB and
-OpenGL runtime libraries and Qt 6 (Base, Tools, SVG and Charts). When the
-distribution ships a Qt older than the minimum required, it automatically
-downloads a suitable Qt 6 with [aqtinstall](https://github.com/miurahr/aqtinstall).
-
 Build only:
 
 ```sh
@@ -75,7 +130,7 @@ Build, then install:
 
 The build is continuously tested on:
 
-- <img src="docs/icons/logo_apple.svg" width="16" height="16" /> **macOS** 26 (Apple silicon)
+- <img src="docs/icons/logo_apple.svg" width="16" height="16" /> **macOS** 26 and 15 (Apple silicon)
 
 Recent macOS releases with the prerequisites below should also work.
 
@@ -84,8 +139,8 @@ Prerequisites — install these once:
 - **Xcode Command Line Tools**: `xcode-select --install`
 - **[Homebrew](https://brew.sh)**
 
-`build.sh` then installs the rest through Homebrew (`cmake`, `ninja`, `qt`,
-`openssl@3`, `brotli`, `webp`) and builds the app bundle:
+`build.sh` then installs the remaining dependencies through Homebrew and builds
+the app bundle:
 
 Build only:
 
@@ -106,11 +161,8 @@ tested on:
 
 - <img src="docs/icons/logo_windows.svg" width="16" height="16" /> **Windows** 10 and 11 (x64, MSVC)
 
-`build.ps1` installs the toolchain (Python, CMake, Ninja, OpenSSL and the Visual
-Studio C++ Build Tools), then downloads Qt 6 (Base, SVG and Charts) with
-[aqtinstall](https://github.com/miurahr/aqtinstall) when no suitable Qt is
-already installed under `C:\Qt`, builds Qt OPC UA from source, and builds the app
-with Ninja and MSVC.
+`build.ps1` installs the missing build tools and Qt 6 automatically, then
+builds the app with Ninja and MSVC.
 
 Prerequisites — install these once:
 
@@ -126,13 +178,6 @@ override (no administrator rights required):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build.ps1
-```
-
-Alternatively, allow local scripts once for your user, then call it directly:
-
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-.\build.ps1
 ```
 
 Options:
@@ -167,63 +212,11 @@ cmake -S src -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/<kit>
 cmake --build build --parallel
 ```
 
-## Tests
+## Feedback
 
-Install the test dependencies:
-
-```sh
-pip install -r tools/requirements.txt
-```
-
-Configure the build:
-
-```sh
-cmake -S src -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/<kit>
-```
-
-Build:
-
-```sh
-cmake --build build --parallel
-```
-
-Run the suite with CTest:
-
-```sh
-ctest --test-dir build --output-on-failure
-```
-
-## Test coverage
-
-A cross-platform helper measures how much of the tested production code the unit
-tests exercise. It configures a dedicated coverage build, runs the CTest suite
-and writes a Cobertura + HTML report, picking the backend from the compiler:
-
-| Compiler    | Backend          | Install                              |
-|-------------|------------------|--------------------------------------|
-| GCC / Clang | `gcovr`          | `pip install gcovr`                  |
-| MSVC        | `OpenCppCoverage`| `winget install OpenCppCoverage`     |
-
-Run it from the repository root (in a shell where your compiler and Qt are on
-the path — e.g. an MSVC *Developer* prompt on Windows):
-
-Build, test and write the report:
-
-```sh
-python tools/coverage.py
-```
-
-Also open the HTML report:
-
-```sh
-python tools/coverage.py --open
-```
-
-If needed, forward extra CMake args (e.g. Qt location) after a literal `--`:
-
-```sh
-python tools/coverage.py -- -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/<kit>
-```
+Found a bug or missing a feature? Open an issue in the
+[issue tracker](https://github.com/sanny32/OpenUaExplorer/issues).
+Pull requests are welcome.
 
 ## MIT License
 

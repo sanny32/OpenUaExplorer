@@ -1,0 +1,77 @@
+name: Set up linuxdeployqt
+description: >-
+  Installs the linuxdeployqt release the AppDir is deployed with and puts it on
+  PATH. The tool has no versioned releases: 'continuous' is the only one there is,
+  so the download is pinned to a tag of the repository instead, and cached, to keep
+  a build from silently changing under a new upload.
+
+inputs:
+  release:
+    description: 'The linuxdeployqt release the AppImage is downloaded from'
+    required: false
+    default: continuous
+  prefix:
+    description: 'Where the tool is installed, and prepended to PATH'
+    required: false
+    default: /opt/linuxdeployqt
+
+outputs:
+  path:
+    description: 'The linuxdeployqt executable'
+    value: ${{ steps.install.outputs.path }}
+
+runs:
+  using: composite
+  steps:
+    # linuxdeployqt only ever released an x86_64 build of its own AppImage, so a
+    # build on any other architecture has to deploy the AppDir some other way and
+    # should say so here rather than fail on a 404 from the download below.
+    - name: Identify the architecture
+      id: arch
+      shell: bash
+      run: |
+        arch="$(uname -m)"
+        case "$arch" in
+          x86_64|amd64) arch=x86_64 ;;
+          *)
+            echo "::error::linuxdeployqt has no release for $arch"
+            exit 1
+            ;;
+        esac
+        echo "arch=$arch" >> "$GITHUB_OUTPUT"
+
+    - name: Cache linuxdeployqt
+      id: cache
+      uses: actions/cache@v5
+      with:
+        path: ${{ inputs.prefix }}
+        key: linuxdeployqt-${{ inputs.release }}-${{ steps.arch.outputs.arch }}
+
+    - name: Download linuxdeployqt
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        RELEASE: ${{ inputs.release }}
+        PREFIX: ${{ inputs.prefix }}
+        ARCH: ${{ steps.arch.outputs.arch }}
+      run: |
+        mkdir -p "$PREFIX/bin"
+        curl -fsSL -o "$PREFIX/bin/linuxdeployqt" \
+          "https://github.com/probonopd/linuxdeployqt/releases/download/$RELEASE/linuxdeployqt-$RELEASE-$ARCH.AppImage"
+        chmod +x "$PREFIX/bin/linuxdeployqt"
+
+    # The tool is an AppImage itself, and a build container has no FUSE to mount it
+    # with, so it is run through APPIMAGE_EXTRACT_AND_RUN. The AppImage runtime
+    # honours that for the appimagetool linuxdeployqt invokes in turn, so it is
+    # exported for the whole job rather than set on the call.
+    - name: Report the tool
+      id: install
+      shell: bash
+      env:
+        PREFIX: ${{ inputs.prefix }}
+      run: |
+        echo "$PREFIX/bin" >> "$GITHUB_PATH"
+        echo "APPIMAGE_EXTRACT_AND_RUN=1" >> "$GITHUB_ENV"
+        echo "path=$PREFIX/bin/linuxdeployqt" >> "$GITHUB_OUTPUT"
+
+        APPIMAGE_EXTRACT_AND_RUN=1 "$PREFIX/bin/linuxdeployqt" --version
