@@ -94,6 +94,13 @@ function(ouaexp_find_qtopcua_config out_var)
     set(${out_var} "${config_file}" PARENT_SCOPE)
 endfunction()
 
+function(ouaexp_normalize_patch patch out_var)
+    get_filename_component(name "${patch}" NAME)
+    set(normalized "${CMAKE_BINARY_DIR}/qtopcua-patches/${name}")
+    configure_file("${patch}" "${normalized}" @ONLY NEWLINE_STYLE UNIX)
+    set(${out_var} "${normalized}" PARENT_SCOPE)
+endfunction()
+
 # Applies the cmake/patches fixes to the fetched Qt OpcUa backend. Each patch carries a header
 # explaining why it exists; one that no longer applies is a hard error rather than a silently
 # dropped workaround.
@@ -105,6 +112,7 @@ function(ouaexp_patch_qtopcua source_dir)
     list(SORT patches)
     foreach(patch IN LISTS patches)
         get_filename_component(name "${patch}" NAME)
+        ouaexp_normalize_patch("${patch}" patch)
         execute_process(
             COMMAND ${GIT_EXECUTABLE} apply --reverse --check "${patch}"
             WORKING_DIRECTORY "${source_dir}"
