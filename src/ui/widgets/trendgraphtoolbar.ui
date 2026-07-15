@@ -24,7 +24,7 @@
     <number>9</number>
    </property>
    <property name="bottomMargin">
-    <number>9</number>
+    <number>0</number>
    </property>
    <item>
     <layout class="QHBoxLayout" name="liveGroup">

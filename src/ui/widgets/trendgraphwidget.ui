@@ -27,10 +27,23 @@
     <number>0</number>
    </property>
    <item>
-    <widget class="TrendGraphToolbar" name="toolbar" native="true"/>
+    <widget class="TrendGraphToolbar" name="toolbar" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
    </item>
    <item>
     <widget class="QWidget" name="chartContainer" native="true">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>1</verstretch>
+      </sizepolicy>
+     </property>
      <layout class="QVBoxLayout" name="chartLayout">
       <property name="spacing">
        <number>0</number>
