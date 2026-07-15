@@ -66,8 +66,9 @@ public:
     ///
     /// \brief Runs the connection dialog and connects (optionally saving) the chosen profile.
     /// \param preset Profile used to pre-fill the dialog, or nullptr for a blank dialog.
+    /// \return True when the user accepted the dialog and a connection was started.
     ///
-    void openConnectionDialog(const ConnectionProfile *preset = nullptr);
+    bool openConnectionDialog(const ConnectionProfile *preset = nullptr);
 
     ///
     /// \brief Disconnects from the current endpoint.

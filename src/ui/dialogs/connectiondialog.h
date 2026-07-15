@@ -99,6 +99,8 @@ private:
     void saveLastEndpointUrl();
     void forgetEndpointUrl(const QString &endpointUrl);
     void resetDiscovery();
+    void beginEndpointDiscovery();
+    void endEndpointDiscovery();
     void selectGeneratedClientCertificate();
     void updateClientCertificate();
     void updateClientCertificateAction();
@@ -115,4 +117,5 @@ private:
     QString _privateKeyFile;
     int _selectedSecurityModeValue = 1;
     bool _secureChannel = false;
+    bool _endpointDiscoveryCursorActive = false;
 };

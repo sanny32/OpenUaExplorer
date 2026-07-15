@@ -10,9 +10,11 @@
 
 #include <QAction>
 #include <QComboBox>
+#include <QCursor>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -241,6 +243,7 @@ int ConnectionDialog::currentAuthentication() const
 ///
 ConnectionDialog::~ConnectionDialog()
 {
+    endEndpointDiscovery();
     saveLastEndpointUrl();
     delete ui;
 }
@@ -251,8 +254,10 @@ ConnectionDialog::~ConnectionDialog()
 ///
 void ConnectionDialog::setBackend(OpcUaBackend *backend)
 {
-    if (_service)
+    if (_service) {
+        endEndpointDiscovery();
         disconnect(_service, nullptr, this, nullptr);
+    }
     _service = backend;
     if (_service) {
         connect(_service, &OpcUaBackend::endpointsDiscovered,
@@ -383,6 +388,7 @@ void ConnectionDialog::discoverEndpoints()
     ui->statusLabel->setText(tr("Discovering endpoints..."));
     ui->getEndpointsButton->setEnabled(false);
     ui->connectButton->setEnabled(false);
+    beginEndpointDiscovery();
     _service->discoverEndpoints(url, settings.backend, settings.endpointTimeoutMs);
 }
 
@@ -393,6 +399,7 @@ void ConnectionDialog::discoverEndpoints()
 ///
 void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QString &error)
 {
+    endEndpointDiscovery();
     ui->getEndpointsButton->setEnabled(true);
     ui->connectButton->setEnabled(true);
     if (!error.isEmpty()) {
@@ -412,6 +419,28 @@ void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QStr
         _connectAfterDiscovery = false;
         validateAndAccept();
     }
+}
+
+///
+/// \brief Shows the application wait cursor during endpoint discovery.
+///
+void ConnectionDialog::beginEndpointDiscovery()
+{
+    if (_endpointDiscoveryCursorActive)
+        return;
+    QGuiApplication::setOverrideCursor(Qt::WaitCursor);
+    _endpointDiscoveryCursorActive = true;
+}
+
+///
+/// \brief Removes the wait cursor installed for endpoint discovery.
+///
+void ConnectionDialog::endEndpointDiscovery()
+{
+    if (!_endpointDiscoveryCursorActive)
+        return;
+    QGuiApplication::restoreOverrideCursor();
+    _endpointDiscoveryCursorActive = false;
 }
 
 ///
