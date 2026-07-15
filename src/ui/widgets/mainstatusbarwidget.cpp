@@ -7,6 +7,9 @@
 ///
 
 #include <QDateTime>
+#include <QEvent>
+#include <QFontMetrics>
+#include <QLabel>
 #include <QTimer>
 #include <QWidget>
 
@@ -37,6 +40,27 @@ QString utcOffsetLabel(const QDateTime &dateTime)
         .arg(sign)
         .arg(totalMinutes / 60, 2, 10, QLatin1Char('0'))
         .arg(totalMinutes % 60, 2, 10, QLatin1Char('0'));
+}
+
+///
+/// \brief Builds a clock value from the widest digit in the current font.
+/// \param metrics Font metrics used by the clock label.
+/// \return A value shaped as HH:mm:ss that reserves the maximum digit width.
+///
+QString widestClockValue(const QFontMetrics &metrics)
+{
+    QChar widestDigit = QLatin1Char('0');
+    int widestAdvance = metrics.horizontalAdvance(widestDigit);
+    for (char digitValue = '1'; digitValue <= '9'; ++digitValue) {
+        const QChar digit = QLatin1Char(digitValue);
+        const int advance = metrics.horizontalAdvance(digit);
+        if (advance > widestAdvance) {
+            widestDigit = digit;
+            widestAdvance = advance;
+        }
+    }
+
+    return QStringLiteral("%1%1:%1%1:%1%1").arg(widestDigit);
 }
 
 }
@@ -85,13 +109,32 @@ void MainStatusBarWidget::setupFieldDecorations()
 }
 
 ///
+/// \brief Reserves enough space for both clocks in the current font and time-zone format.
+/// \param localUtcOffset UTC suffix currently displayed by the local clock.
+///
+void MainStatusBarWidget::updateClockWidths(const QString &localUtcOffset)
+{
+    const QString serverValue = widestClockValue(ui->serverTimeLabel->fontMetrics());
+    ui->serverTimeLabel->setMinimumWidth(
+        ui->serverTimeLabel->fontMetrics().horizontalAdvance(
+            tr("Server Time: %1 UTC").arg(serverValue)));
+
+    const QString localValue = widestClockValue(ui->localTimeLabel->fontMetrics());
+    ui->localTimeLabel->setMinimumWidth(
+        ui->localTimeLabel->fontMetrics().horizontalAdvance(
+            tr("Local Time: %1 %2").arg(localValue, localUtcOffset)));
+}
+
+///
 /// \brief Refreshes the local- and server-time labels every tick.
 ///
 void MainStatusBarWidget::updateClocks()
 {
     const QDateTime now = QDateTime::currentDateTime();
+    const QString localUtcOffset = utcOffsetLabel(now);
+    updateClockWidths(localUtcOffset);
     ui->localTimeLabel->setText(tr("Local Time: %1 %2")
-        .arg(now.toString(QStringLiteral("HH:mm:ss")), utcOffsetLabel(now)));
+        .arg(now.toString(QStringLiteral("HH:mm:ss")), localUtcOffset));
 
     if (_serverTimeKnown) {
         const QDateTime serverNow =
@@ -207,6 +250,25 @@ void MainStatusBarWidget::updateConnectionState(OpcUaConnectionState state)
             { StandardNodeId::serverCurrentTime() });
     } else {
         _serverTimeKnown = false;
+    }
+}
+
+///
+/// \brief Recomputes clock widths when translated text or visual metrics change.
+/// \param event Change event being handled.
+///
+void MainStatusBarWidget::changeEvent(QEvent *event)
+{
+    QStatusBar::changeEvent(event);
+
+    switch (event->type()) {
+    case QEvent::LanguageChange:
+    case QEvent::FontChange:
+    case QEvent::StyleChange:
+        updateClocks();
+        break;
+    default:
+        break;
     }
 }
 

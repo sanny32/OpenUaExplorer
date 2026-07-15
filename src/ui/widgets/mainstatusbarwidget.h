@@ -11,6 +11,8 @@
 #include <QStatusBar>
 #include "opcua/opcuatypes.h"
 
+class QEvent;
+
 namespace Ui {
 class MainStatusBarWidget;
 }
@@ -42,6 +44,9 @@ public:
     ///
     void setConnectionController(ConnectionController *controller);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private slots:
     void updateConnectionState(OpcUaConnectionState state);
     void updateClocks();
@@ -49,6 +54,7 @@ private slots:
 
 private:
     void setupFieldDecorations();
+    void updateClockWidths(const QString &localUtcOffset);
     void setConnectionState(OpcUaConnectionState state,
                             const QString &endpoint = QString(),
                             const QString &securityPolicy = QString(),
