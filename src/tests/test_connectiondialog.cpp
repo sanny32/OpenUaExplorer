@@ -11,6 +11,7 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QCursor>
 #include <QFile>
 #include <QFileInfo>
 #include <QHBoxLayout>
@@ -90,6 +91,7 @@ private slots:
     void clearedEndpointHistoryStaysEmpty();
     void usernamePasswordDefaultsAreEmpty();
     void discoveryPopulatesEndpointModelAndAuthentication();
+    void closingDuringDiscoveryRestoresCursor();
     void clientCertificateActionFollowsSelection();
     void clientCertificateSelectorFillsRow();
     void certificateStatusRowsAlignBadgeToRight();
@@ -256,6 +258,8 @@ void TestConnectionDialog::initTestCase()
 
 void TestConnectionDialog::cleanup()
 {
+    while (QGuiApplication::overrideCursor())
+        QGuiApplication::restoreOverrideCursor();
     SettingsStore settings;
     settings.clear();
 }
@@ -333,6 +337,8 @@ void TestConnectionDialog::discoveryPopulatesEndpointModelAndAuthentication()
     QCOMPARE(backend.discoveryCalls, 1);
     QVERIFY(!discoverButton->isEnabled());
     QVERIFY(!connectButton->isEnabled());
+    QVERIFY(QGuiApplication::overrideCursor());
+    QCOMPARE(QGuiApplication::overrideCursor()->shape(), Qt::WaitCursor);
 
     EndpointInfo endpoint;
     endpoint.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
@@ -350,7 +356,25 @@ void TestConnectionDialog::discoveryPopulatesEndpointModelAndAuthentication()
     QCOMPARE(authentication->count(), 3);
     QVERIFY(discoverButton->isEnabled());
     QVERIFY(connectButton->isEnabled());
+    QVERIFY(!QGuiApplication::overrideCursor());
     QCOMPARE(dialog.profile().endpointUrl, endpoint.endpointUrl);
+
+    QVERIFY(QMetaObject::invokeMethod(&dialog, "discoverEndpoints"));
+    QVERIFY(QGuiApplication::overrideCursor());
+    emit backend.endpointsDiscovered({}, QStringLiteral("Discovery failed"));
+    QVERIFY(!QGuiApplication::overrideCursor());
+}
+
+void TestConnectionDialog::closingDuringDiscoveryRestoresCursor()
+{
+    DialogFakeBackend backend;
+    {
+        ConnectionDialog dialog;
+        dialog.setBackend(&backend);
+        QVERIFY(QMetaObject::invokeMethod(&dialog, "discoverEndpoints"));
+        QVERIFY(QGuiApplication::overrideCursor());
+    }
+    QVERIFY(!QGuiApplication::overrideCursor());
 }
 
 void TestConnectionDialog::clientCertificateActionFollowsSelection()
