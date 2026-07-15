@@ -258,6 +258,24 @@ jobs:
           for image in $IMAGES; do
             echo "::group::$image"
             if ! docker run --rm -e PKG -v "$PWD:/pkg" -w /tmp "$image" sh -eux -c '
+              install_desktop_runtime() {
+                if command -v dnf > /dev/null; then
+                  dnf -y --setopt=install_weak_deps=False install \
+                    fontconfig freetype libX11 \
+                    libglvnd-egl libglvnd-glx libglvnd-opengl
+                  return
+                fi
+
+                export DEBIAN_FRONTEND=noninteractive
+                apt-get update
+                apt-get install -y --no-install-recommends \
+                  libegl1 libfontconfig1 libfreetype6 libgl1 libglx0 \
+                  libopengl0 libx11-6
+              }
+
+              # linuxdeployqt leaves graphics-stack ABI libraries on the desktop host.
+              install_desktop_runtime
+
               cp "/pkg/$PKG" ./app.AppImage
               ./app.AppImage --appimage-extract > /dev/null
 
