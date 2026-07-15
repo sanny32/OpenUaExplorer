@@ -5,12 +5,28 @@
 
 #include <algorithm>
 
+#include <QCoreApplication>
 #include <QDateTime>
+#include <QUuid>
 
 #include "connectionprofilestore.h"
 #include "opcuabackend.h"
+#include "pkimanager.h"
 #include "qtopcuabackend.h"
 #include "recentconnectionstore.h"
+
+namespace {
+
+/// \brief Combines a configured name or application name with the process instance suffix.
+QString instanceSessionName(const QString &configuredName, const QString &instanceSuffix)
+{
+    const QString baseName = configuredName.isEmpty()
+        ? PkiManager::applicationName()
+        : configuredName;
+    return QStringLiteral("%1/%2").arg(baseName, instanceSuffix);
+}
+
+}
 
 ///
 /// \brief Constructs the controller owning freshly created client, secret, profile,
@@ -48,6 +64,9 @@ ConnectionController::ConnectionController(OpcUaBackend *backend,
     , _profileStore(profileStore)
     , _recentStore(recentStore)
     , _ownsDependencies(false)
+    , _instanceSessionSuffix(QStringLiteral("%1-%2")
+          .arg(QCoreApplication::applicationPid())
+          .arg(QUuid::createUuid().toString(QUuid::WithoutBraces).left(8)))
 {
     Q_ASSERT(_backend);
     Q_ASSERT(_secretStore);
@@ -107,6 +126,15 @@ const ConnectionProfile &ConnectionController::activeProfile() const
 }
 
 ///
+/// \brief Returns the unique session name of the current or most recent connection attempt.
+/// \return The effective session name, or an empty string before the first attempt.
+///
+QString ConnectionController::activeSessionName() const
+{
+    return _activeSessionName;
+}
+
+///
 /// \brief Sets the delegate that decides whether to trust a server certificate.
 /// \param decider Trust decider, forwarded to the backend.
 ///
@@ -126,7 +154,11 @@ void ConnectionController::connectBackend(const ConnectionProfile &profile,
                                           const QString &privateKeyPassword)
 {
     _backend->setRequestTimeout(profile.requestTimeoutMs);
-    _backend->connectToEndpoint(profile, password, privateKeyPassword);
+    ConnectionProfile instanceProfile = profile;
+    instanceProfile.sessionName = instanceSessionName(profile.sessionName,
+                                                      _instanceSessionSuffix);
+    _activeSessionName = instanceProfile.sessionName;
+    _backend->connectToEndpoint(instanceProfile, password, privateKeyPassword);
 }
 
 ///

@@ -7,7 +7,6 @@
 ///
 
 #include <QDateTime>
-#include <QRegularExpression>
 #include <QTimer>
 #include <QWidget>
 
@@ -38,19 +37,6 @@ QString utcOffsetLabel(const QDateTime &dateTime)
         .arg(sign)
         .arg(totalMinutes / 60, 2, 10, QLatin1Char('0'))
         .arg(totalMinutes % 60, 2, 10, QLatin1Char('0'));
-}
-
-///
-/// \brief Reduces a server-assigned session name to its GUID, if present.
-/// \param sessionName Raw session name (e.g. "ServerAssigned ns=1;g=<guid>").
-/// \return The contained GUID, or the original name when none is found.
-///
-QString sessionDisplayName(const QString &sessionName)
-{
-    static const QRegularExpression guidPattern(QStringLiteral(
-        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"));
-    const QRegularExpressionMatch match = guidPattern.match(sessionName);
-    return match.hasMatch() ? match.captured(0) : sessionName;
 }
 
 }
@@ -198,8 +184,6 @@ void MainStatusBarWidget::setConnectionController(ConnectionController *controll
             this, &MainStatusBarWidget::updateConnectionState);
     connect(controller->backend(), &OpcUaBackend::dataValuesReady,
             this, &MainStatusBarWidget::handleServerTime);
-    connect(controller->backend(), &OpcUaBackend::serverSessionNameResolved,
-            this, &MainStatusBarWidget::handleServerSessionName);
     updateConnectionState(controller->backend()->state());
 }
 
@@ -215,31 +199,15 @@ void MainStatusBarWidget::updateConnectionState(OpcUaConnectionState state)
     setConnectionState(state, profile.endpointUrl,
                        active ? profile.securityPolicy : QString(),
                        active ? profile.securityMode : 0,
-                       connected ? profile.sessionName : QString(),
+                       connected ? _controller->activeSessionName() : QString(),
                        active ? authenticationSummary(profile) : QString());
 
     if (connected) {
         _controller->backend()->readValues(
             { StandardNodeId::serverCurrentTime() });
-       
-        if (profile.sessionName.isEmpty())
-            _controller->backend()->readServerSessionName();
     } else {
         _serverTimeKnown = false;
     }
-}
-
-///
-/// \brief Shows the server-assigned session name when the dialog left it blank.
-/// \param sessionName Resolved session name, empty when unavailable.
-///
-void MainStatusBarWidget::handleServerSessionName(const QString &sessionName)
-{
-    if (sessionName.isEmpty()
-        || _controller->backend()->state() != OpcUaConnectionState::Connected
-        || !_controller->activeProfile().sessionName.isEmpty())
-        return;
-    ui->sessionLabel->setText(sessionDisplayName(sessionName));
 }
 
 ///

@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include <QHash>
+#include <QRegularExpression>
 #include <QSignalSpy>
 #include <QTest>
 
@@ -214,6 +215,7 @@ class TestConnectionController : public QObject
 private slots:
     void backendReportsFindServersUnsupported();
     void connectingAppliesTheProfileRequestTimeout();
+    void connectingAddsStableInstanceSuffixToSessionNames();
     void savedProfileWithoutSecretsDiscoversThenConnects();
     void savedProfileLoadsBothSecrets();
     void discoveryFailureDoesNotConnect();
@@ -265,6 +267,38 @@ void TestConnectionController::connectingAppliesTheProfileRequestTimeout()
     QCOMPARE(backend.requestTimeout(), profile.requestTimeoutMs);
     QCOMPARE(backend.browseTimeout, profile.requestTimeoutMs);
     QCOMPARE(backend.referencesBrowseTimeout, profile.requestTimeoutMs);
+}
+
+///
+/// \brief Connections use a stable process suffix without changing the stored profile name.
+///
+void TestConnectionController::connectingAddsStableInstanceSuffixToSessionNames()
+{
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+
+    ConnectionProfile automatic;
+    controller.connectNewProfile(automatic, QString(), QString());
+    const QString automaticName = backend.connectedProfile.sessionName;
+    const QRegularExpression pattern(
+        QStringLiteral("^.+/[0-9]+-[0-9a-f]{8}$"));
+    QVERIFY(pattern.match(automaticName).hasMatch());
+    QCOMPARE(controller.activeSessionName(), automaticName);
+    QVERIFY(controller.activeProfile().sessionName.isEmpty());
+    QVERIFY(recents.recent.constFirst().sessionName.isEmpty());
+
+    const QString suffix = automaticName.mid(automaticName.lastIndexOf(QLatin1Char('/')));
+    ConnectionProfile configured;
+    configured.sessionName = QStringLiteral("Operator Session");
+    controller.connectNewProfile(configured, QString(), QString());
+
+    QCOMPARE(backend.connectedProfile.sessionName,
+             configured.sessionName + suffix);
+    QCOMPARE(controller.activeSessionName(), configured.sessionName + suffix);
+    QCOMPARE(controller.activeProfile().sessionName, configured.sessionName);
 }
 
 void TestConnectionController::savedProfileWithoutSecretsDiscoversThenConnects()
