@@ -17,6 +17,7 @@ class FeatureManager;
 class OpcUaBackend;
 class QMenu;
 class QWidget;
+enum class OpcUaConnectionState;
 
 ///
 /// \brief Dependencies supplied by MainWindow so session state can be coordinated outside it.
@@ -53,6 +54,11 @@ public:
     ///
     explicit SessionCoordinator(const SessionCoordinatorContext &context,
                                 QObject *parent = nullptr);
+
+    ///
+    /// \brief Releases a session-restore cursor still owned by the coordinator.
+    ///
+    ~SessionCoordinator() override;
 
     ///
     /// \brief Writes to the current session file, or prompts for one derived from the active profile.
@@ -102,9 +108,12 @@ private:
     void setCurrentSessionPath(const QString &path);
     QString sessionDisplayName() const;
     void updateWindowTitle();
+    void beginSessionRestore();
+    void endSessionRestore();
 
 private slots:
     void openRecentSession();
+    void handleConnectionState(OpcUaConnectionState state);
 
 private:
     SessionCoordinatorContext _context;
@@ -113,4 +122,5 @@ private:
     bool _hasPendingSession = false;
     QString _sessionPath;
     QByteArray _savedSessionFingerprint;
+    bool _sessionRestoreCursorActive = false;
 };

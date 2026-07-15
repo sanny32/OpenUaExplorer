@@ -12,6 +12,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QMenu>
 #include <QRegularExpression>
 #include <QStringList>
@@ -113,7 +114,17 @@ SessionCoordinator::SessionCoordinator(const SessionCoordinatorContext &context,
     : QObject(parent)
     , _context(context)
 {
+    connect(_context.backend, &OpcUaBackend::stateChanged,
+            this, &SessionCoordinator::handleConnectionState);
     updateWindowTitle();
+}
+
+///
+/// \brief Releases a session-restore cursor still owned by the coordinator.
+///
+SessionCoordinator::~SessionCoordinator()
+{
+    endSessionRestore();
 }
 
 ///
@@ -156,12 +167,21 @@ void SessionCoordinator::openSessionFromFile(const QString &path)
     _hasPendingSession = true;
     recordRecentSession(path);
 
-    if (data.profile.authentication == ConnectionProfile::Authentication::Anonymous)
+    if (data.profile.authentication == ConnectionProfile::Authentication::Anonymous) {
+        beginSessionRestore();
         _context.connectionController->connectSavedProfileWithCredentials(data.profile,
                                                                           QString(),
                                                                           QString());
-    else
-        _context.connectionCoordinator->openConnectionDialog(&data.profile);
+    } else if (_context.connectionCoordinator->openConnectionDialog(&data.profile)) {
+        if (_hasPendingSession) {
+            beginSessionRestore();
+            handleConnectionState(_context.backend->state());
+        }
+    } else {
+        _pendingSession = {};
+        _pendingSessionPath.clear();
+        _hasPendingSession = false;
+    }
 }
 
 ///
@@ -228,6 +248,7 @@ void SessionCoordinator::applyPendingSession()
 
     _savedSessionFingerprint = sessionFingerprint(session);
     setCurrentSessionPath(sessionPath);
+    endSessionRestore();
 }
 
 ///
@@ -376,6 +397,39 @@ void SessionCoordinator::updateWindowTitle()
     _context.window->setWindowTitle(QStringLiteral("%1 — %2[*]")
                                         .arg(QString::fromUtf8(APP_PRODUCT_NAME),
                                              sessionDisplayName()));
+}
+
+///
+/// \brief Shows the application wait cursor while a loaded session is being restored.
+///
+void SessionCoordinator::beginSessionRestore()
+{
+    if (_sessionRestoreCursorActive)
+        return;
+    QGuiApplication::setOverrideCursor(Qt::WaitCursor);
+    _sessionRestoreCursorActive = true;
+}
+
+///
+/// \brief Removes the wait cursor installed for session restoration.
+///
+void SessionCoordinator::endSessionRestore()
+{
+    if (!_sessionRestoreCursorActive)
+        return;
+    QGuiApplication::restoreOverrideCursor();
+    _sessionRestoreCursorActive = false;
+}
+
+///
+/// \brief Stops waiting after restoration or when its connection attempt becomes idle.
+///
+void SessionCoordinator::handleConnectionState(OpcUaConnectionState state)
+{
+    if (state == OpcUaConnectionState::Connected
+        || state == OpcUaConnectionState::Disconnected
+        || state == OpcUaConnectionState::Unavailable)
+        endSessionRestore();
 }
 
 ///

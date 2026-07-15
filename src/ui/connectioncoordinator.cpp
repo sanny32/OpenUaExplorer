@@ -70,15 +70,16 @@ ConnectionCoordinator::ConnectionCoordinator(ConnectionController *controller,
 ///
 /// \brief Runs the connection dialog and connects (optionally saving) the chosen profile.
 /// \param preset Profile used to pre-fill the dialog, or nullptr for a blank dialog.
+/// \return True when the user accepted the dialog and a connection was started.
 ///
-void ConnectionCoordinator::openConnectionDialog(const ConnectionProfile *preset)
+bool ConnectionCoordinator::openConnectionDialog(const ConnectionProfile *preset)
 {
     ConnectionDialog dialog(_dialogParent);
     dialog.setBackend(_backend);
     if (preset)
         dialog.setProfile(*preset);
     if (dialog.exec() != QDialog::Accepted)
-        return;
+        return false;
 
     // Editing an existing favourite saves the changes back to it; a plain connect does not
     // touch favourites, so reconnecting a server with different security never overwrites it.
@@ -94,6 +95,7 @@ void ConnectionCoordinator::openConnectionDialog(const ConnectionProfile *preset
     }
     _controller->connectNewProfile(
         profile, dialog.password(), dialog.privateKeyPassword());
+    return true;
 }
 
 ///
