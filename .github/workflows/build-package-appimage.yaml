@@ -165,8 +165,6 @@ jobs:
       # dependencies, the OpenSSL among them, which is why the prefix built above has
       # to be on the loader's path: it is not installed anywhere the loader looks.
       #
-      # -unsupported-allow-new-glibc only silences the check on the *build* glibc; the
-      # container is old enough that the AppImage stays portable regardless.
       - name: Build AppImage
         env:
           VERSION: ${{ steps.version.outputs.appVersion }}
@@ -176,7 +174,6 @@ jobs:
           linuxdeployqt AppDir/usr/share/applications/*.desktop \
             -qmake="$QT_ROOT_DIR/bin/qmake" \
             -extra-plugins=iconengines,platformthemes,tls \
-            -unsupported-allow-new-glibc \
             -appimage
 
           # The name linuxdeployqt derives from the desktop entry carries the product
