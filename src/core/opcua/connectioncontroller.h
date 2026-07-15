@@ -72,6 +72,12 @@ public:
     const ConnectionProfile &activeProfile() const;
 
     ///
+    /// \brief Returns the unique session name of the current or most recent connection attempt.
+    /// \return The effective session name, or an empty string before the first attempt.
+    ///
+    QString activeSessionName() const;
+
+    ///
     /// \brief Sets the delegate that decides whether to trust a server certificate.
     /// \param decider Trust decider, forwarded to the backend.
     ///
@@ -160,6 +166,8 @@ private:
     RecentConnectionStore *_recentStore;
     bool _ownsDependencies;
     ConnectionProfile _activeProfile;
+    QString _activeSessionName;
+    QString _instanceSessionSuffix;
     ConnectionProfile _pendingProfile;
     QString _pendingPassword;
     QString _pendingPrivateKeyPassword;
