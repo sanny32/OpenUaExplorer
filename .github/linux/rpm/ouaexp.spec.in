@@ -75,7 +75,7 @@ cp -a %{_stagedir}/. %{buildroot}/
 %{appdir}/
 %{_datadir}/applications/io.github.sanny32.OpenUaExplorer.desktop
 %{_datadir}/icons/hicolor/scalable/apps/io.github.sanny32.OpenUaExplorer.svg
-%{_datadir}/icons/hicolor/scalable/mimetypes/application-x-ouaexp-session.svg
+%{_datadir}/icons/hicolor/*x*/mimetypes/application-x-ouaexp-session.png
 %{_datadir}/mime/packages/io.github.sanny32.OpenUaExplorer.xml
 %{_datadir}/metainfo/io.github.sanny32.OpenUaExplorer.metainfo.xml
 

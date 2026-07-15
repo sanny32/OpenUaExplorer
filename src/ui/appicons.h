@@ -37,6 +37,19 @@ inline QIcon themed(const QString &icon)
 }
 
 ///
+/// \brief Builds the platform-specific application icon.
+/// \return Linux application artwork or the existing themed icon on other platforms.
+///
+inline QIcon application()
+{
+#ifdef Q_OS_LINUX
+    return QIcon(QStringLiteral(":/icons/linux/app.svg"));
+#else
+    return themed(QStringLiteral("app.ico"));
+#endif
+}
+
+///
 /// \brief Keeps an action icon synchronized with the active theme.
 /// \param action Action whose icon should be updated.
 /// \param icon Icon resource file name.

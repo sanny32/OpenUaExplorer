@@ -140,8 +140,6 @@ jobs:
           rm -rf AppDir
           DESTDIR="$PWD/AppDir" cmake --install build --prefix /usr
 
-          cp -r .github/linux/usr/. AppDir/usr/
-
           metainfo=AppDir/usr/share/metainfo/io.github.sanny32.OpenUaExplorer.metainfo.xml
           mkdir -p "$(dirname "$metainfo")"
           sed -e "s|@VERSION@|${{ steps.version.outputs.appVersion }}|" \
@@ -155,6 +153,12 @@ jobs:
           desktop-file-validate AppDir/usr/share/applications/*.desktop
           appstream-util validate-relax --nonet AppDir/usr/share/metainfo/*.metainfo.xml
 
+          test -f AppDir/usr/share/mime/packages/io.github.sanny32.OpenUaExplorer.xml
+          test -f AppDir/usr/share/icons/hicolor/scalable/apps/io.github.sanny32.OpenUaExplorer.svg
+          for size in 16 24 32 48 64 128 256; do
+            test -f "AppDir/usr/share/icons/hicolor/${size}x${size}/mimetypes/application-x-ouaexp-session.png"
+          done
+
       - name: Set up linuxdeployqt
         uses: ./.github/actions/setup-linuxdeployqt
 
@@ -165,8 +169,6 @@ jobs:
       # dependencies, the OpenSSL among them, which is why the prefix built above has
       # to be on the loader's path: it is not installed anywhere the loader looks.
       #
-      # -unsupported-allow-new-glibc only silences the check on the *build* glibc; the
-      # container is old enough that the AppImage stays portable regardless.
       - name: Build AppImage
         env:
           VERSION: ${{ steps.version.outputs.appVersion }}
@@ -176,7 +178,6 @@ jobs:
           linuxdeployqt AppDir/usr/share/applications/*.desktop \
             -qmake="$QT_ROOT_DIR/bin/qmake" \
             -extra-plugins=iconengines,platformthemes,tls \
-            -unsupported-allow-new-glibc \
             -appimage
 
           # The name linuxdeployqt derives from the desktop entry carries the product
@@ -257,6 +258,24 @@ jobs:
           for image in $IMAGES; do
             echo "::group::$image"
             if ! docker run --rm -e PKG -v "$PWD:/pkg" -w /tmp "$image" sh -eux -c '
+              install_desktop_runtime() {
+                if command -v dnf > /dev/null; then
+                  dnf -y --setopt=install_weak_deps=False install \
+                    fontconfig freetype libX11 \
+                    libglvnd-egl libglvnd-glx libglvnd-opengl
+                  return
+                fi
+
+                export DEBIAN_FRONTEND=noninteractive
+                apt-get update
+                apt-get install -y --no-install-recommends \
+                  libegl1 libfontconfig1 libfreetype6 libgl1 libglx0 \
+                  libopengl0 libx11-6
+              }
+
+              # linuxdeployqt leaves graphics-stack ABI libraries on the desktop host.
+              install_desktop_runtime
+
               cp "/pkg/$PKG" ./app.AppImage
               ./app.AppImage --appimage-extract > /dev/null
 

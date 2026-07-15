@@ -14,7 +14,7 @@ if(WIN32)
     ouaexp_configure_target_windows(${PROJECT_NAME}
         "${CMAKE_CURRENT_SOURCE_DIR}/ouaexp.rc.in"
         "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/light/app.ico"
-        "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/file-ouas.ico"
+        "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/mime/file-ouas.ico"
     )
 elseif(APPLE)
     ouaexp_configure_target_macos(${PROJECT_NAME})
