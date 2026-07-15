@@ -165,6 +165,13 @@ jobs:
           desktop-file-validate pkgroot/usr/share/applications/*.desktop
           appstream-util validate-relax --nonet pkgroot/usr/share/metainfo/*.metainfo.xml
 
+          qapt_icon="$(find pkgroot/usr/share/icons -type f | sort | tail -n 1)"
+          if [ "$qapt_icon" != \
+               "pkgroot/usr/share/icons/hicolor/scalable/apps/io.github.sanny32.OpenUaExplorer.svg" ]; then
+            echo "::error::QApt would display the wrong package icon: $qapt_icon"
+            exit 1
+          fi
+
       - name: Generate control file
         run: |
           mkdir -p debian pkgroot/DEBIAN
