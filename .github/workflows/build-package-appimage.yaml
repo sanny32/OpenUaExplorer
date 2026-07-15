@@ -175,8 +175,10 @@ jobs:
         run: |
           export LD_LIBRARY_PATH="$OPENSSL_ROOT_DIR/lib:${LD_LIBRARY_PATH:-}"
 
+          # Use the host libsystemd to avoid raising the bundle's glibc floor.
           linuxdeployqt AppDir/usr/share/applications/*.desktop \
             -qmake="$QT_ROOT_DIR/bin/qmake" \
+            -exclude-libs=libsystemd.so \
             -extra-plugins=iconengines,platformthemes,tls \
             -appimage
 
@@ -195,6 +197,12 @@ jobs:
         run: |
           ls -l "${{ steps.package.outputs.name }}"
           ./"${{ steps.package.outputs.name }}" --appimage-extract > /dev/null
+
+          if find squashfs-root/usr/lib -maxdepth 1 -name 'libsystemd.so*' \
+              -print -quit | grep -q .; then
+            echo "::error::The AppImage bundles libsystemd and raises its glibc floor"
+            exit 1
+          fi
 
           # The OpcUa backend resolving OpenSSL outside the AppImage means the bundled
           # OpenSSL is not being used, and the AppImage is back to needing one on the
@@ -261,19 +269,19 @@ jobs:
               install_desktop_runtime() {
                 if command -v dnf > /dev/null; then
                   dnf -y --setopt=install_weak_deps=False install \
-                    fontconfig freetype libX11 \
-                    libglvnd-egl libglvnd-glx libglvnd-opengl
+                    fontconfig freetype keyutils-libs libcom_err libgpg-error libX11 \
+                    libglvnd-egl libglvnd-glx libglvnd-opengl systemd-libs
                   return
                 fi
 
                 export DEBIAN_FRONTEND=noninteractive
                 apt-get update
                 apt-get install -y --no-install-recommends \
-                  libegl1 libfontconfig1 libfreetype6 libgl1 libglx0 \
-                  libopengl0 libx11-6
+                  libcom-err2 libegl1 libfontconfig1 libfreetype6 libgl1 \
+                  libglx0 libgpg-error0 libkeyutils1 libopengl0 libsystemd0 libx11-6
               }
 
-              # linuxdeployqt leaves graphics-stack ABI libraries on the desktop host.
+              # linuxdeployqt leaves base-system ABI libraries on the desktop host.
               install_desktop_runtime
 
               cp "/pkg/$PKG" ./app.AppImage
