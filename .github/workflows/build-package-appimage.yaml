@@ -237,7 +237,7 @@ jobs:
 
     steps:
       - name: Download AppImage artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: ouaexp-appimage-${{ needs.appimage.outputs.arch }}
 
