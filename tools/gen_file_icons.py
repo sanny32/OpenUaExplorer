@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Rasterise the .ouas session-file icon into the formats the installers need.
 
-The SVG sources in src/app/res/icons are the master artwork: file-ouas.svg is the
-detailed drawing and file-ouas-16.svg the simplified variant, which is the only one
-that still reads at 16 and 20 pixels. This script renders them into
+The SVG sources in src/app/res/icons/mime are the master artwork: file-ouas.svg is
+the detailed drawing and file-ouas-16.svg the simplified variant used at 16 and 24
+pixels. This script renders them into
 
   * file-ouas.ico  - embedded in the Windows executable and pointed at by the
                      DefaultIcon of the registered ProgID, and
@@ -23,7 +23,7 @@ from pathlib import Path
 import resvg_python
 from PIL import Image
 
-ICON_DIR = Path(__file__).resolve().parent.parent / "src" / "app" / "res" / "icons"
+ICON_DIR = Path(__file__).resolve().parent.parent / "src" / "app" / "res" / "icons" / "mime"
 LINUX_ICON_DIR = (
     Path(__file__).resolve().parent.parent
     / ".github"
@@ -35,11 +35,8 @@ LINUX_ICON_DIR = (
 )
 LINUX_ICON_NAME = "application-x-ouaexp-session.png"
 
-# The rack detail of the full drawing collapses into noise below 24 pixels, so 16 comes
-# from the simplified variant, which is drawn on the pixel grid and only stays crisp at
-# its own size: 20 would be a 1.25x scale of it and blur, so it is left out and Windows
-# scales the 24 down instead.
-SMALL_VARIANT_MAX = 16
+# The detailed drawing loses clarity below 32 pixels.
+SMALL_VARIANT_MAX = 24
 
 ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
 ICNS_SIZES = (16, 32, 64, 128, 256, 512, 1024)

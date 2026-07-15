@@ -59,7 +59,7 @@ function(ouaexp_configure_target_macos target_name)
     # Launch Services reads the document-type icon out of the bundle by the name the
     # CFBundleTypeIconFile and UTTypeIconFile entries of Info.plist carry, so the
     # icon has to travel in Resources next to the compiled app icon.
-    set(MACOSX_SESSION_ICON "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/file-ouas.icns")
+    set(MACOSX_SESSION_ICON "${CMAKE_CURRENT_SOURCE_DIR}/res/icons/mime/file-ouas.icns")
     target_sources(${target_name} PRIVATE "${MACOSX_SESSION_ICON}")
     set_source_files_properties("${MACOSX_SESSION_ICON}" PROPERTIES
         MACOSX_PACKAGE_LOCATION Resources
