@@ -246,6 +246,9 @@ jobs:
           echo '--- requires ---'
           rpm -qp --requires "${{ steps.package.outputs.name }}"
 
+          rpm -qp --requires "${{ steps.package.outputs.name }}" \
+            | grep -Fx 'libxcb-cursor.so.0()(64bit)'
+
           # A leaked provide or require of a bundled soname means the exclusions
           # in the spec no longer match what bundle.sh copied: the package would
           # then pull a distribution Qt in, or hand its private one out.
