@@ -35,6 +35,7 @@
 #include "models/endpointmodel.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/pkimanager.h"
+#include "settingsstore.h"
 #include "widgets/certificatesummarywidget.h"
 #include "widgets/dialogbuttonbox.h"
 #include "widgets/endpointdiscoverywidget.h"
@@ -252,7 +253,7 @@ void TestConnectionDialog::initTestCase()
 
 void TestConnectionDialog::cleanup()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.clear();
 }
 

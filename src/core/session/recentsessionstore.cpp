@@ -7,9 +7,9 @@
 ///
 
 #include <QDir>
-#include <QSettings>
 
 #include "recentsessionstore.h"
+#include "settingsstore.h"
 
 namespace {
 const char recentKey[] = "session/recent";
@@ -31,7 +31,7 @@ QString normalize(const QString &path)
 ///
 QStringList RecentSessionStore::sessions() const
 {
-    QSettings settings;
+    SettingsStore settings;
     return settings.value(QLatin1String(recentKey)).toStringList();
 }
 
@@ -51,7 +51,7 @@ void RecentSessionStore::record(const QString &path)
     while (recent.size() > maximumSize)
         recent.removeLast();
 
-    QSettings settings;
+    SettingsStore settings;
     settings.setValue(QLatin1String(recentKey), recent);
     settings.sync();
 }
@@ -67,7 +67,7 @@ void RecentSessionStore::remove(const QString &path)
     if (recent.removeAll(canonical) == 0)
         return;
 
-    QSettings settings;
+    SettingsStore settings;
     settings.setValue(QLatin1String(recentKey), recent);
     settings.sync();
 }

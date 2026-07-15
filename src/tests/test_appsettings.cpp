@@ -11,6 +11,7 @@
 #include <QTest>
 
 #include "appsettings.h"
+#include "settingsstore.h"
 
 ///
 /// \brief Unit tests for the central application settings store.
@@ -58,7 +59,7 @@ void TestAppSettings::initTestCase()
 ///
 void TestAppSettings::cleanup()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.clear();
 }
 

@@ -23,6 +23,7 @@
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/recentconnectionstore.h"
+#include "settingsstore.h"
 
 ///
 /// \brief Backend double that records connection calls and drives discovery manually.
@@ -216,7 +217,7 @@ void TestConnectionCoordinator::initTestCase()
 ///
 void TestConnectionCoordinator::cleanup()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.clear();
 }
 

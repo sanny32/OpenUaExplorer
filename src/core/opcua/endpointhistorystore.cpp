@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
-#include <QSettings>
-
 #include "endpointhistorystore.h"
+#include "settingsstore.h"
 
 namespace {
 constexpr auto lastEndpointUrlKey = "connectionDialog/lastEndpointUrl";
@@ -17,7 +16,7 @@ constexpr int maximumEndpointHistorySize = 10;
 ///
 QStringList EndpointHistoryStore::history() const
 {
-    QSettings settings;
+    SettingsStore settings;
     QStringList result =
         settings.value(QLatin1String(endpointUrlHistoryKey)).toStringList();
     const QString lastEndpoint =
@@ -39,7 +38,7 @@ void EndpointHistoryStore::save(const QString &endpointUrl) const
     if (normalized.isEmpty())
         return;
 
-    QSettings settings;
+    SettingsStore settings;
     QStringList result =
         settings.value(QLatin1String(endpointUrlHistoryKey)).toStringList();
     result.removeAll(normalized);
@@ -61,7 +60,7 @@ void EndpointHistoryStore::remove(const QString &endpointUrl) const
     if (normalized.isEmpty())
         return;
 
-    QSettings settings;
+    SettingsStore settings;
     QStringList result =
         settings.value(QLatin1String(endpointUrlHistoryKey)).toStringList();
     result.removeAll(normalized);

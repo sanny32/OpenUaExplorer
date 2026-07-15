@@ -27,6 +27,7 @@
 #include "application.h"
 #include "mainwindow.h"
 #include "opcua/opcuatypes.h"
+#include "settingsstore.h"
 
 ///
 /// \brief Verifies the theme action, the Theme submenu and AppTheme's mode switching.
@@ -69,7 +70,7 @@ void TestMainWindowTheme::initTestCase()
 ///
 void TestMainWindowTheme::cleanup()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.clear();
 }
 

@@ -22,6 +22,7 @@
 #include "application.h"
 #include "appsettings.h"
 #include "dialogs/settingsdialog.h"
+#include "settingsstore.h"
 #include "widgets/dialogbuttonbox.h"
 #include "widgets/themepreviewbutton.h"
 
@@ -63,7 +64,7 @@ void TestSettingsDialog::initTestCase()
 ///
 void TestSettingsDialog::cleanup()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.clear();
 }
 

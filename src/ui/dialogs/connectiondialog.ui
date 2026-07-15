@@ -65,7 +65,12 @@
               </property>
               <item>
                <property name="text">
-                <string>opc.tcp://localhost:4840</string>
+                <string>opc.tcp://uademo.prosysopc.com:53530/OPCUA/SimulationServer</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>opc.tcp://opcua.demo-this.com:51210/UA/SampleServer</string>
                </property>
               </item>
              </widget>
@@ -592,36 +597,36 @@
                 <string>Certificate:</string>
                </property>
                <property name="alignment">
-                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
                </property>
                <property name="certCaption" stdset="0">
                 <bool>true</bool>
                </property>
               </widget>
              </item>
-              <item>
-               <widget class="QComboBox" name="clientCertificateComboBox">
-                <item>
-                 <property name="text">
-                  <string>Auto-select</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>Default client certificate</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item>
-               <widget class="ThemedPushButton" name="clientCertificateViewButton">
+             <item>
+              <widget class="QComboBox" name="clientCertificateComboBox">
+               <item>
                 <property name="text">
-                 <string>View...</string>
+                 <string>Auto-select</string>
                 </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Default client certificate</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item>
+              <widget class="ThemedPushButton" name="clientCertificateViewButton">
+               <property name="text">
+                <string>View...</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
            <item>
             <widget class="CertificateSummaryWidget" name="clientCertificateWidget" native="true"/>
            </item>
@@ -631,7 +636,7 @@
         <item>
          <widget class="Line" name="certificateSectionLine">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
@@ -659,7 +664,7 @@
            <item>
             <widget class="Line" name="serverTrustLine">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
@@ -690,7 +695,7 @@
                  <string>Trust status:</string>
                 </property>
                 <property name="alignment">
-                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                 <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
                 </property>
                </widget>
               </item>
@@ -711,7 +716,7 @@
                    <string/>
                   </property>
                   <property name="alignment">
-                   <set>Qt::AlignCenter</set>
+                   <set>Qt::AlignmentFlag::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
@@ -731,7 +736,7 @@
                 <item>
                  <spacer name="serverTrustSpacer">
                   <property name="orientation">
-                   <enum>Qt::Horizontal</enum>
+                   <enum>Qt::Orientation::Horizontal</enum>
                   </property>
                   <property name="sizeHint" stdset="0">
                    <size>
@@ -772,7 +777,7 @@
         <item>
          <spacer name="certificatesBottomSpacer">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -790,10 +795,10 @@
    <item>
     <widget class="QFrame" name="statusSeparator">
      <property name="frameShape">
-      <enum>QFrame::HLine</enum>
+      <enum>QFrame::Shape::HLine</enum>
      </property>
      <property name="frameShadow">
-      <enum>QFrame::Sunken</enum>
+      <enum>QFrame::Shadow::Sunken</enum>
      </property>
     </widget>
    </item>
@@ -823,7 +828,7 @@
         <string/>
        </property>
        <property name="alignment">
-        <set>Qt::AlignCenter</set>
+        <set>Qt::AlignmentFlag::AlignCenter</set>
        </property>
       </widget>
      </item>
@@ -837,7 +842,7 @@
      <item>
       <spacer name="bottomSpacer">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -880,9 +885,10 @@
    <header>widgets/coloredpushbutton.h</header>
   </customwidget>
   <customwidget>
-   <class>HistoryComboBox</class>
-   <extends>QComboBox</extends>
-   <header>widgets/historycombobox.h</header>
+   <class>CertificateSummaryWidget</class>
+   <extends>QWidget</extends>
+   <header>widgets/certificatesummarywidget.h</header>
+   <container>1</container>
   </customwidget>
   <customwidget>
    <class>ThemedIconLabel</class>
@@ -896,10 +902,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>CertificateSummaryWidget</class>
-   <extends>QWidget</extends>
-   <header>widgets/certificatesummarywidget.h</header>
-   <container>1</container>
+   <class>HistoryComboBox</class>
+   <extends>QComboBox</extends>
+   <header>widgets/historycombobox.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>

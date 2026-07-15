@@ -36,8 +36,7 @@ Application::Application(int &argc, char **argv)
     configureCertificateStore();
 #endif
 
-    setOrganizationName(QStringLiteral(APP_PRODUCT_NAME));
-    setApplicationName(QStringLiteral(APP_VERSION));
+    setApplicationName(QStringLiteral(APP_PRODUCT_NAME));
     setApplicationVersion(QStringLiteral(APP_VERSION));
 
 #if defined(HAVE_QLEMENTINE_APP_STYLE) && defined(Q_OS_MAC)

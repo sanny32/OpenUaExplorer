@@ -11,6 +11,7 @@
 #include "application.h"
 #include "mainwindow.h"
 #include "session/recentsessionstore.h"
+#include "settingsstore.h"
 
 class TestMainWindowSession : public QObject
 {
@@ -39,7 +40,7 @@ void TestMainWindowSession::initTestCase()
 
 void TestMainWindowSession::cleanup()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.clear();
 }
 

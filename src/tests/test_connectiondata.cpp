@@ -16,6 +16,7 @@
 #include "opcua/connectionprofilevalidator.h"
 #include "opcua/endpointhistorystore.h"
 #include "models/endpointmodel.h"
+#include "settingsstore.h"
 
 namespace {
 const QTimeZone kUtc = QTimeZone::UTC;
@@ -57,7 +58,7 @@ void TestConnectionData::initTestCase()
 
 void TestConnectionData::cleanup()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.clear();
 }
 

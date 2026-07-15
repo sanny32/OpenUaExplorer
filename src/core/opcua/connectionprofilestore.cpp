@@ -9,9 +9,8 @@
 #include <algorithm>
 #include <limits>
 
-#include <QSettings>
-
 #include "connectionprofilestore.h"
+#include "settingsstore.h"
 
 namespace {
 const char profilesGroup[] = "opcua/profiles";
@@ -24,7 +23,7 @@ const char favoritesOrderKey[] = "opcua/favoritesOrder";
 ///
 QList<ConnectionProfile> ConnectionProfileStore::profiles() const
 {
-    QSettings settings;
+    SettingsStore settings;
     QList<ConnectionProfile> result;
     settings.beginGroup(QLatin1String(profilesGroup));
     const QStringList ids = settings.childGroups();
@@ -85,7 +84,7 @@ bool ConnectionProfileStore::save(const ConnectionProfile &profile)
     if (profile.id.isEmpty())
         return false;
 
-    QSettings settings;
+    SettingsStore settings;
     settings.beginGroup(QLatin1String(profilesGroup));
     settings.beginGroup(profile.id);
     settings.setValue(QStringLiteral("name"), profile.name);
@@ -119,7 +118,7 @@ bool ConnectionProfileStore::save(const ConnectionProfile &profile)
 ///
 bool ConnectionProfileStore::remove(const QString &id)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.beginGroup(QLatin1String(profilesGroup));
     settings.remove(id);
     settings.endGroup();
@@ -139,7 +138,7 @@ bool ConnectionProfileStore::remove(const QString &id)
 ///
 bool ConnectionProfileStore::setOrder(const QStringList &orderedIds)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.setValue(QLatin1String(favoritesOrderKey), orderedIds);
     settings.sync();
     return settings.status() == QSettings::NoError;
