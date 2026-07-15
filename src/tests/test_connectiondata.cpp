@@ -32,6 +32,7 @@ class TestConnectionData : public QObject
 private slots:
     void initTestCase();
     void cleanup();
+    void defaultsSeedOnlyUninitializedHistory();
     void endpointHistoryIsDeduplicatedAndBounded();
     void removedEndpointDoesNotReturnAsLastUsed();
     void endpointModelExposesSelectionRoles();
@@ -60,6 +61,25 @@ void TestConnectionData::cleanup()
 {
     SettingsStore settings;
     settings.clear();
+}
+
+///
+/// \brief Verifies that clearing initial defaults does not seed them again.
+///
+void TestConnectionData::defaultsSeedOnlyUninitializedHistory()
+{
+    EndpointHistoryStore store;
+    const QString first = QStringLiteral("opc.tcp://first:4840");
+    const QString second = QStringLiteral("opc.tcp://second:4840");
+
+    store.seedIfUninitialized({first, second});
+    QCOMPARE(store.history(), QStringList({first, second}));
+
+    store.remove(first);
+    store.remove(second);
+    store.seedIfUninitialized({QStringLiteral("opc.tcp://replacement:4840")});
+
+    QVERIFY(store.history().isEmpty());
 }
 
 void TestConnectionData::endpointHistoryIsDeduplicatedAndBounded()

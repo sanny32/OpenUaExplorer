@@ -33,6 +33,7 @@
 #include "appsettings.h"
 #include "dialogs/connectiondialog.h"
 #include "models/endpointmodel.h"
+#include "opcua/endpointhistorystore.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/pkimanager.h"
 #include "settingsstore.h"
@@ -85,6 +86,8 @@ class TestConnectionDialog : public QObject
 private slots:
     void initTestCase();
     void cleanup();
+    void designerEndpointsSeedEmptyHistory();
+    void clearedEndpointHistoryStaysEmpty();
     void usernamePasswordDefaultsAreEmpty();
     void discoveryPopulatesEndpointModelAndAuthentication();
     void clientCertificateActionFollowsSelection();
@@ -255,6 +258,44 @@ void TestConnectionDialog::cleanup()
 {
     SettingsStore settings;
     settings.clear();
+}
+
+///
+/// \brief Verifies that every endpoint declared in the UI seeds an empty history.
+///
+void TestConnectionDialog::designerEndpointsSeedEmptyHistory()
+{
+    ConnectionDialog dialog;
+    auto *endpoints = dialog.findChild<QComboBox *>(QStringLiteral("discoveryUrlComboBox"));
+    QVERIFY(endpoints);
+
+    QCOMPARE(endpoints->count(), 2);
+    QCOMPARE(endpoints->itemText(0),
+             QStringLiteral("opc.tcp://uademo.prosysopc.com:53530/OPCUA/SimulationServer"));
+    QCOMPARE(endpoints->itemText(1),
+             QStringLiteral("opc.tcp://opcua.demo-this.com:51210/UA/SampleServer"));
+}
+
+///
+/// \brief Verifies that removing every initial endpoint leaves later dialogs empty.
+///
+void TestConnectionDialog::clearedEndpointHistoryStaysEmpty()
+{
+    ConnectionDialog initialDialog;
+    auto *initialEndpoints = initialDialog.findChild<QComboBox *>(
+        QStringLiteral("discoveryUrlComboBox"));
+    QVERIFY(initialEndpoints);
+
+    EndpointHistoryStore store;
+    for (int index = 0; index < initialEndpoints->count(); ++index)
+        store.remove(initialEndpoints->itemText(index));
+
+    ConnectionDialog reopenedDialog;
+    auto *reopenedEndpoints = reopenedDialog.findChild<QComboBox *>(
+        QStringLiteral("discoveryUrlComboBox"));
+    QVERIFY(reopenedEndpoints);
+    QCOMPARE(reopenedEndpoints->count(), 0);
+    QVERIFY(reopenedEndpoints->currentText().isEmpty());
 }
 
 void TestConnectionDialog::usernamePasswordDefaultsAreEmpty()

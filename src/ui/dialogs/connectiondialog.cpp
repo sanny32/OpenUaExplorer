@@ -93,13 +93,16 @@ void ConnectionDialog::saveSessionDefaults()
 ///
 void ConnectionDialog::setupEndpointHistory()
 {
-    QStringList endpointHistory = _endpointHistoryStore.history();
-    if (endpointHistory.isEmpty())
-        endpointHistory.append(ui->discoveryUrlComboBox->currentText());
+    QStringList defaultEndpoints;
+    for (int index = 0; index < ui->discoveryUrlComboBox->count(); ++index)
+        defaultEndpoints.append(ui->discoveryUrlComboBox->itemText(index));
+
+    _endpointHistoryStore.seedIfUninitialized(defaultEndpoints);
+    const QStringList endpointHistory = _endpointHistoryStore.history();
 
     ui->discoveryUrlComboBox->clear();
     ui->discoveryUrlComboBox->addItems(endpointHistory);
-    _lastEnteredEndpointUrl = endpointHistory.constFirst();
+    _lastEnteredEndpointUrl = endpointHistory.isEmpty() ? QString() : endpointHistory.constFirst();
     ui->discoveryUrlComboBox->setEditText(_lastEnteredEndpointUrl);
 }
 
