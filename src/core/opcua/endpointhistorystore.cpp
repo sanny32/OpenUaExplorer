@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
-#include <QSettings>
-
 #include "endpointhistorystore.h"
+#include "settingsstore.h"
 
 namespace {
 constexpr auto lastEndpointUrlKey = "connectionDialog/lastEndpointUrl";
@@ -12,12 +11,37 @@ constexpr int maximumEndpointHistorySize = 10;
 }
 
 ///
+/// \brief Stores default endpoint URLs only when history settings do not exist yet.
+/// \param endpointUrls Default URLs shown on the first application run.
+///
+void EndpointHistoryStore::seedIfUninitialized(const QStringList &endpointUrls) const
+{
+    SettingsStore settings;
+    if (settings.contains(QLatin1String(endpointUrlHistoryKey))
+        || settings.contains(QLatin1String(lastEndpointUrlKey))) {
+        return;
+    }
+
+    QStringList result;
+    for (const QString &endpointUrl : endpointUrls) {
+        const QString normalized = endpointUrl.trimmed();
+        if (!normalized.isEmpty() && !result.contains(normalized))
+            result.append(normalized);
+        if (result.size() == maximumEndpointHistorySize)
+            break;
+    }
+
+    settings.setValue(QLatin1String(endpointUrlHistoryKey), result);
+    settings.sync();
+}
+
+///
 /// \brief Returns the endpoint URL history, with the last-used URL moved to the front.
 /// \return Most-recent-first list of endpoint URLs.
 ///
 QStringList EndpointHistoryStore::history() const
 {
-    QSettings settings;
+    SettingsStore settings;
     QStringList result =
         settings.value(QLatin1String(endpointUrlHistoryKey)).toStringList();
     const QString lastEndpoint =
@@ -39,7 +63,7 @@ void EndpointHistoryStore::save(const QString &endpointUrl) const
     if (normalized.isEmpty())
         return;
 
-    QSettings settings;
+    SettingsStore settings;
     QStringList result =
         settings.value(QLatin1String(endpointUrlHistoryKey)).toStringList();
     result.removeAll(normalized);
@@ -61,7 +85,7 @@ void EndpointHistoryStore::remove(const QString &endpointUrl) const
     if (normalized.isEmpty())
         return;
 
-    QSettings settings;
+    SettingsStore settings;
     QStringList result =
         settings.value(QLatin1String(endpointUrlHistoryKey)).toStringList();
     result.removeAll(normalized);

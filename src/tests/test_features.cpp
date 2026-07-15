@@ -19,6 +19,7 @@
 #include "features/selectioncontext.h"
 #include "mainwindow.h"
 #include "opcua/opcuatypes.h"
+#include "settingsstore.h"
 
 ///
 /// \brief Tests feature-hosted UI contributions.
@@ -62,7 +63,7 @@ void TestFeatures::initTestCase()
 ///
 void TestFeatures::cleanup()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.clear();
 }
 

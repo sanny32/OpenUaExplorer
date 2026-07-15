@@ -21,6 +21,7 @@
 #include "features/selectioncontext.h"
 #include "opcua/opcuabackend.h"
 #include "servicecontext.h"
+#include "settingsstore.h"
 #include "widgets/dataview.h"
 #include "widgets/trendpanelwidget.h"
 
@@ -174,7 +175,7 @@ void TestDataAccessCoordinator::initTestCase()
 ///
 void TestDataAccessCoordinator::cleanup()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.clear();
 }
 

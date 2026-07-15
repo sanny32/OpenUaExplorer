@@ -8,9 +8,8 @@
 
 #include <algorithm>
 
-#include <QSettings>
-
 #include "recentconnectionstore.h"
+#include "settingsstore.h"
 
 namespace {
 const char recentArrayKey[] = "opcua/recent";
@@ -81,7 +80,7 @@ void writeProfile(QSettings &settings, const ConnectionProfile &profile)
 ///
 QList<ConnectionProfile> RecentConnectionStore::connections() const
 {
-    QSettings settings;
+    SettingsStore settings;
     QList<ConnectionProfile> result;
     const int count = settings.beginReadArray(QLatin1String(recentArrayKey));
     for (int index = 0; index < count; ++index) {
@@ -112,7 +111,7 @@ void RecentConnectionStore::record(const ConnectionProfile &profile)
     while (recent.size() > maximumSize)
         recent.removeLast();
 
-    QSettings settings;
+    SettingsStore settings;
     settings.remove(QLatin1String(recentArrayKey));
     settings.beginWriteArray(QLatin1String(recentArrayKey), recent.size());
     for (int index = 0; index < recent.size(); ++index) {

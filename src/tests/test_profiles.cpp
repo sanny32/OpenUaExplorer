@@ -12,6 +12,7 @@
 
 #include "opcua/connectionprofilestore.h"
 #include "opcua/recentconnectionstore.h"
+#include "settingsstore.h"
 
 ///
 /// \brief Unit tests for persistent connection profile storage.
@@ -67,7 +68,7 @@ void TestProfiles::initTestCase()
 ///
 void TestProfiles::cleanup()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.clear();
     settings.sync();
 }
@@ -218,13 +219,13 @@ void TestProfiles::removingProfileClearsSettingsKeys()
     QVERIFY(store.save(makeProfile(QStringLiteral("p1"), QStringLiteral("One"))));
 
     {
-        QSettings settings;
+        SettingsStore settings;
         QVERIFY(!settings.allKeys().filter(QStringLiteral("p1")).isEmpty());
     }
 
     QVERIFY(store.remove(QStringLiteral("p1")));
 
-    QSettings settings;
+    SettingsStore settings;
     QVERIFY(settings.allKeys().filter(QStringLiteral("p1")).isEmpty());
 }
 
@@ -280,7 +281,7 @@ void TestProfiles::removingProfilePrunesStoredOrder()
 
     QVERIFY(store.remove(QStringLiteral("p1")));
 
-    QSettings settings;
+    SettingsStore settings;
     const QStringList order =
         settings.value(QStringLiteral("opcua/favoritesOrder")).toStringList();
     QCOMPARE(order, QStringList{QStringLiteral("p2")});

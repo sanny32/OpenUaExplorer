@@ -7,10 +7,10 @@
 ///
 
 #include <QObject>
-#include <QSettings>
 #include <QStringList>
 
 #include "appsettings.h"
+#include "settingsstore.h"
 
 namespace {
 constexpr auto themeModeKey = "appearance/themeMode";
@@ -40,7 +40,7 @@ constexpr auto subscriptionIntervalKey = "interval";
 ///
 AppSettings::ThemeMode AppSettings::themeMode() const
 {
-    QSettings settings;
+    SettingsStore settings;
     const int mode = settings.value(QLatin1String(themeModeKey),
                                     static_cast<int>(ThemeMode::System)).toInt();
     switch (mode) {
@@ -59,7 +59,7 @@ AppSettings::ThemeMode AppSettings::themeMode() const
 ///
 void AppSettings::setThemeMode(ThemeMode mode)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.setValue(QLatin1String(themeModeKey), static_cast<int>(mode));
 }
 
@@ -69,7 +69,7 @@ void AppSettings::setThemeMode(ThemeMode mode)
 ///
 AppSettings::TimestampMode AppSettings::timestampMode() const
 {
-    QSettings settings;
+    SettingsStore settings;
     const int mode = settings.value(QLatin1String(timestampModeKey),
                                     static_cast<int>(TimestampMode::Utc)).toInt();
     switch (mode) {
@@ -86,7 +86,7 @@ AppSettings::TimestampMode AppSettings::timestampMode() const
 ///
 void AppSettings::setTimestampMode(TimestampMode mode)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.setValue(QLatin1String(timestampModeKey), static_cast<int>(mode));
 }
 
@@ -166,7 +166,7 @@ QVector<AppSettings::LogCategory> AppSettings::availableLogCategories()
 ///
 QHash<QString, bool> AppSettings::logCategoryStates() const
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.beginGroup(QLatin1String(loggingGroup));
     QHash<QString, bool> states;
     const QVector<LogCategory> categories = availableLogCategories();
@@ -182,7 +182,7 @@ QHash<QString, bool> AppSettings::logCategoryStates() const
 ///
 void AppSettings::setLogCategoryStates(const QHash<QString, bool> &states)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.beginGroup(QLatin1String(loggingGroup));
     for (auto it = states.cbegin(); it != states.cend(); ++it)
         settings.setValue(it.key(), it.value());
@@ -213,7 +213,7 @@ QString AppSettings::logFilterRules() const
 ///
 AppSettings::SessionDefaults AppSettings::sessionDefaults() const
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.beginGroup(QLatin1String(sessionDefaultsGroup));
     SessionDefaults defaults;
     defaults.sessionTimeoutMs =
@@ -237,7 +237,7 @@ AppSettings::SessionDefaults AppSettings::sessionDefaults() const
 ///
 void AppSettings::setSessionDefaults(const SessionDefaults &defaults)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.beginGroup(QLatin1String(sessionDefaultsGroup));
     settings.setValue(QLatin1String(sessionTimeoutKey), defaults.sessionTimeoutMs);
     settings.setValue(QLatin1String(endpointTimeoutKey), defaults.endpointTimeoutMs);
@@ -253,7 +253,7 @@ void AppSettings::setSessionDefaults(const SessionDefaults &defaults)
 ///
 QByteArray AppSettings::windowGeometry() const
 {
-    QSettings settings;
+    SettingsStore settings;
     return settings.value(QLatin1String(windowGeometryKey)).toByteArray();
 }
 
@@ -263,7 +263,7 @@ QByteArray AppSettings::windowGeometry() const
 ///
 void AppSettings::setWindowGeometry(const QByteArray &geometry)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.setValue(QLatin1String(windowGeometryKey), geometry);
 }
 
@@ -273,7 +273,7 @@ void AppSettings::setWindowGeometry(const QByteArray &geometry)
 ///
 QByteArray AppSettings::windowState() const
 {
-    QSettings settings;
+    SettingsStore settings;
     return settings.value(QLatin1String(windowStateKey)).toByteArray();
 }
 
@@ -283,7 +283,7 @@ QByteArray AppSettings::windowState() const
 ///
 void AppSettings::setWindowState(const QByteArray &state)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.setValue(QLatin1String(windowStateKey), state);
 }
 
@@ -293,7 +293,7 @@ void AppSettings::setWindowState(const QByteArray &state)
 ///
 QByteArray AppSettings::centralSplitterState() const
 {
-    QSettings settings;
+    SettingsStore settings;
     return settings.value(QLatin1String(centralSplitterKey)).toByteArray();
 }
 
@@ -303,7 +303,7 @@ QByteArray AppSettings::centralSplitterState() const
 ///
 void AppSettings::setCentralSplitterState(const QByteArray &state)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.setValue(QLatin1String(centralSplitterKey), state);
 }
 
@@ -313,7 +313,7 @@ void AppSettings::setCentralSplitterState(const QByteArray &state)
 ///
 int AppSettings::dataAccessPage() const
 {
-    QSettings settings;
+    SettingsStore settings;
     return settings.value(QLatin1String(dataAccessPageKey), 0).toInt();
 }
 
@@ -323,7 +323,7 @@ int AppSettings::dataAccessPage() const
 ///
 void AppSettings::setDataAccessPage(int page)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.setValue(QLatin1String(dataAccessPageKey), page);
 }
 
@@ -333,7 +333,7 @@ void AppSettings::setDataAccessPage(int page)
 ///
 bool AppSettings::restoreLayoutOnStartup() const
 {
-    QSettings settings;
+    SettingsStore settings;
     return settings.value(QLatin1String(restoreLayoutKey), true).toBool();
 }
 
@@ -343,7 +343,7 @@ bool AppSettings::restoreLayoutOnStartup() const
 ///
 void AppSettings::setRestoreLayoutOnStartup(bool enabled)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.setValue(QLatin1String(restoreLayoutKey), enabled);
 }
 
@@ -353,7 +353,7 @@ void AppSettings::setRestoreLayoutOnStartup(bool enabled)
 ///
 QVector<SubscriptionItem> AppSettings::customSubscriptions() const
 {
-    QSettings settings;
+    SettingsStore settings;
     QVector<SubscriptionItem> subscriptions;
     const int count = settings.beginReadArray(QLatin1String(subscriptionsGroup));
     subscriptions.reserve(count);
@@ -376,7 +376,7 @@ QVector<SubscriptionItem> AppSettings::customSubscriptions() const
 ///
 void AppSettings::setCustomSubscriptions(const QVector<SubscriptionItem> &subscriptions)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.remove(QLatin1String(subscriptionsGroup));
     settings.beginWriteArray(QLatin1String(subscriptionsGroup));
     int index = 0;
@@ -397,7 +397,7 @@ void AppSettings::setCustomSubscriptions(const QVector<SubscriptionItem> &subscr
 ///
 QByteArray AppSettings::viewState(const QString &viewKey) const
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.beginGroup(QLatin1String(viewStateGroup));
     return settings.value(viewKey).toByteArray();
 }
@@ -409,7 +409,7 @@ QByteArray AppSettings::viewState(const QString &viewKey) const
 ///
 void AppSettings::setViewState(const QString &viewKey, const QByteArray &state)
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.beginGroup(QLatin1String(viewStateGroup));
     settings.setValue(viewKey, state);
 }
@@ -421,7 +421,7 @@ void AppSettings::setViewState(const QString &viewKey, const QByteArray &state)
 ///
 void AppSettings::clearLayout()
 {
-    QSettings settings;
+    SettingsStore settings;
     settings.remove(QLatin1String(windowGeometryKey));
     settings.remove(QLatin1String(windowStateKey));
     settings.remove(QLatin1String(centralSplitterKey));

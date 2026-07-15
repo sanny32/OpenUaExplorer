@@ -29,6 +29,7 @@
 #include "opcua/standardnodeid.h"
 #include "models/addressspacemodel.h"
 #include "models/attributesmodel.h"
+#include "settingsstore.h"
 
 ///
 /// \brief Unit tests for transport-neutral OPC UA components.
@@ -90,7 +91,7 @@ void TestOpcUa::profileRoundTripDoesNotStoreSecrets()
     QCOMPARE(profiles.first().endpointUrl, profile.endpointUrl);
     QCOMPARE(profiles.first().username, profile.username);
 
-    QSettings settings;
+    SettingsStore settings;
     for (const QString &key : settings.allKeys()) {
         QVERIFY2(!key.contains(QStringLiteral("password"), Qt::CaseInsensitive),
                  qPrintable(key));

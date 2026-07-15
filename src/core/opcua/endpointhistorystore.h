@@ -12,6 +12,12 @@ class EndpointHistoryStore
 {
 public:
     ///
+    /// \brief Stores default endpoint URLs only when history settings do not exist yet.
+    /// \param endpointUrls Default URLs shown on the first application run.
+    ///
+    void seedIfUninitialized(const QStringList &endpointUrls) const;
+
+    ///
     /// \brief Returns the endpoint URL history, with the last-used URL moved to the front.
     /// \return Most-recent-first list of endpoint URLs.
     ///
