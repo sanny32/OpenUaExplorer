@@ -9,10 +9,12 @@
 #include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
+#include <QIcon>
 #include <QStandardPaths>
 #include <QTest>
 
 #include "application.h"
+#include "appicons.h"
 #include "opcua/pkimanager.h"
 
 ///
@@ -24,6 +26,7 @@ class TestApplication : public QObject
 
 private slots:
     void startupGeneratesClientCertificate();
+    void applicationIconMatchesPlatform();
 };
 
 ///
@@ -40,6 +43,21 @@ void TestApplication::startupGeneratesClientCertificate()
         QFileInfo(QCoreApplication::applicationFilePath()).completeBaseName();
     QCOMPARE(QFileInfo(certificateFile).completeBaseName(), executableBaseName);
     QCOMPARE(QFileInfo(privateKeyFile).completeBaseName(), executableBaseName);
+}
+
+///
+/// \brief Verifies the application icon uses Linux artwork only on Linux.
+///
+void TestApplication::applicationIconMatchesPlatform()
+{
+#ifdef Q_OS_LINUX
+    const QIcon expected(QStringLiteral(":/icons/linux/app.svg"));
+#else
+    const QIcon expected(QString(":/icons/%1/app.ico")
+                             .arg(AppIcons::isDarkTheme() ? "dark" : "light"));
+#endif
+    const QSize size(64, 64);
+    QCOMPARE(AppIcons::application().pixmap(size).toImage(), expected.pixmap(size).toImage());
 }
 
 namespace {

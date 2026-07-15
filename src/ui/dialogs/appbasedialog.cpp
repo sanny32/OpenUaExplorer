@@ -56,5 +56,5 @@ void AppBaseDialog::showEvent(QShowEvent *event)
 ///
 void AppBaseDialog::updateWindowIcon()
 {
-    setWindowIcon(AppIcons::themed("app.ico"));
+    setWindowIcon(AppIcons::application());
 }

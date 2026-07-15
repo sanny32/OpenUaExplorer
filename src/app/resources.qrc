@@ -46,6 +46,7 @@
         <file alias="icons/dark/variable.svg">res/icons/dark/variable.svg</file>
         <file alias="icons/dark/write.svg">res/icons/dark/write.svg</file>
         <file alias="app.ico">res/icons/light/app.ico</file>
+        <file alias="icons/linux/app.svg">res/icons/linux/app.svg</file>
         <file alias="icons/light/app.ico">res/icons/light/app.ico</file>
         <file alias="icons/dark/app.ico">res/icons/dark/app.ico</file>
         <file alias="icons/light/automation.png">res/icons/light/automation.png</file>

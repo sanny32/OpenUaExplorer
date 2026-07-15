@@ -116,7 +116,7 @@ void MainWindow::changeEvent(QEvent *event)
     QMainWindow::changeEvent(event);
 
     if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
-        setWindowIcon(AppIcons::themed("app.ico"));
+        setWindowIcon(AppIcons::application());
     }
 }
 
@@ -856,7 +856,7 @@ void MainWindow::initializeAddressSpace()
 ///
 void MainWindow::bindIcons()
 {
-    setWindowIcon(AppIcons::themed("app.ico"));
+    setWindowIcon(AppIcons::application());
     AppIcons::bindIcon(ui->actionConnect,     "connect");
     AppIcons::bindIcon(ui->actionDisconnect,  "disconnect");
     AppIcons::bindIcon(ui->actionBrowse,      "browse");
