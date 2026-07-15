@@ -140,8 +140,6 @@ jobs:
           rm -rf AppDir
           DESTDIR="$PWD/AppDir" cmake --install build --prefix /usr
 
-          cp -r .github/linux/usr/. AppDir/usr/
-
           metainfo=AppDir/usr/share/metainfo/io.github.sanny32.OpenUaExplorer.metainfo.xml
           mkdir -p "$(dirname "$metainfo")"
           sed -e "s|@VERSION@|${{ steps.version.outputs.appVersion }}|" \
@@ -154,6 +152,12 @@ jobs:
         run: |
           desktop-file-validate AppDir/usr/share/applications/*.desktop
           appstream-util validate-relax --nonet AppDir/usr/share/metainfo/*.metainfo.xml
+
+          test -f AppDir/usr/share/mime/packages/io.github.sanny32.OpenUaExplorer.xml
+          test -f AppDir/usr/share/icons/hicolor/scalable/apps/io.github.sanny32.OpenUaExplorer.svg
+          for size in 16 24 32 48 64 128 256; do
+            test -f "AppDir/usr/share/icons/hicolor/${size}x${size}/mimetypes/application-x-ouaexp-session.png"
+          done
 
       - name: Set up linuxdeployqt
         uses: ./.github/actions/setup-linuxdeployqt
