@@ -8,8 +8,16 @@ if(NOT DEFINED OPENSSL_ROOT_DIR)
     endif()
 endif()
 
-# Qt 5.15.2 builds against OpenSSL 1.1.1; Qt6 against 3.x.
-find_package(OpenSSL 1.1 REQUIRED COMPONENTS Crypto SSL)
+find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto SSL)
+
+# Derive the root from the found libraries so sub-builds (Qt OpcUa) locate the
+# same OpenSSL; on macOS Homebrew lives outside CMake's default search prefixes.
+if(APPLE AND NOT DEFINED OPENSSL_ROOT_DIR)
+    get_filename_component(_openssl_lib_dir "${OPENSSL_CRYPTO_LIBRARY}" DIRECTORY)
+    get_filename_component(_openssl_root "${_openssl_lib_dir}" DIRECTORY)
+    set(OPENSSL_ROOT_DIR "${_openssl_root}"
+        CACHE PATH "Root directory of the OpenSSL installation")
+endif()
 
 if(WIN32 AND TARGET OpenSSL::Crypto)
     file(GLOB OPENSSL_RUNTIME_FILES
