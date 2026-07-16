@@ -64,8 +64,8 @@ Theme MacThemeFactory::makeLightTheme()
 
     theme.neutralColor = QColor(kChromeStrong);
     theme.neutralColorHovered = QColor(kChromePressed);
-    theme.neutralColorPressed = QColor(0xc7c7cc);
-    theme.neutralColorDisabled = QColor(0xf2f2f7);
+    theme.neutralColorPressed = QColor(0xc7c7c7);
+    theme.neutralColorDisabled = QColor(kChrome);
     theme.neutralColorTransparent = transparent(kChromeStrong);
 
     theme.primaryColor = QColor(kBlue);
@@ -81,16 +81,16 @@ Theme MacThemeFactory::makeLightTheme()
     theme.primaryColorForegroundTransparent = transparent(kCanvas);
 
     theme.secondaryColor = QColor(kText);
-    theme.secondaryColorHovered = QColor(0x1c1c1e);
-    theme.secondaryColorPressed = QColor(0x2c2c2e);
+    theme.secondaryColorHovered = QColor(0x1c1c1c);
+    theme.secondaryColorPressed = QColor(0x2c2c2c);
     theme.secondaryColorDisabled = QColor(kDisabledText);
     theme.secondaryColorTransparent = transparent(kText);
 
-    theme.secondaryColorForeground = QColor(0x3c3c43);
+    theme.secondaryColorForeground = QColor(kIconNormal);
     theme.secondaryColorForegroundHovered = QColor(kBluePressed);
     theme.secondaryColorForegroundPressed = QColor(0x0051a8);
     theme.secondaryColorForegroundDisabled = QColor(kDisabledText);
-    theme.secondaryColorForegroundTransparent = transparent(0x3c3c43);
+    theme.secondaryColorForegroundTransparent = transparent(kIconNormal);
 
     theme.secondaryAlternativeColor = QColor(kMutedText);
     theme.secondaryAlternativeColorHovered = QColor(kText);
@@ -109,8 +109,8 @@ Theme MacThemeFactory::makeLightTheme()
 
     theme.borderColor = QColor(kBorder);
     theme.borderColorHovered = QColor(kBorderActive);
-    theme.borderColorPressed = QColor(0x9e9ea3);
-    theme.borderColorDisabled = QColor(0xe5e5ea);
+    theme.borderColorPressed = QColor(0x9e9e9e);
+    theme.borderColorDisabled = QColor(kChromeStrong);
     theme.borderColorTransparent = transparent(kBorder);
 
     theme.semiTransparentColor1 = alpha(kText, 0);

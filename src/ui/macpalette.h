@@ -19,27 +19,27 @@
 ///
 namespace MacPalette {
 
-/// Light mode macOS colors
+/// Light mode colors: neutral Qt Creator-like grays on a white canvas
 namespace Light {
     constexpr QRgb kCanvas         = 0xffffff;
-    constexpr QRgb kChrome         = 0xf2f2f7;
-    constexpr QRgb kChromeStrong   = 0xe5e5ea;
-    constexpr QRgb kChromePressed  = 0xd1d1d6;
-    constexpr QRgb kAlternateRow   = 0xf5f5f7;
-    constexpr QRgb kBorder         = 0xd1d1d6;
-    constexpr QRgb kBorderActive   = 0xaeaeb2;
+    constexpr QRgb kChrome         = 0xececec;
+    constexpr QRgb kChromeStrong   = 0xe4e4e4;
+    constexpr QRgb kChromePressed  = 0xd0d0d0;
+    constexpr QRgb kAlternateRow   = 0xf7f7f7;
+    constexpr QRgb kBorder         = 0xd0d0d0;
+    constexpr QRgb kBorderActive   = 0xa9a9a9;
     constexpr QRgb kText           = 0x000000;
-    constexpr QRgb kMutedText      = 0x8e8e93;
-    constexpr QRgb kDisabledText   = 0xc7c7cc;
+    constexpr QRgb kMutedText      = 0x8e8e8e;
+    constexpr QRgb kDisabledText   = 0xc7c7c7;
     constexpr QRgb kBlue           = 0x007aff;
     constexpr QRgb kBlueHover      = 0x1a8aff;
     constexpr QRgb kBluePressed    = 0x0062cc;
     constexpr QRgb kBlueDisabled   = 0xb3d7ff;
     constexpr QRgb kBlueDeepPress  = 0x0051a8;
     constexpr QRgb kGreen          = 0x34c759;
-    constexpr QRgb kIconNormal     = 0x3c3c43;
+    constexpr QRgb kIconNormal     = 0x3c3c3c;
     constexpr QRgb kIconActive     = 0x0062cc;
-    constexpr QRgb kChromeDimmed   = 0xf4f6f8;
+    constexpr QRgb kChromeDimmed   = 0xf2f2f2;
     constexpr QRgb kCanvasWarm     = 0xfefefe;
 }
 

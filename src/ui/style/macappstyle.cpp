@@ -400,12 +400,12 @@ QColor MacAppStyle::listItemBackgroundColor(MouseState mouse, SelectionState sel
     if (isDarkMode()) {
         using namespace Dark;
         if (isSelected)
-            return mouse == MouseState::Disabled ? QColor(0x3a3a3c) : QColor(0x0a3d73);
+            return mouse == MouseState::Disabled ? QColor(kChromeStrong) : QColor(kBlueDisabled);
         switch (mouse) {
             case MouseState::Hovered:
-                return QColor(0x3a3a3c);
+                return QColor(kChromeStrong);
             case MouseState::Pressed:
-                return QColor(0x48484a);
+                return QColor(kChromePressed);
             case MouseState::Disabled:
             case MouseState::Transparent:
             case MouseState::Normal:
@@ -417,12 +417,12 @@ QColor MacAppStyle::listItemBackgroundColor(MouseState mouse, SelectionState sel
     } else {
         using namespace Light;
         if (isSelected)
-            return mouse == MouseState::Disabled ? QColor(0xe5e5ea) : QColor(0xd9eaff);
+            return mouse == MouseState::Disabled ? QColor(kChromeStrong) : QColor(0xd9eaff);
         switch (mouse) {
             case MouseState::Hovered:
-                return QColor(0xf2f2f7);
+                return QColor(kChrome);
             case MouseState::Pressed:
-                return QColor(0xe5e5ea);
+                return QColor(kChromeStrong);
             case MouseState::Disabled:
             case MouseState::Transparent:
             case MouseState::Normal:
