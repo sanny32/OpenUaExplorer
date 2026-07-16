@@ -22,6 +22,7 @@
 #include <QHash>
 #include <QModelIndex>
 #include <QPainter>
+#include <QPainterPath>
 #include <QStyleOption>
 #include <QStyleOptionDockWidget>
 #include <QStyleOptionTab>
@@ -202,16 +203,25 @@ void MacAppStyle::drawControl(ControlElement element, const QStyleOption* option
 void MacAppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption* option,
                                  QPainter* painter, const QWidget* widget) const
 {
-    // ThemedToolButtons get a real macOS button bezel so toolbar commands read
-    // as buttons instead of plain text. The main window toolbar (MainToolButton)
-    // keeps its flat ribbon look. Checked buttons keep the base style's accent
-    // fill, so only the unchecked (secondary) background is replaced.
     if (element == PE_PanelButtonTool && option
         && qobject_cast<const ThemedToolButton*>(widget)
         && !qobject_cast<const MainToolButton*>(widget)
         && !option->state.testFlag(State_On)) {
         drawOutlinedToolButton(option, painter);
         return;
+    }
+
+    if (element == PE_FrameTabWidget && option) {
+        const QColor& canvas = isDarkMode() ? colorRef(Dark::kAlternateRow) : colorRef(Light::kAlternateRow);
+        const qreal radius = theme().borderRadius * 1.5;
+        QPainterPath path;
+        path.setFillRule(Qt::WindingFill);
+        path.addRoundedRect(QRectF(option->rect), radius, radius);
+        path.addRect(QRectF(option->rect).adjusted(0, 0, 0, -radius));
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing, true);
+        painter->fillPath(path.simplified(), canvas);
+        painter->restore();
     }
 
     QlementineAppStyle::drawPrimitive(element, option, painter, widget);
@@ -504,29 +514,29 @@ QColor const& MacAppStyle::tabBackgroundColor(MouseState mouse, SelectionState s
         using namespace Dark;
         switch (mouse) {
             case MouseState::Pressed:
-                return isSelected ? colorRef(kCanvas) : colorRef(kChromePressed);
+                return isSelected ? colorRef(kAlternateRow) : colorRef(kChromePressed);
             case MouseState::Hovered:
-                return isSelected ? colorRef(kCanvas) : colorRef(kChromeStrong);
+                return isSelected ? colorRef(kAlternateRow) : colorRef(kChromeStrong);
             case MouseState::Disabled:
                 return transparentRef(kChrome);
             case MouseState::Transparent:
             case MouseState::Normal:
             default:
-                return isSelected ? colorRef(kCanvas) : transparentRef(kChrome);
+                return isSelected ? colorRef(kAlternateRow) : transparentRef(kChrome);
         }
     } else {
         using namespace Light;
         switch (mouse) {
             case MouseState::Pressed:
-                return isSelected ? colorRef(kCanvas) : colorRef(kChromePressed);
+                return isSelected ? colorRef(kAlternateRow) : colorRef(kChromePressed);
             case MouseState::Hovered:
-                return isSelected ? colorRef(kCanvas) : colorRef(kChromeStrong);
+                return isSelected ? colorRef(kAlternateRow) : colorRef(kChromeStrong);
             case MouseState::Disabled:
                 return transparentRef(kChrome);
             case MouseState::Transparent:
             case MouseState::Normal:
             default:
-                return isSelected ? colorRef(kCanvas) : transparentRef(kChrome);
+                return isSelected ? colorRef(kAlternateRow) : transparentRef(kChrome);
         }
     }
 }
