@@ -1,0 +1,26 @@
+{
+  "name": "OpenUaExplorer",
+  "short_name": "OpenUaExplorer",
+  "description": "Open source OPC UA client for engineers",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1c62eb",
+  "icons": [
+    {
+      "src": "favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ]
+}

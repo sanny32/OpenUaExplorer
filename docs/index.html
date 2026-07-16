@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenUaExplorer — Open source OPC UA client for engineers</title>
+  <meta name="description" content="OpenUaExplorer is an open source OPC UA client for browsing, inspecting, and monitoring OPC UA servers. Available for Windows, Linux and macOS.">
+  <meta name="keywords" content="OPC UA, OPC UA client, OPC UA browser, OPC UA explorer, industrial automation, OpenUaExplorer">
+  <meta name="author" content="Alexandr Ananev">
+  <link rel="canonical" href="https://sanny32.github.io/OpenUaExplorer/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://sanny32.github.io/OpenUaExplorer/">
+  <meta property="og:title" content="OpenUaExplorer — Open source OPC UA client for engineers">
+  <meta property="og:description" content="Browse servers, read and write data, monitor values in real time and keep history — all in a modern and easy-to-use interface.">
+  <meta property="og:image" content="https://sanny32.github.io/OpenUaExplorer/assets/app-dark.png">
+  <link rel="icon" type="image/svg+xml" href="icons/logo_app.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root {
+      --accent: #1c62eb;
+      --accent-hover: #1554cf;
+      --accent-soft: #e8effc;
+      --text: #16233b;
+      --text-muted: #5b6b84;
+      --bg: #ffffff;
+      --bg-soft: #f4f7fb;
+      --border: #dfe6f0;
+      --card-radius: 14px;
+      --footer-bg: #0d1524;
+      --footer-text: #c4cddd;
+      --footer-muted: #8b98ae;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- Header ---------- */
+    header {
+      padding: 20px 0;
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .brand img { width: 40px; height: 40px; }
+    .brand:hover { text-decoration: none; }
+
+    .theme-switch {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .theme-switch-label {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+    .theme-toggle {
+      display: flex;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px;
+      box-shadow: 0 2px 8px rgba(22, 35, 59, 0.06);
+    }
+    .theme-toggle button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: inherit;
+      padding: 8px 18px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .theme-toggle button.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .theme-toggle button svg { width: 16px; height: 16px; }
+
+    /* ---------- Hero ---------- */
+    .hero {
+      position: relative;
+      padding: 48px 0 72px;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-bg::before {
+      content: "";
+      position: absolute;
+      left: -180px;
+      bottom: -260px;
+      width: 560px;
+      height: 560px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(28, 98, 235, 0.07) 0%, rgba(28, 98, 235, 0) 70%);
+    }
+    .hero-bg::after {
+      content: "";
+      position: absolute;
+      left: 40px;
+      top: 60px;
+      font-size: 300px;
+      font-weight: 800;
+      color: rgba(28, 98, 235, 0.04);
+      line-height: 1;
+    }
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(320px, 5fr) minmax(0, 7fr);
+      gap: 48px;
+      align-items: center;
+    }
+    .hero h1 {
+      font-size: clamp(2.1rem, 4.2vw, 3.1rem);
+      font-weight: 800;
+      line-height: 1.18;
+      letter-spacing: -0.02em;
+    }
+    .hero p.lead {
+      margin-top: 22px;
+      font-size: 1.08rem;
+      color: var(--text-muted);
+      max-width: 30rem;
+    }
+    .hero-actions {
+      margin-top: 34px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      padding: 13px 24px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+    .btn svg { width: 19px; height: 19px; flex-shrink: 0; }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: 1px solid var(--accent);
+      box-shadow: 0 6px 16px rgba(28, 98, 235, 0.28);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      text-decoration: none;
+    }
+    .btn-outline {
+      background: #fff;
+      color: var(--accent);
+      border: 1px solid #b9ccf5;
+    }
+    .btn-outline:hover {
+      border-color: var(--accent);
+      text-decoration: none;
+    }
+
+    .hero-shot {
+      border-radius: 12px;
+      box-shadow: 0 24px 60px rgba(13, 21, 36, 0.35), 0 4px 16px rgba(13, 21, 36, 0.18);
+      overflow: hidden;
+      line-height: 0;
+    }
+    .hero-shot img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* ---------- Features ---------- */
+    .features {
+      padding: 8px 0 32px;
+    }
+    .features-panel {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      box-shadow: 0 6px 24px rgba(22, 35, 59, 0.06);
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      padding: 40px 12px;
+    }
+    .feature {
+      text-align: center;
+      padding: 8px 18px;
+    }
+    .feature + .feature { border-left: 1px solid var(--border); }
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      margin: 0 auto 16px;
+      color: var(--accent);
+    }
+    .feature-icon svg { width: 100%; height: 100%; }
+    .feature h3 {
+      font-size: 1.02rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .feature p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ---------- Download ---------- */
+    .download {
+      padding: 72px 0 88px;
+    }
+    .download h2 {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+    .download .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-top: 10px;
+      font-size: 1.05rem;
+    }
+    .download .release-info {
+      text-align: center;
+      color: var(--text-muted);
+      margin-top: 8px;
+      font-size: 0.95rem;
+    }
+    .download .release-info a { font-weight: 600; }
+    .download-grid {
+      margin-top: 44px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+    .download-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 32px 28px;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(22, 35, 59, 0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .download-logo {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: var(--bg-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .download-logo img { width: 40px; height: 40px; }
+    .download-card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+    .download-card .platform-note {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      margin-top: 6px;
+      min-height: 3em;
+    }
+    .download-card .btn {
+      margin-top: 18px;
+      width: 100%;
+      justify-content: center;
+    }
+    .download-card .package-note {
+      margin-top: 14px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .download-card .package-note a { font-weight: 600; }
+
+    /* ---------- Footer ---------- */
+    footer {
+      background: var(--footer-bg);
+      color: var(--footer-text);
+      padding: 56px 0 48px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1.2fr 1fr;
+      gap: 40px;
+    }
+    footer h4 {
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    footer p, footer li {
+      font-size: 0.93rem;
+      color: var(--footer-text);
+      margin-bottom: 10px;
+    }
+    footer ul { list-style: none; }
+    footer a { color: var(--footer-text); }
+    footer a:hover { color: #fff; }
+    .footer-copyright {
+      margin-top: 24px;
+      color: var(--footer-muted);
+      font-size: 0.88rem;
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 1024px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-shot { max-width: 760px; }
+      .features-panel { grid-template-columns: repeat(3, 1fr); row-gap: 32px; }
+      .feature:nth-child(4) { border-left: none; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .features-panel { grid-template-columns: 1fr; }
+      .feature + .feature { border-left: none; border-top: 1px solid var(--border); padding-top: 28px; }
+      .download-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container header-inner">
+      <a class="brand" href="#">
+        <img src="icons/logo_app.svg" alt="OpenUaExplorer logo">
+        <span>OpenUaExplorer</span>
+      </a>
+      <div class="theme-switch">
+        <span class="theme-switch-label">App preview theme</span>
+        <div class="theme-toggle" role="group" aria-label="Application preview theme">
+          <button type="button" id="btn-dark" class="active" aria-pressed="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            Dark
+          </button>
+          <button type="button" id="btn-light" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            Light
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-bg" aria-hidden="true"></div>
+    <div class="container hero-inner">
+      <div>
+        <h1>Open source OPC&nbsp;UA client for&nbsp;engineers</h1>
+        <p class="lead">
+          Browse servers, read and write data, monitor values in real time
+          and keep history — all in a modern and easy-to-use interface.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="https://github.com/sanny32/OpenUaExplorer">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.7 5.39-5.26 5.68.41.35.77 1.05.77 2.12 0 1.53-.01 2.76-.01 3.14 0 .3.2.66.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></svg>
+            GitHub Repository
+          </a>
+          <a class="btn btn-outline" href="https://github.com/sanny32/OpenUaExplorer#readme">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+            Documentation
+          </a>
+        </div>
+      </div>
+      <div class="hero-shot">
+        <img id="app-screenshot" src="assets/app-dark.png"
+             alt="OpenUaExplorer main window with the address space tree, Data Access panel, a live trend graph and the activity log"
+             width="1522" height="972">
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="container">
+      <div class="features-panel">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </div>
+          <h3>Explore &amp; Browse</h3>
+          <p>Browse the address space with an intuitive tree view.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
+          </div>
+          <h3>Real-time Data</h3>
+          <p>Read, write and monitor values in real time.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+          </div>
+          <h3>History &amp; Events</h3>
+          <p>Access historical data and event notifications.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          </div>
+          <h3>Subscriptions</h3>
+          <p>Create subscriptions and monitor changes.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <h3>Secure by Design</h3>
+          <p>Built-in support for secure connections and encryption.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+          </div>
+          <h3>Cross-Platform</h3>
+          <p>Available for Windows, Linux and macOS.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="download" id="download">
+    <div class="container">
+      <h2>Download OpenUaExplorer</h2>
+      <p class="subtitle">Choose your platform and start exploring OPC UA today.</p>
+      <p class="release-info" id="release-info" hidden>
+        Latest release: <a id="release-link" href="https://github.com/sanny32/OpenUaExplorer/releases/latest"><span id="release-version"></span></a><span id="release-prerelease" hidden> (pre-release)</span>
+      </p>
+      <div class="download-grid">
+        <div class="download-card">
+          <div class="download-logo"><img src="icons/logo_windows.svg" alt="Windows"></div>
+          <h3>Windows</h3>
+          <p class="platform-note">For Windows 10 and 11 (64-bit)</p>
+          <a class="btn btn-outline" id="dl-windows" href="https://github.com/sanny32/OpenUaExplorer/releases/latest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Download for Windows
+          </a>
+          <p class="package-note">x64 installer</p>
+        </div>
+        <div class="download-card">
+          <div class="download-logo"><img src="icons/logo_linux.svg" alt="Linux"></div>
+          <h3>Linux</h3>
+          <p class="platform-note">For modern Linux distributions (64-bit)</p>
+          <a class="btn btn-outline" id="dl-linux" href="https://github.com/sanny32/OpenUaExplorer/releases/latest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Download for Linux
+          </a>
+          <p class="package-note">
+            <a id="dl-deb" href="https://github.com/sanny32/OpenUaExplorer/releases/latest">deb</a> /
+            <a id="dl-rpm" href="https://github.com/sanny32/OpenUaExplorer/releases/latest">rpm</a> /
+            <a id="dl-appimage" href="https://github.com/sanny32/OpenUaExplorer/releases/latest">AppImage</a>
+          </p>
+        </div>
+        <div class="download-card">
+          <div class="download-logo"><img src="icons/logo_apple.svg" alt="macOS"></div>
+          <h3>macOS</h3>
+          <p class="platform-note">For macOS 15+ (Apple silicon)</p>
+          <a class="btn btn-outline" id="dl-macos" href="https://github.com/sanny32/OpenUaExplorer/releases/latest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Download for macOS
+          </a>
+          <p class="package-note">Disk image (.dmg)</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <h4>OpenUaExplorer</h4>
+          <p>Open source OPC UA client for engineers.</p>
+          <p>Browse, read and analyze OPC UA servers.</p>
+          <p class="footer-copyright">© 2026 Alexandr Ananev. All rights reserved.</p>
+        </div>
+        <div>
+          <h4>Links</h4>
+          <ul>
+            <li><a href="https://github.com/sanny32/OpenUaExplorer">GitHub Repository</a></li>
+            <li><a href="https://github.com/sanny32/OpenUaExplorer/releases">Releases</a></li>
+            <li><a href="https://github.com/sanny32/OpenUaExplorer#readme">Documentation</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>License</h4>
+          <p>Licensed under the <a href="https://github.com/sanny32/OpenUaExplorer/blob/main/LICENSE">MIT License</a>.</p>
+          <p>Free to use, modify and distribute.</p>
+        </div>
+        <div>
+          <h4>Community</h4>
+          <ul>
+            <li><a href="https://github.com/sanny32/OpenUaExplorer/discussions">Discussions</a></li>
+            <li><a href="https://github.com/sanny32/OpenUaExplorer/blob/main/BUILDING.md">Building from source</a></li>
+            <li><a href="https://github.com/sanny32/OpenUaExplorer/issues">Report an Issue</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="site.js"></script>
+
+</body>
+</html>
