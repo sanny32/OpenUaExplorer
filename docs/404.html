@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page Not Found | OpenUaExplorer</title>
+    <link rel="icon" type="image/svg+xml" href="icons/logo_app.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f4f7fb;
+            color: #16233b;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .decor {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .decor-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: #e3ecf9;
+        }
+
+        .decor-circle.top-right {
+            width: 640px;
+            height: 640px;
+            top: -280px;
+            right: -220px;
+        }
+
+        .decor-circle.bottom-left {
+            width: 520px;
+            height: 520px;
+            bottom: -260px;
+            left: -200px;
+        }
+
+        .decor-circle.mid-left {
+            width: 260px;
+            height: 260px;
+            bottom: 18%;
+            left: -60px;
+            background: #e9f0fa;
+        }
+
+        .decor-dots {
+            position: absolute;
+            width: 180px;
+            height: 140px;
+            background-image: radial-gradient(#c9d6ea 2px, transparent 2px);
+            background-size: 22px 22px;
+        }
+
+        .decor-dots.left {
+            left: 24px;
+            top: 30%;
+        }
+
+        .decor-dots.right {
+            right: 40px;
+            bottom: 18%;
+        }
+
+        .container {
+            position: relative;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .brand {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo {
+            width: 72px;
+            height: 72px;
+        }
+
+        .brand-name {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #16233b;
+        }
+
+        h1 {
+            font-size: 7rem;
+            font-weight: 800;
+            color: #1c62eb;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #16233b;
+        }
+
+        p {
+            font-size: 1.1rem;
+            color: #5b6b84;
+            margin-bottom: 2.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.875rem 2.25rem;
+            background: #1c62eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #1554cf;
+        }
+    </style>
+</head>
+<body>
+    <div class="decor" aria-hidden="true">
+        <div class="decor-circle top-right"></div>
+        <div class="decor-circle bottom-left"></div>
+        <div class="decor-circle mid-left"></div>
+        <div class="decor-dots left"></div>
+        <div class="decor-dots right"></div>
+    </div>
+    <div class="container">
+        <div class="brand">
+            <img src="icons/logo_app.svg" alt="OpenUaExplorer Logo" class="logo">
+            <span class="brand-name">OpenUaExplorer</span>
+        </div>
+        <h1>404</h1>
+        <h2>Page Not Found</h2>
+        <p>The page you're looking for doesn't exist or may have been moved.</p>
+        <a href="./" class="btn">Go to Homepage</a>
+    </div>
+</body>
+</html>
