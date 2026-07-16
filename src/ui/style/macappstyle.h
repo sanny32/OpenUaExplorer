@@ -50,6 +50,12 @@ public:
                        QPainter* painter, const QWidget* widget = nullptr) const override;
 
     ///
+    /// \brief Runs base polishing, then keeps item-view icons in their original colours.
+    /// \param widget Widget being polished.
+    ///
+    void polish(QWidget* widget) override;
+
+    ///
     /// \brief Background colour for secondary buttons; primary roles defer to the base style.
     /// \param mouse Mouse interaction state.
     /// \param role Button colour role.

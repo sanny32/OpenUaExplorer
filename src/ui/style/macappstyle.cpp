@@ -16,6 +16,7 @@
 #include "widgets/themedtoolbutton.h"
 
 #include <QAbstractButton>
+#include <QAbstractItemView>
 #include <QBrush>
 #include <QDockWidget>
 #include <QFontDatabase>
@@ -225,6 +226,18 @@ void MacAppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption* op
     }
 
     QlementineAppStyle::drawPrimitive(element, option, painter, widget);
+}
+
+///
+/// \brief Runs base polishing, then keeps item-view icons in their original colours.
+/// \param widget Widget being polished.
+///
+void MacAppStyle::polish(QWidget* widget)
+{
+    QlementineAppStyle::polish(widget);
+
+    if (qobject_cast<QAbstractItemView*>(widget))
+        setAutoIconColor(widget, oclero::qlementine::AutoIconColor::None);
 }
 
 ///
