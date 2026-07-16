@@ -25,6 +25,7 @@ namespace Light {
     constexpr QRgb kChrome         = 0xf2f2f7;
     constexpr QRgb kChromeStrong   = 0xe5e5ea;
     constexpr QRgb kChromePressed  = 0xd1d1d6;
+    constexpr QRgb kAlternateRow   = 0xf5f5f7;
     constexpr QRgb kBorder         = 0xd1d1d6;
     constexpr QRgb kBorderActive   = 0xaeaeb2;
     constexpr QRgb kText           = 0x000000;
@@ -48,6 +49,7 @@ namespace Dark {
     constexpr QRgb kChrome         = 0x2c2c2e;
     constexpr QRgb kChromeStrong   = 0x3a3a3c;
     constexpr QRgb kChromePressed  = 0x48484a;
+    constexpr QRgb kAlternateRow   = 0x242426;
     constexpr QRgb kBorder         = 0x38383a;
     constexpr QRgb kBorderActive   = 0x545456;
     constexpr QRgb kText           = 0xffffff;
