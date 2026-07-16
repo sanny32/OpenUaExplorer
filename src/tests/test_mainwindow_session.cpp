@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include <QAction>
+#include <QDir>
 #include <QFile>
 #include <QMenu>
 #include <QSettings>
@@ -73,7 +74,7 @@ void TestMainWindowSession::recentSessionsMenuShowsExistingFiles()
 
     const QList<QAction *> actions = menu->actions();
     QCOMPARE(actions.size(), 1);
-    QCOMPARE(actions.first()->text(), QStringLiteral("demo"));
+    QCOMPARE(actions.first()->text(), QDir::toNativeSeparators(existingPath));
     QCOMPARE(actions.first()->data().toString(), existingPath);
 }
 
