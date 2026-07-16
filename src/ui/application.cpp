@@ -49,11 +49,6 @@ Application::Application(int &argc, char **argv)
     _theme.applyInitialScheme();
     ensureClientCertificate();
 
-    // The shell passes the file of a registered session type as the sole argument on
-    // Windows and Linux; macOS sends a QFileOpenEvent instead, which event() takes.
-    const QStringList args = arguments();
-    if (args.size() > 1 && !args.at(1).startsWith(QLatin1Char('-')))
-        requestSessionFile(args.at(1));
 }
 
 ///
@@ -92,7 +87,7 @@ bool Application::event(QEvent *event)
 }
 
 ///
-/// \brief Emits the request for a session file, or holds it back until a window can take it.
+/// \brief Queues or emits a request to open a saved application session file.
 /// \param path Path to the session file.
 ///
 void Application::requestSessionFile(const QString &path)

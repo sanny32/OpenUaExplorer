@@ -7,6 +7,7 @@
 ///
 
 #include <QCoreApplication>
+#include <QCommandLineParser>
 #include <QFile>
 #include <QFileInfo>
 #include <QIcon>
@@ -17,6 +18,7 @@
 #include "application.h"
 #include "appicons.h"
 #include "opcua/pkimanager.h"
+#include "startuparguments.h"
 
 ///
 /// \brief Verifies application startup preflight behavior.
@@ -29,6 +31,10 @@ private slots:
     void startupGeneratesClientCertificate();
     void applicationIconMatchesPlatform();
     void applicationOwnsInstalledStyle();
+    void sessionOptionSelectsFile_data();
+    void sessionOptionSelectsFile();
+    void sessionArgumentsRejectAmbiguity_data();
+    void sessionArgumentsRejectAmbiguity();
 };
 
 ///
@@ -68,6 +74,77 @@ void TestApplication::applicationIconMatchesPlatform()
 void TestApplication::applicationOwnsInstalledStyle()
 {
     QCOMPARE(QApplication::style()->parent(), qApp);
+}
+
+///
+/// \brief Provides supported named and positional session arguments.
+///
+void TestApplication::sessionOptionSelectsFile_data()
+{
+    QTest::addColumn<QStringList>("arguments");
+    QTest::addColumn<QString>("expectedPath");
+
+    QTest::newRow("long option")
+        << QStringList{QStringLiteral("ouaexp"), QStringLiteral("--session"),
+                       QStringLiteral("saved session.ouas")}
+        << QStringLiteral("saved session.ouas");
+    QTest::newRow("short option")
+        << QStringList{QStringLiteral("ouaexp"), QStringLiteral("-s"),
+                       QStringLiteral("saved.ouas")}
+        << QStringLiteral("saved.ouas");
+    QTest::newRow("positional")
+        << QStringList{QStringLiteral("ouaexp"), QStringLiteral("saved.ouas")}
+        << QStringLiteral("saved.ouas");
+}
+
+///
+/// \brief Verifies named and positional forms select the requested session file.
+///
+void TestApplication::sessionOptionSelectsFile()
+{
+    QFETCH(QStringList, arguments);
+    QFETCH(QString, expectedPath);
+
+    QCommandLineParser parser;
+    configureStartupArguments(parser);
+    QVERIFY2(parser.parse(arguments), qPrintable(parser.errorText()));
+
+    QString path;
+    QString error;
+    QVERIFY2(resolveStartupSessionFile(parser, &path, &error), qPrintable(error));
+    QCOMPARE(path, expectedPath);
+}
+
+///
+/// \brief Provides conflicting startup session selections.
+///
+void TestApplication::sessionArgumentsRejectAmbiguity_data()
+{
+    QTest::addColumn<QStringList>("arguments");
+
+    QTest::newRow("named and positional")
+        << QStringList{QStringLiteral("ouaexp"), QStringLiteral("--session"),
+                       QStringLiteral("named.ouas"), QStringLiteral("positional.ouas")};
+    QTest::newRow("multiple positional")
+        << QStringList{QStringLiteral("ouaexp"), QStringLiteral("one.ouas"),
+                       QStringLiteral("two.ouas")};
+}
+
+///
+/// \brief Verifies startup rejects more than one selected session file.
+///
+void TestApplication::sessionArgumentsRejectAmbiguity()
+{
+    QFETCH(QStringList, arguments);
+
+    QCommandLineParser parser;
+    configureStartupArguments(parser);
+    QVERIFY2(parser.parse(arguments), qPrintable(parser.errorText()));
+
+    QString path;
+    QString error;
+    QVERIFY(!resolveStartupSessionFile(parser, &path, &error));
+    QVERIFY(!error.isEmpty());
 }
 
 namespace {

@@ -47,6 +47,8 @@ add_library(ouaexp_ui STATIC
     macpalette.h
     application.cpp
     application.h
+    startuparguments.cpp
+    startuparguments.h
     apptheme.cpp
     apptheme.h
     style/appstyle.cpp

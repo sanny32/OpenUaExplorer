@@ -15,6 +15,7 @@
 #include "widgets/maintoolbutton.h"
 #include "widgets/themedtoolbutton.h"
 
+#include <QAbstractButton>
 #include <QBrush>
 #include <QDockWidget>
 #include <QFontDatabase>
@@ -267,26 +268,27 @@ void MacAppStyle::drawOutlinedToolButton(const QStyleOption* option, QPainter* p
 }
 
 ///
-/// \brief Background colour for secondary buttons; primary roles defer to the base style.
+/// \brief Background colour for buttons; only checked toggles keep the accent fill.
 /// \param mouse Mouse interaction state.
 /// \param role Button colour role.
-/// \param widget Button widget (unused).
+/// \param widget Button widget, used to tell checked toggles from default buttons.
 /// \return Reference to the resolved background colour.
 ///
 QColor const& MacAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole role, const QWidget* widget) const
 {
-    Q_UNUSED(widget)
-
-    if (role == ColorRole::Primary)
-        return QlementineAppStyle::buttonBackgroundColor(mouse, role, widget);
+    if (role == ColorRole::Primary) {
+        const auto* button = qobject_cast<const QAbstractButton*>(widget);
+        if (button && button->isChecked())
+            return QlementineAppStyle::buttonBackgroundColor(mouse, role, widget);
+    }
 
     if (isDarkMode()) {
         using namespace Dark;
         switch (mouse) {
             case MouseState::Pressed:
-                return colorRef(kChromePressed);
+                return colorRef(0x545456);
             case MouseState::Hovered:
-                return colorRef(kChromeStrong);
+                return colorRef(kChromePressed);
             case MouseState::Disabled:
                 return colorRef(kChrome);
             case MouseState::Transparent:
@@ -301,7 +303,7 @@ QColor const& MacAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole rol
             case MouseState::Pressed:
                 return colorRef(kChromePressed);
             case MouseState::Hovered:
-                return colorRef(kChromeStrong);
+                return colorRef(0xdcdcdc);
             case MouseState::Disabled:
                 return colorRef(kChromeDimmed);
             case MouseState::Transparent:
@@ -314,18 +316,20 @@ QColor const& MacAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole rol
 }
 
 ///
-/// \brief Foreground colour for secondary buttons; primary roles defer to the base style.
+/// \brief Foreground colour for buttons; only checked toggles keep the accent foreground.
 /// \param mouse Mouse interaction state.
 /// \param role Button colour role.
-/// \param widget Button widget (unused).
+/// \param widget Button widget, used to tell checked toggles from default buttons.
 /// \return Reference to the resolved foreground colour.
 ///
 QColor const& MacAppStyle::buttonForegroundColor(MouseState mouse, ColorRole role, const QWidget* widget) const
 {
-    Q_UNUSED(widget)
-
-    if (role == ColorRole::Primary)
-        return QlementineAppStyle::buttonForegroundColor(mouse, role, widget);
+    if (role == ColorRole::Primary) {
+        // Mirrors buttonBackgroundColor(): accent text only on checked toggles.
+        const auto* button = qobject_cast<const QAbstractButton*>(widget);
+        if (button && button->isChecked())
+            return QlementineAppStyle::buttonForegroundColor(mouse, role, widget);
+    }
 
     if (isDarkMode()) {
         using namespace Dark;
