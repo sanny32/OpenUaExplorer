@@ -95,7 +95,7 @@ public:
     void updateModifiedState();
 
     ///
-    /// \brief Offers Save/Discard/Cancel only for connected sessions with unsaved content.
+    /// \brief Offers Save/Discard/Cancel for connected sessions that are unsaved or changed.
     /// \return True when the caller may continue closing or discarding the session.
     ///
     bool maybeSaveSession();

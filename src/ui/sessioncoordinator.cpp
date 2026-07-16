@@ -90,21 +90,6 @@ QByteArray sessionFingerprint(const SessionData &data)
     return blob.toUtf8();
 }
 
-///
-/// \brief Detects whether an untitled connected session contains content worth prompting for.
-///
-bool sessionHasContent(const SessionData &data)
-{
-    if (!data.subscriptions.isEmpty() || !data.dataAccessNodes.isEmpty()
-        || !data.nodeMonitors.isEmpty())
-        return true;
-    for (const SessionTrendTab &tab : data.trendTabs) {
-        if (!tab.series.isEmpty())
-            return true;
-    }
-    return false;
-}
-
 } // namespace
 
 ///
@@ -268,31 +253,30 @@ void SessionCoordinator::closeCurrentSession()
 void SessionCoordinator::updateModifiedState()
 {
     const bool connected = _context.backend->state() == OpcUaConnectionState::Connected;
-    const SessionData data = sessionWorkspace();
     const bool modified = connected
-        && (_sessionPath.isEmpty() ? sessionHasContent(data)
-                                   : sessionFingerprint(data) != _savedSessionFingerprint);
-    if (modified != _context.window->isWindowModified())
+        && (_sessionPath.isEmpty()
+            || sessionFingerprint(sessionWorkspace()) != _savedSessionFingerprint);
+    if (modified != _context.window->isWindowModified()) {
         _context.window->setWindowModified(modified);
+#ifdef Q_OS_MAC
+        updateWindowTitle();
+#endif
+    }
 }
 
 ///
-/// \brief Offers Save/Discard/Cancel only for connected sessions with unsaved content.
+/// \brief Offers Save/Discard/Cancel for connected sessions that are unsaved or changed.
 ///
 bool SessionCoordinator::maybeSaveSession()
 {
     if (_context.backend->state() != OpcUaConnectionState::Connected)
         return true;
 
-    const SessionData data = sessionWorkspace();
-
     QString message;
     if (_sessionPath.isEmpty()) {
-        if (!sessionHasContent(data))
-            return true;
-        message = tr("The current session has unsaved changes.\nDo you want to save them?");
+        message = tr("The current session has not been saved.\nDo you want to save it?");
     } else {
-        if (sessionFingerprint(data) == _savedSessionFingerprint)
+        if (sessionFingerprint(sessionWorkspace()) == _savedSessionFingerprint)
             return true;
         message = tr("The session \"%1\" has unsaved changes.\nDo you want to save them?")
                       .arg(sessionDisplayName());
@@ -392,11 +376,20 @@ QString SessionCoordinator::sessionDisplayName() const
 ///
 /// \brief Updates the product/session title while preserving Qt's modified marker placeholder.
 ///
+/// macOS suppresses the [*] placeholder in favour of the close-button dot, so there the
+/// asterisk is spelled out whenever the window is marked modified.
+///
 void SessionCoordinator::updateWindowTitle()
 {
-    _context.window->setWindowTitle(QStringLiteral("%1 — %2[*]")
+#ifdef Q_OS_MAC
+    const QString marker = _context.window->isWindowModified()
+        ? QStringLiteral("*") : QString();
+#else
+    const QString marker = QStringLiteral("[*]");
+#endif
+    _context.window->setWindowTitle(QStringLiteral("%1 — %2%3")
                                         .arg(QString::fromUtf8(APP_PRODUCT_NAME),
-                                             sessionDisplayName()));
+                                             sessionDisplayName(), marker));
 }
 
 ///

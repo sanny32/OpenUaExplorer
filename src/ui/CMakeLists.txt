@@ -231,6 +231,17 @@ add_library(ouaexp_ui STATIC
     widgets/trendsettings.h
 )
 
+if(APPLE)
+    target_sources(ouaexp_ui PRIVATE
+        dialogs/macwindowbuttons.h
+        dialogs/macwindowbuttons.mm
+    )
+    set_source_files_properties(dialogs/macwindowbuttons.mm PROPERTIES
+        SKIP_PRECOMPILE_HEADERS ON
+    )
+    target_link_libraries(ouaexp_ui PRIVATE "-framework AppKit")
+endif()
+
 target_include_directories(ouaexp_ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/features
