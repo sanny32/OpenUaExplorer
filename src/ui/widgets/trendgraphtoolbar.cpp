@@ -17,7 +17,6 @@
 #include <QSize>
 
 #include "appcolors.h"
-#include "themedtoolbutton.h"
 
 namespace {
 
@@ -49,12 +48,6 @@ TrendGraphToolbar::TrendGraphToolbar(QWidget *parent)
 
     setAutoFillBackground(true);
     setBackgroundRole(QPalette::Base);
-
-    // Ask bordered styles (macOS) to outline every command in this toolbar so
-    // the range/scale controls read as buttons instead of plain text.
-    const auto toolButtons = findChildren<ThemedToolButton *>();
-    for (ThemedToolButton *button : toolButtons)
-        button->setProperty(kOutlinedToolButtonProperty, true);
 
     ui->durationIcon->setIcon(QStringLiteral("clock"), QSize(14, 14));
     ui->durationBadge->setAttribute(Qt::WA_StyledBackground, true);

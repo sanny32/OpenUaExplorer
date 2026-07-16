@@ -12,6 +12,7 @@
 #include "macthemefactory.h"
 #include "macpalette.h"
 #include "application.h"
+#include "widgets/maintoolbutton.h"
 #include "widgets/themedtoolbutton.h"
 
 #include <QBrush>
@@ -191,7 +192,7 @@ void MacAppStyle::drawControl(ControlElement element, const QStyleOption* option
 }
 
 ///
-/// \brief Draws an outlined bezel behind opted-in tool buttons; everything else defers to the base style.
+/// \brief Draws an outlined bezel behind ThemedToolButtons; everything else defers to the base style.
 /// \param element Primitive element to render.
 /// \param option Style option carrying the element state.
 /// \param painter Painter to draw with.
@@ -200,11 +201,13 @@ void MacAppStyle::drawControl(ControlElement element, const QStyleOption* option
 void MacAppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption* option,
                                  QPainter* painter, const QWidget* widget) const
 {
-    // Opt-in tool buttons (e.g. the trend graph toolbar) get a real macOS
-    // button bezel. Checked buttons keep the base style's accent fill, so only
-    // the unchecked (secondary) background is replaced here.
-    if (element == PE_PanelButtonTool && option && widget
-        && widget->property(kOutlinedToolButtonProperty).toBool()
+    // ThemedToolButtons get a real macOS button bezel so toolbar commands read
+    // as buttons instead of plain text. The main window toolbar (MainToolButton)
+    // keeps its flat ribbon look. Checked buttons keep the base style's accent
+    // fill, so only the unchecked (secondary) background is replaced.
+    if (element == PE_PanelButtonTool && option
+        && qobject_cast<const ThemedToolButton*>(widget)
+        && !qobject_cast<const MainToolButton*>(widget)
         && !option->state.testFlag(State_On)) {
         drawOutlinedToolButton(option, painter);
         return;
