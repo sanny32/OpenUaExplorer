@@ -26,6 +26,7 @@
 #include <QFontMetricsF>
 #include <QFrame>
 #include <QGraphicsEllipseItem>
+#include <QGraphicsLayout>
 #include <QGuiApplication>
 #include <QImage>
 #include <QList>
@@ -373,7 +374,11 @@ QtChartsView::QtChartsView(QWidget *parent)
 {
     _chart->legend()->setVisible(true);
     _chart->legend()->setAlignment(Qt::AlignTop);
-    _chart->setMargins(QMargins(4, 4, 4, 4));
+
+    if (QGraphicsLayout *legendLayout = _chart->legend()->layout())
+        legendLayout->setContentsMargins(6.0, 0.0, 6.0, 0.0);
+
+    _chart->setMargins(QMargins(4, 0, 4, 4));
 
     _axisX->setFormat(QStringLiteral("HH:mm:ss"));
     _axisX->setTickCount(4);

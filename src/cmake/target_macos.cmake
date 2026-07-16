@@ -6,11 +6,6 @@ function(ouaexp_configure_target_macos target_name)
     set(MACOSX_ASSET_ICON_PLIST_ENTRY "")
 
     if(EXISTS "${MACOSX_COMPOSER_ICON}")
-        file(GLOB_RECURSE MACOSX_COMPOSER_ICON_FILES
-            CONFIGURE_DEPENDS
-            "${MACOSX_COMPOSER_ICON}/*"
-        )
-
         find_program(ACTOOL_EXECUTABLE actool REQUIRED)
 
         set(MACOSX_ASSET_ICON_PLIST_ENTRY
@@ -23,7 +18,14 @@ function(ouaexp_configure_target_macos target_name)
         set(MACOSX_ICON_OUTPUT_DIR
             "$<TARGET_BUNDLE_CONTENT_DIR:${target_name}>/Resources")
 
-        add_custom_target(${target_name}_macos_appicon ALL
+        # Compile the app icon as a POST_BUILD step of the app target itself,
+        # not as a separate ALL target. The CI packaging job builds only the
+        # app target (cmake --build --target ${target_name}), which would skip
+        # a standalone target and ship a bundle with no Assets.car / .icns, so
+        # Finder falls back to the generic icon in the disk image. Hanging the
+        # actool invocation off the target guarantees it runs on every build of
+        # the app, however the build is driven.
+        add_custom_command(TARGET ${target_name} POST_BUILD
             COMMAND "${CMAKE_COMMAND}" -E make_directory
                 "${MACOSX_ICON_OUTPUT_DIR}"
             COMMAND "${CMAKE_COMMAND}" -E remove_directory
@@ -40,10 +42,9 @@ function(ouaexp_configure_target_macos target_name)
                 --include-all-app-icons
                 --enable-on-demand-resources NO
                 --development-region en
-            DEPENDS ${MACOSX_COMPOSER_ICON_FILES}
             COMMENT "Synchronizing macOS Icon Composer app icon assets"
+            VERBATIM
         )
-        add_dependencies(${target_name}_macos_appicon ${target_name})
     else()
         message(FATAL_ERROR
             "No macOS app icon found. Expected ${MACOSX_COMPOSER_ICON}."

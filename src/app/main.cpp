@@ -1,11 +1,15 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+#include <cstdlib>
+
+#include <QCommandLineParser>
 #include <QLoggingCategory>
 
 #include "application.h"
 #include "appsettings.h"
 #include "mainwindow.h"
+#include "startuparguments.h"
 
 ///
 /// \brief Application entry point.
@@ -16,6 +20,19 @@
 int main(int argc, char *argv[])
 {
     Application a(argc, argv);
+
+    QCommandLineParser parser;
+    configureStartupArguments(parser);
+    parser.process(a);
+
+    QString sessionFile;
+    QString argumentError;
+    if (!resolveStartupSessionFile(parser, &sessionFile, &argumentError)) {
+        qCritical().noquote() << argumentError;
+        return EXIT_FAILURE;
+    }
+    if (!sessionFile.isEmpty())
+        a.requestSessionFile(sessionFile);
 
     QLoggingCategory::setFilterRules(AppSettings().logFilterRules());
 

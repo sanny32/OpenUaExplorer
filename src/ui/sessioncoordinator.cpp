@@ -204,7 +204,7 @@ void SessionCoordinator::rebuildRecentSessionsMenu()
     }
 
     for (const QString &path : existing) {
-        QAction *action = _context.recentSessionsMenu->addAction(QFileInfo(path).completeBaseName());
+        QAction *action = _context.recentSessionsMenu->addAction(QDir::toNativeSeparators(path));
         action->setData(path);
         action->setToolTip(QDir::toNativeSeparators(path));
         connect(action, &QAction::triggered, this, &SessionCoordinator::openRecentSession);

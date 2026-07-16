@@ -87,7 +87,7 @@ jobs:
         id: package
         run: |
           arch="$(uname -m)"
-          package="ouaexp-${{ steps.version.outputs.appVersion }}-${arch}.AppImage"
+          package="OpenUaExplorer-${{ steps.version.outputs.appVersion }}-${arch}.AppImage"
 
           {
             echo "arch=$arch"
@@ -183,8 +183,8 @@ jobs:
             -appimage
 
           # The name linuxdeployqt derives from the desktop entry carries the product
-          # name and spaces; the artifact is named after the project like every other
-          # package the project builds.
+          # name with spaces turned into underscores; rename it to the CamelCase
+          # Name-version-arch.AppImage form the AppImage ecosystem expects.
           built="$(find . -maxdepth 1 -name '*.AppImage' -newer AppDir -print -quit)"
           if [ -z "$built" ]; then
             echo "::error::linuxdeployqt produced no AppImage"

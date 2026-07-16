@@ -26,27 +26,30 @@ namespace AppColors {
 /// \brief Accent colour for primary/affirmative push buttons.
 /// \return Light-theme base colour (ColoredPushButton derives the dark variant).
 ///
+/// Matches the theme's selection/primary blue (kBlue in the style palettes) so
+/// accent buttons and selection highlights share one colour.
+///
 inline QColor accent()
 {
-    return QColor(0x0a74d1);
+    return QColor(0x007aff);
 }
 
 ///
 /// \brief Hover colour for primary/affirmative push buttons.
-/// \return Light-theme hover colour.
+/// \return Light-theme hover colour, matching kBlueHover in the style palettes.
 ///
 inline QColor accentHover()
 {
-    return QColor(0x1682df);
+    return QColor(0x1a8aff);
 }
 
 ///
 /// \brief Pressed colour for primary/affirmative push buttons.
-/// \return Light-theme pressed colour.
+/// \return Light-theme pressed colour, matching kBluePressed in the style palettes.
 ///
 inline QColor accentPressed()
 {
-    return QColor(0x075ca7);
+    return QColor(0x0062cc);
 }
 
 ///

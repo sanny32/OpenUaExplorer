@@ -55,6 +55,7 @@ compile_commands.json
 *creator.user*
 
 # Cache files and folders
+.DS_Store
 *_qmlcache.qrc
 __pycache__
 

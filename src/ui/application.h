@@ -53,6 +53,12 @@ public:
     ///
     void deliverPendingSessionFile();
 
+    ///
+    /// \brief Queues or emits a request to open a saved application session file.
+    /// \param path Path to the session file.
+    ///
+    void requestSessionFile(const QString &path);
+
 signals:
     ///
     /// \brief Emitted when the desktop shell asks the application to open a session file.
@@ -72,7 +78,6 @@ protected:
 private:
     void configureCertificateStore();
     void ensureClientCertificate();
-    void requestSessionFile(const QString &path);
 
     AppTheme _theme;
     QString _pendingSessionFile;

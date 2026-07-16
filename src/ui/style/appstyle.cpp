@@ -44,6 +44,16 @@ static QStyle *createBaseStyle(const QString &baseStyleName)
 }
 
 ///
+/// \brief Constructs the proxy style around the current application style.
+/// \param parent Parent object.
+///
+AppStyle::AppStyle(QObject *parent)
+    : AppStyle(QString())
+{
+    setParent(parent);
+}
+
+///
 /// \brief Constructs the proxy style around the named base style.
 /// \param baseStyleName Base style name to use, or an empty string to wrap the current style.
 ///

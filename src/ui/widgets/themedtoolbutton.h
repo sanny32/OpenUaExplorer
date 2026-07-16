@@ -16,6 +16,9 @@
 ///
 /// \brief Tool button that refreshes its icon for the active application theme.
 ///
+/// Bordered application styles (see MacAppStyle) paint an outline around these
+/// so toolbar commands read as buttons; flat styles render them unchanged.
+///
 class ThemedToolButton : public QToolButton
 {
     Q_OBJECT

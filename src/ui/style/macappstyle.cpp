@@ -10,17 +10,26 @@
 
 #include "macappstyle.h"
 #include "macthemefactory.h"
+#include "macpalette.h"
 #include "application.h"
+#include "widgets/maintoolbutton.h"
+#include "widgets/themedtoolbutton.h"
 
+#include <QAbstractButton>
+#include <QAbstractItemView>
 #include <QBrush>
 #include <QDockWidget>
 #include <QFontDatabase>
 #include <QHash>
 #include <QModelIndex>
 #include <QPainter>
+#include <QPainterPath>
+#include <QStyleOption>
 #include <QStyleOptionDockWidget>
 #include <QStyleOptionTab>
 #include <QTabBar>
+
+using namespace MacPalette;
 
 namespace {
 
@@ -32,49 +41,6 @@ using oclero::qlementine::MouseState;
 using oclero::qlementine::SelectionState;
 using oclero::qlementine::Status;
 using oclero::qlementine::Theme;
-
-// Light mode macOS colors
-namespace Light {
-    constexpr QRgb kCanvas         = 0xffffff;
-    constexpr QRgb kChrome         = 0xf2f2f7;
-    constexpr QRgb kChromeStrong   = 0xe5e5ea;
-    constexpr QRgb kChromePressed  = 0xd1d1d6;
-    constexpr QRgb kBorder         = 0xd1d1d6;
-    constexpr QRgb kBorderActive   = 0xaeaeb2;
-    constexpr QRgb kText           = 0x000000;
-    constexpr QRgb kMutedText      = 0x8e8e93;
-    constexpr QRgb kDisabledText   = 0xc7c7cc;
-    constexpr QRgb kBlue           = 0x007aff;
-    constexpr QRgb kBlueHover      = 0x1a8aff;
-    constexpr QRgb kBluePressed    = 0x0062cc;
-    constexpr QRgb kBlueDisabled   = 0xb3d7ff;
-    constexpr QRgb kBlueDeepPress  = 0x0051a8;
-    constexpr QRgb kGreen          = 0x34c759;
-    constexpr QRgb kIconNormal     = 0x3c3c43;
-    constexpr QRgb kIconActive     = 0x0062cc;
-    constexpr QRgb kChromeDimmed   = 0xf4f6f8;
-    constexpr QRgb kCanvasWarm     = 0xfefefe;
-}
-
-// Dark mode macOS colors
-namespace Dark {
-    constexpr QRgb kCanvas         = 0x1c1c1e;
-    constexpr QRgb kChrome         = 0x2c2c2e;
-    constexpr QRgb kChromeStrong   = 0x3a3a3c;
-    constexpr QRgb kChromePressed  = 0x48484a;
-    constexpr QRgb kBorder         = 0x38383a;
-    constexpr QRgb kBorderActive   = 0x545456;
-    constexpr QRgb kText           = 0xffffff;
-    constexpr QRgb kMutedText      = 0x8e8e93;
-    constexpr QRgb kDisabledText   = 0x48484a;
-    constexpr QRgb kBlue           = 0x0a84ff;
-    constexpr QRgb kBlueHover      = 0x409cff;
-    constexpr QRgb kBluePressed    = 0x0071e3;
-    constexpr QRgb kBlueDisabled   = 0x0a3d73;
-    constexpr QRgb kGreen          = 0x30d158;
-    constexpr QRgb kIconNormal     = 0xebebf5;
-    constexpr QRgb kIconActive     = 0x409cff;
-}
 
 ///
 /// \brief Builds a fully transparent colour from an RGB value.
@@ -229,26 +195,123 @@ void MacAppStyle::drawControl(ControlElement element, const QStyleOption* option
 }
 
 ///
-/// \brief Background colour for secondary buttons; primary roles defer to the base style.
+/// \brief Draws an outlined bezel behind ThemedToolButtons; everything else defers to the base style.
+/// \param element Primitive element to render.
+/// \param option Style option carrying the element state.
+/// \param painter Painter to draw with.
+/// \param widget Widget the element belongs to.
+///
+void MacAppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption* option,
+                                 QPainter* painter, const QWidget* widget) const
+{
+    if (element == PE_PanelButtonTool && option
+        && qobject_cast<const ThemedToolButton*>(widget)
+        && !qobject_cast<const MainToolButton*>(widget)
+        && !option->state.testFlag(State_On)) {
+        drawOutlinedToolButton(option, painter);
+        return;
+    }
+
+    if (element == PE_FrameTabWidget && option) {
+        const QColor& canvas = isDarkMode() ? colorRef(Dark::kAlternateRow) : colorRef(Light::kAlternateRow);
+        const qreal radius = theme().borderRadius * 1.5;
+        QPainterPath path;
+        path.setFillRule(Qt::WindingFill);
+        path.addRoundedRect(QRectF(option->rect), radius, radius);
+        path.addRect(QRectF(option->rect).adjusted(0, 0, 0, -radius));
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing, true);
+        painter->fillPath(path.simplified(), canvas);
+        painter->restore();
+    }
+
+    QlementineAppStyle::drawPrimitive(element, option, painter, widget);
+}
+
+///
+/// \brief Runs base polishing, then keeps item-view icons in their original colours.
+/// \param widget Widget being polished.
+///
+void MacAppStyle::polish(QWidget* widget)
+{
+    QlementineAppStyle::polish(widget);
+
+    if (qobject_cast<QAbstractItemView*>(widget) || qobject_cast<MainToolButton*>(widget))
+        setAutoIconColor(widget, oclero::qlementine::AutoIconColor::None);
+}
+
+///
+/// \brief Paints the macOS bezel (fill + border) behind an outlined tool button.
+/// \param option Style option carrying the tool-button state.
+/// \param painter Painter to draw with.
+///
+void MacAppStyle::drawOutlinedToolButton(const QStyleOption* option, QPainter* painter) const
+{
+    const bool enabled = option->state.testFlag(State_Enabled);
+    const bool pressed = option->state.testFlag(State_Sunken);
+    const bool hovered = option->state.testFlag(State_MouseOver);
+
+    QRgb fillRgb;
+    QRgb borderRgb;
+    if (isDarkMode()) {
+        using namespace Dark;
+        if (!enabled) {
+            fillRgb = kChrome;         borderRgb = kBorder;
+        } else if (pressed) {
+            fillRgb = kChromePressed;  borderRgb = kBorderActive;
+        } else if (hovered) {
+            fillRgb = kChromePressed;  borderRgb = kBorderActive;
+        } else {
+            fillRgb = kChromeStrong;   borderRgb = kBorderActive;
+        }
+    } else {
+        using namespace Light;
+        if (!enabled) {
+            fillRgb = kChromeDimmed;   borderRgb = kChromeStrong;
+        } else if (pressed) {
+            fillRgb = kChromePressed;  borderRgb = kBorderActive;
+        } else if (hovered) {
+            fillRgb = kChromeStrong;   borderRgb = kBorderActive;
+        } else {
+            fillRgb = kCanvasWarm;     borderRgb = kBorder;
+        }
+    }
+
+    // Match the base style's 6px radius / 1px border so bezels line up with the
+    // accent fill of the checked button in the same row.
+    constexpr qreal kRadius = 6.0;
+    const QRectF rect = QRectF(option->rect).adjusted(0.5, 0.5, -0.5, -0.5);
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, true);
+    painter->setPen(QPen(colorRef(borderRgb), 1.0));
+    painter->setBrush(colorRef(fillRgb));
+    painter->drawRoundedRect(rect, kRadius, kRadius);
+    painter->restore();
+}
+
+///
+/// \brief Background colour for buttons; only checked toggles keep the accent fill.
 /// \param mouse Mouse interaction state.
 /// \param role Button colour role.
-/// \param widget Button widget (unused).
+/// \param widget Button widget, used to tell checked toggles from default buttons.
 /// \return Reference to the resolved background colour.
 ///
 QColor const& MacAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole role, const QWidget* widget) const
 {
-    Q_UNUSED(widget)
-
-    if (role == ColorRole::Primary)
-        return QlementineAppStyle::buttonBackgroundColor(mouse, role, widget);
+    if (role == ColorRole::Primary) {
+        const auto* button = qobject_cast<const QAbstractButton*>(widget);
+        if (button && button->isChecked())
+            return QlementineAppStyle::buttonBackgroundColor(mouse, role, widget);
+    }
 
     if (isDarkMode()) {
         using namespace Dark;
         switch (mouse) {
             case MouseState::Pressed:
-                return colorRef(kChromePressed);
+                return colorRef(0x545456);
             case MouseState::Hovered:
-                return colorRef(kChromeStrong);
+                return colorRef(kChromePressed);
             case MouseState::Disabled:
                 return colorRef(kChrome);
             case MouseState::Transparent:
@@ -263,7 +326,7 @@ QColor const& MacAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole rol
             case MouseState::Pressed:
                 return colorRef(kChromePressed);
             case MouseState::Hovered:
-                return colorRef(kChromeStrong);
+                return colorRef(0xdcdcdc);
             case MouseState::Disabled:
                 return colorRef(kChromeDimmed);
             case MouseState::Transparent:
@@ -276,18 +339,20 @@ QColor const& MacAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole rol
 }
 
 ///
-/// \brief Foreground colour for secondary buttons; primary roles defer to the base style.
+/// \brief Foreground colour for buttons; only checked toggles keep the accent foreground.
 /// \param mouse Mouse interaction state.
 /// \param role Button colour role.
-/// \param widget Button widget (unused).
+/// \param widget Button widget, used to tell checked toggles from default buttons.
 /// \return Reference to the resolved foreground colour.
 ///
 QColor const& MacAppStyle::buttonForegroundColor(MouseState mouse, ColorRole role, const QWidget* widget) const
 {
-    Q_UNUSED(widget)
-
-    if (role == ColorRole::Primary)
-        return QlementineAppStyle::buttonForegroundColor(mouse, role, widget);
+    if (role == ColorRole::Primary) {
+        // Mirrors buttonBackgroundColor(): accent text only on checked toggles.
+        const auto* button = qobject_cast<const QAbstractButton*>(widget);
+        if (button && button->isChecked())
+            return QlementineAppStyle::buttonForegroundColor(mouse, role, widget);
+    }
 
     if (isDarkMode()) {
         using namespace Dark;
@@ -362,12 +427,12 @@ QColor MacAppStyle::listItemBackgroundColor(MouseState mouse, SelectionState sel
     if (isDarkMode()) {
         using namespace Dark;
         if (isSelected)
-            return mouse == MouseState::Disabled ? QColor(0x3a3a3c) : QColor(0x0a3d73);
+            return mouse == MouseState::Disabled ? QColor(kChromeStrong) : QColor(kBlueDisabled);
         switch (mouse) {
             case MouseState::Hovered:
-                return QColor(0x3a3a3c);
+                return QColor(kChromeStrong);
             case MouseState::Pressed:
-                return QColor(0x48484a);
+                return QColor(kChromePressed);
             case MouseState::Disabled:
             case MouseState::Transparent:
             case MouseState::Normal:
@@ -379,12 +444,12 @@ QColor MacAppStyle::listItemBackgroundColor(MouseState mouse, SelectionState sel
     } else {
         using namespace Light;
         if (isSelected)
-            return mouse == MouseState::Disabled ? QColor(0xe5e5ea) : QColor(0xd9eaff);
+            return mouse == MouseState::Disabled ? QColor(kChromeStrong) : QColor(0xd9eaff);
         switch (mouse) {
             case MouseState::Hovered:
-                return QColor(0xf2f2f7);
+                return QColor(kChrome);
             case MouseState::Pressed:
-                return QColor(0xe5e5ea);
+                return QColor(kChromeStrong);
             case MouseState::Disabled:
             case MouseState::Transparent:
             case MouseState::Normal:
@@ -462,29 +527,29 @@ QColor const& MacAppStyle::tabBackgroundColor(MouseState mouse, SelectionState s
         using namespace Dark;
         switch (mouse) {
             case MouseState::Pressed:
-                return isSelected ? colorRef(kCanvas) : colorRef(kChromePressed);
+                return isSelected ? colorRef(kAlternateRow) : colorRef(kChromePressed);
             case MouseState::Hovered:
-                return isSelected ? colorRef(kCanvas) : colorRef(kChromeStrong);
+                return isSelected ? colorRef(kAlternateRow) : colorRef(kChromeStrong);
             case MouseState::Disabled:
                 return transparentRef(kChrome);
             case MouseState::Transparent:
             case MouseState::Normal:
             default:
-                return isSelected ? colorRef(kCanvas) : transparentRef(kChrome);
+                return isSelected ? colorRef(kAlternateRow) : transparentRef(kChrome);
         }
     } else {
         using namespace Light;
         switch (mouse) {
             case MouseState::Pressed:
-                return isSelected ? colorRef(kCanvas) : colorRef(kChromePressed);
+                return isSelected ? colorRef(kAlternateRow) : colorRef(kChromePressed);
             case MouseState::Hovered:
-                return isSelected ? colorRef(kCanvas) : colorRef(kChromeStrong);
+                return isSelected ? colorRef(kAlternateRow) : colorRef(kChromeStrong);
             case MouseState::Disabled:
                 return transparentRef(kChrome);
             case MouseState::Transparent:
             case MouseState::Normal:
             default:
-                return isSelected ? colorRef(kCanvas) : transparentRef(kChrome);
+                return isSelected ? colorRef(kAlternateRow) : transparentRef(kChrome);
         }
     }
 }

@@ -68,10 +68,21 @@ def main() -> int:
     )
     print(f"wrote {ICON_DIR / 'file-ouas.ico'} {ICO_SIZES}")
 
-    # Pillow derives every entry of the ICNS from the image it is handed, so the
-    # largest size is rendered and the rest scaled from it; 16 is the exception and
-    # is not part of the modern ICNS types Pillow writes anyway.
-    frame(max(ICNS_SIZES)).save(ICON_DIR / "file-ouas.icns", format="ICNS")
+    # Pillow writes the modern ICNS slots only; the smallest is ic11, the 16-point
+    # @2x entry stored as a 32-pixel bitmap. Finder shows that slot at small sizes,
+    # so it carries the simplified drawing like the small ICO and Linux sizes, while
+    # every larger slot gets a fresh render of the detailed artwork instead of a
+    # downscale of the base image.
+    icns_frames = [
+        render(simplified, size) if size <= 2 * SMALL_VARIANT_MAX else render(detailed, size)
+        for size in ICNS_SIZES
+        if size >= 32
+    ]
+    icns_frames[-1].save(
+        ICON_DIR / "file-ouas.icns",
+        format="ICNS",
+        append_images=icns_frames[:-1],
+    )
     print(f"wrote {ICON_DIR / 'file-ouas.icns'}")
 
     for size in LINUX_SIZES:

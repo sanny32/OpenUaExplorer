@@ -178,6 +178,7 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
   
     set(QTOPCUA_CONFIGURE_OPTIONS
         -DINPUT_open62541=qt
+        -DFEATURE_open62541_security=ON
         -DQT_BUILD_TESTS=OFF
         -DQT_BUILD_EXAMPLES=OFF
         "-DCMAKE_TOOLCHAIN_FILE=${Qt6_DIR}/qt.toolchain.cmake"
@@ -203,9 +204,17 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
                 "-DOPENSSL_CRYPTO_LIBRARY=${OPENSSL_ROOT_DIR}/lib/libcrypto.so")
         endif()
     endif()
-    if(CMAKE_OSX_ARCHITECTURES)
+    if(APPLE)
+        # Qt's toolchain file defaults to a universal build, but Homebrew
+        # OpenSSL is single-arch; build the backend for the same architectures
+        # as the application.
+        if(CMAKE_OSX_ARCHITECTURES)
+            set(QTOPCUA_OSX_ARCHITECTURES "${CMAKE_OSX_ARCHITECTURES}")
+        else()
+            set(QTOPCUA_OSX_ARCHITECTURES "${CMAKE_SYSTEM_PROCESSOR}")
+        endif()
         list(APPEND QTOPCUA_CONFIGURE_OPTIONS
-            "-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}")
+            "-DCMAKE_OSX_ARCHITECTURES=${QTOPCUA_OSX_ARCHITECTURES}")
     endif()
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT "$ENV{CXX}" STREQUAL "")
