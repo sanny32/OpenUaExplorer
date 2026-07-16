@@ -56,6 +56,18 @@ public:
     void polish(QWidget* widget) override;
 
     ///
+    /// \brief Lays dialog buttons out without the Mac policy's gap around destructive buttons.
+    /// \param hint Style hint being queried.
+    /// \param option Style option carrying the hint context.
+    /// \param widget Widget the hint applies to.
+    /// \param returnData Optional extra return data.
+    /// \return Resolved style hint value.
+    ///
+    int styleHint(StyleHint hint, const QStyleOption* option = nullptr,
+                  const QWidget* widget = nullptr,
+                  QStyleHintReturn* returnData = nullptr) const override;
+
+    ///
     /// \brief Background colour for secondary buttons; primary roles defer to the base style.
     /// \param mouse Mouse interaction state.
     /// \param role Button colour role.

@@ -18,6 +18,7 @@
 #include <QAbstractButton>
 #include <QAbstractItemView>
 #include <QBrush>
+#include <QDialogButtonBox>
 #include <QDockWidget>
 #include <QFontDatabase>
 #include <QHash>
@@ -226,6 +227,28 @@ void MacAppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption* op
     }
 
     QlementineAppStyle::drawPrimitive(element, option, painter, widget);
+}
+
+///
+/// \brief Lays dialog buttons out without the Mac policy's gap around destructive buttons.
+///
+/// The Mac button layout keeps the same Discard/Cancel/Accept order as the Gnome one but
+/// inserts a hard-coded spacer around destructive buttons; the Gnome policy matches the
+/// button placement the other platforms show.
+///
+/// \param hint Style hint being queried.
+/// \param option Style option carrying the hint context.
+/// \param widget Widget the hint applies to.
+/// \param returnData Optional extra return data.
+/// \return Resolved style hint value.
+///
+int MacAppStyle::styleHint(StyleHint hint, const QStyleOption* option,
+                           const QWidget* widget, QStyleHintReturn* returnData) const
+{
+    if (hint == SH_DialogButtonLayout)
+        return QDialogButtonBox::GnomeLayout;
+
+    return QlementineAppStyle::styleHint(hint, option, widget, returnData);
 }
 
 ///

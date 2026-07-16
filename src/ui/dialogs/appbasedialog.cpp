@@ -14,6 +14,10 @@
 #include "appicons.h"
 #include "appbasedialog.h"
 
+#ifdef Q_OS_MAC
+#include "macwindowbuttons.h"
+#endif
+
 ///
 /// \brief Constructs the dialog and keeps its window icon in sync with the colour scheme.
 /// \param parent Parent widget.
@@ -49,6 +53,10 @@ void AppBaseDialog::showEvent(QShowEvent *event)
 {
     QDialog::showEvent(event);
     updateWindowIcon();
+
+#ifdef Q_OS_MAC
+    MacWindowButtons::hideMinimizeAndZoomButtons(this);
+#endif
 }
 
 ///
