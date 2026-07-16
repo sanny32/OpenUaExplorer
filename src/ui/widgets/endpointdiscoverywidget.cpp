@@ -18,7 +18,9 @@
 #include <QTableView>
 #include <QVBoxLayout>
 
+#if defined(HAVE_QLEMENTINE_APP_STYLE)
 #include <oclero/qlementine/style/QlementineStyle.hpp>
+#endif
 
 #include "endpointdiscoverywidget.h"
 #include "models/endpointmodel.h"
@@ -109,8 +111,12 @@ public:
         button.rect = QRect(option.rect.center().x() - size / 2 + 1,
                             option.rect.center().y() - size / 2,
                             size, size);
+#if defined(HAVE_QLEMENTINE_APP_STYLE)
         const bool qlementine =
             qobject_cast<const oclero::qlementine::QlementineStyle *>(style) != nullptr;
+#else
+        const bool qlementine = false;
+#endif
         style->drawPrimitive(QStyle::PE_IndicatorRadioButton, &button, painter,
                              qlementine ? nullptr : option.widget);
     }
