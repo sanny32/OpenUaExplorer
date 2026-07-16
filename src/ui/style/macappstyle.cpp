@@ -236,7 +236,7 @@ void MacAppStyle::polish(QWidget* widget)
 {
     QlementineAppStyle::polish(widget);
 
-    if (qobject_cast<QAbstractItemView*>(widget))
+    if (qobject_cast<QAbstractItemView*>(widget) || qobject_cast<MainToolButton*>(widget))
         setAutoIconColor(widget, oclero::qlementine::AutoIconColor::None);
 }
 
