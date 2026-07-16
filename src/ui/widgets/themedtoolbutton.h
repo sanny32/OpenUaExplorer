@@ -14,6 +14,15 @@
 #include <QToolButton>
 
 ///
+/// \brief Dynamic property that asks bordered application styles (e.g. macOS) to
+///        paint a button outline around an otherwise flat tool button.
+///
+/// Flat themes ignore it; only styles that opt in (see MacAppStyle) read the
+/// property to decide whether to draw a bezel behind the tool button.
+///
+inline constexpr char kOutlinedToolButtonProperty[] = "outlined";
+
+///
 /// \brief Tool button that refreshes its icon for the active application theme.
 ///
 class ThemedToolButton : public QToolButton

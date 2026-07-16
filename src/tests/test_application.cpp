@@ -11,6 +11,7 @@
 #include <QFileInfo>
 #include <QIcon>
 #include <QStandardPaths>
+#include <QStyle>
 #include <QTest>
 
 #include "application.h"
@@ -27,6 +28,7 @@ class TestApplication : public QObject
 private slots:
     void startupGeneratesClientCertificate();
     void applicationIconMatchesPlatform();
+    void applicationOwnsInstalledStyle();
 };
 
 ///
@@ -58,6 +60,14 @@ void TestApplication::applicationIconMatchesPlatform()
 #endif
     const QSize size(64, 64);
     QCOMPARE(AppIcons::application().pixmap(size).toImage(), expected.pixmap(size).toImage());
+}
+
+///
+/// \brief Verifies the application owns its installed style.
+///
+void TestApplication::applicationOwnsInstalledStyle()
+{
+    QCOMPARE(QApplication::style()->parent(), qApp);
 }
 
 namespace {

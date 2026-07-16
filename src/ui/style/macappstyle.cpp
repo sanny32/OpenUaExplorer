@@ -10,7 +10,9 @@
 
 #include "macappstyle.h"
 #include "macthemefactory.h"
+#include "macpalette.h"
 #include "application.h"
+#include "widgets/themedtoolbutton.h"
 
 #include <QBrush>
 #include <QDockWidget>
@@ -18,9 +20,12 @@
 #include <QHash>
 #include <QModelIndex>
 #include <QPainter>
+#include <QStyleOption>
 #include <QStyleOptionDockWidget>
 #include <QStyleOptionTab>
 #include <QTabBar>
+
+using namespace MacPalette;
 
 namespace {
 
@@ -32,49 +37,6 @@ using oclero::qlementine::MouseState;
 using oclero::qlementine::SelectionState;
 using oclero::qlementine::Status;
 using oclero::qlementine::Theme;
-
-// Light mode macOS colors
-namespace Light {
-    constexpr QRgb kCanvas         = 0xffffff;
-    constexpr QRgb kChrome         = 0xf2f2f7;
-    constexpr QRgb kChromeStrong   = 0xe5e5ea;
-    constexpr QRgb kChromePressed  = 0xd1d1d6;
-    constexpr QRgb kBorder         = 0xd1d1d6;
-    constexpr QRgb kBorderActive   = 0xaeaeb2;
-    constexpr QRgb kText           = 0x000000;
-    constexpr QRgb kMutedText      = 0x8e8e93;
-    constexpr QRgb kDisabledText   = 0xc7c7cc;
-    constexpr QRgb kBlue           = 0x007aff;
-    constexpr QRgb kBlueHover      = 0x1a8aff;
-    constexpr QRgb kBluePressed    = 0x0062cc;
-    constexpr QRgb kBlueDisabled   = 0xb3d7ff;
-    constexpr QRgb kBlueDeepPress  = 0x0051a8;
-    constexpr QRgb kGreen          = 0x34c759;
-    constexpr QRgb kIconNormal     = 0x3c3c43;
-    constexpr QRgb kIconActive     = 0x0062cc;
-    constexpr QRgb kChromeDimmed   = 0xf4f6f8;
-    constexpr QRgb kCanvasWarm     = 0xfefefe;
-}
-
-// Dark mode macOS colors
-namespace Dark {
-    constexpr QRgb kCanvas         = 0x1c1c1e;
-    constexpr QRgb kChrome         = 0x2c2c2e;
-    constexpr QRgb kChromeStrong   = 0x3a3a3c;
-    constexpr QRgb kChromePressed  = 0x48484a;
-    constexpr QRgb kBorder         = 0x38383a;
-    constexpr QRgb kBorderActive   = 0x545456;
-    constexpr QRgb kText           = 0xffffff;
-    constexpr QRgb kMutedText      = 0x8e8e93;
-    constexpr QRgb kDisabledText   = 0x48484a;
-    constexpr QRgb kBlue           = 0x0a84ff;
-    constexpr QRgb kBlueHover      = 0x409cff;
-    constexpr QRgb kBluePressed    = 0x0071e3;
-    constexpr QRgb kBlueDisabled   = 0x0a3d73;
-    constexpr QRgb kGreen          = 0x30d158;
-    constexpr QRgb kIconNormal     = 0xebebf5;
-    constexpr QRgb kIconActive     = 0x409cff;
-}
 
 ///
 /// \brief Builds a fully transparent colour from an RGB value.
@@ -226,6 +188,79 @@ void MacAppStyle::drawControl(ControlElement element, const QStyleOption* option
     }
 
     QlementineAppStyle::drawControl(element, option, painter, widget);
+}
+
+///
+/// \brief Draws an outlined bezel behind opted-in tool buttons; everything else defers to the base style.
+/// \param element Primitive element to render.
+/// \param option Style option carrying the element state.
+/// \param painter Painter to draw with.
+/// \param widget Widget the element belongs to.
+///
+void MacAppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption* option,
+                                 QPainter* painter, const QWidget* widget) const
+{
+    // Opt-in tool buttons (e.g. the trend graph toolbar) get a real macOS
+    // button bezel. Checked buttons keep the base style's accent fill, so only
+    // the unchecked (secondary) background is replaced here.
+    if (element == PE_PanelButtonTool && option && widget
+        && widget->property(kOutlinedToolButtonProperty).toBool()
+        && !option->state.testFlag(State_On)) {
+        drawOutlinedToolButton(option, painter);
+        return;
+    }
+
+    QlementineAppStyle::drawPrimitive(element, option, painter, widget);
+}
+
+///
+/// \brief Paints the macOS bezel (fill + border) behind an outlined tool button.
+/// \param option Style option carrying the tool-button state.
+/// \param painter Painter to draw with.
+///
+void MacAppStyle::drawOutlinedToolButton(const QStyleOption* option, QPainter* painter) const
+{
+    const bool enabled = option->state.testFlag(State_Enabled);
+    const bool pressed = option->state.testFlag(State_Sunken);
+    const bool hovered = option->state.testFlag(State_MouseOver);
+
+    QRgb fillRgb;
+    QRgb borderRgb;
+    if (isDarkMode()) {
+        using namespace Dark;
+        if (!enabled) {
+            fillRgb = kChrome;         borderRgb = kBorder;
+        } else if (pressed) {
+            fillRgb = kChromePressed;  borderRgb = kBorderActive;
+        } else if (hovered) {
+            fillRgb = kChromePressed;  borderRgb = kBorderActive;
+        } else {
+            fillRgb = kChromeStrong;   borderRgb = kBorderActive;
+        }
+    } else {
+        using namespace Light;
+        if (!enabled) {
+            fillRgb = kChromeDimmed;   borderRgb = kChromeStrong;
+        } else if (pressed) {
+            fillRgb = kChromePressed;  borderRgb = kBorderActive;
+        } else if (hovered) {
+            fillRgb = kChromeStrong;   borderRgb = kBorderActive;
+        } else {
+            fillRgb = kCanvasWarm;     borderRgb = kBorder;
+        }
+    }
+
+    // Match the base style's 6px radius / 1px border so bezels line up with the
+    // accent fill of the checked button in the same row.
+    constexpr qreal kRadius = 6.0;
+    const QRectF rect = QRectF(option->rect).adjusted(0.5, 0.5, -0.5, -0.5);
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, true);
+    painter->setPen(QPen(colorRef(borderRgb), 1.0));
+    painter->setBrush(colorRef(fillRgb));
+    painter->drawRoundedRect(rect, kRadius, kRadius);
+    painter->restore();
 }
 
 ///

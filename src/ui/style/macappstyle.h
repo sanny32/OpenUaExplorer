@@ -40,6 +40,16 @@ public:
                      QPainter* painter, const QWidget* widget = nullptr) const override;
 
     ///
+    /// \brief Draws an outlined bezel behind opted-in tool buttons; everything else defers to the base style.
+    /// \param element Primitive element to render.
+    /// \param option Style option carrying the element state.
+    /// \param painter Painter to draw with.
+    /// \param widget Widget the element belongs to.
+    ///
+    void drawPrimitive(PrimitiveElement element, const QStyleOption* option,
+                       QPainter* painter, const QWidget* widget = nullptr) const override;
+
+    ///
     /// \brief Background colour for secondary buttons; primary roles defer to the base style.
     /// \param mouse Mouse interaction state.
     /// \param role Button colour role.
@@ -215,6 +225,13 @@ public:
 private:
     void updateTheme();
     bool isDarkMode() const;
+
+    ///
+    /// \brief Paints the macOS bezel (fill + border) behind an outlined tool button.
+    /// \param option Style option carrying the tool-button state.
+    /// \param painter Painter to draw with.
+    ///
+    void drawOutlinedToolButton(const QStyleOption* option, QPainter* painter) const;
 
     oclero::qlementine::Theme _lightTheme;
     oclero::qlementine::Theme _darkTheme;

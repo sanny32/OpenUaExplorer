@@ -40,11 +40,11 @@ Application::Application(int &argc, char **argv)
     setApplicationVersion(QStringLiteral(APP_VERSION));
 
 #if defined(HAVE_QLEMENTINE_APP_STYLE) && defined(Q_OS_MAC)
-    setStyle(new MacAppStyle());
+    setStyle(new MacAppStyle(this));
 #elif defined(HAVE_QLEMENTINE_APP_STYLE)
-    setStyle(new QlementineAppStyle());
+    setStyle(new QlementineAppStyle(this));
 #else
-    setStyle(new AppStyle());
+    setStyle(new AppStyle(this));
 #endif
     _theme.applyInitialScheme();
     ensureClientCertificate();

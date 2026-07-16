@@ -44,22 +44,25 @@ set(UI_FILES
 add_library(ouaexp_ui STATIC
     appcolors.h
     appicons.h
+    macpalette.h
     application.cpp
     application.h
-    appstyle.cpp
-    appstyle.h
     apptheme.cpp
     apptheme.h
-    fusionstyle.cpp
-    fusionstyle.h
-    macappstyle.cpp
-    macappstyle.h
-    macthemefactory.cpp
-    macthemefactory.h
-    qlementineappstyle.cpp
-    qlementineappstyle.h
-    qlementinethemefactory.cpp
-    qlementinethemefactory.h
+    style/appstyle.cpp
+    style/appstyle.h
+    style/fusionstyle.cpp
+    style/fusionstyle.h
+    style/macappstyle.cpp
+    style/macappstyle.h
+    style/macthemefactory.cpp
+    style/macthemefactory.h
+    style/qlementineappstyle.cpp
+    style/qlementineappstyle.h
+    style/qlementinethemefactory.cpp
+    style/qlementinethemefactory.h
+    style/themecoordinator.cpp
+    style/themecoordinator.h
     mainwindow.cpp
     mainwindow.h
     connectioncoordinator.cpp
@@ -74,8 +77,6 @@ add_library(ouaexp_ui STATIC
     fileexport.h
     sessioncoordinator.cpp
     sessioncoordinator.h
-    themecoordinator.cpp
-    themecoordinator.h
     ${UI_FILES}
 
     features/addressspacefeature.cpp
@@ -231,6 +232,7 @@ add_library(ouaexp_ui STATIC
 target_include_directories(ouaexp_ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/features
+    ${CMAKE_CURRENT_SOURCE_DIR}/style
     ${CMAKE_CURRENT_SOURCE_DIR}/widgets
 )
 
