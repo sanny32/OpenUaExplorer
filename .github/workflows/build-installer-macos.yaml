@@ -75,8 +75,7 @@ jobs:
       - name: Build
         run: cmake --build build --config Release --parallel --target ouaexp
 
-      # The install rules run macdeployqt and ad-hoc sign the bundle, so the staged
-      # tree is the complete, self-contained payload the disk image ships.
+      # The install rules run macdeployqt and ad-hoc sign the bundle.
       - name: Stage install tree
         run: cmake --install build --config Release --prefix "$GITHUB_WORKSPACE/stage"
 
@@ -89,9 +88,7 @@ jobs:
           fi
           codesign --verify --deep --strict --verbose=2 "$app"
 
-      # create-dmg lays the window out through Finder, and a stray .DS_Store or a
-      # left-over volume from an earlier attempt makes it fail, so the image is
-      # always built from a clean staging tree that holds nothing but the bundle.
+      # create-dmg trips on stray .DS_Store files and left-over volumes.
       - name: Build disk image
         run: |
           dmg="$GITHUB_WORKSPACE/${{ steps.package.outputs.dmg }}"

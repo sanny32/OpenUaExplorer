@@ -52,15 +52,11 @@ jobs:
       - name: Trust workspace
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      # The container ships a Python too old for the aqtinstall install-qt-action
-      # runs below, and for the wheels the build tools are installed from.
       - name: Set up Python
         uses: ./.github/actions/setup-python
 
-      # The GTK and Wayland libraries are not linked against: the Qt platform and
-      # platform theme plugins load them, and they stay a dependency of the package
-      # rather than being bundled. They are installed because bundle.sh resolves the
-      # plugins against this container, and dpkg-shlibdeps turns them into Depends.
+      # GTK and Wayland are loaded at runtime by Qt plugins; installed here so
+      # dpkg-shlibdeps turns them into Depends instead of bundling them.
       - name: Install build dependencies
         run: |
           apt-get update
@@ -103,9 +99,7 @@ jobs:
           cache: true
           setup-python: false
 
-      # The package carries its own OpenSSL rather than depending on the
-      # distribution's libssl3, which does not exist before OpenSSL 3 - on Astra
-      # Linux 1.7, for one. It is linked into the Qt OpcUa backend below, and bundled.
+      # Bundled: target distributions (e.g. Astra Linux 1.7) have no libssl3.
       - name: Set up OpenSSL
         uses: ./.github/actions/setup-openssl
         with:
@@ -117,8 +111,7 @@ jobs:
           path: build/_deps/qtopcua-install
           key: qtopcua-ubuntu-20.04-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
 
-      # OPENSSL_ROOT_DIR is passed explicitly because qtopcua.cmake forwards the CMake
-      # variable, not the environment one, to the Qt OpcUa sub-build.
+      # qtopcua.cmake forwards the CMake variable, not the env one, to the sub-build.
       - name: Configure
         run: >
           cmake -S src -B build -G Ninja
@@ -130,9 +123,7 @@ jobs:
       - name: Build
         run: cmake --build build --parallel --target ouaexp
 
-      # The application is not installed with `cmake --install`: the package has to
-      # carry the Qt build it was compiled against, so bundle.sh assembles the whole
-      # private tree under /usr/lib/ouaexp instead.
+      # bundle.sh stages the app with its Qt as a private tree under /usr/lib/ouaexp.
       - name: Stage package root
         run: |
           rm -rf pkgroot
@@ -188,19 +179,13 @@ jobs:
            -- ${{ env.MAINTAINER }}  $(date -uR)
           EOF
 
-          # The GTK platform theme is left out of the scan. It is the only thing that
-          # needs GTK, and the packages that ship it are named differently on the
-          # releases the package targets - libgtk-3-0 became libgtk-3-0t64, and
-          # libgdk-pixbuf2.0-0 became libgdk-pixbuf-2.0-0 - so the names this
-          # container resolves them to are wrong on half of them. control.in depends
-          # on GTK by hand instead, as an alternative between the two names.
+          # GTK package names differ across target releases, so control.in depends
+          # on GTK by hand and libqgtk3.so is left out of the scan.
           plugins="$(find pkgroot/usr/lib/ouaexp/plugins -name '*.so' \
             ! -name 'libqgtk3.so')"
 
-          # The bundled Qt libraries have no shlibs entries of their own; -l lets
-          # dpkg-shlibdeps resolve them while --ignore-missing-info keeps that from
-          # being fatal. Every other dependency is a real distribution package, and
-          # scanning the plugins too catches what only they pull in, such as xcb.
+          # -l resolves the bundled Qt libs; --ignore-missing-info tolerates their
+          # missing shlibs entries.
           dpkg-shlibdeps --ignore-missing-info \
             -l"$PWD/pkgroot/usr/lib/ouaexp/lib" \
             -Tdebian/substvars \
@@ -208,12 +193,7 @@ jobs:
             pkgroot/usr/lib/ouaexp/lib/*.so* \
             $plugins
 
-          # The GCC runtime moved from libgcc1 to libgcc-s1 in Debian 11, and this
-          # container resolves it to the new name, which the older releases the
-          # package targets - Astra Linux 1.7, for one - do not have. The library is
-          # the same one under either name, so the old one is offered as an
-          # alternative. It is added here rather than in control.in because
-          # dpkg-shlibdeps is what emits the dependency.
+          # Older targets (e.g. Astra Linux 1.7) ship libgcc1, not libgcc-s1; allow either.
           sed -i 's/libgcc-s1 ([^)]*)/& | libgcc1/' debian/substvars
           cat debian/substvars
 
@@ -235,17 +215,13 @@ jobs:
           dpkg-deb --info "${{ steps.package.outputs.name }}"
           dpkg-deb --contents "${{ steps.package.outputs.name }}"
 
-          # The bundled OpenSSL is the whole reason the package installs on a
-          # distribution that has no OpenSSL 3, so a dependency on the system libssl
-          # means the bundle is not being resolved and the package is back to
-          # requiring one.
+          # A libssl dependency means the bundled OpenSSL is not being resolved.
           if dpkg-deb -f "${{ steps.package.outputs.name }}" Depends | grep -q libssl; then
             echo "::error::The package still depends on the distribution OpenSSL"
             exit 1
           fi
 
-          # The lintian this container ships predates --fail-on, and its exit status
-          # does not distinguish errors from warnings, so the tags are what is checked.
+          # This lintian predates --fail-on; check the tags instead.
           lintian --no-tag-display-limit "${{ steps.package.outputs.name }}" \
             > lintian.log || true
           cat lintian.log
@@ -267,9 +243,6 @@ jobs:
             ${{ steps.package.outputs.name }}.sha256
           if-no-files-found: error
 
-  # The package is verified in a job of its own because the container the build runs
-  # in has no Docker: the daemon lives on the runner, and a bind mount from inside
-  # the container would name paths the daemon cannot see. The runner itself has both.
   verify:
     name: Verify .deb
     runs-on: ubuntu-latest
@@ -277,8 +250,6 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      # The verifying action is in the repository, so it has to be checked out even
-      # though nothing is built here.
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -289,10 +260,6 @@ jobs:
         with:
           name: ouaexp-deb-${{ needs.deb.outputs.arch }}
 
-      # Installing from the .deb resolves the generated Depends against the archive,
-      # so a missing runtime dependency fails here rather than on a user's machine.
-      # The program is a GUI application with no batch mode, so it is checked by
-      # resolving its libraries instead of starting it.
       - name: Verify the package installs
         uses: ./.github/actions/verify-linux-package
         with:

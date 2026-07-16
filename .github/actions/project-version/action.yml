@@ -72,11 +72,8 @@ runs:
         minor="${BASH_REMATCH[2]}"
         patch="${BASH_REMATCH[3]}"
 
-        # Mirror src/cmake/project_version.cmake: a tag supplies the version and an
-        # optional pre-release suffix such as v1.0.0-b1, everything else is a
-        # <major>.<minor>-dev snapshot named after the commit it was built from. The
-        # version the packages carry has to agree with the one the application
-        # reports, so appVersion is the single source both are derived from.
+        # Mirrors src/cmake/project_version.cmake: a tag supplies the version,
+        # everything else is a <major>.<minor>-dev snapshot named after the commit.
         prerelease=''
         tagged=''
         sha="$(git rev-parse --short HEAD)"
@@ -97,12 +94,8 @@ runs:
           app_version="$major.$minor-dev.g$sha"
         fi
 
-        # A pre-release must sort *before* the release it precedes, and both dpkg and
-        # rpm order a '~' below the end of a string, so the suffix is attached with
-        # one: '1.0.0~b1' and the '1.0~dev' snapshots stay below every release, where
-        # a plain '1.0.0b1' would sort above '1.0.0'. In a Debian version a '-'
-        # separates the revision and in an RPM Version it is not allowed at all, so
-        # rpm maps it onto '.' the way the pre-release part of a tag already does.
+        # '~' sorts below the end of a string in dpkg and rpm, so pre-releases and
+        # dev snapshots stay below the release. RPM forbids '-' in Version.
         if [ -n "$prerelease" ]; then
           deb_upstream="$version~$prerelease"
           rpm_version="$version~${prerelease//-/.}"
@@ -114,12 +107,10 @@ runs:
           rpm_version="$deb_upstream"
         fi
 
-        # The release date is the date of the commit being built, so rebuilding a
-        # commit yields the same AppStream metadata.
+        # The commit date, so rebuilding a commit yields the same metadata.
         release_date="$(git log -1 --format=%cs)"
 
-        # VIProductVersion rejects a suffix, so a Windows resource keeps a numeric
-        # version of its own.
+        # VIProductVersion rejects a suffix.
         file_version="$major.$minor.$patch.0"
 
         {

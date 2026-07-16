@@ -69,8 +69,7 @@ runs:
 
             install_package
 
-            # ALT packages ldd apart from the C library, in glibc-utils, and its image
-            # does not install it.
+            # ALT ships ldd separately, in glibc-utils.
             if [ "$(. /etc/os-release && echo "$ID")" = altlinux ]; then
               apt-get install -y glibc-utils
             fi
@@ -87,10 +86,7 @@ runs:
               exit 1
             fi
 
-            # The bundled OpenSSL has /etc/ssl compiled into it, and the program falls
-            # back to the paths below when the distribution - ALT - keeps its trust
-            # store elsewhere. The list is the one in main.cpp: without a store, TLS
-            # verifies nothing and the update check fails.
+            # The fallback trust-store list from main.cpp; without one TLS verifies nothing.
             if ! ls -d /etc/ssl/certs /var/lib/ssl/certs /etc/pki/tls/certs 2> /dev/null \
                 | grep -q .; then
               echo "The distribution has no CA trust store the program knows of"

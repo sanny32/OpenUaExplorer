@@ -25,10 +25,6 @@ env:
   DEBIAN_FRONTEND: noninteractive
 
 jobs:
-  # An AppImage carries every library it is not allowed to assume, but it still runs
-  # against the glibc of the host, which is never older than the one it was built
-  # against. The oldest release the project targets sets that floor, so the AppImage
-  # is built in the same container the .deb is.
   appimage:
     name: Build AppImage version '${{ inputs.branch || github.ref_name }}'
     runs-on: ubuntu-latest
@@ -55,14 +51,9 @@ jobs:
       - name: Trust workspace
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      # The container ships a Python too old for the aqtinstall install-qt-action
-      # runs below, and for the wheels the build tools are installed from.
       - name: Set up Python
         uses: ./.github/actions/setup-python
 
-      # The GTK and Wayland libraries are not linked against: the Qt platform and
-      # platform theme plugins load them, and linuxdeployqt bundles them from this
-      # container, so they have to be installed for it to resolve them at all.
       - name: Install build dependencies
         run: |
           apt-get update
@@ -104,9 +95,6 @@ jobs:
           cache: true
           setup-python: false
 
-      # The AppImage carries its own OpenSSL rather than relying on the host's: the
-      # releases it has to run on ship anything from OpenSSL 1.1 upwards, and the
-      # OpcUa backend needs 3.
       - name: Set up OpenSSL
         uses: ./.github/actions/setup-openssl
         with:
@@ -118,11 +106,6 @@ jobs:
           path: build/_deps/qtopcua-install
           key: qtopcua-ubuntu-20.04-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
 
-      # OUAEXP_INSTALL_PRIVATE_LIBDIR=OFF is what turns the install tree into the FHS
-      # layout linuxdeployqt insists on - see src/cmake/install_linux.cmake, which
-      # explains why the private-libdir layout the packages use cannot be deployed.
-      # OPENSSL_ROOT_DIR is passed explicitly because qtopcua.cmake forwards the CMake
-      # variable, not the environment one, to the Qt OpcUa sub-build.
       - name: Configure
         run: >
           cmake -S src -B build -G Ninja
@@ -162,13 +145,6 @@ jobs:
       - name: Set up linuxdeployqt
         uses: ./.github/actions/setup-linuxdeployqt
 
-      # linuxdeployqt is given the desktop entry, not the executable, so that it takes
-      # the AppImage name, the icon and the AppRun from it. The Qt OpcUa library and
-      # its opcua plugin are already in the AppDir - install_linux.cmake put them
-      # there - so it bundles them along with the rest and resolves their
-      # dependencies, the OpenSSL among them, which is why the prefix built above has
-      # to be on the loader's path: it is not installed anywhere the loader looks.
-      #
       - name: Build AppImage
         env:
           VERSION: ${{ steps.version.outputs.appVersion }}
@@ -182,9 +158,7 @@ jobs:
             -extra-plugins=iconengines,platformthemes,tls \
             -appimage
 
-          # The name linuxdeployqt derives from the desktop entry carries the product
-          # name with spaces turned into underscores; rename it to the CamelCase
-          # Name-version-arch.AppImage form the AppImage ecosystem expects.
+          # Rename linuxdeployqt's underscored name to Name-version-arch.AppImage.
           built="$(find . -maxdepth 1 -name '*.AppImage' -newer AppDir -print -quit)"
           if [ -z "$built" ]; then
             echo "::error::linuxdeployqt produced no AppImage"
@@ -204,9 +178,7 @@ jobs:
             exit 1
           fi
 
-          # The OpcUa backend resolving OpenSSL outside the AppImage means the bundled
-          # OpenSSL is not being used, and the AppImage is back to needing one on the
-          # host, which is the whole reason it carries its own.
+          # OpenSSL must resolve inside the AppImage, or the host needs its own.
           if ldd squashfs-root/usr/plugins/opcua/*.so | grep -E 'libssl|libcrypto' \
               | grep -qv squashfs-root/; then
             echo "::error::OpenSSL resolves outside the AppImage"
@@ -226,9 +198,6 @@ jobs:
             ${{ steps.package.outputs.name }}.sha256
           if-no-files-found: error
 
-  # The AppImage is verified in a job of its own because the container the build runs
-  # in has no Docker: the daemon lives on the runner, and a bind mount from inside the
-  # container would name paths the daemon cannot see. The runner itself has both.
   verify:
     name: Verify AppImage
     runs-on: ubuntu-latest
@@ -241,12 +210,6 @@ jobs:
         with:
           name: ouaexp-appimage-${{ needs.appimage.outputs.arch }}
 
-      # The images are the ones the .deb and the .rpm are verified on, minus the
-      # package manager: an AppImage is not installed, it is run. The program is a GUI
-      # application with no batch mode, so it is checked by resolving its libraries
-      # instead of starting it. FUSE is what a bare container lacks, so the AppImage
-      # is unpacked rather than mounted - the same thing its runtime does under
-      # APPIMAGE_EXTRACT_AND_RUN.
       - name: Verify the AppImage runs
         env:
           PKG: ${{ needs.appimage.outputs.name }}

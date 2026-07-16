@@ -23,9 +23,7 @@ outputs:
 runs:
   using: composite
   steps:
-    # linuxdeployqt only ever released an x86_64 build of its own AppImage, so a
-    # build on any other architecture has to deploy the AppDir some other way and
-    # should say so here rather than fail on a 404 from the download below.
+    # Only x86_64 builds exist; fail clearly rather than 404 on the download.
     - name: Identify the architecture
       id: arch
       shell: bash
@@ -60,10 +58,8 @@ runs:
           "https://github.com/probonopd/linuxdeployqt/releases/download/$RELEASE/linuxdeployqt-$RELEASE-$ARCH.AppImage"
         chmod +x "$PREFIX/bin/linuxdeployqt"
 
-    # The tool is an AppImage itself, and a build container has no FUSE to mount it
-    # with, so it is run through APPIMAGE_EXTRACT_AND_RUN. The AppImage runtime
-    # honours that for the appimagetool linuxdeployqt invokes in turn, so it is
-    # exported for the whole job rather than set on the call.
+    # No FUSE in a container, so APPIMAGE_EXTRACT_AND_RUN; exported job-wide for
+    # the appimagetool linuxdeployqt invokes in turn.
     - name: Report the tool
       id: install
       shell: bash

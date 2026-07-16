@@ -29,10 +29,7 @@ runs:
         . /etc/os-release
         echo "id=$ID-$VERSION_ID" >> "$GITHUB_OUTPUT"
 
-    # The Linux build takes minutes and its result depends only on the source the
-    # Qt installer ships and on how openssl.sh configures it, so the whole prefix
-    # is restored from a cache instead. The key is pinned to the platform: the
-    # libraries carry its glibc and cannot be reused across releases.
+    # The key is pinned to the platform: the libraries carry its glibc.
     - name: Cache OpenSSL build
       if: runner.os == 'Linux'
       uses: actions/cache@v5
@@ -40,8 +37,7 @@ runs:
         path: ${{ inputs.prefix }}
         key: openssl-${{ steps.platform.outputs.id }}-${{ runner.arch }}-${{ inputs.qt-version }}-${{ hashFiles('.github/linux/openssl.sh') }}
 
-    # IQTA_TOOLS is where install-qt-action unpacks the tools, so the Qt install
-    # has to have run before this action.
+    # Qt must be installed first: install-qt-action sets IQTA_TOOLS.
     - name: Build OpenSSL
       if: runner.os == 'Linux'
       shell: bash
