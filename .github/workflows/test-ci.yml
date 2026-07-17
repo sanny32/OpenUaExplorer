@@ -13,7 +13,6 @@ on:
       - 'tools/**'
       - '.github/workflows/test-ci.yml'
 
-# Cancel superseded runs on the same ref to save CI minutes.
 concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
@@ -36,7 +35,6 @@ jobs:
             qt: '6.9.3'
             cmake_extra: '-DCMAKE_OSX_ARCHITECTURES=arm64'
     env:
-      # Run Qt GUI/Test binaries without a real display.
       QT_QPA_PLATFORM: offscreen
 
     steps:
@@ -78,8 +76,7 @@ jobs:
           modules: qtcharts
           cache: true
 
-      # The tests link OpenSSL but do not bundle it, so on Linux the distribution's
-      # libssl-dev above is what CMake finds and nothing has to be set up here.
+      # On Linux CMake finds the distribution's libssl-dev installed above.
       - name: Set up OpenSSL
         if: runner.os != 'Linux'
         uses: ./.github/actions/setup-openssl

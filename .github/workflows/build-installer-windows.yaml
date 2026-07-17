@@ -76,8 +76,7 @@ jobs:
       - name: Build
         run: cmake --build build --config Release --parallel --target ouaexp
 
-      # The install rules run windeployqt, so the staged tree is the complete,
-      # self-contained payload the installer ships.
+      # The install rules run windeployqt; the staged tree is the full payload.
       - name: Stage install tree
         run: cmake --install build --config Release --prefix "${{ github.workspace }}\stage"
 

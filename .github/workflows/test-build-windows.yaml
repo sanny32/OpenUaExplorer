@@ -51,9 +51,7 @@ jobs:
           Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
           .\build.ps1 -Help
 
-  # GitHub hosts no client Windows image, so the build is tested on the Server
-  # releases that share their code base: Server 2022 is the Windows 10 one
-  # (NT 10.0.20348) and Server 2025 the Windows 11 one (NT 10.0.26100).
+  # No client Windows images exist; Server 2022/2025 share the Windows 10/11 code base.
   build:
     name: Run build.ps1 on ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}

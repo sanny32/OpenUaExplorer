@@ -29,10 +29,7 @@ jobs:
       - name: Check script metadata
         run: head -n1 build.sh | grep -qx '#!/usr/bin/env bash'
 
-      # build.sh builds OpenSSL with the same script the packaging workflows use, so
-      # the scripts under .github/linux are linted here as well.
-      # Every script has to be passed to bash on its own: further arguments become the
-      # positional parameters of the first one rather than scripts of their own.
+      # One script per bash -n call: extra arguments become positional parameters.
       - name: Check Bash syntax
         run: |
           for script in build.sh .github/linux/openssl.sh .github/linux/bundle.sh; do

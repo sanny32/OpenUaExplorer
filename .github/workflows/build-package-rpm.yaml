@@ -52,19 +52,11 @@ jobs:
       - name: Trust workspace
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      # The container ships a Python too old for the aqtinstall install-qt-action
-      # runs below, and for the wheels the build tools are installed from.
       - name: Set up Python
         uses: ./.github/actions/setup-python
 
-      # The package is built inside an older Ubuntu container so the glibc and
-      # libstdc++ symbol versions the bundled binaries reference stay as low as
-      # possible. The bundle carries its own Qt; rpmbuild only wraps the staged tree.
-      #
-      # The GTK and Wayland libraries are not linked against: the Qt platform and
-      # platform theme plugins load them, and they stay a dependency of the package
-      # rather than being bundled. They are installed because bundle.sh resolves the
-      # plugins against this container, and rpmbuild turns their sonames into Requires.
+      # GTK and Wayland are loaded at runtime by Qt plugins; installed here so
+      # rpmbuild turns their sonames into Requires instead of bundling them.
       - name: Install build dependencies
         run: |
           apt-get update
@@ -107,9 +99,7 @@ jobs:
           cache: true
           setup-python: false
 
-      # The package carries its own OpenSSL rather than requesting the distribution's
-      # libssl.so.3, which older distributions do not have. It is linked into the Qt
-      # OpcUa backend below, and bundled.
+      # Bundled: older target distributions have no libssl.so.3.
       - name: Set up OpenSSL
         uses: ./.github/actions/setup-openssl
         with:
@@ -121,8 +111,7 @@ jobs:
           path: build/_deps/qtopcua-install
           key: qtopcua-ubuntu-20.04-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
 
-      # OPENSSL_ROOT_DIR is passed explicitly because qtopcua.cmake forwards the CMake
-      # variable, not the environment one, to the Qt OpcUa sub-build.
+      # qtopcua.cmake forwards the CMake variable, not the env one, to the sub-build.
       - name: Configure
         run: >
           cmake -S src -B build -G Ninja
@@ -134,9 +123,7 @@ jobs:
       - name: Build
         run: cmake --build build --parallel --target ouaexp
 
-      # The application is not installed with `cmake --install`: the package has to
-      # carry the Qt build it was compiled against, so bundle.sh assembles the whole
-      # private tree under /usr/lib/ouaexp instead.
+      # bundle.sh stages the app with its Qt as a private tree under /usr/lib/ouaexp.
       - name: Stage package root
         run: |
           rm -rf pkgroot
@@ -171,16 +158,8 @@ jobs:
         run: |
           mkdir -p rpmbuild/SPECS
 
-          # rpm resolves dependencies by soname, so every bundled library would
-          # otherwise be requested from the distribution - and offered to it. The
-          # spec drops the provides by path; the requires have to be dropped by
-          # name, so the pattern is generated from the staging tree and cannot
-          # drift from what bundle.sh actually copied. A requires entry reads
-          # 'libQt6Core.so.6()(64bit)', hence the trailing bracket.
-          #
-          # The literal '.' and '(' are written as bracket expressions rather than
-          # escapes to keep the pattern free of backslashes, which sed would eat
-          # from the replacement text below.
+          # Exclude the bundled sonames from the generated requires. Bracket
+          # expressions keep the pattern free of backslashes, which sed would eat.
           sonames=''
           for lib in pkgroot/usr/lib/ouaexp/lib/*; do
             name="${lib##*/}"
@@ -192,11 +171,8 @@ jobs:
           fi
           requires_exclude="^(${sonames})[(]"
 
-          # What the bundle needs from the distribution is every soname its files
-          # reference that it does not carry itself. This is what the dependency
-          # generator is supposed to work out, and does not - see the spec - so it is
-          # read out of the staged tree, which is the same thing dpkg-shlibdeps does
-          # for the .deb. The package is x86_64 only, hence the fixed suffix.
+          # The dependency generator misses these (see the spec), so the distribution
+          # requires are read from the staged tree. x86_64 only, hence the suffix.
           find pkgroot/usr/lib/ouaexp -type f \( -name '*.so*' -o -name ouaexp \) \
             -exec patchelf --print-needed {} + \
             | sort -u \
@@ -211,9 +187,7 @@ jobs:
           fi
           cat rpmbuild/requires
 
-          # '|' and '(' appear in the pattern, so '#' delimits the substitution. The
-          # requires are a list, so they are read in from the file rather than
-          # substituted into the line.
+          # '#' delimits because the pattern contains '|' and '('.
           sed -e "s#@NAME@#ouaexp#" \
               -e "s#@VERSION@#${{ steps.version.outputs.rpmVersion }}#" \
               -e "s#@RELEASE@#${{ steps.version.outputs.rpmRelease }}#" \
@@ -249,9 +223,7 @@ jobs:
           rpm -qp --requires "${{ steps.package.outputs.name }}" \
             | grep -Fx 'libxcb-cursor.so.0()(64bit)'
 
-          # A leaked provide or require of a bundled soname means the exclusions
-          # in the spec no longer match what bundle.sh copied: the package would
-          # then pull a distribution Qt in, or hand its private one out.
+          # A leaked bundled soname means the spec exclusions drifted from bundle.sh.
           if rpm -qp --provides "${{ steps.package.outputs.name }}" | grep -E '^lib(Qt6|open62541|ssl|crypto)'; then
             echo "::error::The bundled libraries are offered as provides"
             exit 1
@@ -273,9 +245,7 @@ jobs:
             ${{ steps.package.outputs.name }}.sha256
           if-no-files-found: error
 
-  # The package is verified in a job of its own because the container the build runs
-  # in has no Docker: the daemon lives on the runner, and a bind mount from inside
-  # the container would name paths the daemon cannot see. The runner itself has both.
+  # A job of its own: the build container has no Docker, the runner does.
   verify:
     name: Verify .rpm
     runs-on: ubuntu-latest
@@ -283,8 +253,6 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      # The verifying action is in the repository, so it has to be checked out even
-      # though nothing is built here.
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -295,12 +263,6 @@ jobs:
         with:
           name: ouaexp-rpm-${{ needs.rpm.outputs.arch }}
 
-      # Installing the .rpm on a real RPM distribution resolves the generated
-      # Requires against its archive, so a missing runtime dependency fails here
-      # rather than on a user's machine. The program is a GUI application with no
-      # batch mode, so it is checked by resolving its libraries instead of
-      # starting it. The images are the RPM distributions build.sh is tested on in
-      # test-build-linux.yaml.
       - name: Verify the package installs
         uses: ./.github/actions/verify-linux-package
         with:
