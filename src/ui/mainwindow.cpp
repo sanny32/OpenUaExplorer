@@ -66,6 +66,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    ui->actionSettings->setMenuRole(QAction::PreferencesRole);
+    ui->actionExit->setMenuRole(QAction::QuitRole);
+    ui->actionAbout->setMenuRole(QAction::AboutRole);
+    ui->actionEndpointSettings->setMenuRole(QAction::NoRole);
+
     const bool manualThemeSupported = theApp()->theme().isManualToggleSupported();
     ui->actionTheme->setVisible(manualThemeSupported);
     ui->menuTheme->menuAction()->setVisible(manualThemeSupported);

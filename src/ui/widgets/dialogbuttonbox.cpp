@@ -101,10 +101,6 @@ void DialogButtonBox::setStandardButtons(StandardButtons buttons)
 /// \brief Re-applies the translated standard-button text after a language change.
 /// \param event Change event being handled.
 ///
-/// The custom ColoredPushButton instances are unknown to QDialogButtonBox's own
-/// retranslation, so their text is refreshed here from the same "QPlatformTheme"
-/// context used when they were created.
-///
 void DialogButtonBox::changeEvent(QEvent *event)
 {
     QDialogButtonBox::changeEvent(event);
