@@ -105,6 +105,10 @@ AppSettings::Language AppSettings::language() const
         return Language::English;
     case static_cast<int>(Language::Russian):
         return Language::Russian;
+    case static_cast<int>(Language::German):
+        return Language::German;
+    case static_cast<int>(Language::ChineseSimplified):
+        return Language::ChineseSimplified;
     default:
         return Language::System;
     }

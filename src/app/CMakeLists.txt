@@ -10,8 +10,12 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE ouaexp_ui)
 ouaexp_copy_runtime(${PROJECT_NAME})
 
+set(QT_SKIP_STORE_LANGUAGES_FROM_TS_FILES ON)
+
 qt_add_translations(${PROJECT_NAME}
     TS_FILES translations/ouaexp_ru.ts
+             translations/ouaexp_de.ts
+             translations/ouaexp_zh_CN.ts
     RESOURCE_PREFIX "/translations"
     SOURCE_TARGETS ${PROJECT_NAME} ouaexp_ui ouaexp_core ouaexp_modules ouaexp_charting
     LUPDATE_OPTIONS -no-obsolete -locations none

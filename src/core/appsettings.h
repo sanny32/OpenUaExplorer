@@ -48,7 +48,9 @@ public:
     enum class Language {
         System,
         English,
-        Russian
+        Russian,
+        German,
+        ChineseSimplified
     };
 
     ///

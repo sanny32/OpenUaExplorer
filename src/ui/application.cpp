@@ -191,6 +191,12 @@ void Application::loadTranslatorsFor(AppSettings::Language language)
     case AppSettings::Language::Russian:
         locale = QLocale(QLocale::Russian);
         break;
+    case AppSettings::Language::German:
+        locale = QLocale(QLocale::German);
+        break;
+    case AppSettings::Language::ChineseSimplified:
+        locale = QLocale(QLocale::Chinese, QLocale::SimplifiedChineseScript, QLocale::China);
+        break;
     case AppSettings::Language::System:
         locale = QLocale::system();
         break;

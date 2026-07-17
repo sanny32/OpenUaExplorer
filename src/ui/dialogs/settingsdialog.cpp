@@ -247,8 +247,8 @@ AppSettings::TimestampMode SettingsDialog::selectedTimestampMode() const
 ///
 /// \brief Fills the language combo with the supported languages.
 ///
-/// The "System" entry follows the platform locale and is translatable; the English and
-/// Russian entries carry their own endonyms so they read the same in every language.
+/// The "System" entry follows the platform locale and is translatable; the remaining
+/// entries carry their own endonyms so they read the same in every language.
 ///
 void SettingsDialog::populateLanguageCombo()
 {
@@ -260,6 +260,10 @@ void SettingsDialog::populateLanguageCombo()
                                static_cast<int>(AppSettings::Language::English));
     ui->languageCombo->addItem(QStringLiteral("Русский"),
                                static_cast<int>(AppSettings::Language::Russian));
+    ui->languageCombo->addItem(QStringLiteral("Deutsch"),
+                               static_cast<int>(AppSettings::Language::German));
+    ui->languageCombo->addItem(QStringLiteral("简体中文"),
+                               static_cast<int>(AppSettings::Language::ChineseSimplified));
 }
 
 ///
@@ -284,6 +288,10 @@ AppSettings::Language SettingsDialog::selectedLanguage() const
         return AppSettings::Language::English;
     case static_cast<int>(AppSettings::Language::Russian):
         return AppSettings::Language::Russian;
+    case static_cast<int>(AppSettings::Language::German):
+        return AppSettings::Language::German;
+    case static_cast<int>(AppSettings::Language::ChineseSimplified):
+        return AppSettings::Language::ChineseSimplified;
     default:
         return AppSettings::Language::System;
     }
