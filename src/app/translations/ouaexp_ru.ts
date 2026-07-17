@@ -130,7 +130,11 @@
     </message>
     <message numerus="yes">
         <source>Searching... %n node(s) visited</source>
-        <translation><numerusform>Поиск... посещён %n узел</numerusform><numerusform>Поиск... посещено %n узла</numerusform><numerusform>Поиск... посещено %n узлов</numerusform></translation>
+        <translation>
+            <numerusform>Поиск... посещён %n узел</numerusform>
+            <numerusform>Поиск... посещено %n узла</numerusform>
+            <numerusform>Поиск... посещено %n узлов</numerusform>
+        </translation>
     </message>
     <message>
         <source>Search failed: %1</source>
@@ -285,16 +289,8 @@
         <translation>Копировать</translation>
     </message>
     <message>
-        <source>copy</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Export...</source>
         <translation>Экспорт...</translation>
-    </message>
-    <message>
-        <source>export</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Close</source>
@@ -419,10 +415,6 @@
         <translation>Подробно</translation>
     </message>
     <message>
-        <source>file-text</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Subject:</source>
         <translation>Субъект:</translation>
     </message>
@@ -537,20 +529,12 @@
         <translation>Подробно</translation>
     </message>
     <message>
-        <source>file-text</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Private key:</source>
         <translation>Закрытый ключ:</translation>
     </message>
     <message>
         <source>View Key</source>
         <translation>Просмотреть ключ</translation>
-    </message>
-    <message>
-        <source>key-round</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Valid until:</source>
@@ -573,32 +557,16 @@
         <translation>Импорт...</translation>
     </message>
     <message>
-        <source>export</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Export...</source>
         <translation>Экспорт...</translation>
-    </message>
-    <message>
-        <source>download</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Replace...</source>
         <translation>Заменить...</translation>
     </message>
     <message>
-        <source>refresh</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Remove</source>
         <translation>Удалить</translation>
-    </message>
-    <message>
-        <source>trash</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Trusted / Rejected Certificates</source>
@@ -613,24 +581,12 @@
         <translation>Доверять</translation>
     </message>
     <message>
-        <source>shield-check</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Reject</source>
         <translation>Отклонить</translation>
     </message>
     <message>
-        <source>shield-warning</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Details...</source>
         <translation>Подробнее...</translation>
-    </message>
-    <message>
-        <source>info</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Import Certificate...</source>
@@ -865,14 +821,6 @@
         <translation>URL точки подключения:</translation>
     </message>
     <message>
-        <source>opc.tcp://uademo.prosysopc.com:53530/OPCUA/SimulationServer</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>opc.tcp://opcua.demo-this.com:51210/UA/SampleServer</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Discover Endpoints</source>
         <translation>Точки подключения</translation>
     </message>
@@ -937,10 +885,6 @@
         <translation>Тайм-аут сессии:</translation>
     </message>
     <message>
-        <source>ms</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Endpoint Timeout:</source>
         <translation>Тайм-аут точки подключения:</translation>
     </message>
@@ -959,10 +903,6 @@
     <message>
         <source>Max. Message Size:</source>
         <translation>Макс. размер сообщения:</translation>
-    </message>
-    <message>
-        <source>bytes</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Certificates</source>
@@ -1155,14 +1095,6 @@
         <translation>С</translation>
     </message>
     <message>
-        <source>yyyy-MM-dd</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>HH:mm:ss</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>To</source>
         <translation>По</translation>
     </message>
@@ -1228,10 +1160,6 @@
 </context>
 <context>
     <name>DataAccessModel</name>
-    <message>
-        <source>#</source>
-        <translation type="unfinished"></translation>
-    </message>
     <message>
         <source>Node Id</source>
         <translation>Идентификатор узла</translation>
@@ -1343,10 +1271,6 @@
         <translation>Нет строк доступа к данным для экспорта.</translation>
     </message>
     <message>
-        <source>data-access.csv</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Clear</source>
         <translation>Очистить</translation>
     </message>
@@ -1364,10 +1288,6 @@
     <message>
         <source>Start</source>
         <translation>Начало</translation>
-    </message>
-    <message>
-        <source>yyyy-MM-dd HH:mm:ss</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>End</source>
@@ -1424,10 +1344,6 @@
         <translation>О программе OpenUaExplorer</translation>
     </message>
     <message>
-        <source>OpenUaExplorer</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Version</source>
         <translation>Версия</translation>
     </message>
@@ -1442,14 +1358,6 @@
     <message>
         <source>Website</source>
         <translation>Веб-сайт</translation>
-    </message>
-    <message>
-        <source>|</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>GitHub</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>About</source>
@@ -1551,21 +1459,12 @@
         <source>Visit component homepage: %1</source>
         <translation>Открыть страницу компонента: %1</translation>
     </message>
-    <message>
-        <source>&lt;h2&gt;MIT License&lt;/h2&gt;&lt;p&gt;&lt;b&gt;Copyright %1 Alexandr Ananev&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:&lt;/p&gt;&lt;p&gt;The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.&lt;/p&gt;&lt;p&gt;THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
 </context>
 <context>
     <name>DialogOpcUaInfo</name>
     <message>
         <source>OPC UA Info</source>
         <translation>Сведения об OPC UA</translation>
-    </message>
-    <message>
-        <source>Open Platform Communications
-Unified Architecture</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>OPC UA is a platform-independent standard for secure and reliable data exchange in industrial automation and other domains.</source>
@@ -1632,10 +1531,6 @@ Unified Architecture</source>
         <translation>Копировать сведения</translation>
     </message>
     <message>
-        <source>copy</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
@@ -1646,22 +1541,6 @@ Unified Architecture</source>
     <message>
         <source>%1 (built against %2)</source>
         <translation>%1 (собрано с %2)</translation>
-    </message>
-    <message>
-        <source>None, Sign, SignAndEncrypt</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Anonymous, Username, X509 Certificate</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Part 1-14</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>1.05.01</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Client</source>
@@ -1681,10 +1560,6 @@ Unified Architecture</source>
     <message>
         <source>Server URL</source>
         <translation>URL сервера</translation>
-    </message>
-    <message>
-        <source>opc.tcp://host:port/path</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Security Policy / Mode</source>
@@ -1911,10 +1786,6 @@ Unified Architecture</source>
         <translation>Начало</translation>
     </message>
     <message>
-        <source>yyyy-MM-dd HH:mm:ss</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>End</source>
         <translation>Конец</translation>
     </message>
@@ -2113,10 +1984,6 @@ Unified Architecture</source>
 <context>
     <name>HistoryModel</name>
     <message>
-        <source>#</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Source Timestamp</source>
         <translation>Метка времени источника</translation>
     </message>
@@ -2229,28 +2096,12 @@ Unified Architecture</source>
 <context>
     <name>MainStatusBarWidget</name>
     <message>
-        <source>Connected: opc.tcp://localhost:4840</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>None</source>
         <translation>Нет</translation>
     </message>
     <message>
         <source>Anonymous</source>
         <translation>Анонимно</translation>
-    </message>
-    <message>
-        <source>0000023A</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Server Time: 12:15:23</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Local Time: 12:15:23</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Connection</source>
@@ -2321,20 +2172,12 @@ Unified Architecture</source>
         <translation>Отключено</translation>
     </message>
     <message>
-        <source>-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Server Time: -</source>
         <translation>Время сервера: -</translation>
     </message>
 </context>
 <context>
     <name>MainWindow</name>
-    <message>
-        <source>OpenUaExplorer</source>
-        <translation type="unfinished"></translation>
-    </message>
     <message>
         <source>File</source>
         <translation>Файл</translation>
@@ -2649,16 +2492,8 @@ Open the download page?</source>
         <translation>Обновить</translation>
     </message>
     <message>
-        <source>refresh</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Export...</source>
         <translation>Экспорт...</translation>
-    </message>
-    <message>
-        <source>download</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Show system namespaces</source>
@@ -2687,10 +2522,6 @@ Open the download page?</source>
     <message>
         <source>Close</source>
         <translation>Закрыть</translation>
-    </message>
-    <message>
-        <source>ns</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>URI</source>
@@ -2782,10 +2613,6 @@ Open the download page?</source>
         <translation>Текущее значение</translation>
     </message>
     <message>
-        <source>—</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Type</source>
         <translation>Тип</translation>
     </message>
@@ -2800,10 +2627,6 @@ Open the download page?</source>
     <message>
         <source>Pause</source>
         <translation>Пауза</translation>
-    </message>
-    <message>
-        <source>pause</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Always on top</source>
@@ -2906,82 +2729,6 @@ Open the download page?</source>
 </context>
 <context>
     <name>QObject</name>
-    <message>
-        <source>App</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Address Space</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Attribute</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Client</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Data Access</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Reference</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Server</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Session</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>plugin</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>network</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>secure channel</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>session</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>server</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>client</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>userland</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>security policy</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>event loop</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>pubsub</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>discovery</source>
-        <translation type="unfinished"></translation>
-    </message>
     <message>
         <source>Unknown</source>
         <translation>Неизвестно</translation>
@@ -3392,24 +3139,12 @@ Do you want to save them?</source>
         <translation>Светлая</translation>
     </message>
     <message>
-        <source>light</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Dark</source>
         <translation>Тёмная</translation>
     </message>
     <message>
-        <source>dark</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>System</source>
         <translation>Системная</translation>
-    </message>
-    <message>
-        <source>system</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Language</source>
@@ -3446,10 +3181,6 @@ Do you want to save them?</source>
     <message>
         <source>Reset</source>
         <translation>Сброс</translation>
-    </message>
-    <message>
-        <source>refresh</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Logging</source>
@@ -3547,10 +3278,6 @@ Do you want to save them?</source>
         <translation>Копировать</translation>
     </message>
     <message>
-        <source>copy</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
@@ -3581,10 +3308,6 @@ Do you want to save them?</source>
         <translation>Пауза</translation>
     </message>
     <message>
-        <source>pause</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>1m</source>
         <translation>1м</translation>
     </message>
@@ -3609,28 +3332,12 @@ Do you want to save them?</source>
         <translation>Обновить историю с текущего момента</translation>
     </message>
     <message>
-        <source>refresh</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Auto Scale</source>
         <translation>Автомасштаб</translation>
     </message>
     <message>
         <source>Fit</source>
         <translation>Уместить</translation>
-    </message>
-    <message>
-        <source>fit</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>export</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>settings</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Resume</source>
@@ -3839,10 +3546,6 @@ Do you want to save them?</source>
         <translation>Тип данных:</translation>
     </message>
     <message>
-        <source>-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Write Type:</source>
         <translation>Тип записи:</translation>
     </message>
@@ -3873,94 +3576,6 @@ Do you want to save them?</source>
     <message>
         <source>The value is invalid or outside the selected type range.</source>
         <translation>Значение недопустимо или выходит за диапазон выбранного типа.</translation>
-    </message>
-    <message>
-        <source>Boolean</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>SByte</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Byte</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Int16</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>UInt16</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Int32</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>UInt32</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Int64</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>UInt64</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Float</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Double</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>String</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>DateTime</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Guid</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>ByteString</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>XmlElement</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>NodeId</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>ExpandedNodeId</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>LocalizedText</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>QualifiedName</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>StatusCode</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>ExtensionObject</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Auto</source>

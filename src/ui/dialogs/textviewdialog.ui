@@ -60,7 +60,7 @@
         <string>Copy</string>
        </property>
        <property name="iconName" stdset="0">
-        <string>copy</string>
+        <string notr="true">copy</string>
        </property>
       </widget>
      </item>

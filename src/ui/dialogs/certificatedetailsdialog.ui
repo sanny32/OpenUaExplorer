@@ -53,7 +53,7 @@
         <string>Copy</string>
        </property>
        <property name="iconName" stdset="0">
-        <string>copy</string>
+        <string notr="true">copy</string>
        </property>
       </widget>
      </item>
@@ -63,7 +63,7 @@
         <string>Export...</string>
        </property>
        <property name="iconName" stdset="0">
-        <string>export</string>
+        <string notr="true">export</string>
        </property>
       </widget>
      </item>

@@ -540,7 +540,7 @@ QString DialogAbout::iconButtonStyleSheet() const
 ///
 QString DialogAbout::licenseHtml() const
 {
-    return tr(
+    return QStringLiteral(
         "<h2>MIT License</h2>"
         "<p><b>Copyright %1 Alexandr Ananev</b></p>"
         "<p>Permission is hereby granted, free of charge, to any person obtaining a copy "

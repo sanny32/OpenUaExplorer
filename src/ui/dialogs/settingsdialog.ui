@@ -65,7 +65,7 @@
            <string>Light</string>
           </property>
           <property name="previewMode" stdset="0">
-           <string>light</string>
+           <string notr="true">light</string>
           </property>
          </widget>
         </item>
@@ -75,7 +75,7 @@
            <string>Dark</string>
           </property>
           <property name="previewMode" stdset="0">
-           <string>dark</string>
+           <string notr="true">dark</string>
           </property>
          </widget>
         </item>
@@ -85,7 +85,7 @@
            <string>System</string>
           </property>
           <property name="previewMode" stdset="0">
-           <string>system</string>
+           <string notr="true">system</string>
           </property>
          </widget>
         </item>
@@ -220,7 +220,7 @@
          <string>Reset</string>
         </property>
         <property name="iconName" stdset="0">
-         <string>refresh</string>
+         <string notr="true">refresh</string>
         </property>
        </widget>
       </item>

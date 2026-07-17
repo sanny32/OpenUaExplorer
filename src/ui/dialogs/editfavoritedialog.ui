@@ -108,7 +108,7 @@
    <item>
     <widget class="QLineEdit" name="serverUrlEdit">
      <property name="placeholderText">
-      <string>opc.tcp://host:port/path</string>
+      <string notr="true">opc.tcp://host:port/path</string>
      </property>
     </widget>
    </item>

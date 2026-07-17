@@ -171,11 +171,11 @@ void DialogOpcUaInfo::setupContent()
                 tr("%1 (built against %2)").arg(qVersion(), QStringLiteral(QT_VERSION_STR)));
     setRowValue(QStringLiteral("securityPoliciesValue"), displayList(policies));
     setRowValue(QStringLiteral("securityModesValue"),
-                tr("None, Sign, SignAndEncrypt"));
+                QStringLiteral("None, Sign, SignAndEncrypt"));
     setRowValue(QStringLiteral("userTokenTypesValue"),
-                tr("Anonymous, Username, X509 Certificate"));
-    setRowValue(QStringLiteral("specificationValue"), tr("Part 1-14"));
-    setRowValue(QStringLiteral("specificationVersionValue"), tr("1.05.01"));
+                QStringLiteral("Anonymous, Username, X509 Certificate"));
+    setRowValue(QStringLiteral("specificationValue"), QStringLiteral("Part 1-14"));
+    setRowValue(QStringLiteral("specificationVersionValue"), QStringLiteral("1.05.01"));
     setRowValue(QStringLiteral("profileValue"), tr("Client"));
 }
 

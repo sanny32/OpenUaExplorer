@@ -66,7 +66,7 @@ QVariant HistoryModel::headerData(int section, Qt::Orientation orientation, int 
         return QAbstractTableModel::headerData(section, orientation, role);
 
     switch (section) {
-    case ColNumber:          return tr("#");
+    case ColNumber:          return QStringLiteral("#");
     case ColSourceTimestamp: return tr("Source Timestamp");
     case ColServerTimestamp: return tr("Server Timestamp");
     case ColValue:           return tr("Value");

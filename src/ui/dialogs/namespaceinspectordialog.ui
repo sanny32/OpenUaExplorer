@@ -47,7 +47,7 @@
         <string>Refresh</string>
        </property>
        <property name="iconName" stdset="0">
-        <string>refresh</string>
+        <string notr="true">refresh</string>
        </property>
       </widget>
      </item>
@@ -57,7 +57,7 @@
         <string>Export...</string>
        </property>
        <property name="iconName" stdset="0">
-        <string>download</string>
+        <string notr="true">download</string>
        </property>
       </widget>
      </item>

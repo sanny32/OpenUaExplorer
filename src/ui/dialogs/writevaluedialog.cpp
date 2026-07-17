@@ -191,15 +191,15 @@ QVariant WriteValueDialog::convertScalar(const QString &text, int type, bool *ok
 void WriteValueDialog::populateTypes()
 {
     const QList<QPair<QString, int>> types = {
-        {tr("Boolean"), Boolean}, {tr("SByte"), SByte}, {tr("Byte"), Byte},
-        {tr("Int16"), Int16}, {tr("UInt16"), UInt16}, {tr("Int32"), Int32},
-        {tr("UInt32"), UInt32}, {tr("Int64"), Int64}, {tr("UInt64"), UInt64},
-        {tr("Float"), Float}, {tr("Double"), Double}, {tr("String"), String},
-        {tr("DateTime"), DateTime}, {tr("Guid"), Guid}, {tr("ByteString"), ByteString},
-        {tr("XmlElement"), XmlElement}, {tr("NodeId"), NodeId},
-        {tr("ExpandedNodeId"), ExpandedNodeId}, {tr("LocalizedText"), LocalizedText},
-        {tr("QualifiedName"), QualifiedName}, {tr("StatusCode"), StatusCode},
-        {tr("ExtensionObject"), ExtensionObject}, {tr("Auto"), Undefined}
+        {QStringLiteral("Boolean"), Boolean}, {QStringLiteral("SByte"), SByte}, {QStringLiteral("Byte"), Byte},
+        {QStringLiteral("Int16"), Int16}, {QStringLiteral("UInt16"), UInt16}, {QStringLiteral("Int32"), Int32},
+        {QStringLiteral("UInt32"), UInt32}, {QStringLiteral("Int64"), Int64}, {QStringLiteral("UInt64"), UInt64},
+        {QStringLiteral("Float"), Float}, {QStringLiteral("Double"), Double}, {QStringLiteral("String"), String},
+        {QStringLiteral("DateTime"), DateTime}, {QStringLiteral("Guid"), Guid}, {QStringLiteral("ByteString"), ByteString},
+        {QStringLiteral("XmlElement"), XmlElement}, {QStringLiteral("NodeId"), NodeId},
+        {QStringLiteral("ExpandedNodeId"), ExpandedNodeId}, {QStringLiteral("LocalizedText"), LocalizedText},
+        {QStringLiteral("QualifiedName"), QualifiedName}, {QStringLiteral("StatusCode"), StatusCode},
+        {QStringLiteral("ExtensionObject"), ExtensionObject}, {tr("Auto"), Undefined}
     };
     for (const auto &type : types)
         ui->typeComboBox->addItem(type.first, type.second);

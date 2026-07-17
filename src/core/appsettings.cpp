@@ -127,14 +127,14 @@ void AppSettings::setLanguage(Language language)
 QVector<AppSettings::LogCategory> AppSettings::availableApplicationLogCategories()
 {
     return {
-        { QStringLiteral("application.app"),          QStringLiteral("ouaexp.App"),          QObject::tr("App"),           true },
-        { QStringLiteral("application.addressspace"), QStringLiteral("ouaexp.AddressSpace"), QObject::tr("Address Space"), true },
-        { QStringLiteral("application.attribute"),    QStringLiteral("ouaexp.Attribute"),    QObject::tr("Attribute"),     true },
-        { QStringLiteral("application.client"),       QStringLiteral("ouaexp.Client"),       QObject::tr("Client"),        true },
-        { QStringLiteral("application.dataaccess"),   QStringLiteral("ouaexp.DataAccess"),   QObject::tr("Data Access"),   true },
-        { QStringLiteral("application.reference"),    QStringLiteral("ouaexp.Reference"),    QObject::tr("Reference"),     true },
-        { QStringLiteral("application.server"),       QStringLiteral("ouaexp.Server"),       QObject::tr("Server"),        true },
-        { QStringLiteral("application.session"),      QStringLiteral("ouaexp.Session"),      QObject::tr("Session"),       true }
+        { QStringLiteral("application.app"),          QStringLiteral("ouaexp.App"),          QStringLiteral("App"),           true },
+        { QStringLiteral("application.addressspace"), QStringLiteral("ouaexp.AddressSpace"), QStringLiteral("Address Space"), true },
+        { QStringLiteral("application.attribute"),    QStringLiteral("ouaexp.Attribute"),    QStringLiteral("Attribute"),     true },
+        { QStringLiteral("application.client"),       QStringLiteral("ouaexp.Client"),       QStringLiteral("Client"),        true },
+        { QStringLiteral("application.dataaccess"),   QStringLiteral("ouaexp.DataAccess"),   QStringLiteral("Data Access"),   true },
+        { QStringLiteral("application.reference"),    QStringLiteral("ouaexp.Reference"),    QStringLiteral("Reference"),     true },
+        { QStringLiteral("application.server"),       QStringLiteral("ouaexp.Server"),       QStringLiteral("Server"),        true },
+        { QStringLiteral("application.session"),      QStringLiteral("ouaexp.Session"),      QStringLiteral("Session"),       true }
     };
 }
 
@@ -147,7 +147,7 @@ QVector<AppSettings::LogCategory> AppSettings::availableQtOpcUaLogCategories()
     return {
         { QStringLiteral("plugin"),
           QStringLiteral("qt.opcua.plugins.open62541"),
-          QObject::tr("plugin"), true }
+          QStringLiteral("plugin"), true }
     };
 }
 
@@ -161,16 +161,16 @@ QVector<AppSettings::LogCategory> AppSettings::availableOpen62541LogCategories()
         return QStringLiteral("qt.opcua.plugins.open62541.sdk.") + QLatin1String(suffix);
     };
     return {
-        { QStringLiteral("network"),        sdk("network"),        QObject::tr("network"),         false },
-        { QStringLiteral("securechannel"),  sdk("securechannel"),  QObject::tr("secure channel"),  false },
-        { QStringLiteral("session"),        sdk("session"),        QObject::tr("session"),         true  },
-        { QStringLiteral("server"),         sdk("server"),         QObject::tr("server"),          true  },
-        { QStringLiteral("client"),         sdk("client"),         QObject::tr("client"),          false },
-        { QStringLiteral("userland"),       sdk("userland"),       QObject::tr("userland"),        true  },
-        { QStringLiteral("securitypolicy"), sdk("securitypolicy"), QObject::tr("security policy"), true  },
-        { QStringLiteral("eventloop"),      sdk("eventloop"),      QObject::tr("event loop"),      false },
-        { QStringLiteral("pubsub"),         sdk("pubsub"),         QObject::tr("pubsub"),          true  },
-        { QStringLiteral("discovery"),      sdk("discovery"),      QObject::tr("discovery"),       true  }
+        { QStringLiteral("network"),        sdk("network"),        QStringLiteral("network"),         false },
+        { QStringLiteral("securechannel"),  sdk("securechannel"),  QStringLiteral("secure channel"),  false },
+        { QStringLiteral("session"),        sdk("session"),        QStringLiteral("session"),         true  },
+        { QStringLiteral("server"),         sdk("server"),         QStringLiteral("server"),          true  },
+        { QStringLiteral("client"),         sdk("client"),         QStringLiteral("client"),          false },
+        { QStringLiteral("userland"),       sdk("userland"),       QStringLiteral("userland"),        true  },
+        { QStringLiteral("securitypolicy"), sdk("securitypolicy"), QStringLiteral("security policy"), true  },
+        { QStringLiteral("eventloop"),      sdk("eventloop"),      QStringLiteral("event loop"),      false },
+        { QStringLiteral("pubsub"),         sdk("pubsub"),         QStringLiteral("pubsub"),          true  },
+        { QStringLiteral("discovery"),      sdk("discovery"),      QStringLiteral("discovery"),       true  }
     };
 }
 

@@ -189,7 +189,7 @@ void DataAccessWidget::exportToCsv()
         return;
     }
 
-    FileExport::exportModelToCsv(this, tr("Export Data"), tr("data-access.csv"), *_dataModel);
+    FileExport::exportModelToCsv(this, tr("Export Data"), QStringLiteral("data-access.csv"), *_dataModel);
 }
 
 ///

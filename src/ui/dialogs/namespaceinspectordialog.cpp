@@ -72,7 +72,7 @@ NamespaceInspectorDialog::NamespaceInspectorDialog(OpcUaBackend *service,
     ui->setupUi(this);
 
     _model->setColumnCount(ColumnCount);
-    _model->setHorizontalHeaderLabels({ tr("ns"), tr("URI"), tr("Nodes"), tr("Namespace") });
+    _model->setHorizontalHeaderLabels({ QStringLiteral("ns"), tr("URI"), tr("Nodes"), tr("Namespace") });
     ui->namespaceTable->setModel(_model);
 
     QHeaderView *header = ui->namespaceTable->horizontalHeader();
@@ -85,7 +85,7 @@ NamespaceInspectorDialog::NamespaceInspectorDialog(OpcUaBackend *service,
     boldFont.setBold(true);
     const QFontMetrics boldMetrics(boldFont);
     const int padding = 28;
-    header->resizeSection(ColumnIndex, boldMetrics.horizontalAdvance(tr("ns")) + padding);
+    header->resizeSection(ColumnIndex, boldMetrics.horizontalAdvance(QStringLiteral("ns")) + padding);
     header->resizeSection(ColumnNodes,
         qMax(boldMetrics.horizontalAdvance(tr("Nodes")),
              boldMetrics.horizontalAdvance(QStringLiteral("99999"))) + padding);

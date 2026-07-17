@@ -316,9 +316,9 @@ void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
     const QString security = securitySummary(securityPolicy, securityMode);
     ui->statusIconLabel->setIcon(icon, QSize(12, 12));
     ui->connectionLabel->setText(text);
-    ui->securityLabel->setText(security.isEmpty() ? tr("-") : security);
-    ui->authenticationLabel->setText(authentication.isEmpty() ? tr("-") : authentication);
-    ui->sessionLabel->setText(sessionName.isEmpty() ? tr("-") : sessionName);
+    ui->securityLabel->setText(security.isEmpty() ? QStringLiteral("-") : security);
+    ui->authenticationLabel->setText(authentication.isEmpty() ? QStringLiteral("-") : authentication);
+    ui->sessionLabel->setText(sessionName.isEmpty() ? QStringLiteral("-") : sessionName);
     ui->serverTimeLabel->setText(tr("Server Time: -"));
 }
 

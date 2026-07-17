@@ -218,7 +218,7 @@ QVariant DataAccessModel::headerData(int section, Qt::Orientation orientation, i
         return QAbstractTableModel::headerData(section, orientation, role);
 
     switch (section) {
-    case ColNumber:       return tr("#");
+    case ColNumber:       return QStringLiteral("#");
     case ColNodeId:       return tr("Node Id");
     case ColDisplayName:  return tr("Display Name");
     case ColValue:        return tr("Value");
