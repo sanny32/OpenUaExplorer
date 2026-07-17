@@ -1485,7 +1485,7 @@
     </message>
     <message>
         <source>Copyright © %1 Alexandr Ananev</source>
-        <translation>© %1 Александр Ананьев</translation>
+        <translation>© %1 Alexandr Ananev</translation>
     </message>
     <message>
         <source>OpenUaExplorer is a modern OPC UA client&lt;br&gt;designed for engineers and developers.&lt;br&gt;&lt;br&gt;&lt;b&gt;Features:&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull;&amp;nbsp;&amp;nbsp;Address Space browsing&lt;br&gt;&amp;bull;&amp;nbsp;&amp;nbsp;Live data subscriptions&lt;br&gt;&amp;bull;&amp;nbsp;&amp;nbsp;Data Access monitoring&lt;br&gt;&amp;bull;&amp;nbsp;&amp;nbsp;Event and History support&lt;br&gt;&amp;bull;&amp;nbsp;&amp;nbsp;Secure connection management</source>
@@ -2701,10 +2701,6 @@ Open the download page?</source>
         <translation>Узлы</translation>
     </message>
     <message>
-        <source>Kind</source>
-        <translation>Тип</translation>
-    </message>
-    <message>
         <source>System</source>
         <translation>Системное</translation>
     </message>
@@ -2735,6 +2731,10 @@ Open the download page?</source>
     <message>
         <source>Export Namespaces</source>
         <translation>Экспорт пространств имён</translation>
+    </message>
+    <message>
+        <source>Namespace</source>
+        <translation>Пространство имён</translation>
     </message>
 </context>
 <context>

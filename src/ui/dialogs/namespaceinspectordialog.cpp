@@ -72,7 +72,7 @@ NamespaceInspectorDialog::NamespaceInspectorDialog(OpcUaBackend *service,
     ui->setupUi(this);
 
     _model->setColumnCount(ColumnCount);
-    _model->setHorizontalHeaderLabels({ tr("ns"), tr("URI"), tr("Nodes"), tr("Kind") });
+    _model->setHorizontalHeaderLabels({ tr("ns"), tr("URI"), tr("Nodes"), tr("Namespace") });
     ui->namespaceTable->setModel(_model);
 
     QHeaderView *header = ui->namespaceTable->horizontalHeader();
@@ -89,9 +89,11 @@ NamespaceInspectorDialog::NamespaceInspectorDialog(OpcUaBackend *service,
     header->resizeSection(ColumnNodes,
         qMax(boldMetrics.horizontalAdvance(tr("Nodes")),
              boldMetrics.horizontalAdvance(QStringLiteral("99999"))) + padding);
-    header->resizeSection(ColumnKind,
-        qMax(boldMetrics.horizontalAdvance(tr("Kind")),
-             boldMetrics.horizontalAdvance(tr("System"))) + padding + 20);
+    const int kindWidth = qMax(boldMetrics.horizontalAdvance(tr("Namespace")),
+        qMax(boldMetrics.horizontalAdvance(tr("System")),
+            qMax(boldMetrics.horizontalAdvance(tr("User")),
+                 boldMetrics.horizontalAdvance(tr("User-defined")))));
+    header->resizeSection(ColumnKind, kindWidth + padding + 20);
     if (HeaderView *headerView = ui->namespaceTable->headerView())
         headerView->setSectionAlignment(ColumnIndex, Qt::AlignCenter);
 
