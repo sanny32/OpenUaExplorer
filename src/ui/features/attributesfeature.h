@@ -48,6 +48,11 @@ public:
     ///
     void clearRuntimeState() override;
 
+    ///
+    /// \brief Re-applies the dock title after a language change.
+    ///
+    void retranslate() override;
+
 private:
     QDockWidget *_dock = nullptr;
     AttributesWidget *_widget = nullptr;

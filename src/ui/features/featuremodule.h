@@ -55,6 +55,11 @@ public:
     virtual void clearRuntimeState();
 
     ///
+    /// \brief Re-applies translated text the feature owns after a language change.
+    ///
+    virtual void retranslate();
+
+    ///
     /// \brief Contributes feature state to a saved working session.
     /// \param session Session payload to write to.
     ///

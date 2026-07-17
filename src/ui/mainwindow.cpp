@@ -119,6 +119,8 @@ void MainWindow::changeEvent(QEvent *event)
         setWindowIcon(AppIcons::application());
     } else if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
+        if (_featureManager)
+            _featureManager->retranslate();
     }
 }
 

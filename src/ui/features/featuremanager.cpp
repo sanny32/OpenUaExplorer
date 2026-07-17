@@ -78,6 +78,15 @@ void FeatureManager::clearRuntimeState()
 }
 
 ///
+/// \brief Re-applies translated text owned by every feature after a language change.
+///
+void FeatureManager::retranslate()
+{
+    for (const std::unique_ptr<FeatureModule> &feature : _features)
+        feature->retranslate();
+}
+
+///
 /// \brief Collects every feature's contribution to a saved working session.
 /// \param session Session payload to write to.
 ///

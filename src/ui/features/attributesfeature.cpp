@@ -91,3 +91,12 @@ void AttributesFeature::clearRuntimeState()
     if (_widget)
         _widget->clear();
 }
+
+///
+/// \brief Re-applies the dock title after a language change.
+///
+void AttributesFeature::retranslate()
+{
+    if (_dock)
+        _dock->setWindowTitle(QCoreApplication::translate("AttributesFeature", "Attributes"));
+}

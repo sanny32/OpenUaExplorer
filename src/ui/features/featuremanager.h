@@ -100,6 +100,11 @@ public:
     void clearRuntimeState();
 
     ///
+    /// \brief Re-applies translated text owned by every feature after a language change.
+    ///
+    void retranslate();
+
+    ///
     /// \brief Collects every feature's contribution to a saved working session.
     /// \param session Session payload to write to.
     ///

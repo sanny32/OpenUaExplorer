@@ -66,3 +66,12 @@ void LogFeature::restoreState(AppSettings &settings)
     if (_widget)
         _widget->restoreViewState(settings);
 }
+
+///
+/// \brief Re-applies the dock title after a language change.
+///
+void LogFeature::retranslate()
+{
+    if (_dock)
+        _dock->setWindowTitle(QCoreApplication::translate("LogFeature", "Log"));
+}

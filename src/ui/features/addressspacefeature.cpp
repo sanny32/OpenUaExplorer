@@ -173,6 +173,19 @@ void AddressSpaceFeature::clearRuntimeState()
 }
 
 ///
+/// \brief Re-applies the dock titles after a language change.
+///
+void AddressSpaceFeature::retranslate()
+{
+    if (_addressDock)
+        _addressDock->setWindowTitle(
+            QCoreApplication::translate("AddressSpaceFeature", "Address Space"));
+    if (_nodeDetailsDock)
+        _nodeDetailsDock->setWindowTitle(
+            QCoreApplication::translate("AddressSpaceFeature", "Node Details"));
+}
+
+///
 /// \brief Adds address-space navigation state to an already collected session payload.
 ///
 void AddressSpaceFeature::saveSession(SessionData &session) const

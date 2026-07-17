@@ -46,6 +46,11 @@ public:
     void clearRuntimeState() override;
 
     ///
+    /// \brief Re-applies the dock titles after a language change.
+    ///
+    void retranslate() override;
+
+    ///
     /// \brief Adds address-space navigation state to an already collected session payload.
     ///
     void saveSession(SessionData &session) const override;
