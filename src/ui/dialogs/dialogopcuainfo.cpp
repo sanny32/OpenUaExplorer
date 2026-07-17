@@ -207,14 +207,28 @@ void DialogOpcUaInfo::setupFonts()
 ///
 void DialogOpcUaInfo::setupLayout()
 {
-    constexpr int captionColumnWidth = 170;
-
     const QList<QGridLayout *> grids = {
         ui->stackGrid,
         ui->securityGrid,
         ui->specificationGrid,
         ui->resourcesGrid,
     };
+
+    int captionColumnWidth = 0;
+    for (QGridLayout *grid : grids) {
+        for (int index = 0; index < grid->count(); ++index) {
+            int row = 0;
+            int column = 0;
+            int rowSpan = 0;
+            int columnSpan = 0;
+            grid->getItemPosition(index, &row, &column, &rowSpan, &columnSpan);
+            if (column != 0)
+                continue;
+            if (const QWidget *caption = grid->itemAt(index)->widget())
+                captionColumnWidth = qMax(captionColumnWidth, caption->sizeHint().width());
+        }
+    }
+
     for (QGridLayout *grid : grids) {
         grid->setColumnMinimumWidth(0, captionColumnWidth);
         grid->setColumnStretch(0, 0);
