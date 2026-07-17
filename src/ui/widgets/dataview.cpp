@@ -6,6 +6,7 @@
 /// \brief Implements the tabbed data view container.
 ///
 
+#include <QEvent>
 #include <QTabWidget>
 
 #include "appsettings.h"
@@ -98,6 +99,17 @@ DataView::DataView(QWidget *parent)
 DataView::~DataView()
 {
     delete ui;
+}
+
+///
+/// \brief Retranslates the generated UI on a language change.
+/// \param event Change event being handled.
+///
+void DataView::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange)
+        ui->retranslateUi(this);
 }
 
 ///

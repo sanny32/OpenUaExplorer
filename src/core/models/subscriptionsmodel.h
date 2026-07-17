@@ -80,6 +80,11 @@ public:
                         int role = Qt::DisplayRole) const override;
 
     ///
+    /// \brief Re-emits the header titles after a UI language change.
+    ///
+    void retranslate();
+
+    ///
     /// \brief Replaces all subscription rows with row-change notifications.
     /// \param items New subscriptions to display.
     ///

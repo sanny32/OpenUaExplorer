@@ -89,6 +89,11 @@ public:
                         int role = Qt::DisplayRole) const override;
 
     ///
+    /// \brief Re-emits the header titles after a UI language change.
+    ///
+    void retranslate();
+
+    ///
     /// \brief Rebuilds the tree from structured OPC UA attributes.
     /// \param attributes Structured OPC UA attributes.
     ///

@@ -94,6 +94,17 @@ TrendPanelWidget::~TrendPanelWidget()
 }
 
 ///
+/// \brief Retranslates the generated UI on a language change.
+/// \param event Change event being handled.
+///
+void TrendPanelWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange)
+        ui->retranslateUi(this);
+}
+
+///
 /// \brief Adds a chart tab before the trailing add-tab and selects it.
 /// \return The new chart widget.
 ///

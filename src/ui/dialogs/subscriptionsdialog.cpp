@@ -7,6 +7,7 @@
 ///
 
 #include <QDialogButtonBox>
+#include <QEvent>
 
 #include "dialogs/subscriptionsdialog.h"
 #include "ui_subscriptionsdialog.h"
@@ -31,6 +32,17 @@ SubscriptionsDialog::SubscriptionsDialog(QWidget *parent)
 SubscriptionsDialog::~SubscriptionsDialog()
 {
     delete ui;
+}
+
+///
+/// \brief Retranslates the generated UI on a language change.
+/// \param event Change event being handled.
+///
+void SubscriptionsDialog::changeEvent(QEvent *event)
+{
+    AppBaseDialog::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange)
+        ui->retranslateUi(this);
 }
 
 ///

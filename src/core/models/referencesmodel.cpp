@@ -52,8 +52,8 @@ QVariant ReferencesModel::headerData(int section, Qt::Orientation orientation, i
         return QAbstractTableModel::headerData(section, orientation, role);
 
     switch (section) {
-    case ColReference: return QStringLiteral("Reference");
-    case ColTarget:    return QStringLiteral("Target");
+    case ColReference: return tr("Reference");
+    case ColTarget:    return tr("Target");
     default:           return QVariant();
     }
 }
@@ -98,4 +98,12 @@ void ReferencesModel::clear()
     beginResetModel();
     _items.clear();
     endResetModel();
+}
+
+///
+/// \brief Re-emits the header titles after a UI language change.
+///
+void ReferencesModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
 }

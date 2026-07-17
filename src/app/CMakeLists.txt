@@ -10,6 +10,13 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE ouaexp_ui)
 ouaexp_copy_runtime(${PROJECT_NAME})
 
+qt_add_translations(${PROJECT_NAME}
+    TS_FILES translations/ouaexp_ru.ts
+    RESOURCE_PREFIX "/translations"
+    SOURCE_TARGETS ${PROJECT_NAME} ouaexp_ui ouaexp_core ouaexp_modules ouaexp_charting
+    LUPDATE_OPTIONS -no-obsolete -locations none
+)
+
 if(WIN32)
     ouaexp_configure_target_windows(${PROJECT_NAME}
         "${CMAKE_CURRENT_SOURCE_DIR}/ouaexp.rc.in"

@@ -9,6 +9,7 @@
 #include <functional>
 
 #include <QAbstractItemView>
+#include <QEvent>
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QLineEdit>
@@ -293,6 +294,19 @@ void AddressSpaceWidget::restoreViewState(AppSettings &settings)
 AddressSpaceWidget::~AddressSpaceWidget()
 {
     delete ui;
+}
+
+///
+/// \brief Retranslates the generated UI on a language change.
+/// \param event Change event being handled.
+///
+void AddressSpaceWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        _referencesModel->retranslate();
+    }
 }
 
 ///

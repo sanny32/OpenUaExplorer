@@ -141,6 +141,8 @@ void DialogOpcUaInfo::changeEvent(QEvent *event)
     if (event->type() == QEvent::PaletteChange
         || event->type() == QEvent::ApplicationPaletteChange) {
         setupLogo();
+    } else if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
     }
 }
 

@@ -15,6 +15,7 @@
 #include "dialogs/appbasedialog.h"
 
 class QCheckBox;
+class QEvent;
 class QGridLayout;
 
 namespace Ui {
@@ -60,9 +61,16 @@ private:
     AppSettings::ThemeMode selectedThemeMode() const;
     void setTimestampSelection(AppSettings::TimestampMode mode);
     AppSettings::TimestampMode selectedTimestampMode() const;
+    void populateLanguageCombo();
+    void setLanguageSelection(AppSettings::Language language);
+    AppSettings::Language selectedLanguage() const;
     void markDirty();
     void setDirty(bool dirty);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
+private:
     Ui::SettingsDialog *ui;
     bool _layoutResetRequested = false;
     QHash<QString, QCheckBox *> _logCategoryChecks;

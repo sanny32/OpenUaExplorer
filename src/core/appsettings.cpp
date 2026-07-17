@@ -15,6 +15,7 @@
 namespace {
 constexpr auto themeModeKey = "appearance/themeMode";
 constexpr auto timestampModeKey = "appearance/timestampMode";
+constexpr auto languageKey = "appearance/language";
 constexpr auto windowGeometryKey = "mainWindow/geometry";
 constexpr auto windowStateKey = "mainWindow/state";
 constexpr auto centralSplitterKey = "mainWindow/centralSplitter";
@@ -88,6 +89,35 @@ void AppSettings::setTimestampMode(TimestampMode mode)
 {
     SettingsStore settings;
     settings.setValue(QLatin1String(timestampModeKey), static_cast<int>(mode));
+}
+
+///
+/// \brief Returns the stored user interface language preference.
+/// \return Saved language, or Language::System when none is stored.
+///
+AppSettings::Language AppSettings::language() const
+{
+    SettingsStore settings;
+    const int language = settings.value(QLatin1String(languageKey),
+                                        static_cast<int>(Language::System)).toInt();
+    switch (language) {
+    case static_cast<int>(Language::English):
+        return Language::English;
+    case static_cast<int>(Language::Russian):
+        return Language::Russian;
+    default:
+        return Language::System;
+    }
+}
+
+///
+/// \brief Stores the user interface language preference.
+/// \param language Language to persist.
+///
+void AppSettings::setLanguage(Language language)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(languageKey), static_cast<int>(language));
 }
 
 ///

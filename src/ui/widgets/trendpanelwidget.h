@@ -131,6 +131,7 @@ protected:
     /// \return True when the event is consumed.
     ///
     bool eventFilter(QObject *watched, QEvent *event) override;
+    void changeEvent(QEvent *event) override;
 
 public slots:
     ///

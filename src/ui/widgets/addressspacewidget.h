@@ -17,6 +17,7 @@
 #include "models/nodeitem.h"
 #include "opcua/opcuatypes.h"
 
+class QEvent;
 class QModelIndex;
 
 namespace Ui {
@@ -232,6 +233,9 @@ signals:
     /// \param method Method node to call.
     ///
     void callMethodRequested(OpcUaNodeInfo object, OpcUaNodeInfo method);
+
+protected:
+    void changeEvent(QEvent *event) override;
 
 private:
     void setupTreeView();

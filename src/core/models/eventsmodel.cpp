@@ -60,11 +60,11 @@ QVariant EventsModel::headerData(int section, Qt::Orientation orientation, int r
         return QAbstractTableModel::headerData(section, orientation, role);
 
     switch (section) {
-    case ColTime:      return QStringLiteral("Time");
-    case ColSeverity:  return QStringLiteral("Severity");
-    case ColSource:    return QStringLiteral("Source");
-    case ColMessage:   return QStringLiteral("Message");
-    case ColEventType: return QStringLiteral("Event Type");
+    case ColTime:      return tr("Time");
+    case ColSeverity:  return tr("Severity");
+    case ColSource:    return tr("Source");
+    case ColMessage:   return tr("Message");
+    case ColEventType: return tr("Event Type");
     default:           return QVariant();
     }
 }
@@ -159,4 +159,12 @@ void EventsModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {
     _columnAlignments.setAlignment(column, alignment);
     emit dataChanged(index(0, column), index(rowCount() - 1, column), {Qt::TextAlignmentRole});
+}
+
+///
+/// \brief Re-emits the header titles after a UI language change.
+///
+void EventsModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
 }

@@ -8,6 +8,7 @@
 
 #include <QClipboard>
 #include <QDateTime>
+#include <QEvent>
 #include <QGuiApplication>
 #include <QHeaderView>
 #include <QMenu>
@@ -191,6 +192,19 @@ AttributesWidget::AttributesWidget(QWidget *parent)
 AttributesWidget::~AttributesWidget()
 {
     delete ui;
+}
+
+///
+/// \brief Retranslates the generated UI on a language change.
+/// \param event Change event being handled.
+///
+void AttributesWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        _model->retranslate();
+    }
 }
 
 ///

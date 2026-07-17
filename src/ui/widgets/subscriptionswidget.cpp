@@ -243,6 +243,10 @@ void SubscriptionsWidget::changeEvent(QEvent *event)
     QWidget::changeEvent(event);
     if (event->type() == QEvent::PaletteChange)
         applyBuiltinDecoration();
+    else if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        _subscriptionsModel->retranslate();
+    }
 }
 
 ///

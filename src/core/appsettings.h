@@ -43,6 +43,15 @@ public:
     };
 
     ///
+    /// \brief User interface language preference.
+    ///
+    enum class Language {
+        System,
+        English,
+        Russian
+    };
+
+    ///
     /// \brief Default OPC UA session and channel settings for new connections.
     ///
     /// Mirrors the Advanced Settings group of the connection dialog so the last
@@ -162,6 +171,18 @@ public:
     /// \param mode Timestamp mode to persist.
     ///
     void setTimestampMode(TimestampMode mode);
+
+    ///
+    /// \brief Returns the stored user interface language preference.
+    /// \return Saved language, or Language::System when none is stored.
+    ///
+    Language language() const;
+
+    ///
+    /// \brief Stores the user interface language preference.
+    /// \param language Language to persist.
+    ///
+    void setLanguage(Language language);
 
     ///
     /// \brief Returns the saved top-level window geometry.

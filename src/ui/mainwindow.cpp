@@ -117,6 +117,8 @@ void MainWindow::changeEvent(QEvent *event)
 
     if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
         setWindowIcon(AppIcons::application());
+    } else if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
     }
 }
 

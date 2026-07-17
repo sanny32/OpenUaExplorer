@@ -9,6 +9,7 @@
 #include <QAbstractButton>
 #include <QDateTime>
 #include <QDateTimeEdit>
+#include <QEvent>
 #include <QHeaderView>
 #include <QSpinBox>
 #include <QTimeZone>
@@ -69,6 +70,19 @@ DataHistoryWidget::DataHistoryWidget(QWidget *parent)
 DataHistoryWidget::~DataHistoryWidget()
 {
     delete ui;
+}
+
+///
+/// \brief Retranslates the generated UI on a language change.
+/// \param event Change event being handled.
+///
+void DataHistoryWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        _dataHistoryModel->retranslate();
+    }
 }
 
 ///

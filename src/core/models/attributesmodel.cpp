@@ -128,8 +128,8 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation orientation, i
         return QAbstractItemModel::headerData(section, orientation, role);
 
     switch (section) {
-    case ColAttribute: return QStringLiteral("Attribute");
-    case ColValue: return QStringLiteral("Value");
+    case ColAttribute: return tr("Attribute");
+    case ColValue: return tr("Value");
     default: return {};
     }
 }
@@ -297,4 +297,12 @@ void AttributesModel::setTimestampMode(AppSettings::TimestampMode mode)
 AttributesModel::Item *AttributesModel::itemForIndex(const QModelIndex &index) const
 {
     return index.isValid() ? static_cast<Item *>(index.internalPointer()) : _root.get();
+}
+
+///
+/// \brief Re-emits the header titles after a UI language change.
+///
+void AttributesModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
 }

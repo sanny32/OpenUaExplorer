@@ -154,6 +154,8 @@ void TrendGraphToolbar::changeEvent(QEvent *event)
     if (event->type() == QEvent::PaletteChange
         || event->type() == QEvent::ApplicationPaletteChange) {
         applyIntervalStyling();
+    } else if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
     }
 }
 

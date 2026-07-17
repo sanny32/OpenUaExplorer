@@ -72,12 +72,21 @@ signals:
     ///
     void sectionAlignmentChanged(int logicalIndex, Qt::Alignment alignment);
 
+public:
+    ///
+    /// \brief Connects header-data changes so the header re-computes its wrapped height.
+    /// \param model Model to display.
+    ///
+    void setModel(QAbstractItemModel *model) override;
+
 protected:
     QSize sizeHint() const override;
+    void showEvent(QShowEvent *event) override;
     void paintSection(QPainter *painter, const QRect &rect, int logicalIndex) const override;
 
 private:
     int minimumWrappedSectionWidth(int logicalIndex) const;
+    void enforceMinimumWidths();
 
     Qt::Alignment _alignment = Qt::AlignLeft | Qt::AlignVCenter;
     QHash<int, Qt::Alignment> _sectionAlignments;

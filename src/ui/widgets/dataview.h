@@ -218,6 +218,9 @@ public slots:
     ///
     void setTimestampMode(AppSettings::TimestampMode mode);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     Ui::DataView *ui;
     SubscriptionsDialog *_subscriptionsDialog;

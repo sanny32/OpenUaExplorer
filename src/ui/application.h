@@ -14,6 +14,8 @@
 #include "appsettings.h"
 #include "apptheme.h"
 
+class QTranslator;
+
 class Application : public QApplication
 {
     Q_OBJECT
@@ -45,6 +47,12 @@ public:
     void setTimestampMode(AppSettings::TimestampMode mode);
 
     ///
+    /// \brief Persists the interface language preference and retranslates the running UI.
+    /// \param language Language to apply.
+    ///
+    void setLanguage(AppSettings::Language language);
+
+    ///
     /// \brief Hands the main window the session file the shell started the program with.
     ///
     /// A file named on the command line, and on macOS one dropped on the bundle before the
@@ -72,14 +80,24 @@ signals:
     ///
     void timestampModeChanged(AppSettings::TimestampMode mode);
 
+    ///
+    /// \brief Emitted when the interface language preference changes.
+    /// \param language The newly applied language.
+    ///
+    void languageChanged(AppSettings::Language language);
+
 protected:
     bool event(QEvent *event) override;
 
 private:
     void configureCertificateStore();
     void ensureClientCertificate();
+    void applyInitialLanguage();
+    void loadTranslatorsFor(AppSettings::Language language);
 
     AppTheme _theme;
+    QTranslator *_appTranslator = nullptr;
+    QTranslator *_qtTranslator = nullptr;
     QString _pendingSessionFile;
     bool _sessionFileHandlerReady = false;
 };

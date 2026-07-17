@@ -14,6 +14,7 @@ namespace Ui {
 class SubscriptionsDialog;
 }
 
+class QEvent;
 class SubscriptionsWidget;
 
 ///
@@ -40,6 +41,9 @@ public:
     /// \return Subscriptions widget.
     ///
     SubscriptionsWidget *subscriptions() const;
+
+protected:
+    void changeEvent(QEvent *event) override;
 
 private:
     Ui::SubscriptionsDialog *ui;

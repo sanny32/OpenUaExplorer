@@ -218,14 +218,14 @@ QVariant DataAccessModel::headerData(int section, Qt::Orientation orientation, i
         return QAbstractTableModel::headerData(section, orientation, role);
 
     switch (section) {
-    case ColNumber:       return QStringLiteral("#");
-    case ColNodeId:       return QStringLiteral("Node Id");
-    case ColDisplayName:  return QStringLiteral("Display Name");
-    case ColValue:        return QStringLiteral("Value");
-    case ColDataType:     return QStringLiteral("Data Type");
-    case ColTimestamp:    return QStringLiteral("Source Timestamp");
-    case ColStatus:       return QStringLiteral("Status");
-    case ColSubscription: return QStringLiteral("Subscription");
+    case ColNumber:       return tr("#");
+    case ColNodeId:       return tr("Node Id");
+    case ColDisplayName:  return tr("Display Name");
+    case ColValue:        return tr("Value");
+    case ColDataType:     return tr("Data Type");
+    case ColTimestamp:    return tr("Source Timestamp");
+    case ColStatus:       return tr("Status");
+    case ColSubscription: return tr("Subscription");
     default:              return QVariant();
     }
 }
@@ -346,4 +346,12 @@ void DataAccessModel::setTimestampMode(AppSettings::TimestampMode mode)
     if (rowCount() > 0)
         emit dataChanged(index(0, ColTimestamp), index(rowCount() - 1, ColTimestamp),
                          {Qt::DisplayRole});
+}
+
+///
+/// \brief Re-emits the header titles after a UI language change.
+///
+void DataAccessModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
 }

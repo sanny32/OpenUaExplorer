@@ -18,6 +18,7 @@ class EventsWidget;
 }
 
 class EventsModel;
+class QEvent;
 
 ///
 /// \brief Tab widget that displays OPC UA event entries.
@@ -106,6 +107,9 @@ signals:
     /// \param nodeId Node to stop monitoring.
     ///
     void eventUnsubscribeRequested(QString nodeId);
+
+protected:
+    void changeEvent(QEvent *event) override;
 
 private:
     void setupEventsView();

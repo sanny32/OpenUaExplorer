@@ -88,10 +88,10 @@ QVariant LogModel::headerData(int section, Qt::Orientation orientation, int role
         return QAbstractTableModel::headerData(section, orientation, role);
 
     switch (section) {
-    case ColTimestamp: return QStringLiteral("Time");
-    case ColLevel:     return QStringLiteral("Level");
-    case ColSource:    return QStringLiteral("Source");
-    case ColMessage:   return QStringLiteral("Message");
+    case ColTimestamp: return tr("Time");
+    case ColLevel:     return tr("Level");
+    case ColSource:    return tr("Source");
+    case ColMessage:   return tr("Message");
     default:           return QVariant();
     }
 }
@@ -242,4 +242,12 @@ QVector<LogItem> LogModel::visibleItems() const
         result.append(item);
     }
     return result;
+}
+
+///
+/// \brief Re-emits the header titles after a UI language change.
+///
+void LogModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
 }

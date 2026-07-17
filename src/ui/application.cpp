@@ -8,7 +8,10 @@
 
 #include <QFileInfo>
 #include <QFileOpenEvent>
+#include <QLibraryInfo>
+#include <QLocale>
 #include <QTimer>
+#include <QTranslator>
 
 #include <utility>
 
@@ -38,6 +41,8 @@ Application::Application(int &argc, char **argv)
 
     setApplicationName(QStringLiteral(APP_PRODUCT_NAME));
     setApplicationVersion(QStringLiteral(APP_VERSION));
+
+    applyInitialLanguage();
 
 #if defined(HAVE_QLEMENTINE_APP_STYLE) && defined(Q_OS_MAC)
     setStyle(new MacAppStyle(this));
@@ -133,6 +138,84 @@ void Application::setTimestampMode(AppSettings::TimestampMode mode)
         return;
     settings.setTimestampMode(mode);
     emit timestampModeChanged(mode);
+}
+
+///
+/// \brief Persists the interface language preference and retranslates the running UI.
+/// \param language Language to apply.
+///
+void Application::setLanguage(AppSettings::Language language)
+{
+    AppSettings settings;
+    if (settings.language() == language)
+        return;
+    settings.setLanguage(language);
+    loadTranslatorsFor(language);
+    emit languageChanged(language);
+}
+
+///
+/// \brief Installs the translators for the saved language preference at startup.
+///
+void Application::applyInitialLanguage()
+{
+    loadTranslatorsFor(AppSettings().language());
+}
+
+///
+/// \brief Swaps the installed translators to match a language preference.
+/// \param language Language whose catalogues should be installed.
+///
+/// System resolves to the platform locale; English uses the untranslated source strings and
+/// installs no catalogue. Removing and installing translators makes Qt deliver a
+/// QEvent::LanguageChange to every widget, which drives the live retranslation.
+///
+void Application::loadTranslatorsFor(AppSettings::Language language)
+{
+    if (_appTranslator) {
+        removeTranslator(_appTranslator);
+        delete _appTranslator;
+        _appTranslator = nullptr;
+    }
+    if (_qtTranslator) {
+        removeTranslator(_qtTranslator);
+        delete _qtTranslator;
+        _qtTranslator = nullptr;
+    }
+
+    QLocale locale;
+    switch (language) {
+    case AppSettings::Language::English:
+        locale = QLocale(QLocale::English);
+        break;
+    case AppSettings::Language::Russian:
+        locale = QLocale(QLocale::Russian);
+        break;
+    case AppSettings::Language::System:
+        locale = QLocale::system();
+        break;
+    }
+
+    if (locale.language() == QLocale::English)
+        return;
+
+    auto *appTranslator = new QTranslator(this);
+    if (appTranslator->load(locale, QStringLiteral("ouaexp"), QStringLiteral("_"),
+                            QStringLiteral(":/translations"))) {
+        installTranslator(appTranslator);
+        _appTranslator = appTranslator;
+    } else {
+        delete appTranslator;
+    }
+
+    auto *qtTranslator = new QTranslator(this);
+    if (qtTranslator->load(locale, QStringLiteral("qtbase"), QStringLiteral("_"),
+                           QLibraryInfo::path(QLibraryInfo::TranslationsPath))) {
+        installTranslator(qtTranslator);
+        _qtTranslator = qtTranslator;
+    } else {
+        delete qtTranslator;
+    }
 }
 
 #ifdef Q_OS_LINUX

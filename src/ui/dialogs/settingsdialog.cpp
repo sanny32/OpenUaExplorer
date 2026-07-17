@@ -10,9 +10,11 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QEvent>
 #include <QGridLayout>
 #include <QLoggingCategory>
 #include <QPushButton>
+#include <QSignalBlocker>
 #include <QSizePolicy>
 #include <QVector>
 
@@ -33,6 +35,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     ui->setupUi(this);
     ui->themeGroup->setVisible(theApp()->theme().isManualToggleSupported());
 
+    populateLanguageCombo();
     setupLogCategories();
     loadSettings();
     setDirty(false);
@@ -51,6 +54,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     connect(ui->systemThemeButton, &QAbstractButton::clicked,
             this, &SettingsDialog::markDirty);
     connect(ui->timestampModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &SettingsDialog::markDirty);
+    connect(ui->languageCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &SettingsDialog::markDirty);
 }
 
@@ -130,6 +135,7 @@ void SettingsDialog::loadSettings()
     AppSettings settings;
     setThemeSelection(settings.themeMode());
     setTimestampSelection(settings.timestampMode());
+    setLanguageSelection(settings.language());
 
     const QHash<QString, bool> states = settings.logCategoryStates();
     for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
@@ -156,6 +162,7 @@ void SettingsDialog::applyChanges()
         theApp()->theme().setColorSchemePreference(selectedThemeMode());
 
     theApp()->setTimestampMode(selectedTimestampMode());
+    theApp()->setLanguage(selectedLanguage());
 
     setDirty(false);
 }
@@ -235,6 +242,68 @@ AppSettings::TimestampMode SettingsDialog::selectedTimestampMode() const
     return ui->timestampModeCombo->currentIndex() == 1
         ? AppSettings::TimestampMode::Utc
         : AppSettings::TimestampMode::LocalTime;
+}
+
+///
+/// \brief Fills the language combo with the supported languages.
+///
+/// The "System" entry follows the platform locale and is translatable; the English and
+/// Russian entries carry their own endonyms so they read the same in every language.
+///
+void SettingsDialog::populateLanguageCombo()
+{
+    const QSignalBlocker blocker(ui->languageCombo);
+    ui->languageCombo->clear();
+    ui->languageCombo->addItem(tr("System", "interface language"),
+                               static_cast<int>(AppSettings::Language::System));
+    ui->languageCombo->addItem(QStringLiteral("English"),
+                               static_cast<int>(AppSettings::Language::English));
+    ui->languageCombo->addItem(QStringLiteral("Русский"),
+                               static_cast<int>(AppSettings::Language::Russian));
+}
+
+///
+/// \brief Selects the combo entry for a stored language preference.
+/// \param language Stored language preference.
+///
+void SettingsDialog::setLanguageSelection(AppSettings::Language language)
+{
+    const int index = ui->languageCombo->findData(static_cast<int>(language));
+    ui->languageCombo->setCurrentIndex(index < 0 ? 0 : index);
+}
+
+///
+/// \brief Returns the language selected in the combo box.
+/// \return Selected language preference.
+///
+AppSettings::Language SettingsDialog::selectedLanguage() const
+{
+    const int data = ui->languageCombo->currentData().toInt();
+    switch (data) {
+    case static_cast<int>(AppSettings::Language::English):
+        return AppSettings::Language::English;
+    case static_cast<int>(AppSettings::Language::Russian):
+        return AppSettings::Language::Russian;
+    default:
+        return AppSettings::Language::System;
+    }
+}
+
+///
+/// \brief Retranslates the generated UI and the code-populated combo entries on a language change.
+/// \param event Change event being handled.
+///
+void SettingsDialog::changeEvent(QEvent *event)
+{
+    AppBaseDialog::changeEvent(event);
+
+    if (event->type() == QEvent::LanguageChange) {
+        const AppSettings::Language language = selectedLanguage();
+        ui->retranslateUi(this);
+        const QSignalBlocker blocker(ui->languageCombo);
+        populateLanguageCombo();
+        setLanguageSelection(language);
+    }
 }
 
 ///

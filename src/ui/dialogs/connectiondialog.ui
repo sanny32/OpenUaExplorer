@@ -105,6 +105,12 @@
          <layout class="QGridLayout" name="authenticationLayout" columnstretch="0,1,0">
           <item row="0" column="0">
            <widget class="QLabel" name="authenticationLabel">
+            <property name="minimumSize">
+             <size>
+              <width>150</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="text">
              <string>Authentication:</string>
             </property>
@@ -114,7 +120,7 @@
            <widget class="QComboBox" name="authenticationComboBox">
             <property name="minimumSize">
              <size>
-              <width>280</width>
+              <width>200</width>
               <height>0</height>
              </size>
             </property>
@@ -153,6 +159,12 @@
               </property>
               <item row="0" column="0">
                <widget class="QLabel" name="usernameLabel">
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>Username:</string>
                 </property>
@@ -162,7 +174,7 @@
                <widget class="QLineEdit" name="usernameEdit">
                 <property name="minimumSize">
                  <size>
-                  <width>280</width>
+                  <width>200</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -177,6 +189,12 @@
               </item>
               <item row="1" column="0">
                <widget class="QLabel" name="passwordLabel">
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>Password:</string>
                 </property>
@@ -186,7 +204,7 @@
                <widget class="QLineEdit" name="passwordEdit">
                 <property name="minimumSize">
                  <size>
-                  <width>280</width>
+                  <width>200</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -220,6 +238,12 @@
               </property>
               <item row="0" column="0">
                <widget class="QLabel" name="certificateLabel">
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>Certificate:</string>
                 </property>
@@ -229,7 +253,7 @@
                <widget class="QLineEdit" name="certificateEdit">
                 <property name="minimumSize">
                  <size>
-                  <width>280</width>
+                  <width>200</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -256,6 +280,12 @@
               </item>
               <item row="1" column="0">
                <widget class="QLabel" name="privateKeyLabel">
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>Private Key:</string>
                 </property>
@@ -265,7 +295,7 @@
                <widget class="QLineEdit" name="privateKeyEdit">
                 <property name="minimumSize">
                  <size>
-                  <width>280</width>
+                  <width>200</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -292,6 +322,12 @@
               </item>
               <item row="2" column="0">
                <widget class="QLabel" name="privateKeyPasswordLabel">
+                <property name="minimumSize">
+                 <size>
+                  <width>150</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>Key Password:</string>
                 </property>
@@ -301,7 +337,7 @@
                <widget class="QLineEdit" name="privateKeyPasswordEdit">
                 <property name="minimumSize">
                  <size>
-                  <width>280</width>
+                  <width>200</width>
                   <height>0</height>
                  </size>
                 </property>

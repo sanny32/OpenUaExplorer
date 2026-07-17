@@ -18,6 +18,7 @@ class AttributesWidget;
 }
 
 class AttributesModel;
+class QEvent;
 class QPoint;
 class ThemedAction;
 
@@ -78,6 +79,9 @@ signals:
     /// \param valueType Selected QOpcUa::Types numeric value.
     ///
     void writeRequested(const QString &nodeId, const QVariant &value, int valueType);
+
+protected:
+    void changeEvent(QEvent *event) override;
 
 private:
     void setupAttributesView();

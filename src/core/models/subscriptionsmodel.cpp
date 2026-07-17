@@ -52,8 +52,8 @@ QVariant SubscriptionsModel::headerData(int section, Qt::Orientation orientation
         return QAbstractTableModel::headerData(section, orientation, role);
 
     switch (section) {
-    case ColName:               return QStringLiteral("Name");
-    case ColPublishingInterval: return QStringLiteral("Publishing Interval");
+    case ColName:               return tr("Name");
+    case ColPublishingInterval: return tr("Publishing Interval");
     default:                    return QVariant();
     }
 }
@@ -309,4 +309,12 @@ void SubscriptionsModel::setBuiltinBackground(const QBrush &brush)
     if (_items.isEmpty())
         return;
     emit dataChanged(index(0, 0), index(rowCount() - 1, ColCount - 1), {Qt::BackgroundRole});
+}
+
+///
+/// \brief Re-emits the header titles after a UI language change.
+///
+void SubscriptionsModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
 }

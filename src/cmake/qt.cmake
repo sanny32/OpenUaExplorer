@@ -1,6 +1,7 @@
 set(QT_COMMON_COMPONENTS Core Gui Widgets Svg Network)
 
 find_package(Qt6 6.9 COMPONENTS ${QT_COMMON_COMPONENTS} REQUIRED)
+find_package(Qt6 6.9 COMPONENTS LinguistTools REQUIRED)
 set(QT_VERSION_MAJOR 6)
 
 if(OUAEXP_BUILD_TESTS)

@@ -6,9 +6,11 @@
 /// \brief Implements the custom wrapped header view.
 ///
 
+#include <QAbstractItemModel>
 #include <QDataStream>
 #include <QIODevice>
 #include <QPainter>
+#include <QShowEvent>
 #include <QRegularExpression>
 #include <QStyle>
 #include <QStyleOptionHeader>
@@ -36,7 +38,48 @@ HeaderView::HeaderView(Qt::Orientation orientation, QWidget *parent)
                     const QSignalBlocker blocker(this);
                     resizeSection(logicalIndex, minWidth);
                 }
+                updateGeometry();
             });
+}
+
+///
+/// \brief Re-computes the wrapped header height whenever the header labels change.
+/// \param model Model to display.
+///
+void HeaderView::setModel(QAbstractItemModel *model)
+{
+    QHeaderView::setModel(model);
+    if (model) {
+        connect(model, &QAbstractItemModel::headerDataChanged, this, [this]() {
+            enforceMinimumWidths();
+            updateGeometry();
+        });
+    }
+}
+
+///
+/// \brief Widens any section narrower than its wrapped label so no word is clipped.
+///
+void HeaderView::enforceMinimumWidths()
+{
+    const QSignalBlocker blocker(this);
+    for (int section = 0; section < count(); ++section) {
+        if (isSectionHidden(section))
+            continue;
+        const int minWidth = minimumWrappedSectionWidth(section);
+        if (minWidth > 0 && sectionSize(section) < minWidth)
+            resizeSection(section, minWidth);
+    }
+}
+
+///
+/// \brief Clamps section widths to fit their wrapped labels once the header is shown.
+/// \param event Show event being handled.
+///
+void HeaderView::showEvent(QShowEvent *event)
+{
+    enforceMinimumWidths();
+    QHeaderView::showEvent(event);
 }
 
 ///
@@ -154,7 +197,9 @@ int HeaderView::minimumWrappedSectionWidth(int logicalIndex) const
     if (text.isEmpty())
         return minimumSectionSize();
 
-    const QFontMetrics fm(font());
+    QFont boldFont = font();
+    boldFont.setBold(true);
+    const QFontMetrics fm(boldFont);
     int wordWidth = 0;
     for (const QString &word : text.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts))
         wordWidth = qMax(wordWidth, fm.horizontalAdvance(word));
@@ -164,14 +209,38 @@ int HeaderView::minimumWrappedSectionWidth(int logicalIndex) const
 }
 
 ///
-/// \brief Returns a size hint tall enough for a single header line.
+/// \brief Returns a size hint tall enough for the tallest word-wrapped section label.
 /// \return Header size hint.
 ///
 QSize HeaderView::sizeHint() const
 {
     QSize size = QHeaderView::sizeHint();
+
     const QFontMetrics fm(font());
-    size.setHeight(qMax(size.height(), fm.lineSpacing() + 14));
+    int textHeight = fm.lineSpacing();
+
+    if (orientation() == Qt::Horizontal && model()) {
+        QFont boldFont = font();
+        boldFont.setBold(true);
+        const QFontMetrics boldMetrics(boldFont);
+        const int margin = style()->pixelMetric(QStyle::PM_HeaderMargin, nullptr, this);
+        for (int section = 0; section < count(); ++section) {
+            if (isSectionHidden(section))
+                continue;
+            const QString text =
+                model()->headerData(section, orientation(), Qt::DisplayRole).toString();
+            if (text.isEmpty())
+                continue;
+            const int available = sectionSize(section) - margin * 2 - 12;
+            if (available <= 0)
+                continue;
+            const QRect bounds = boldMetrics.boundingRect(QRect(0, 0, available, 100000),
+                                                          Qt::TextWordWrap, text);
+            textHeight = qMax(textHeight, bounds.height());
+        }
+    }
+
+    size.setHeight(qMax(size.height(), textHeight + 14));
     return size;
 }
 

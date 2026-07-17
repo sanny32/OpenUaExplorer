@@ -122,6 +122,11 @@ public:
                         int role = Qt::DisplayRole) const override;
 
     ///
+    /// \brief Re-emits the header titles after a UI language change.
+    ///
+    void retranslate();
+
+    ///
     /// \brief Marks the Subscription column editable.
     /// \param index Cell to query.
     /// \return Item flags for the cell.

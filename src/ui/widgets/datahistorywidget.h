@@ -101,6 +101,9 @@ signals:
     ///
     void dataHistoryReadRequested(QString nodeId, QDateTime start, QDateTime end, quint32 maxValues);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     void setupDataHistoryView();
     void updateActionButtons();

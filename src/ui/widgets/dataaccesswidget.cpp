@@ -76,6 +76,19 @@ DataAccessWidget::~DataAccessWidget()
 }
 
 ///
+/// \brief Retranslates the generated UI on a language change.
+/// \param event Change event being handled.
+///
+void DataAccessWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        _dataModel->retranslate();
+    }
+}
+
+///
 /// \brief Adds or updates a node row.
 /// \param details Variable node details.
 ///
