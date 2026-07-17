@@ -7,6 +7,7 @@
 ///
 
 #include <QCoreApplication>
+#include <QEvent>
 
 #include "appcolors.h"
 #include "coloredpushbutton.h"
@@ -93,6 +94,33 @@ void DialogButtonBox::setStandardButtons(StandardButtons buttons)
         if (info.button == QDialogButtonBox::Apply)
             button->setColors(
                 { AppColors::accent(), AppColors::accentHover(), AppColors::accentPressed() });
+    }
+}
+
+///
+/// \brief Re-applies the translated standard-button text after a language change.
+/// \param event Change event being handled.
+///
+/// The custom ColoredPushButton instances are unknown to QDialogButtonBox's own
+/// retranslation, so their text is refreshed here from the same "QPlatformTheme"
+/// context used when they were created.
+///
+void DialogButtonBox::changeEvent(QEvent *event)
+{
+    QDialogButtonBox::changeEvent(event);
+
+    if (event->type() == QEvent::LanguageChange)
+        retranslateButtons();
+}
+
+///
+/// \brief Refreshes every present standard button's text for the active language.
+///
+void DialogButtonBox::retranslateButtons()
+{
+    for (const StandardButtonInfo &info : kStandardButtons) {
+        if (ColoredPushButton *button = _standardButtons.value(static_cast<int>(info.button)))
+            button->setText(QCoreApplication::translate("QPlatformTheme", info.text));
     }
 }
 

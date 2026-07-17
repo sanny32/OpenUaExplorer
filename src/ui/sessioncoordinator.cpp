@@ -374,6 +374,14 @@ QString SessionCoordinator::sessionDisplayName() const
 }
 
 ///
+/// \brief Re-applies the translated window title after a language change.
+///
+void SessionCoordinator::retranslate()
+{
+    updateWindowTitle();
+}
+
+///
 /// \brief Updates the product/session title while preserving Qt's modified marker placeholder.
 ///
 /// macOS suppresses the [*] placeholder in favour of the close-button dot, so there the

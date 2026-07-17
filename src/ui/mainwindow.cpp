@@ -121,6 +121,8 @@ void MainWindow::changeEvent(QEvent *event)
         ui->retranslateUi(this);
         if (_featureManager)
             _featureManager->retranslate();
+        if (_sessionCoordinator)
+            _sessionCoordinator->retranslate();
     }
 }
 

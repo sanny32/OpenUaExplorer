@@ -78,8 +78,16 @@ public:
     ///
     void clearButtonColors(StandardButton which);
 
+protected:
+    ///
+    /// \brief Re-applies the translated standard-button text after a language change.
+    /// \param event Change event being handled.
+    ///
+    void changeEvent(QEvent *event) override;
+
 private:
     ColoredPushButton *coloredButton(StandardButton which) const;
+    void retranslateButtons();
 
     QHash<int, ColoredPushButton *> _standardButtons;
 };

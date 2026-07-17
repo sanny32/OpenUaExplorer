@@ -100,6 +100,11 @@ public:
     ///
     bool maybeSaveSession();
 
+    ///
+    /// \brief Re-applies the translated window title after a language change.
+    ///
+    void retranslate();
+
 private:
     bool saveSessionToFile(const QString &path);
     SessionData sessionWorkspace() const;

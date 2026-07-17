@@ -2371,7 +2371,7 @@
     </message>
     <message>
         <source>Custom...</source>
-        <translation>Benutzerdefiniert …</translation>
+        <translation>Benutzerdef…</translation>
     </message>
     <message>
         <source>Manage Subscriptions...</source>
@@ -2649,7 +2649,7 @@ Download-Seite öffnen?</translation>
     </message>
     <message>
         <source>Auto Scale</source>
-        <translation>Automatische Skalierung</translation>
+        <translation>Auto-Skalierung</translation>
     </message>
     <message>
         <source>Step Lines</source>
@@ -3308,15 +3308,15 @@ Möchten Sie sie speichern?</translation>
     </message>
     <message>
         <source>1m</source>
-        <translation>1 Min.</translation>
+        <translation>1m</translation>
     </message>
     <message>
         <source>10m</source>
-        <translation>10 Min.</translation>
+        <translation>10m</translation>
     </message>
     <message>
         <source>1h</source>
-        <translation>1 Std.</translation>
+        <translation>1h</translation>
     </message>
     <message>
         <source>Custom interval…</source>
@@ -3324,7 +3324,7 @@ Möchten Sie sie speichern?</translation>
     </message>
     <message>
         <source>Custom…</source>
-        <translation>Benutzerdefiniert …</translation>
+        <translation>Benutzerdef…</translation>
     </message>
     <message>
         <source>Refresh history from now</source>
@@ -3332,7 +3332,7 @@ Möchten Sie sie speichern?</translation>
     </message>
     <message>
         <source>Auto Scale</source>
-        <translation>Automatische Skalierung</translation>
+        <translation>Auto-Skalierung</translation>
     </message>
     <message>
         <source>Fit</source>
@@ -3367,7 +3367,7 @@ Möchten Sie sie speichern?</translation>
     </message>
     <message>
         <source>Auto Scale</source>
-        <translation>Automatische Skalierung</translation>
+        <translation>Auto-Skalierung</translation>
     </message>
     <message>
         <source>Fit</source>
@@ -3409,7 +3409,7 @@ Möchten Sie sie speichern?</translation>
     </message>
     <message>
         <source>Auto-scale</source>
-        <translation>Automatische Skalierung</translation>
+        <translation>Auto-Skalierung</translation>
     </message>
     <message>
         <source>Show legend</source>
@@ -3473,15 +3473,15 @@ Möchten Sie sie speichern?</translation>
     </message>
     <message>
         <source>1m</source>
-        <translation>1 Min.</translation>
+        <translation>1m</translation>
     </message>
     <message>
         <source>10m</source>
-        <translation>10 Min.</translation>
+        <translation>10m</translation>
     </message>
     <message>
         <source>1h</source>
-        <translation>1 Std.</translation>
+        <translation>1h</translation>
     </message>
     <message>
         <source>1d</source>

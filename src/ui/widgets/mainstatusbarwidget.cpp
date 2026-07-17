@@ -263,6 +263,12 @@ void MainStatusBarWidget::changeEvent(QEvent *event)
 
     switch (event->type()) {
     case QEvent::LanguageChange:
+        if (_controller)
+            updateConnectionState(_controller->backend()->state());
+        else
+            setConnectionState(OpcUaConnectionState::Disconnected);
+        updateClocks();
+        break;
     case QEvent::FontChange:
     case QEvent::StyleChange:
         updateClocks();
