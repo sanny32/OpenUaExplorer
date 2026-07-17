@@ -3,20 +3,29 @@
 
   function initThemeToggle() {
     var shot = document.getElementById("app-screenshot");
-    var btnDark = document.getElementById("btn-dark");
-    var btnLight = document.getElementById("btn-light");
+    var darkButtons = document.querySelectorAll(".btn-theme-dark");
+    var lightButtons = document.querySelectorAll(".btn-theme-light");
+
+    function setButtonsState(buttons, active) {
+      buttons.forEach(function (button) {
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+    }
 
     function setTheme(theme) {
       var dark = theme === "dark";
       shot.src = dark ? "assets/app-dark.png" : "assets/app-light.png";
-      btnDark.classList.toggle("active", dark);
-      btnLight.classList.toggle("active", !dark);
-      btnDark.setAttribute("aria-pressed", String(dark));
-      btnLight.setAttribute("aria-pressed", String(!dark));
+      setButtonsState(darkButtons, dark);
+      setButtonsState(lightButtons, !dark);
     }
 
-    btnDark.addEventListener("click", function () { setTheme("dark"); });
-    btnLight.addEventListener("click", function () { setTheme("light"); });
+    darkButtons.forEach(function (button) {
+      button.addEventListener("click", function () { setTheme("dark"); });
+    });
+    lightButtons.forEach(function (button) {
+      button.addEventListener("click", function () { setTheme("light"); });
+    });
 
     new Image().src = "assets/app-light.png";
   }

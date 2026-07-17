@@ -112,6 +112,11 @@
       color: #fff;
     }
     .theme-toggle button svg { width: 16px; height: 16px; }
+    .hero-theme-switch {
+      display: none;
+      justify-content: flex-end;
+      margin-bottom: 16px;
+    }
 
     /* ---------- Hero ---------- */
     .hero {
@@ -359,8 +364,11 @@
 
     /* ---------- Responsive ---------- */
     @media (max-width: 1024px) {
+      .hero { padding-top: 12px; }
       .hero-inner { grid-template-columns: 1fr; }
-      .hero-shot { max-width: 760px; }
+      .hero-preview { max-width: 760px; }
+      .header-theme-switch { display: none; }
+      .hero-theme-switch { display: flex; }
       .features-panel { grid-template-columns: repeat(3, 1fr); row-gap: 32px; }
       .feature:nth-child(4) { border-left: none; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
@@ -381,14 +389,14 @@
         <img src="icons/logo_app.svg" alt="OpenUaExplorer logo">
         <span>OpenUaExplorer</span>
       </a>
-      <div class="theme-switch">
+      <div class="theme-switch header-theme-switch">
         <span class="theme-switch-label">App preview theme</span>
         <div class="theme-toggle" role="group" aria-label="Application preview theme">
-          <button type="button" id="btn-dark" class="active" aria-pressed="true">
+          <button type="button" class="btn-theme-dark active" aria-pressed="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
             Dark
           </button>
-          <button type="button" id="btn-light" aria-pressed="false">
+          <button type="button" class="btn-theme-light" aria-pressed="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
             Light
           </button>
@@ -417,10 +425,25 @@
           </a>
         </div>
       </div>
-      <div class="hero-shot">
+      <div class="hero-preview">
+        <div class="theme-switch hero-theme-switch">
+          <span class="theme-switch-label">App preview theme</span>
+          <div class="theme-toggle" role="group" aria-label="Application preview theme">
+            <button type="button" class="btn-theme-dark active" aria-pressed="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              Dark
+            </button>
+            <button type="button" class="btn-theme-light" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+              Light
+            </button>
+          </div>
+        </div>
+        <div class="hero-shot">
         <img id="app-screenshot" src="assets/app-dark.png"
              alt="OpenUaExplorer main window with the address space tree, Data Access panel, a live trend graph and the activity log"
              width="1522" height="972">
+        </div>
       </div>
     </div>
   </section>
