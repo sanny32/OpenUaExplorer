@@ -9,6 +9,7 @@ on:
       - .github/linux/*.sh
       - .github/workflows/test-build-linux.yaml
       - src/**
+      - '!src/**/*.ts'
 
 concurrency:
   group: build-script-linux-${{ github.ref }}

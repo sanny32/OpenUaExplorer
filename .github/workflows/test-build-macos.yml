@@ -8,6 +8,7 @@ on:
       - build.sh
       - .github/workflows/test-build-macos.yml
       - src/**
+      - '!src/**/*.ts'
 
 concurrency:
   group: build-script-macos-${{ github.ref }}

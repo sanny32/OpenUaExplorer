@@ -3301,7 +3301,7 @@ Do you want to save them?</source>
     <name>TrendGraphToolbar</name>
     <message>
         <source>Live</source>
-        <translation>Оперативно</translation>
+        <translation>Онлайн</translation>
     </message>
     <message>
         <source>Pause</source>
