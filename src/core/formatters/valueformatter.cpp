@@ -147,7 +147,7 @@ QString valueTypeName(QOpcUa::Types type)
 ///
 OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type)
 {
-    OpcUaNodeAttribute result = childAttribute(QObject::tr("Value"), displayValue(value));
+    OpcUaNodeAttribute result = childAttribute(QStringLiteral("Value"), displayValue(value));
     if (!isValueArray(value))
         return result;
 

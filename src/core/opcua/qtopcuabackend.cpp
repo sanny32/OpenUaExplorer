@@ -605,7 +605,7 @@ void QtOpcUaBackend::readNode(const QString &nodeId)
         timeoutMs, &QOpcUaNode::attributeRead,
         [this, node, nodeId, attributes](QOpcUa::NodeAttributes) {
             emit nodeDetailsReady(QtOpcUaTypeMapper::nodeDetails(
-                node, nodeId, attributes, [this](const char *text) { return tr(text); }),
+                node, nodeId, attributes, [](const char *text) { return QString::fromUtf8(text); }),
                 QString());
         },
         [node, attributes]() { return node->readAttributes(attributes); },
