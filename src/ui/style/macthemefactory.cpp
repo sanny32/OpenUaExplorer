@@ -243,7 +243,7 @@ Theme MacThemeFactory::makeDarkTheme()
     theme.borderColor = QColor(kBorder);
     theme.borderColorHovered = QColor(kBorderActive);
     theme.borderColorPressed = QColor(0x636366);
-    theme.borderColorDisabled = QColor(0x2c2c2e);
+    theme.borderColorDisabled = QColor(0x424244);
     theme.borderColorTransparent = transparent(kBorder);
 
     theme.semiTransparentColor1 = alpha(kText, 0);

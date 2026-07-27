@@ -336,7 +336,7 @@ QColor const& MacAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole rol
             case MouseState::Hovered:
                 return colorRef(kChromePressed);
             case MouseState::Disabled:
-                return colorRef(kChrome);
+                return colorRef(0x353538);
             case MouseState::Transparent:
                 return transparentRef(kChromeStrong);
             case MouseState::Normal:
@@ -714,7 +714,7 @@ QColor const& MacAppStyle::textFieldBorderColor(MouseState mouse, FocusState foc
     if (isDarkMode()) {
         using namespace Dark;
         if (mouse == MouseState::Disabled)
-            return colorRef(kChrome);
+            return colorRef(0x424244);
         if (focus == FocusState::Focused)
             return colorRef(kBlue);
         if (mouse == MouseState::Hovered || mouse == MouseState::Pressed)
