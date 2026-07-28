@@ -1157,6 +1157,34 @@
         <source>Default</source>
         <translation>По умолчанию</translation>
     </message>
+    <message>
+        <source>Add Folder</source>
+        <translation>Добавление папки</translation>
+    </message>
+    <message>
+        <source>This folder contains no variables to add.</source>
+        <translation>В этой папке нет переменных для добавления.</translation>
+    </message>
+    <message>
+        <source>This folder contains %1 variables, more than the limit of %2. Only the first %2 will be added.</source>
+        <translation>В этой папке %1 переменных, что больше предела в %2. Будут добавлены только первые %2.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Add %n variable(s) to Data Access?</source>
+        <translation>
+            <numerusform>Добавить %n переменную в «Доступ к данным»?</numerusform>
+            <numerusform>Добавить %n переменные в «Доступ к данным»?</numerusform>
+            <numerusform>Добавить %n переменных в «Доступ к данным»?</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n variable(s) could not be added.</source>
+        <translation>
+            <numerusform>Не удалось добавить %n переменную.</numerusform>
+            <numerusform>Не удалось добавить %n переменные.</numerusform>
+            <numerusform>Не удалось добавить %n переменных.</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>DataAccessModel</name>
@@ -1187,6 +1215,10 @@
     <message>
         <source>Subscription</source>
         <translation>Подписка</translation>
+    </message>
+    <message>
+        <source>Pending…</source>
+        <translation>Ожидание…</translation>
     </message>
 </context>
 <context>
@@ -1277,6 +1309,18 @@
     <message>
         <source>Unsubscribe</source>
         <translation>Отписаться</translation>
+    </message>
+    <message>
+        <source>Clear Data Access</source>
+        <translation>Очистить доступ к данным</translation>
+    </message>
+    <message numerus="yes">
+        <source>Remove all %n node(s) from Data Access?</source>
+        <translation>
+            <numerusform>Удалить %n узел из «Доступа к данным»?</numerusform>
+            <numerusform>Удалить все %n узла из «Доступа к данным»?</numerusform>
+            <numerusform>Удалить все %n узлов из «Доступа к данным»?</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -2734,18 +2778,6 @@ Open the download page?</source>
         <translation>Неизвестно</translation>
     </message>
     <message>
-        <source>NamespaceIndex</source>
-        <translation>Индекс пространства имён</translation>
-    </message>
-    <message>
-        <source>IdentifierType</source>
-        <translation>Тип идентификатора</translation>
-    </message>
-    <message>
-        <source>Identifier</source>
-        <translation>Идентификатор</translation>
-    </message>
-    <message>
         <source>None</source>
         <translation>Нет</translation>
     </message>
@@ -2760,10 +2792,6 @@ Open the download page?</source>
     <message>
         <source>Invalid</source>
         <translation>Недействителен</translation>
-    </message>
-    <message>
-        <source>Value</source>
-        <translation>Значение</translation>
     </message>
     <message>
         <source>Could not create PKI directory: %1</source>

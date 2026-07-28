@@ -44,6 +44,25 @@ public:
     void addOrUpdate(const OpcUaNodeDetails &details);
 
     ///
+    /// \brief Appends a placeholder row for a node whose attributes are still being read.
+    /// \param node Browsed node to show.
+    ///
+    void addPending(const OpcUaNodeInfo &node);
+
+    ///
+    /// \brief Clears the pending mark of a row once its request chain has finished.
+    /// \param nodeId Node to update.
+    ///
+    void clearPending(const QString &nodeId);
+
+    ///
+    /// \brief Reports whether a row is still waiting for its attributes or subscription.
+    /// \param nodeId Node to query.
+    /// \return True while the row is pending.
+    ///
+    bool isPending(const QString &nodeId) const;
+
+    ///
     /// \brief Refreshes the value, status, and timestamps of rows matching the read results.
     /// \param values Read results.
     ///

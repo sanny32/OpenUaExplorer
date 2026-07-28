@@ -45,6 +45,20 @@ bool decodeDroppedVariable(const QMimeData *mimeData, OpcUaNodeInfo *node)
     return OpcUa::isVariable(node->nodeClass) && !node->nodeId.isEmpty();
 }
 
+///
+/// \brief Reads a dropped container node from address-space MIME data.
+/// \param mimeData MIME data to read.
+/// \param node Destination for the decoded node.
+/// \return True when the data contains an Object node that may hold variables.
+///
+bool decodeDroppedFolder(const QMimeData *mimeData, OpcUaNodeInfo *node)
+{
+    if (!AddressSpaceMime::decodeNode(mimeData, node))
+        return false;
+    return (node->nodeClass & OpcUa::Object) != 0 && node->hasChildren
+        && !node->nodeId.isEmpty();
+}
+
 } // namespace
 
 ///
@@ -120,6 +134,25 @@ void DataAccessWidget::addNodeWithDefaultSubscription(
         emit monitoringRequested(details.nodeId, effectiveSubscription.publishingInterval);
         return;
     }
+}
+
+///
+/// \brief Adds placeholder rows for nodes whose attributes are still being read.
+/// \param nodes Browsed variable nodes to show.
+///
+void DataAccessWidget::addPendingNodes(const QVector<OpcUaNodeInfo> &nodes)
+{
+    for (const OpcUaNodeInfo &node : nodes)
+        _dataModel->addPending(node);
+}
+
+///
+/// \brief Clears the pending mark of a row once its request chain has finished.
+/// \param nodeId Node to update.
+///
+void DataAccessWidget::clearNodePending(const QString &nodeId)
+{
+    _dataModel->clearPending(nodeId);
 }
 
 ///
@@ -308,7 +341,8 @@ bool DataAccessWidget::eventFilter(QObject *watched, QEvent *event)
     if (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove) {
         auto *dragEvent = static_cast<QDragMoveEvent *>(event);
         OpcUaNodeInfo node;
-        if (decodeDroppedVariable(dragEvent->mimeData(), &node)) {
+        if (decodeDroppedVariable(dragEvent->mimeData(), &node)
+            || decodeDroppedFolder(dragEvent->mimeData(), &node)) {
             dragEvent->setDropAction(Qt::CopyAction);
             dragEvent->accept();
             return true;
@@ -322,6 +356,12 @@ bool DataAccessWidget::eventFilter(QObject *watched, QEvent *event)
         OpcUaNodeInfo node;
         if (decodeDroppedVariable(dropEvent->mimeData(), &node)) {
             emit nodeDropRequested(node.nodeId);
+            dropEvent->setDropAction(Qt::CopyAction);
+            dropEvent->accept();
+            return true;
+        }
+        if (decodeDroppedFolder(dropEvent->mimeData(), &node)) {
+            emit folderDropRequested(node.nodeId);
             dropEvent->setDropAction(Qt::CopyAction);
             dropEvent->accept();
             return true;
@@ -486,7 +526,10 @@ void DataAccessWidget::removeSelectedNodes()
 ///
 void DataAccessWidget::readSelectedNodes()
 {
-    emit readRequested(_dataModel->nodeIds(selectedDataRows()));
+    const QModelIndexList rows = selectedSettledRows();
+    if (rows.isEmpty())
+        return;
+    emit readRequested(_dataModel->nodeIds(rows));
 }
 
 ///
@@ -494,7 +537,7 @@ void DataAccessWidget::readSelectedNodes()
 ///
 void DataAccessWidget::writeSelectedNode()
 {
-    const QModelIndexList rows = selectedDataRows();
+    const QModelIndexList rows = selectedSettledRows();
     if (rows.size() != 1)
         return;
     const DataAccessItem item = _dataModel->itemAt(rows.first().row());
@@ -503,10 +546,23 @@ void DataAccessWidget::writeSelectedNode()
 }
 
 ///
-/// \brief Removes every data-access node, cancelling monitoring for subscribed nodes.
+/// \brief Confirms, then removes every data-access node, cancelling monitoring for subscribed ones.
+///
+/// Only the user-driven Clear entries route through here; clear() stays silent so a
+/// disconnect or a session restore never asks.
 ///
 void DataAccessWidget::removeAllNodes()
 {
+    if (_dataModel->rowCount() == 0)
+        return;
+
+    const DialogButtonBox::StandardButton answer = MessageBoxDialog::question(
+        this, tr("Clear Data Access"),
+        tr("Remove all %n node(s) from Data Access?", nullptr, _dataModel->rowCount()),
+        DialogButtonBox::Yes | DialogButtonBox::No, DialogButtonBox::No);
+    if (answer != DialogButtonBox::Yes)
+        return;
+
     for (int row = 0; row < _dataModel->rowCount(); ++row) {
         const DataAccessItem item = _dataModel->itemAt(row);
         if (!item.subscriptionName.isEmpty())
@@ -549,7 +605,7 @@ void DataAccessWidget::populateSubscribeMenu(QMenu *menu)
 ///
 void DataAccessWidget::applySubscriptionToSelection(const QString &subscriptionName)
 {
-    const QModelIndexList rows = ui->dataView->selectionModel()->selectedRows();
+    const QModelIndexList rows = selectedSettledRows();
     const double interval = intervalFor(subscriptionName);
     for (const QModelIndex &idx : rows) {
         const QString nodeId = _dataModel->itemAt(idx.row()).nodeId;
@@ -665,4 +721,18 @@ SubscriptionItem DataAccessWidget::defaultSubscription() const
 QModelIndexList DataAccessWidget::selectedDataRows() const
 {
     return ui->dataView->selectionModel()->selectedRows();
+}
+
+///
+/// \brief Returns the selected data rows that are ready for read, write and subscribe.
+/// \return Selected rows without the ones still waiting for their attributes.
+///
+QModelIndexList DataAccessWidget::selectedSettledRows() const
+{
+    QModelIndexList rows;
+    for (const QModelIndex &idx : selectedDataRows()) {
+        if (!_dataModel->itemAt(idx.row()).pending)
+            rows.append(idx);
+    }
+    return rows;
 }

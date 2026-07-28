@@ -61,6 +61,18 @@ public:
         const SubscriptionItem &subscription = SubscriptionItem());
 
     ///
+    /// \brief Adds placeholder rows for nodes whose attributes are still being read.
+    /// \param nodes Browsed variable nodes to show.
+    ///
+    void addPendingNodes(const QVector<OpcUaNodeInfo> &nodes);
+
+    ///
+    /// \brief Clears the pending mark of a row once its request chain has finished.
+    /// \param nodeId Node to update.
+    ///
+    void clearNodePending(const QString &nodeId);
+
+    ///
     /// \brief Applies read results to the data rows.
     /// \param values Read results.
     ///
@@ -180,6 +192,12 @@ signals:
     void nodeDropRequested(QString nodeId);
 
     ///
+    /// \brief Emitted when an address-space folder is dropped onto Data Access.
+    /// \param nodeId Dropped OPC UA container node whose variables should be added.
+    ///
+    void folderDropRequested(QString nodeId);
+
+    ///
     /// \brief Emitted when the user requests a read of nodes.
     /// \param nodeIds Nodes to read.
     ///
@@ -244,6 +262,7 @@ private:
     double intervalFor(const QString &name) const;
     SubscriptionItem defaultSubscription() const;
     QModelIndexList selectedDataRows() const;
+    QModelIndexList selectedSettledRows() const;
 
     Ui::DataAccessWidget      *ui;
     DataAccessModel           *_dataModel;

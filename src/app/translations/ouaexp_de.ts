@@ -1156,6 +1156,32 @@
         <source>Default</source>
         <translation>Standard</translation>
     </message>
+    <message>
+        <source>Add Folder</source>
+        <translation>Ordner hinzufügen</translation>
+    </message>
+    <message>
+        <source>This folder contains no variables to add.</source>
+        <translation>Dieser Ordner enthält keine Variablen zum Hinzufügen.</translation>
+    </message>
+    <message>
+        <source>This folder contains %1 variables, more than the limit of %2. Only the first %2 will be added.</source>
+        <translation>Dieser Ordner enthält %1 Variablen und überschreitet damit das Limit von %2. Es werden nur die ersten %2 hinzugefügt.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Add %n variable(s) to Data Access?</source>
+        <translation>
+            <numerusform>%n Variable zum Datenzugriff hinzufügen?</numerusform>
+            <numerusform>%n Variablen zum Datenzugriff hinzufügen?</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n variable(s) could not be added.</source>
+        <translation>
+            <numerusform>%n Variable konnte nicht hinzugefügt werden.</numerusform>
+            <numerusform>%n Variablen konnten nicht hinzugefügt werden.</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>DataAccessModel</name>
@@ -1186,6 +1212,10 @@
     <message>
         <source>Subscription</source>
         <translation>Abonnement</translation>
+    </message>
+    <message>
+        <source>Pending…</source>
+        <translation>Ausstehend…</translation>
     </message>
 </context>
 <context>
@@ -1276,6 +1306,17 @@
     <message>
         <source>Unsubscribe</source>
         <translation>Abbestellen</translation>
+    </message>
+    <message>
+        <source>Clear Data Access</source>
+        <translation>Datenzugriff leeren</translation>
+    </message>
+    <message numerus="yes">
+        <source>Remove all %n node(s) from Data Access?</source>
+        <translation>
+            <numerusform>%n Knoten aus dem Datenzugriff entfernen?</numerusform>
+            <numerusform>Alle %n Knoten aus dem Datenzugriff entfernen?</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -2745,18 +2786,6 @@ Download-Seite öffnen?</translation>
         <translation>Unbekannt</translation>
     </message>
     <message>
-        <source>NamespaceIndex</source>
-        <translation>Namensraumindex</translation>
-    </message>
-    <message>
-        <source>IdentifierType</source>
-        <translation>Bezeichnertyp</translation>
-    </message>
-    <message>
-        <source>Identifier</source>
-        <translation>Bezeichner</translation>
-    </message>
-    <message>
         <source>None</source>
         <translation>Keine</translation>
     </message>
@@ -2771,10 +2800,6 @@ Download-Seite öffnen?</translation>
     <message>
         <source>Invalid</source>
         <translation>Ungültig</translation>
-    </message>
-    <message>
-        <source>Value</source>
-        <translation>Wert</translation>
     </message>
     <message>
         <source>Could not create PKI directory: %1</source>

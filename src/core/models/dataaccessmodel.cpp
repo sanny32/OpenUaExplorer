@@ -12,6 +12,7 @@
 #include <QApplication>
 #include <QBrush>
 #include <QColor>
+#include <QFont>
 #include <QPalette>
 
 #include "dataaccessmodel.h"
@@ -89,6 +90,60 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
     item.userAccessLevel = details.userAccessLevel;
     _items.append(item);
     endInsertRows();
+}
+
+///
+/// \brief Appends a placeholder row for a node whose attributes are still being read.
+/// \param node Browsed node to show.
+///
+/// Existing rows are left untouched so an already monitored node is never pushed
+/// back into the pending state.
+///
+void DataAccessModel::addPending(const OpcUaNodeInfo &node)
+{
+    for (const DataAccessItem &item : _items) {
+        if (item.nodeId == node.nodeId)
+            return;
+    }
+
+    const int row = _items.size();
+    beginInsertRows({}, row, row);
+    DataAccessItem item;
+    item.nodeId = node.nodeId;
+    item.displayName = node.displayName.isEmpty() ? node.browseName : node.displayName;
+    item.pending = true;
+    _items.append(item);
+    endInsertRows();
+}
+
+///
+/// \brief Clears the pending mark of a row once its request chain has finished.
+/// \param nodeId Node to update.
+///
+void DataAccessModel::clearPending(const QString &nodeId)
+{
+    for (int row = 0; row < _items.size(); ++row) {
+        DataAccessItem &item = _items[row];
+        if (item.nodeId != nodeId || !item.pending)
+            continue;
+        item.pending = false;
+        emit dataChanged(index(row, 0), index(row, ColCount - 1));
+        return;
+    }
+}
+
+///
+/// \brief Reports whether a row is still waiting for its attributes or subscription.
+/// \param nodeId Node to query.
+/// \return True while the row is pending.
+///
+bool DataAccessModel::isPending(const QString &nodeId) const
+{
+    for (const DataAccessItem &item : _items) {
+        if (item.nodeId == nodeId)
+            return item.pending;
+    }
+    return false;
 }
 
 ///
@@ -231,13 +286,18 @@ QVariant DataAccessModel::headerData(int section, Qt::Orientation orientation, i
 }
 
 ///
-/// \brief Marks the Subscription column editable.
+/// \brief Marks the Subscription column editable, except on pending rows.
 /// \param index Cell to query.
 /// \return Item flags for the cell.
+///
+/// Pending rows stay selectable so they can still be removed, but they offer no
+/// editing until their attribute read and subscription have finished.
 ///
 Qt::ItemFlags DataAccessModel::flags(const QModelIndex &index) const
 {
     Qt::ItemFlags f = QAbstractTableModel::flags(index);
+    if (index.row() >= 0 && index.row() < _items.size() && _items.at(index.row()).pending)
+        return f;
     if (index.column() == ColSubscription)
         f |= Qt::ItemIsEditable;
     return f;
@@ -284,7 +344,9 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
         case ColDataType:     return item.dataType;
         case ColTimestamp:    return OpcUaFormat::isoTimestampWithZone(item.sourceTimestamp,
                                                                        toFormatMode(_timestampMode));
-        case ColStatus:       return item.status;
+        case ColStatus:       return item.pending && item.status.isEmpty()
+                                     ? tr("Pending\u2026")
+                                     : item.status;
         case ColSubscription: return item.subscriptionName.isEmpty()
                                      ? QStringLiteral("\u2014")
                                      : item.subscriptionName;
@@ -298,8 +360,14 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     if (role == Qt::EditRole && col == ColSubscription)
         return item.subscriptionName;
 
+    if (role == Qt::FontRole && item.pending) {
+        QFont font = qApp->font();
+        font.setItalic(true);
+        return font;
+    }
+
     if (role == Qt::ForegroundRole) {
-        if (item.subscriptionName.isEmpty()) {
+        if (item.pending || item.subscriptionName.isEmpty()) {
             return QBrush(qApp->palette().color(QPalette::Disabled, QPalette::Text));
         }
         if (col == ColValue)

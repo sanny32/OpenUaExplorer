@@ -41,4 +41,6 @@ struct DataAccessItem
     QDateTime serverTimestamp;
     /// \brief UserAccessLevel bit mask.
     quint8 userAccessLevel = 0;
+    /// \brief True while the row waits for its attribute read and subscription.
+    bool pending = false;
 };

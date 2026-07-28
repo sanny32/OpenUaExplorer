@@ -1155,6 +1155,30 @@
         <source>Default</source>
         <translation>默认</translation>
     </message>
+    <message>
+        <source>Add Folder</source>
+        <translation>添加文件夹</translation>
+    </message>
+    <message>
+        <source>This folder contains no variables to add.</source>
+        <translation>该文件夹中没有可添加的变量。</translation>
+    </message>
+    <message>
+        <source>This folder contains %1 variables, more than the limit of %2. Only the first %2 will be added.</source>
+        <translation>该文件夹包含 %1 个变量，超过 %2 个的上限。仅添加前 %2 个。</translation>
+    </message>
+    <message numerus="yes">
+        <source>Add %n variable(s) to Data Access?</source>
+        <translation>
+            <numerusform>将 %n 个变量添加到数据访问？</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n variable(s) could not be added.</source>
+        <translation>
+            <numerusform>有 %n 个变量无法添加。</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>DataAccessModel</name>
@@ -1185,6 +1209,10 @@
     <message>
         <source>Subscription</source>
         <translation>订阅</translation>
+    </message>
+    <message>
+        <source>Pending…</source>
+        <translation>等待中…</translation>
     </message>
 </context>
 <context>
@@ -1275,6 +1303,16 @@
     <message>
         <source>Unsubscribe</source>
         <translation>取消订阅</translation>
+    </message>
+    <message>
+        <source>Clear Data Access</source>
+        <translation>清除数据访问</translation>
+    </message>
+    <message numerus="yes">
+        <source>Remove all %n node(s) from Data Access?</source>
+        <translation>
+            <numerusform>从数据访问中移除全部 %n 个节点？</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -2744,18 +2782,6 @@ Open the download page?</source>
         <translation>未知</translation>
     </message>
     <message>
-        <source>NamespaceIndex</source>
-        <translation>命名空间索引</translation>
-    </message>
-    <message>
-        <source>IdentifierType</source>
-        <translation>标识符类型</translation>
-    </message>
-    <message>
-        <source>Identifier</source>
-        <translation>标识符</translation>
-    </message>
-    <message>
         <source>None</source>
         <translation>无</translation>
     </message>
@@ -2770,10 +2796,6 @@ Open the download page?</source>
     <message>
         <source>Invalid</source>
         <translation>无效</translation>
-    </message>
-    <message>
-        <source>Value</source>
-        <translation>值</translation>
     </message>
     <message>
         <source>Could not create PKI directory: %1</source>

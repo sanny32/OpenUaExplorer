@@ -13,7 +13,9 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QElapsedTimer>
+#include <QSet>
 #include <QSignalSpy>
+#include <QStringList>
 #include <QTest>
 
 #include <QtOpcUa/qopcuatype.h>
@@ -165,6 +167,27 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     const auto details = detailsArgs.at(0).value<OpcUaNodeDetails>();
     QCOMPARE(details.nodeId, _nodeId);
     QVERIFY(!details.attributes.isEmpty());
+
+    // 3c. Attribute reads issued back to back must not supersede each other: adding a
+    //     whole folder at once reads every dropped node before any answer arrives.
+    const QStringList concurrentNodeIds{
+        _nodeId,
+        QStringLiteral("ns=0;i=2255"),
+        QStringLiteral("ns=0;i=2258"),
+        QStringLiteral("ns=0;i=2259"),
+    };
+    QSignalSpy concurrentSpy(&service, &OpcUaBackend::nodeDetailsReady);
+    for (const QString &nodeId : concurrentNodeIds)
+        service.readNode(nodeId);
+    while (concurrentSpy.size() < concurrentNodeIds.size() && concurrentSpy.wait(15000)) { }
+    QCOMPARE(concurrentSpy.size(), concurrentNodeIds.size());
+    QSet<QString> answeredNodeIds;
+    for (const QList<QVariant> &args : concurrentSpy) {
+        QVERIFY2(args.at(1).toString().isEmpty(), qPrintable(args.at(1).toString()));
+        answeredNodeIds.insert(args.at(0).value<OpcUaNodeDetails>().nodeId);
+    }
+    QCOMPARE(answeredNodeIds,
+             QSet<QString>(concurrentNodeIds.cbegin(), concurrentNodeIds.cend()));
 
     // 4. Read the initial value (42).
     QSignalSpy readSpy(&service, &OpcUaBackend::dataValuesReady);

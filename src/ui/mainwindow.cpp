@@ -791,6 +791,7 @@ void MainWindow::setupModules()
                                                        _dataAccessModule,
                                                        _eventsModule,
                                                        _attributeModule,
+                                                       _addressSpaceModule,
                                                        _selectionContext,
                                                        _backend,
                                                        dataAccessActions,

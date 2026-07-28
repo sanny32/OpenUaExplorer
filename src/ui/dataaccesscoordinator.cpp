@@ -8,6 +8,7 @@
 
 #include <QAction>
 
+#include "addressspacemodule.h"
 #include "application.h"
 #include "appsettings.h"
 #include "attributemodule.h"
@@ -26,6 +27,20 @@
 #include "widgets/subscriptionswidget.h"
 #include "widgets/trendpanelwidget.h"
 
+namespace {
+
+///
+/// \brief Number of variables a dropped folder may add without asking.
+///
+constexpr int kFolderDropSilentLimit = 10;
+
+///
+/// \brief Hard cap on the variables one dropped folder may add.
+///
+constexpr int kFolderDropMaxNodes = 100;
+
+} // namespace
+
 ///
 /// \brief Builds the coordinator and wires the central area to the data modules.
 /// \param dataView Tabbed data view in the central widget.
@@ -33,6 +48,7 @@
 /// \param dataAccess Data-access module used for reads and monitoring.
 /// \param events Events module used for event monitoring and history.
 /// \param attributes Attribute module used for node reads and writes.
+/// \param addressSpace Address-space module used to browse dropped folders.
 /// \param selection Selection mediator shared with the UI features.
 /// \param backend Backend queried for the connection state.
 /// \param actions Menu and toolbar actions steered by the coordinator.
@@ -43,6 +59,7 @@ DataAccessCoordinator::DataAccessCoordinator(DataView *dataView,
                                              DataAccessModule *dataAccess,
                                              EventsModule *events,
                                              AttributeModule *attributes,
+                                             AddressSpaceModule *addressSpace,
                                              SelectionContext *selection,
                                              OpcUaBackend *backend,
                                              const DataAccessActions &actions,
@@ -53,6 +70,7 @@ DataAccessCoordinator::DataAccessCoordinator(DataView *dataView,
     , _dataAccess(dataAccess)
     , _events(events)
     , _attributes(attributes)
+    , _addressSpace(addressSpace)
     , _selection(selection)
     , _backend(backend)
     , _actions(actions)
@@ -283,6 +301,9 @@ void DataAccessCoordinator::clearRuntimeState()
     _monitoringState.clear();
     _pendingDataAccessNodeIds.clear();
     _pendingRestoreSubscriptions.clear();
+    _pendingFolderDropNodeIds.clear();
+    _folderAddNodeIds.clear();
+    _folderAddFailureCount = 0;
     updateMonitoringActions();
 }
 
@@ -418,14 +439,20 @@ SubscriptionItem DataAccessCoordinator::subscriptionByName(const QString &name) 
 void DataAccessCoordinator::onAttributeDetailsReady(const OpcUaNodeDetails &details,
                                                     const QString &error)
 {
-    if (!error.isEmpty())
+    if (!error.isEmpty()) {
+        _pendingDataAccessNodeIds.remove(details.nodeId);
+        finishFolderNode(details.nodeId, false);
         return;
+    }
 
     const bool pending = _pendingDataAccessNodeIds.remove(details.nodeId);
     const bool isRestore = _pendingRestoreSubscriptions.contains(details.nodeId);
     const QString restoreSubscription = _pendingRestoreSubscriptions.take(details.nodeId);
-    if (!pending || !OpcUa::isVariable(details.nodeClass))
+    if (!pending || !OpcUa::isVariable(details.nodeClass)) {
+        if (pending)
+            finishFolderNode(details.nodeId, false);
         return;
+    }
 
     if (isRestore) {
         if (restoreSubscription.isEmpty())
@@ -539,14 +566,16 @@ void DataAccessCoordinator::onMonitoringFinished(const QString &nodeId, bool sub
                                                  bool success, const QString &error)
 {
     _monitoringState.finishRequest(nodeId, subscribed, success);
+    const bool fromFolderDrop = _folderAddNodeIds.contains(nodeId);
     if (success) {
         _dataView->setNodeSubscribed(nodeId, subscribed);
-    } else {
+    } else if (!fromFolderDrop) {
         MessageBoxDialog::warning(_dialogParent,
                                   subscribed ? tr("Subscribe Failed") : tr("Unsubscribe Failed"),
                                   error,
                                   DialogButtonBox::Ok);
     }
+    finishFolderNode(nodeId, success);
     updateMonitoringActions();
 }
 
@@ -696,6 +725,116 @@ void DataAccessCoordinator::addNodeById(const QString &nodeId)
 }
 
 ///
+/// \brief Browses a dropped folder so its direct variable children can be added.
+/// \param nodeId Dropped container node.
+///
+void DataAccessCoordinator::onFolderDropRequested(const QString &nodeId)
+{
+    if (nodeId.isEmpty() || !_addressSpace)
+        return;
+    _pendingFolderDropNodeIds.insert(nodeId);
+    _addressSpace->browse(nodeId);
+}
+
+///
+/// \brief Adds the direct variable children of a dropped folder, within the drop limits.
+/// \param parentNodeId Browsed node.
+/// \param children Browse result.
+/// \param error Browse error, empty on success.
+///
+/// Only browse results for folders this coordinator dropped are handled; the same
+/// signal also serves the address-space tree.
+///
+void DataAccessCoordinator::onFolderChildrenReady(const QString &parentNodeId,
+                                                  const QVector<OpcUaNodeInfo> &children,
+                                                  const QString &error)
+{
+    if (!_pendingFolderDropNodeIds.remove(parentNodeId))
+        return;
+
+    if (!error.isEmpty()) {
+        MessageBoxDialog::warning(_dialogParent, tr("Add Folder"), error, DialogButtonBox::Ok);
+        return;
+    }
+
+    QVector<OpcUaNodeInfo> variables;
+    QSet<QString> seenNodeIds;
+    for (const OpcUaNodeInfo &child : children) {
+        if (!OpcUa::isVariable(child.nodeClass) || child.nodeId.isEmpty())
+            continue;
+        if (seenNodeIds.contains(child.nodeId))
+            continue;
+        seenNodeIds.insert(child.nodeId);
+        variables.append(child);
+    }
+
+    if (variables.isEmpty()) {
+        MessageBoxDialog::information(_dialogParent, tr("Add Folder"),
+                                      tr("This folder contains no variables to add."));
+        return;
+    }
+
+    if (variables.size() > kFolderDropMaxNodes) {
+        const DialogButtonBox::StandardButton answer = MessageBoxDialog::warning(
+            _dialogParent, tr("Add Folder"),
+            tr("This folder contains %1 variables, more than the limit of %2. "
+               "Only the first %2 will be added.")
+                .arg(variables.size()).arg(kFolderDropMaxNodes),
+            DialogButtonBox::Ok | DialogButtonBox::Cancel, DialogButtonBox::Ok);
+        if (answer != DialogButtonBox::Ok)
+            return;
+        variables.resize(kFolderDropMaxNodes);
+    } else if (variables.size() > kFolderDropSilentLimit) {
+        const DialogButtonBox::StandardButton answer = MessageBoxDialog::question(
+            _dialogParent, tr("Add Folder"),
+            tr("Add %n variable(s) to Data Access?", nullptr, variables.size()),
+            DialogButtonBox::Yes | DialogButtonBox::No, DialogButtonBox::Yes);
+        if (answer != DialogButtonBox::Yes)
+            return;
+    }
+
+    addFolderVariables(variables);
+}
+
+///
+/// \brief Shows the folder's variables at once and reads and subscribes them in the background.
+/// \param variables Variable nodes to add.
+///
+void DataAccessCoordinator::addFolderVariables(const QVector<OpcUaNodeInfo> &variables)
+{
+    _dataView->dataAccess()->addPendingNodes(variables);
+    for (const OpcUaNodeInfo &node : variables)
+        _folderAddNodeIds.insert(node.nodeId);
+    for (const OpcUaNodeInfo &node : variables)
+        addNodeById(node.nodeId);
+}
+
+///
+/// \brief Settles one row added by a folder drop and reports the batch's failures once.
+/// \param nodeId Node that finished its read-and-subscribe chain.
+/// \param success Whether the node was added successfully.
+///
+void DataAccessCoordinator::finishFolderNode(const QString &nodeId, bool success)
+{
+    _dataView->dataAccess()->clearNodePending(nodeId);
+    if (!_folderAddNodeIds.remove(nodeId))
+        return;
+    if (!success)
+        ++_folderAddFailureCount;
+    if (!_folderAddNodeIds.isEmpty())
+        return;
+
+    const int failures = _folderAddFailureCount;
+    _folderAddFailureCount = 0;
+    if (failures > 0) {
+        MessageBoxDialog::warning(
+            _dialogParent, tr("Add Folder"),
+            tr("%n variable(s) could not be added.", nullptr, failures),
+            DialogButtonBox::Ok);
+    }
+}
+
+///
 /// \brief Opens the write dialog and writes the entered value on accept.
 /// \param nodeId Node to write.
 /// \param value Current value.
@@ -778,6 +917,8 @@ void DataAccessCoordinator::wireDataView()
             this, &DataAccessCoordinator::addSelectedToView);
     connect(_dataView->dataAccess(), &DataAccessWidget::nodeDropRequested,
             this, &DataAccessCoordinator::addNodeById);
+    connect(_dataView->dataAccess(), &DataAccessWidget::folderDropRequested,
+            this, &DataAccessCoordinator::onFolderDropRequested);
     connect(_dataView->dataAccess(), &DataAccessWidget::writeRequested,
             this, &DataAccessCoordinator::showWriteDialog);
     connect(_dataView->dataAccess(), &DataAccessWidget::readRequested,
@@ -864,6 +1005,10 @@ void DataAccessCoordinator::wireModules()
             this, &DataAccessCoordinator::onEventsReady);
     connect(_events, &EventsModule::eventMonitoringFinished,
             this, &DataAccessCoordinator::onEventMonitoringFinished);
+    if (_addressSpace) {
+        connect(_addressSpace, &AddressSpaceModule::childrenReady,
+                this, &DataAccessCoordinator::onFolderChildrenReady);
+    }
     if (OpcUa::isHistoryReadSupported()) {
         connect(_dataAccess, &DataAccessModule::historyReady,
                 this, &DataAccessCoordinator::onHistoryReady);

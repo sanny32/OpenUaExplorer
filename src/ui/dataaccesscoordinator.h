@@ -19,6 +19,7 @@
 #include "opcua/opcuatypes.h"
 #include "session/sessiondata.h"
 
+class AddressSpaceModule;
 class AppSettings;
 class AttributeModule;
 class DataAccessModule;
@@ -70,6 +71,7 @@ public:
     /// \param dataAccess Data-access module used for reads and monitoring.
     /// \param events Events module used for event monitoring and history.
     /// \param attributes Attribute module used for node reads and writes.
+    /// \param addressSpace Address-space module used to browse dropped folders.
     /// \param selection Selection mediator shared with the UI features.
     /// \param backend Backend queried for the connection state.
     /// \param actions Menu and toolbar actions steered by the coordinator.
@@ -80,6 +82,7 @@ public:
                           DataAccessModule *dataAccess,
                           EventsModule *events,
                           AttributeModule *attributes,
+                          AddressSpaceModule *addressSpace,
                           SelectionContext *selection,
                           OpcUaBackend *backend,
                           const DataAccessActions &actions,
@@ -277,6 +280,12 @@ private:
     void onSubscribeRequested(const OpcUaNodeInfo &node);
     void onUnsubscribeRequested(const OpcUaNodeInfo &node);
     void addNodeById(const QString &nodeId);
+    void onFolderDropRequested(const QString &nodeId);
+    void onFolderChildrenReady(const QString &parentNodeId,
+                               const QVector<OpcUaNodeInfo> &children,
+                               const QString &error);
+    void addFolderVariables(const QVector<OpcUaNodeInfo> &variables);
+    void finishFolderNode(const QString &nodeId, bool success);
     void showWriteDialog(const QString &nodeId, const QVariant &value, int valueType,
                          const QString &dataTypeId, bool writable);
     void updateMonitoringActions();
@@ -291,6 +300,7 @@ private:
     DataAccessModule *_dataAccess;
     EventsModule *_events;
     AttributeModule *_attributes;
+    AddressSpaceModule *_addressSpace;
     SelectionContext *_selection;
     OpcUaBackend *_backend;
     DataAccessActions _actions;
@@ -299,4 +309,7 @@ private:
     DataAccessMonitoringState _monitoringState;
     QSet<QString> _pendingDataAccessNodeIds;
     QHash<QString, QString> _pendingRestoreSubscriptions;
+    QSet<QString> _pendingFolderDropNodeIds;
+    QSet<QString> _folderAddNodeIds;
+    int _folderAddFailureCount = 0;
 };

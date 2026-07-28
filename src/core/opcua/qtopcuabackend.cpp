@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 
+#include <QHash>
 #include <QTimer>
 #include <QPointer>
 #include <QUrl>
@@ -100,6 +101,13 @@ public:
                 node->deleteLater();
             node.clear();
         }
+        for (QHash<QString, QPointer<QOpcUaNode>> &nodes : keyedNodes) {
+            for (const QPointer<QOpcUaNode> &node : std::as_const(nodes)) {
+                if (node)
+                    node->deleteLater();
+            }
+            nodes.clear();
+        }
         for (QMetaObject::Connection &signalConnection : activeConnections) {
             QObject::disconnect(signalConnection);
             signalConnection = {};
@@ -161,37 +169,98 @@ public:
                         const std::function<void()> &onTimeout,
                         const std::function<void()> &onRejected)
     {
+        runKeyedNodeRequest(node, operation, QString(), timeoutMs, signal,
+                            onFinished, start, onTimeout, onRejected);
+    }
+
+    ///
+    /// \brief Wires a single-node request that supersedes only its own key.
+    /// \param node Freshly created node the request runs on; deleted on every settle path.
+    /// \param operation Operation category of the request.
+    /// \param key Request key, or empty to supersede the whole category.
+    /// \param timeoutMs Request timeout in milliseconds (floored at 1000).
+    /// \param signal Node completion signal to await.
+    /// \param onFinished Success handler, run once while the request is still current.
+    /// \param start Starts the underlying request; returns false when the backend rejects it.
+    /// \param onTimeout Failure emitter used when the request times out.
+    /// \param onRejected Failure emitter used when \a start is rejected.
+    ///
+    /// Keying lets several nodes of one category run at once, which callers such as a
+    /// folder drop need; a newer request for the same key still cancels its predecessor.
+    ///
+    template <typename Signal, typename Finished, typename Start>
+    void runKeyedNodeRequest(QOpcUaNode *node, QtOpcUaRequestCoordinator::Operation operation,
+                             const QString &key, int timeoutMs, Signal signal,
+                             Finished onFinished, Start start,
+                             const std::function<void()> &onTimeout,
+                             const std::function<void()> &onRejected)
+    {
         const std::size_t operationIndex = static_cast<std::size_t>(operation);
-        if (activeNodes.at(operationIndex))
-            activeNodes.at(operationIndex)->deleteLater();
-        activeNodes.at(operationIndex) = node;
-        const QtOpcUaRequestCoordinator::Token token = requests.begin(operation);
+        holdRequestNode(operationIndex, key, node);
+        const QtOpcUaRequestCoordinator::Token token = key.isNull()
+            ? requests.begin(operation)
+            : requests.begin(operation, key);
         QObject::connect(node, signal, q,
-                         [this, node, token, operationIndex, onFinished]
+                         [this, node, token, operationIndex, key, onFinished]
                          (auto &&...args) {
             if (!requests.settle(token)) {
                 node->deleteLater();
                 return;
             }
-            activeNodes.at(operationIndex).clear();
+            releaseRequestNode(operationIndex, key);
             onFinished(std::forward<decltype(args)>(args)...);
             node->deleteLater();
         });
         QTimer::singleShot(QtOpcUaRequestCoordinator::boundedTimeout(timeoutMs), q,
-                           [this, node, token, operationIndex, onTimeout]() {
+                           [this, node, token, operationIndex, key, onTimeout]() {
             if (!requests.settle(token))
                 return;
-            activeNodes.at(operationIndex).clear();
+            releaseRequestNode(operationIndex, key);
             node->deleteLater();
             onTimeout();
         });
         if (!start()) {
             if (requests.settle(token)) {
-                activeNodes.at(operationIndex).clear();
+                releaseRequestNode(operationIndex, key);
                 node->deleteLater();
                 onRejected();
             }
         }
+    }
+
+    ///
+    /// \brief Keeps the node of an in-flight request alive, dropping its predecessor.
+    /// \param operationIndex Operation category index.
+    /// \param key Request key, or empty for the category-wide slot.
+    /// \param node Node to hold.
+    ///
+    void holdRequestNode(std::size_t operationIndex, const QString &key, QOpcUaNode *node)
+    {
+        if (key.isNull()) {
+            if (activeNodes.at(operationIndex))
+                activeNodes.at(operationIndex)->deleteLater();
+            activeNodes.at(operationIndex) = node;
+            return;
+        }
+        QHash<QString, QPointer<QOpcUaNode>> &nodes = keyedNodes.at(operationIndex);
+        const auto previous = nodes.constFind(key);
+        if (previous != nodes.constEnd() && *previous)
+            (*previous)->deleteLater();
+        nodes.insert(key, node);
+    }
+
+    ///
+    /// \brief Stops holding the node of a settled request.
+    /// \param operationIndex Operation category index.
+    /// \param key Request key, or empty for the category-wide slot.
+    ///
+    void releaseRequestNode(std::size_t operationIndex, const QString &key)
+    {
+        if (key.isNull()) {
+            activeNodes.at(operationIndex).clear();
+            return;
+        }
+        keyedNodes.at(operationIndex).remove(key);
     }
 
     QtOpcUaBackend *q;
@@ -200,6 +269,8 @@ public:
     QtOpcUaRequestCoordinator requests;
     std::array<QPointer<QOpcUaNode>,
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeNodes{};
+    std::array<QHash<QString, QPointer<QOpcUaNode>>,
+               static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> keyedNodes{};
     std::array<QMetaObject::Connection,
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeConnections{};
     QPointer<NamespaceCrawler> namespaceCrawler;
@@ -591,17 +662,19 @@ void QtOpcUaBackend::browseReferences(const QString &nodeId)
 void QtOpcUaBackend::readNode(const QString &nodeId)
 {
     const int timeoutMs = requestTimeout();
+    OpcUaNodeDetails failed;
+    failed.nodeId = nodeId;
     if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected) {
-        emit nodeDetailsReady({}, tr("The OPC UA client is not connected."));
+        emit nodeDetailsReady(failed, tr("The OPC UA client is not connected."));
         return;
     }
     QOpcUaNode *node = _d->connection.client()->node(nodeId);
     if (!node) {
-        emit nodeDetailsReady({}, tr("Could not create node %1.").arg(nodeId));
+        emit nodeDetailsReady(failed, tr("Could not create node %1.").arg(nodeId));
         return;
     }
     const QOpcUa::NodeAttributes attributes = QtOpcUaTypeMapper::nodeDetailAttributes();
-    _d->runNodeRequest(node, QtOpcUaRequestCoordinator::Operation::NodeRead,
+    _d->runKeyedNodeRequest(node, QtOpcUaRequestCoordinator::Operation::NodeRead, nodeId,
         timeoutMs, &QOpcUaNode::attributeRead,
         [this, node, nodeId, attributes](QOpcUa::NodeAttributes) {
             emit nodeDetailsReady(QtOpcUaTypeMapper::nodeDetails(
@@ -609,8 +682,10 @@ void QtOpcUaBackend::readNode(const QString &nodeId)
                 QString());
         },
         [node, attributes]() { return node->readAttributes(attributes); },
-        [this]() { emit nodeDetailsReady({}, tr("Node read timed out.")); },
-        [this]() { emit nodeDetailsReady({}, tr("The backend rejected the read request.")); });
+        [this, failed]() { emit nodeDetailsReady(failed, tr("Node read timed out.")); },
+        [this, failed]() {
+            emit nodeDetailsReady(failed, tr("The backend rejected the read request."));
+        });
 }
 
 ///
