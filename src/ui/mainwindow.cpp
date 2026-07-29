@@ -607,6 +607,7 @@ void MainWindow::saveSettings()
     settings.setCentralSplitterState(ui->centralSplitter->saveState());
     _featureManager->saveState(settings);
     _dataAccessCoordinator->saveState(settings);
+    _sessionCoordinator->saveAutosavedSession();
 }
 
 ///
@@ -619,6 +620,7 @@ void MainWindow::restoreSettings()
 {
     AppSettings settings;
     _dataAccessCoordinator->loadSubscriptions(settings);
+    _sessionCoordinator->stageAutosavedSession();
 
     if (!settings.restoreLayoutOnStartup())
         return;

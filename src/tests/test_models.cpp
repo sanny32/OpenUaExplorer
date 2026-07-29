@@ -67,6 +67,8 @@ private slots:
     void referencesModelHeaderAndEdges();
     void subscriptionsModelHeaderRolesAndReset();
     void subscriptionsModelEditingAndMutators();
+    void dataAccessActualIntervalColumnTracksServerValue();
+    void subscriptionsModelBuiltinRowsAreEditable();
     void logModelColumnsRolesAndFilters();
     void attributesModelHeaderRolesAndMutators();
     void eventsModelHeaderRolesAndMutators();
@@ -561,6 +563,7 @@ void TestModels::dataAccessModelExportsCsv()
     item.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 6), QTimeZone::UTC);
     item.status = QStringLiteral("Good,Clamped");
     item.subscriptionName = QStringLiteral("Default");
+    item.revisedPublishingInterval = 100.0;
 
     DataAccessModel model;
     model.setTimestampMode(AppSettings::TimestampMode::Utc);
@@ -568,9 +571,9 @@ void TestModels::dataAccessModelExportsCsv()
 
     QCOMPARE(model.toCsv(),
              QStringLiteral("#,Node Id,Display Name,Value,Data Type,Source Timestamp,"
-                            "Status,Subscription\n"
+                            "Status,Subscription,Actual Interval\n"
                             "1,ns=2;s=Temp,Temperature,\"12,\"\"quoted\"\"\nline\",Double,"
-                            "2024-01-02 03:04:05.006Z,\"Good,Clamped\",Default\n"));
+                            "2024-01-02 03:04:05.006Z,\"Good,Clamped\",Default,100 ms\n"));
 }
 
 ///
@@ -709,6 +712,13 @@ void TestModels::subscriptionsModelEditingAndMutators()
     QVERIFY(!model.setData(intervalIndex, 0.0, Qt::EditRole));
     QVERIFY(model.setData(intervalIndex, 2000.0, Qt::EditRole));
     QCOMPARE(intervalSpy.size(), 1);
+
+    // Values outside the offered range are clamped rather than rejected.
+    QVERIFY(model.setData(intervalIndex, 1.0, Qt::EditRole));
+    QCOMPARE(model.itemAt(0).publishingInterval, double(minPublishingIntervalMs));
+    QVERIFY(model.setData(intervalIndex, 5000000.0, Qt::EditRole));
+    QCOMPARE(model.itemAt(0).publishingInterval, double(maxPublishingIntervalMs));
+    QVERIFY(model.setData(intervalIndex, 2000.0, Qt::EditRole));
     QCOMPARE(model.intervalFor(QStringLiteral("Slow")), 2000.0);
     QCOMPARE(model.intervalFor(QStringLiteral("missing")), 1000.0);
 
@@ -722,6 +732,71 @@ void TestModels::subscriptionsModelEditingAndMutators()
     QCOMPARE(model.names(), QStringList{QStringLiteral("Fast")});
     model.removeRow(99); // out of range: no-op
     QCOMPARE(model.rowCount(), 1);
+}
+
+///
+/// \brief DataAccessModel: the actual-interval column tracks the server-granted value.
+///
+void TestModels::dataAccessActualIntervalColumnTracksServerValue()
+{
+    DataAccessItem item;
+    item.nodeId = QStringLiteral("ns=2;s=Temp");
+    item.subscriptionName = QStringLiteral("Default");
+
+    DataAccessModel model;
+    model.setItems({item});
+
+    const QModelIndex intervalIndex = model.index(0, DataAccessModel::ColActualInterval);
+    QCOMPARE(model.headerData(DataAccessModel::ColActualInterval, Qt::Horizontal).toString(),
+             QStringLiteral("Actual Interval"));
+    QCOMPARE(model.data(intervalIndex).toString(), QStringLiteral("—"));
+
+    // The column is read-only: only the subscription cell accepts edits.
+    QVERIFY(!(model.flags(intervalIndex) & Qt::ItemIsEditable));
+    QVERIFY(!model.setData(intervalIndex, 100.0, Qt::EditRole));
+
+    QSignalSpy changedSpy(&model, &QAbstractItemModel::dataChanged);
+    model.setRevisedInterval(QStringLiteral("ns=2;s=Temp"), 100.0);
+    QCOMPARE(model.data(intervalIndex).toString(), QStringLiteral("100 ms"));
+    QCOMPARE(changedSpy.size(), 1);
+
+    // Repeating the same value is a no-op; an unknown node is ignored.
+    model.setRevisedInterval(QStringLiteral("ns=2;s=Temp"), 100.0);
+    model.setRevisedInterval(QStringLiteral("ns=2;s=Missing"), 500.0);
+    QCOMPARE(changedSpy.size(), 1);
+
+    // Unsubscribing clears the value back to the placeholder.
+    model.setRevisedInterval(QStringLiteral("ns=2;s=Temp"), 0.0);
+    QCOMPARE(model.data(intervalIndex).toString(), QStringLiteral("—"));
+}
+
+///
+/// \brief SubscriptionsModel: built-in rows are editable but stay visually distinct.
+///
+void TestModels::subscriptionsModelBuiltinRowsAreEditable()
+{
+    SubscriptionsModel model;
+    SubscriptionItem builtin;
+    builtin.name = QStringLiteral("Default");
+    builtin.id = DefaultSubscriptionId;
+    builtin.builtin = true;
+    model.setItems({builtin});
+
+    const QModelIndex nameIndex = model.index(0, SubscriptionsModel::ColName);
+    const QModelIndex intervalIndex = model.index(0, SubscriptionsModel::ColPublishingInterval);
+    QVERIFY(model.flags(nameIndex) & Qt::ItemIsEditable);
+    QVERIFY(model.flags(intervalIndex) & Qt::ItemIsEditable);
+
+    QVERIFY(model.setData(nameIndex, QStringLiteral("Telemetry"), Qt::EditRole));
+    QVERIFY(model.setData(intervalIndex, 50.0, Qt::EditRole));
+    QCOMPARE(model.itemAt(0).name, QStringLiteral("Telemetry"));
+    QCOMPARE(model.itemAt(0).publishingInterval, 50.0);
+    QVERIFY(model.itemAt(0).isBuiltin());
+
+    // The lock decoration is gone, but the shaded background still marks the row as permanent.
+    QVERIFY(!model.data(nameIndex, Qt::DecorationRole).isValid());
+    model.setBuiltinBackground(QBrush(Qt::gray));
+    QVERIFY(model.data(nameIndex, Qt::BackgroundRole).isValid());
 }
 
 ///

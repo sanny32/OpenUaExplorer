@@ -31,8 +31,11 @@ constexpr auto secureChannelLifetimeKey = "secureChannelLifetimeMs";
 constexpr auto maxMessageSizeKey = "maxMessageSizeBytes";
 constexpr auto loggingGroup = "logging";
 constexpr auto subscriptionsGroup = "subscriptions/custom";
+constexpr auto subscriptionsBuiltinGroup = "subscriptions/builtin";
 constexpr auto subscriptionNameKey = "name";
 constexpr auto subscriptionIntervalKey = "interval";
+constexpr auto subscriptionIdKey = "id";
+constexpr auto restoreLastSessionKey = "session/restoreLast";
 }
 
 ///
@@ -382,6 +385,26 @@ void AppSettings::setRestoreLayoutOnStartup(bool enabled)
 }
 
 ///
+/// \brief Reports whether the workspace left behind by the last run should be restored.
+/// \return True when the last session should be restored, defaulting to true.
+///
+bool AppSettings::restoreLastSessionOnStartup() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(restoreLastSessionKey), true).toBool();
+}
+
+///
+/// \brief Stores whether the workspace left behind by the last run should be restored.
+/// \param enabled True to stage the autosaved workspace on the next launch.
+///
+void AppSettings::setRestoreLastSessionOnStartup(bool enabled)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(restoreLastSessionKey), enabled);
+}
+
+///
 /// \brief Returns the user-created subscriptions persisted from the last session.
 /// \return Custom subscriptions in stored order, or an empty vector when none are stored.
 ///
@@ -418,6 +441,54 @@ void AppSettings::setCustomSubscriptions(const QVector<SubscriptionItem> &subscr
         if (item.isBuiltin())
             continue;
         settings.setArrayIndex(index++);
+        settings.setValue(QLatin1String(subscriptionNameKey), item.name);
+        settings.setValue(QLatin1String(subscriptionIntervalKey), item.publishingInterval);
+    }
+    settings.endArray();
+}
+
+///
+/// \brief Returns the stored edits applied to the built-in subscriptions.
+///
+/// An entry with an empty name means only the publishing interval was changed, so the
+/// translated factory name stays in effect.
+///
+/// \return Overrides keyed by built-in subscription id, or an empty vector when none are stored.
+///
+QVector<SubscriptionItem> AppSettings::builtinSubscriptionOverrides() const
+{
+    SettingsStore settings;
+    QVector<SubscriptionItem> overrides;
+    const int count = settings.beginReadArray(QLatin1String(subscriptionsBuiltinGroup));
+    overrides.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        settings.setArrayIndex(i);
+        SubscriptionItem item;
+        item.builtin = true;
+        item.id = settings.value(QLatin1String(subscriptionIdKey), -1).toInt();
+        item.name = settings.value(QLatin1String(subscriptionNameKey)).toString();
+        item.publishingInterval =
+            settings.value(QLatin1String(subscriptionIntervalKey), 1000.0).toDouble();
+        if (item.id >= 0)
+            overrides.append(item);
+    }
+    settings.endArray();
+    return overrides;
+}
+
+///
+/// \brief Stores the edits applied to the built-in subscriptions.
+/// \param subscriptions Overrides to persist; leave the name empty to keep the factory name.
+///
+void AppSettings::setBuiltinSubscriptionOverrides(const QVector<SubscriptionItem> &subscriptions)
+{
+    SettingsStore settings;
+    settings.remove(QLatin1String(subscriptionsBuiltinGroup));
+    settings.beginWriteArray(QLatin1String(subscriptionsBuiltinGroup));
+    int index = 0;
+    for (const SubscriptionItem &item : subscriptions) {
+        settings.setArrayIndex(index++);
+        settings.setValue(QLatin1String(subscriptionIdKey), item.id);
         settings.setValue(QLatin1String(subscriptionNameKey), item.name);
         settings.setValue(QLatin1String(subscriptionIntervalKey), item.publishingInterval);
     }

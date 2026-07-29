@@ -346,6 +346,16 @@ void DataView::setNodeSubscribed(const QString &nodeId, bool subscribed)
 }
 
 ///
+/// \brief Shows the publishing interval the server granted for a monitored node.
+/// \param nodeId Affected node.
+/// \param publishingInterval Granted interval in milliseconds; 0 clears the shown value.
+///
+void DataView::setNodeRevisedInterval(const QString &nodeId, double publishingInterval)
+{
+    ui->dataAccessWidget->setNodeRevisedInterval(nodeId, publishingInterval);
+}
+
+///
 /// \brief Removes every node from the Data Access page, cancelling their monitoring.
 ///
 void DataView::clearDataAccessNodes()

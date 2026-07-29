@@ -207,6 +207,13 @@ void DialogAbout::setupComponents()
                  &layoutIndex,
                  &componentIndex);
 
+    addComponent(QStringLiteral("Lucide"),
+                 QString(),
+                 tr("Icon set the application artwork is derived from."),
+                 QUrl(QStringLiteral("https://lucide.dev")),
+                 &layoutIndex,
+                 &componentIndex);
+
     addComponent(QSysInfo::prettyProductName(),
                  QSysInfo::currentCpuArchitecture(),
                  tr("Underlying platform."),

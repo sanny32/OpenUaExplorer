@@ -61,6 +61,7 @@ private:
     AppSettings::ThemeMode selectedThemeMode() const;
     void setTimestampSelection(AppSettings::TimestampMode mode);
     AppSettings::TimestampMode selectedTimestampMode() const;
+    void applyCategoryIcons();
     void populateLanguageCombo();
     void setLanguageSelection(AppSettings::Language language);
     AppSettings::Language selectedLanguage() const;

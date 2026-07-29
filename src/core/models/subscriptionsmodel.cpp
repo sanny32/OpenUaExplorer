@@ -86,11 +86,6 @@ QVariant SubscriptionsModel::data(const QModelIndex &index, int role) const
         }
     }
 
-    if (role == Qt::DecorationRole && index.column() == ColName
-        && item.isBuiltin() && !_builtinIcon.isNull()) {
-        return _builtinIcon;
-    }
-
     if (role == Qt::BackgroundRole && item.isBuiltin()
         && _builtinBackground.style() != Qt::NoBrush) {
         return _builtinBackground;
@@ -105,14 +100,13 @@ QVariant SubscriptionsModel::data(const QModelIndex &index, int role) const
 ///
 /// \brief Reports that the Name and Publishing Interval cells are editable.
 /// \param index Cell to query.
-/// \return Item flags including Qt::ItemIsEditable for non-built-in rows.
+/// \return Item flags including Qt::ItemIsEditable for both editable columns.
 ///
 Qt::ItemFlags SubscriptionsModel::flags(const QModelIndex &index) const
 {
     Qt::ItemFlags flags = QAbstractTableModel::flags(index);
     if (index.isValid()
-        && (index.column() == ColName || index.column() == ColPublishingInterval)
-        && !itemAt(index.row()).isBuiltin()) {
+        && (index.column() == ColName || index.column() == ColPublishingInterval)) {
         flags |= Qt::ItemIsEditable;
     }
     return flags;
@@ -132,8 +126,6 @@ bool SubscriptionsModel::setData(const QModelIndex &index, const QVariant &value
     if (index.row() < 0 || index.row() >= _items.size())
         return false;
     SubscriptionItem &item = _items[index.row()];
-    if (item.isBuiltin())
-        return false;
 
     if (index.column() == ColName) {
         const QString newName = value.toString().trimmed();
@@ -150,9 +142,11 @@ bool SubscriptionsModel::setData(const QModelIndex &index, const QVariant &value
 
     if (index.column() == ColPublishingInterval) {
         bool ok = false;
-        const double interval = value.toDouble(&ok);
-        if (!ok || interval <= 0.0)
+        const double requested = value.toDouble(&ok);
+        if (!ok || requested <= 0.0)
             return false;
+        const double interval = qBound(static_cast<double>(minPublishingIntervalMs), requested,
+                                       static_cast<double>(maxPublishingIntervalMs));
         if (qFuzzyCompare(interval, item.publishingInterval))
             return true;
         item.publishingInterval = interval;
@@ -285,18 +279,6 @@ void SubscriptionsModel::setColumnAlignment(int column, Qt::Alignment alignment)
 {
     _columnAlignments.setAlignment(column, alignment);
     emit dataChanged(index(0, column), index(rowCount() - 1, column), {Qt::TextAlignmentRole});
-}
-
-///
-/// \brief Sets the decoration icon shown next to built-in subscription names.
-/// \param icon Icon to display, typically a lock glyph.
-///
-void SubscriptionsModel::setBuiltinIcon(const QIcon &icon)
-{
-    _builtinIcon = icon;
-    if (_items.isEmpty())
-        return;
-    emit dataChanged(index(0, ColName), index(rowCount() - 1, ColName), {Qt::DecorationRole});
 }
 
 ///

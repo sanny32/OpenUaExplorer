@@ -15,8 +15,10 @@
 #include <QGuiApplication>
 #include <QMenu>
 #include <QRegularExpression>
+#include <QStandardPaths>
 #include <QStringList>
 
+#include "appsettings.h"
 #include "connectioncoordinator.h"
 #include "dataaccesscoordinator.h"
 #include "dialogs/messageboxdialog.h"
@@ -371,6 +373,62 @@ QString SessionCoordinator::sessionDisplayName() const
     if (_sessionPath.isEmpty())
         return tr("Untitled");
     return QFileInfo(_sessionPath).completeBaseName();
+}
+
+///
+/// \brief Returns the file the workspace of the last run is autosaved to.
+/// \return Absolute path inside the application data directory.
+///
+QString SessionCoordinator::autosavePath()
+{
+    const QString directory =
+        QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    return directory + QStringLiteral("/lastsession.ouas");
+}
+
+///
+/// \brief Writes the connected workspace to the autosave file, or removes a stale one.
+///
+void SessionCoordinator::saveAutosavedSession()
+{
+    const QString path = autosavePath();
+    if (_context.backend->state() != OpcUaConnectionState::Connected) {
+        QFile::remove(path);
+        return;
+    }
+
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    SessionStore::save(path, collectSessionData());
+}
+
+///
+/// \brief Stages the autosaved workspace so it is applied on the next matching connection.
+///
+void SessionCoordinator::stageAutosavedSession()
+{
+    if (!AppSettings().restoreLastSessionOnStartup())
+        return;
+
+    const QString path = autosavePath();
+    if (!QFileInfo::exists(path))
+        return;
+
+    SessionData data;
+    if (!SessionStore::load(path, data))
+        return;
+
+    _pendingSession = data;
+    _pendingSessionPath.clear();
+    _hasPendingSession = true;
+}
+
+///
+/// \brief Reports whether a loaded workspace is waiting for its endpoint to connect.
+/// \return True while a session is staged but not yet applied.
+///
+bool SessionCoordinator::hasPendingSession() const
+{
+    return _hasPendingSession;
 }
 
 ///

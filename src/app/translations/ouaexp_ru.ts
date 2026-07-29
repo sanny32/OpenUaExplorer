@@ -1150,14 +1150,6 @@
         <translation>Не удалось отписаться от событий</translation>
     </message>
     <message>
-        <source>Fast</source>
-        <translation>Быстро</translation>
-    </message>
-    <message>
-        <source>Default</source>
-        <translation>По умолчанию</translation>
-    </message>
-    <message>
         <source>Add Folder</source>
         <translation>Добавление папки</translation>
     </message>
@@ -1219,6 +1211,10 @@
     <message>
         <source>Pending…</source>
         <translation>Ожидание…</translation>
+    </message>
+    <message>
+        <source>Actual Interval</source>
+        <translation>Фактический интервал</translation>
     </message>
 </context>
 <context>
@@ -1502,6 +1498,10 @@
     <message>
         <source>Visit component homepage: %1</source>
         <translation>Открыть страницу компонента: %1</translation>
+    </message>
+    <message>
+        <source>Icon set the application artwork is derived from.</source>
+        <translation>Набор иконок, на основе которого сделана графика приложения.</translation>
     </message>
 </context>
 <context>
@@ -3231,6 +3231,22 @@ Do you want to save them?</source>
         <comment>interface language</comment>
         <translation>Системный</translation>
     </message>
+    <message>
+        <source>Session</source>
+        <translation>Сессия</translation>
+    </message>
+    <message>
+        <source>Restore the last session on startup</source>
+        <translation>Восстанавливать последнюю сессию при запуске</translation>
+    </message>
+    <message>
+        <source>Appearance</source>
+        <translation>Внешний вид</translation>
+    </message>
+    <message>
+        <source>General</source>
+        <translation>Общие</translation>
+    </message>
 </context>
 <context>
     <name>SubscriptionComboBox</name>
@@ -3293,6 +3309,10 @@ Do you want to save them?</source>
     <message>
         <source>Subscription %1</source>
         <translation>Подписка %1</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation>Сбросить к умолчаниям</translation>
     </message>
 </context>
 <context>

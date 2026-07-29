@@ -69,6 +69,13 @@ public:
     void updateValues(const QVector<OpcUaDataValue> &values);
 
     ///
+    /// \brief Records the publishing interval the server granted for a monitored node.
+    /// \param nodeId Affected node.
+    /// \param publishingInterval Granted interval in milliseconds; 0 clears the shown value.
+    ///
+    void setRevisedInterval(const QString &nodeId, double publishingInterval);
+
+    ///
     /// \brief Removes the rows referenced by the given indexes, highest row first.
     /// \param rows Selected model rows.
     ///
@@ -187,7 +194,8 @@ public:
         ColTimestamp    = 5,
         ColStatus       = 6,
         ColSubscription = 7,
-        ColCount        = 8
+        ColActualInterval = 8,
+        ColCount        = 9
     };
 
 private:

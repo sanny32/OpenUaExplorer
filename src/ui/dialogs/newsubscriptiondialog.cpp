@@ -12,15 +12,12 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
+#include "models/subscriptionitem.h"
 #include "newsubscriptiondialog.h"
 #include "widgets/dialogbuttonbox.h"
 
 namespace {
 
-/// \brief Smallest publishing interval offered by the editor, in milliseconds.
-constexpr int minIntervalMs = 50;
-/// \brief Largest publishing interval offered by the editor, in milliseconds.
-constexpr int maxIntervalMs = 600000;
 /// \brief Spin-box step between offered intervals, in milliseconds.
 constexpr int intervalStepMs = 100;
 /// \brief Publishing interval suggested for a new subscription, in milliseconds.
@@ -42,7 +39,7 @@ NewSubscriptionDialog::NewSubscriptionDialog(QStringList existingNames, QWidget 
 {
     setWindowTitle(tr("New Subscription"));
 
-    _intervalSpin->setRange(minIntervalMs, maxIntervalMs);
+    _intervalSpin->setRange(minPublishingIntervalMs, maxPublishingIntervalMs);
     _intervalSpin->setSingleStep(intervalStepMs);
     _intervalSpin->setSuffix(QStringLiteral(" ms"));
     _intervalSpin->setValue(defaultIntervalMs);

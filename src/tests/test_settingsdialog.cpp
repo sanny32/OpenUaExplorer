@@ -8,12 +8,14 @@
 
 #include <QAbstractButton>
 #include <QCheckBox>
+#include <QListWidget>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDialogButtonBox>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QPushButton>
+#include <QStackedWidget>
 #include <QSettings>
 #include <QTabWidget>
 #include <QTemporaryDir>
@@ -40,6 +42,8 @@ private slots:
     void themeCardsSelectOneMode();
     void applyPersistsWithoutClosing();
     void timestampModeComboPersists();
+    void categoryListSelectsPages();
+    void restoreLastSessionCheckPersists();
     void layoutResetWaitsForAcceptance();
 
 private:
@@ -84,7 +88,7 @@ void TestSettingsDialog::referenceControlsArePresent()
     auto *lightCard = dialog.findChild<ThemePreviewButton *>(
         QStringLiteral("lightThemeButton"));
     QVERIFY(lightCard);
-    QCOMPARE(lightCard->sizeHint(), QSize(150, 118));
+    QCOMPARE(lightCard->sizeHint(), QSize(140, 66));
     QVERIFY(dialog.findChild<ThemePreviewButton *>(QStringLiteral("darkThemeButton")));
     QVERIFY(dialog.findChild<ThemePreviewButton *>(QStringLiteral("systemThemeButton")));
     QVERIFY(dialog.findChild<QPushButton *>(QStringLiteral("resetButton")));
@@ -204,6 +208,65 @@ void TestSettingsDialog::timestampModeComboPersists()
 
     QCOMPARE(AppSettings().timestampMode(), AppSettings::TimestampMode::LocalTime);
     QCOMPARE(dialog.result(), 0);
+}
+
+///
+/// \brief Verifies the category list drives the page stack and stays aligned with it.
+///
+void TestSettingsDialog::categoryListSelectsPages()
+{
+    SettingsDialog dialog;
+    auto *list = dialog.findChild<QListWidget *>(QStringLiteral("categoryList"));
+    auto *pages = dialog.findChild<QStackedWidget *>(QStringLiteral("categoryPages"));
+    QVERIFY(list);
+    QVERIFY(pages);
+
+    // One row per page, General first.
+    QCOMPARE(list->count(), pages->count());
+    QCOMPARE(list->count(), 3);
+    QCOMPARE(list->item(0)->text(), QStringLiteral("General"));
+    QCOMPARE(list->item(1)->text(), QStringLiteral("Appearance"));
+    QCOMPARE(list->item(2)->text(), QStringLiteral("Logging"));
+    QCOMPARE(list->currentRow(), 0);
+    QCOMPARE(pages->currentWidget()->objectName(), QStringLiteral("generalPage"));
+
+    // Every row carries a themed icon; a missing resource would yield a null icon.
+    for (int row = 0; row < list->count(); ++row)
+        QVERIFY(!list->item(row)->icon().isNull());
+
+    list->setCurrentRow(1);
+    QCOMPARE(pages->currentWidget()->objectName(), QStringLiteral("appearancePage"));
+    QVERIFY(dialog.findChild<QGroupBox *>(QStringLiteral("themeGroup"))->parentWidget()
+            == pages->currentWidget());
+
+    list->setCurrentRow(2);
+    QCOMPARE(pages->currentWidget()->objectName(), QStringLiteral("loggingPage"));
+
+    // Switching pages is navigation, not a preference change.
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(!buttons->button(QDialogButtonBox::Apply)->isEnabled());
+}
+
+///
+/// \brief Verifies the session-restore check box reflects and persists the preference.
+///
+void TestSettingsDialog::restoreLastSessionCheckPersists()
+{
+    SettingsDialog dialog;
+    auto *check = dialog.findChild<QCheckBox *>(QStringLiteral("restoreLastSessionCheck"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(check);
+    QVERIFY(buttons);
+
+    // Restoring the last session is opt-out.
+    QVERIFY(check->isChecked());
+    QVERIFY(!buttons->button(QDialogButtonBox::Apply)->isEnabled());
+
+    check->setChecked(false);
+    QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+
+    QVERIFY(!AppSettings().restoreLastSessionOnStartup());
 }
 
 ///

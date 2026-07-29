@@ -1149,14 +1149,6 @@
         <translation>Ereignisabbestellung fehlgeschlagen</translation>
     </message>
     <message>
-        <source>Fast</source>
-        <translation>Schnell</translation>
-    </message>
-    <message>
-        <source>Default</source>
-        <translation>Standard</translation>
-    </message>
-    <message>
         <source>Add Folder</source>
         <translation>Ordner hinzufügen</translation>
     </message>
@@ -1216,6 +1208,10 @@
     <message>
         <source>Pending…</source>
         <translation>Ausstehend…</translation>
+    </message>
+    <message>
+        <source>Actual Interval</source>
+        <translation>Tatsächliches Intervall</translation>
     </message>
 </context>
 <context>
@@ -1498,6 +1494,10 @@
     <message>
         <source>Visit component homepage: %1</source>
         <translation>Komponenten-Homepage besuchen: %1</translation>
+    </message>
+    <message>
+        <source>Icon set the application artwork is derived from.</source>
+        <translation>Symbolsatz, auf dem die Grafiken der Anwendung basieren.</translation>
     </message>
 </context>
 <context>
@@ -3227,6 +3227,22 @@ Möchten Sie sie speichern?</translation>
         <comment>interface language</comment>
         <translation>System</translation>
     </message>
+    <message>
+        <source>Session</source>
+        <translation>Sitzung</translation>
+    </message>
+    <message>
+        <source>Restore the last session on startup</source>
+        <translation>Letzte Sitzung beim Start wiederherstellen</translation>
+    </message>
+    <message>
+        <source>Appearance</source>
+        <translation>Erscheinungsbild</translation>
+    </message>
+    <message>
+        <source>General</source>
+        <translation>Allgemein</translation>
+    </message>
 </context>
 <context>
     <name>SubscriptionComboBox</name>
@@ -3289,6 +3305,10 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>Subscription %1</source>
         <translation>Abonnement %1</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation>Standardwerte wiederherstellen</translation>
     </message>
 </context>
 <context>

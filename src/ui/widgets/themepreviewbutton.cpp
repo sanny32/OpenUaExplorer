@@ -19,7 +19,10 @@
 
 namespace {
 
-constexpr int kPreviewIconSide = 44;
+constexpr int kPreviewIconSide = 28;
+
+/// \brief Height of the caption band reserved at the bottom of the card.
+constexpr int kCaptionBandHeight = 26;
 
 ///
 /// \brief Resolves the toolbar icon name for a mode.
@@ -92,7 +95,7 @@ void ThemePreviewButton::setPreviewMode(const QString &mode)
 ///
 QSize ThemePreviewButton::sizeHint() const
 {
-    return QSize(150, 118);
+    return QSize(140, 66);
 }
 
 ///
@@ -113,17 +116,18 @@ void ThemePreviewButton::paintEvent(QPaintEvent *event)
     painter.setBrush(palette().color(QPalette::Base));
     painter.drawRoundedRect(cardRect, 5.0, 5.0);
 
-    const QRectF previewRect = cardRect.adjusted(18.0, 12.0, -18.0, -34.0);
+    const QRectF previewRect =
+        cardRect.adjusted(12.0, 6.0, -12.0, -qreal(kCaptionBandHeight));
     paintPreviewIcon(painter, previewRect, _previewMode);
 
     QStyleOptionButton radio;
     radio.initFrom(this);
     radio.state |= isChecked() ? QStyle::State_On : QStyle::State_Off;
-    radio.rect = QRect(14, height() - 26, 16, 16);
+    radio.rect = QRect(12, height() - kCaptionBandHeight + 4, 16, 16);
     style()->drawPrimitive(QStyle::PE_IndicatorRadioButton, &radio, &painter, this);
 
     painter.setPen(palette().color(QPalette::Text));
-    painter.drawText(QRect(36, height() - 30, width() - 46, 24),
+    painter.drawText(QRect(34, height() - kCaptionBandHeight, width() - 42, 24),
                      Qt::AlignVCenter | Qt::AlignLeft, text());
 
     if (hasFocus()) {

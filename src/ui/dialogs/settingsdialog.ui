@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>603</width>
-    <height>520</height>
+    <width>700</width>
+    <height>470</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>660</width>
+    <height>440</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Settings</string>
@@ -21,7 +27,7 @@
     <number>12</number>
    </property>
    <property name="topMargin">
-    <number>8</number>
+    <number>12</number>
    </property>
    <property name="rightMargin">
     <number>12</number>
@@ -30,339 +36,524 @@
     <number>12</number>
    </property>
    <item>
-    <widget class="QGroupBox" name="themeGroup">
-     <property name="title">
-      <string>Theme</string>
+    <layout class="QHBoxLayout" name="contentLayout">
+     <property name="spacing">
+      <number>12</number>
      </property>
-     <layout class="QVBoxLayout" name="appearanceLayout">
-      <property name="spacing">
-       <number>10</number>
-      </property>
-      <item>
-       <layout class="QHBoxLayout" name="themeCardsLayout">
-        <property name="spacing">
-         <number>12</number>
-        </property>
-        <item>
-         <spacer name="themeCardsIndent">
-          <property name="orientation">
-           <enum>Qt::Orientation::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Policy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>42</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="ThemePreviewButton" name="lightThemeButton">
-          <property name="text">
-           <string>Light</string>
-          </property>
-          <property name="previewMode" stdset="0">
-           <string notr="true">light</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="ThemePreviewButton" name="darkThemeButton">
-          <property name="text">
-           <string>Dark</string>
-          </property>
-          <property name="previewMode" stdset="0">
-           <string notr="true">dark</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="ThemePreviewButton" name="systemThemeButton">
-          <property name="text">
-           <string>System</string>
-          </property>
-          <property name="previewMode" stdset="0">
-           <string notr="true">system</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="themeCardsSpacer">
-          <property name="orientation">
-           <enum>Qt::Orientation::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="languageGroup">
-     <property name="title">
-      <string>Language</string>
-     </property>
-     <layout class="QHBoxLayout" name="languageGroupLayout">
-      <item>
-       <widget class="QLabel" name="languageLabel">
+     <item>
+      <widget class="QListWidget" name="categoryList">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>200</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>200</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="horizontalScrollBarPolicy">
+        <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>18</width>
+         <height>18</height>
+        </size>
+       </property>
+       <item>
         <property name="text">
-         <string>Interface language:</string>
+         <string>General</string>
         </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="languageCombo"/>
-      </item>
-      <item>
-       <spacer name="languageSpacer">
-        <property name="orientation">
-         <enum>Qt::Orientation::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="timestampGroup">
-     <property name="title">
-      <string>Timestamps</string>
-     </property>
-     <layout class="QHBoxLayout" name="timestampGroupLayout">
-      <item>
-       <widget class="QLabel" name="timestampModeLabel">
+       </item>
+       <item>
         <property name="text">
-         <string>Display OPC UA timestamps in:</string>
+         <string>Appearance</string>
         </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="timestampModeCombo">
-        <item>
-         <property name="text">
-          <string>Local time</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>UTC</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item>
-       <spacer name="timestampSpacer">
-        <property name="orientation">
-         <enum>Qt::Orientation::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="layoutGroup">
-     <property name="title">
-      <string>Layout</string>
-     </property>
-     <layout class="QHBoxLayout" name="layoutGroupLayout">
-      <item>
-       <widget class="QLabel" name="layoutDescriptionLabel">
+       </item>
+       <item>
         <property name="text">
-         <string>Reset all layout settings to default.</string>
+         <string>Logging</string>
         </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Orientation::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="ThemedPushButton" name="resetButton">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>Reset</string>
-        </property>
-        <property name="iconName" stdset="0">
-         <string notr="true">refresh</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="logGroup">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-       <horstretch>0</horstretch>
-       <verstretch>1</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Logging</string>
-     </property>
-     <layout class="QVBoxLayout" name="loggingSectionLayout">
-      <property name="spacing">
-       <number>8</number>
-      </property>
-      <item>
-       <widget class="QWidget" name="logCategoriesGroup" native="true">
-        <layout class="QVBoxLayout" name="logCategoriesSectionLayout">
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QStackedWidget" name="categoryPages">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>1</horstretch>
+         <verstretch>1</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="generalPage">
+        <layout class="QVBoxLayout" name="generalPageLayout">
          <property name="spacing">
-          <number>8</number>
+          <number>10</number>
          </property>
          <property name="leftMargin">
           <number>0</number>
          </property>
          <property name="topMargin">
-          <number>4</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
           <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>4</number>
+          <number>0</number>
          </property>
          <item>
-          <widget class="QTabWidget" name="logCategoryTabs">
-           <property name="currentIndex">
-            <number>0</number>
+          <widget class="QGroupBox" name="sessionGroup">
+           <property name="title">
+            <string>Session</string>
            </property>
-           <widget class="QWidget" name="applicationLogPage">
-            <attribute name="title">
-             <string>Application</string>
-            </attribute>
-            <layout class="QVBoxLayout" name="applicationLogPageLayout">
-             <property name="leftMargin">
-              <number>12</number>
-             </property>
-             <property name="topMargin">
-              <number>12</number>
-             </property>
-             <property name="rightMargin">
-              <number>12</number>
-             </property>
-             <property name="bottomMargin">
-              <number>12</number>
-             </property>
-             <item>
-              <layout class="QGridLayout" name="applicationLogGroupLayout">
-               <property name="horizontalSpacing">
-                <number>24</number>
-               </property>
-               <property name="verticalSpacing">
-                <number>8</number>
-               </property>
-              </layout>
-             </item>
-             <item>
-              <spacer name="applicationLogSpacer">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>16</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-            </layout>
-           </widget>
-           <widget class="QWidget" name="open62541LogPage">
-            <attribute name="title">
-             <string>open62541 backend</string>
-            </attribute>
-            <layout class="QVBoxLayout" name="open62541LogPageLayout">
-             <property name="leftMargin">
-              <number>12</number>
-             </property>
-             <property name="topMargin">
-              <number>12</number>
-             </property>
-             <property name="rightMargin">
-              <number>12</number>
-             </property>
-             <property name="bottomMargin">
-              <number>12</number>
-             </property>
-             <item>
-              <layout class="QGridLayout" name="open62541LogGroupLayout">
-               <property name="horizontalSpacing">
-                <number>24</number>
-               </property>
-               <property name="verticalSpacing">
-                <number>8</number>
-               </property>
-              </layout>
-             </item>
-             <item>
-              <spacer name="open62541LogSpacer">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>16</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-            </layout>
-           </widget>
+           <layout class="QHBoxLayout" name="sessionGroupLayout">
+            <property name="bottomMargin">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="restoreLastSessionCheck">
+              <property name="text">
+               <string>Restore the last session on startup</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="sessionSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="loggingFootnoteLabel">
-           <property name="text">
-            <string>open62541 entries use Source names such as open62541/securitypolicy.</string>
+          <widget class="QGroupBox" name="layoutGroup">
+           <property name="title">
+            <string>Layout</string>
            </property>
+           <layout class="QHBoxLayout" name="layoutGroupLayout">
+            <property name="bottomMargin">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="layoutDescriptionLabel">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Ignored" vsizetype="Minimum">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+              <property name="text">
+               <string>Reset all layout settings to default.</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="ThemedPushButton" name="resetButton">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Reset</string>
+              </property>
+              <property name="iconName" stdset="0">
+               <string notr="true">refresh</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="generalPageSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>16</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="appearancePage">
+        <layout class="QVBoxLayout" name="appearancePageLayout">
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QGroupBox" name="themeGroup">
+           <property name="title">
+            <string>Theme</string>
+           </property>
+           <layout class="QVBoxLayout" name="appearanceLayout">
+            <property name="spacing">
+             <number>8</number>
+            </property>
+            <property name="bottomMargin">
+             <number>8</number>
+            </property>
+            <item>
+             <layout class="QHBoxLayout" name="themeCardsLayout">
+              <property name="spacing">
+               <number>10</number>
+              </property>
+              <item>
+               <widget class="ThemePreviewButton" name="lightThemeButton">
+                <property name="text">
+                 <string>Light</string>
+                </property>
+                <property name="previewMode" stdset="0">
+                 <string notr="true">light</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="ThemePreviewButton" name="darkThemeButton">
+                <property name="text">
+                 <string>Dark</string>
+                </property>
+                <property name="previewMode" stdset="0">
+                 <string notr="true">dark</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="ThemePreviewButton" name="systemThemeButton">
+                <property name="text">
+                 <string>System</string>
+                </property>
+                <property name="previewMode" stdset="0">
+                 <string notr="true">system</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="themeCardsSpacer">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="languageGroup">
+           <property name="title">
+            <string>Language</string>
+           </property>
+           <layout class="QHBoxLayout" name="languageGroupLayout">
+            <property name="bottomMargin">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="languageLabel">
+              <property name="text">
+               <string>Interface language:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="languageCombo"/>
+            </item>
+            <item>
+             <spacer name="languageSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="timestampGroup">
+           <property name="title">
+            <string>Timestamps</string>
+           </property>
+           <layout class="QHBoxLayout" name="timestampGroupLayout">
+            <property name="bottomMargin">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="timestampModeLabel">
+              <property name="text">
+               <string>Display OPC UA timestamps in:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="timestampModeCombo">
+              <item>
+               <property name="text">
+                <string>Local time</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>UTC</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item>
+             <spacer name="timestampSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="appearancePageSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>16</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="loggingPage">
+        <layout class="QVBoxLayout" name="loggingPageLayout">
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QGroupBox" name="logGroup">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="title">
+            <string>Logging</string>
+           </property>
+           <layout class="QVBoxLayout" name="loggingSectionLayout">
+            <property name="spacing">
+             <number>8</number>
+            </property>
+            <property name="bottomMargin">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QWidget" name="logCategoriesGroup" native="true">
+              <layout class="QVBoxLayout" name="logCategoriesSectionLayout">
+               <property name="spacing">
+                <number>8</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>4</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>4</number>
+               </property>
+               <item>
+                <widget class="QTabWidget" name="logCategoryTabs">
+                 <property name="currentIndex">
+                  <number>0</number>
+                 </property>
+                 <widget class="QWidget" name="applicationLogPage">
+                  <attribute name="title">
+                   <string>Application</string>
+                  </attribute>
+                  <layout class="QVBoxLayout" name="applicationLogPageLayout">
+                   <property name="leftMargin">
+                    <number>12</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>12</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>12</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>12</number>
+                   </property>
+                   <item>
+                    <layout class="QGridLayout" name="applicationLogGroupLayout">
+                     <property name="horizontalSpacing">
+                      <number>24</number>
+                     </property>
+                     <property name="verticalSpacing">
+                      <number>8</number>
+                     </property>
+                    </layout>
+                   </item>
+                   <item>
+                    <spacer name="applicationLogSpacer">
+                     <property name="orientation">
+                      <enum>Qt::Orientation::Vertical</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>20</width>
+                       <height>16</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                  </layout>
+                 </widget>
+                 <widget class="QWidget" name="open62541LogPage">
+                  <attribute name="title">
+                   <string>open62541 backend</string>
+                  </attribute>
+                  <layout class="QVBoxLayout" name="open62541LogPageLayout">
+                   <property name="leftMargin">
+                    <number>12</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>12</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>12</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>12</number>
+                   </property>
+                   <item>
+                    <layout class="QGridLayout" name="open62541LogGroupLayout">
+                     <property name="horizontalSpacing">
+                      <number>24</number>
+                     </property>
+                     <property name="verticalSpacing">
+                      <number>8</number>
+                     </property>
+                    </layout>
+                   </item>
+                   <item>
+                    <spacer name="open62541LogSpacer">
+                     <property name="orientation">
+                      <enum>Qt::Orientation::Vertical</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>20</width>
+                       <height>16</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                  </layout>
+                 </widget>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="loggingFootnoteLabel">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Ignored" vsizetype="Minimum">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>open62541 entries use Source names such as open62541/securitypolicy.</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
           </widget>
          </item>
         </layout>
        </widget>
-      </item>
-     </layout>
-    </widget>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="DialogButtonBox" name="buttonBox">

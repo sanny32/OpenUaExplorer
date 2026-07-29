@@ -101,11 +101,34 @@ public:
     bool maybeSaveSession();
 
     ///
+    /// \brief Writes the connected workspace to the autosave file, or removes a stale one.
+    ///
+    /// The autosave file is never treated as the current session: it leaves the window title,
+    /// the dirty marker and the recent-sessions list untouched.
+    ///
+    void saveAutosavedSession();
+
+    ///
+    /// \brief Stages the autosaved workspace so it is applied on the next matching connection.
+    ///
+    /// Nothing is connected here: the workspace materialises through applyPendingSession()
+    /// once the user connects to the endpoint the autosave was taken from.
+    ///
+    void stageAutosavedSession();
+
+    ///
+    /// \brief Reports whether a loaded workspace is waiting for its endpoint to connect.
+    /// \return True while a session is staged but not yet applied.
+    ///
+    bool hasPendingSession() const;
+
+    ///
     /// \brief Re-applies the translated window title after a language change.
     ///
     void retranslate();
 
 private:
+    static QString autosavePath();
     bool saveSessionToFile(const QString &path);
     SessionData sessionWorkspace() const;
     SessionData collectSessionData() const;

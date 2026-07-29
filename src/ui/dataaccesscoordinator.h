@@ -265,6 +265,7 @@ private:
     void onWriteFinished(const QString &nodeId, bool success, const QString &error);
     void onMonitoringFinished(const QString &nodeId, bool subscribed,
                               bool success, const QString &error);
+    void onMonitoringIntervalRevised(const QString &nodeId, double publishingInterval);
     void onEventsReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
                        const QString &error);
     void onEventsHistoryReady(const QString &nodeId, const QVector<OpcUaEvent> &events,

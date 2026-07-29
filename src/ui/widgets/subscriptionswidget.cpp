@@ -15,9 +15,7 @@
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QMenu>
-#include <QPainter>
 #include <QPalette>
-#include <QPixmap>
 #include <QPushButton>
 
 #include "appicons.h"
@@ -32,11 +30,18 @@
 
 namespace {
 
-/// \brief Edge length of the built-in lock glyph in device-independent pixels.
-constexpr int lockGlyphSize = 16;
+/// \brief Factory publishing interval of a built-in subscription, in milliseconds.
+struct BuiltinDefault {
+    int id;
+    double interval;
+};
 
-/// \brief Transparent left padding baked before the lock glyph, in device-independent pixels.
-constexpr int lockLeftPadding = 8;
+/// \brief Factory values of the built-in subscriptions, in row order.
+constexpr BuiltinDefault builtinDefaults[] = {
+    {DefaultSubscriptionId, 1000.0},
+    {FastSubscriptionId, 250.0},
+    {SlowSubscriptionId, 5000.0}
+};
 
 /// \brief Normal (non-built-in) row canvas colours, matching the qlementine item background.
 constexpr QRgb lightCanvas = 0xffffff;
@@ -52,7 +57,36 @@ QColor builtinShade(bool dark)
     return dark ? QColor(darkCanvas).lighter(118) : QColor(lightCanvas).darker(104);
 }
 
+///
+/// \brief Returns the factory publishing interval of a built-in subscription.
+/// \param id Built-in subscription identifier.
+/// \return Factory interval in milliseconds, or 0 when the id is not built in.
+///
+double factoryInterval(int id)
+{
+    for (const BuiltinDefault &entry : builtinDefaults) {
+        if (entry.id == id)
+            return entry.interval;
+    }
+    return 0.0;
+}
+
 } // namespace
+
+///
+/// \brief Returns the translated factory name of a built-in subscription.
+/// \param id Built-in subscription identifier.
+/// \return Factory name, or an empty string when the id is not built in.
+///
+QString SubscriptionsWidget::factoryName(int id)
+{
+    switch (id) {
+    case DefaultSubscriptionId: return tr("Default");
+    case FastSubscriptionId:    return tr("Fast");
+    case SlowSubscriptionId:    return tr("Slow");
+    default:                    return QString();
+    }
+}
 
 ///
 /// \brief Builds the subscriptions widget and its table view.
@@ -67,6 +101,7 @@ SubscriptionsWidget::SubscriptionsWidget(QWidget *parent)
     ui->addSubscriptionButton->setIcon(QStringLiteral("add"));
     ui->removeSubscriptionButton->setIcon(QStringLiteral("remove"));
     ui->removeSubscriptionButton->setEnabled(false);
+    ui->restoreDefaultsButton->setIcon(QStringLiteral("refresh"));
     setupSubscriptionsView();
     applyBuiltinDecoration();
 
@@ -103,23 +138,17 @@ SubscriptionsWidget::~SubscriptionsWidget()
 ///
 void SubscriptionsWidget::reset()
 {
-    SubscriptionItem defaultSubscription;
-    defaultSubscription.name = tr("Default");
-    defaultSubscription.builtin = true;
-
-    SubscriptionItem fastSubscription;
-    fastSubscription.name = tr("Fast");
-    fastSubscription.publishingInterval = 250.0;
-    fastSubscription.id = 1;
-    fastSubscription.builtin = true;
-
-    SubscriptionItem slowSubscription;
-    slowSubscription.name = tr("Slow");
-    slowSubscription.publishingInterval = 5000.0;
-    slowSubscription.id = 2;
-    slowSubscription.builtin = true;
-
-    _subscriptionsModel->setItems({defaultSubscription, fastSubscription, slowSubscription});
+    QVector<SubscriptionItem> items;
+    items.reserve(int(std::size(builtinDefaults)));
+    for (const BuiltinDefault &entry : builtinDefaults) {
+        SubscriptionItem subscription;
+        subscription.id = entry.id;
+        subscription.name = factoryName(entry.id);
+        subscription.publishingInterval = entry.interval;
+        subscription.builtin = true;
+        items.append(subscription);
+    }
+    _subscriptionsModel->setItems(items);
 }
 
 ///
@@ -156,20 +185,55 @@ void SubscriptionsWidget::restoreViewState(AppSettings &settings)
 }
 
 ///
-/// \brief Persists the user-created subscriptions.
+/// \brief Persists the user-created subscriptions and any edits to the built-in ones.
 /// \param settings Settings store to write to.
 ///
 void SubscriptionsWidget::saveSubscriptions(AppSettings &settings) const
 {
-    settings.setCustomSubscriptions(subscriptions());
+    const QVector<SubscriptionItem> items = subscriptions();
+    settings.setCustomSubscriptions(items);
+
+    QVector<SubscriptionItem> overrides;
+    for (const SubscriptionItem &item : items) {
+        if (!item.isBuiltin())
+            continue;
+        const QString factory = factoryName(item.id);
+        const bool renamed = item.name != factory;
+        if (!renamed && qFuzzyCompare(item.publishingInterval, factoryInterval(item.id)))
+            continue;
+
+        SubscriptionItem override = item;
+        if (!renamed)
+            override.name.clear();
+        overrides.append(override);
+    }
+    settings.setBuiltinSubscriptionOverrides(overrides);
 }
 
 ///
-/// \brief Restores the user-created subscriptions saved from the last session.
+/// \brief Restores the subscriptions saved from the last run.
 /// \param settings Settings store to read from.
 ///
 void SubscriptionsWidget::loadSubscriptions(AppSettings &settings)
 {
+    const QVector<SubscriptionItem> overrides = settings.builtinSubscriptionOverrides();
+    for (const SubscriptionItem &override : overrides) {
+        for (int row = 0; row < _subscriptionsModel->rowCount(); ++row) {
+            const SubscriptionItem item = _subscriptionsModel->itemAt(row);
+            if (!item.isBuiltin() || item.id != override.id)
+                continue;
+            if (!override.name.isEmpty()) {
+                _subscriptionsModel->setData(
+                    _subscriptionsModel->index(row, SubscriptionsModel::ColName),
+                    override.name, Qt::EditRole);
+            }
+            _subscriptionsModel->setData(
+                _subscriptionsModel->index(row, SubscriptionsModel::ColPublishingInterval),
+                override.publishingInterval, Qt::EditRole);
+            break;
+        }
+    }
+
     const QVector<SubscriptionItem> stored = settings.customSubscriptions();
     for (const SubscriptionItem &item : stored)
         createSubscription(item.name, item.publishingInterval);
@@ -181,7 +245,6 @@ void SubscriptionsWidget::loadSubscriptions(AppSettings &settings)
 void SubscriptionsWidget::setupSubscriptionsView()
 {
     ui->subscriptionsTable->setModel(_subscriptionsModel);
-    ui->subscriptionsTable->setIconSize(QSize(lockGlyphSize + lockLeftPadding, lockGlyphSize));
     ui->subscriptionsTable->verticalHeader()->hide();
     ui->subscriptionsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->subscriptionsTable->setEditTriggers(QAbstractItemView::DoubleClicked
@@ -213,24 +276,15 @@ void SubscriptionsWidget::setupSubscriptionsView()
             this, &SubscriptionsWidget::addSubscription);
     connect(ui->removeSubscriptionButton, &QPushButton::clicked,
             this, &SubscriptionsWidget::removeSelectedSubscriptions);
+    connect(ui->restoreDefaultsButton, &QPushButton::clicked,
+            this, &SubscriptionsWidget::restoreBuiltinDefaults);
 }
 
 ///
-/// \brief Applies the lock icon and shaded background used for built-in subscriptions.
+/// \brief Applies the shaded background that marks built-in subscriptions as permanent.
 ///
 void SubscriptionsWidget::applyBuiltinDecoration()
 {
-    const qreal dpr = devicePixelRatioF();
-    QPixmap canvas(QSize(lockGlyphSize + lockLeftPadding, lockGlyphSize) * dpr);
-    canvas.setDevicePixelRatio(dpr);
-    canvas.fill(Qt::transparent);
-    QPainter painter(&canvas);
-    painter.drawPixmap(QPoint(lockLeftPadding, 0),
-                       AppIcons::themed(QStringLiteral("lock"))
-                           .pixmap(QSize(lockGlyphSize, lockGlyphSize), dpr));
-    painter.end();
-    _subscriptionsModel->setBuiltinIcon(QIcon(canvas));
-
     _subscriptionsModel->setBuiltinBackground(builtinShade(AppIcons::isDarkTheme()));
 }
 
@@ -271,6 +325,10 @@ void SubscriptionsWidget::showSubscriptionsContextMenu(const QPoint &pos)
                                               this, &SubscriptionsWidget::removeAllSubscriptions);
     removeAllAction->setEnabled(hasRemovableSubscriptions());
 
+    menu.addSeparator();
+    menu.addAction(AppIcons::themed(QStringLiteral("refresh")), tr("Restore Defaults"),
+                   this, &SubscriptionsWidget::restoreBuiltinDefaults);
+
     menu.exec(ui->subscriptionsTable->viewport()->mapToGlobal(pos));
 }
 
@@ -287,7 +345,7 @@ void SubscriptionsWidget::addSubscription()
     }
 
     SubscriptionItem subscription;
-    subscription.id = _subscriptionsModel->rowCount();
+    subscription.id = nextSubscriptionId();
     subscription.name = name;
 
     const int row = _subscriptionsModel->addSubscription(subscription);
@@ -307,10 +365,43 @@ void SubscriptionsWidget::createSubscription(const QString &name, double interva
         return;
 
     SubscriptionItem subscription;
-    subscription.id = _subscriptionsModel->rowCount();
+    subscription.id = nextSubscriptionId();
     subscription.name = name;
     subscription.publishingInterval = interval;
     _subscriptionsModel->addSubscription(subscription);
+}
+
+///
+/// \brief Returns an identifier that no existing subscription uses.
+/// \return One past the highest identifier in use, never colliding with a built-in id.
+///
+int SubscriptionsWidget::nextSubscriptionId() const
+{
+    int highest = int(std::size(builtinDefaults)) - 1;
+    for (int row = 0; row < _subscriptionsModel->rowCount(); ++row)
+        highest = std::max(highest, _subscriptionsModel->itemAt(row).id);
+    return highest + 1;
+}
+
+///
+/// \brief Restores the factory name and publishing interval of every built-in subscription.
+///
+/// User-created subscriptions are left untouched. Values are written through the model so
+/// renames and interval changes reach the data access rows already bound to these names.
+///
+void SubscriptionsWidget::restoreBuiltinDefaults()
+{
+    for (int row = 0; row < _subscriptionsModel->rowCount(); ++row) {
+        const SubscriptionItem subscription = _subscriptionsModel->itemAt(row);
+        if (!subscription.isBuiltin())
+            continue;
+        _subscriptionsModel->setData(
+            _subscriptionsModel->index(row, SubscriptionsModel::ColName),
+            factoryName(subscription.id), Qt::EditRole);
+        _subscriptionsModel->setData(
+            _subscriptionsModel->index(row, SubscriptionsModel::ColPublishingInterval),
+            factoryInterval(subscription.id), Qt::EditRole);
+    }
 }
 
 ///

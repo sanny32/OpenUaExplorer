@@ -31,6 +31,8 @@ struct DataAccessItem
     QString status;
     /// \brief Assigned subscription name.
     QString subscriptionName;
+    /// \brief Publishing interval granted by the server, in milliseconds; 0 when unknown.
+    double revisedPublishingInterval = 0.0;
     /// \brief Raw typed value used by writes.
     QVariant typedValue;
     /// \brief QOpcUa::Types numeric value.

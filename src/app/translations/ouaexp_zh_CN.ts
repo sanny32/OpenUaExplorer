@@ -1148,14 +1148,6 @@
         <translation>事件取消订阅失败</translation>
     </message>
     <message>
-        <source>Fast</source>
-        <translation>快速</translation>
-    </message>
-    <message>
-        <source>Default</source>
-        <translation>默认</translation>
-    </message>
-    <message>
         <source>Add Folder</source>
         <translation>添加文件夹</translation>
     </message>
@@ -1213,6 +1205,10 @@
     <message>
         <source>Pending…</source>
         <translation>等待中…</translation>
+    </message>
+    <message>
+        <source>Actual Interval</source>
+        <translation>实际间隔</translation>
     </message>
 </context>
 <context>
@@ -1494,6 +1490,10 @@
     <message>
         <source>Visit component homepage: %1</source>
         <translation>访问组件主页：%1</translation>
+    </message>
+    <message>
+        <source>Icon set the application artwork is derived from.</source>
+        <translation>应用程序图形所基于的图标集。</translation>
     </message>
 </context>
 <context>
@@ -3223,6 +3223,22 @@ Do you want to save them?</source>
         <comment>interface language</comment>
         <translation>系统</translation>
     </message>
+    <message>
+        <source>Session</source>
+        <translation>会话</translation>
+    </message>
+    <message>
+        <source>Restore the last session on startup</source>
+        <translation>启动时恢复上次会话</translation>
+    </message>
+    <message>
+        <source>Appearance</source>
+        <translation>外观</translation>
+    </message>
+    <message>
+        <source>General</source>
+        <translation>常规</translation>
+    </message>
 </context>
 <context>
     <name>SubscriptionComboBox</name>
@@ -3285,6 +3301,10 @@ Do you want to save them?</source>
     <message>
         <source>Subscription %1</source>
         <translation>订阅 %1</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation>恢复默认值</translation>
     </message>
 </context>
 <context>

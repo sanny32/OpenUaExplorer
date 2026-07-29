@@ -169,6 +169,26 @@ void DataAccessModel::updateValues(const QVector<OpcUaDataValue> &values)
 }
 
 ///
+/// \brief Records the publishing interval the server granted for a monitored node.
+/// \param nodeId Affected node.
+/// \param publishingInterval Granted interval in milliseconds; 0 clears the shown value.
+///
+void DataAccessModel::setRevisedInterval(const QString &nodeId, double publishingInterval)
+{
+    for (int row = 0; row < _items.size(); ++row) {
+        DataAccessItem &item = _items[row];
+        if (item.nodeId != nodeId)
+            continue;
+        if (qFuzzyCompare(item.revisedPublishingInterval, publishingInterval))
+            return;
+        item.revisedPublishingInterval = publishingInterval;
+        const QModelIndex changed = index(row, ColActualInterval);
+        emit dataChanged(changed, changed, {Qt::DisplayRole});
+        return;
+    }
+}
+
+///
 /// \brief Removes the rows referenced by the given indexes, highest row first.
 /// \param rows Selected model rows.
 ///
@@ -281,6 +301,7 @@ QVariant DataAccessModel::headerData(int section, Qt::Orientation orientation, i
     case ColTimestamp:    return tr("Source Timestamp");
     case ColStatus:       return tr("Status");
     case ColSubscription: return tr("Subscription");
+    case ColActualInterval: return tr("Actual Interval");
     default:              return QVariant();
     }
 }
@@ -350,6 +371,9 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
         case ColSubscription: return item.subscriptionName.isEmpty()
                                      ? QStringLiteral("\u2014")
                                      : item.subscriptionName;
+        case ColActualInterval: return item.revisedPublishingInterval > 0.0
+                                     ? QStringLiteral("%1 ms").arg(item.revisedPublishingInterval)
+                                     : QStringLiteral("\u2014");
         default:              return QVariant();
         }
     }

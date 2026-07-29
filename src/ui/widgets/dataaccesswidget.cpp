@@ -186,6 +186,16 @@ void DataAccessWidget::setNodeSubscribed(const QString &nodeId, bool subscribed)
 }
 
 ///
+/// \brief Shows the publishing interval the server granted for a monitored node.
+/// \param nodeId Affected node.
+/// \param publishingInterval Granted interval in milliseconds; 0 clears the shown value.
+///
+void DataAccessWidget::setNodeRevisedInterval(const QString &nodeId, double publishingInterval)
+{
+    _dataModel->setRevisedInterval(nodeId, publishingInterval);
+}
+
+///
 /// \brief Reports whether any data-access row is selected.
 /// \return True when at least one row is selected.
 ///
@@ -425,6 +435,7 @@ void DataAccessWidget::setupDataView()
             {DataAccessModel::ColTimestamp, QHeaderView::Interactive, 150, Qt::AlignCenter},
             {DataAccessModel::ColStatus, QHeaderView::Interactive, 86, Qt::AlignCenter},
             {DataAccessModel::ColSubscription, QHeaderView::Interactive, 100},
+            {DataAccessModel::ColActualInterval, QHeaderView::Interactive, 100, Qt::AlignCenter},
         },
         [this](int logicalIndex, Qt::Alignment alignment) {
             _dataModel->setColumnAlignment(logicalIndex, alignment);

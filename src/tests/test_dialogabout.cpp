@@ -97,11 +97,14 @@ void TestDialogAbout::listsComponents()
     auto *qtKeychainVersion = dialog.findChild<QLabel *>(QStringLiteral("componentVersionLabel2"));
     auto *openSslTitle = dialog.findChild<QLabel *>(QStringLiteral("componentTitleLabel3"));
     auto *openSslVersion = dialog.findChild<QLabel *>(QStringLiteral("componentVersionLabel3"));
+    auto *lucideTitle = dialog.findChild<QLabel *>(QStringLiteral("componentTitleLabel4"));
+    auto *lucideVersion = dialog.findChild<QLabel *>(QStringLiteral("componentVersionLabel4"));
     auto *platformDescription =
-        dialog.findChild<QLabel *>(QStringLiteral("componentDescriptionLabel4"));
+        dialog.findChild<QLabel *>(QStringLiteral("componentDescriptionLabel5"));
     auto *qtButton = dialog.findChild<QPushButton *>(QStringLiteral("componentContactButton0"));
+    auto *lucideButton = dialog.findChild<QPushButton *>(QStringLiteral("componentContactButton4"));
     auto *platformButton =
-        dialog.findChild<QPushButton *>(QStringLiteral("componentContactButton4"));
+        dialog.findChild<QPushButton *>(QStringLiteral("componentContactButton5"));
     QVERIFY(componentsScrollArea);
     QVERIFY(componentsScrollArea->widgetResizable());
     QCOMPARE(componentsScrollArea->frameShape(), QFrame::NoFrame);
@@ -113,8 +116,11 @@ void TestDialogAbout::listsComponents()
     QVERIFY(qtKeychainVersion);
     QVERIFY(openSslTitle);
     QVERIFY(openSslVersion);
+    QVERIFY(lucideTitle);
+    QVERIFY(lucideVersion);
     QVERIFY(platformDescription);
     QVERIFY(qtButton);
+    QVERIFY(lucideButton);
     QVERIFY(platformButton);
 
     QCOMPARE(qtTitle->text(), QStringLiteral("Qt"));
@@ -126,8 +132,12 @@ void TestDialogAbout::listsComponents()
     QVERIFY(qtKeychainVersion->text().contains(QStringLiteral(APP_QTKEYCHAIN_VERSION)));
     QCOMPARE(openSslTitle->text(), QStringLiteral("OpenSSL"));
     QVERIFY(openSslVersion->text().contains(QStringLiteral(APP_OPENSSL_VERSION)));
+    // The icon set is credited without a version, so its version label stays empty.
+    QCOMPARE(lucideTitle->text(), QStringLiteral("Lucide"));
+    QVERIFY(lucideVersion->text().isEmpty());
     QCOMPARE(platformDescription->text(), QStringLiteral("Underlying platform."));
     QVERIFY(qtButton->isVisibleTo(qtButton->parentWidget()));
+    QVERIFY(lucideButton->isVisibleTo(lucideButton->parentWidget()));
     QVERIFY(!platformButton->isVisibleTo(platformButton->parentWidget()));
 }
 

@@ -70,10 +70,14 @@ public:
 signals:
     void dataValuesReady(QVector<OpcUaDataValue> values, QString error);
     void monitoringFinished(QString nodeId, bool subscribed, bool success, QString error);
+    void monitoringIntervalRevised(QString nodeId, double publishingInterval,
+                                   double samplingInterval);
     void eventsReady(QString nodeId, QVector<OpcUaEvent> events, QString error);
     void eventMonitoringFinished(QString nodeId, bool subscribed, bool success, QString error);
 
 private:
+    void emitRevisedInterval(QOpcUaNode *node, const QString &nodeId);
+
     QOpcUaClient *_client = nullptr;
     QHash<QString, QOpcUaNode *> _valueNodes;
     QHash<QString, QOpcUaNode *> _eventNodes;

@@ -6,18 +6,23 @@
 /// \brief Implements the application settings dialog.
 ///
 
+#include <iterator>
+
 #include <QAbstractButton>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QEvent>
 #include <QGridLayout>
+#include <QListWidget>
 #include <QLoggingCategory>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QSizePolicy>
+#include <QStackedWidget>
 #include <QVector>
 
+#include "appicons.h"
 #include "application.h"
 #include "appsettings.h"
 #include "apptheme.h"
@@ -34,6 +39,14 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 {
     ui->setupUi(this);
     ui->themeGroup->setVisible(theApp()->theme().isManualToggleSupported());
+
+    ui->categoryList->setCurrentRow(ui->categoryPages->currentIndex());
+    connect(ui->categoryList, &QListWidget::currentRowChanged,
+            ui->categoryPages, &QStackedWidget::setCurrentIndex);
+
+    applyCategoryIcons();
+    connect(&theApp()->theme(), &AppTheme::colorSchemeChanged,
+            this, &SettingsDialog::applyCategoryIcons);
 
     populateLanguageCombo();
     setupLogCategories();
@@ -56,6 +69,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     connect(ui->timestampModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &SettingsDialog::markDirty);
     connect(ui->languageCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &SettingsDialog::markDirty);
+    connect(ui->restoreLastSessionCheck, &QAbstractButton::toggled,
             this, &SettingsDialog::markDirty);
 }
 
@@ -128,6 +143,20 @@ void SettingsDialog::populateLogCategoryLayout(
 }
 
 ///
+/// \brief Applies theme-matching icons to the category rows.
+///
+/// The icons come from the light/dark resource sets, so they are re-applied whenever the
+/// colour scheme changes.
+///
+void SettingsDialog::applyCategoryIcons()
+{
+    static const char *const categoryIcons[] = {"settings", "palette", "logs"};
+    const int count = qMin(ui->categoryList->count(), int(std::size(categoryIcons)));
+    for (int row = 0; row < count; ++row)
+        ui->categoryList->item(row)->setIcon(AppIcons::themed(QLatin1String(categoryIcons[row])));
+}
+
+///
 /// \brief Pre-selects the dialog controls from the stored preferences.
 ///
 void SettingsDialog::loadSettings()
@@ -136,6 +165,7 @@ void SettingsDialog::loadSettings()
     setThemeSelection(settings.themeMode());
     setTimestampSelection(settings.timestampMode());
     setLanguageSelection(settings.language());
+    ui->restoreLastSessionCheck->setChecked(settings.restoreLastSessionOnStartup());
 
     const QHash<QString, bool> states = settings.logCategoryStates();
     for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
@@ -154,6 +184,8 @@ void SettingsDialog::applyChanges()
         states.insert(it.key(), it.value()->isChecked());
     settings.setLogCategoryStates(states);
     QLoggingCategory::setFilterRules(settings.logFilterRules());
+
+    settings.setRestoreLastSessionOnStartup(ui->restoreLastSessionCheck->isChecked());
 
     if (_layoutResetRequested)
         settings.clearLayout();

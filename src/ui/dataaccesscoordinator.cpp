@@ -569,6 +569,8 @@ void DataAccessCoordinator::onMonitoringFinished(const QString &nodeId, bool sub
     const bool fromFolderDrop = _folderAddNodeIds.contains(nodeId);
     if (success) {
         _dataView->setNodeSubscribed(nodeId, subscribed);
+        if (!subscribed)
+            _dataView->setNodeRevisedInterval(nodeId, 0.0);
     } else if (!fromFolderDrop) {
         MessageBoxDialog::warning(_dialogParent,
                                   subscribed ? tr("Subscribe Failed") : tr("Unsubscribe Failed"),
@@ -577,6 +579,17 @@ void DataAccessCoordinator::onMonitoringFinished(const QString &nodeId, bool sub
     }
     finishFolderNode(nodeId, success);
     updateMonitoringActions();
+}
+
+///
+/// \brief Shows the monitoring parameters the server actually granted for a node.
+/// \param nodeId Monitored node.
+/// \param publishingInterval Publishing interval granted by the server, in milliseconds.
+///
+void DataAccessCoordinator::onMonitoringIntervalRevised(const QString &nodeId,
+                                                        double publishingInterval)
+{
+    _dataView->setNodeRevisedInterval(nodeId, publishingInterval);
 }
 
 ///
@@ -893,22 +906,20 @@ void DataAccessCoordinator::updateSelectionActions()
 ///
 SubscriptionItem DataAccessCoordinator::builtinSubscription(bool fast) const
 {
+    const int wantedId = fast ? FastSubscriptionId : DefaultSubscriptionId;
+
     const QVector<SubscriptionItem> items = _dataView->subscriptions()->subscriptions();
     for (const SubscriptionItem &item : items) {
-        const bool matches = fast ? (item.isBuiltin() && !item.isDefault()) : item.isDefault();
-        if (matches)
+        if (item.isBuiltin() && item.id == wantedId)
             return item;
     }
 
     SubscriptionItem fallback;
     fallback.builtin = true;
-    if (fast) {
-        fallback.name = tr("Fast");
+    fallback.id = wantedId;
+    fallback.name = SubscriptionsWidget::factoryName(wantedId);
+    if (fast)
         fallback.publishingInterval = 250.0;
-        fallback.id = 1;
-    } else {
-        fallback.name = tr("Default");
-    }
     return fallback;
 }
 
@@ -1005,6 +1016,8 @@ void DataAccessCoordinator::wireModules()
             this, &DataAccessCoordinator::onDataValuesReady);
     connect(_dataAccess, &DataAccessModule::monitoringFinished,
             this, &DataAccessCoordinator::onMonitoringFinished);
+    connect(_dataAccess, &DataAccessModule::monitoringIntervalRevised,
+            this, &DataAccessCoordinator::onMonitoringIntervalRevised);
     connect(_events, &EventsModule::eventsReady,
             this, &DataAccessCoordinator::onEventsReady);
     connect(_events, &EventsModule::eventMonitoringFinished,

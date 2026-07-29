@@ -30,6 +30,8 @@ private slots:
     void timestampModeRoundTrips();
     void windowStateRoundTrips();
     void restoreLayoutDefaultsToTrue();
+    void restoreLastSessionDefaultsToTrue();
+    void builtinSubscriptionOverridesRoundTrip();
     void dataAccessPageRoundTrips();
     void viewStateRoundTrips();
     void clearLayoutKeepsPreferences();
@@ -132,6 +134,55 @@ void TestAppSettings::restoreLayoutDefaultsToTrue()
     QVERIFY(AppSettings().restoreLayoutOnStartup());
     AppSettings().setRestoreLayoutOnStartup(false);
     QVERIFY(!AppSettings().restoreLayoutOnStartup());
+}
+
+///
+/// \brief Session restoration is opt-out, defaulting to enabled.
+///
+void TestAppSettings::restoreLastSessionDefaultsToTrue()
+{
+    QVERIFY(AppSettings().restoreLastSessionOnStartup());
+    AppSettings().setRestoreLastSessionOnStartup(false);
+    QVERIFY(!AppSettings().restoreLastSessionOnStartup());
+}
+
+///
+/// \brief Built-in subscription overrides round-trip and stay separate from custom ones.
+///
+void TestAppSettings::builtinSubscriptionOverridesRoundTrip()
+{
+    QVERIFY(AppSettings().builtinSubscriptionOverrides().isEmpty());
+
+    SubscriptionItem renamed;
+    renamed.id = DefaultSubscriptionId;
+    renamed.name = QStringLiteral("Telemetry");
+    renamed.publishingInterval = 50.0;
+    renamed.builtin = true;
+
+    SubscriptionItem intervalOnly;
+    intervalOnly.id = SlowSubscriptionId;
+    intervalOnly.publishingInterval = 9000.0;
+    intervalOnly.builtin = true;
+
+    AppSettings().setBuiltinSubscriptionOverrides({renamed, intervalOnly});
+
+    const QVector<SubscriptionItem> stored = AppSettings().builtinSubscriptionOverrides();
+    QCOMPARE(stored.size(), 2);
+    QCOMPARE(stored.at(0).id, int(DefaultSubscriptionId));
+    QCOMPARE(stored.at(0).name, QStringLiteral("Telemetry"));
+    QCOMPARE(stored.at(0).publishingInterval, 50.0);
+    QVERIFY(stored.at(0).isBuiltin());
+
+    // An empty name means only the interval was overridden; the factory name stays in effect.
+    QCOMPARE(stored.at(1).id, int(SlowSubscriptionId));
+    QVERIFY(stored.at(1).name.isEmpty());
+    QCOMPARE(stored.at(1).publishingInterval, 9000.0);
+
+    // Built-in overrides live in their own group and never leak into the custom list.
+    QVERIFY(AppSettings().customSubscriptions().isEmpty());
+
+    AppSettings().setBuiltinSubscriptionOverrides({});
+    QVERIFY(AppSettings().builtinSubscriptionOverrides().isEmpty());
 }
 
 ///

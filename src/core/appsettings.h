@@ -247,6 +247,18 @@ public:
     void setRestoreLayoutOnStartup(bool enabled);
 
     ///
+    /// \brief Reports whether the workspace left behind by the last run should be restored.
+    /// \return True when the last session should be restored, defaulting to true.
+    ///
+    bool restoreLastSessionOnStartup() const;
+
+    ///
+    /// \brief Stores whether the workspace left behind by the last run should be restored.
+    /// \param enabled True to stage the autosaved workspace on the next launch.
+    ///
+    void setRestoreLastSessionOnStartup(bool enabled);
+
+    ///
     /// \brief Returns the user-created subscriptions persisted from the last session.
     /// \return Custom subscriptions in stored order, or an empty vector when none are stored.
     ///
@@ -257,6 +269,18 @@ public:
     /// \param subscriptions Custom subscriptions to persist; built-in ones are ignored.
     ///
     void setCustomSubscriptions(const QVector<SubscriptionItem> &subscriptions);
+
+    ///
+    /// \brief Returns the stored edits applied to the built-in subscriptions.
+    /// \return Overrides keyed by built-in subscription id, or an empty vector when none exist.
+    ///
+    QVector<SubscriptionItem> builtinSubscriptionOverrides() const;
+
+    ///
+    /// \brief Stores the edits applied to the built-in subscriptions.
+    /// \param subscriptions Overrides to persist; leave the name empty to keep the factory name.
+    ///
+    void setBuiltinSubscriptionOverrides(const QVector<SubscriptionItem> &subscriptions);
 
     ///
     /// \brief Returns the saved element state for a named view.

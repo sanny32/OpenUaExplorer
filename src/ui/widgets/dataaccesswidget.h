@@ -86,6 +86,13 @@ public:
     void setNodeSubscribed(const QString &nodeId, bool subscribed);
 
     ///
+    /// \brief Shows the publishing interval the server granted for a monitored node.
+    /// \param nodeId Affected node.
+    /// \param publishingInterval Granted interval in milliseconds; 0 clears the shown value.
+    ///
+    void setNodeRevisedInterval(const QString &nodeId, double publishingInterval);
+
+    ///
     /// \brief Assigns a subscription (or clears it) on every selected data row.
     /// \param subscriptionName Subscription to assign, or empty to unsubscribe.
     ///

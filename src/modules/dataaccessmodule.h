@@ -93,6 +93,15 @@ signals:
     ///
     void monitoringFinished(QString nodeId, bool subscribed, bool success, QString error);
 
+    ///
+    /// \brief Emitted with the monitoring parameters the server actually granted.
+    /// \param nodeId Monitored node.
+    /// \param publishingInterval Publishing interval granted by the server, in milliseconds.
+    /// \param samplingInterval Sampling interval granted by the server, in milliseconds.
+    ///
+    void monitoringIntervalRevised(QString nodeId, double publishingInterval,
+                                   double samplingInterval);
+
 private:
     void handleValuesReady(const QVector<OpcUaDataValue> &values, const QString &error);
     void handleHistoryReady(const QString &nodeId, const QVector<OpcUaHistoryValue> &values,

@@ -42,9 +42,16 @@ public:
     ~SubscriptionsWidget() override;
 
     ///
-    /// \brief Resets the list to the built-in Default and Fast subscriptions.
+    /// \brief Resets the list to the built-in Default, Fast and Slow subscriptions.
     ///
     void reset();
+
+    ///
+    /// \brief Returns the translated factory name of a built-in subscription.
+    /// \param id Built-in subscription identifier.
+    /// \return Factory name, or an empty string when the id is not built in.
+    ///
+    static QString factoryName(int id);
 
     ///
     /// \brief Returns the current subscriptions as a snapshot.
@@ -65,13 +72,13 @@ public:
     void restoreViewState(AppSettings &settings);
 
     ///
-    /// \brief Persists the user-created subscriptions.
+    /// \brief Persists the user-created subscriptions and any edits to the built-in ones.
     /// \param settings Settings store to write to.
     ///
     void saveSubscriptions(AppSettings &settings) const;
 
     ///
-    /// \brief Restores the user-created subscriptions saved from the last session.
+    /// \brief Restores the subscriptions saved from the last run.
     /// \param settings Settings store to read from.
     ///
     void loadSubscriptions(AppSettings &settings);
@@ -83,6 +90,11 @@ public slots:
     /// \param interval Publishing interval in milliseconds.
     ///
     void createSubscription(const QString &name, double interval);
+
+    ///
+    /// \brief Restores the factory name and publishing interval of every built-in subscription.
+    ///
+    void restoreBuiltinDefaults();
 
 signals:
     ///
@@ -127,6 +139,7 @@ private:
     void removeAllSubscriptions();
     void removeSubscriptionRow(int row);
     bool hasRemovableSubscriptions() const;
+    int  nextSubscriptionId() const;
     void emitSubscriptionsChanged();
 
     Ui::SubscriptionsWidget *ui;

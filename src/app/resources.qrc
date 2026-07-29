@@ -121,6 +121,10 @@
         <file alias="icons/dark/download.svg">res/icons/dark/download.svg</file>
         <file alias="icons/light/key-round.svg">res/icons/light/key-round.svg</file>
         <file alias="icons/dark/key-round.svg">res/icons/dark/key-round.svg</file>
+        <file alias="icons/light/palette.svg">res/icons/light/palette.svg</file>
+        <file alias="icons/dark/palette.svg">res/icons/dark/palette.svg</file>
+        <file alias="icons/light/logs.svg">res/icons/light/logs.svg</file>
+        <file alias="icons/dark/logs.svg">res/icons/dark/logs.svg</file>
         <file alias="icons/light/opcua-logo.png">res/icons/light/opcua-logo.png</file>
         <file alias="icons/dark/opcua-logo.png">res/icons/dark/opcua-logo.png</file>
     </qresource>

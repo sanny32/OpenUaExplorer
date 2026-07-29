@@ -84,6 +84,8 @@ public:
                          q, &QtOpcUaBackend::dataValuesReady);
         QObject::connect(&monitoring, &QtOpcUaMonitoringManager::monitoringFinished,
                          q, &QtOpcUaBackend::monitoringFinished);
+        QObject::connect(&monitoring, &QtOpcUaMonitoringManager::monitoringIntervalRevised,
+                         q, &QtOpcUaBackend::monitoringIntervalRevised);
         QObject::connect(&monitoring, &QtOpcUaMonitoringManager::eventsReady,
                          q, &QtOpcUaBackend::eventsReady);
         QObject::connect(&monitoring, &QtOpcUaMonitoringManager::eventMonitoringFinished,

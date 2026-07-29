@@ -50,6 +50,18 @@ void QtOpcUaMonitoringManager::clear()
 }
 
 ///
+/// \brief Reports the publishing interval the server actually granted for a monitored node.
+/// \param node Monitored node whose status is read back.
+/// \param nodeId Node identifier the interval belongs to.
+///
+void QtOpcUaMonitoringManager::emitRevisedInterval(QOpcUaNode *node, const QString &nodeId)
+{
+    const QOpcUaMonitoringParameters status = node->monitoringStatus(QOpcUa::NodeAttribute::Value);
+    emit monitoringIntervalRevised(nodeId, status.publishingInterval(),
+                                   status.samplingInterval());
+}
+
+///
 /// \brief Enables Value monitoring for a node.
 /// \param nodeId Node to monitor.
 /// \param publishingInterval Publishing interval in milliseconds.
@@ -110,6 +122,15 @@ void QtOpcUaMonitoringManager::subscribeValue(const QString &nodeId, double publ
             node->deleteLater();
         emit monitoringFinished(nodeId, true, success,
                                 success ? QString() : statusName(status));
+        if (success)
+            emitRevisedInterval(node, nodeId);
+    });
+    connect(node, &QOpcUaNode::monitoringStatusChanged, this,
+            [this, node, nodeId](QOpcUa::NodeAttribute attribute, QOpcUaMonitoringParameters::Parameters,
+                                QOpcUa::UaStatusCode status) {
+        if (attribute != QOpcUa::NodeAttribute::Value || !QOpcUa::isSuccessStatus(status))
+            return;
+        emitRevisedInterval(node, nodeId);
     });
 
     QOpcUaMonitoringParameters parameters(publishingInterval);
