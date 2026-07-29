@@ -332,16 +332,16 @@ QColor const& MacAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole rol
         using namespace Dark;
         switch (mouse) {
             case MouseState::Pressed:
-                return colorRef(0x545456);
+                return colorRef(0x5a5a5c);
             case MouseState::Hovered:
-                return colorRef(kChromePressed);
+                return colorRef(0x505052);
             case MouseState::Disabled:
-                return colorRef(0x353538);
+                return colorRef(0x3d3d40);
             case MouseState::Transparent:
                 return transparentRef(kChromeStrong);
             case MouseState::Normal:
             default:
-                return colorRef(kChromeStrong);
+                return colorRef(0x454547);
         }
     } else {
         using namespace Light;
@@ -379,7 +379,7 @@ QColor const& MacAppStyle::buttonForegroundColor(MouseState mouse, ColorRole rol
 
     if (isDarkMode()) {
         using namespace Dark;
-        return mouse == MouseState::Disabled ? colorRef(kDisabledText) : colorRef(kText);
+        return mouse == MouseState::Disabled ? colorRef(0x757579) : colorRef(kText);
     } else {
         using namespace Light;
         return mouse == MouseState::Disabled ? colorRef(kDisabledText) : colorRef(kText);
