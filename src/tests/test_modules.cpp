@@ -35,12 +35,25 @@ class TestModules : public QObject
 private slots:
     void registersAllModules();
     void modulesHaveDistinctNamesAndCategories();
+    void serverLogsSkipDiscoveryDisconnect();
     void subscribeApiReachesBackend();
     void eventSubscribeApiReachesBackend();
     void eventHistoryApiReachesBackend();
 };
 
 namespace {
+
+QStringList serverLogMessages;
+
+///
+/// \brief Captures messages emitted through the Server logging category.
+///
+void captureServerLogMessage(QtMsgType, const QMessageLogContext &context,
+                             const QString &message)
+{
+    if (context.category && qstrcmp(context.category, "ouaexp.Server") == 0)
+        serverLogMessages.append(message);
+}
 
 ///
 /// \brief Registers the six built-in modules with a manager.
@@ -84,6 +97,34 @@ void TestModules::modulesHaveDistinctNamesAndCategories()
     }
     QCOMPARE(names.size(), 6);
     QCOMPARE(categories.size(), 6);
+}
+
+///
+/// \brief Discovery completion is hidden while a real disconnect remains visible.
+///
+void TestModules::serverLogsSkipDiscoveryDisconnect()
+{
+    QtOpcUaBackend service;
+    ServerModule module;
+    ServiceContext context(&service, nullptr);
+    module.initialize(context);
+
+    serverLogMessages.clear();
+    const QtMessageHandler previousHandler = qInstallMessageHandler(captureServerLogMessage);
+    emit service.stateChanged(OpcUaConnectionState::Discovering);
+    emit service.stateChanged(OpcUaConnectionState::Disconnected);
+    emit service.stateChanged(OpcUaConnectionState::Connecting);
+    emit service.stateChanged(OpcUaConnectionState::Connected);
+    emit service.stateChanged(OpcUaConnectionState::Disconnected);
+    qInstallMessageHandler(previousHandler);
+
+    QCOMPARE(serverLogMessages,
+             QStringList({
+                 QStringLiteral("Connection state changed to 'Discovering'."),
+                 QStringLiteral("Connection state changed to 'Connecting'."),
+                 QStringLiteral("Connection state changed to 'Connected'."),
+                 QStringLiteral("Connection state changed to 'Disconnected'."),
+             }));
 }
 
 ///

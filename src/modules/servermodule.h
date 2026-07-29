@@ -37,4 +37,5 @@ private:
 
     OpcUaBackend *_backend = nullptr;
     ConnectionController *_connectionController = nullptr;
+    OpcUaConnectionState _previousState = OpcUaConnectionState::Disconnected;
 };
