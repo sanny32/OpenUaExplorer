@@ -280,7 +280,7 @@ private:
     void onSubscribeRequested(const OpcUaNodeInfo &node);
     void onUnsubscribeRequested(const OpcUaNodeInfo &node);
     void addNodeById(const QString &nodeId);
-    void onFolderDropRequested(const QString &nodeId);
+    void addFolderById(const QString &nodeId);
     void onFolderChildrenReady(const QString &parentNodeId,
                                const QVector<OpcUaNodeInfo> &children,
                                const QString &error);

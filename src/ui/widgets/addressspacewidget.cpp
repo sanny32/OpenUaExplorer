@@ -349,6 +349,8 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
         menu.addSeparator();
     }
 
+    // A folder subscribes its direct variable children, mirroring a folder drop.
+    const bool folder = (info.nodeClass & OpcUa::Object) != 0 && info.hasChildren;
     const bool subscribed = _subscribedNodeIds.contains(info.nodeId);
     const QString monitoringIcon = subscribed ? QStringLiteral("unsubscribe")
                                               : QStringLiteral("subscribe");
@@ -360,7 +362,7 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
         else
             emit subscribeRequested(info);
     });
-    monitoringAction->setEnabled(OpcUa::isVariable(info.nodeClass));
+    monitoringAction->setEnabled(OpcUa::isVariable(info.nodeClass) || folder);
 
     QAction *trendAction = menu.addAction(AppIcons::themed(QStringLiteral("trend")),
                                           tr("Add to Trend"), this, [this, info] {

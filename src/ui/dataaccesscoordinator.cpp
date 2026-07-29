@@ -691,12 +691,16 @@ void DataAccessCoordinator::onAddToTrendRequested(const OpcUaNodeInfo &node)
 }
 
 ///
-/// \brief Starts monitoring a feature-selected node.
-/// \param node Variable node to subscribe.
+/// \brief Starts monitoring a feature-selected node, or a folder's direct variables.
+/// \param node Variable node to subscribe, or a container node to expand first.
 ///
 void DataAccessCoordinator::onSubscribeRequested(const OpcUaNodeInfo &node)
 {
-    addNodeById(node.nodeId);
+    if (OpcUa::isVariable(node.nodeClass)) {
+        addNodeById(node.nodeId);
+        return;
+    }
+    addFolderById(node.nodeId);
 }
 
 ///
@@ -725,10 +729,10 @@ void DataAccessCoordinator::addNodeById(const QString &nodeId)
 }
 
 ///
-/// \brief Browses a dropped folder so its direct variable children can be added.
-/// \param nodeId Dropped container node.
+/// \brief Browses a folder so its direct variable children can be added.
+/// \param nodeId Container node dropped onto or selected for Data Access.
 ///
-void DataAccessCoordinator::onFolderDropRequested(const QString &nodeId)
+void DataAccessCoordinator::addFolderById(const QString &nodeId)
 {
     if (nodeId.isEmpty() || !_addressSpace)
         return;
@@ -737,12 +741,12 @@ void DataAccessCoordinator::onFolderDropRequested(const QString &nodeId)
 }
 
 ///
-/// \brief Adds the direct variable children of a dropped folder, within the drop limits.
+/// \brief Adds the direct variable children of a folder, within the add limits.
 /// \param parentNodeId Browsed node.
 /// \param children Browse result.
 /// \param error Browse error, empty on success.
 ///
-/// Only browse results for folders this coordinator dropped are handled; the same
+/// Only browse results for folders this coordinator asked about are handled; the same
 /// signal also serves the address-space tree.
 ///
 void DataAccessCoordinator::onFolderChildrenReady(const QString &parentNodeId,
@@ -918,7 +922,7 @@ void DataAccessCoordinator::wireDataView()
     connect(_dataView->dataAccess(), &DataAccessWidget::nodeDropRequested,
             this, &DataAccessCoordinator::addNodeById);
     connect(_dataView->dataAccess(), &DataAccessWidget::folderDropRequested,
-            this, &DataAccessCoordinator::onFolderDropRequested);
+            this, &DataAccessCoordinator::addFolderById);
     connect(_dataView->dataAccess(), &DataAccessWidget::writeRequested,
             this, &DataAccessCoordinator::showWriteDialog);
     connect(_dataView->dataAccess(), &DataAccessWidget::readRequested,

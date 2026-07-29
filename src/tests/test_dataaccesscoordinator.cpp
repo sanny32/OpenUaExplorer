@@ -249,6 +249,8 @@ private slots:
     void folderDropCapsVariablesAtHardLimit();
     void folderDropRowSettlesAfterSubscription();
     void folderDropRowSettlesAfterFailedRead();
+    void subscribeRequestOnFolderAddsItsVariables();
+    void subscribeRequestOnVariableReadsThatNodeOnly();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -571,6 +573,49 @@ void TestDataAccessCoordinator::folderDropRowSettlesAfterFailedRead()
     QCOMPARE(model->rowCount(), 1);
     QVERIFY(model->flags(model->index(0, DataAccessModel::ColSubscription))
             & Qt::ItemIsEditable);
+}
+
+///
+/// \brief Subscribing a folder from the tree adds its direct variables, like a drop does.
+///
+void TestDataAccessCoordinator::subscribeRequestOnFolderAddsItsVariables()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    OpcUaNodeInfo folder;
+    folder.nodeId = kFolderNodeId;
+    folder.displayName = QStringLiteral("MyDevice");
+    folder.nodeClass = OpcUa::Object;
+    harness.selection.requestSubscribe(folder);
+
+    QCOMPARE(harness.backend.browsedNodeIds, QStringList{kFolderNodeId});
+    QVERIFY(harness.backend.readNodeIds.isEmpty());
+
+    emit harness.backend.browseFinished(kFolderNodeId, makeFolderChildren(3), QString());
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QCOMPARE(model->rowCount(), 3);
+    QCOMPARE(harness.backend.readNodeIds.size(), 3);
+}
+
+///
+/// \brief Subscribing a variable from the tree still reads just that node.
+///
+void TestDataAccessCoordinator::subscribeRequestOnVariableReadsThatNodeOnly()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    OpcUaNodeInfo variable;
+    variable.nodeId = QStringLiteral("ns=2;s=Temperature");
+    variable.displayName = QStringLiteral("Temperature");
+    variable.nodeClass = OpcUa::Variable;
+    harness.selection.requestSubscribe(variable);
+
+    QCOMPARE(harness.backend.readNodeIds, QStringList{variable.nodeId});
+    QVERIFY(harness.backend.browsedNodeIds.isEmpty());
 }
 
 ///
