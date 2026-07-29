@@ -97,6 +97,10 @@ MainWindow::MainWindow(QWidget *parent)
     updateClientUi(_backend->state());
     _sessionCoordinator->rebuildRecentSessionsMenu();
 
+    // Deferred so the window is up first, and so a session file passed on the command line
+    // has already claimed the pending slot by the time this runs.
+    QTimer::singleShot(0, _sessionCoordinator, &SessionCoordinator::connectStagedSession);
+
     auto *modifiedTimer = new QTimer(this);
     modifiedTimer->setInterval(500);
     connect(modifiedTimer, &QTimer::timeout,
@@ -848,6 +852,9 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
         initializeAddressSpace();
         _sessionCoordinator->applyPendingSession();
     } else if (idle) {
+        // Capture the workspace before clearRuntimeState() discards it, otherwise a
+        // disconnect before quitting would leave nothing to restore on the next launch.
+        _sessionCoordinator->saveAutosavedSession();
         _dataAccessCoordinator->clearRuntimeState();
         _selectionContext->clear();
         _featureManager->clearRuntimeState();

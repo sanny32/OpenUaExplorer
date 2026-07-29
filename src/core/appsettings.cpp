@@ -386,12 +386,12 @@ void AppSettings::setRestoreLayoutOnStartup(bool enabled)
 
 ///
 /// \brief Reports whether the workspace left behind by the last run should be restored.
-/// \return True when the last session should be restored, defaulting to true.
+/// \return True when the last session should be restored, defaulting to false.
 ///
 bool AppSettings::restoreLastSessionOnStartup() const
 {
     SettingsStore settings;
-    return settings.value(QLatin1String(restoreLastSessionKey), true).toBool();
+    return settings.value(QLatin1String(restoreLastSessionKey), false).toBool();
 }
 
 ///

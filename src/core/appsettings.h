@@ -248,7 +248,7 @@ public:
 
     ///
     /// \brief Reports whether the workspace left behind by the last run should be restored.
-    /// \return True when the last session should be restored, defaulting to true.
+    /// \return True when the last session should be restored, defaulting to false.
     ///
     bool restoreLastSessionOnStartup() const;
 

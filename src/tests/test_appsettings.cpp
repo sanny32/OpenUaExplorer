@@ -30,7 +30,7 @@ private slots:
     void timestampModeRoundTrips();
     void windowStateRoundTrips();
     void restoreLayoutDefaultsToTrue();
-    void restoreLastSessionDefaultsToTrue();
+    void restoreLastSessionDefaultsToFalse();
     void builtinSubscriptionOverridesRoundTrip();
     void dataAccessPageRoundTrips();
     void viewStateRoundTrips();
@@ -137,13 +137,13 @@ void TestAppSettings::restoreLayoutDefaultsToTrue()
 }
 
 ///
-/// \brief Session restoration is opt-out, defaulting to enabled.
+/// \brief Session restoration is opt-in, defaulting to disabled.
 ///
-void TestAppSettings::restoreLastSessionDefaultsToTrue()
+void TestAppSettings::restoreLastSessionDefaultsToFalse()
 {
-    QVERIFY(AppSettings().restoreLastSessionOnStartup());
-    AppSettings().setRestoreLastSessionOnStartup(false);
     QVERIFY(!AppSettings().restoreLastSessionOnStartup());
+    AppSettings().setRestoreLastSessionOnStartup(true);
+    QVERIFY(AppSettings().restoreLastSessionOnStartup());
 }
 
 ///

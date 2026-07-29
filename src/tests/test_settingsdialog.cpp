@@ -258,15 +258,15 @@ void TestSettingsDialog::restoreLastSessionCheckPersists()
     QVERIFY(check);
     QVERIFY(buttons);
 
-    // Restoring the last session is opt-out.
-    QVERIFY(check->isChecked());
+    // Restoring the last session is opt-in.
+    QVERIFY(!check->isChecked());
     QVERIFY(!buttons->button(QDialogButtonBox::Apply)->isEnabled());
 
-    check->setChecked(false);
+    check->setChecked(true);
     QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
     buttons->button(QDialogButtonBox::Apply)->click();
 
-    QVERIFY(!AppSettings().restoreLastSessionOnStartup());
+    QVERIFY(AppSettings().restoreLastSessionOnStartup());
 }
 
 ///

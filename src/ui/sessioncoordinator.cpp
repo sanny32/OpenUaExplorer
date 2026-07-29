@@ -23,6 +23,7 @@
 #include "dataaccesscoordinator.h"
 #include "dialogs/messageboxdialog.h"
 #include "features/featuremanager.h"
+#include "loggingcategories.h"
 #include "opcua/connectioncontroller.h"
 #include "opcua/opcuabackend.h"
 #include "session/recentsessionstore.h"
@@ -152,6 +153,7 @@ void SessionCoordinator::openSessionFromFile(const QString &path)
     _pendingSession = data;
     _pendingSessionPath = path;
     _hasPendingSession = true;
+    _pendingIsAutosaved = false;
     recordRecentSession(path);
 
     if (data.profile.authentication == ConnectionProfile::Authentication::Anonymous) {
@@ -206,10 +208,21 @@ void SessionCoordinator::applyPendingSession()
     if (!_hasPendingSession)
         return;
 
-    if (!_context.connectionController->activeProfile().isSameEndpoint(_pendingSession.profile))
+    const ConnectionProfile &active = _context.connectionController->activeProfile();
+    if (!active.isSameEndpoint(_pendingSession.profile)) {
+        qCInfo(lcSession).noquote()
+            << tr("Keeping the pending workspace: it belongs to '%1' (policy '%2', mode %3), "
+                  "but '%4' (policy '%5', mode %6) is connected.")
+                   .arg(_pendingSession.profile.endpointUrl,
+                        _pendingSession.profile.securityPolicy)
+                   .arg(_pendingSession.profile.securityMode)
+                   .arg(active.endpointUrl, active.securityPolicy)
+                   .arg(active.securityMode);
         return;
+    }
 
     _hasPendingSession = false;
+    _pendingIsAutosaved = false;
     const SessionData session = _pendingSession;
     const QString sessionPath = _pendingSessionPath;
     _pendingSession = {};
@@ -392,13 +405,33 @@ QString SessionCoordinator::autosavePath()
 void SessionCoordinator::saveAutosavedSession()
 {
     const QString path = autosavePath();
-    if (_context.backend->state() != OpcUaConnectionState::Connected) {
-        QFile::remove(path);
+    const bool connected = _context.backend->state() == OpcUaConnectionState::Connected;
+    const SessionData data = collectSessionData();
+
+    // Without an endpoint there is nothing a later launch could match against.
+    if (data.profile.endpointUrl.isEmpty())
+        return;
+
+    if (data.dataAccessNodes.isEmpty()) {
+        if (connected) {
+            QFile::remove(path);
+            qCInfo(lcSession).noquote()
+                << tr("Discarded the autosaved workspace: nothing is monitored.");
+        }
         return;
     }
 
     QDir().mkpath(QFileInfo(path).absolutePath());
-    SessionStore::save(path, collectSessionData());
+    QString error;
+    if (!SessionStore::save(path, data, &error)) {
+        qCWarning(lcSession).noquote()
+            << tr("Could not autosave the workspace to '%1': %2.").arg(path, error);
+        return;
+    }
+    qCInfo(lcSession).noquote()
+        << tr("Autosaved %n monitored node(s) for endpoint '%1'.", nullptr,
+              data.dataAccessNodes.size())
+               .arg(data.profile.endpointUrl);
 }
 
 ///
@@ -410,16 +443,58 @@ void SessionCoordinator::stageAutosavedSession()
         return;
 
     const QString path = autosavePath();
-    if (!QFileInfo::exists(path))
+    if (!QFileInfo::exists(path)) {
+        qCInfo(lcSession).noquote() << tr("No autosaved workspace to restore.");
         return;
+    }
 
     SessionData data;
-    if (!SessionStore::load(path, data))
+    QString error;
+    if (!SessionStore::load(path, data, &error)) {
+        qCWarning(lcSession).noquote()
+            << tr("Could not read the autosaved workspace: %1.").arg(error);
         return;
+    }
+
+    qCInfo(lcSession).noquote()
+        << tr("Autosaved workspace staged; it is restored on connecting to '%1'.")
+               .arg(data.profile.endpointUrl);
 
     _pendingSession = data;
     _pendingSessionPath.clear();
     _hasPendingSession = true;
+    _pendingIsAutosaved = true;
+}
+
+///
+/// \brief Starts the connection the staged autosaved workspace belongs to.
+///
+void SessionCoordinator::connectStagedSession()
+{
+    if (!_hasPendingSession || !_pendingIsAutosaved)
+        return;
+    if (_context.backend->state() == OpcUaConnectionState::Connected)
+        return;
+
+    ConnectionProfile profile = _pendingSession.profile;
+    qCInfo(lcSession).noquote()
+        << tr("Reconnecting to '%1' to restore the autosaved workspace.")
+               .arg(profile.endpointUrl);
+
+    if (profile.authentication == ConnectionProfile::Authentication::Anonymous) {
+        beginSessionRestore();
+        _context.connectionController->connectSavedProfileWithCredentials(profile, QString(),
+                                                                          QString());
+        return;
+    }
+
+    // Credentials are deliberately not stored with the workspace, so they must be asked for.
+    if (!_context.connectionCoordinator)
+        return;
+    if (_context.connectionCoordinator->openConnectionDialog(&profile)) {
+        beginSessionRestore();
+        handleConnectionState(_context.backend->state());
+    }
 }
 
 ///

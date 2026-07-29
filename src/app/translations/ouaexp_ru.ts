@@ -3140,6 +3140,42 @@ Do you want to save them?</source>
         <source>Untitled</source>
         <translation>Без имени</translation>
     </message>
+    <message>
+        <source>Keeping the pending workspace: it belongs to &apos;%1&apos; (policy &apos;%2&apos;, mode %3), but &apos;%4&apos; (policy &apos;%5&apos;, mode %6) is connected.</source>
+        <translation>Отложенная рабочая область сохранена: она относится к «%1» (политика «%2», режим %3), но подключение установлено к «%4» (политика «%5», режим %6).</translation>
+    </message>
+    <message>
+        <source>Discarded the autosaved workspace: nothing is monitored.</source>
+        <translation>Автоматически сохранённая рабочая область удалена: нет отслеживаемых узлов.</translation>
+    </message>
+    <message>
+        <source>Could not autosave the workspace to &apos;%1&apos;: %2.</source>
+        <translation>Не удалось автоматически сохранить рабочую область в «%1»: %2.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Autosaved %n monitored node(s) for endpoint &apos;%1&apos;.</source>
+        <translation>
+            <numerusform>Для конечной точки «%1» автоматически сохранён %n отслеживаемый узел.</numerusform>
+            <numerusform>Для конечной точки «%1» автоматически сохранено %n отслеживаемых узла.</numerusform>
+            <numerusform>Для конечной точки «%1» автоматически сохранено %n отслеживаемых узлов.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>No autosaved workspace to restore.</source>
+        <translation>Нет автоматически сохранённой рабочей области для восстановления.</translation>
+    </message>
+    <message>
+        <source>Could not read the autosaved workspace: %1.</source>
+        <translation>Не удалось прочитать автоматически сохранённую рабочую область: %1.</translation>
+    </message>
+    <message>
+        <source>Autosaved workspace staged; it is restored on connecting to &apos;%1&apos;.</source>
+        <translation>Автоматически сохранённая рабочая область подготовлена; она будет восстановлена при подключении к «%1».</translation>
+    </message>
+    <message>
+        <source>Reconnecting to &apos;%1&apos; to restore the autosaved workspace.</source>
+        <translation>Повторное подключение к «%1» для восстановления автоматически сохранённой рабочей области.</translation>
+    </message>
 </context>
 <context>
     <name>SessionStore</name>

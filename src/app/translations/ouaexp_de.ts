@@ -3136,6 +3136,41 @@ Möchten Sie sie speichern?</translation>
         <source>Untitled</source>
         <translation>Ohne Titel</translation>
     </message>
+    <message>
+        <source>Keeping the pending workspace: it belongs to &apos;%1&apos; (policy &apos;%2&apos;, mode %3), but &apos;%4&apos; (policy &apos;%5&apos;, mode %6) is connected.</source>
+        <translation>Der ausstehende Arbeitsbereich wird beibehalten: Er gehört zu „%1“ (Richtlinie „%2“, Modus %3), aber „%4“ (Richtlinie „%5“, Modus %6) ist verbunden.</translation>
+    </message>
+    <message>
+        <source>Discarded the autosaved workspace: nothing is monitored.</source>
+        <translation>Der automatisch gespeicherte Arbeitsbereich wurde verworfen: Es werden keine Knoten überwacht.</translation>
+    </message>
+    <message>
+        <source>Could not autosave the workspace to &apos;%1&apos;: %2.</source>
+        <translation>Der Arbeitsbereich konnte nicht automatisch unter „%1“ gespeichert werden: %2.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Autosaved %n monitored node(s) for endpoint &apos;%1&apos;.</source>
+        <translation>
+            <numerusform>Für den Endpunkt „%1“ wurde %n überwachter Knoten automatisch gespeichert.</numerusform>
+            <numerusform>Für den Endpunkt „%1“ wurden %n überwachte Knoten automatisch gespeichert.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>No autosaved workspace to restore.</source>
+        <translation>Es ist kein automatisch gespeicherter Arbeitsbereich zum Wiederherstellen vorhanden.</translation>
+    </message>
+    <message>
+        <source>Could not read the autosaved workspace: %1.</source>
+        <translation>Der automatisch gespeicherte Arbeitsbereich konnte nicht gelesen werden: %1.</translation>
+    </message>
+    <message>
+        <source>Autosaved workspace staged; it is restored on connecting to &apos;%1&apos;.</source>
+        <translation>Der automatisch gespeicherte Arbeitsbereich wurde bereitgestellt; er wird beim Verbinden mit „%1“ wiederhergestellt.</translation>
+    </message>
+    <message>
+        <source>Reconnecting to &apos;%1&apos; to restore the autosaved workspace.</source>
+        <translation>Verbindung mit „%1“ wird erneut hergestellt, um den automatisch gespeicherten Arbeitsbereich wiederherzustellen.</translation>
+    </message>
 </context>
 <context>
     <name>SessionStore</name>
