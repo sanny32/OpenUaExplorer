@@ -1277,6 +1277,10 @@
         <translation>订阅</translation>
     </message>
     <message>
+        <source>Shows only the rows whose Display Name or Node Id contains this text</source>
+        <translation>仅显示 Display Name 或 Node Id 包含该文本的行</translation>
+    </message>
+    <message>
         <source>Filter...</source>
         <translation>筛选…</translation>
     </message>

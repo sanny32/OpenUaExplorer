@@ -23,6 +23,7 @@ namespace Ui {
 class DataAccessWidget;
 }
 
+class DataAccessFilterProxyModel;
 class DataAccessModel;
 class SubscriptionDelegate;
 
@@ -273,6 +274,7 @@ private:
 
     Ui::DataAccessWidget      *ui;
     DataAccessModel           *_dataModel;
+    DataAccessFilterProxyModel *_filterProxy;
     SubscriptionDelegate      *_subscriptionDelegate = nullptr;
     QVector<SubscriptionItem>  _subscriptions;
 };

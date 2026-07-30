@@ -12,9 +12,11 @@
 #include <QDropEvent>
 #include <QHeaderView>
 #include <QItemSelectionModel>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMimeData>
 #include <QPushButton>
+#include <QSortFilterProxyModel>
 
 #include "appicons.h"
 #include "appsettings.h"
@@ -62,6 +64,59 @@ bool decodeDroppedFolder(const QMimeData *mimeData, OpcUaNodeInfo *node)
 } // namespace
 
 ///
+/// \brief Filters the data-access table by a substring of the node name or NodeId.
+///
+class DataAccessFilterProxyModel : public QSortFilterProxyModel
+{
+public:
+    using QSortFilterProxyModel::QSortFilterProxyModel;
+
+    /// \brief Restricts rows to those whose name or NodeId contain the text.
+    void setFilterText(const QString &text)
+    {
+        const QString trimmed = text.trimmed();
+        if (trimmed == _filter)
+            return;
+        _filter = trimmed;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+        beginFilterChange();
+        endFilterChange();
+#else
+        invalidateFilter();
+#endif
+    }
+
+    /// \brief Keeps the row numbers of the visible rows consecutive while a filter is active.
+    QVariant data(const QModelIndex &index, int role) const override
+    {
+        if (role == Qt::DisplayRole && index.isValid()
+            && index.column() == DataAccessModel::ColNumber) {
+            return index.row() + 1;
+        }
+        return QSortFilterProxyModel::data(index, role);
+    }
+
+protected:
+    bool filterAcceptsRow(int row, const QModelIndex &parent) const override
+    {
+        if (_filter.isEmpty())
+            return true;
+
+        // Only the columns naming the node are matched: values, timestamps and
+        // intervals would otherwise pull in rows the typed text has nothing to do with.
+        for (int column : {DataAccessModel::ColDisplayName, DataAccessModel::ColNodeId}) {
+            const QString text = sourceModel()->index(row, column, parent).data(Qt::DisplayRole).toString();
+            if (text.contains(_filter, Qt::CaseInsensitive))
+                return true;
+        }
+        return false;
+    }
+
+private:
+    QString _filter;
+};
+
+///
 /// \brief Builds the widget and its data view.
 /// \param parent Parent widget.
 ///
@@ -69,6 +124,7 @@ DataAccessWidget::DataAccessWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::DataAccessWidget)
     , _dataModel(new DataAccessModel(this))
+    , _filterProxy(new DataAccessFilterProxyModel(this))
 {
     ui->setupUi(this);
 
@@ -388,7 +444,8 @@ bool DataAccessWidget::eventFilter(QObject *watched, QEvent *event)
 ///
 void DataAccessWidget::setupDataView()
 {
-    ui->dataView->setModel(_dataModel);
+    _filterProxy->setSourceModel(_dataModel);
+    ui->dataView->setModel(_filterProxy);
 
     const auto emitNodeCount = [this] { emit nodeCountChanged(_dataModel->rowCount()); };
     connect(_dataModel, &QAbstractItemModel::rowsInserted, this, emitNodeCount);
@@ -399,7 +456,7 @@ void DataAccessWidget::setupDataView()
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, _subscriptionDelegate);
     connect(_subscriptionDelegate, &SubscriptionDelegate::subscriptionChanged, this,
             [this](const QModelIndex &index, const QString &subscriptionName) {
-                const QString nodeId = _dataModel->itemAt(index.row()).nodeId;
+                const QString nodeId = _dataModel->itemAt(_filterProxy->mapToSource(index).row()).nodeId;
                 if (subscriptionName.isEmpty())
                     emit monitoringCancelled(nodeId);
                 else
@@ -407,7 +464,7 @@ void DataAccessWidget::setupDataView()
             });
     connect(_subscriptionDelegate, &SubscriptionDelegate::newSubscriptionRequested, this,
             [this](const QModelIndex &index) {
-                const QString nodeId = _dataModel->itemAt(index.row()).nodeId;
+                const QString nodeId = _dataModel->itemAt(_filterProxy->mapToSource(index).row()).nodeId;
                 QMetaObject::invokeMethod(this, [this, nodeId] {
                     promptNewSubscription(nodeId);
                 }, Qt::QueuedConnection);
@@ -478,6 +535,8 @@ void DataAccessWidget::configureToolbar()
             this, &DataAccessWidget::readSelectedNodes);
     connect(ui->writeButton, &QPushButton::clicked,
             this, &DataAccessWidget::writeSelectedNode);
+    connect(ui->filterEdit, &QLineEdit::textChanged, this,
+            [this](const QString &text) { _filterProxy->setFilterText(text); });
 }
 
 ///
@@ -731,7 +790,12 @@ SubscriptionItem DataAccessWidget::defaultSubscription() const
 ///
 QModelIndexList DataAccessWidget::selectedDataRows() const
 {
-    return ui->dataView->selectionModel()->selectedRows();
+    QModelIndexList rows;
+    const QModelIndexList selected = ui->dataView->selectionModel()->selectedRows();
+    rows.reserve(selected.size());
+    for (const QModelIndex &idx : selected)
+        rows.append(_filterProxy->mapToSource(idx));
+    return rows;
 }
 
 ///

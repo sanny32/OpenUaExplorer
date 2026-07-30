@@ -1283,6 +1283,10 @@
         <translation>Подписаться</translation>
     </message>
     <message>
+        <source>Shows only the rows whose Display Name or Node Id contains this text</source>
+        <translation>Показывает только строки, у которых Display Name или Node Id содержат этот текст</translation>
+    </message>
+    <message>
         <source>Filter...</source>
         <translation>Фильтр...</translation>
     </message>

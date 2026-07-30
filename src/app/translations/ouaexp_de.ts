@@ -1280,6 +1280,10 @@
         <translation>Abonnieren</translation>
     </message>
     <message>
+        <source>Shows only the rows whose Display Name or Node Id contains this text</source>
+        <translation>Zeigt nur Zeilen an, deren Display Name oder Node Id diesen Text enthält</translation>
+    </message>
+    <message>
         <source>Filter...</source>
         <translation>Filtern …</translation>
     </message>

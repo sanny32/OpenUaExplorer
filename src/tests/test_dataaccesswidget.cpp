@@ -13,6 +13,7 @@
 #include <QApplication>
 #include <QDialog>
 #include <QFont>
+#include <QLineEdit>
 #include <QMimeData>
 #include <QPushButton>
 #include <QScopedPointer>
@@ -45,6 +46,9 @@ private slots:
     void declinedClearKeepsEveryNode();
     void clearOfEmptyTableAsksNothing();
     void silentClearAsksNothing();
+    void filterKeepsOnlyMatchingRows();
+    void filterMatchesNamesOnly();
+    void actionsOnFilteredRowsUseTheirOwnNodes();
 };
 
 namespace {
@@ -412,6 +416,93 @@ void TestDataAccessWidget::silentClearAsksNothing()
 
     QVERIFY(!dialogSeen);
     QCOMPARE(view->model()->rowCount(), 0);
+}
+
+///
+/// \brief Typing in the filter box keeps only the rows matching the text.
+///
+void TestDataAccessWidget::filterKeepsOnlyMatchingRows()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *filterEdit = widget.findChild<QLineEdit *>(QStringLiteral("filterEdit"));
+    QVERIFY(view);
+    QVERIFY(filterEdit);
+
+    widget.addPendingNodes({makeVariable(1), makeVariable(2)});
+    QCOMPARE(view->model()->rowCount(), 2);
+
+    filterEdit->setText(QStringLiteral("var2"));
+    QCOMPARE(view->model()->rowCount(), 1);
+    QCOMPARE(view->model()->data(view->model()->index(0, DataAccessModel::ColNodeId)).toString(),
+             makeVariable(2).nodeId);
+    QCOMPARE(view->model()->data(view->model()->index(0, DataAccessModel::ColNumber)).toInt(), 1);
+
+    filterEdit->setText(QStringLiteral("ns=7"));
+    QCOMPARE(view->model()->rowCount(), 0);
+
+    filterEdit->clear();
+    QCOMPARE(view->model()->rowCount(), 2);
+}
+
+///
+/// \brief A digit sequence matches names, not values, timestamps or intervals.
+///
+void TestDataAccessWidget::filterMatchesNamesOnly()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *filterEdit = widget.findChild<QLineEdit *>(QStringLiteral("filterEdit"));
+    QVERIFY(view);
+    QVERIFY(filterEdit);
+
+    OpcUaNodeDetails named = makeNodeDetails();
+    named.nodeId = QStringLiteral("ns=2;s=Axis");
+    named.displayName = QStringLiteral("Axis16Position");
+
+    OpcUaNodeDetails valued = makeNodeDetails();
+    valued.nodeId = QStringLiteral("ns=2;s=Speed");
+    valued.displayName = QStringLiteral("Speed");
+    valued.value = 16;
+
+    widget.addNode(named);
+    widget.addNode(valued);
+    QCOMPARE(view->model()->rowCount(), 2);
+
+    filterEdit->setText(QStringLiteral("16"));
+    QCOMPARE(view->model()->rowCount(), 1);
+    QCOMPARE(view->model()->data(view->model()->index(0, DataAccessModel::ColDisplayName)).toString(),
+             named.displayName);
+}
+
+///
+/// \brief Toolbar actions on a filtered table address the visible rows, not the hidden ones.
+///
+void TestDataAccessWidget::actionsOnFilteredRowsUseTheirOwnNodes()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *filterEdit = widget.findChild<QLineEdit *>(QStringLiteral("filterEdit"));
+    QVERIFY(view);
+    QVERIFY(filterEdit);
+
+    OpcUaNodeDetails pressure = makeNodeDetails();
+    pressure.nodeId = QStringLiteral("ns=2;s=Pressure");
+    pressure.displayName = QStringLiteral("Pressure");
+    widget.addNode(makeNodeDetails());
+    widget.addNode(pressure);
+
+    filterEdit->setText(QStringLiteral("Pressure"));
+    QCOMPARE(view->model()->rowCount(), 1);
+    view->selectAll();
+
+    QSignalSpy readSpy(&widget, &DataAccessWidget::readRequested);
+    auto *readButton = widget.findChild<QAbstractButton *>(QStringLiteral("readButton"));
+    QVERIFY(readButton);
+    readButton->click();
+
+    QCOMPARE(readSpy.size(), 1);
+    QCOMPARE(readSpy.first().first().toStringList(), QStringList{pressure.nodeId});
 }
 
 QTEST_MAIN(TestDataAccessWidget)
