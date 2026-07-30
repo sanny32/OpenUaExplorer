@@ -218,6 +218,7 @@ void MainWindow::on_actionConnect_triggered()
 ///
 void MainWindow::on_actionDisconnect_triggered()
 {
+    _sessionCoordinator->discardLastSession();
     _connectionCoordinator->disconnectFromServer();
 }
 

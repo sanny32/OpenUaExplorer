@@ -213,6 +213,9 @@ private slots:
     void autosavedSessionIsSkippedWhenDisabled();
     void savedSessionTakesPriorityOverAutosaveAtStartup();
     void missingSavedSessionFallsBackToAutosave();
+    void manualDisconnectDiscardsRestorableSession();
+    void autosaveIsSkippedWhenRestoreDisabled();
+    void failedConnectionDoesNotAutosave();
     void emptyWorkspaceIsAutosavedAfterDisconnect();
     void emptyWorkspaceIsAutosavedWhileConnected();
     void disconnectCapturesWorkspaceBeforeItIsCleared();
@@ -454,10 +457,81 @@ void TestSessionCoordinator::missingSavedSessionFallsBackToAutosave()
 }
 
 ///
+/// \brief A manual disconnect clears restore state and suppresses autosave until reconnecting.
+///
+void TestSessionCoordinator::manualDisconnectDiscardsRestorableSession()
+{
+    const QString autosave = writeAutosavedSession();
+    QVERIFY(!autosave.isEmpty());
+
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString savedPath = sessionsDirectory.filePath(QStringLiteral("saved.ouas"));
+    SessionData savedData;
+    savedData.profile.endpointUrl = QStringLiteral("opc.tcp://saved.invalid:4840");
+    QVERIFY(SessionStore::save(savedPath, savedData));
+    AppSettings().setLastSavedSessionPath(savedPath);
+
+    WorkspaceHarness harness;
+    harness.connectTo(QStringLiteral("opc.tcp://manual.invalid:4840"));
+    harness.coordinator->discardLastSession();
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    harness.coordinator->saveAutosavedSession();
+
+    QVERIFY(!QFileInfo::exists(autosave));
+    QVERIFY(QFileInfo::exists(savedPath));
+    QVERIFY(AppSettings().lastSavedSessionPath().isEmpty());
+
+    harness.connectTo(QStringLiteral("opc.tcp://next.invalid:4840"));
+    harness.coordinator->saveAutosavedSession();
+    QVERIFY(QFileInfo::exists(autosave));
+}
+
+///
+/// \brief A successful connection is not autosaved when startup restoration is disabled.
+///
+void TestSessionCoordinator::autosaveIsSkippedWhenRestoreDisabled()
+{
+    QVERIFY(!AppSettings().restoreLastSessionOnStartup());
+    const QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+        + QStringLiteral("/lastsession.ouas");
+
+    WorkspaceHarness harness;
+    harness.connectTo(QStringLiteral("opc.tcp://connected.invalid:4840"));
+    harness.coordinator->saveAutosavedSession();
+
+    QVERIFY(!QFileInfo::exists(path));
+}
+
+///
+/// \brief A connection attempt that never reached Connected does not create an autosave.
+///
+void TestSessionCoordinator::failedConnectionDoesNotAutosave()
+{
+    AppSettings().setRestoreLastSessionOnStartup(true);
+    const QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+        + QStringLiteral("/lastsession.ouas");
+
+    WorkspaceHarness harness;
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("failed-profile");
+    profile.endpointUrl = QStringLiteral("opc.tcp://failed.invalid:4840");
+    profile.authentication = ConnectionProfile::Authentication::Anonymous;
+    harness.controller.connectNewProfile(profile, QString(), QString());
+    harness.backend.setState(OpcUaConnectionState::Connecting);
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+
+    harness.coordinator->saveAutosavedSession();
+
+    QVERIFY(!QFileInfo::exists(path));
+}
+
+///
 /// \brief Disconnecting records the endpoint even when the workspace has no data-access nodes.
 ///
 void TestSessionCoordinator::emptyWorkspaceIsAutosavedAfterDisconnect()
 {
+    AppSettings().setRestoreLastSessionOnStartup(true);
     const QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
         + QStringLiteral("/lastsession.ouas");
     QVERIFY(!QFileInfo::exists(path));
@@ -481,6 +555,7 @@ void TestSessionCoordinator::emptyWorkspaceIsAutosavedAfterDisconnect()
 ///
 void TestSessionCoordinator::emptyWorkspaceIsAutosavedWhileConnected()
 {
+    AppSettings().setRestoreLastSessionOnStartup(true);
     const QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
         + QStringLiteral("/lastsession.ouas");
     QVERIFY(!QFileInfo::exists(path));
@@ -505,6 +580,7 @@ void TestSessionCoordinator::emptyWorkspaceIsAutosavedWhileConnected()
 ///
 void TestSessionCoordinator::disconnectCapturesWorkspaceBeforeItIsCleared()
 {
+    AppSettings().setRestoreLastSessionOnStartup(true);
     const QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
         + QStringLiteral("/lastsession.ouas");
     QVERIFY(!QFileInfo::exists(path));
@@ -530,6 +606,7 @@ void TestSessionCoordinator::disconnectCapturesWorkspaceBeforeItIsCleared()
 ///
 void TestSessionCoordinator::connectedShutdownWritesAutosave()
 {
+    AppSettings().setRestoreLastSessionOnStartup(true);
     const QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
         + QStringLiteral("/lastsession.ouas");
     QVERIFY(!QFileInfo::exists(path));

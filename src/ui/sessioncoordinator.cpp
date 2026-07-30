@@ -411,7 +411,17 @@ QString SessionCoordinator::autosavePath()
 ///
 void SessionCoordinator::saveAutosavedSession()
 {
-    if (!_sessionPath.isEmpty())
+    const OpcUaConnectionState state = _context.backend->state();
+    const bool connectionEnding = state == OpcUaConnectionState::Disconnected
+        || state == OpcUaConnectionState::Unavailable;
+    const bool connectionWasEstablished = _connectionEstablished;
+    if (connectionEnding)
+        _connectionEstablished = false;
+
+    if (!connectionWasEstablished
+        || !AppSettings().restoreLastSessionOnStartup()
+        || _autosaveSuppressed
+        || !_sessionPath.isEmpty())
         return;
 
     const QString path = autosavePath();
@@ -432,6 +442,21 @@ void SessionCoordinator::saveAutosavedSession()
         << tr("Autosaved %n monitored node(s) for endpoint '%1'.", nullptr,
               data.dataAccessNodes.size())
                .arg(data.profile.endpointUrl);
+}
+
+///
+/// \brief Clears startup restoration after a manual disconnect without deleting named files.
+///
+void SessionCoordinator::discardLastSession()
+{
+    _autosaveSuppressed = true;
+    _pendingSession = {};
+    _pendingSessionPath.clear();
+    _hasPendingSession = false;
+    _pendingStartsConnection = false;
+    AppSettings().setLastSavedSessionPath(QString());
+    QFile::remove(autosavePath());
+    endSessionRestore();
 }
 
 ///
@@ -581,9 +606,12 @@ void SessionCoordinator::endSessionRestore()
 ///
 void SessionCoordinator::handleConnectionState(OpcUaConnectionState state)
 {
-    if (state == OpcUaConnectionState::Connected
-        && !_hasPendingSession && _sessionPath.isEmpty())
-        AppSettings().setLastSavedSessionPath(QString());
+    if (state == OpcUaConnectionState::Connected) {
+        _connectionEstablished = true;
+        _autosaveSuppressed = false;
+        if (!_hasPendingSession && _sessionPath.isEmpty())
+            AppSettings().setLastSavedSessionPath(QString());
+    }
 
     if (state == OpcUaConnectionState::Connected
         || state == OpcUaConnectionState::Disconnected

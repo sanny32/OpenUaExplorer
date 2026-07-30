@@ -106,6 +106,11 @@ public:
     void saveAutosavedSession();
 
     ///
+    /// \brief Clears startup restoration after a manual disconnect without deleting named files.
+    ///
+    void discardLastSession();
+
+    ///
     /// \brief Stages the named session or autosaved workspace selected for startup restoration.
     ///
     void stageLastSession();
@@ -151,4 +156,6 @@ private:
     QString _sessionPath;
     QByteArray _savedSessionFingerprint;
     bool _sessionRestoreCursorActive = false;
+    bool _autosaveSuppressed = false;
+    bool _connectionEstablished = false;
 };

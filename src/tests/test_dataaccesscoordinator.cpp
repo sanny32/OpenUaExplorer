@@ -241,6 +241,8 @@ private slots:
     void monitoringResultTogglesActions();
     void clearRuntimeStateResetsMonitoring();
     void pageStateSurvivesSaveRestoreRoundTrip();
+    void restoredNodesKeepSavedOrderWhenReadsFinishOutOfOrder();
+    void failedRestoredNodeRemainsSavedAndSettles();
     void folderDropBrowsesDroppedFolder();
     void folderDropAddsDirectVariablesWithoutPrompt();
     void folderDropIgnoresBrowseResultsOfOtherNodes();
@@ -410,6 +412,65 @@ void TestDataAccessCoordinator::pageStateSurvivesSaveRestoreRoundTrip()
 
     harness.coordinator->restoreState(settings);
     QCOMPARE(harness.dataView.currentPage(), static_cast<int>(DataView::EventsPage));
+}
+
+///
+/// \brief Attribute responses update restored rows without changing their saved order.
+///
+void TestDataAccessCoordinator::restoredNodesKeepSavedOrderWhenReadsFinishOutOfOrder()
+{
+    CoordinatorHarness harness;
+    const QVector<QPair<QString, QString>> savedNodes{
+        {QStringLiteral("ns=2;s=Third"), QStringLiteral("Fast")},
+        {QStringLiteral("ns=2;s=First"), QString()},
+        {QStringLiteral("ns=2;s=Second"), QStringLiteral("Default")}
+    };
+
+    harness.coordinator->restoreMonitoredNodes(savedNodes);
+
+    QCOMPARE(harness.backend.readNodeIds,
+             QStringList({savedNodes.at(0).first, savedNodes.at(1).first,
+                          savedNodes.at(2).first}));
+    QCOMPARE(harness.coordinator->monitoredNodes(), savedNodes);
+
+    for (int index : {1, 2, 0}) {
+        OpcUaNodeDetails details;
+        details.nodeId = savedNodes.at(index).first;
+        details.displayName = QStringLiteral("Node %1").arg(index);
+        details.nodeClass = OpcUa::Variable;
+        emit harness.backend.nodeDetailsReady(details, QString());
+    }
+
+    QCOMPARE(harness.coordinator->monitoredNodes(), savedNodes);
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    for (int row = 0; row < savedNodes.size(); ++row) {
+        QCOMPARE(model->data(model->index(row, DataAccessModel::ColNodeId)).toString(),
+                 savedNodes.at(row).first);
+    }
+}
+
+///
+/// \brief A failed restore read leaves the saved row reusable and no longer pending.
+///
+void TestDataAccessCoordinator::failedRestoredNodeRemainsSavedAndSettles()
+{
+    CoordinatorHarness harness;
+    const QVector<QPair<QString, QString>> savedNodes{
+        {QStringLiteral("ns=2;s=Unavailable"), QStringLiteral("Default")}
+    };
+
+    harness.coordinator->restoreMonitoredNodes(savedNodes);
+
+    OpcUaNodeDetails failed;
+    failed.nodeId = savedNodes.first().first;
+    emit harness.backend.nodeDetailsReady(failed, QStringLiteral("Node read timed out."));
+
+    QCOMPARE(harness.coordinator->monitoredNodes(), savedNodes);
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QVERIFY(model->flags(model->index(0, DataAccessModel::ColSubscription))
+            & Qt::ItemIsEditable);
 }
 
 ///

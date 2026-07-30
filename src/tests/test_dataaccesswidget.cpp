@@ -41,6 +41,7 @@ private slots:
     void addNodeWithDefaultSubscriptionRequestsMonitoring();
     void addNodeWithExplicitSubscriptionRequestsMonitoring();
     void pendingNodesAreShownAndSettledOnClear();
+    void restoredNodesKeepSavedOrderAndSubscriptions();
     void pendingRowsAreExcludedFromSelectionActions();
     void confirmedClearRemovesEveryNode();
     void declinedClearKeepsEveryNode();
@@ -300,6 +301,33 @@ void TestDataAccessWidget::pendingNodesAreShownAndSettledOnClear()
                          Qt::FontRole).value<QFont>().italic());
     QVERIFY(model->flags(model->index(0, DataAccessModel::ColSubscription))
             & Qt::ItemIsEditable);
+}
+
+///
+/// \brief Restored rows replace existing data and retain their saved order and subscriptions.
+///
+void TestDataAccessWidget::restoredNodesKeepSavedOrderAndSubscriptions()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+
+    widget.addNode(makeNodeDetails());
+    const QVector<QPair<QString, QString>> savedNodes{
+        {QStringLiteral("ns=2;s=Third"), QStringLiteral("Fast")},
+        {QStringLiteral("ns=2;s=First"), QString()},
+        {QStringLiteral("ns=2;s=Second"), QStringLiteral("Default")}
+    };
+
+    widget.restoreMonitoredNodes(savedNodes);
+
+    QCOMPARE(widget.monitoredNodes(), savedNodes);
+    QCOMPARE(view->model()->rowCount(), savedNodes.size());
+    for (int row = 0; row < savedNodes.size(); ++row) {
+        QCOMPARE(view->model()->data(
+                     view->model()->index(row, DataAccessModel::ColNodeId)).toString(),
+                 savedNodes.at(row).first);
+    }
 }
 
 ///

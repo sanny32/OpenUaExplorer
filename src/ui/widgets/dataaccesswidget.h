@@ -68,6 +68,12 @@ public:
     void addPendingNodes(const QVector<OpcUaNodeInfo> &nodes);
 
     ///
+    /// \brief Replaces the table with saved nodes in their persisted order.
+    /// \param nodes NodeId and subscription-name pairs to restore.
+    ///
+    void restoreMonitoredNodes(const QVector<QPair<QString, QString>> &nodes);
+
+    ///
     /// \brief Clears the pending mark of a row once its request chain has finished.
     /// \param nodeId Node to update.
     ///

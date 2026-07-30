@@ -16,6 +16,7 @@
 #include <QMenu>
 #include <QMimeData>
 #include <QPushButton>
+#include <QSet>
 #include <QSortFilterProxyModel>
 
 #include "appicons.h"
@@ -200,6 +201,31 @@ void DataAccessWidget::addPendingNodes(const QVector<OpcUaNodeInfo> &nodes)
 {
     for (const OpcUaNodeInfo &node : nodes)
         _dataModel->addPending(node);
+}
+
+///
+/// \brief Replaces the table with saved nodes in their persisted order.
+/// \param nodes NodeId and subscription-name pairs to restore.
+///
+void DataAccessWidget::restoreMonitoredNodes(
+    const QVector<QPair<QString, QString>> &nodes)
+{
+    QVector<DataAccessItem> items;
+    items.reserve(nodes.size());
+    QSet<QString> restoredNodeIds;
+    for (const QPair<QString, QString> &node : nodes) {
+        if (node.first.isEmpty() || restoredNodeIds.contains(node.first))
+            continue;
+        restoredNodeIds.insert(node.first);
+
+        DataAccessItem item;
+        item.nodeId = node.first;
+        item.displayName = node.first;
+        item.subscriptionName = node.second;
+        item.pending = true;
+        items.append(item);
+    }
+    _dataModel->setItems(items);
 }
 
 ///

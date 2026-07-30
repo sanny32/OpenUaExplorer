@@ -377,9 +377,9 @@ QVector<SessionTrendTab> DataAccessCoordinator::trendTabs() const
 ///
 void DataAccessCoordinator::restoreMonitoredNodes(const QVector<QPair<QString, QString>> &nodes)
 {
-    for (const QPair<QString, QString> &node : nodes) {
-        if (node.first.isEmpty())
-            continue;
+    DataAccessWidget *dataAccess = _dataView->dataAccess();
+    dataAccess->restoreMonitoredNodes(nodes);
+    for (const QPair<QString, QString> &node : dataAccess->monitoredNodes()) {
         _pendingRestoreSubscriptions.insert(node.first, node.second);
         addNodeById(node.first);
     }
@@ -439,15 +439,14 @@ SubscriptionItem DataAccessCoordinator::subscriptionByName(const QString &name) 
 void DataAccessCoordinator::onAttributeDetailsReady(const OpcUaNodeDetails &details,
                                                     const QString &error)
 {
+    const bool pending = _pendingDataAccessNodeIds.remove(details.nodeId);
+    const bool isRestore = _pendingRestoreSubscriptions.contains(details.nodeId);
+    const QString restoreSubscription = _pendingRestoreSubscriptions.take(details.nodeId);
     if (!error.isEmpty()) {
-        _pendingDataAccessNodeIds.remove(details.nodeId);
         finishFolderNode(details.nodeId, false);
         return;
     }
 
-    const bool pending = _pendingDataAccessNodeIds.remove(details.nodeId);
-    const bool isRestore = _pendingRestoreSubscriptions.contains(details.nodeId);
-    const QString restoreSubscription = _pendingRestoreSubscriptions.take(details.nodeId);
     if (!pending || !OpcUa::isVariable(details.nodeClass)) {
         if (pending)
             finishFolderNode(details.nodeId, false);
@@ -455,10 +454,12 @@ void DataAccessCoordinator::onAttributeDetailsReady(const OpcUaNodeDetails &deta
     }
 
     if (isRestore) {
-        if (restoreSubscription.isEmpty())
+        if (restoreSubscription.isEmpty()) {
             _dataView->addNode(details);
-        else
+            finishFolderNode(details.nodeId, true);
+        } else {
             _dataView->addNodeWithDefaultSubscription(details, subscriptionByName(restoreSubscription));
+        }
         return;
     }
 
