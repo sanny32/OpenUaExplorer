@@ -31,6 +31,7 @@ private slots:
     void windowStateRoundTrips();
     void restoreLayoutDefaultsToTrue();
     void restoreLastSessionDefaultsToFalse();
+    void lastSavedSessionPathRoundTrips();
     void builtinSubscriptionOverridesRoundTrip();
     void dataAccessPageRoundTrips();
     void viewStateRoundTrips();
@@ -144,6 +145,19 @@ void TestAppSettings::restoreLastSessionDefaultsToFalse()
     QVERIFY(!AppSettings().restoreLastSessionOnStartup());
     AppSettings().setRestoreLastSessionOnStartup(true);
     QVERIFY(AppSettings().restoreLastSessionOnStartup());
+}
+
+///
+/// \brief The named startup session path can be stored and cleared.
+///
+void TestAppSettings::lastSavedSessionPathRoundTrips()
+{
+    const QString path = QStringLiteral("/tmp/saved-session.ouas");
+    QVERIFY(AppSettings().lastSavedSessionPath().isEmpty());
+    AppSettings().setLastSavedSessionPath(path);
+    QCOMPARE(AppSettings().lastSavedSessionPath(), path);
+    AppSettings().setLastSavedSessionPath(QString());
+    QVERIFY(AppSettings().lastSavedSessionPath().isEmpty());
 }
 
 ///

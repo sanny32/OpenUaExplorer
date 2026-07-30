@@ -3137,10 +3137,6 @@ Do you want to save them?</source>
         <translation>保留待处理的工作区：它属于“%1”（策略“%2”，模式 %3），但当前连接的是“%4”（策略“%5”，模式 %6）。</translation>
     </message>
     <message>
-        <source>Discarded the autosaved workspace: nothing is monitored.</source>
-        <translation>已丢弃自动保存的工作区：未监控任何节点。</translation>
-    </message>
-    <message>
         <source>Could not autosave the workspace to &apos;%1&apos;: %2.</source>
         <translation>无法将工作区自动保存到“%1”：%2。</translation>
     </message>
@@ -3149,6 +3145,14 @@ Do you want to save them?</source>
         <translation>
             <numerusform>已为端点“%1”自动保存 %n 个监控节点。</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved session &apos;%1&apos; staged for restoration.</source>
+        <translation>已暂存已保存的会话“%1”以供恢复。</translation>
+    </message>
+    <message>
+        <source>Could not read the saved session &apos;%1&apos;: %2. Falling back to autosave.</source>
+        <translation>无法读取已保存的会话“%1”：%2。将回退到自动保存。</translation>
     </message>
     <message>
         <source>No autosaved workspace to restore.</source>
@@ -3163,8 +3167,8 @@ Do you want to save them?</source>
         <translation>已暂存自动保存的工作区；连接到“%1”时将恢复该工作区。</translation>
     </message>
     <message>
-        <source>Reconnecting to &apos;%1&apos; to restore the autosaved workspace.</source>
-        <translation>正在重新连接到“%1”以恢复自动保存的工作区。</translation>
+        <source>Reconnecting to &apos;%1&apos; to restore the last session.</source>
+        <translation>正在重新连接到“%1”以恢复上次会话。</translation>
     </message>
 </context>
 <context>

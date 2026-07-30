@@ -3141,10 +3141,6 @@ Möchten Sie sie speichern?</translation>
         <translation>Der ausstehende Arbeitsbereich wird beibehalten: Er gehört zu „%1“ (Richtlinie „%2“, Modus %3), aber „%4“ (Richtlinie „%5“, Modus %6) ist verbunden.</translation>
     </message>
     <message>
-        <source>Discarded the autosaved workspace: nothing is monitored.</source>
-        <translation>Der automatisch gespeicherte Arbeitsbereich wurde verworfen: Es werden keine Knoten überwacht.</translation>
-    </message>
-    <message>
         <source>Could not autosave the workspace to &apos;%1&apos;: %2.</source>
         <translation>Der Arbeitsbereich konnte nicht automatisch unter „%1“ gespeichert werden: %2.</translation>
     </message>
@@ -3154,6 +3150,14 @@ Möchten Sie sie speichern?</translation>
             <numerusform>Für den Endpunkt „%1“ wurde %n überwachter Knoten automatisch gespeichert.</numerusform>
             <numerusform>Für den Endpunkt „%1“ wurden %n überwachte Knoten automatisch gespeichert.</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved session &apos;%1&apos; staged for restoration.</source>
+        <translation>Die gespeicherte Sitzung „%1“ wurde zur Wiederherstellung vorbereitet.</translation>
+    </message>
+    <message>
+        <source>Could not read the saved session &apos;%1&apos;: %2. Falling back to autosave.</source>
+        <translation>Die gespeicherte Sitzung „%1“ konnte nicht gelesen werden: %2. Stattdessen wird der automatisch gespeicherte Arbeitsbereich verwendet.</translation>
     </message>
     <message>
         <source>No autosaved workspace to restore.</source>
@@ -3168,8 +3172,8 @@ Möchten Sie sie speichern?</translation>
         <translation>Der automatisch gespeicherte Arbeitsbereich wurde bereitgestellt; er wird beim Verbinden mit „%1“ wiederhergestellt.</translation>
     </message>
     <message>
-        <source>Reconnecting to &apos;%1&apos; to restore the autosaved workspace.</source>
-        <translation>Verbindung mit „%1“ wird erneut hergestellt, um den automatisch gespeicherten Arbeitsbereich wiederherzustellen.</translation>
+        <source>Reconnecting to &apos;%1&apos; to restore the last session.</source>
+        <translation>Verbindung mit „%1“ wird erneut hergestellt, um die letzte Sitzung wiederherzustellen.</translation>
     </message>
 </context>
 <context>

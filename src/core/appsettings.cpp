@@ -36,6 +36,7 @@ constexpr auto subscriptionNameKey = "name";
 constexpr auto subscriptionIntervalKey = "interval";
 constexpr auto subscriptionIdKey = "id";
 constexpr auto restoreLastSessionKey = "session/restoreLast";
+constexpr auto lastSavedSessionPathKey = "session/lastSavedPath";
 }
 
 ///
@@ -396,12 +397,35 @@ bool AppSettings::restoreLastSessionOnStartup() const
 
 ///
 /// \brief Stores whether the workspace left behind by the last run should be restored.
-/// \param enabled True to stage the autosaved workspace on the next launch.
+/// \param enabled True to stage the last named session or autosaved workspace.
 ///
 void AppSettings::setRestoreLastSessionOnStartup(bool enabled)
 {
     SettingsStore settings;
     settings.setValue(QLatin1String(restoreLastSessionKey), enabled);
+}
+
+///
+/// \brief Returns the named session file selected for restoration at startup.
+/// \return Stored session path, or an empty string when autosave should be used.
+///
+QString AppSettings::lastSavedSessionPath() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(lastSavedSessionPathKey)).toString();
+}
+
+///
+/// \brief Stores the named session file that takes priority over autosave at startup.
+/// \param path Session file path, or an empty string to restore from autosave.
+///
+void AppSettings::setLastSavedSessionPath(const QString &path)
+{
+    SettingsStore settings;
+    if (path.isEmpty())
+        settings.remove(QLatin1String(lastSavedSessionPathKey));
+    else
+        settings.setValue(QLatin1String(lastSavedSessionPathKey), path);
 }
 
 ///

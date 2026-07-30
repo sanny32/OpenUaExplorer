@@ -254,9 +254,21 @@ public:
 
     ///
     /// \brief Stores whether the workspace left behind by the last run should be restored.
-    /// \param enabled True to stage the autosaved workspace on the next launch.
+    /// \param enabled True to stage the last named session or autosaved workspace.
     ///
     void setRestoreLastSessionOnStartup(bool enabled);
+
+    ///
+    /// \brief Returns the named session file selected for restoration at startup.
+    /// \return Stored session path, or an empty string when autosave should be used.
+    ///
+    QString lastSavedSessionPath() const;
+
+    ///
+    /// \brief Stores the named session file that takes priority over autosave at startup.
+    /// \param path Session file path, or an empty string to restore from autosave.
+    ///
+    void setLastSavedSessionPath(const QString &path);
 
     ///
     /// \brief Returns the user-created subscriptions persisted from the last session.

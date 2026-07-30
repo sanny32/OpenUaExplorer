@@ -101,18 +101,17 @@ public:
     bool maybeSaveSession();
 
     ///
-    /// \brief Records the current workspace in the autosave file.
+    /// \brief Writes the active connection and workspace to the autosave file.
     ///
     void saveAutosavedSession();
 
     ///
-    /// \brief Stages the autosaved workspace so it is applied once its endpoint connects.
+    /// \brief Stages the named session or autosaved workspace selected for startup restoration.
     ///
-    void stageAutosavedSession();
+    void stageLastSession();
 
     ///
-    /// \brief Starts the connection the staged autosaved workspace belongs to.
-    ///
+    /// \brief Starts the connection the staged last session belongs to.
     ///
     void connectStagedSession();
 
@@ -148,7 +147,7 @@ private:
     SessionData _pendingSession;
     QString _pendingSessionPath;
     bool _hasPendingSession = false;
-    bool _pendingIsAutosaved = false;
+    bool _pendingStartsConnection = false;
     QString _sessionPath;
     QByteArray _savedSessionFingerprint;
     bool _sessionRestoreCursorActive = false;

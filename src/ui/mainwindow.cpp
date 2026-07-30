@@ -611,7 +611,8 @@ void MainWindow::saveSettings()
     settings.setCentralSplitterState(ui->centralSplitter->saveState());
     _featureManager->saveState(settings);
     _dataAccessCoordinator->saveState(settings);
-    _sessionCoordinator->saveAutosavedSession();
+    if (_backend->state() == OpcUaConnectionState::Connected)
+        _sessionCoordinator->saveAutosavedSession();
 }
 
 ///
@@ -624,7 +625,7 @@ void MainWindow::restoreSettings()
 {
     AppSettings settings;
     _dataAccessCoordinator->loadSubscriptions(settings);
-    _sessionCoordinator->stageAutosavedSession();
+    _sessionCoordinator->stageLastSession();
 
     if (!settings.restoreLayoutOnStartup())
         return;
@@ -893,4 +894,3 @@ void MainWindow::bindIcons()
     AppIcons::bindIcon(ui->actionFavorites,   "star");
     AppIcons::bindIcon(ui->actionNodeMonitor, "trend");
 }
-

@@ -3145,10 +3145,6 @@ Do you want to save them?</source>
         <translation>Отложенная рабочая область сохранена: она относится к «%1» (политика «%2», режим %3), но подключение установлено к «%4» (политика «%5», режим %6).</translation>
     </message>
     <message>
-        <source>Discarded the autosaved workspace: nothing is monitored.</source>
-        <translation>Автоматически сохранённая рабочая область удалена: нет отслеживаемых узлов.</translation>
-    </message>
-    <message>
         <source>Could not autosave the workspace to &apos;%1&apos;: %2.</source>
         <translation>Не удалось автоматически сохранить рабочую область в «%1»: %2.</translation>
     </message>
@@ -3159,6 +3155,14 @@ Do you want to save them?</source>
             <numerusform>Для конечной точки «%1» автоматически сохранено %n отслеживаемых узла.</numerusform>
             <numerusform>Для конечной точки «%1» автоматически сохранено %n отслеживаемых узлов.</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved session &apos;%1&apos; staged for restoration.</source>
+        <translation>Сохранённая сессия «%1» подготовлена к восстановлению.</translation>
+    </message>
+    <message>
+        <source>Could not read the saved session &apos;%1&apos;: %2. Falling back to autosave.</source>
+        <translation>Не удалось прочитать сохранённую сессию «%1»: %2. Выполняется переход к автосохранению.</translation>
     </message>
     <message>
         <source>No autosaved workspace to restore.</source>
@@ -3173,8 +3177,8 @@ Do you want to save them?</source>
         <translation>Автоматически сохранённая рабочая область подготовлена; она будет восстановлена при подключении к «%1».</translation>
     </message>
     <message>
-        <source>Reconnecting to &apos;%1&apos; to restore the autosaved workspace.</source>
-        <translation>Повторное подключение к «%1» для восстановления автоматически сохранённой рабочей области.</translation>
+        <source>Reconnecting to &apos;%1&apos; to restore the last session.</source>
+        <translation>Повторное подключение к «%1» для восстановления последней сессии.</translation>
     </message>
 </context>
 <context>
