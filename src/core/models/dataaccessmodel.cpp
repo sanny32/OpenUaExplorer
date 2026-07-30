@@ -62,7 +62,7 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
         DataAccessItem &item = _items[row];
         item.displayName = details.displayName;
         item.typedValue = details.value;
-        item.value = details.value.toString();
+        item.value = OpcUaFormat::displayValue(details.value);
         item.valueType = details.valueType;
         item.dataTypeId = details.dataTypeId;
         item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
@@ -80,7 +80,7 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
     item.nodeId = details.nodeId;
     item.displayName = details.displayName;
     item.typedValue = details.value;
-    item.value = details.value.toString();
+    item.value = OpcUaFormat::displayValue(details.value);
     item.valueType = details.valueType;
     item.dataTypeId = details.dataTypeId;
     item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
@@ -158,7 +158,7 @@ void DataAccessModel::updateValues(const QVector<OpcUaDataValue> &values)
             if (item.nodeId != value.nodeId)
                 continue;
             item.typedValue = value.value;
-            item.value = value.value.toString();
+            item.value = OpcUaFormat::displayValue(value.value);
             item.status = value.status;
             item.sourceTimestamp = value.sourceTimestamp;
             item.serverTimestamp = value.serverTimestamp;

@@ -43,6 +43,7 @@ private slots:
     void dataAccessSetItemsExposesColumns();
     void dataAccessAddOrUpdateInsertsThenUpdates();
     void dataAccessUpdateValuesRefreshesValueColumns();
+    void dataAccessFormatsTypedValues();
     void dataAccessRemoveRowsDropsSelected();
     void dataAccessSubscriptionColumnIsEditable();
     void dataAccessTimestampModeReformats();
@@ -305,6 +306,41 @@ void TestModels::dataAccessUpdateValuesRefreshesValueColumns()
              QStringLiteral("42"));
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColStatus)).toString(),
              QStringLiteral("Good"));
+}
+
+///
+/// \brief DataAccessModel formats byte-sized numbers and compound values consistently.
+///
+void TestModels::dataAccessFormatsTypedValues()
+{
+    DataAccessModel model;
+
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=Byte");
+    details.value = QVariant::fromValue<quint8>(122);
+    model.addOrUpdate(details);
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("122"));
+
+    details.nodeId = QStringLiteral("ns=2;s=SByte");
+    details.value = QVariant::fromValue<qint8>(-6);
+    model.addOrUpdate(details);
+    QCOMPARE(model.data(model.index(1, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("-6"));
+
+    details.nodeId = QStringLiteral("ns=2;s=ByteString");
+    details.value = QByteArray::fromHex("01ab");
+    model.addOrUpdate(details);
+    QCOMPARE(model.data(model.index(2, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("01 ab"));
+
+    OpcUaDataValue update;
+    update.nodeId = details.nodeId;
+    update.value = QVariantList{QVariant::fromValue<quint8>(122),
+                                QVariant::fromValue<qint8>(-6)};
+    model.updateValues({update});
+    QCOMPARE(model.data(model.index(2, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("[122, -6]"));
 }
 
 ///
