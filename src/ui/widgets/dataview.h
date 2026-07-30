@@ -218,6 +218,12 @@ public:
     ///
     void clearRuntimeData();
 
+    ///
+    /// \brief Keeps the collected data visible but inactive while the connection is gone.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
 public slots:
     ///
     /// \brief Applies the OPC UA timestamp display mode to the data and history tabs.

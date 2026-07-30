@@ -53,6 +53,12 @@ public:
     void clear();
 
     ///
+    /// \brief Keeps the last read attributes visible but inactive while the connection is gone.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
+    ///
     /// \brief Persists the attributes tree header state.
     /// \param settings Settings store to write to.
     ///
@@ -97,4 +103,5 @@ private:
     ThemedAction         *_copyCellAction = nullptr;
     ThemedAction         *_copyTreeAction = nullptr;
     QString               _nodeId;
+    bool                  _offline = false;
 };

@@ -851,19 +851,45 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     ui->actionSaveSession->setEnabled(connected);
     ui->actionExportData->setEnabled(connected);
     if (connected) {
+        _wasConnected = true;
+        _sessionCoordinator->dropHeldWorkspaceIfEndpointChanged();
+        ui->statusbar->setConnectionLost(false);
+        setRuntimeOffline(false);
         initializeAddressSpace();
         _sessionCoordinator->applyPendingSession();
     } else if (idle) {
-        // Capture the workspace before clearRuntimeState() discards it, otherwise a
-        // disconnect before quitting would leave nothing to restore on the next launch.
+        // A session the user closed is finished with; one the server dropped is kept on
+        // screen, greyed out, so reconnecting restores it instead of starting over.
+        const bool connectionLost =
+            _wasConnected && !_connectionCoordinator->takeDisconnectRequested();
+        _wasConnected = false;
+
+        // saveAutosavedSession() ends the connection the workspace belongs to, so the
+        // workspace has to be held for a reconnect before it runs.
+        if (connectionLost)
+            _sessionCoordinator->holdWorkspaceForReconnect();
         _sessionCoordinator->saveAutosavedSession();
-        _dataAccessCoordinator->clearRuntimeState();
         _selectionContext->clear();
-        _featureManager->clearRuntimeState();
+        if (!connectionLost) {
+            _dataAccessCoordinator->clearRuntimeState();
+            _featureManager->clearRuntimeState();
+            _sessionCoordinator->closeCurrentSession();
+        }
+        ui->statusbar->setConnectionLost(connectionLost);
+        setRuntimeOffline(true);
         _namespaceCache = {};
         closeNodeMonitors();
-        _sessionCoordinator->closeCurrentSession();
     }
+}
+
+///
+/// \brief Switches the views between live data and the greyed-out data of a lost connection.
+/// \param offline True while the server connection is gone.
+///
+void MainWindow::setRuntimeOffline(bool offline)
+{
+    _dataAccessCoordinator->setOffline(offline);
+    _featureManager->setOffline(offline);
 }
 
 ///

@@ -104,6 +104,7 @@ private:
     void setupUpdateChecker();
     void setupModules();
     void updateClientUi(OpcUaConnectionState state);
+    void setRuntimeOffline(bool offline);
     void setupSessionCoordinator();
     void initializeAddressSpace();
     class NodeMonitorDialog *createNodeMonitor();
@@ -131,4 +132,5 @@ private:
     class SessionCoordinator *_sessionCoordinator = nullptr;
     QList<class NodeMonitorDialog *> _nodeMonitors;
     NamespaceInspectorCache _namespaceCache;
+    bool _wasConnected = false;
 };

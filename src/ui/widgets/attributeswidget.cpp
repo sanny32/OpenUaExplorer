@@ -237,6 +237,20 @@ void AttributesWidget::clear()
 }
 
 ///
+/// \brief Keeps the last read attributes visible but inactive while the connection is gone.
+/// \param offline True while the server connection is gone.
+///
+void AttributesWidget::setOffline(bool offline)
+{
+    if (_offline == offline)
+        return;
+    _offline = offline;
+    _model->setOffline(offline);
+    if (offline)
+        ui->writeValueGroup->setEnabled(false);
+}
+
+///
 /// \brief Applies the OPC UA timestamp display mode to the attributes tree.
 /// \param mode Local time or UTC.
 ///

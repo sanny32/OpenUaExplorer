@@ -202,6 +202,12 @@ public:
     void clearRuntimeState();
 
     ///
+    /// \brief Keeps the collected data on screen but drops the state tied to the connection.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
+    ///
     /// \brief Exports the currently visible central-area view to a file.
     ///
     void exportActiveView();

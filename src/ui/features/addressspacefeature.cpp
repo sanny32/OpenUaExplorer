@@ -173,6 +173,15 @@ void AddressSpaceFeature::clearRuntimeState()
 }
 
 ///
+/// \brief Keeps the browsed tree on screen, greyed out, while the connection is gone.
+///
+void AddressSpaceFeature::setOffline(bool offline)
+{
+    if (_widget)
+        _widget->setOffline(offline);
+}
+
+///
 /// \brief Re-applies the dock titles after a language change.
 ///
 void AddressSpaceFeature::retranslate()

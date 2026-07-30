@@ -240,6 +240,7 @@ private slots:
     void subscribeSelectedMarksNodePending();
     void monitoringResultTogglesActions();
     void clearRuntimeStateResetsMonitoring();
+    void offlineKeepsTheCollectedRows();
     void pageStateSurvivesSaveRestoreRoundTrip();
     void restoredNodesKeepSavedOrderWhenReadsFinishOutOfOrder();
     void failedRestoredNodeRemainsSavedAndSettles();
@@ -393,6 +394,29 @@ void TestDataAccessCoordinator::clearRuntimeStateResetsMonitoring()
     QVERIFY(!harness.actions.subscribe->isEnabled());
     QVERIFY(!harness.actions.unsubscribe->isEnabled());
     QVERIFY(!harness.actions.clearDataAccess->isEnabled());
+}
+
+///
+/// \brief Going offline keeps the listed rows the user collected, unlike clearing (issue #7).
+///
+void TestDataAccessCoordinator::offlineKeepsTheCollectedRows()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+    const QString nodeId = QStringLiteral("ns=2;s=Demo");
+    harness.publishWritableVariable(nodeId);
+    harness.coordinator->addSelectedToView();
+    QVERIFY(harness.dataView.dataAccess()->hasData());
+
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    harness.coordinator->setOffline(true);
+
+    QCOMPARE(harness.dataView.dataAccess()->monitoredNodes().size(), 1);
+    QVERIFY(!harness.actions.subscribe->isEnabled());
+    QVERIFY(!harness.actions.unsubscribe->isEnabled());
+
+    harness.coordinator->clearRuntimeState();
+    QVERIFY(!harness.dataView.dataAccess()->hasData());
 }
 
 ///

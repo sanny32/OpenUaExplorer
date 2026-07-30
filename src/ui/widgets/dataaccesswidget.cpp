@@ -295,6 +295,21 @@ void DataAccessWidget::clear()
 }
 
 ///
+/// \brief Keeps the listed nodes visible but inactive while the connection is gone.
+/// \param offline True while the server connection is gone.
+///
+void DataAccessWidget::setOffline(bool offline)
+{
+    if (_offline == offline)
+        return;
+    _offline = offline;
+    _dataModel->setOffline(offline);
+    ui->dataView->setAcceptDrops(!offline);
+    ui->dataView->viewport()->setAcceptDrops(!offline);
+    updateSelectionActions();
+}
+
+///
 /// \brief Reports whether the data-access table has any rows.
 /// \return True when at least one node is listed.
 ///
@@ -526,14 +541,23 @@ void DataAccessWidget::setupDataView()
 
     connect(ui->dataView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, [this] {
-        const int selectedCount = ui->dataView->selectionModel()->selectedRows().size();
-        const bool hasSelection = selectedCount > 0;
-        ui->removeButton->setEnabled(hasSelection);
-        ui->readButton->setEnabled(hasSelection);
-        ui->writeButton->setEnabled(selectedCount == 1);
-        ui->subscribeButton->setEnabled(hasSelection);
+        updateSelectionActions();
         emit selectionChanged();
     });
+}
+
+///
+/// \brief Enables the selection-driven toolbar buttons for the current selection.
+///
+void DataAccessWidget::updateSelectionActions()
+{
+    const int selectedCount = ui->dataView->selectionModel()->selectedRows().size();
+    const bool hasSelection = selectedCount > 0 && !_offline;
+    ui->addNodeButton->setEnabled(!_offline);
+    ui->removeButton->setEnabled(hasSelection);
+    ui->readButton->setEnabled(hasSelection);
+    ui->writeButton->setEnabled(selectedCount == 1 && !_offline);
+    ui->subscribeButton->setEnabled(hasSelection);
 }
 
 ///
@@ -571,6 +595,9 @@ void DataAccessWidget::configureToolbar()
 ///
 void DataAccessWidget::showDataContextMenu(const QPoint &pos)
 {
+    if (_offline)
+        return;
+
     const int selectedCount = ui->dataView->selectionModel()->selectedRows().size();
     const bool hasSelection = selectedCount > 0;
 

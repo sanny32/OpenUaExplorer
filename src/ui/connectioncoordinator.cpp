@@ -7,6 +7,7 @@
 ///
 
 #include <algorithm>
+#include <utility>
 
 #include <QAction>
 #include <QDateTime>
@@ -103,7 +104,20 @@ bool ConnectionCoordinator::openConnectionDialog(const ConnectionProfile *preset
 ///
 void ConnectionCoordinator::disconnectFromServer()
 {
+    _disconnectRequested = true;
     _backend->disconnectFromEndpoint();
+}
+
+///
+/// \brief Reports, once, whether the disconnect being handled was asked for by the user.
+///
+/// Lets the window tell a deliberate disconnect, which drops the workspace, apart from a
+/// connection the server lost, whose workspace is kept for a reconnect.
+/// \return True when the user requested the disconnect; false when the link dropped.
+///
+bool ConnectionCoordinator::takeDisconnectRequested()
+{
+    return std::exchange(_disconnectRequested, false);
 }
 
 ///

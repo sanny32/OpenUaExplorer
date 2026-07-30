@@ -107,6 +107,18 @@ public:
     void clear();
 
     ///
+    /// \brief Marks the listed values as belonging to a connection that is gone.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
+    ///
+    /// \brief Reports whether the rows show values of a lost connection.
+    /// \return True while the rows are offline.
+    ///
+    bool isOffline() const;
+
+    ///
     /// \brief Returns the number of rows.
     /// \param parent Parent index; non-root parents have no rows.
     /// \return Item count, or 0 for non-root parents.
@@ -202,4 +214,5 @@ private:
     QVector<DataAccessItem> _items;
     ColumnAlignmentStore _columnAlignments;
     AppSettings::TimestampMode _timestampMode;
+    bool _offline = false;
 };

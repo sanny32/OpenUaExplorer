@@ -194,6 +194,7 @@ private slots:
     void recentMenuListsHistoryByNameOrUrl();
     void recentActionConnectsItsProfile();
     void addFavoriteRequestSavesActiveProfile();
+    void onlyARequestedDisconnectIsReportedAsSuch();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -326,6 +327,23 @@ void TestConnectionCoordinator::addFavoriteRequestSavesActiveProfile()
     QCOMPARE(saved.size(), 1);
     QCOMPARE(saved.constFirst().endpointUrl, profile.endpointUrl);
     QVERIFY(saved.constFirst().saveProfile);
+}
+
+///
+/// \brief Only a disconnect the user asked for is reported back as requested (issue #7).
+///
+void TestConnectionCoordinator::onlyARequestedDisconnectIsReportedAsSuch()
+{
+    ConnectionHarness harness;
+
+    // A connection the server drops is never announced through the coordinator.
+    QVERIFY(!harness.coordinator->takeDisconnectRequested());
+
+    harness.coordinator->disconnectFromServer();
+    QVERIFY(harness.coordinator->takeDisconnectRequested());
+
+    // The answer is consumed, so the next dropped connection is not mistaken for it.
+    QVERIFY(!harness.coordinator->takeDisconnectRequested());
 }
 
 ///

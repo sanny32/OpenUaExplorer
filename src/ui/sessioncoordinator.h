@@ -106,6 +106,16 @@ public:
     void saveAutosavedSession();
 
     ///
+    /// \brief Stages the workspace of a lost connection so reconnecting brings it back.
+    ///
+    void holdWorkspaceForReconnect();
+
+    ///
+    /// \brief Drops a held workspace, and the runtime state showing it, for another endpoint.
+    ///
+    void dropHeldWorkspaceIfEndpointChanged();
+
+    ///
     /// \brief Clears startup restoration after a manual disconnect without deleting named files.
     ///
     void discardLastSession();
@@ -153,6 +163,7 @@ private:
     QString _pendingSessionPath;
     bool _hasPendingSession = false;
     bool _pendingStartsConnection = false;
+    bool _pendingIsHoldOver = false;
     QString _sessionPath;
     QByteArray _savedSessionFingerprint;
     bool _sessionRestoreCursorActive = false;

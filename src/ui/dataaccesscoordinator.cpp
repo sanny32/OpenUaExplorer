@@ -308,6 +308,28 @@ void DataAccessCoordinator::clearRuntimeState()
 }
 
 ///
+/// \brief Keeps the collected data on screen but drops the state tied to the connection.
+///
+/// The rows, charts and history stay so the user keeps the context of the lost session;
+/// monitoring bookkeeping is reset because the server no longer holds any subscription.
+/// \param offline True while the server connection is gone.
+///
+void DataAccessCoordinator::setOffline(bool offline)
+{
+    _dataView->setOffline(offline);
+    if (!offline)
+        return;
+
+    _monitoringState.clear();
+    _pendingDataAccessNodeIds.clear();
+    _pendingRestoreSubscriptions.clear();
+    _pendingFolderDropNodeIds.clear();
+    _folderAddNodeIds.clear();
+    _folderAddFailureCount = 0;
+    updateMonitoringActions();
+}
+
+///
 /// \brief Exports the currently visible central-area view to a file.
 ///
 void DataAccessCoordinator::exportActiveView()

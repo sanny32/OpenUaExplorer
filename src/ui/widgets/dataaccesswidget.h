@@ -132,6 +132,12 @@ public:
     void clear();
 
     ///
+    /// \brief Keeps the listed nodes visible but inactive while the connection is gone.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
+    ///
     /// \brief Reports whether the data-access table has any rows.
     /// \return True when at least one node is listed.
     ///
@@ -267,6 +273,7 @@ private:
     void setupDataView();
     void configureToolbar();
     void showDataContextMenu(const QPoint &pos);
+    void updateSelectionActions();
     void readSelectedNodes();
     void writeSelectedNode();
     void rebuildSubscribeMenu();
@@ -283,4 +290,5 @@ private:
     DataAccessFilterProxyModel *_filterProxy;
     SubscriptionDelegate      *_subscriptionDelegate = nullptr;
     QVector<SubscriptionItem>  _subscriptions;
+    bool                       _offline = false;
 };

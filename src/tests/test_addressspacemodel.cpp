@@ -6,8 +6,11 @@
 /// \brief Tests the lazy OPC UA address-space tree model.
 ///
 
+#include <QApplication>
+#include <QBrush>
 #include <QIcon>
 #include <QMimeData>
+#include <QPalette>
 #include <QScopedPointer>
 #include <QSignalSpy>
 #include <QTest>
@@ -51,6 +54,7 @@ private slots:
     void dragMimeIncludesNodesWithNodeId();
     void iconTypesDistinguishFoldersAndObjects();
     void dataRolesAndTreeOps();
+    void offlineKeepsNodesButStopsBrowsing();
 };
 
 ///
@@ -339,6 +343,48 @@ void TestAddressSpaceModel::dataRolesAndTreeOps()
 
     model.clear();
     QCOMPARE(model.rowCount(), 0);
+}
+
+///
+/// \brief A lost connection greys the browsed nodes out instead of dropping them (issue #7).
+///
+void TestAddressSpaceModel::offlineKeepsNodesButStopsBrowsing()
+{
+    AddressSpaceModel model;
+    model.setRootNode(makeRoot());
+
+    OpcUaNodeInfo child;
+    child.nodeId = QStringLiteral("ns=2;s=Device");
+    child.displayName = QStringLiteral("Device");
+    child.nodeClass = OpcUa::Object;
+    child.hasChildren = true;
+    model.setChildren(makeRoot().nodeId, {child});
+
+    const QModelIndex rootIndex = model.index(0, 0);
+    const QModelIndex childIndex = model.index(0, 0, rootIndex);
+    QVERIFY(!model.isOffline());
+    QVERIFY(!model.data(childIndex, Qt::ForegroundRole).isValid());
+
+    QSignalSpy foregroundSpy(&model, &AddressSpaceModel::dataChanged);
+    QSignalSpy browseSpy(&model, &AddressSpaceModel::browseRequested);
+    model.setOffline(true);
+
+    QVERIFY(model.isOffline());
+    QCOMPARE(model.rowCount(rootIndex), 1);
+    QVERIFY(foregroundSpy.size() >= 2);
+    QCOMPARE(model.data(childIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             qApp->palette().color(QPalette::Disabled, QPalette::Text));
+    QVERIFY(!model.flags(childIndex).testFlag(Qt::ItemIsDragEnabled));
+    QVERIFY(!model.canFetchMore(childIndex));
+    model.fetchMore(childIndex);
+    QCOMPARE(browseSpy.size(), 0);
+
+    model.setOffline(false);
+    QVERIFY(!model.data(childIndex, Qt::ForegroundRole).isValid());
+    QVERIFY(model.flags(childIndex).testFlag(Qt::ItemIsDragEnabled));
+    QVERIFY(model.canFetchMore(childIndex));
+    model.fetchMore(childIndex);
+    QCOMPARE(browseSpy.size(), 1);
 }
 
 QTEST_MAIN(TestAddressSpaceModel)

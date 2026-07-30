@@ -9,6 +9,8 @@
 #include <QBrush>
 #include <QColor>
 #include <QDateTime>
+#include <QApplication>
+#include <QPalette>
 
 #include "attributesmodel.h"
 #include "formatters/attributeformatter.h"
@@ -154,6 +156,9 @@ QVariant AttributesModel::data(const QModelIndex &index, int role) const
     if (role == Qt::TextAlignmentRole)
         return QVariant(_columnAlignments.alignment(index.column()));
 
+    if (role == Qt::ForegroundRole && _offline)
+        return QBrush(qApp->palette().color(QPalette::Disabled, QPalette::Text));
+
     if (role == Qt::ForegroundRole && index.column() == ColValue) {
         if (item->value.startsWith(QLatin1String("Bad")))
             return QBrush(QColor(210, 70, 70));
@@ -255,6 +260,33 @@ QString AttributesModel::timestampValue(const Item &item) const
         ? item.sourceTimestamp
         : item.serverTimestamp;
     return OpcUaFormat::isoTimestampWithZone(timestamp, toFormatMode(_timestampMode));
+}
+
+///
+/// \brief Repaints a subtree after the offline state changed.
+/// \param parentIndex Subtree root, invalid for the whole tree.
+///
+void AttributesModel::emitForegroundChanged(const QModelIndex &parentIndex)
+{
+    const int rows = rowCount(parentIndex);
+    if (rows == 0)
+        return;
+    emit dataChanged(index(0, ColAttribute, parentIndex),
+                     index(rows - 1, ColValue, parentIndex), {Qt::ForegroundRole});
+    for (int row = 0; row < rows; ++row)
+        emitForegroundChanged(index(row, 0, parentIndex));
+}
+
+///
+/// \brief Marks the shown attributes as read from a connection that is gone.
+/// \param offline True while the server connection is gone.
+///
+void AttributesModel::setOffline(bool offline)
+{
+    if (_offline == offline)
+        return;
+    _offline = offline;
+    emitForegroundChanged(QModelIndex());
 }
 
 ///

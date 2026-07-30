@@ -7,9 +7,52 @@
 ///
 
 #include <QLabel>
+#include <QSettings>
+#include <QTemporaryDir>
 #include <QTest>
 
 #include "mainstatusbarwidget.h"
+#include "opcua/connectioncontroller.h"
+#include "opcua/connectionprofilestore.h"
+#include "opcua/opcuabackend.h"
+#include "opcua/recentconnectionstore.h"
+#include "opcua/secretstore.h"
+
+///
+/// \brief Backend stub whose connection state the test drives directly.
+///
+class StatusBarFakeBackend : public OpcUaBackend
+{
+    Q_OBJECT
+
+public:
+    using OpcUaBackend::OpcUaBackend;
+
+    bool isAvailable() const override { return true; }
+    QStringList availableBackends() const override { return {QStringLiteral("fake")}; }
+    OpcUaConnectionState state() const override { return currentState; }
+    QString lastError() const override { return {}; }
+    void setCertificateTrustDecider(CertificateTrustDecider *) override {}
+    void discoverEndpoints(const QString &, const QString &, int) override
+    {
+        setState(OpcUaConnectionState::Discovering);
+    }
+    void connectToEndpoint(const ConnectionProfile &, const QString &, const QString &) override {}
+    void disconnectFromEndpoint() override {}
+    void browse(const QString &) override {}
+    void browseReferences(const QString &) override {}
+    void readNode(const QString &) override {}
+    void readValues(const QStringList &) override {}
+    void writeValue(const QString &, const QVariant &, int) override {}
+
+    void setState(OpcUaConnectionState state)
+    {
+        currentState = state;
+        emit stateChanged(state);
+    }
+
+    OpcUaConnectionState currentState = OpcUaConnectionState::Disconnected;
+};
 
 ///
 /// \brief UI tests for the main status bar.
@@ -19,9 +62,26 @@ class TestMainStatusBarWidget : public QObject
     Q_OBJECT
 
 private slots:
+    void initTestCase();
     void clockLabelsReserveStableWidths();
     void clockWidthsFollowFontChanges();
+    void lostConnectionKeepsTheSessionParameters();
+
+private:
+    QTemporaryDir _settingsDirectory;
 };
+
+///
+/// \brief Routes QSettings to a throwaway directory so tests never touch real configuration.
+///
+void TestMainStatusBarWidget::initTestCase()
+{
+    QVERIFY(_settingsDirectory.isValid());
+    QCoreApplication::setOrganizationName(QStringLiteral("OpenUaExplorerStatusBarTests"));
+    QCoreApplication::setApplicationName(QStringLiteral("OpenUaExplorerStatusBarTests"));
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, _settingsDirectory.path());
+}
 
 ///
 /// \brief Clock labels reserve enough width for wide digit combinations.
@@ -64,6 +124,64 @@ void TestMainStatusBarWidget::clockWidthsFollowFontChanges()
 
     QVERIFY(serverLabel->minimumWidth() > serverMinimumWidth);
     QVERIFY(localLabel->minimumWidth() > localMinimumWidth);
+}
+
+///
+/// \brief A lost connection keeps showing what was connected; a closed one does not (issue #7).
+///
+void TestMainStatusBarWidget::lostConnectionKeepsTheSessionParameters()
+{
+    StatusBarFakeBackend backend;
+    SecretStore secrets;
+    ConnectionProfileStore profiles;
+    RecentConnectionStore recents;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+
+    MainStatusBarWidget widget;
+    widget.setConnectionController(&controller);
+    auto *connectionLabel = widget.findChild<QLabel *>(QStringLiteral("connectionLabel"));
+    auto *securityLabel = widget.findChild<QLabel *>(QStringLiteral("securityLabel"));
+    auto *sessionLabel = widget.findChild<QLabel *>(QStringLiteral("sessionLabel"));
+    auto *authenticationLabel = widget.findChild<QLabel *>(QStringLiteral("authenticationLabel"));
+    QVERIFY(connectionLabel);
+    QVERIFY(securityLabel);
+    QVERIFY(sessionLabel);
+    QVERIFY(authenticationLabel);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("probe");
+    profile.endpointUrl = QStringLiteral("opc.tcp://probe.invalid:4840");
+    profile.securityPolicy = QStringLiteral("http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256");
+    profile.securityMode = 3;
+    profile.sessionName = QStringLiteral("Probe Session");
+    profile.authentication = ConnectionProfile::Authentication::Anonymous;
+    controller.connectNewProfile(profile, QString(), QString());
+    backend.setState(OpcUaConnectionState::Connected);
+
+    const QString connectedSecurity = securityLabel->text();
+    const QString connectedSession = sessionLabel->text();
+    const QString connectedAuthentication = authenticationLabel->text();
+    QCOMPARE(connectionLabel->text(), profile.endpointUrl);
+    QVERIFY(connectedSecurity != QStringLiteral("-"));
+    QVERIFY(connectedSession != QStringLiteral("-"));
+
+    // A disconnect the user asked for leaves nothing behind.
+    backend.setState(OpcUaConnectionState::Disconnected);
+    QCOMPARE(securityLabel->text(), QStringLiteral("-"));
+    QCOMPARE(sessionLabel->text(), QStringLiteral("-"));
+
+    // A lost connection keeps the parameters of the session that dropped.
+    widget.setConnectionLost(true);
+    QCOMPARE(connectionLabel->text(), profile.endpointUrl);
+    QCOMPARE(securityLabel->text(), connectedSecurity);
+    QCOMPARE(sessionLabel->text(), connectedSession);
+    QCOMPARE(authenticationLabel->text(), connectedAuthentication);
+
+    // Starting another connection supersedes what was kept.
+    backend.setState(OpcUaConnectionState::Discovering);
+    backend.setState(OpcUaConnectionState::Disconnected);
+    QCOMPARE(sessionLabel->text(), QStringLiteral("-"));
+    QVERIFY(connectionLabel->text() != profile.endpointUrl);
 }
 
 QTEST_MAIN(TestMainStatusBarWidget)

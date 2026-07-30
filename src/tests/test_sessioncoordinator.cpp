@@ -256,6 +256,9 @@ private slots:
     void commandLineSessionKeepsPriorityOverAutosave();
     void savingASessionConfirmsTheDestination();
     void failedSaveReportsTheError();
+    void lostConnectionHoldsWorkspaceForReconnect();
+    void heldWorkspaceIsDroppedForAnotherEndpoint();
+    void openedSessionIsNotReplacedByAHeldWorkspace();
 
 private:
     QString writeAutosavedSession();
@@ -831,6 +834,105 @@ void TestSessionCoordinator::failedSaveReportsTheError()
     dismissNextDialog();
     QVERIFY(!harness.coordinator->saveCurrentSession());
     QVERIFY(!dismissedDialogText.isEmpty());
+}
+
+///
+/// \brief A dropped connection keeps its workspace, and reconnecting makes it live (issue #7).
+///
+void TestSessionCoordinator::lostConnectionHoldsWorkspaceForReconnect()
+{
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString path = sessionsDirectory.filePath(QStringLiteral("held.ouas"));
+
+    WorkspaceHarness harness;
+    openConnectedSession(harness, path);
+    const QString endpoint = QStringLiteral("opc.tcp://saving.invalid:4840");
+    harness.addMonitoredNode(QStringLiteral("ns=2;s=Temp"), QStringLiteral("Telemetry"));
+
+    // What MainWindow does on the transition to idle: hold the workspace, then grey it out.
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    harness.coordinator->holdWorkspaceForReconnect();
+    harness.dataCoordinator->setOffline(true);
+
+    QVERIFY(harness.coordinator->hasPendingSession());
+    QCOMPARE(harness.dataView.dataAccess()->monitoredNodes().size(), 1);
+    QVERIFY(harness.window.windowTitle().contains(QStringLiteral("held")));
+
+    harness.connectTo(endpoint);
+    harness.coordinator->dropHeldWorkspaceIfEndpointChanged();
+    harness.dataCoordinator->setOffline(false);
+    harness.coordinator->applyPendingSession();
+
+    QVERIFY(!harness.coordinator->hasPendingSession());
+    QVERIFY(harness.window.windowTitle().contains(QStringLiteral("held")));
+    const QVector<QPair<QString, QString>> nodes = harness.dataView.dataAccess()->monitoredNodes();
+    QCOMPARE(nodes.size(), 1);
+    QCOMPARE(nodes.first().first, QStringLiteral("ns=2;s=Temp"));
+    QCOMPARE(nodes.first().second, QStringLiteral("Telemetry"));
+}
+
+///
+/// \brief Connecting to another server drops the held workspace instead of mixing them.
+///
+void TestSessionCoordinator::heldWorkspaceIsDroppedForAnotherEndpoint()
+{
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString path = sessionsDirectory.filePath(QStringLiteral("dropped.ouas"));
+
+    WorkspaceHarness harness;
+    openConnectedSession(harness, path);
+    harness.addMonitoredNode(QStringLiteral("ns=2;s=Temp"), QStringLiteral("Telemetry"));
+    QVERIFY(harness.window.windowTitle().contains(QStringLiteral("dropped")));
+
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    harness.coordinator->holdWorkspaceForReconnect();
+    harness.dataCoordinator->setOffline(true);
+    QVERIFY(harness.coordinator->hasPendingSession());
+
+    // A lost connection keeps the open session on screen, so the window still names it.
+    QVERIFY(harness.window.windowTitle().contains(QStringLiteral("dropped")));
+
+    harness.connectTo(QStringLiteral("opc.tcp://other.invalid:4840"));
+    harness.coordinator->dropHeldWorkspaceIfEndpointChanged();
+
+    QVERIFY(!harness.coordinator->hasPendingSession());
+    QVERIFY(!harness.dataView.dataAccess()->hasData());
+    QVERIFY(!harness.window.windowTitle().contains(QStringLiteral("dropped")));
+}
+
+///
+/// \brief A workspace loaded from a file is not overwritten when a connection drops.
+///
+void TestSessionCoordinator::openedSessionIsNotReplacedByAHeldWorkspace()
+{
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString path = sessionsDirectory.filePath(QStringLiteral("opened.ouas"));
+
+    SessionData session;
+    session.profile.id = QStringLiteral("opened-profile");
+    session.profile.endpointUrl = QStringLiteral("opc.tcp://opened.invalid:4840");
+    session.profile.authentication = ConnectionProfile::Authentication::Anonymous;
+    session.dataAccessNodes.append({QStringLiteral("ns=2;s=FromFile"), QString()});
+    QVERIFY(SessionStore::save(path, session));
+
+    WorkspaceHarness harness;
+    harness.connectTo(QStringLiteral("opc.tcp://held.invalid:4840"));
+    harness.coordinator->openSessionFromFile(path);
+    QVERIFY(harness.coordinator->hasPendingSession());
+
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    harness.coordinator->holdWorkspaceForReconnect();
+
+    harness.connectTo(QStringLiteral("opc.tcp://opened.invalid:4840"));
+    harness.coordinator->dropHeldWorkspaceIfEndpointChanged();
+    harness.coordinator->applyPendingSession();
+
+    const QVector<QPair<QString, QString>> nodes = harness.dataView.dataAccess()->monitoredNodes();
+    QCOMPARE(nodes.size(), 1);
+    QCOMPARE(nodes.first().first, QStringLiteral("ns=2;s=FromFile"));
 }
 
 int main(int argc, char *argv[])

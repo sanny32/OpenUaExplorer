@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QHash>
+#include <QIcon>
 #include <QSet>
 #include <QStringList>
 #include <QWidget>
@@ -85,6 +86,12 @@ public:
     /// \brief Clears the tree, node-info, and references views.
     ///
     void clear();
+
+    ///
+    /// \brief Keeps the browsed tree visible but inactive after the connection is gone.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
 
     ///
     /// \brief Updates the tracked monitoring state shown in the context menu.
@@ -238,6 +245,7 @@ protected:
     void changeEvent(QEvent *event) override;
 
 private:
+    QIcon nodeIcon(AddressSpaceItem::NodeType type) const;
     void setupTreeView();
     void setupNodeInfoView();
     void setupReferencesView();
@@ -266,4 +274,5 @@ private:
     QString                 _searchPattern;
     bool                    _searchMatched = false;
     bool                    _searching = false;
+    bool                    _offline = false;
 };

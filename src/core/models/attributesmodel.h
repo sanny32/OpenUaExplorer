@@ -117,6 +117,12 @@ public:
     ///
     void setColumnAlignment(int column, Qt::Alignment alignment);
 
+    ///
+    /// \brief Marks the shown attributes as read from a connection that is gone.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
 public slots:
     ///
     /// \brief Sets the timestamp display mode and reformats timestamp rows in place.
@@ -142,8 +148,10 @@ private:
     Item *itemForIndex(const QModelIndex &index) const;
     QString timestampValue(const Item &item) const;
     void refreshTimestamps(const QModelIndex &parentIndex);
+    void emitForegroundChanged(const QModelIndex &parentIndex);
 
     std::unique_ptr<Item> _root;
     ColumnAlignmentStore _columnAlignments;
     AppSettings::TimestampMode _timestampMode;
+    bool _offline = false;
 };

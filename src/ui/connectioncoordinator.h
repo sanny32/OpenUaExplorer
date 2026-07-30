@@ -76,6 +76,12 @@ public:
     void disconnectFromServer();
 
     ///
+    /// \brief Reports, once, whether the disconnect being handled was asked for by the user.
+    /// \return True when the user requested the disconnect; false when the link dropped.
+    ///
+    bool takeDisconnectRequested();
+
+    ///
     /// \brief Shows a read-only summary of the active connection's endpoint settings.
     ///
     void showEndpointSettings();
@@ -106,4 +112,5 @@ private:
     ConnectionActions _actions;
     QWidget *_dialogParent;
     FavoritesCoordinator *_favorites;
+    bool _disconnectRequested = false;
 };

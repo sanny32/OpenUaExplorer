@@ -7,6 +7,7 @@
 ///
 
 #include <QAbstractItemModel>
+#include <QColor>
 #include <QIcon>
 #include <QImage>
 #include <QLineEdit>
@@ -35,6 +36,8 @@ private slots:
     void repeatedReturnContinuesTheSameSearch();
     void editingThePatternCancelsTheSearch();
     void exhaustedSearchReportsNoMoreMatches();
+    void offlineKeepsTheBrowsedTreeAndStopsRequests();
+    void reconnectRestoresTheHeldExpansion();
 };
 
 namespace {
@@ -76,6 +79,24 @@ bool hasVisiblePixels(const QIcon &icon, int size)
         }
     }
     return false;
+}
+
+///
+/// \brief Reports whether every drawn pixel of an icon has lost its colour.
+/// \param icon Icon to inspect.
+/// \return True when no drawn pixel carries saturation.
+///
+bool isGreyscale(const QIcon &icon)
+{
+    const QImage frame = icon.pixmap(16, 16).toImage();
+    for (int y = 0; y < frame.height(); ++y) {
+        for (int x = 0; x < frame.width(); ++x) {
+            const QColor pixel = frame.pixelColor(x, y);
+            if (pixel.alpha() > 0 && pixel.saturation() > 0)
+                return false;
+        }
+    }
+    return true;
 }
 
 } // namespace
@@ -363,6 +384,102 @@ void TestAddressSpaceWidget::exhaustedSearchReportsNoMoreMatches()
     widget.setSearchResult({}, QString(), QString());
 
     QVERIFY(searchEdit->toolTip().contains(QStringLiteral("No more nodes")));
+}
+
+///
+/// \brief Losing the connection keeps the browsed tree instead of emptying it (issue #7).
+///
+void TestAddressSpaceWidget::offlineKeepsTheBrowsedTreeAndStopsRequests()
+{
+    AddressSpaceWidget widget;
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("addressTree"));
+    auto *searchEdit = widget.findChild<QLineEdit *>(QStringLiteral("searchEdit"));
+    QVERIFY(tree);
+    QVERIFY(searchEdit);
+
+    const OpcUaNodeInfo root = makeNode(QStringLiteral("ns=0;i=84"),
+                                        QStringLiteral("Root"), QString(), true);
+    const OpcUaNodeInfo device = makeNode(QStringLiteral("ns=2;s=Device"),
+                                          QStringLiteral("Device"),
+                                          QStringLiteral("ns=0;i=35"), true);
+    const OpcUaNodeInfo level = makeNode(QStringLiteral("ns=2;s=Level"),
+                                         QStringLiteral("Level"),
+                                         QStringLiteral("ns=0;i=47"));
+
+    widget.setRootNode(root);
+    widget.setBrowseChildren(root.nodeId, {device}, QString());
+    widget.setBrowseChildren(device.nodeId, {level}, QString());
+
+    const QModelIndex rootIndex = tree->model()->index(0, 0);
+    const QModelIndex deviceIndex = tree->model()->index(0, 0, rootIndex);
+    tree->expand(deviceIndex);
+    QCOMPARE(widget.expandedNodeIds(), QStringList({root.nodeId, device.nodeId}));
+
+    QSignalSpy browseSpy(&widget, &AddressSpaceWidget::browseRequested);
+    QSignalSpy referencesSpy(&widget, &AddressSpaceWidget::referencesRequested);
+    QSignalSpy selectionSpy(&widget, &AddressSpaceWidget::nodeSelected);
+    widget.setOffline(true);
+
+    QCOMPARE(tree->model()->rowCount(), 1);
+    QCOMPARE(tree->model()->rowCount(rootIndex), 1);
+    QCOMPARE(widget.expandedNodeIds(), QStringList({root.nodeId, device.nodeId}));
+    QVERIFY(!searchEdit->isEnabled());
+    QVERIFY(isGreyscale(tree->model()->data(deviceIndex, Qt::DecorationRole).value<QIcon>()));
+
+    tree->setCurrentIndex(tree->model()->index(0, 0, deviceIndex));
+    QCOMPARE(referencesSpy.size(), 0);
+    QCOMPARE(selectionSpy.size(), 0);
+    QCOMPARE(browseSpy.size(), 0);
+
+    widget.setOffline(false);
+    QVERIFY(searchEdit->isEnabled());
+    QVERIFY(!isGreyscale(tree->model()->data(deviceIndex, Qt::DecorationRole).value<QIcon>()));
+    tree->setCurrentIndex(deviceIndex);
+    QCOMPARE(referencesSpy.size(), 1);
+    QCOMPARE(selectionSpy.size(), 1);
+}
+
+///
+/// \brief Reconnecting re-expands the tree from the held navigation state (issue #7).
+///
+void TestAddressSpaceWidget::reconnectRestoresTheHeldExpansion()
+{
+    AddressSpaceWidget widget;
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("addressTree"));
+    QVERIFY(tree);
+
+    const OpcUaNodeInfo root = makeNode(QStringLiteral("ns=0;i=84"),
+                                        QStringLiteral("Root"), QString(), true);
+    const OpcUaNodeInfo device = makeNode(QStringLiteral("ns=2;s=Device"),
+                                          QStringLiteral("Device"),
+                                          QStringLiteral("ns=0;i=35"), true);
+    const OpcUaNodeInfo level = makeNode(QStringLiteral("ns=2;s=Level"),
+                                         QStringLiteral("Level"),
+                                         QStringLiteral("ns=0;i=47"));
+
+    widget.setRootNode(root);
+    widget.setBrowseChildren(root.nodeId, {device}, QString());
+    widget.setBrowseChildren(device.nodeId, {level}, QString());
+    const QModelIndex rootIndex = tree->model()->index(0, 0);
+    const QModelIndex deviceIndex = tree->model()->index(0, 0, rootIndex);
+    tree->expand(deviceIndex);
+    tree->setCurrentIndex(tree->model()->index(0, 0, deviceIndex));
+
+    const QStringList held = widget.expandedNodeIds();
+    const QString selected = widget.selectedNode().nodeId;
+    QCOMPARE(selected, level.nodeId);
+
+    widget.setOffline(true);
+    widget.setOffline(false);
+    widget.setRootNode(root);
+    widget.restoreExpansion(held, selected);
+    QCOMPARE(tree->model()->rowCount(tree->model()->index(0, 0)), 0);
+
+    widget.setBrowseChildren(root.nodeId, {device}, QString());
+    widget.setBrowseChildren(device.nodeId, {level}, QString());
+
+    QCOMPARE(widget.expandedNodeIds(), held);
+    QCOMPARE(widget.selectedNode().nodeId, selected);
 }
 
 QTEST_MAIN(TestAddressSpaceWidget)

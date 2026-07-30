@@ -259,6 +259,30 @@ void DataAccessModel::clear()
 }
 
 ///
+/// \brief Marks the listed values as belonging to a connection that is gone.
+/// \param offline True while the server connection is gone.
+///
+void DataAccessModel::setOffline(bool offline)
+{
+    if (_offline == offline)
+        return;
+    _offline = offline;
+    if (_items.isEmpty())
+        return;
+    emit dataChanged(index(0, 0), index(_items.size() - 1, ColCount - 1),
+                     {Qt::ForegroundRole});
+}
+
+///
+/// \brief Reports whether the rows show values of a lost connection.
+/// \return True while the rows are offline.
+///
+bool DataAccessModel::isOffline() const
+{
+    return _offline;
+}
+
+///
 /// \brief Returns the number of rows.
 /// \param parent Parent index; non-root parents have no rows.
 /// \return Item count, or 0 for non-root parents.
@@ -317,6 +341,8 @@ QVariant DataAccessModel::headerData(int section, Qt::Orientation orientation, i
 Qt::ItemFlags DataAccessModel::flags(const QModelIndex &index) const
 {
     Qt::ItemFlags f = QAbstractTableModel::flags(index);
+    if (_offline)
+        return f;
     if (index.row() >= 0 && index.row() < _items.size() && _items.at(index.row()).pending)
         return f;
     if (index.column() == ColSubscription)
@@ -333,7 +359,7 @@ Qt::ItemFlags DataAccessModel::flags(const QModelIndex &index) const
 ///
 bool DataAccessModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if (role != Qt::EditRole || !index.isValid()) return false;
+    if (role != Qt::EditRole || !index.isValid() || _offline) return false;
     if (index.column() != ColSubscription) return false;
     if (index.row() < 0 || index.row() >= _items.size()) return false;
 
@@ -391,11 +417,11 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     }
 
     if (role == Qt::ForegroundRole) {
+        if (_offline)
+            return QBrush(qApp->palette().color(QPalette::Disabled, QPalette::Text));
         if (item.pending || item.subscriptionName.isEmpty()) {
             return QBrush(qApp->palette().color(QPalette::Disabled, QPalette::Text));
         }
-        if (col == ColValue)
-            return QBrush(QColor(0, 150, 64));
         if (col == ColStatus && item.status == QLatin1String("Good"))
             return QBrush(QColor(0, 150, 64));
         if (col == ColSubscription)

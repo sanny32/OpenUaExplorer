@@ -294,6 +294,8 @@ void TrendPanelWidget::restoreTrendTabs(const QVector<SessionTrendTab> &tabs)
         ui->trendTabs->removeTab(ui->trendTabs->indexOf(chart));
         chart->deleteLater();
     }
+    // The charts that held the requests are gone, so their bookkeeping must not outlive them.
+    _nodeSubscribers.clear();
     _chartCounter = 0;
     _suppressTabChange = false;
 

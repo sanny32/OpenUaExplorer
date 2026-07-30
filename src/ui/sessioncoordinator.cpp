@@ -155,6 +155,7 @@ void SessionCoordinator::openSessionFromFile(const QString &path)
     _pendingSessionPath = path;
     _hasPendingSession = true;
     _pendingStartsConnection = false;
+    _pendingIsHoldOver = false;
     recordRecentSession(path);
 
     if (data.profile.authentication == ConnectionProfile::Authentication::Anonymous) {
@@ -171,6 +172,7 @@ void SessionCoordinator::openSessionFromFile(const QString &path)
         _pendingSession = {};
         _pendingSessionPath.clear();
         _hasPendingSession = false;
+        _pendingIsHoldOver = false;
     }
 }
 
@@ -224,6 +226,7 @@ void SessionCoordinator::applyPendingSession()
 
     _hasPendingSession = false;
     _pendingStartsConnection = false;
+    _pendingIsHoldOver = false;
     const SessionData session = _pendingSession;
     const QString sessionPath = _pendingSessionPath;
     _pendingSession = {};
@@ -453,6 +456,54 @@ void SessionCoordinator::saveAutosavedSession()
 }
 
 ///
+/// \brief Stages the workspace of a lost connection so reconnecting brings it back.
+///
+/// The views keep showing the workspace greyed out, so the staged snapshot is what makes
+/// the next connection to the same endpoint live again instead of starting from scratch.
+/// A workspace the user loaded from a file is already staged and must not be replaced.
+///
+void SessionCoordinator::holdWorkspaceForReconnect()
+{
+    if (!_connectionEstablished || _hasPendingSession)
+        return;
+
+    const SessionData data = collectSessionData();
+    if (data.profile.endpointUrl.isEmpty())
+        return;
+
+    _pendingSession = data;
+    // Carried over so a reconnect keeps the open session file instead of going Untitled.
+    _pendingSessionPath = _sessionPath;
+    _hasPendingSession = true;
+    _pendingStartsConnection = false;
+    _pendingIsHoldOver = true;
+}
+
+///
+/// \brief Drops a held workspace, and the runtime state showing it, for another endpoint.
+///
+void SessionCoordinator::dropHeldWorkspaceIfEndpointChanged()
+{
+    if (!_hasPendingSession || !_pendingIsHoldOver)
+        return;
+    if (_context.connectionController->activeProfile().isSameEndpoint(_pendingSession.profile))
+        return;
+
+    qCInfo(lcSession).noquote()
+        << tr("Dropping the workspace held for '%1': '%2' is connected instead.")
+               .arg(_pendingSession.profile.endpointUrl,
+                    _context.connectionController->activeProfile().endpointUrl);
+
+    _pendingSession = {};
+    _pendingSessionPath.clear();
+    _hasPendingSession = false;
+    _pendingIsHoldOver = false;
+    _context.dataAccessCoordinator->clearRuntimeState();
+    _context.featureManager->clearRuntimeState();
+    closeCurrentSession();
+}
+
+///
 /// \brief Clears startup restoration after a manual disconnect without deleting named files.
 ///
 void SessionCoordinator::discardLastSession()
@@ -462,6 +513,7 @@ void SessionCoordinator::discardLastSession()
     _pendingSessionPath.clear();
     _hasPendingSession = false;
     _pendingStartsConnection = false;
+    _pendingIsHoldOver = false;
     AppSettings().setLastSavedSessionPath(QString());
     QFile::remove(autosavePath());
     endSessionRestore();

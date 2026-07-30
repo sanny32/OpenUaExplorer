@@ -93,6 +93,15 @@ void AttributesFeature::clearRuntimeState()
 }
 
 ///
+/// \brief Keeps the last read attributes on screen, greyed out, while the connection is gone.
+///
+void AttributesFeature::setOffline(bool offline)
+{
+    if (_widget)
+        _widget->setOffline(offline);
+}
+
+///
 /// \brief Re-applies the dock title after a language change.
 ///
 void AttributesFeature::retranslate()

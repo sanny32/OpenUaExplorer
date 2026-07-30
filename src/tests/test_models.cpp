@@ -7,9 +7,11 @@
 ///
 
 #include <QAbstractItemModelTester>
+#include <QApplication>
 #include <QBrush>
 #include <QColor>
 #include <QDateTime>
+#include <QPalette>
 #include <QSignalSpy>
 #include <QStandardItemModel>
 #include <QTest>
@@ -47,7 +49,9 @@ private slots:
     void dataAccessRemoveRowsDropsSelected();
     void dataAccessSubscriptionColumnIsEditable();
     void dataAccessTimestampModeReformats();
+    void dataAccessOfflineGreysRowsAndLocksEditing();
     void attributesModelTimestampModeReformats();
+    void attributesModelOfflineGreysValues();
 
     // LogModel.
     void logFilterByLevel();
@@ -442,6 +446,75 @@ void TestModels::attributesModelTimestampModeReformats()
                       .replace(QLatin1Char('T'), QLatin1Char(' ')));
     QVERIFY(utc.endsWith(QLatin1Char('Z')));
     QVERIFY(!utc.contains(QLatin1Char('T')));
+}
+
+///
+/// \brief A lost connection greys the attribute values it was read with (issue #7).
+///
+void TestModels::attributesModelOfflineGreysValues()
+{
+    OpcUaNodeAttribute value;
+    value.name = QStringLiteral("Value");
+    value.displayValue = QStringLiteral("Good");
+
+    AttributesModel model;
+    model.setAttributes({value});
+
+    const QModelIndex valueIndex = model.index(0, AttributesModel::ColValue);
+    QCOMPARE(model.data(valueIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             QColor(0, 150, 64));
+
+    QSignalSpy spy(&model, &QAbstractItemModel::dataChanged);
+    model.setOffline(true);
+    QVERIFY(spy.count() >= 1);
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(model.data(valueIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             qApp->palette().color(QPalette::Disabled, QPalette::Text));
+
+    model.setOffline(false);
+    QCOMPARE(model.data(valueIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             QColor(0, 150, 64));
+}
+
+///
+/// \brief A lost connection greys the listed rows and locks the subscription column (issue #7).
+///
+void TestModels::dataAccessOfflineGreysRowsAndLocksEditing()
+{
+    DataAccessModel model;
+    DataAccessItem item;
+    item.nodeId = QStringLiteral("ns=2;s=A");
+    item.displayName = QStringLiteral("Alpha");
+    item.value = QStringLiteral("42");
+    item.status = QStringLiteral("Good");
+    item.subscriptionName = QStringLiteral("Fast");
+    model.setItems({item});
+
+    const QModelIndex valueIndex = model.index(0, DataAccessModel::ColValue);
+    const QModelIndex statusIndex = model.index(0, DataAccessModel::ColStatus);
+    const QModelIndex subscriptionIndex = model.index(0, DataAccessModel::ColSubscription);
+    QVERIFY(!model.isOffline());
+    QVERIFY(model.flags(subscriptionIndex).testFlag(Qt::ItemIsEditable));
+
+    QSignalSpy spy(&model, &QAbstractItemModel::dataChanged);
+    model.setOffline(true);
+
+    QVERIFY(model.isOffline());
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(model.data(valueIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             qApp->palette().color(QPalette::Disabled, QPalette::Text));
+    QCOMPARE(model.data(statusIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             qApp->palette().color(QPalette::Disabled, QPalette::Text));
+    QVERIFY(!model.flags(subscriptionIndex).testFlag(Qt::ItemIsEditable));
+    QVERIFY(!model.setData(subscriptionIndex, QStringLiteral("Slow"), Qt::EditRole));
+    QCOMPARE(model.itemAt(0).subscriptionName, QStringLiteral("Fast"));
+
+    model.setOffline(false);
+    QVERIFY(!model.data(valueIndex, Qt::ForegroundRole).isValid());
+    QCOMPARE(model.data(statusIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             QColor(0, 150, 64));
+    QVERIFY(model.setData(subscriptionIndex, QStringLiteral("Slow"), Qt::EditRole));
 }
 
 ///
@@ -1078,8 +1151,8 @@ void TestModels::dataAccessHeaderRolesAndHelpers()
     const QModelIndex sub0 = model.index(0, DataAccessModel::ColSubscription);
     QVERIFY(model.setData(sub0, QStringLiteral("Fast"), Qt::EditRole));
     QCOMPARE(model.data(sub0, Qt::EditRole).toString(), QStringLiteral("Fast"));
-    QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue), Qt::ForegroundRole)
-                 .value<QBrush>().color(), QColor(0, 150, 64));
+    QVERIFY(!model.data(model.index(0, DataAccessModel::ColValue), Qt::ForegroundRole)
+                 .isValid());
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColStatus), Qt::ForegroundRole)
                  .value<QBrush>().color(), QColor(0, 150, 64));
     QCOMPARE(model.data(sub0, Qt::ForegroundRole).value<QBrush>().color(),
