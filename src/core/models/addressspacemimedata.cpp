@@ -35,6 +35,7 @@ QMimeData *AddressSpaceMime::createNodeMimeData(const OpcUaNodeInfo &node)
            << node.displayName
            << node.displayPath
            << node.referenceTypeId
+           << node.typeDefinitionId
            << node.nodeClass
            << node.eventNotifier
            << node.historizing
@@ -65,6 +66,7 @@ bool AddressSpaceMime::decodeNode(const QMimeData *mimeData, OpcUaNodeInfo *node
            >> decoded.displayName
            >> decoded.displayPath
            >> decoded.referenceTypeId
+           >> decoded.typeDefinitionId
            >> decoded.nodeClass
            >> decoded.eventNotifier
            >> decoded.historizing

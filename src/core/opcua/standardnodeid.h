@@ -16,6 +16,9 @@
 class StandardNodeId
 {
 public:
+    /// \brief Standard FolderType object type.
+    static constexpr char FolderType[] = "ns=0;i=61";
+
     /// \brief Standard Objects folder, used as the browse root.
     static constexpr char ObjectsFolder[] = "ns=0;i=84";
 
@@ -30,6 +33,12 @@ public:
     /// \return Objects-folder NodeId.
     ///
     static QLatin1String objectsFolder() { return QLatin1String(ObjectsFolder); }
+
+    ///
+    /// \brief Returns the standard FolderType NodeId.
+    /// \return FolderType NodeId.
+    ///
+    static QLatin1String folderType() { return QLatin1String(FolderType); }
 
     ///
     /// \brief Returns the server CurrentTime NodeId as a QLatin1String.

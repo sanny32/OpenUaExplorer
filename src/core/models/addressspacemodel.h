@@ -196,7 +196,7 @@ private:
     QModelIndex findFirstRecursive(AddressSpaceNode *node, const QString &displayName) const;
     void appendTestItems(AddressSpaceNode *parent, const QVector<AddressSpaceItem> &items,
                          const QString &path);
-    AddressSpaceItem::NodeType iconType(int nodeClass) const;
+    AddressSpaceItem::NodeType iconType(const OpcUaNodeInfo &node) const;
 
     std::unique_ptr<AddressSpaceNode> _root;
     std::function<QIcon(AddressSpaceItem::NodeType)> _iconProvider;

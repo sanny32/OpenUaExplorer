@@ -116,11 +116,13 @@ void TestQtOpcUaInternals::mapsEndpointsAndReferences()
     reference.setBrowseName(QOpcUaQualifiedName(2, QStringLiteral("Value")));
     reference.setDisplayName(QOpcUaLocalizedText(QStringLiteral("en"), QStringLiteral("Value")));
     reference.setRefTypeId(QStringLiteral("ns=0;i=35"));
+    reference.setTypeDefinition(QOpcUaExpandedNodeId(QStringLiteral("ns=0;i=63")));
     reference.setNodeClass(QOpcUa::NodeClass::Variable);
     const QVector<OpcUaNodeInfo> nodes = QtOpcUaTypeMapper::nodeInfos({reference});
     QCOMPARE(nodes.size(), 1);
     QCOMPARE(nodes.first().nodeId, QStringLiteral("ns=2;s=Value"));
     QCOMPARE(nodes.first().browseName, QStringLiteral("Value"));
+    QCOMPARE(nodes.first().typeDefinitionId, QStringLiteral("ns=0;i=63"));
 }
 
 /// \brief Verifies mapping of FindServers results to transport-neutral server records.

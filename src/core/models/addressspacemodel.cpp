@@ -14,6 +14,7 @@
 
 #include "addressspacemimedata.h"
 #include "addressspacenode.h"
+#include "opcua/standardnodeid.h"
 
 namespace {
 
@@ -287,7 +288,7 @@ QVariant AddressSpaceModel::data(const QModelIndex &index, int role) const
     if (role == Qt::UserRole)
         return info.nodeId;
     if (role == Qt::DecorationRole && _iconProvider)
-        return _iconProvider(iconType(info.nodeClass));
+        return _iconProvider(iconType(info));
     return {};
 }
 
@@ -594,17 +595,18 @@ void AddressSpaceModel::appendTestItems(AddressSpaceNode *parent,
 }
 
 ///
-/// \brief Maps an OPC UA node class to an icon node type.
-/// \param nodeClass OPC UA NodeClass numeric value.
+/// \brief Maps OPC UA node metadata to an icon node type.
+/// \param node OPC UA node metadata.
 /// \return Existing application icon type.
 ///
-AddressSpaceItem::NodeType AddressSpaceModel::iconType(int nodeClass) const
+AddressSpaceItem::NodeType AddressSpaceModel::iconType(const OpcUaNodeInfo &node) const
 {
-    if (nodeClass & OpcUa::Variable)
+    if (node.nodeClass & OpcUa::Variable)
         return AddressSpaceItem::NodeType::Variable;
-    if (nodeClass & OpcUa::Method)
+    if (node.nodeClass & OpcUa::Method)
         return AddressSpaceItem::NodeType::Method;
-    if (nodeClass & OpcUa::Object)
+    if ((node.nodeClass & OpcUa::Object)
+        && node.typeDefinitionId == StandardNodeId::folderType())
         return AddressSpaceItem::NodeType::Folder;
     return AddressSpaceItem::NodeType::Node;
 }

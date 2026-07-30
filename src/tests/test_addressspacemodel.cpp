@@ -27,7 +27,8 @@ OpcUaNodeInfo makeRoot()
     OpcUaNodeInfo root;
     root.nodeId = QString::fromLatin1(StandardNodeId::ObjectsFolder);
     root.displayName = QStringLiteral("Root");
-    root.nodeClass = 1;
+    root.typeDefinitionId = QString::fromLatin1(StandardNodeId::FolderType);
+    root.nodeClass = OpcUa::Object;
     root.hasChildren = true;
     return root;
 }
@@ -48,6 +49,7 @@ private slots:
     void findByNodeIdAndDisplayName();
     void setChildrenDeduplicatesNodeIds();
     void dragMimeIncludesNodesWithNodeId();
+    void iconTypesDistinguishFoldersAndObjects();
     void dataRolesAndTreeOps();
 };
 
@@ -176,6 +178,7 @@ void TestAddressSpaceModel::dragMimeIncludesNodesWithNodeId()
     OpcUaNodeInfo object;
     object.nodeId = QStringLiteral("ns=2;s=Device");
     object.displayName = QStringLiteral("Device");
+    object.typeDefinitionId = QStringLiteral("ns=0;i=58");
     object.nodeClass = OpcUa::Object;
     object.eventNotifier = OpcUa::SubscribeToEvents | OpcUa::HistoryRead;
 
@@ -201,8 +204,76 @@ void TestAddressSpaceModel::dragMimeIncludesNodesWithNodeId()
     QScopedPointer<QMimeData> objectMime(model.mimeData({objectIndex}));
     QVERIFY(AddressSpaceMime::decodeNode(objectMime.data(), &decoded));
     QCOMPARE(decoded.nodeId, object.nodeId);
+    QCOMPARE(decoded.typeDefinitionId, object.typeDefinitionId);
     QCOMPARE(decoded.nodeClass, object.nodeClass);
     QCOMPARE(decoded.eventNotifier, object.eventNotifier);
+}
+
+///
+/// \brief FolderType objects use folder icons while other objects use node icons.
+///
+void TestAddressSpaceModel::iconTypesDistinguishFoldersAndObjects()
+{
+    AddressSpaceModel model;
+    model.setRootNode(makeRoot());
+
+    OpcUaNodeInfo folder;
+    folder.nodeId = QStringLiteral("ns=0;i=23470");
+    folder.displayName = QStringLiteral("Locations");
+    folder.typeDefinitionId = QString::fromLatin1(StandardNodeId::FolderType);
+    folder.nodeClass = OpcUa::Object;
+
+    OpcUaNodeInfo server;
+    server.nodeId = QStringLiteral("ns=0;i=2253");
+    server.displayName = QStringLiteral("Server");
+    server.typeDefinitionId = QStringLiteral("ns=0;i=2004");
+    server.nodeClass = OpcUa::Object;
+
+    OpcUaNodeInfo baseObject;
+    baseObject.nodeId = QStringLiteral("ns=2;s=Robot");
+    baseObject.displayName = QStringLiteral("Robot");
+    baseObject.typeDefinitionId = QStringLiteral("ns=0;i=58");
+    baseObject.nodeClass = OpcUa::Object;
+
+    OpcUaNodeInfo unknownObject;
+    unknownObject.nodeId = QStringLiteral("ns=2;s=Unknown");
+    unknownObject.displayName = QStringLiteral("Unknown");
+    unknownObject.nodeClass = OpcUa::Object;
+
+    OpcUaNodeInfo variable;
+    variable.nodeId = QStringLiteral("ns=2;s=Temperature");
+    variable.displayName = QStringLiteral("Temperature");
+    variable.nodeClass = OpcUa::Variable;
+
+    OpcUaNodeInfo method;
+    method.nodeId = QStringLiteral("ns=2;s=Start");
+    method.displayName = QStringLiteral("Start");
+    method.nodeClass = OpcUa::Method;
+
+    model.setChildren(makeRoot().nodeId,
+                      {folder, server, baseObject, unknownObject, variable, method});
+
+    QVector<AddressSpaceItem::NodeType> iconTypes;
+    model.setIconProvider([&iconTypes](AddressSpaceItem::NodeType type) {
+        iconTypes.append(type);
+        return QIcon();
+    });
+
+    const QModelIndex root = model.index(0, 0);
+    model.data(root, Qt::DecorationRole);
+    for (int row = 0; row < model.rowCount(root); ++row)
+        model.data(model.index(row, 0, root), Qt::DecorationRole);
+
+    const QVector<AddressSpaceItem::NodeType> expected = {
+        AddressSpaceItem::NodeType::Folder,
+        AddressSpaceItem::NodeType::Folder,
+        AddressSpaceItem::NodeType::Node,
+        AddressSpaceItem::NodeType::Node,
+        AddressSpaceItem::NodeType::Node,
+        AddressSpaceItem::NodeType::Variable,
+        AddressSpaceItem::NodeType::Method,
+    };
+    QCOMPARE(iconTypes, expected);
 }
 
 ///

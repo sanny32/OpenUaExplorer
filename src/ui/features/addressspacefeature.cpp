@@ -217,7 +217,8 @@ void AddressSpaceFeature::browseAddressSpace()
     root.nodeId = QString::fromLatin1(StandardNodeId::ObjectsFolder);
     root.browseName = QCoreApplication::translate("AddressSpaceFeature", "Root");
     root.displayName = QCoreApplication::translate("AddressSpaceFeature", "Root");
-    root.nodeClass = 1;
+    root.typeDefinitionId = QString::fromLatin1(StandardNodeId::FolderType);
+    root.nodeClass = OpcUa::Object;
     root.hasChildren = true;
     _widget->setRootNode(root);
 }
