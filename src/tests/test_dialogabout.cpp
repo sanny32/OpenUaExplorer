@@ -93,18 +93,31 @@ void TestDialogAbout::listsComponents()
     auto *qtVersion = dialog.findChild<QLabel *>(QStringLiteral("componentVersionLabel0"));
     auto *qtDescription = dialog.findChild<QLabel *>(QStringLiteral("componentDescriptionLabel0"));
     auto *opcUaTitle = dialog.findChild<QLabel *>(QStringLiteral("componentTitleLabel1"));
-    auto *qtKeychainTitle = dialog.findChild<QLabel *>(QStringLiteral("componentTitleLabel2"));
-    auto *qtKeychainVersion = dialog.findChild<QLabel *>(QStringLiteral("componentVersionLabel2"));
-    auto *openSslTitle = dialog.findChild<QLabel *>(QStringLiteral("componentTitleLabel3"));
-    auto *openSslVersion = dialog.findChild<QLabel *>(QStringLiteral("componentVersionLabel3"));
-    auto *lucideTitle = dialog.findChild<QLabel *>(QStringLiteral("componentTitleLabel4"));
-    auto *lucideVersion = dialog.findChild<QLabel *>(QStringLiteral("componentVersionLabel4"));
+    auto *optionalComponentTitle =
+        dialog.findChild<QLabel *>(QStringLiteral("componentTitleLabel2"));
+    QVERIFY(optionalComponentTitle);
+    const bool hasQlementine = optionalComponentTitle->text() == QStringLiteral("Qlementine");
+    const int optionalComponentOffset = hasQlementine ? 1 : 0;
+    auto *qtKeychainTitle = dialog.findChild<QLabel *>(
+        QStringLiteral("componentTitleLabel%1").arg(2 + optionalComponentOffset));
+    auto *qtKeychainVersion = dialog.findChild<QLabel *>(
+        QStringLiteral("componentVersionLabel%1").arg(2 + optionalComponentOffset));
+    auto *openSslTitle = dialog.findChild<QLabel *>(
+        QStringLiteral("componentTitleLabel%1").arg(3 + optionalComponentOffset));
+    auto *openSslVersion = dialog.findChild<QLabel *>(
+        QStringLiteral("componentVersionLabel%1").arg(3 + optionalComponentOffset));
+    auto *lucideTitle = dialog.findChild<QLabel *>(
+        QStringLiteral("componentTitleLabel%1").arg(4 + optionalComponentOffset));
+    auto *lucideVersion = dialog.findChild<QLabel *>(
+        QStringLiteral("componentVersionLabel%1").arg(4 + optionalComponentOffset));
     auto *platformDescription =
-        dialog.findChild<QLabel *>(QStringLiteral("componentDescriptionLabel5"));
+        dialog.findChild<QLabel *>(
+            QStringLiteral("componentDescriptionLabel%1").arg(5 + optionalComponentOffset));
     auto *qtButton = dialog.findChild<QPushButton *>(QStringLiteral("componentContactButton0"));
-    auto *lucideButton = dialog.findChild<QPushButton *>(QStringLiteral("componentContactButton4"));
-    auto *platformButton =
-        dialog.findChild<QPushButton *>(QStringLiteral("componentContactButton5"));
+    auto *lucideButton = dialog.findChild<QPushButton *>(
+        QStringLiteral("componentContactButton%1").arg(4 + optionalComponentOffset));
+    auto *platformButton = dialog.findChild<QPushButton *>(
+        QStringLiteral("componentContactButton%1").arg(5 + optionalComponentOffset));
     QVERIFY(componentsScrollArea);
     QVERIFY(componentsScrollArea->widgetResizable());
     QCOMPARE(componentsScrollArea->frameShape(), QFrame::NoFrame);
@@ -128,6 +141,12 @@ void TestDialogAbout::listsComponents()
     QVERIFY(qtVersion->text().contains(QStringLiteral(QT_VERSION_STR)));
     QVERIFY(qtDescription->text().contains(QStringLiteral("Cross-platform")));
     QCOMPARE(opcUaTitle->text(), QStringLiteral("Qt OPC UA"));
+    if (hasQlementine) {
+        auto *qlementineVersion =
+            dialog.findChild<QLabel *>(QStringLiteral("componentVersionLabel2"));
+        QVERIFY(qlementineVersion);
+        QVERIFY(!qlementineVersion->text().isEmpty());
+    }
     QCOMPARE(qtKeychainTitle->text(), QStringLiteral("QtKeychain"));
     QVERIFY(qtKeychainVersion->text().contains(QStringLiteral(APP_QTKEYCHAIN_VERSION)));
     QCOMPARE(openSslTitle->text(), QStringLiteral("OpenSSL"));
