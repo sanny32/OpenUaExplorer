@@ -6,6 +6,8 @@
 /// \brief Implements the central application settings store.
 ///
 
+#include <algorithm>
+
 #include <QObject>
 #include <QStringList>
 
@@ -37,6 +39,11 @@ constexpr auto subscriptionIntervalKey = "interval";
 constexpr auto subscriptionIdKey = "id";
 constexpr auto restoreLastSessionKey = "session/restoreLast";
 constexpr auto lastSavedSessionPathKey = "session/lastSavedPath";
+constexpr auto reconnectEnabledKey = "connection/reconnectEnabled";
+constexpr auto reconnectIntervalKey = "connection/reconnectIntervalSeconds";
+constexpr int defaultReconnectIntervalSeconds = 5;
+constexpr int minReconnectIntervalSeconds = 1;
+constexpr int maxReconnectIntervalSeconds = 3600;
 }
 
 ///
@@ -403,6 +410,49 @@ void AppSettings::setRestoreLastSessionOnStartup(bool enabled)
 {
     SettingsStore settings;
     settings.setValue(QLatin1String(restoreLastSessionKey), enabled);
+}
+
+///
+/// \brief Reports whether a lost connection should be retried automatically.
+/// \return True when reconnect attempts are enabled, defaulting to true.
+///
+bool AppSettings::reconnectEnabled() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(reconnectEnabledKey), true).toBool();
+}
+
+///
+/// \brief Stores whether a lost connection should be retried automatically.
+/// \param enabled True to retry until the server answers again.
+///
+void AppSettings::setReconnectEnabled(bool enabled)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(reconnectEnabledKey), enabled);
+}
+
+///
+/// \brief Returns the delay between two reconnect attempts.
+/// \return Interval in seconds, clamped to the supported range.
+///
+int AppSettings::reconnectIntervalSeconds() const
+{
+    SettingsStore settings;
+    const int seconds = settings.value(QLatin1String(reconnectIntervalKey),
+                                       defaultReconnectIntervalSeconds).toInt();
+    return std::clamp(seconds, minReconnectIntervalSeconds, maxReconnectIntervalSeconds);
+}
+
+///
+/// \brief Stores the delay between two reconnect attempts.
+/// \param seconds Interval in seconds, clamped to the supported range.
+///
+void AppSettings::setReconnectIntervalSeconds(int seconds)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(reconnectIntervalKey),
+                      std::clamp(seconds, minReconnectIntervalSeconds, maxReconnectIntervalSeconds));
 }
 
 ///

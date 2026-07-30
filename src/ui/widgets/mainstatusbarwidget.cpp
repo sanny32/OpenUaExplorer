@@ -253,10 +253,8 @@ void MainStatusBarWidget::updateConnectionState(OpcUaConnectionState state)
     const bool connected = state == OpcUaConnectionState::Connected;
     const bool active = connected || state == OpcUaConnectionState::Connecting;
 
-    // A new attempt supersedes the session that was lost.
-    if (state == OpcUaConnectionState::Discovering || state == OpcUaConnectionState::Connecting)
-        _connectionLost = false;
-
+    // Retry attempts pass through the intermediate states, so the lost session's parameters
+    // stay on screen until the window reports that it is gone or back.
     const bool retained = _connectionLost && !active;
     setConnectionState(state, profile.endpointUrl,
                        active || retained ? profile.securityPolicy : QString(),

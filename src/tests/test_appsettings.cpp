@@ -31,6 +31,8 @@ private slots:
     void windowStateRoundTrips();
     void restoreLayoutDefaultsToTrue();
     void restoreLastSessionDefaultsToFalse();
+    void reconnectDefaultsToEveryFiveSeconds();
+    void reconnectIntervalIsClampedToTheSupportedRange();
     void lastSavedSessionPathRoundTrips();
     void builtinSubscriptionOverridesRoundTrip();
     void dataAccessPageRoundTrips();
@@ -145,6 +147,32 @@ void TestAppSettings::restoreLastSessionDefaultsToFalse()
     QVERIFY(!AppSettings().restoreLastSessionOnStartup());
     AppSettings().setRestoreLastSessionOnStartup(true);
     QVERIFY(AppSettings().restoreLastSessionOnStartup());
+}
+
+///
+/// \brief Reconnecting after a connection loss is on by default, every five seconds.
+///
+void TestAppSettings::reconnectDefaultsToEveryFiveSeconds()
+{
+    QVERIFY(AppSettings().reconnectEnabled());
+    QCOMPARE(AppSettings().reconnectIntervalSeconds(), 5);
+
+    AppSettings().setReconnectEnabled(false);
+    AppSettings().setReconnectIntervalSeconds(30);
+    QVERIFY(!AppSettings().reconnectEnabled());
+    QCOMPARE(AppSettings().reconnectIntervalSeconds(), 30);
+}
+
+///
+/// \brief A stored reconnect interval never leaves the range the retry timer accepts.
+///
+void TestAppSettings::reconnectIntervalIsClampedToTheSupportedRange()
+{
+    AppSettings().setReconnectIntervalSeconds(0);
+    QCOMPARE(AppSettings().reconnectIntervalSeconds(), 1);
+
+    AppSettings().setReconnectIntervalSeconds(100000);
+    QCOMPARE(AppSettings().reconnectIntervalSeconds(), 3600);
 }
 
 ///

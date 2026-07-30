@@ -76,10 +76,16 @@ public:
     void disconnectFromServer();
 
     ///
-    /// \brief Reports, once, whether the disconnect being handled was asked for by the user.
-    /// \return True when the user requested the disconnect; false when the link dropped.
+    /// \brief Reports whether the connection dropped instead of being closed by the user.
+    /// \return True from a lost connection until it is back or the user starts another one.
     ///
-    bool takeDisconnectRequested();
+    bool connectionLost() const;
+
+    ///
+    /// \brief Reports whether a reconnect attempt is scheduled or running.
+    /// \return True while the lost connection is being retried.
+    ///
+    bool isReconnecting() const;
 
     ///
     /// \brief Shows a read-only summary of the active connection's endpoint settings.
@@ -95,6 +101,12 @@ public:
     CertificateTrustDecision decide(const QByteArray &certificate,
                                     const QString &message) override;
 
+signals:
+    ///
+    /// \brief Emitted when the user gives up on a lost connection instead of retrying it.
+    ///
+    void sessionAbandoned();
+
 private:
     void openFavorites();
     void addCurrentToFavorites();
@@ -103,6 +115,10 @@ private:
     void connectRecentProfile();
     void rebuildRecentMenu();
     void updateActions(OpcUaConnectionState state);
+    void trackConnectionState(OpcUaConnectionState state);
+    void scheduleReconnect();
+    void attemptReconnect();
+    void stopReconnect();
     void onClientError(const QString &message);
 
     ConnectionController *_controller;
@@ -112,5 +128,9 @@ private:
     ConnectionActions _actions;
     QWidget *_dialogParent;
     FavoritesCoordinator *_favorites;
+    class QTimer *_reconnectTimer;
     bool _disconnectRequested = false;
+    bool _wasConnected = false;
+    bool _connectionLost = false;
+    bool _retryInProgress = false;
 };

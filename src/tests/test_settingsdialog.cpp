@@ -15,6 +15,7 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QStackedWidget>
 #include <QSettings>
 #include <QTabWidget>
@@ -44,6 +45,7 @@ private slots:
     void timestampModeComboPersists();
     void categoryListSelectsPages();
     void restoreLastSessionCheckPersists();
+    void reconnectSettingsPersistAndGateTheInterval();
     void layoutResetWaitsForAcceptance();
 
 private:
@@ -267,6 +269,35 @@ void TestSettingsDialog::restoreLastSessionCheckPersists()
     buttons->button(QDialogButtonBox::Apply)->click();
 
     QVERIFY(AppSettings().restoreLastSessionOnStartup());
+}
+
+///
+/// \brief The reconnect controls persist, and the interval follows the checkbox.
+///
+void TestSettingsDialog::reconnectSettingsPersistAndGateTheInterval()
+{
+    SettingsDialog dialog;
+    auto *check = dialog.findChild<QCheckBox *>(QStringLiteral("reconnectCheck"));
+    auto *interval = dialog.findChild<QSpinBox *>(QStringLiteral("reconnectIntervalSpin"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(check);
+    QVERIFY(interval);
+    QVERIFY(buttons);
+
+    QVERIFY(check->isChecked());
+    QVERIFY(interval->isEnabled());
+    QCOMPARE(interval->value(), 5);
+
+    interval->setValue(20);
+    QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+    QCOMPARE(AppSettings().reconnectIntervalSeconds(), 20);
+
+    // Turning retries off takes the interval out of reach.
+    check->setChecked(false);
+    QVERIFY(!interval->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+    QVERIFY(!AppSettings().reconnectEnabled());
 }
 
 ///

@@ -177,9 +177,14 @@ void TestMainStatusBarWidget::lostConnectionKeepsTheSessionParameters()
     QCOMPARE(sessionLabel->text(), connectedSession);
     QCOMPARE(authenticationLabel->text(), connectedAuthentication);
 
-    // Starting another connection supersedes what was kept.
+    // Retry attempts pass through discovery, which must not drop what is shown.
     backend.setState(OpcUaConnectionState::Discovering);
+    QCOMPARE(sessionLabel->text(), connectedSession);
     backend.setState(OpcUaConnectionState::Disconnected);
+    QCOMPARE(sessionLabel->text(), connectedSession);
+
+    // Once the window reports the session gone, the fields are cleared.
+    widget.setConnectionLost(false);
     QCOMPARE(sessionLabel->text(), QStringLiteral("-"));
     QVERIFY(connectionLabel->text() != profile.endpointUrl);
 }

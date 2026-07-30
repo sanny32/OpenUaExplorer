@@ -10,11 +10,14 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QMenu>
+#include <QSettings>
+#include <QTemporaryDir>
 #include <QTimer>
 #include <QTreeView>
 #include <QTest>
 
 #include "application.h"
+#include "settingsstore.h"
 #include "widgets/headerview.h"
 #include "widgets/attributeswidget.h"
 
@@ -26,6 +29,9 @@ class TestAttributesWidget : public QObject
     Q_OBJECT
 
 private slots:
+    void initTestCase();
+    void cleanup();
+
     void usesSharedHeaderView();
     void headerSectionsAreResizable();
     void valueSectionStretchesToFillView();
@@ -33,6 +39,9 @@ private slots:
     void copiesCurrentCell();
     void copiesFullTree();
     void contextMenuOnlyUsesValueColumn();
+
+private:
+    QTemporaryDir _settingsDirectory;
 };
 
 namespace {
@@ -74,6 +83,28 @@ OpcUaNodeDetails makeDetails()
 }
 
 } // namespace
+
+///
+/// \brief Routes QSettings to a temporary directory.
+///
+void TestAttributesWidget::initTestCase()
+{
+    QVERIFY(_settingsDirectory.isValid());
+    QCoreApplication::setOrganizationName(QStringLiteral("OpenUaExplorerTests"));
+    QCoreApplication::setApplicationName(QStringLiteral("AttributesWidget"));
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                       _settingsDirectory.path());
+}
+
+///
+/// \brief Clears stored settings between tests.
+///
+void TestAttributesWidget::cleanup()
+{
+    SettingsStore settings;
+    settings.clear();
+}
 
 ///
 /// \brief Verifies the attributes tree uses the shared header implementation.

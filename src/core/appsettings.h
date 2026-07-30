@@ -259,6 +259,30 @@ public:
     void setRestoreLastSessionOnStartup(bool enabled);
 
     ///
+    /// \brief Reports whether a lost connection should be retried automatically.
+    /// \return True when reconnect attempts are enabled, defaulting to true.
+    ///
+    bool reconnectEnabled() const;
+
+    ///
+    /// \brief Stores whether a lost connection should be retried automatically.
+    /// \param enabled True to retry until the server answers again.
+    ///
+    void setReconnectEnabled(bool enabled);
+
+    ///
+    /// \brief Returns the delay between two reconnect attempts.
+    /// \return Interval in seconds, clamped to the supported range.
+    ///
+    int reconnectIntervalSeconds() const;
+
+    ///
+    /// \brief Stores the delay between two reconnect attempts.
+    /// \param seconds Interval in seconds, clamped to the supported range.
+    ///
+    void setReconnectIntervalSeconds(int seconds);
+
+    ///
     /// \brief Returns the named session file selected for restoration at startup.
     /// \return Stored session path, or an empty string when autosave should be used.
     ///

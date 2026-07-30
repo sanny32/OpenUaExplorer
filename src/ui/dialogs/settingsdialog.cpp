@@ -18,6 +18,7 @@
 #include <QLoggingCategory>
 #include <QPushButton>
 #include <QSignalBlocker>
+#include <QSpinBox>
 #include <QSizePolicy>
 #include <QStackedWidget>
 #include <QVector>
@@ -71,6 +72,14 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     connect(ui->languageCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &SettingsDialog::markDirty);
     connect(ui->restoreLastSessionCheck, &QAbstractButton::toggled,
+            this, &SettingsDialog::markDirty);
+    connect(ui->reconnectCheck, &QAbstractButton::toggled,
+            this, &SettingsDialog::markDirty);
+    connect(ui->reconnectCheck, &QAbstractButton::toggled,
+            ui->reconnectIntervalLabel, &QWidget::setEnabled);
+    connect(ui->reconnectCheck, &QAbstractButton::toggled,
+            ui->reconnectIntervalSpin, &QWidget::setEnabled);
+    connect(ui->reconnectIntervalSpin, &QSpinBox::valueChanged,
             this, &SettingsDialog::markDirty);
 }
 
@@ -166,6 +175,10 @@ void SettingsDialog::loadSettings()
     setTimestampSelection(settings.timestampMode());
     setLanguageSelection(settings.language());
     ui->restoreLastSessionCheck->setChecked(settings.restoreLastSessionOnStartup());
+    ui->reconnectCheck->setChecked(settings.reconnectEnabled());
+    ui->reconnectIntervalSpin->setValue(settings.reconnectIntervalSeconds());
+    ui->reconnectIntervalLabel->setEnabled(ui->reconnectCheck->isChecked());
+    ui->reconnectIntervalSpin->setEnabled(ui->reconnectCheck->isChecked());
 
     const QHash<QString, bool> states = settings.logCategoryStates();
     for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
@@ -186,6 +199,8 @@ void SettingsDialog::applyChanges()
     QLoggingCategory::setFilterRules(settings.logFilterRules());
 
     settings.setRestoreLastSessionOnStartup(ui->restoreLastSessionCheck->isChecked());
+    settings.setReconnectEnabled(ui->reconnectCheck->isChecked());
+    settings.setReconnectIntervalSeconds(ui->reconnectIntervalSpin->value());
 
     if (_layoutResetRequested)
         settings.clearLayout();

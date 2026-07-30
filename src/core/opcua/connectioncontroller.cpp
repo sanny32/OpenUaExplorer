@@ -153,6 +153,10 @@ void ConnectionController::connectBackend(const ConnectionProfile &profile,
                                           const QString &password,
                                           const QString &privateKeyPassword)
 {
+    // Kept in memory only, so a dropped connection can be retried without asking again.
+    _activePassword = password;
+    _activePrivateKeyPassword = privateKeyPassword;
+
     _backend->setRequestTimeout(profile.requestTimeoutMs);
     ConnectionProfile instanceProfile = profile;
     instanceProfile.sessionName = instanceSessionName(profile.sessionName,
@@ -232,6 +236,23 @@ void ConnectionController::connectSavedProfileWithCredentials(const ConnectionPr
     touchFavorite(profile);
 
     discoverPendingProfile();
+}
+
+///
+/// \brief Reconnects the active profile with the credentials its last attempt used.
+///
+/// Goes straight to the endpoint the session was established on: it is already known to
+/// work, and rediscovering it would only ask the unreachable server again.
+/// \return True when an attempt was started; false without an endpoint to return to.
+///
+bool ConnectionController::reconnectActiveProfile()
+{
+    if (_activeProfile.endpointUrl.isEmpty())
+        return false;
+
+    _waitingForDiscovery = false;
+    connectBackend(_activeProfile, _activePassword, _activePrivateKeyPassword);
+    return true;
 }
 
 ///

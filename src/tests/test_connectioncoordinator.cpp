@@ -12,11 +12,13 @@
 #include <QHash>
 #include <QMenu>
 #include <QSettings>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QToolButton>
 
 #include "application.h"
+#include "appsettings.h"
 #include "connectioncoordinator.h"
 #include "favoritescoordinator.h"
 #include "opcua/connectioncontroller.h"
@@ -179,6 +181,20 @@ struct ConnectionHarness
 };
 
 ///
+/// \brief Establishes a connection on the harness so there is a session to lose.
+/// \param harness Harness to connect.
+///
+void connectHarness(ConnectionHarness &harness)
+{
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("probe");
+    profile.endpointUrl = QStringLiteral("opc.tcp://probe.invalid:4840");
+    profile.backend = QStringLiteral("fake");
+    harness.controller.connectNewProfile(profile, QString(), QString());
+    harness.backend.setState(OpcUaConnectionState::Connected);
+}
+
+///
 /// \brief Verifies the coordinator's action enabling, recents menu, and favourites flow.
 ///
 class TestConnectionCoordinator : public QObject
@@ -194,7 +210,9 @@ private slots:
     void recentMenuListsHistoryByNameOrUrl();
     void recentActionConnectsItsProfile();
     void addFavoriteRequestSavesActiveProfile();
-    void onlyARequestedDisconnectIsReportedAsSuch();
+    void onlyALostConnectionIsReportedAsLost();
+    void lostConnectionIsRetriedAtTheConfiguredInterval();
+    void retriesStopWhenTheUserGivesUpOrConnectsElsewhere();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -330,20 +348,92 @@ void TestConnectionCoordinator::addFavoriteRequestSavesActiveProfile()
 }
 
 ///
-/// \brief Only a disconnect the user asked for is reported back as requested (issue #7).
+/// \brief Only a connection the server dropped counts as lost (issue #7).
 ///
-void TestConnectionCoordinator::onlyARequestedDisconnectIsReportedAsSuch()
+void TestConnectionCoordinator::onlyALostConnectionIsReportedAsLost()
 {
     ConnectionHarness harness;
+    AppSettings().setReconnectEnabled(false);
 
-    // A connection the server drops is never announced through the coordinator.
-    QVERIFY(!harness.coordinator->takeDisconnectRequested());
+    // A failed connection attempt was never established, so nothing was lost.
+    harness.backend.setState(OpcUaConnectionState::Connecting);
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    QVERIFY(!harness.coordinator->connectionLost());
 
+    connectHarness(harness);
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    QVERIFY(harness.coordinator->connectionLost());
+    QVERIFY(harness.actions.disconnect->isEnabled());
+
+    // Reconnecting clears it again.
+    harness.backend.setState(OpcUaConnectionState::Connected);
+    QVERIFY(!harness.coordinator->connectionLost());
+
+    // A disconnect the user asked for is not a loss.
     harness.coordinator->disconnectFromServer();
-    QVERIFY(harness.coordinator->takeDisconnectRequested());
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    QVERIFY(!harness.coordinator->connectionLost());
+    QVERIFY(!harness.actions.disconnect->isEnabled());
+}
 
-    // The answer is consumed, so the next dropped connection is not mistaken for it.
-    QVERIFY(!harness.coordinator->takeDisconnectRequested());
+///
+/// \brief A lost connection is retried, and a failed retry is scheduled again.
+///
+void TestConnectionCoordinator::lostConnectionIsRetriedAtTheConfiguredInterval()
+{
+    AppSettings settings;
+    settings.setReconnectEnabled(true);
+    settings.setReconnectIntervalSeconds(1);
+
+    ConnectionHarness harness;
+    connectHarness(harness);
+    const int connectsWhileUp = harness.backend.connectCalls;
+
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    QVERIFY(harness.coordinator->isReconnecting());
+
+    // The retry goes straight to the endpoint that worked, without rediscovering it.
+    const int discoveriesBefore = harness.backend.discoveryCalls;
+    QTRY_VERIFY_WITH_TIMEOUT(harness.backend.connectCalls > connectsWhileUp, 4000);
+    QCOMPARE(harness.backend.discoveryCalls, discoveriesBefore);
+
+    // The failed attempt keeps the session marked as lost and arms the next try.
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    QVERIFY(harness.coordinator->connectionLost());
+    QVERIFY(harness.coordinator->isReconnecting());
+
+    const int connectsAfterFirstRetry = harness.backend.connectCalls;
+    QTRY_VERIFY_WITH_TIMEOUT(harness.backend.connectCalls > connectsAfterFirstRetry, 4000);
+}
+
+///
+/// \brief Giving up, or connecting somewhere else, ends the retries.
+///
+void TestConnectionCoordinator::retriesStopWhenTheUserGivesUpOrConnectsElsewhere()
+{
+    AppSettings settings;
+    settings.setReconnectEnabled(true);
+    settings.setReconnectIntervalSeconds(1);
+
+    ConnectionHarness harness;
+    connectHarness(harness);
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    QVERIFY(harness.coordinator->isReconnecting());
+
+    QSignalSpy abandonedSpy(harness.coordinator, &ConnectionCoordinator::sessionAbandoned);
+    harness.coordinator->disconnectFromServer();
+    QCOMPARE(abandonedSpy.size(), 1);
+    QVERIFY(!harness.coordinator->isReconnecting());
+    QVERIFY(!harness.coordinator->connectionLost());
+
+    // A connection the user starts replaces the lost one instead of racing with it.
+    connectHarness(harness);
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    QVERIFY(harness.coordinator->isReconnecting());
+
+    harness.backend.setState(OpcUaConnectionState::Discovering);
+    QVERIFY(!harness.coordinator->isReconnecting());
+    QVERIFY(!harness.coordinator->connectionLost());
 }
 
 ///
