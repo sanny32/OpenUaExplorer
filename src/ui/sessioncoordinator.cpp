@@ -333,6 +333,14 @@ bool SessionCoordinator::saveSessionToFile(const QString &path)
     _savedSessionFingerprint = sessionFingerprint(data);
     setCurrentSessionPath(path);
     recordRecentSession(path);
+    MessageBoxDialog saved(_context.window);
+    saved.setWindowTitle(tr("Save Session"));
+    saved.setIcon(MessageBoxDialog::Information);
+    saved.setText(tr("The session has been saved."));
+    saved.setInformativeText(QDir::toNativeSeparators(path));
+    saved.setStandardButtons(DialogButtonBox::Ok);
+    saved.setDefaultButton(DialogButtonBox::Ok);
+    saved.exec();
     return true;
 }
 

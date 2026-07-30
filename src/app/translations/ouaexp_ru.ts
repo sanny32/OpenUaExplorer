@@ -3141,6 +3141,10 @@ Do you want to save them?</source>
 %1</translation>
     </message>
     <message>
+        <source>The session has been saved.</source>
+        <translation>Сессия сохранена.</translation>
+    </message>
+    <message>
         <source>Untitled</source>
         <translation>Без имени</translation>
     </message>

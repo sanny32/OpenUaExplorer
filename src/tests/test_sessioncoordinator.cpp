@@ -7,15 +7,19 @@
 ///
 
 #include <QAction>
+#include <QApplication>
+#include <QDialog>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QLabel>
 #include <QMenu>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTimer>
 #include <QWidget>
 
 #include "addressspacemodule.h"
@@ -43,6 +47,31 @@
 namespace {
 
 QStringList capturedSessionLogMessages;
+QString dismissedDialogText;
+
+///
+/// \brief Closes the next modal dialog and records the message it displayed.
+/// \param attemptsLeft Event-loop turns still spent waiting for the dialog to appear.
+///
+void dismissNextDialog(int attemptsLeft = 100)
+{
+    QTimer::singleShot(0, qApp, [attemptsLeft]() {
+        auto *modal = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+        if (!modal) {
+            if (attemptsLeft > 0)
+                dismissNextDialog(attemptsLeft - 1);
+            return;
+        }
+        const QList<QLabel *> labels = modal->findChildren<QLabel *>();
+        QStringList texts;
+        for (const QLabel *label : labels) {
+            if (!label->text().isEmpty())
+                texts.append(label->text());
+        }
+        dismissedDialogText = texts.join(QLatin1Char('\n'));
+        modal->accept();
+    });
+}
 
 ///
 /// \brief Captures messages emitted through the session logging category.
@@ -225,9 +254,12 @@ private slots:
     void autosavedSessionIsKeptForDifferentEndpoint();
     void stagedSessionReconnectsAtStartup();
     void commandLineSessionKeepsPriorityOverAutosave();
+    void savingASessionConfirmsTheDestination();
+    void failedSaveReportsTheError();
 
 private:
     QString writeAutosavedSession();
+    static void openConnectedSession(WorkspaceHarness &harness, const QString &path);
 
     QTemporaryDir _settingsDirectory;
 };
@@ -742,6 +774,63 @@ void TestSessionCoordinator::commandLineSessionKeepsPriorityOverAutosave()
     harness.backend.setState(OpcUaConnectionState::Disconnected);
     harness.coordinator->connectStagedSession();
     QCOMPARE(harness.backend.state(), OpcUaConnectionState::Disconnected);
+}
+
+///
+/// \brief Puts the harness into "session file open and connected" state.
+/// \param harness Harness to drive.
+/// \param path Session file to create and open.
+///
+void TestSessionCoordinator::openConnectedSession(WorkspaceHarness &harness, const QString &path)
+{
+    const QString endpoint = QStringLiteral("opc.tcp://saving.invalid:4840");
+
+    SessionData session;
+    session.profile.id = QStringLiteral("saving-profile");
+    session.profile.endpointUrl = endpoint;
+    session.profile.authentication = ConnectionProfile::Authentication::Anonymous;
+    QVERIFY(SessionStore::save(path, session));
+
+    harness.coordinator->openSessionFromFile(path);
+    harness.connectTo(endpoint);
+    harness.coordinator->applyPendingSession();
+}
+
+///
+/// \brief A successful save tells the user where the session was written.
+///
+void TestSessionCoordinator::savingASessionConfirmsTheDestination()
+{
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString path = sessionsDirectory.filePath(QStringLiteral("confirmed.ouas"));
+
+    WorkspaceHarness harness;
+    openConnectedSession(harness, path);
+
+    dismissedDialogText.clear();
+    dismissNextDialog();
+    QVERIFY(harness.coordinator->saveCurrentSession());
+    QVERIFY(dismissedDialogText.contains(QStringLiteral("confirmed.ouas")));
+}
+
+///
+/// \brief A save that cannot be written reports the failure instead of passing silently.
+///
+void TestSessionCoordinator::failedSaveReportsTheError()
+{
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString path = sessionsDirectory.filePath(QStringLiteral("unwritable.ouas"));
+
+    WorkspaceHarness harness;
+    openConnectedSession(harness, path);
+    QVERIFY(sessionsDirectory.remove());
+
+    dismissedDialogText.clear();
+    dismissNextDialog();
+    QVERIFY(!harness.coordinator->saveCurrentSession());
+    QVERIFY(!dismissedDialogText.isEmpty());
 }
 
 int main(int argc, char *argv[])

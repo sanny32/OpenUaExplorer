@@ -3133,6 +3133,10 @@ Do you want to save them?</source>
 %1</translation>
     </message>
     <message>
+        <source>The session has been saved.</source>
+        <translation>会话已保存。</translation>
+    </message>
+    <message>
         <source>Untitled</source>
         <translation>未命名</translation>
     </message>

@@ -3137,6 +3137,10 @@ Möchten Sie sie speichern?</translation>
 %1</translation>
     </message>
     <message>
+        <source>The session has been saved.</source>
+        <translation>Die Sitzung wurde gespeichert.</translation>
+    </message>
+    <message>
         <source>Untitled</source>
         <translation>Ohne Titel</translation>
     </message>

@@ -51,6 +51,12 @@ public:
     void setText(const QString &text);
 
     ///
+    /// \brief Sets the secondary text shown in a muted font below the message.
+    /// \param text Detail such as a file path; long values are elided and kept in the tooltip.
+    ///
+    void setInformativeText(const QString &text);
+
+    ///
     /// \brief Sets the standard icon shown beside the message.
     /// \param icon Icon to display.
     ///
@@ -138,6 +144,7 @@ private:
 
     QLabel *_iconLabel;
     QLabel *_textLabel;
+    QLabel *_informativeLabel;
     DialogButtonBox *_buttonBox;
     DialogButtonBox::StandardButtons _buttons = DialogButtonBox::NoButton;
     DialogButtonBox::StandardButton _clicked = DialogButtonBox::NoButton;
