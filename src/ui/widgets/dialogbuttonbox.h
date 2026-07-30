@@ -22,7 +22,8 @@ class QPushButton;
 /// Drop-in replacement for QDialogButtonBox: the standard buttons keep their roles,
 /// translated text and accepted()/rejected() wiring, but render through
 /// ColoredPushButton. The Apply button is painted with the application accent colour
-/// by default, and any button can be given an explicit colour set.
+/// by default, Ok and Cancel share the wider button's minimum width, and any button
+/// can be given an explicit colour set.
 ///
 class DialogButtonBox : public QDialogButtonBox
 {
@@ -80,7 +81,7 @@ public:
 
 protected:
     ///
-    /// \brief Re-applies the translated standard-button text after a language change.
+    /// \brief Refreshes button text and sizing after relevant UI changes.
     /// \param event Change event being handled.
     ///
     void changeEvent(QEvent *event) override;
@@ -88,6 +89,7 @@ protected:
 private:
     ColoredPushButton *coloredButton(StandardButton which) const;
     void retranslateButtons();
+    void updateButtonWidths();
 
     QHash<int, ColoredPushButton *> _standardButtons;
 };
