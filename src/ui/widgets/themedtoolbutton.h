@@ -23,6 +23,7 @@ class ThemedToolButton : public QToolButton
 {
     Q_OBJECT
     Q_PROPERTY(bool squareIconOnly READ squareIconOnly WRITE setSquareIconOnly)
+    Q_PROPERTY(bool iconOnlyMinimumWidth READ iconOnlyMinimumWidth WRITE setIconOnlyMinimumWidth)
     Q_PROPERTY(bool linkStyle READ linkStyle WRITE setLinkStyle)
     Q_PROPERTY(QString iconName READ iconName WRITE setIconName)
 
@@ -34,7 +35,7 @@ public:
     explicit ThemedToolButton(QWidget *parent = nullptr);
 
     ///
-    /// \brief Returns the minimum size hint, squared when in icon-only mode.
+    /// \brief Returns the minimum size hint, optionally keeping its width compact.
     /// \return Minimum size hint.
     ///
     QSize minimumSizeHint() const override;
@@ -50,6 +51,12 @@ public:
     /// \return True when square icon-only mode is enabled.
     ///
     bool squareIconOnly() const;
+
+    ///
+    /// \brief Reports whether the minimum width stays compact when button text is visible.
+    /// \return True when the minimum width matches an icon-only button.
+    ///
+    bool iconOnlyMinimumWidth() const;
 
     ///
     /// \brief Reports whether the button is painted as a link-style action.
@@ -68,6 +75,12 @@ public:
     /// \param enabled True to force a square shape.
     ///
     void setSquareIconOnly(bool enabled);
+
+    ///
+    /// \brief Keeps the minimum width compact while preserving the expanded preferred width.
+    /// \param enabled True to use an icon-only minimum width.
+    ///
+    void setIconOnlyMinimumWidth(bool enabled);
 
     ///
     /// \brief Enables or disables link-style rendering.
@@ -98,6 +111,7 @@ private:
     QSize squareSize(const QSize &size) const;
 
     bool _squareIconOnly = false;
+    bool _iconOnlyMinimumWidth = false;
     bool _linkStyle = false;
     QString _iconName;
 };

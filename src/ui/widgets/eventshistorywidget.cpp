@@ -11,6 +11,7 @@
 #include <QDateTimeEdit>
 #include <QEvent>
 #include <QHeaderView>
+#include <QResizeEvent>
 #include <QSpinBox>
 #include <QTimeZone>
 
@@ -25,6 +26,7 @@
 #include "severitydelegate.h"
 #include "tableview.h"
 #include "tableviewconfig.h"
+#include "toolbuttonlayout.h"
 #include "ui_eventshistorywidget.h"
 
 namespace {
@@ -64,6 +66,7 @@ EventsHistoryWidget::EventsHistoryWidget(QWidget *parent)
     ui->eventsHistoryClearButton->setIcon(QStringLiteral("trash"));
     setupEventsHistoryView();
     updateActionButtons();
+    updateQueryButtonStyle();
 }
 
 ///
@@ -75,7 +78,7 @@ EventsHistoryWidget::~EventsHistoryWidget()
 }
 
 ///
-/// \brief Retranslates the generated UI on a language change.
+/// \brief Handles changes that affect translated text and toolbar sizing.
 /// \param event Change event being handled.
 ///
 void EventsHistoryWidget::changeEvent(QEvent *event)
@@ -85,6 +88,21 @@ void EventsHistoryWidget::changeEvent(QEvent *event)
         ui->retranslateUi(this);
         _eventsHistoryModel->retranslate();
     }
+    if (event->type() == QEvent::LanguageChange
+        || event->type() == QEvent::FontChange
+        || event->type() == QEvent::StyleChange) {
+        updateQueryButtonStyle();
+    }
+}
+
+///
+/// \brief Updates the action-button presentation after the widget width changes.
+/// \param event Resize event being handled.
+///
+void EventsHistoryWidget::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    updateQueryButtonStyle();
 }
 
 ///
@@ -247,6 +265,19 @@ void EventsHistoryWidget::updateActionButtons()
     const bool hasEvents = _eventsHistoryModel->rowCount() > 0;
     ui->eventsHistoryExportButton->setEnabled(hasEvents);
     ui->eventsHistoryClearButton->setEnabled(hasEvents);
+}
+
+///
+/// \brief Hides action-button text when the query row cannot fit its expanded controls.
+///
+void EventsHistoryWidget::updateQueryButtonStyle()
+{
+    const QMargins margins = ui->eventsHistoryLayout->contentsMargins();
+    const int availableWidth = width() - margins.left() - margins.right();
+    ToolButtonLayout::adaptToWidth(
+        ui->eventsHistoryQueryLayout, availableWidth,
+        {ui->eventsHistoryReadButton, ui->eventsHistoryClearButton,
+         ui->eventsHistoryExportButton});
 }
 
 ///

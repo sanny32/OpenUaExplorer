@@ -26,12 +26,15 @@ ThemedToolButton::ThemedToolButton(QWidget *parent)
 }
 
 ///
-/// \brief Returns the minimum size hint, squared when in icon-only mode.
+/// \brief Returns the minimum size hint, optionally keeping its width compact.
 /// \return Minimum size hint.
 ///
 QSize ThemedToolButton::minimumSizeHint() const
 {
-    return squareSize(QToolButton::minimumSizeHint());
+    QSize size = QToolButton::minimumSizeHint();
+    if (_iconOnlyMinimumWidth)
+        size.setWidth(size.height());
+    return squareSize(size);
 }
 
 ///
@@ -50,6 +53,15 @@ QSize ThemedToolButton::sizeHint() const
 bool ThemedToolButton::squareIconOnly() const
 {
     return _squareIconOnly;
+}
+
+///
+/// \brief Reports whether the minimum width stays compact when button text is visible.
+/// \return True when the minimum width matches an icon-only button.
+///
+bool ThemedToolButton::iconOnlyMinimumWidth() const
+{
+    return _iconOnlyMinimumWidth;
 }
 
 ///
@@ -81,6 +93,19 @@ void ThemedToolButton::setSquareIconOnly(bool enabled)
     }
 
     _squareIconOnly = enabled;
+    updateGeometry();
+}
+
+///
+/// \brief Keeps the minimum width compact while preserving the expanded preferred width.
+/// \param enabled True to use an icon-only minimum width.
+///
+void ThemedToolButton::setIconOnlyMinimumWidth(bool enabled)
+{
+    if (_iconOnlyMinimumWidth == enabled)
+        return;
+
+    _iconOnlyMinimumWidth = enabled;
     updateGeometry();
 }
 
