@@ -1,6 +1,7 @@
 function(ouaexp_configure_common_unit_tests)
     ouaexp_add_test(ouaexp_tests                    test_opcua.cpp)
     ouaexp_add_test(ouaexp_tests_settings           test_appsettings.cpp)
+    ouaexp_add_test(ouaexp_tests_settings_isolation test_settingsisolation.cpp)
     ouaexp_add_test(ouaexp_tests_profiles           test_profiles.cpp)
     ouaexp_add_test(ouaexp_tests_models             test_models.cpp)
     ouaexp_add_test(ouaexp_tests_address_space_model test_addressspacemodel.cpp)

@@ -60,8 +60,14 @@ function(ouaexp_configure_test_environment test_name)
     endif()
 endfunction()
 
+add_library(ouaexp_test_settings_isolation OBJECT
+    "${CMAKE_CURRENT_SOURCE_DIR}/testsettingsisolation.cpp"
+)
+target_link_libraries(ouaexp_test_settings_isolation PRIVATE Qt${QT_VERSION_MAJOR}::Core)
+
 function(ouaexp_register_test test_name source_file)
     add_executable(${test_name} "${CMAKE_CURRENT_SOURCE_DIR}/${source_file}")
+    target_sources(${test_name} PRIVATE $<TARGET_OBJECTS:ouaexp_test_settings_isolation>)
     target_link_libraries(${test_name} PRIVATE Qt${QT_VERSION_MAJOR}::Test)
     ouaexp_copy_qtopcua_runtime(${test_name})
     ouaexp_apply_coverage(${test_name})

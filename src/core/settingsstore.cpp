@@ -48,12 +48,13 @@ SettingsStore::SettingsStore()
 ///
 /// Passes the product name as the organization with no application name so
 /// everything lands in one location per product: ~/.config/Open UaExplorer.conf
-/// on Linux and the product plist on macOS. This constructor keeps the default
-/// format, which lets tests redirect storage to a temporary directory via
-/// QSettings::setDefaultFormat() and QSettings::setPath().
+/// on Linux and the product plist on macOS. The format is passed explicitly
+/// because the scope-and-organization overload always selects NativeFormat,
+/// ignoring QSettings::setDefaultFormat().
 ///
 SettingsStore::SettingsStore()
-    : QSettings(QSettings::UserScope, QStringLiteral(APP_PRODUCT_NAME))
+    : QSettings(QSettings::defaultFormat(), QSettings::UserScope,
+                QStringLiteral(APP_PRODUCT_NAME))
 {
 }
 
