@@ -741,6 +741,10 @@
         <source>No Recent Connections</source>
         <translation>Keine letzten Verbindungen</translation>
     </message>
+    <message>
+        <source>Reconnecting to &apos;%1&apos;.</source>
+        <translation>Verbindung mit „%1“ wird erneut hergestellt.</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionCredentialsDialog</name>
@@ -1482,10 +1486,6 @@
     <message>
         <source>Modern Qt Widgets style.</source>
         <translation>Moderner Qt-Widgets-Stil.</translation>
-    </message>
-    <message>
-        <source>Modern Qt Widgets icon theme.</source>
-        <translation>Modernes Qt-Widgets-Symbolthema.</translation>
     </message>
     <message>
         <source>Author</source>
@@ -3199,6 +3199,10 @@ Möchten Sie sie speichern?</translation>
         <source>Reconnecting to &apos;%1&apos; to restore the last session.</source>
         <translation>Verbindung mit „%1“ wird erneut hergestellt, um die letzte Sitzung wiederherzustellen.</translation>
     </message>
+    <message>
+        <source>Dropping the workspace held for &apos;%1&apos;: &apos;%2&apos; is connected instead.</source>
+        <translation>Der für „%1“ vorgehaltene Arbeitsbereich wird verworfen: Stattdessen ist „%2“ verbunden.</translation>
+    </message>
 </context>
 <context>
     <name>SessionStore</name>
@@ -3305,6 +3309,18 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>General</source>
         <translation>Allgemein</translation>
+    </message>
+    <message>
+        <source>Connection</source>
+        <translation>Verbindung</translation>
+    </message>
+    <message>
+        <source>Reconnect after a connection loss</source>
+        <translation>Nach Verbindungsverlust erneut verbinden</translation>
+    </message>
+    <message>
+        <source>Interval (s):</source>
+        <translation>Intervall (s):</translation>
     </message>
 </context>
 <context>

@@ -740,6 +740,10 @@
         <source>No Recent Connections</source>
         <translation>无最近连接</translation>
     </message>
+    <message>
+        <source>Reconnecting to &apos;%1&apos;.</source>
+        <translation>正在重新连接到“%1”。</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionCredentialsDialog</name>
@@ -1478,10 +1482,6 @@
     <message>
         <source>Modern Qt Widgets style.</source>
         <translation>现代 Qt Widgets 样式。</translation>
-    </message>
-    <message>
-        <source>Modern Qt Widgets icon theme.</source>
-        <translation>现代 Qt Widgets 图标主题。</translation>
     </message>
     <message>
         <source>Author</source>
@@ -3194,6 +3194,10 @@ Do you want to save them?</source>
         <source>Reconnecting to &apos;%1&apos; to restore the last session.</source>
         <translation>正在重新连接到“%1”以恢复上次会话。</translation>
     </message>
+    <message>
+        <source>Dropping the workspace held for &apos;%1&apos;: &apos;%2&apos; is connected instead.</source>
+        <translation>放弃为“%1”保留的工作区：当前连接的是“%2”。</translation>
+    </message>
 </context>
 <context>
     <name>SessionStore</name>
@@ -3300,6 +3304,18 @@ Do you want to save them?</source>
     <message>
         <source>General</source>
         <translation>常规</translation>
+    </message>
+    <message>
+        <source>Connection</source>
+        <translation>连接</translation>
+    </message>
+    <message>
+        <source>Reconnect after a connection loss</source>
+        <translation>连接断开后自动重连</translation>
+    </message>
+    <message>
+        <source>Interval (s):</source>
+        <translation>间隔（秒）：</translation>
     </message>
 </context>
 <context>

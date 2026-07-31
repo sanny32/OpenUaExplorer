@@ -742,6 +742,10 @@
         <source>No Recent Connections</source>
         <translation>Нет недавних подключений</translation>
     </message>
+    <message>
+        <source>Reconnecting to &apos;%1&apos;.</source>
+        <translation>Повторное подключение к «%1».</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionCredentialsDialog</name>
@@ -1486,10 +1490,6 @@
     <message>
         <source>Modern Qt Widgets style.</source>
         <translation>Современный стиль Qt Widgets.</translation>
-    </message>
-    <message>
-        <source>Modern Qt Widgets icon theme.</source>
-        <translation>Современная тема значков Qt Widgets.</translation>
     </message>
     <message>
         <source>Author</source>
@@ -3204,6 +3204,10 @@ Do you want to save them?</source>
         <source>Reconnecting to &apos;%1&apos; to restore the last session.</source>
         <translation>Повторное подключение к «%1» для восстановления последней сессии.</translation>
     </message>
+    <message>
+        <source>Dropping the workspace held for &apos;%1&apos;: &apos;%2&apos; is connected instead.</source>
+        <translation>Рабочая область, сохранённая для «%1», отброшена: вместо него подключён «%2».</translation>
+    </message>
 </context>
 <context>
     <name>SessionStore</name>
@@ -3310,6 +3314,18 @@ Do you want to save them?</source>
     <message>
         <source>General</source>
         <translation>Общие</translation>
+    </message>
+    <message>
+        <source>Connection</source>
+        <translation>Подключение</translation>
+    </message>
+    <message>
+        <source>Reconnect after a connection loss</source>
+        <translation>Переподключаться при потере соединения</translation>
+    </message>
+    <message>
+        <source>Interval (s):</source>
+        <translation>Интервал (с):</translation>
     </message>
 </context>
 <context>
