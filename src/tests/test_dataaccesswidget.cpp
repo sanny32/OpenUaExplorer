@@ -3,7 +3,7 @@
 
 ///
 /// \file test_dataaccesswidget.cpp
-/// \brief Tests DataAccessWidget drag/drop and subscription behaviour.
+/// \brief Tests DataAccessWidget drag/drop, subscription and value toggle behaviour.
 ///
 
 #include <QCoreApplication>
@@ -50,6 +50,12 @@ private slots:
     void filterKeepsOnlyMatchingRows();
     void filterMatchesNamesOnly();
     void actionsOnFilteredRowsUseTheirOwnNodes();
+    void doubleClickTogglesWritableBooleanValue();
+    void declinedDoubleClickWritesNothing();
+    void doubleClickOnReadOnlyBooleanWritesNothing();
+    void doubleClickOnNonBooleanWritesNothing();
+    void doubleClickOutsideValueColumnWritesNothing();
+    void doubleClickWhileOfflineWritesNothing();
 };
 
 namespace {
@@ -106,6 +112,52 @@ OpcUaNodeDetails makeNodeDetails()
     details.dataTypeId = QStringLiteral("ns=0;i=11");
     details.status = QStringLiteral("Good");
     return details;
+}
+
+///
+/// \brief Builds Boolean node details for the double-click toggle tests.
+/// \param value Current value of the node.
+/// \param writable Whether the UserAccessLevel grants CurrentWrite.
+/// \return Node details item.
+///
+OpcUaNodeDetails makeBooleanNodeDetails(bool value, bool writable)
+{
+    OpcUaNodeDetails details = makeNodeDetails();
+    details.nodeId = QStringLiteral("ns=2;s=Locked");
+    details.displayName = QStringLiteral("Locked");
+    details.value = value;
+    details.valueType = 0;
+    details.dataTypeId = QStringLiteral("ns=0;i=1");
+    details.userAccessLevel = writable
+        ? (OpcUa::CurrentRead | OpcUa::CurrentWrite)
+        : OpcUa::CurrentRead;
+    return details;
+}
+
+///
+/// \brief Double-clicks the centre of a cell in the data table.
+/// \param view Data table view.
+/// \param row Row to click.
+/// \param column Column to click.
+///
+/// The press and the double click are sent straight to the viewport: the view only
+/// emits doubleClicked() when the double click lands on the cell it recorded on the
+/// preceding press, and the offscreen platform does not synthesise that pair.
+///
+void doubleClickCell(QTableView *view, int row, int column)
+{
+    const QModelIndex index = view->model()->index(row, column);
+    QVERIFY(index.isValid());
+    view->scrollTo(index);
+
+    const QPoint pos = view->visualRect(index).center();
+    const QPointF global = view->viewport()->mapToGlobal(pos);
+    QMouseEvent press(QEvent::MouseButtonPress, QPointF(pos), global,
+                      Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QMouseEvent doubleClick(QEvent::MouseButtonDblClick, QPointF(pos), global,
+                            Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(view->viewport(), &press);
+    QCoreApplication::sendEvent(view->viewport(), &doubleClick);
 }
 
 ///
@@ -531,6 +583,152 @@ void TestDataAccessWidget::actionsOnFilteredRowsUseTheirOwnNodes()
 
     QCOMPARE(readSpy.size(), 1);
     QCOMPARE(readSpy.first().first().toStringList(), QStringList{pressure.nodeId});
+}
+
+///
+/// \brief A confirmed double click on a writable Boolean writes the inverted value.
+///
+void TestDataAccessWidget::doubleClickTogglesWritableBooleanValue()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addNode(makeBooleanNodeDetails(false, true));
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
+    answerNextDialog(DialogButtonBox::Yes);
+    doubleClickCell(view, 0, DataAccessModel::ColValue);
+
+    QCOMPARE(spy.size(), 1);
+    QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=2;s=Locked"));
+    QCOMPARE(spy.first().at(1).userType(), static_cast<int>(QMetaType::Bool));
+    QCOMPARE(spy.first().at(1).toBool(), true);
+    QCOMPARE(spy.first().at(2).toInt(), 0);
+
+    widget.addNode(makeBooleanNodeDetails(true, true));
+    answerNextDialog(DialogButtonBox::Yes);
+    doubleClickCell(view, 0, DataAccessModel::ColValue);
+
+    QCOMPARE(spy.size(), 2);
+    QCOMPARE(spy.last().at(1).toBool(), false);
+}
+
+///
+/// \brief Declining the confirmation leaves the value on the server untouched.
+///
+void TestDataAccessWidget::declinedDoubleClickWritesNothing()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addNode(makeBooleanNodeDetails(false, true));
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
+    answerNextDialog(DialogButtonBox::No);
+    doubleClickCell(view, 0, DataAccessModel::ColValue);
+
+    QCOMPARE(spy.size(), 0);
+}
+
+///
+/// \brief A Boolean the user may not write is left alone.
+///
+void TestDataAccessWidget::doubleClickOnReadOnlyBooleanWritesNothing()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addNode(makeBooleanNodeDetails(false, false));
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
+    bool dialogSeen = false;
+    watchForDialog(&dialogSeen);
+    doubleClickCell(view, 0, DataAccessModel::ColValue);
+    QCoreApplication::processEvents();
+
+    QVERIFY(!dialogSeen);
+    QCOMPARE(spy.size(), 0);
+}
+
+///
+/// \brief Values of other types keep opening the write dialog instead of toggling.
+///
+void TestDataAccessWidget::doubleClickOnNonBooleanWritesNothing()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    OpcUaNodeDetails details = makeNodeDetails();
+    details.userAccessLevel = OpcUa::CurrentRead | OpcUa::CurrentWrite;
+    widget.addNode(details);
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
+    bool dialogSeen = false;
+    watchForDialog(&dialogSeen);
+    doubleClickCell(view, 0, DataAccessModel::ColValue);
+    QCoreApplication::processEvents();
+
+    QVERIFY(!dialogSeen);
+    QCOMPARE(spy.size(), 0);
+}
+
+///
+/// \brief Only the Value column toggles; the other columns stay inert.
+///
+void TestDataAccessWidget::doubleClickOutsideValueColumnWritesNothing()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addNode(makeBooleanNodeDetails(false, true));
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
+    bool dialogSeen = false;
+    watchForDialog(&dialogSeen);
+    doubleClickCell(view, 0, DataAccessModel::ColDisplayName);
+    QCoreApplication::processEvents();
+
+    QVERIFY(!dialogSeen);
+    QCOMPARE(spy.size(), 0);
+}
+
+///
+/// \brief Nothing is written while the server connection is gone.
+///
+void TestDataAccessWidget::doubleClickWhileOfflineWritesNothing()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addNode(makeBooleanNodeDetails(false, true));
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+    widget.setOffline(true);
+
+    QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
+    bool dialogSeen = false;
+    watchForDialog(&dialogSeen);
+    doubleClickCell(view, 0, DataAccessModel::ColValue);
+    QCoreApplication::processEvents();
+
+    QVERIFY(!dialogSeen);
+    QCOMPARE(spy.size(), 0);
 }
 
 QTEST_MAIN(TestDataAccessWidget)

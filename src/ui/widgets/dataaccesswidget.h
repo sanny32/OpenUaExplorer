@@ -235,6 +235,14 @@ signals:
                         QString dataTypeId, bool writable);
 
     ///
+    /// \brief Emitted when a value should be written without asking the user first.
+    /// \param nodeId Target node.
+    /// \param value Value to write.
+    /// \param valueType OPC UA value type.
+    ///
+    void valueWriteRequested(QString nodeId, QVariant value, int valueType);
+
+    ///
     /// \brief Emitted when a node should be monitored at a subscription's publishing interval.
     /// \param nodeId Node to monitor.
     /// \param publishingInterval Publishing interval in milliseconds.
@@ -276,6 +284,7 @@ private:
     void updateSelectionActions();
     void readSelectedNodes();
     void writeSelectedNode();
+    void toggleBooleanValue(const QModelIndex &index);
     void rebuildSubscribeMenu();
     void populateSubscribeMenu(QMenu *menu);
     void promptNewSubscription(const QString &nodeId);

@@ -214,6 +214,14 @@
         <translation>Wert:</translation>
     </message>
     <message>
+        <source>False</source>
+        <translation>Falsch</translation>
+    </message>
+    <message>
+        <source>True</source>
+        <translation>Wahr</translation>
+    </message>
+    <message>
         <source>Write</source>
         <translation>Schreiben</translation>
     </message>
@@ -1306,6 +1314,14 @@
     <message>
         <source>Unsubscribe</source>
         <translation>Abbestellen</translation>
+    </message>
+    <message>
+        <source>Write Value</source>
+        <translation>Wert schreiben</translation>
+    </message>
+    <message>
+        <source>Write %1 to %2?</source>
+        <translation>%1 in %2 schreiben?</translation>
     </message>
     <message>
         <source>Clear Data Access</source>

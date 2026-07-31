@@ -94,7 +94,8 @@ private:
     void copySelectedAttributeCell();
     void copyAttributeTree();
     void showAttributesContextMenu(const QPoint &pos);
-    void setupWriteEditor(int valueType, const QString &dataTypeId);
+    void setupWriteEditor(int valueType, const QString &dataTypeId, const QVariant &value);
+    void updateValueEditor();
     void clearWriteEditor();
     void writeCurrentValue();
 

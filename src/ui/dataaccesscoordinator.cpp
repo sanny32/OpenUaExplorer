@@ -959,6 +959,8 @@ void DataAccessCoordinator::wireDataView()
             this, &DataAccessCoordinator::addFolderById);
     connect(_dataView->dataAccess(), &DataAccessWidget::writeRequested,
             this, &DataAccessCoordinator::showWriteDialog);
+    connect(_dataView->dataAccess(), &DataAccessWidget::valueWriteRequested,
+            _attributes, &AttributeModule::write);
     connect(_dataView->dataAccess(), &DataAccessWidget::readRequested,
             _dataAccess, &DataAccessModule::read);
     connect(_dataView->dataAccess(), &DataAccessWidget::monitoringRequested,

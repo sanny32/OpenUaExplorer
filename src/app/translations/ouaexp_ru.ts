@@ -215,6 +215,14 @@
         <translation>Значение:</translation>
     </message>
     <message>
+        <source>False</source>
+        <translation>Ложь</translation>
+    </message>
+    <message>
+        <source>True</source>
+        <translation>Истина</translation>
+    </message>
+    <message>
         <source>Write</source>
         <translation>Запись</translation>
     </message>
@@ -1309,6 +1317,14 @@
     <message>
         <source>Unsubscribe</source>
         <translation>Отписаться</translation>
+    </message>
+    <message>
+        <source>Write Value</source>
+        <translation>Запись значения</translation>
+    </message>
+    <message>
+        <source>Write %1 to %2?</source>
+        <translation>Записать %1 в %2?</translation>
     </message>
     <message>
         <source>Clear Data Access</source>

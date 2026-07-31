@@ -6,6 +6,8 @@
 /// \brief Implements the OPC UA data access tab widget.
 ///
 
+#include <QtOpcUa/qopcuatype.h>
+
 #include <QAction>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
@@ -518,6 +520,8 @@ void DataAccessWidget::setupDataView()
     ui->dataView->viewport()->installEventFilter(this);
     ui->dataView->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->dataView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
+    connect(ui->dataView, &QAbstractItemView::doubleClicked,
+            this, &DataAccessWidget::toggleBooleanValue);
     ui->dataView->verticalHeader()->hide();
     ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->dataView, &QWidget::customContextMenuRequested,
@@ -666,6 +670,41 @@ void DataAccessWidget::writeSelectedNode()
     const DataAccessItem item = _dataModel->itemAt(rows.first().row());
     emit writeRequested(item.nodeId, item.typedValue, item.valueType,
                         item.dataTypeId, OpcUa::isWritable(item.userAccessLevel));
+}
+
+///
+/// \brief Writes the inverted value when a writable Boolean cell is double-clicked.
+/// \param index Double-clicked cell in the filter proxy.
+///
+/// Boolean arrays and values that were never read are left alone, so the cell only
+/// toggles when the row really holds a single writable Boolean. The new value is
+/// confirmed first, since a double click would otherwise write to the server by
+/// accident.
+///
+void DataAccessWidget::toggleBooleanValue(const QModelIndex &index)
+{
+    if (_offline || !index.isValid() || index.column() != DataAccessModel::ColValue)
+        return;
+
+    const DataAccessItem item = _dataModel->itemAt(_filterProxy->mapToSource(index).row());
+    if (item.pending
+        || item.valueType != static_cast<int>(QOpcUa::Types::Boolean)
+        || item.typedValue.userType() != QMetaType::Bool
+        || !OpcUa::isWritable(item.userAccessLevel)) {
+        return;
+    }
+
+    const bool newValue = !item.typedValue.toBool();
+    const DialogButtonBox::StandardButton answer = MessageBoxDialog::question(
+        this, tr("Write Value"),
+        tr("Write %1 to %2?")
+            .arg(newValue ? QStringLiteral("true") : QStringLiteral("false"),
+                 item.displayName.isEmpty() ? item.nodeId : item.displayName),
+        DialogButtonBox::Yes | DialogButtonBox::No, DialogButtonBox::Yes);
+    if (answer != DialogButtonBox::Yes)
+        return;
+
+    emit valueWriteRequested(item.nodeId, newValue, item.valueType);
 }
 
 ///

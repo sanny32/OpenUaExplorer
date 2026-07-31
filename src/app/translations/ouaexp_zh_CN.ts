@@ -213,6 +213,14 @@
         <translation>值：</translation>
     </message>
     <message>
+        <source>False</source>
+        <translation>假</translation>
+    </message>
+    <message>
+        <source>True</source>
+        <translation>真</translation>
+    </message>
+    <message>
         <source>Write</source>
         <translation>写入</translation>
     </message>
@@ -1303,6 +1311,14 @@
     <message>
         <source>Unsubscribe</source>
         <translation>取消订阅</translation>
+    </message>
+    <message>
+        <source>Write Value</source>
+        <translation>写入值</translation>
+    </message>
+    <message>
+        <source>Write %1 to %2?</source>
+        <translation>将 %1 写入 %2？</translation>
     </message>
     <message>
         <source>Clear Data Access</source>
