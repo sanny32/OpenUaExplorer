@@ -1176,9 +1176,9 @@
     <message numerus="yes">
         <source>Add %n variable(s) to Data Access?</source>
         <translation>
-            <numerusform>Добавить %n переменную в «Доступ к данным»?</numerusform>
-            <numerusform>Добавить %n переменные в «Доступ к данным»?</numerusform>
-            <numerusform>Добавить %n переменных в «Доступ к данным»?</numerusform>
+            <numerusform>Добавить %n переменную на вкладку «Данные»?</numerusform>
+            <numerusform>Добавить %n переменные на вкладку «Данные»?</numerusform>
+            <numerusform>Добавить %n переменных на вкладку «Данные»?</numerusform>
         </translation>
     </message>
     <message numerus="yes">
@@ -1312,7 +1312,7 @@
     </message>
     <message>
         <source>There are no data-access rows to export.</source>
-        <translation>Нет строк доступа к данным для экспорта.</translation>
+        <translation>На вкладке «Данные» нет строк для экспорта.</translation>
     </message>
     <message>
         <source>Clear</source>
@@ -1332,14 +1332,14 @@
     </message>
     <message>
         <source>Clear Data Access</source>
-        <translation>Очистить доступ к данным</translation>
+        <translation>Очистить вкладку «Данные»</translation>
     </message>
     <message numerus="yes">
         <source>Remove all %n node(s) from Data Access?</source>
         <translation>
-            <numerusform>Удалить %n узел из «Доступа к данным»?</numerusform>
-            <numerusform>Удалить все %n узла из «Доступа к данным»?</numerusform>
-            <numerusform>Удалить все %n узлов из «Доступа к данным»?</numerusform>
+            <numerusform>Удалить %n узел со вкладки «Данные»?</numerusform>
+            <numerusform>Удалить все %n узла со вкладки «Данные»?</numerusform>
+            <numerusform>Удалить все %n узлов со вкладки «Данные»?</numerusform>
         </translation>
     </message>
 </context>
@@ -1386,7 +1386,7 @@
     <name>DataView</name>
     <message>
         <source>Data Access</source>
-        <translation>Доступ к данным</translation>
+        <translation>Данные</translation>
     </message>
     <message>
         <source>Events</source>
@@ -2360,7 +2360,7 @@
     </message>
     <message>
         <source>Data Access</source>
-        <translation>Доступ к данным</translation>
+        <translation>Данные</translation>
     </message>
     <message>
         <source>Events</source>
@@ -2404,7 +2404,7 @@
     </message>
     <message>
         <source>Add to Data Access</source>
-        <translation>Добавить в доступ к данным</translation>
+        <translation>Добавить на вкладку «Данные»</translation>
     </message>
     <message>
         <source>Read Data History</source>
@@ -2424,7 +2424,7 @@
     </message>
     <message>
         <source>Remove from Data Access</source>
-        <translation>Удалить из доступа к данным</translation>
+        <translation>Удалить со вкладки «Данные»</translation>
     </message>
     <message>
         <source>None</source>
@@ -2448,7 +2448,7 @@
     </message>
     <message>
         <source>Clear Data Access</source>
-        <translation>Очистить доступ к данным</translation>
+        <translation>Очистить вкладку «Данные»</translation>
     </message>
     <message>
         <source>Light</source>
