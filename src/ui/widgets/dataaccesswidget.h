@@ -285,6 +285,7 @@ private:
     void updateSelectionActions();
     void readSelectedNodes();
     void writeSelectedNode();
+    bool canWriteSelection() const;
     void requestWrite(const DataAccessItem &item);
     void handleValueDoubleClick(const QModelIndex &index);
     void toggleBooleanValue(const DataAccessItem &item);

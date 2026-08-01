@@ -495,6 +495,12 @@ void DataAccessWidget::setupDataView()
     connect(_dataModel, &QAbstractItemModel::rowsRemoved, this, emitNodeCount);
     connect(_dataModel, &QAbstractItemModel::modelReset, this, emitNodeCount);
 
+    // The access level arrives with the attribute read, after the row was selected.
+    connect(_dataModel, &QAbstractItemModel::dataChanged,
+            this, &DataAccessWidget::updateSelectionActions);
+    connect(_dataModel, &QAbstractItemModel::modelReset,
+            this, &DataAccessWidget::updateSelectionActions);
+
     _subscriptionDelegate = new SubscriptionDelegate(_subscriptions, ui->dataView);
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, _subscriptionDelegate);
     connect(_subscriptionDelegate, &SubscriptionDelegate::subscriptionChanged, this,
@@ -560,8 +566,19 @@ void DataAccessWidget::updateSelectionActions()
     ui->addNodeButton->setEnabled(!_offline);
     ui->removeButton->setEnabled(hasSelection);
     ui->readButton->setEnabled(hasSelection);
-    ui->writeButton->setEnabled(selectedCount == 1 && !_offline);
+    ui->writeButton->setEnabled(canWriteSelection() && !_offline);
     ui->subscribeButton->setEnabled(hasSelection);
+}
+
+///
+/// \brief Reports whether the selection is a single row the user may write.
+/// \return True when one settled row is selected and it grants CurrentWrite.
+///
+bool DataAccessWidget::canWriteSelection() const
+{
+    const QModelIndexList rows = selectedSettledRows();
+    return rows.size() == 1
+        && OpcUa::isWritable(_dataModel->itemAt(rows.first().row()).userAccessLevel);
 }
 
 ///
@@ -625,7 +642,7 @@ void DataAccessWidget::showDataContextMenu(const QPoint &pos)
 
     QAction *writeAction = menu.addAction(AppIcons::themed(QStringLiteral("write")), tr("Write"),
                                           this, &DataAccessWidget::writeSelectedNode);
-    writeAction->setEnabled(selectedCount == 1);
+    writeAction->setEnabled(canWriteSelection());
 
     QMenu *subscribeMenu = menu.addMenu(AppIcons::themed(QStringLiteral("subscribe")), tr("Subscribe"));
     populateSubscribeMenu(subscribeMenu);
@@ -664,10 +681,9 @@ void DataAccessWidget::readSelectedNodes()
 ///
 void DataAccessWidget::writeSelectedNode()
 {
-    const QModelIndexList rows = selectedSettledRows();
-    if (rows.size() != 1)
+    if (!canWriteSelection())
         return;
-    requestWrite(_dataModel->itemAt(rows.first().row()));
+    requestWrite(_dataModel->itemAt(selectedSettledRows().first().row()));
 }
 
 ///
@@ -681,8 +697,11 @@ void DataAccessWidget::requestWrite(const DataAccessItem &item)
 }
 
 ///
-/// \brief Toggles or opens the write dialog when a writable Value cell is double-clicked.
+/// \brief Toggles or opens the write dialog when a Value cell is double-clicked.
 /// \param index Double-clicked cell in the filter proxy.
+///
+/// Read-only rows still reach the dialog, which then shows the value without
+/// allowing a write.
 ///
 void DataAccessWidget::handleValueDoubleClick(const QModelIndex &index)
 {
@@ -690,11 +709,12 @@ void DataAccessWidget::handleValueDoubleClick(const QModelIndex &index)
         return;
 
     const DataAccessItem item = _dataModel->itemAt(_filterProxy->mapToSource(index).row());
-    if (item.pending || !OpcUa::isWritable(item.userAccessLevel))
+    if (item.pending)
         return;
 
     // Boolean arrays keep the dialog: only a single Boolean has an obvious opposite.
-    if (item.valueType == static_cast<int>(QOpcUa::Types::Boolean)
+    if (OpcUa::isWritable(item.userAccessLevel)
+        && item.valueType == static_cast<int>(QOpcUa::Types::Boolean)
         && item.typedValue.userType() == QMetaType::Bool) {
         toggleBooleanValue(item);
         return;

@@ -50,11 +50,12 @@ private slots:
     void filterKeepsOnlyMatchingRows();
     void filterMatchesNamesOnly();
     void actionsOnFilteredRowsUseTheirOwnNodes();
+    void writeButtonNeedsOneWritableRow();
     void doubleClickTogglesWritableBooleanValue();
     void declinedDoubleClickWritesNothing();
-    void doubleClickOnReadOnlyBooleanWritesNothing();
+    void doubleClickOnReadOnlyBooleanOpensReadOnlyDialog();
     void doubleClickOnNonBooleanOpensWriteDialog();
-    void doubleClickOnReadOnlyValueWritesNothing();
+    void doubleClickOnReadOnlyValueOpensReadOnlyDialog();
     void doubleClickOnPendingRowWritesNothing();
     void doubleClickOutsideValueColumnWritesNothing();
     void doubleClickWhileOfflineWritesNothing();
@@ -588,6 +589,41 @@ void TestDataAccessWidget::actionsOnFilteredRowsUseTheirOwnNodes()
 }
 
 ///
+/// \brief Write stays disabled until exactly one writable row is selected.
+///
+void TestDataAccessWidget::writeButtonNeedsOneWritableRow()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *writeButton = widget.findChild<QAbstractButton *>(QStringLiteral("writeButton"));
+    QVERIFY(view);
+    QVERIFY(writeButton);
+
+    OpcUaNodeDetails details = makeNodeDetails();
+    details.userAccessLevel = OpcUa::CurrentRead;
+    widget.addNode(details);
+    view->selectAll();
+
+    QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
+    QVERIFY(!writeButton->isEnabled());
+    writeButton->click();
+    QCOMPARE(writeSpy.size(), 0);
+
+    // The access level of a selected row arrives with its attribute read.
+    details.userAccessLevel = OpcUa::CurrentRead | OpcUa::CurrentWrite;
+    widget.addNode(details);
+    QVERIFY(writeButton->isEnabled());
+    writeButton->click();
+    QCOMPARE(writeSpy.size(), 1);
+
+    OpcUaNodeDetails second = details;
+    second.nodeId = QStringLiteral("ns=2;s=Pressure");
+    widget.addNode(second);
+    view->selectAll();
+    QVERIFY(!writeButton->isEnabled());
+}
+
+///
 /// \brief A confirmed double click on a writable Boolean writes the inverted value.
 ///
 void TestDataAccessWidget::doubleClickTogglesWritableBooleanValue()
@@ -639,9 +675,9 @@ void TestDataAccessWidget::declinedDoubleClickWritesNothing()
 }
 
 ///
-/// \brief A Boolean the user may not write is left alone.
+/// \brief A Boolean the user may not write is shown in the dialog instead of toggling.
 ///
-void TestDataAccessWidget::doubleClickOnReadOnlyBooleanWritesNothing()
+void TestDataAccessWidget::doubleClickOnReadOnlyBooleanOpensReadOnlyDialog()
 {
     DataAccessWidget widget;
     auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
@@ -653,14 +689,11 @@ void TestDataAccessWidget::doubleClickOnReadOnlyBooleanWritesNothing()
 
     QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
     QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
-    bool dialogSeen = false;
-    watchForDialog(&dialogSeen);
     doubleClickCell(view, 0, DataAccessModel::ColValue);
-    QCoreApplication::processEvents();
 
-    QVERIFY(!dialogSeen);
     QCOMPARE(spy.size(), 0);
-    QCOMPARE(writeSpy.size(), 0);
+    QCOMPARE(writeSpy.size(), 1);
+    QCOMPARE(writeSpy.first().at(4).toBool(), false);
 }
 
 ///
@@ -691,9 +724,9 @@ void TestDataAccessWidget::doubleClickOnNonBooleanOpensWriteDialog()
 }
 
 ///
-/// \brief A value the user may not write opens no dialog.
+/// \brief A value the user may not write opens the dialog in read-only mode.
 ///
-void TestDataAccessWidget::doubleClickOnReadOnlyValueWritesNothing()
+void TestDataAccessWidget::doubleClickOnReadOnlyValueOpensReadOnlyDialog()
 {
     DataAccessWidget widget;
     auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
@@ -708,7 +741,9 @@ void TestDataAccessWidget::doubleClickOnReadOnlyValueWritesNothing()
     QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
     doubleClickCell(view, 0, DataAccessModel::ColValue);
 
-    QCOMPARE(writeSpy.size(), 0);
+    QCOMPARE(writeSpy.size(), 1);
+    QCOMPARE(writeSpy.first().at(0).toString(), details.nodeId);
+    QCOMPARE(writeSpy.first().at(4).toBool(), false);
 }
 
 ///
