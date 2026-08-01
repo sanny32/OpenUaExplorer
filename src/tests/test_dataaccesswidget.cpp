@@ -12,6 +12,7 @@
 #include <QDropEvent>
 #include <QAbstractButton>
 #include <QApplication>
+#include <QComboBox>
 #include <QDialog>
 #include <QFont>
 #include <QImage>
@@ -21,6 +22,7 @@
 #include <QPushButton>
 #include <QScopedPointer>
 #include <QSignalSpy>
+#include <QStyleOptionViewItem>
 #include <QTableView>
 #include <QTest>
 #include <QTimer>
@@ -63,6 +65,7 @@ private slots:
     void doubleClickOutsideValueColumnWritesNothing();
     void doubleClickWhileOfflineWritesNothing();
     void valueAndStatusColumnsShareTheStateDelegate();
+    void subscriptionEditorHasOpaqueBackground();
     void contextMenuOverridesChangeHighlight();
     void selectedRowsStillShowTheChangeWash();
 };
@@ -854,6 +857,27 @@ void TestDataAccessWidget::valueAndStatusColumnsShareTheStateDelegate()
     QCOMPARE(view->model()->index(0, DataAccessModel::ColValue)
                  .data(Qt::TextAlignmentRole).toInt(),
              int(Qt::AlignRight | Qt::AlignVCenter));
+}
+
+///
+/// \brief The subscription editor covers the cell text with an opaque palette background.
+///
+void TestDataAccessWidget::subscriptionEditorHasOpaqueBackground()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>();
+    QVERIFY(view);
+
+    QAbstractItemDelegate *delegate =
+        view->itemDelegateForColumn(DataAccessModel::ColSubscription);
+    QVERIFY(delegate);
+
+    QStyleOptionViewItem option;
+    QScopedPointer<QWidget> editor(delegate->createEditor(view->viewport(), option, QModelIndex()));
+    auto *combo = qobject_cast<QComboBox *>(editor.data());
+    QVERIFY(combo);
+    QVERIFY(combo->autoFillBackground());
+    QCOMPARE(combo->backgroundRole(), QPalette::Base);
 }
 
 ///

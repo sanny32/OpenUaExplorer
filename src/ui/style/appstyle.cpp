@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+#include <QAbstractItemView>
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDebug>
@@ -42,6 +43,37 @@ static QStyle *createBaseStyle(const QString &baseStyleName)
 
     return QApplication::style();
 }
+
+namespace {
+
+///
+/// \brief Returns the muted selection fill the Windows 11 style uses for unstriped views.
+/// \param palette Palette the view is drawn with.
+/// \return Translucent fill matching the style's fillSubtleSecondary colour.
+///
+QColor subtleHighlight(const QPalette &palette)
+{
+    return palette.color(QPalette::Window).lightness() < 128 ? QColor(0xff, 0xff, 0xff, 15)
+                                                             : QColor(0x00, 0x00, 0x00, 10);
+}
+
+///
+/// \brief Copies a view-item option with its selection fill muted.
+/// \param option Option to copy; must be a QStyleOptionViewItem.
+/// \param muted Receives the copy when the cast succeeds.
+/// \return True when the caller should paint with the muted copy.
+///
+bool muteSelection(const QStyleOption *option, QStyleOptionViewItem *muted)
+{
+    const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
+    if (!item)
+        return false;
+    *muted = *item;
+    muted->palette.setColor(QPalette::Highlight, subtleHighlight(muted->palette));
+    return true;
+}
+
+} // namespace
 
 ///
 /// \brief Constructs the proxy style around the current application style.
@@ -85,7 +117,27 @@ bool AppStyle::isFusionStyle()
 }
 
 ///
-/// \brief Draws a control element, forcing highlighted text colour on the attributes tree.
+/// \brief Reports whether this style must mute a view's selection fill.
+/// \param widget Widget being painted.
+/// \return True for a striped item view proxied over the Windows 11 style.
+///
+/// qwindows11style picks palette.highlight() over its muted fill purely by
+/// alternatingRowColors(), so striped views alone jump to the OS accent colour.
+///
+bool AppStyle::mutesSelection(const QWidget *widget) const
+{
+    const auto *view = qobject_cast<const QAbstractItemView *>(widget);
+    if (!view || !view->alternatingRowColors())
+        return false;
+
+    const QStyle *base = QProxyStyle::baseStyle();
+    while (const auto *proxy = qobject_cast<const QProxyStyle *>(base))
+        base = proxy->baseStyle();
+    return base && base->name().compare(QLatin1String("windows11"), Qt::CaseInsensitive) == 0;
+}
+
+///
+/// \brief Draws a control element, muting the selection fill of striped item views.
 /// \param element Control element to render.
 /// \param option Style option carrying the element state.
 /// \param painter Painter to draw with.
@@ -94,18 +146,32 @@ bool AppStyle::isFusionStyle()
 void AppStyle::drawControl(ControlElement element, const QStyleOption *option,
                            QPainter *painter, const QWidget *widget) const
 {
-    if (element == CE_ItemViewItem && widget
-        && widget->objectName() == QLatin1String("attributesTree")
-        && (option->state.testFlag(State_Selected)
-            || option->state.testFlag(State_MouseOver))) {
-        if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option)) {
-            QStyleOptionViewItem opt(*item);
-            opt.palette.setColor(QPalette::Text, opt.palette.color(QPalette::HighlightedText));
-            QProxyStyle::drawControl(element, &opt, painter, widget);
-            return;
-        }
+    QStyleOptionViewItem muted;
+    if (element == CE_ItemViewItem && mutesSelection(widget)
+        && muteSelection(option, &muted)) {
+        QProxyStyle::drawControl(element, &muted, painter, widget);
+        return;
     }
     QProxyStyle::drawControl(element, option, painter, widget);
+}
+
+///
+/// \brief Draws a primitive element, muting the selection fill of striped tree views.
+/// \param element Primitive element to render.
+/// \param option Style option carrying the element state.
+/// \param painter Painter to draw with.
+/// \param widget Widget the element belongs to.
+///
+void AppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option,
+                             QPainter *painter, const QWidget *widget) const
+{
+    QStyleOptionViewItem muted;
+    if (element == PE_PanelItemViewRow && mutesSelection(widget)
+        && muteSelection(option, &muted)) {
+        QProxyStyle::drawPrimitive(element, &muted, painter, widget);
+        return;
+    }
+    QProxyStyle::drawPrimitive(element, option, painter, widget);
 }
 
 ///

@@ -10,14 +10,18 @@
 #include <QColor>
 #include <QHeaderView>
 #include <QImage>
+#include <QItemSelectionModel>
 #include <QPalette>
 #include <QSet>
 #include <QStandardItemModel>
+#include <QStyleFactory>
 #include <QTableView>
 #include <QTest>
+#include <QTreeView>
 #include <QWidget>
 
 #include "application.h"
+#include "style/appstyle.h"
 #include "style/macappstyle.h"
 #include "style/qlementineappstyle.h"
 #include "widgets/themedtoolbutton.h"
@@ -32,7 +36,71 @@ class TestAppStyle : public QObject
 private slots:
     void centeredCellsKeepTheModelForeground();
     void autoRaiseToolButtonsHaveNoMacBezel();
+    void stripedViewsKeepTheMutedSelectionFill();
 };
+
+namespace {
+
+/// \brief Unmistakable stand-in for the OS accent, so the check does not depend on it.
+const QColor loudHighlight(0xff, 0x00, 0xff);
+
+///
+/// \brief Renders a striped two-row tree with its first row selected.
+/// \param viaAppStyle Whether the proxy style paints, or the bare Windows 11 style.
+/// \return Rendered viewport.
+///
+QImage renderStripedSelection(bool viaAppStyle)
+{
+    QStandardItemModel model(2, 1);
+    model.setItem(0, 0, new QStandardItem(QStringLiteral("First")));
+    model.setItem(1, 0, new QStandardItem(QStringLiteral("Second")));
+
+    // Naming the base style keeps the case under test off the platform's default one.
+    const QScopedPointer<QStyle> style(
+        viaAppStyle ? static_cast<QStyle *>(new AppStyle(QStringLiteral("windows11")))
+                    : QStyleFactory::create(QStringLiteral("windows11")));
+    if (style.isNull())
+        return {};
+
+    QTreeView view;
+    view.setStyle(style.data());
+    QPalette palette = view.palette();
+    palette.setColor(QPalette::Highlight, loudHighlight);
+    view.setPalette(palette);
+    view.setAlternatingRowColors(true);
+    view.setModel(&model);
+    view.setHeaderHidden(true);
+    view.resize(160, 60);
+    view.show();
+    if (!QTest::qWaitForWindowExposed(&view))
+        return {};
+    view.selectionModel()->select(model.index(0, 0), QItemSelectionModel::Select);
+
+    const QImage rendered = view.viewport()->grab().toImage();
+    view.hide();
+    // The style outlives the view only if the view stops using it first.
+    view.setStyle(nullptr);
+    return rendered;
+}
+
+///
+/// \brief Reports whether a rendering contains at least one pixel of an exact colour.
+/// \param image Rendered viewport.
+/// \param color Colour to look for.
+/// \return True when the colour occurs.
+///
+bool containsColor(const QImage &image, const QColor &color)
+{
+    for (int y = 0; y < image.height(); ++y) {
+        for (int x = 0; x < image.width(); ++x) {
+            if (image.pixelColor(x, y) == color)
+                return true;
+        }
+    }
+    return false;
+}
+
+} // namespace
 
 #if defined(HAVE_QLEMENTINE_APP_STYLE)
 
@@ -192,6 +260,28 @@ void TestAppStyle::autoRaiseToolButtonsHaveNoMacBezel()
 }
 
 #endif // HAVE_QLEMENTINE_APP_STYLE
+
+///
+/// \brief Row stripes do not switch an item view's selection over to the OS accent.
+///
+/// The Windows 11 style picks palette.highlight() over its muted fill purely by
+/// alternatingRowColors(), which left the striped attributes tree highlighting rows in
+/// the accent colour while every other view stayed grey.
+///
+void TestAppStyle::stripedViewsKeepTheMutedSelectionFill()
+{
+    if (!QStyleFactory::keys().contains(QStringLiteral("windows11"), Qt::CaseInsensitive))
+        QSKIP("Only the native Windows 11 style ties the selection fill to row stripes.");
+
+    const QImage muted = renderStripedSelection(true);
+    QVERIFY(!muted.isNull());
+    QVERIFY(!containsColor(muted, loudHighlight));
+
+    // Control: the bare style is where the accent leaks in, so the check can see it.
+    const QImage bare = renderStripedSelection(false);
+    QVERIFY(!bare.isNull());
+    QVERIFY(containsColor(bare, loudHighlight));
+}
 
 int main(int argc, char *argv[])
 {

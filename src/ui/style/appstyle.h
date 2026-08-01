@@ -50,7 +50,7 @@ public:
                            const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Draws a control element, forcing highlighted text colour on the attributes tree.
+    /// \brief Draws a control element, muting the selection fill of striped item views.
     /// \param element Control element to render.
     /// \param option Style option carrying the element state.
     /// \param painter Painter to draw with.
@@ -58,6 +58,16 @@ public:
     ///
     void drawControl(ControlElement element, const QStyleOption *option,
                      QPainter *painter, const QWidget *widget = nullptr) const override;
+
+    ///
+    /// \brief Draws a primitive element, muting the selection fill of striped tree views.
+    /// \param element Primitive element to render.
+    /// \param option Style option carrying the element state.
+    /// \param painter Painter to draw with.
+    /// \param widget Widget the element belongs to.
+    ///
+    void drawPrimitive(PrimitiveElement element, const QStyleOption *option,
+                       QPainter *painter, const QWidget *widget = nullptr) const override;
 
     /// \brief Minimum height used for compact controls.
     static constexpr int controlMinHeight = 30;
@@ -83,4 +93,7 @@ public:
     /// \return True if the application base style is Fusion.
     ///
     static bool isFusionStyle();
+
+private:
+    bool mutesSelection(const QWidget *widget) const;
 };

@@ -74,6 +74,8 @@ QWidget *SubscriptionDelegate::createEditor(QWidget *parent, const QStyleOptionV
                                             const QModelIndex &) const
 {
     QComboBox *combo = new QComboBox(parent);
+    combo->setAutoFillBackground(true);
+    combo->setBackgroundRole(QPalette::Base);
     combo->addItem(QStringLiteral("—"), QString());
     for (const SubscriptionItem &item : _subscriptions)
         combo->addItem(item.label(), item.name);
