@@ -8,14 +8,19 @@
 
 #include <algorithm>
 #include <functional>
+#include <utility>
 
 #include <QApplication>
 #include <QBrush>
 #include <QColor>
+#include <QDataStream>
 #include <QDateTime>
 #include <QFont>
 #include <QFontDatabase>
+#include <QIODevice>
+#include <QMimeData>
 #include <QPalette>
+#include <QSet>
 
 #include "dataaccessmodel.h"
 #include "csvexporter.h"
@@ -238,6 +243,190 @@ void DataAccessModel::removeRows(const QModelIndexList &rows)
 }
 
 ///
+/// \brief Moves the given rows, kept as one block, in front of a destination row.
+/// \param rows Rows to move; indexes of this model, not of a proxy.
+/// \param destinationRow Row the block is inserted before; the row count appends.
+/// \return True when the row order changed.
+///
+/// The rows keep their relative order, and the destination is read in the order
+/// before the move: dropping between two rows inserts in front of the lower one.
+///
+bool DataAccessModel::moveRows(const QModelIndexList &rows, int destinationRow)
+{
+    QSet<int> moving;
+    for (const QModelIndex &index : rows) {
+        if (index.row() >= 0 && index.row() < _items.size())
+            moving.insert(index.row());
+    }
+    if (moving.isEmpty())
+        return false;
+
+    const int destination = qBound(0, destinationRow < 0 ? _items.size() : destinationRow,
+                                   _items.size());
+
+    // The new order: the rows that stay, split at the destination, with the moved block between.
+    QList<int> moved;
+    QList<int> kept;
+    int insertAt = -1;
+    for (int row = 0; row < _items.size(); ++row) {
+        if (row == destination)
+            insertAt = kept.size();
+        if (moving.contains(row))
+            moved.append(row);
+        else
+            kept.append(row);
+    }
+    if (insertAt < 0)
+        insertAt = kept.size();
+
+    QList<int> order = kept.mid(0, insertAt);
+    order.append(moved);
+    order.append(kept.mid(insertAt));
+
+    bool reordered = false;
+    for (int row = 0; row < order.size() && !reordered; ++row)
+        reordered = order.at(row) != row;
+    if (!reordered)
+        return false;
+
+    QVector<DataAccessItem> items;
+    items.reserve(order.size());
+    for (int sourceRow : std::as_const(order))
+        items.append(_items.at(sourceRow));
+
+    QList<int> newRowOf(order.size(), 0);
+    for (int row = 0; row < order.size(); ++row)
+        newRowOf[order.at(row)] = row;
+
+    // A layout change rather than row moves: the "#" column renumbers in one go.
+    emit layoutAboutToBeChanged({}, QAbstractItemModel::VerticalSortHint);
+    _items = items;
+
+    const QModelIndexList before = persistentIndexList();
+    QModelIndexList after;
+    after.reserve(before.size());
+    for (const QModelIndex &stale : before) {
+        after.append(stale.isValid()
+                         ? index(newRowOf.value(stale.row(), stale.row()), stale.column())
+                         : stale);
+    }
+    changePersistentIndexList(before, after);
+    emit layoutChanged({}, QAbstractItemModel::VerticalSortHint);
+    return true;
+}
+
+///
+/// \brief Returns the MIME type carrying rows dragged inside the data-access table.
+/// \return MIME type string.
+///
+QString DataAccessModel::rowMimeType()
+{
+    return QStringLiteral("application/x-ouaexp-data-access-rows");
+}
+
+///
+/// \brief Reports the drop actions rows dragged inside the table may use.
+/// \return Qt::MoveAction.
+///
+Qt::DropActions DataAccessModel::supportedDropActions() const
+{
+    return Qt::MoveAction;
+}
+
+///
+/// \brief Returns the MIME types the table produces and accepts.
+/// \return Single-entry list holding rowMimeType().
+///
+QStringList DataAccessModel::mimeTypes() const
+{
+    return {rowMimeType()};
+}
+
+///
+/// \brief Encodes the dragged rows by NodeId, in row order.
+/// \param indexes Dragged cells; their rows are used.
+/// \return MIME data owned by the caller, or nullptr when nothing is draggable.
+///
+/// NodeIds travel instead of row numbers so a drop always addresses the rows the
+/// user picked up, whatever the table did in between.
+///
+QMimeData *DataAccessModel::mimeData(const QModelIndexList &indexes) const
+{
+    QStringList nodeIds;
+    QSet<int> seen;
+    for (const QModelIndex &index : indexes) {
+        if (index.row() < 0 || index.row() >= _items.size() || seen.contains(index.row()))
+            continue;
+        seen.insert(index.row());
+        nodeIds.append(_items.at(index.row()).nodeId);
+    }
+    if (nodeIds.isEmpty())
+        return nullptr;
+
+    QByteArray payload;
+    QDataStream stream(&payload, QIODevice::WriteOnly);
+    stream << nodeIds;
+
+    auto *mimeData = new QMimeData;
+    mimeData->setData(rowMimeType(), payload);
+    return mimeData;
+}
+
+///
+/// \brief Accepts a drop of the table's own rows between two rows.
+/// \param data Dragged MIME data.
+/// \param action Proposed drop action.
+/// \param row Row the data would be inserted before, or -1 to append.
+/// \param column Unused; rows move as a whole.
+/// \param parent Drop parent; only the root accepts rows.
+/// \return True when the drop would reorder rows.
+///
+bool DataAccessModel::canDropMimeData(const QMimeData *data, Qt::DropAction action,
+                                      int row, int column, const QModelIndex &parent) const
+{
+    Q_UNUSED(row)
+    Q_UNUSED(column)
+    return !_offline && !parent.isValid() && action == Qt::MoveAction
+        && data && data->hasFormat(rowMimeType());
+}
+
+///
+/// \brief Reorders the dragged rows in front of the drop row.
+/// \param data Dragged MIME data.
+/// \param action Drop action; only Qt::MoveAction reorders.
+/// \param row Row the data is inserted before, or -1 to append.
+/// \param column Unused; rows move as a whole.
+/// \param parent Drop parent; only the root accepts rows.
+/// \return True when the drop was handled.
+///
+/// The move happens here, so the dragged rows must not be removed afterwards: the
+/// view skips its follow-up removal once the model reports the move handled, and
+/// QAbstractItemModel::removeRows() is left unimplemented as a second guard.
+///
+bool DataAccessModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
+                                   int row, int column, const QModelIndex &parent)
+{
+    if (!canDropMimeData(data, action, row, column, parent))
+        return false;
+
+    QStringList nodeIds;
+    QDataStream stream(data->data(rowMimeType()));
+    stream >> nodeIds;
+    if (stream.status() != QDataStream::Ok || nodeIds.isEmpty())
+        return false;
+
+    QModelIndexList dragged;
+    for (int candidate = 0; candidate < _items.size(); ++candidate) {
+        if (nodeIds.contains(_items.at(candidate).nodeId))
+            dragged.append(index(candidate, 0));
+    }
+
+    moveRows(dragged, row);
+    // Handled either way: an unchanged order is a drop that simply moved nothing.
+    return true;
+}
+
+///
 /// \brief Collects the NodeIds of the given rows, or of every row when none are given.
 /// \param rows Optional selected rows.
 /// \return NodeIds for selected rows or all rows.
@@ -359,16 +548,22 @@ QVariant DataAccessModel::headerData(int section, Qt::Orientation orientation, i
 }
 
 ///
-/// \brief Marks the Subscription column editable, except on pending rows.
+/// \brief Marks the Subscription column editable and every row draggable.
 /// \param index Cell to query.
 /// \return Item flags for the cell.
 ///
 /// Pending rows stay selectable so they can still be removed, but they offer no
-/// editing until their attribute read and subscription have finished.
+/// editing until their attribute read and subscription have finished. Rows are
+/// draggable whatever their state: their order is a display preference. They are
+/// never drop targets themselves, so a drop only ever lands between two rows.
 ///
 Qt::ItemFlags DataAccessModel::flags(const QModelIndex &index) const
 {
-    Qt::ItemFlags f = QAbstractTableModel::flags(index);
+    // The root accepts drops so rows can be dragged past the last one.
+    if (!index.isValid())
+        return QAbstractTableModel::flags(index) | Qt::ItemIsDropEnabled;
+
+    Qt::ItemFlags f = QAbstractTableModel::flags(index) | Qt::ItemIsDragEnabled;
     if (_offline)
         return f;
     if (index.row() >= 0 && index.row() < _items.size() && _items.at(index.row()).pending)

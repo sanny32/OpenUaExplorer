@@ -35,10 +35,12 @@
 namespace {
 
 ///
-/// \brief Builds an order-independent fingerprint of saveable workspace content.
+/// \brief Builds a fingerprint of saveable workspace content.
 ///
 /// Cosmetic navigation state and the connection profile are excluded so browsing the tree
-/// or reconnecting to the same server does not mark the session dirty.
+/// or reconnecting to the same server does not mark the session dirty. Content the user
+/// cannot order is sorted first; the data-access rows are not, because their order is
+/// arranged by hand and saved with the session.
 ///
 QByteArray sessionFingerprint(const SessionData &data)
 {
@@ -56,7 +58,6 @@ QByteArray sessionFingerprint(const SessionData &data)
         nodes.append(node.nodeId + QLatin1Char('\x1f') + node.subscriptionName
                      + QLatin1Char('\x1f') + QString::number(static_cast<int>(node.highlight)));
     }
-    nodes.sort();
 
     QStringList trends;
     trends.reserve(data.trendTabs.size());

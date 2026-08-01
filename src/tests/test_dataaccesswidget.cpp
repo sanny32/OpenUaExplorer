@@ -9,6 +9,7 @@
 #include <QAbstractItemDelegate>
 #include <QCoreApplication>
 #include <QDragEnterEvent>
+#include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QAbstractButton>
 #include <QApplication>
@@ -47,6 +48,9 @@ private slots:
     void addNodeWithExplicitSubscriptionRequestsMonitoring();
     void pendingNodesAreShownAndSettledOnClear();
     void restoredNodesKeepSavedOrderAndSubscriptions();
+    void draggedRowsReorderTheSavedNodes();
+    void draggedRowsFollowTheFilteredRowsTheyLandOn();
+    void rowDroppedOnTheDataViewLandsWhereTheIndicatorPointed();
     void pendingRowsAreExcludedFromSelectionActions();
     void confirmedClearRemovesEveryNode();
     void declinedClearKeepsEveryNode();
@@ -406,6 +410,128 @@ void TestDataAccessWidget::restoredNodesKeepSavedOrderAndSubscriptions()
                      view->model()->index(row, DataAccessModel::ColNodeId)).toString(),
                  savedNodes.at(row).nodeId);
     }
+}
+
+///
+/// \brief A row dragged onto another one takes its place, and the new order is saved.
+///
+void TestDataAccessWidget::draggedRowsReorderTheSavedNodes()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+
+    const QVector<SessionNode> savedNodes{
+        {QStringLiteral("ns=2;s=First"), QStringLiteral("Default"), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=Second"), QString(), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=Third"), QStringLiteral("Fast"), HighlightMode::Enabled}
+    };
+    widget.restoreMonitoredNodes(savedNodes);
+
+    QAbstractItemModel *model = view->model();
+    QScopedPointer<QMimeData> dragged(model->mimeData({model->index(2, 0)}));
+    QVERIFY(dragged);
+    QVERIFY(model->dropMimeData(dragged.data(), Qt::MoveAction, 0, 0, QModelIndex()));
+
+    const QVector<SessionNode> saved = widget.monitoredNodes();
+    QCOMPARE(saved.size(), savedNodes.size());
+    QCOMPARE(saved.at(0).nodeId, QStringLiteral("ns=2;s=Third"));
+    QCOMPARE(saved.at(1).nodeId, QStringLiteral("ns=2;s=First"));
+    QCOMPARE(saved.at(2).nodeId, QStringLiteral("ns=2;s=Second"));
+    // The moved row keeps its subscription and its highlight override.
+    QCOMPARE(saved.at(0).subscriptionName, QStringLiteral("Fast"));
+    QCOMPARE(saved.at(0).highlight, HighlightMode::Enabled);
+    QCOMPARE(model->data(model->index(0, DataAccessModel::ColNodeId)).toString(),
+             QStringLiteral("ns=2;s=Third"));
+}
+
+///
+/// \brief A drop while filtering lands in front of the visible row, not of its row number.
+///
+void TestDataAccessWidget::draggedRowsFollowTheFilteredRowsTheyLandOn()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *filterEdit = widget.findChild<QLineEdit *>(QStringLiteral("filterEdit"));
+    QVERIFY(view);
+    QVERIFY(filterEdit);
+
+    const QVector<SessionNode> savedNodes{
+        {QStringLiteral("ns=2;s=Alpha"), QString(), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=Beta"), QString(), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=Gamma"), QString(), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=Delta"), QString(), HighlightMode::FollowDefault}
+    };
+    widget.restoreMonitoredNodes(savedNodes);
+
+    // Leaves Beta and Delta visible, with two hidden rows between them.
+    filterEdit->setText(QStringLiteral("t"));
+    QAbstractItemModel *model = view->model();
+    QCOMPARE(model->rowCount(), 2);
+
+    QScopedPointer<QMimeData> dragged(model->mimeData({model->index(1, 0)}));
+    QVERIFY(dragged);
+    QVERIFY(model->dropMimeData(dragged.data(), Qt::MoveAction, 0, 0, QModelIndex()));
+
+    QStringList order;
+    for (const SessionNode &node : widget.monitoredNodes())
+        order.append(node.nodeId);
+    QCOMPARE(order, QStringList({QStringLiteral("ns=2;s=Alpha"), QStringLiteral("ns=2;s=Delta"),
+                                 QStringLiteral("ns=2;s=Beta"), QStringLiteral("ns=2;s=Gamma")}));
+}
+
+///
+/// \brief The table itself accepts a reorder drop between two rows.
+///
+/// Drives the view rather than the model so the drag settings of the table are
+/// covered too: a drop on a row must insert next to it, never replace it.
+///
+void TestDataAccessWidget::rowDroppedOnTheDataViewLandsWhereTheIndicatorPointed()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+
+    const QVector<SessionNode> savedNodes{
+        {QStringLiteral("ns=2;s=First"), QString(), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=Second"), QString(), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=Third"), QString(), HighlightMode::FollowDefault}
+    };
+    widget.restoreMonitoredNodes(savedNodes);
+
+    // The drop is resolved against the viewport, which needs its real geometry.
+    widget.resize(600, 300);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    QAbstractItemModel *model = view->model();
+    QScopedPointer<QMimeData> dragged(model->mimeData({model->index(2, 0)}));
+    QVERIFY(dragged);
+
+    // The upper part of the first row: the drop indicator sits above it.
+    const QRect firstRow = view->visualRect(model->index(0, DataAccessModel::ColNodeId));
+    QVERIFY(firstRow.isValid());
+    const QPointF pos(firstRow.center().x(), firstRow.top() + firstRow.height() / 4.0);
+
+    QDragEnterEvent enterEvent(pos.toPoint(), Qt::MoveAction, dragged.data(),
+                               Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(view->viewport(), &enterEvent);
+    QVERIFY(enterEvent.isAccepted());
+
+    QDragMoveEvent moveEvent(pos.toPoint(), Qt::MoveAction, dragged.data(),
+                             Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(view->viewport(), &moveEvent);
+    QVERIFY(moveEvent.isAccepted());
+
+    QDropEvent dropEvent(pos, Qt::MoveAction, dragged.data(), Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(view->viewport(), &dropEvent);
+    QVERIFY(dropEvent.isAccepted());
+
+    QStringList order;
+    for (const SessionNode &node : widget.monitoredNodes())
+        order.append(node.nodeId);
+    QCOMPARE(order, QStringList({QStringLiteral("ns=2;s=Third"), QStringLiteral("ns=2;s=First"),
+                                 QStringLiteral("ns=2;s=Second")}));
 }
 
 ///

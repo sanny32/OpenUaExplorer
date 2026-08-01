@@ -13,7 +13,9 @@
 #include <QDateTime>
 #include <QFont>
 #include <QFontDatabase>
+#include <QMimeData>
 #include <QPalette>
+#include <QScopedPointer>
 #include <QSignalSpy>
 #include <QStandardItemModel>
 #include <QTest>
@@ -50,6 +52,9 @@ private slots:
     void dataAccessUpdateValuesRefreshesValueColumns();
     void dataAccessFormatsTypedValues();
     void dataAccessRemoveRowsDropsSelected();
+    void dataAccessMoveRowsKeepsTheDraggedBlockTogether();
+    void dataAccessMoveRowsIgnoresPointlessMoves();
+    void dataAccessRowDropReordersByNodeId();
     void dataAccessSubscriptionColumnIsEditable();
     void dataAccessTimestampModeReformats();
     void dataAccessOfflineGreysRowsAndLocksEditing();
@@ -505,6 +510,85 @@ void TestModels::dataAccessRemoveRowsDropsSelected()
 
     QCOMPARE(model.rowCount(), items.size() - 1);
     QVERIFY(!model.nodeIds().contains(items.last().nodeId));
+}
+
+///
+/// \brief Dragged rows land in front of the destination row, in one block.
+///
+void TestModels::dataAccessMoveRowsKeepsTheDraggedBlockTogether()
+{
+    DataAccessModel model;
+    new QAbstractItemModelTester(&model, &model);
+    const QVector<DataAccessItem> items = TestData::dataAccessItems();
+    model.setItems(items);
+
+    // Two rows picked apart from each other end up next to each other.
+    const QPersistentModelIndex followed(model.index(2, DataAccessModel::ColNodeId));
+    QVERIFY(model.moveRows({model.index(0, 0), model.index(2, 0)}, model.rowCount() - 1));
+
+    QCOMPARE(model.nodeIds(), QStringList({items.at(1).nodeId, items.at(3).nodeId,
+                                           items.at(4).nodeId, items.at(0).nodeId,
+                                           items.at(2).nodeId, items.at(5).nodeId}));
+    // The selection and open editors ride along with their row.
+    QCOMPARE(followed.row(), 4);
+    QCOMPARE(followed.column(), DataAccessModel::ColNodeId);
+
+    // Moving up inserts in front of the destination row.
+    QVERIFY(model.moveRows({model.index(4, 0)}, 1));
+    QCOMPARE(model.nodeIds().at(1), items.at(2).nodeId);
+    // The "#" column renumbers with the rows.
+    QCOMPARE(model.data(model.index(1, DataAccessModel::ColNumber)).toInt(), 2);
+}
+
+///
+/// \brief A move that would leave the order untouched changes nothing.
+///
+void TestModels::dataAccessMoveRowsIgnoresPointlessMoves()
+{
+    DataAccessModel model;
+    const QVector<DataAccessItem> items = TestData::dataAccessItems();
+    model.setItems(items);
+    const QStringList before = model.nodeIds();
+
+    QVERIFY(!model.moveRows({}, 0));
+    QVERIFY(!model.moveRows({model.index(99, 0)}, 0));
+    // Dropping a row on either of its own edges keeps it where it is.
+    QVERIFY(!model.moveRows({model.index(2, 0)}, 2));
+    QVERIFY(!model.moveRows({model.index(2, 0)}, 3));
+    QCOMPARE(model.nodeIds(), before);
+}
+
+///
+/// \brief Rows dropped back on the table are reordered by the NodeIds they carry.
+///
+void TestModels::dataAccessRowDropReordersByNodeId()
+{
+    DataAccessModel model;
+    const QVector<DataAccessItem> items = TestData::dataAccessItems();
+    model.setItems(items);
+
+    QScopedPointer<QMimeData> dragged(model.mimeData({model.index(0, 0), model.index(0, 1),
+                                                      model.index(1, 0)}));
+    QVERIFY(dragged);
+    QVERIFY(dragged->hasFormat(DataAccessModel::rowMimeType()));
+
+    // Only a move of the table's own rows onto the root is accepted.
+    QVERIFY(!model.canDropMimeData(dragged.data(), Qt::CopyAction, 4, 0, QModelIndex()));
+    QVERIFY(!model.canDropMimeData(dragged.data(), Qt::MoveAction, 4, 0, model.index(3, 0)));
+    QScopedPointer<QMimeData> foreign(new QMimeData);
+    foreign->setText(QStringLiteral("ns=2;s=Elsewhere"));
+    QVERIFY(!model.canDropMimeData(foreign.data(), Qt::MoveAction, 4, 0, QModelIndex()));
+
+    QVERIFY(model.canDropMimeData(dragged.data(), Qt::MoveAction, 4, 0, QModelIndex()));
+    QVERIFY(model.dropMimeData(dragged.data(), Qt::MoveAction, 4, 0, QModelIndex()));
+    QCOMPARE(model.nodeIds(), QStringList({items.at(2).nodeId, items.at(3).nodeId,
+                                           items.at(0).nodeId, items.at(1).nodeId,
+                                           items.at(4).nodeId, items.at(5).nodeId}));
+
+    // A disconnected table shows the rows it had, but stops accepting drops.
+    model.setOffline(true);
+    QVERIFY(!model.canDropMimeData(dragged.data(), Qt::MoveAction, 0, 0, QModelIndex()));
+    QVERIFY(!model.dropMimeData(dragged.data(), Qt::MoveAction, 0, 0, QModelIndex()));
 }
 
 ///

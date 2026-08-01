@@ -309,6 +309,8 @@ void DataAccessWidget::setOffline(bool offline)
     _dataModel->setOffline(offline);
     ui->dataView->setAcceptDrops(!offline);
     ui->dataView->viewport()->setAcceptDrops(!offline);
+    // Nothing accepts a drop while offline, so a reorder drag could not finish either.
+    ui->dataView->setDragEnabled(!offline);
     updateSelectionActions();
 }
 
@@ -542,6 +544,10 @@ void DataAccessWidget::setupDataView()
                 }, Qt::QueuedConnection);
             });
 
+    // Address-space nodes drop in, listed rows drag to reorder: a drop lands between rows, never on one.
+    ui->dataView->setDragDropMode(QAbstractItemView::DragDrop);
+    ui->dataView->setDefaultDropAction(Qt::MoveAction);
+    ui->dataView->setDragDropOverwriteMode(false);
     ui->dataView->setAcceptDrops(true);
     ui->dataView->viewport()->setAcceptDrops(true);
     ui->dataView->setDropIndicatorShown(true);

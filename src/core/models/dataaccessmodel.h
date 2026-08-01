@@ -17,6 +17,8 @@
 #include "dataaccessitem.h"
 #include "opcua/opcuatypes.h"
 
+class QMimeData;
+
 ///
 /// \brief Table model for OPC UA data access monitored items.
 ///
@@ -80,6 +82,20 @@ public:
     /// \param rows Selected model rows.
     ///
     void removeRows(const QModelIndexList &rows);
+
+    ///
+    /// \brief Moves the given rows, kept as one block, in front of a destination row.
+    /// \param rows Rows to move; indexes of this model, not of a proxy.
+    /// \param destinationRow Row the block is inserted before; the row count appends.
+    /// \return True when the row order changed.
+    ///
+    bool moveRows(const QModelIndexList &rows, int destinationRow);
+
+    ///
+    /// \brief Returns the MIME type carrying rows dragged inside the data-access table.
+    /// \return MIME type string.
+    ///
+    static QString rowMimeType();
 
     ///
     /// \brief Collects the NodeIds of the given rows, or of every row when none are given.
@@ -165,11 +181,54 @@ public:
     void retranslate();
 
     ///
-    /// \brief Marks the Subscription column editable.
+    /// \brief Marks the Subscription column editable and every row draggable.
     /// \param index Cell to query.
     /// \return Item flags for the cell.
     ///
     Qt::ItemFlags flags(const QModelIndex &index) const override;
+
+    ///
+    /// \brief Reports the drop actions rows dragged inside the table may use.
+    /// \return Qt::MoveAction.
+    ///
+    Qt::DropActions supportedDropActions() const override;
+
+    ///
+    /// \brief Returns the MIME types the table produces and accepts.
+    /// \return Single-entry list holding rowMimeType().
+    ///
+    QStringList mimeTypes() const override;
+
+    ///
+    /// \brief Encodes the dragged rows by NodeId, in row order.
+    /// \param indexes Dragged cells; their rows are used.
+    /// \return MIME data owned by the caller, or nullptr when nothing is draggable.
+    ///
+    QMimeData *mimeData(const QModelIndexList &indexes) const override;
+
+    ///
+    /// \brief Accepts a drop of the table's own rows between two rows.
+    /// \param data Dragged MIME data.
+    /// \param action Proposed drop action.
+    /// \param row Row the data would be inserted before, or -1 to append.
+    /// \param column Unused; rows move as a whole.
+    /// \param parent Drop parent; only the root accepts rows.
+    /// \return True when the drop would reorder rows.
+    ///
+    bool canDropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column,
+                         const QModelIndex &parent) const override;
+
+    ///
+    /// \brief Reorders the dragged rows in front of the drop row.
+    /// \param data Dragged MIME data.
+    /// \param action Drop action; only Qt::MoveAction reorders.
+    /// \param row Row the data is inserted before, or -1 to append.
+    /// \param column Unused; rows move as a whole.
+    /// \param parent Drop parent; only the root accepts rows.
+    /// \return True when the drop was handled.
+    ///
+    bool dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column,
+                      const QModelIndex &parent) override;
 
     ///
     /// \brief Returns the text alignment for a column.
