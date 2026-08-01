@@ -44,21 +44,17 @@ void applyRowHover(QStyleOptionViewItem &option, const QAbstractItemView *view,
     const int hovered = view ? view->property(kHoveredRowProperty).toInt() : -1;
     if (index.row() == hovered) {
         option.state |= QStyle::State_MouseOver;
-        option.state |= QStyle::State_Selected;
     } else {
         option.state &= ~QStyle::State_MouseOver;
     }
 }
 
 ///
-/// \brief Returns true when a row is selected or hovered.
+/// \brief Returns true when a row is selected.
 ///
-bool isRowActive(const QStyleOptionViewItem &option, const QAbstractItemView *view,
-                 const QModelIndex &index)
+bool isRowSelected(const QStyleOptionViewItem &option)
 {
-    if (option.state.testFlag(QStyle::State_Selected))
-        return true;
-    return view && view->property(kHoveredRowProperty).toInt() == index.row();
+    return option.state.testFlag(QStyle::State_Selected);
 }
 
 ///
@@ -135,7 +131,7 @@ public:
     {
         paintBackground(painter, option, index);
 
-        const bool active = isRowActive(option, _view, index);
+        const bool active = isRowSelected(option);
         const QColor color = option.palette.color(
             active ? QPalette::HighlightedText : QPalette::Text);
         const QRect textRect = option.rect.adjusted(kMarginH, 0, -kMarginH, 0);

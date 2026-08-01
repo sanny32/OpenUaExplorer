@@ -50,7 +50,7 @@ public:
                            const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Draws a control element, muting the selection fill of striped item views.
+    /// \brief Draws item-view controls with system selection and neutral hover fills.
     /// \param element Control element to render.
     /// \param option Style option carrying the element state.
     /// \param painter Painter to draw with.
@@ -60,7 +60,7 @@ public:
                      QPainter *painter, const QWidget *widget = nullptr) const override;
 
     ///
-    /// \brief Draws a primitive element, muting the selection fill of striped tree views.
+    /// \brief Draws item-view rows with system fills and without cell focus frames.
     /// \param element Primitive element to render.
     /// \param option Style option carrying the element state.
     /// \param painter Painter to draw with.
@@ -95,5 +95,5 @@ public:
     static bool isFusionStyle();
 
 private:
-    bool mutesSelection(const QWidget *widget) const;
+    bool usesNativeItemStateOverride(const QWidget *widget) const;
 };

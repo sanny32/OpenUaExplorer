@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QColor>
+#include <QPalette>
 #include <QString>
 
 #include "appicons.h"
@@ -74,6 +75,21 @@ inline QColor mostLegible(const QColor &background, const QColor &first, const Q
     return qAbs(first.lightness() - reference) >= qAbs(second.lightness() - reference)
         ? first
         : second;
+}
+
+///
+/// \brief Picks the value-change wash for the current selection state.
+/// \param palette Palette supplying the system selection colours.
+/// \param selected Whether the value cell is selected.
+/// \return The regular accent, or a foreground legible on the system highlight.
+///
+inline QColor signalChangeWash(const QPalette &palette, bool selected)
+{
+    const QColor wash = accent();
+    if (!selected)
+        return wash;
+    return mostLegible(palette.color(QPalette::Highlight), wash,
+                        palette.color(QPalette::HighlightedText));
 }
 
 ///

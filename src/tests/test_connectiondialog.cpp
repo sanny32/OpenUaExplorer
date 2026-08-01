@@ -99,7 +99,7 @@ private slots:
     void advancedSettingsSeedFromStoredDefaults();
     void serverTrustStateFollowsTrustList();
     void trustIsRefusedForACertificateOutsideItsValidity();
-    void endpointHoverUsesSelectionBackgroundInFusion();
+    void endpointHoverDoesNotUseSelectionBackgroundInFusion();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -596,7 +596,7 @@ void TestConnectionDialog::trustIsRefusedForACertificateOutsideItsValidity()
     QVERIFY(!trustButton->toolTip().isEmpty());
 }
 
-void TestConnectionDialog::endpointHoverUsesSelectionBackgroundInFusion()
+void TestConnectionDialog::endpointHoverDoesNotUseSelectionBackgroundInFusion()
 {
     if (!hasStyle(QStringLiteral("Fusion")))
         QSKIP("Fusion style is unavailable.");
@@ -619,8 +619,8 @@ void TestConnectionDialog::endpointHoverUsesSelectionBackgroundInFusion()
     QVERIFY(dialog.layout()->activate());
     endpointView->setProperty("hoveredRow", 1);
 
-    QCOMPARE(cellBackgroundColor(endpointView, 1, EndpointModel::PolicyColumn),
-             cellBackgroundColor(endpointView, 0, EndpointModel::PolicyColumn));
+    QVERIFY(cellBackgroundColor(endpointView, 1, EndpointModel::PolicyColumn)
+            != cellBackgroundColor(endpointView, 0, EndpointModel::PolicyColumn));
 }
 
 QTEST_MAIN(TestConnectionDialog)

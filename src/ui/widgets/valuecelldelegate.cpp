@@ -97,8 +97,13 @@ void ValueCellDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
     // foreground outranks the per-cell state colour. Which role the style reads is
     // its own business, so both carry the colour rather than the delegate guessing.
     if (!index.data(Qt::ForegroundRole).isValid()) {
-        const QColor color = stateColor(index, index.column());
+        QColor color = stateColor(index, index.column());
         if (color.isValid()) {
+            if (opt.state.testFlag(QStyle::State_Selected)) {
+                color = AppColors::mostLegible(
+                    opt.palette.color(QPalette::Highlight), color,
+                    opt.palette.color(QPalette::HighlightedText));
+            }
             opt.palette.setColor(QPalette::Text, color);
             opt.palette.setColor(QPalette::HighlightedText, color);
         }
@@ -121,7 +126,8 @@ void ValueCellDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
     // Washing over the finished cell keeps the style in charge of the text; at this
     // opacity the tint reads on the background without dulling the glyphs.
     const qreal remaining = 1.0 - static_cast<qreal>(elapsed) / duration;
-    QColor wash = AppColors::accent();
+    QColor wash = AppColors::signalChangeWash(
+        opt.palette, opt.state.testFlag(QStyle::State_Selected));
     wash.setAlpha(qRound(FlashMaxAlpha * remaining));
     painter->fillRect(opt.rect, wash);
 

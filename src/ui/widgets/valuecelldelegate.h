@@ -17,10 +17,10 @@ class QAbstractItemView;
 /// \brief Paints data-access values and status codes as a live quality indicator.
 ///
 /// Two signals share the cell: a fading accent wash right after a value changed,
-/// and a quality text colour driven by the status code. Both survive selection,
-/// which in the supported styles tints the row too lightly to hide them. The
-/// colours live here rather than in DataAccessModel because the model sits in the
-/// core library, which cannot reach the theme-aware AppColors palette.
+/// and a quality text colour driven by the status code. Selected status text adapts
+/// to the system highlight when its semantic colour would be less legible. The colours
+/// live here rather than in DataAccessModel because the model sits in the core library,
+/// which cannot reach the theme-aware AppColors palette.
 ///
 class ValueCellDelegate : public QStyledItemDelegate
 {

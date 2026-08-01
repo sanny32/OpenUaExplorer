@@ -8,13 +8,16 @@
 
 #include <QBrush>
 #include <QColor>
+#include <QCoreApplication>
 #include <QHeaderView>
 #include <QImage>
 #include <QItemSelectionModel>
+#include <QPainter>
 #include <QPalette>
 #include <QSet>
 #include <QStandardItemModel>
 #include <QStyleFactory>
+#include <QStyleOptionFocusRect>
 #include <QTableView>
 #include <QTest>
 #include <QTreeView>
@@ -36,20 +39,28 @@ class TestAppStyle : public QObject
 private slots:
     void centeredCellsKeepTheModelForeground();
     void autoRaiseToolButtonsHaveNoMacBezel();
-    void stripedViewsKeepTheMutedSelectionFill();
+    void stripedViewsKeepTheSystemSelectionColor();
+    void unstripedViewsUseTheSystemSelectionColor();
+    void nativeUnstripedViewsIgnoreTheSystemSelectionColor();
+    void hoverUsesTheNativeFillOverModelBackground();
+    void itemViewFocusFrameIsHidden();
+    void focusedSelectionHasNoCellFrame();
 };
 
 namespace {
 
 /// \brief Unmistakable stand-in for the OS accent, so the check does not depend on it.
 const QColor loudHighlight(0xff, 0x00, 0xff);
+const QColor loudModelBackground(0xff, 0x00, 0x00);
 
 ///
-/// \brief Renders a striped two-row tree with its first row selected.
+/// \brief Renders a two-row tree with its first row selected.
 /// \param viaAppStyle Whether the proxy style paints, or the bare Windows 11 style.
+/// \param striped Whether the view uses alternating row colours.
+/// \param focused Whether the selected item owns keyboard focus.
 /// \return Rendered viewport.
 ///
-QImage renderStripedSelection(bool viaAppStyle)
+QImage renderSelection(bool viaAppStyle, bool striped, bool focused = false)
 {
     QStandardItemModel model(2, 1);
     model.setItem(0, 0, new QStandardItem(QStringLiteral("First")));
@@ -64,23 +75,97 @@ QImage renderStripedSelection(bool viaAppStyle)
 
     QTreeView view;
     view.setStyle(style.data());
+    view.setAllColumnsShowFocus(true);
     QPalette palette = view.palette();
     palette.setColor(QPalette::Highlight, loudHighlight);
     view.setPalette(palette);
-    view.setAlternatingRowColors(true);
+    view.setAlternatingRowColors(striped);
     view.setModel(&model);
     view.setHeaderHidden(true);
     view.resize(160, 60);
     view.show();
     if (!QTest::qWaitForWindowExposed(&view))
         return {};
-    view.selectionModel()->select(model.index(0, 0), QItemSelectionModel::Select);
+    const QModelIndex selected = model.index(0, 0);
+    view.setCurrentIndex(selected);
+    view.selectionModel()->select(selected, QItemSelectionModel::Select);
+    if (focused)
+        view.setFocus(Qt::OtherFocusReason);
+    else
+        view.clearFocus();
+    QCoreApplication::processEvents();
 
     const QImage rendered = view.viewport()->grab().toImage();
     view.hide();
     // The style outlives the view only if the view stops using it first.
     view.setStyle(nullptr);
     return rendered;
+}
+
+///
+/// \brief Renders a two-row tree while the first row is hovered.
+/// \param modelBackground Optional background supplied by the model for the hovered item.
+/// \return Rendered viewport.
+///
+QImage renderHover(const QColor &modelBackground)
+{
+    QStandardItemModel model(2, 1);
+    auto *first = new QStandardItem(QStringLiteral("First"));
+    if (modelBackground.isValid())
+        first->setBackground(modelBackground);
+    model.setItem(0, 0, first);
+    model.setItem(1, 0, new QStandardItem(QStringLiteral("Second")));
+
+    AppStyle style(QStringLiteral("windows11"));
+    QTreeView view;
+    view.setStyle(&style);
+    view.setAlternatingRowColors(true);
+    QPalette palette = view.palette();
+    palette.setColor(QPalette::Highlight, loudHighlight);
+    view.setPalette(palette);
+    view.setModel(&model);
+    view.setHeaderHidden(true);
+    view.resize(160, 60);
+    view.show();
+    if (!QTest::qWaitForWindowExposed(&view))
+        return {};
+
+    QTest::mouseMove(view.viewport(), view.visualRect(model.index(0, 0)).center());
+    QCoreApplication::processEvents();
+    const QImage rendered = view.viewport()->grab().toImage();
+    view.hide();
+    view.setStyle(nullptr);
+    return rendered;
+}
+
+///
+/// \brief Renders an item-view focus primitive through the proxy or bare Fusion style.
+/// \param viaAppStyle Whether AppStyle or the bare style paints the primitive.
+/// \return Rendered focus rectangle canvas.
+///
+QImage renderItemViewFocus(bool viaAppStyle)
+{
+    const QScopedPointer<QStyle> style(
+        viaAppStyle ? static_cast<QStyle *>(new AppStyle(QStringLiteral("fusion")))
+                    : QStyleFactory::create(QStringLiteral("fusion")));
+    if (style.isNull())
+        return {};
+
+    QTreeView view;
+    view.setStyle(style.data());
+    QImage image(80, 28, QImage::Format_ARGB32_Premultiplied);
+    image.fill(loudModelBackground);
+
+    QStyleOptionFocusRect option;
+    option.initFrom(&view);
+    option.rect = image.rect().adjusted(2, 2, -2, -2);
+    option.state |= QStyle::State_HasFocus | QStyle::State_KeyboardFocusChange;
+
+    QPainter painter(&image);
+    style->drawPrimitive(QStyle::PE_FrameFocusRect, &option, &painter, &view);
+    painter.end();
+    view.setStyle(nullptr);
+    return image;
 }
 
 ///
@@ -98,6 +183,37 @@ bool containsColor(const QImage &image, const QColor &color)
         }
     }
     return false;
+}
+
+///
+/// \brief Reports whether the first row uses a colour across the viewport width.
+/// \param image Rendered viewport.
+/// \param color Expected row colour.
+/// \return True when both edges of the first row use the colour.
+///
+bool firstRowUsesColor(const QImage &image, const QColor &color)
+{
+    const int y = qMin(7, image.height() - 1);
+    return image.pixelColor(1, y) == color
+        && image.pixelColor(image.width() - 2, y) == color;
+}
+
+///
+/// \brief Counts pixels of an exact colour in a rendering.
+/// \param image Rendered viewport.
+/// \param color Colour to count.
+/// \return Number of matching pixels.
+///
+int colorPixelCount(const QImage &image, const QColor &color)
+{
+    int count = 0;
+    for (int y = 0; y < image.height(); ++y) {
+        for (int x = 0; x < image.width(); ++x) {
+            if (image.pixelColor(x, y) == color)
+                ++count;
+        }
+    }
+    return count;
 }
 
 } // namespace
@@ -262,27 +378,102 @@ void TestAppStyle::autoRaiseToolButtonsHaveNoMacBezel()
 #endif // HAVE_QLEMENTINE_APP_STYLE
 
 ///
-/// \brief Row stripes do not switch an item view's selection over to the OS accent.
+/// \brief Striped item views preserve the selection colour supplied by the system palette.
 ///
-/// The Windows 11 style picks palette.highlight() over its muted fill purely by
-/// alternatingRowColors(), which left the striped attributes tree highlighting rows in
-/// the accent colour while every other view stayed grey.
-///
-void TestAppStyle::stripedViewsKeepTheMutedSelectionFill()
+void TestAppStyle::stripedViewsKeepTheSystemSelectionColor()
 {
     if (!QStyleFactory::keys().contains(QStringLiteral("windows11"), Qt::CaseInsensitive))
         QSKIP("Only the native Windows 11 style ties the selection fill to row stripes.");
 
-    const QImage muted = renderStripedSelection(true);
-    QVERIFY(!muted.isNull());
-    QVERIFY(!containsColor(muted, loudHighlight));
+    const QImage proxied = renderSelection(true, true);
+    QVERIFY(!proxied.isNull());
+    QVERIFY(containsColor(proxied, loudHighlight));
 
-    // Control: the bare style is where the accent leaks in, so the check can see it.
-    const QImage bare = renderStripedSelection(false);
+    const QImage bare = renderSelection(false, true);
     QVERIFY(!bare.isNull());
     QVERIFY(containsColor(bare, loudHighlight));
 }
 
+///
+/// \brief Unstriped item views use the selection colour supplied by the system palette.
+///
+void TestAppStyle::unstripedViewsUseTheSystemSelectionColor()
+{
+    if (!QStyleFactory::keys().contains(QStringLiteral("windows11"), Qt::CaseInsensitive))
+        QSKIP("Only the native Windows 11 style replaces unstriped selection colours.");
+
+    const QImage proxied = renderSelection(true, false);
+    const QImage bare = renderSelection(false, false);
+    QVERIFY(!proxied.isNull());
+    QVERIFY(!bare.isNull());
+    QVERIFY(colorPixelCount(proxied, loudHighlight)
+            > colorPixelCount(bare, loudHighlight));
+}
+
+///
+/// \brief The native control demonstrates why unstriped views need the proxy override.
+///
+void TestAppStyle::nativeUnstripedViewsIgnoreTheSystemSelectionColor()
+{
+    if (!QStyleFactory::keys().contains(QStringLiteral("windows11"), Qt::CaseInsensitive))
+        QSKIP("Only the native Windows 11 style replaces unstriped selection colours.");
+
+    const QImage bare = renderSelection(false, false);
+    QVERIFY(!bare.isNull());
+    QVERIFY(!firstRowUsesColor(bare, loudHighlight));
+}
+
+///
+/// \brief Hover uses the native neutral fill even when the model supplies a background.
+///
+void TestAppStyle::hoverUsesTheNativeFillOverModelBackground()
+{
+    if (!QStyleFactory::keys().contains(QStringLiteral("windows11"), Qt::CaseInsensitive))
+        QSKIP("Only the native Windows 11 style supplies this hover fill.");
+
+    const QImage plain = renderHover(QColor());
+    const QImage modelColoured = renderHover(loudModelBackground);
+    QVERIFY(!plain.isNull());
+    QVERIFY(!modelColoured.isNull());
+    QCOMPARE(modelColoured, plain);
+    QVERIFY(!containsColor(modelColoured, loudHighlight));
+}
+
+///
+/// \brief Item views suppress the current-cell focus frame.
+///
+void TestAppStyle::itemViewFocusFrameIsHidden()
+{
+    const QImage proxied = renderItemViewFocus(true);
+    const QImage bare = renderItemViewFocus(false);
+    QVERIFY(!proxied.isNull());
+    QVERIFY(!bare.isNull());
+
+    const int pixelCount = proxied.width() * proxied.height();
+    QCOMPARE(colorPixelCount(proxied, loudModelBackground), pixelCount);
+    QVERIFY(colorPixelCount(bare, loudModelBackground) < pixelCount);
+}
+
+///
+/// \brief Keyboard focus does not add a frame around the current selected cell.
+///
+void TestAppStyle::focusedSelectionHasNoCellFrame()
+{
+    if (!QStyleFactory::keys().contains(QStringLiteral("windows11"), Qt::CaseInsensitive))
+        QSKIP("Only the native Windows 11 style draws this cell frame.");
+
+    const QImage focused = renderSelection(true, true, true);
+    const QImage unfocused = renderSelection(true, true, false);
+    QVERIFY(!focused.isNull());
+    QVERIFY(!unfocused.isNull());
+    QCOMPARE(focused, unfocused);
+
+    const QImage nativeFocused = renderSelection(false, true, true);
+    const QImage nativeUnfocused = renderSelection(false, true, false);
+    QVERIFY(!nativeFocused.isNull());
+    QVERIFY(!nativeUnfocused.isNull());
+    QVERIFY(nativeFocused != nativeUnfocused);
+}
 int main(int argc, char *argv[])
 {
     // The style reads the application theme in its constructor.

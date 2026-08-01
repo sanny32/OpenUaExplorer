@@ -21,6 +21,8 @@ class TestAppColors : public QObject
 private slots:
     void mostLegiblePicksTheForegroundFurthestInLightness();
     void mostLegibleKeepsThePreferredForegroundOnATie();
+    void signalChangeWashKeepsAccentWithoutSelection();
+    void signalChangeWashAdaptsToSystemSelection();
 };
 
 void TestAppColors::mostLegiblePicksTheForegroundFurthestInLightness()
@@ -39,6 +41,30 @@ void TestAppColors::mostLegibleKeepsThePreferredForegroundOnATie()
     const QColor background(0x80, 0x80, 0x80);
 
     QCOMPARE(AppColors::mostLegible(background, first, second).lightness(), first.lightness());
+}
+
+///
+/// \brief Unselected value changes keep the existing accent wash.
+///
+void TestAppColors::signalChangeWashKeepsAccentWithoutSelection()
+{
+    QPalette palette;
+    palette.setColor(QPalette::Highlight, QColor(0xef, 0x25, 0x20));
+    palette.setColor(QPalette::HighlightedText, Qt::white);
+
+    QCOMPARE(AppColors::signalChangeWash(palette, false), AppColors::accent());
+}
+
+///
+/// \brief Selected value changes adapt their wash to the system highlight.
+///
+void TestAppColors::signalChangeWashAdaptsToSystemSelection()
+{
+    QPalette palette;
+    palette.setColor(QPalette::Highlight, QColor(0xef, 0x25, 0x20));
+    palette.setColor(QPalette::HighlightedText, Qt::white);
+
+    QCOMPARE(AppColors::signalChangeWash(palette, true), QColor(Qt::white));
 }
 
 QTEST_MAIN(TestAppColors)

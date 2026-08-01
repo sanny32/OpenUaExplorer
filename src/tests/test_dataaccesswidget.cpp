@@ -20,14 +20,18 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QMimeData>
+#include <QPainter>
+#include <QProxyStyle>
 #include <QPushButton>
 #include <QScopedPointer>
 #include <QSignalSpy>
 #include <QStyleOptionViewItem>
+#include <QStyleFactory>
 #include <QTableView>
 #include <QTest>
 #include <QTimer>
 
+#include "appcolors.h"
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
 #include "widgets/dataaccesswidget.h"
@@ -69,6 +73,7 @@ private slots:
     void doubleClickOutsideValueColumnWritesNothing();
     void doubleClickWhileOfflineWritesNothing();
     void valueAndStatusColumnsShareTheStateDelegate();
+    void selectedStatusUsesContrastText();
     void subscriptionEditorHasOpaqueBackground();
     void contextMenuOverridesChangeHighlight();
     void selectedRowsStillShowTheChangeWash();
@@ -76,6 +81,40 @@ private slots:
 };
 
 namespace {
+
+class ItemPaletteStyle : public QProxyStyle
+{
+public:
+    ///
+    /// \brief Constructs a recording proxy over the Fusion style.
+    ///
+    ItemPaletteStyle()
+        : QProxyStyle(QStyleFactory::create(QStringLiteral("fusion")))
+    {
+    }
+
+    ///
+    /// \brief Records the palette received for an item-view cell.
+    /// \param element Control element being painted.
+    /// \param option Style option carrying the cell palette.
+    /// \param painter Painter receiving the rendering.
+    /// \param widget Widget the control belongs to.
+    ///
+    void drawControl(ControlElement element, const QStyleOption *option,
+                     QPainter *painter, const QWidget *widget) const override
+    {
+        if (element == CE_ItemViewItem) {
+            if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option)) {
+                text = item->palette.color(QPalette::Text);
+                highlightedText = item->palette.color(QPalette::HighlightedText);
+            }
+        }
+        QProxyStyle::drawControl(element, option, painter, widget);
+    }
+
+    mutable QColor text;
+    mutable QColor highlightedText;
+};
 
 ///
 /// \brief Builds a node for drag/drop tests.
@@ -984,6 +1023,44 @@ void TestDataAccessWidget::valueAndStatusColumnsShareTheStateDelegate()
     QCOMPARE(view->model()->index(0, DataAccessModel::ColValue)
                  .data(Qt::TextAlignmentRole).toInt(),
              int(Qt::AlignRight | Qt::AlignVCenter));
+}
+
+///
+/// \brief Selected status text adapts to the system highlight colour.
+///
+void TestDataAccessWidget::selectedStatusUsesContrastText()
+{
+    ItemPaletteStyle style;
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addNodeWithDefaultSubscription(makeNodeDetails());
+
+    view->setStyle(&style);
+    QPalette palette = view->palette();
+    const QColor highlight(0xef, 0x25, 0x20);
+    const QColor systemText(Qt::white);
+    palette.setColor(QPalette::Highlight, highlight);
+    palette.setColor(QPalette::HighlightedText, systemText);
+    view->setPalette(palette);
+
+    const QModelIndex status = view->model()->index(0, DataAccessModel::ColStatus);
+    QStyleOptionViewItem option;
+    option.initFrom(view);
+    option.widget = view;
+    option.rect = QRect(0, 0, 100, 24);
+    option.state |= QStyle::State_Selected;
+
+    QImage image(option.rect.size(), QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    QPainter painter(&image);
+    view->itemDelegateForColumn(DataAccessModel::ColStatus)->paint(&painter, option, status);
+    painter.end();
+
+    QCOMPARE(style.text, systemText);
+    QCOMPARE(style.highlightedText, systemText);
+    QVERIFY(style.highlightedText != AppColors::statusSuccess());
+    view->setStyle(nullptr);
 }
 
 ///
