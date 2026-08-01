@@ -266,6 +266,7 @@ void TestAppSettings::clearLayoutKeepsPreferences()
     settings.setWindowState(QByteArrayLiteral("state"));
     settings.setCentralSplitterState(QByteArrayLiteral("splitter"));
     settings.setDataAccessPage(2);
+    settings.setTrendPanelVisible(false);
     settings.setViewState(QStringLiteral("dataView"), QByteArrayLiteral("view"));
 
     settings.clearLayout();
@@ -274,6 +275,7 @@ void TestAppSettings::clearLayoutKeepsPreferences()
     QVERIFY(AppSettings().windowState().isEmpty());
     QVERIFY(AppSettings().centralSplitterState().isEmpty());
     QCOMPARE(AppSettings().dataAccessPage(), 0);
+    QVERIFY(AppSettings().trendPanelVisible());
     QVERIFY(AppSettings().viewState(QStringLiteral("dataView")).isEmpty());
 
     QCOMPARE(AppSettings().themeMode(), AppSettings::ThemeMode::Dark);

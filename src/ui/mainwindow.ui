@@ -85,6 +85,8 @@
      <addaction name="actionViewDataHistory"/>
      <addaction name="actionViewEventsHistory"/>
      <addaction name="separator"/>
+    <addaction name="actionViewTrendPanel"/>
+    <addaction name="separator"/>
     <addaction name="actionResetLayout"/>
    </widget>
    <widget class="QMenu" name="menuServer">
@@ -367,6 +369,17 @@
   <action name="actionViewEventsHistory">
    <property name="text">
     <string>Events History</string>
+   </property>
+  </action>
+  <action name="actionViewTrendPanel">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Trend Panel</string>
    </property>
   </action>
   <action name="actionResetLayout">

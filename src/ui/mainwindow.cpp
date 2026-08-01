@@ -53,6 +53,20 @@
 #include "ui_mainwindow.h"
 #include "widgets/maintoolbar.h"
 #include "widgets/themedtoolbutton.h"
+#include "widgets/trendpanelwidget.h"
+
+namespace {
+
+///
+/// \brief Returns the default heights of the data view and the trend panel.
+/// \return Section sizes in central-splitter order.
+///
+QList<int> defaultCentralSplitterSizes()
+{
+    return {360, 310};
+}
+
+}
 
 ///
 /// \brief Builds the window, wires up menus, docks, icons, and the OPC UA client.
@@ -566,6 +580,15 @@ void MainWindow::on_actionViewEventsHistory_triggered()
 }
 
 ///
+/// \brief Shows or hides the trend panel from the View menu.
+/// \param checked True to show the panel, false to hide it.
+///
+void MainWindow::on_actionViewTrendPanel_toggled(bool checked)
+{
+    ui->trendPanelWidget->setVisible(checked);
+}
+
+///
 /// \brief Restores the default dock layout.
 ///
 void MainWindow::on_actionResetLayout_triggered()
@@ -590,6 +613,34 @@ void MainWindow::setupDockOptions()
 {
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
     setCorner(Qt::TopLeftCorner, Qt::LeftDockWidgetArea);
+    applyCentralSplitterConstraints();
+}
+
+///
+/// \brief Shows or hides the trend panel and keeps the View menu entry in sync.
+/// \param visible True to show the panel.
+///
+void MainWindow::setTrendPanelVisible(bool visible)
+{
+    ui->trendPanelWidget->setVisible(visible);
+    ui->actionViewTrendPanel->setChecked(visible);
+}
+
+///
+/// \brief Keeps the central splitter sections from being dragged away entirely.
+///
+void MainWindow::applyCentralSplitterConstraints()
+{
+    ui->centralSplitter->setChildrenCollapsible(false);
+
+    const QList<int> sizes = ui->centralSplitter->sizes();
+    for (int i = 0; i < sizes.size(); ++i) {
+        const QWidget *section = ui->centralSplitter->widget(i);
+        if (sizes.at(i) == 0 && section && !section->isHidden()) {
+            ui->centralSplitter->setSizes(defaultCentralSplitterSizes());
+            return;
+        }
+    }
 }
 
 ///
@@ -598,7 +649,8 @@ void MainWindow::setupDockOptions()
 void MainWindow::resetLayout()
 {
     _featureManager->resetDockLayout(*this);
-    ui->centralSplitter->setSizes({360, 310});
+    setTrendPanelVisible(true);
+    ui->centralSplitter->setSizes(defaultCentralSplitterSizes());
 }
 
 ///
@@ -610,6 +662,7 @@ void MainWindow::saveSettings()
     settings.setWindowGeometry(saveGeometry());
     settings.setWindowState(saveState());
     settings.setCentralSplitterState(ui->centralSplitter->saveState());
+    settings.setTrendPanelVisible(!ui->trendPanelWidget->isHidden());
     _featureManager->saveState(settings);
     _dataAccessCoordinator->saveState(settings);
     if (_backend->state() == OpcUaConnectionState::Connected)
@@ -639,9 +692,15 @@ void MainWindow::restoreSettings()
     if (!state.isEmpty())
         restoreState(state);
 
+    setTrendPanelVisible(settings.trendPanelVisible());
+
     const QByteArray splitterState = settings.centralSplitterState();
-    if (!splitterState.isEmpty())
+    if (!splitterState.isEmpty()) {
+        // restoreState() also restores childrenCollapsible and may bring back a
+        // section dragged to zero height by an older build.
         ui->centralSplitter->restoreState(splitterState);
+        applyCentralSplitterConstraints();
+    }
 
     _featureManager->restoreState(settings);
     _dataAccessCoordinator->restoreState(settings);

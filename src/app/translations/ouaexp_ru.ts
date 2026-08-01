@@ -2375,6 +2375,10 @@
         <translation>История событий</translation>
     </message>
     <message>
+        <source>Trend Panel</source>
+        <translation>Панель трендов</translation>
+    </message>
+    <message>
         <source>Reset Layout</source>
         <translation>Сбросить компоновку</translation>
     </message>

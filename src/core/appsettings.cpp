@@ -22,6 +22,7 @@ constexpr auto windowGeometryKey = "mainWindow/geometry";
 constexpr auto windowStateKey = "mainWindow/state";
 constexpr auto centralSplitterKey = "mainWindow/centralSplitter";
 constexpr auto dataAccessPageKey = "mainWindow/dataAccessPage";
+constexpr auto trendPanelVisibleKey = "mainWindow/trendPanelVisible";
 constexpr auto restoreLayoutKey = "mainWindow/restoreLayout";
 constexpr auto viewStateGroup = "viewState";
 constexpr auto sessionDefaultsGroup = "connectionDialog/sessionDefaults";
@@ -373,6 +374,26 @@ void AppSettings::setDataAccessPage(int page)
 }
 
 ///
+/// \brief Reports whether the trend panel should be shown.
+/// \return True when the panel is visible, defaulting to true.
+///
+bool AppSettings::trendPanelVisible() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(trendPanelVisibleKey), true).toBool();
+}
+
+///
+/// \brief Stores whether the trend panel is shown.
+/// \param visible True when the panel is visible.
+///
+void AppSettings::setTrendPanelVisible(bool visible)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(trendPanelVisibleKey), visible);
+}
+
+///
 /// \brief Reports whether the saved window layout should be restored at startup.
 /// \return True when the layout should be restored, defaulting to true.
 ///
@@ -605,5 +626,6 @@ void AppSettings::clearLayout()
     settings.remove(QLatin1String(windowStateKey));
     settings.remove(QLatin1String(centralSplitterKey));
     settings.remove(QLatin1String(dataAccessPageKey));
+    settings.remove(QLatin1String(trendPanelVisibleKey));
     settings.remove(QLatin1String(viewStateGroup));
 }

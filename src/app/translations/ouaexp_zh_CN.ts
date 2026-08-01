@@ -2367,6 +2367,10 @@
         <translation>事件历史</translation>
     </message>
     <message>
+        <source>Trend Panel</source>
+        <translation>趋势面板</translation>
+    </message>
+    <message>
         <source>Reset Layout</source>
         <translation>重置布局</translation>
     </message>

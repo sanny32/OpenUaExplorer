@@ -90,11 +90,14 @@ private slots:
     void on_actionViewEvents_triggered();
     void on_actionViewDataHistory_triggered();
     void on_actionViewEventsHistory_triggered();
+    void on_actionViewTrendPanel_toggled(bool checked);
     void on_actionResetLayout_triggered();
 
 private:
     void openSettingsDialog();
     void setupDockOptions();
+    void setTrendPanelVisible(bool visible);
+    void applyCentralSplitterConstraints();
     void resetLayout();
     void saveSettings();
     void restoreSettings();

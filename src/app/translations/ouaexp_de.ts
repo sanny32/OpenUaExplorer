@@ -2371,6 +2371,10 @@
         <translation>Ereignisverlauf</translation>
     </message>
     <message>
+        <source>Trend Panel</source>
+        <translation>Trendfenster</translation>
+    </message>
+    <message>
         <source>Reset Layout</source>
         <translation>Layout zurücksetzen</translation>
     </message>

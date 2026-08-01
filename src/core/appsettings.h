@@ -235,6 +235,18 @@ public:
     void setDataAccessPage(int page);
 
     ///
+    /// \brief Reports whether the trend panel should be shown.
+    /// \return True when the panel is visible, defaulting to true.
+    ///
+    bool trendPanelVisible() const;
+
+    ///
+    /// \brief Stores whether the trend panel is shown.
+    /// \param visible True when the panel is visible.
+    ///
+    void setTrendPanelVisible(bool visible);
+
+    ///
     /// \brief Reports whether the saved window layout should be restored at startup.
     /// \return True when the layout should be restored, defaulting to true.
     ///
