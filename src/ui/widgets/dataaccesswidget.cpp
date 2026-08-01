@@ -33,6 +33,7 @@
 #include "subscriptiondelegate.h"
 #include "tableview.h"
 #include "tableviewconfig.h"
+#include "valuecelldelegate.h"
 #include "ui_dataaccesswidget.h"
 
 namespace {
@@ -377,6 +378,25 @@ void DataAccessWidget::setTimestampMode(AppSettings::TimestampMode mode)
 }
 
 ///
+/// \brief Sets whether rows highlight value changes unless overridden individually.
+/// \param enabled True to highlight value changes by default.
+///
+void DataAccessWidget::setHighlightValueChanges(bool enabled)
+{
+    _dataModel->setDefaultHighlightChanges(enabled);
+}
+
+///
+/// \brief Overrides the change-highlight preference of the selected rows.
+/// \param enabled True to highlight changes of those rows.
+///
+void DataAccessWidget::toggleHighlightForSelection(bool enabled)
+{
+    _dataModel->setHighlightMode(selectedDataRows(),
+                                 enabled ? HighlightMode::Enabled : HighlightMode::Disabled);
+}
+
+///
 /// \brief Replaces the known subscriptions and rebuilds the subscribe menu.
 /// \param subscriptions Current subscriptions.
 ///
@@ -503,6 +523,9 @@ void DataAccessWidget::setupDataView()
 
     _subscriptionDelegate = new SubscriptionDelegate(_subscriptions, ui->dataView);
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColSubscription, _subscriptionDelegate);
+    _valueDelegate = new ValueCellDelegate(ui->dataView);
+    ui->dataView->setItemDelegateForColumn(DataAccessModel::ColValue, _valueDelegate);
+    ui->dataView->setItemDelegateForColumn(DataAccessModel::ColStatus, _valueDelegate);
     connect(_subscriptionDelegate, &SubscriptionDelegate::subscriptionChanged, this,
             [this](const QModelIndex &index, const QString &subscriptionName) {
                 const QString nodeId = _dataModel->itemAt(_filterProxy->mapToSource(index).row()).nodeId;
@@ -538,7 +561,7 @@ void DataAccessWidget::setupDataView()
             {DataAccessModel::ColNumber, QHeaderView::Fixed, 36, Qt::AlignCenter},
             {DataAccessModel::ColNodeId, QHeaderView::Interactive, 220},
             {DataAccessModel::ColDisplayName, QHeaderView::Interactive, 120},
-            {DataAccessModel::ColValue, QHeaderView::Interactive, 70, Qt::AlignCenter},
+            {DataAccessModel::ColValue, QHeaderView::Interactive, 90, Qt::AlignRight},
             {DataAccessModel::ColDataType, QHeaderView::Interactive, 82, Qt::AlignCenter},
             {DataAccessModel::ColTimestamp, QHeaderView::Interactive, 150, Qt::AlignCenter},
             {DataAccessModel::ColStatus, QHeaderView::Interactive, 86, Qt::AlignCenter},
@@ -647,6 +670,17 @@ void DataAccessWidget::showDataContextMenu(const QPoint &pos)
     QMenu *subscribeMenu = menu.addMenu(AppIcons::themed(QStringLiteral("subscribe")), tr("Subscribe"));
     populateSubscribeMenu(subscribeMenu);
     subscribeMenu->menuAction()->setEnabled(hasSelection);
+
+    menu.addSeparator();
+
+    QAction *highlightAction = menu.addAction(tr("Highlight Changes"));
+    highlightAction->setCheckable(true);
+    highlightAction->setEnabled(hasSelection);
+    const QModelIndexList selected = selectedDataRows();
+    highlightAction->setChecked(!selected.isEmpty()
+                                && _dataModel->highlightsChanges(selected.first().row()));
+    connect(highlightAction, &QAction::toggled, this,
+            &DataAccessWidget::toggleHighlightForSelection);
 
     menu.exec(ui->dataView->viewport()->mapToGlobal(pos));
 }

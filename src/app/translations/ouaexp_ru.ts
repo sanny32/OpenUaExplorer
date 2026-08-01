@@ -1319,6 +1319,10 @@
         <translation>Очистить</translation>
     </message>
     <message>
+        <source>Highlight Changes</source>
+        <translation>Подсвечивать изменения</translation>
+    </message>
+    <message>
         <source>Unsubscribe</source>
         <translation>Отписаться</translation>
     </message>
@@ -3285,6 +3289,18 @@ Do you want to save them?</source>
     <message>
         <source>Logging</source>
         <translation>Журналирование</translation>
+    </message>
+    <message>
+        <source>Data View</source>
+        <translation>Просмотр данных</translation>
+    </message>
+    <message>
+        <source>Briefly tints a value cell when its value changes. Individual rows can be excluded from the table&apos;s context menu.</source>
+        <translation>Кратковременно подсвечивает ячейку значения при его изменении. Отдельные строки можно исключить через контекстное меню таблицы.</translation>
+    </message>
+    <message>
+        <source>Highlight value changes</source>
+        <translation>Подсвечивать изменения значений</translation>
     </message>
     <message>
         <source>Application</source>

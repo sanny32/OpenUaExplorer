@@ -112,6 +112,22 @@ QString statusDisplay(QOpcUa::UaStatusCode status)
 }
 
 ///
+/// \brief Classifies a status-code name into its OPC UA quality class.
+/// \param statusName Status-code name as produced by statusName().
+/// \return Matching severity; Unknown for empty or unrecognised names.
+///
+StatusSeverity statusSeverity(const QString &statusName)
+{
+    if (statusName.startsWith(QLatin1String("Good")))
+        return StatusSeverity::Good;
+    if (statusName.startsWith(QLatin1String("Uncertain")))
+        return StatusSeverity::Uncertain;
+    if (statusName.startsWith(QLatin1String("Bad")))
+        return StatusSeverity::Bad;
+    return StatusSeverity::Unknown;
+}
+
+///
 /// \brief Formats a timestamp as a date-time with a zone indicator, or empty when invalid.
 /// \param timestamp Timestamp to format.
 /// \param mode Local time (trailing UTC offset) or UTC (trailing "Z").

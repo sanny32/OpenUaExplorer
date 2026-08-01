@@ -1001,6 +1001,8 @@ void DataAccessCoordinator::wireDataView()
             _dataView, &DataView::setTimestampMode);
     connect(theApp(), &Application::timestampModeChanged,
             _trendPanel, &TrendPanelWidget::setTimestampMode);
+    connect(theApp(), &Application::highlightValueChangesChanged,
+            _dataView, &DataView::setHighlightValueChanges);
 }
 
 ///

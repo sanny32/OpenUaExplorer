@@ -81,6 +81,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
             ui->reconnectIntervalSpin, &QWidget::setEnabled);
     connect(ui->reconnectIntervalSpin, &QSpinBox::valueChanged,
             this, &SettingsDialog::markDirty);
+    connect(ui->highlightChangesCheck, &QAbstractButton::toggled,
+            this, &SettingsDialog::markDirty);
 }
 
 ///
@@ -179,6 +181,7 @@ void SettingsDialog::loadSettings()
     ui->reconnectIntervalSpin->setValue(settings.reconnectIntervalSeconds());
     ui->reconnectIntervalLabel->setEnabled(ui->reconnectCheck->isChecked());
     ui->reconnectIntervalSpin->setEnabled(ui->reconnectCheck->isChecked());
+    ui->highlightChangesCheck->setChecked(settings.highlightValueChanges());
 
     const QHash<QString, bool> states = settings.logCategoryStates();
     for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
@@ -209,6 +212,7 @@ void SettingsDialog::applyChanges()
         theApp()->theme().setColorSchemePreference(selectedThemeMode());
 
     theApp()->setTimestampMode(selectedTimestampMode());
+    theApp()->setHighlightValueChanges(ui->highlightChangesCheck->isChecked());
     theApp()->setLanguage(selectedLanguage());
 
     setDirty(false);

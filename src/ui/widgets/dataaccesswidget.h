@@ -26,6 +26,7 @@ class DataAccessWidget;
 class DataAccessFilterProxyModel;
 class DataAccessModel;
 class SubscriptionDelegate;
+class ValueCellDelegate;
 struct DataAccessItem;
 
 ///
@@ -175,6 +176,12 @@ public slots:
     void setTimestampMode(AppSettings::TimestampMode mode);
 
     ///
+    /// \brief Sets whether rows highlight value changes unless overridden individually.
+    /// \param enabled True to highlight value changes by default.
+    ///
+    void setHighlightValueChanges(bool enabled);
+
+    ///
     /// \brief Replaces the known subscriptions and rebuilds the subscribe menu.
     /// \param subscriptions Current subscriptions.
     ///
@@ -289,6 +296,7 @@ private:
     void requestWrite(const DataAccessItem &item);
     void handleValueDoubleClick(const QModelIndex &index);
     void toggleBooleanValue(const DataAccessItem &item);
+    void toggleHighlightForSelection(bool enabled);
     void rebuildSubscribeMenu();
     void populateSubscribeMenu(QMenu *menu);
     void promptNewSubscription(const QString &nodeId);
@@ -302,6 +310,7 @@ private:
     DataAccessModel           *_dataModel;
     DataAccessFilterProxyModel *_filterProxy;
     SubscriptionDelegate      *_subscriptionDelegate = nullptr;
+    ValueCellDelegate         *_valueDelegate = nullptr;
     QVector<SubscriptionItem>  _subscriptions;
     bool                       _offline = false;
 };

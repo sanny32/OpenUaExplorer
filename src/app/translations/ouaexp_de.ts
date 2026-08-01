@@ -1316,6 +1316,10 @@
         <translation>Leeren</translation>
     </message>
     <message>
+        <source>Highlight Changes</source>
+        <translation>Änderungen hervorheben</translation>
+    </message>
+    <message>
         <source>Unsubscribe</source>
         <translation>Abbestellen</translation>
     </message>
@@ -3280,6 +3284,18 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>Logging</source>
         <translation>Protokollierung</translation>
+    </message>
+    <message>
+        <source>Data View</source>
+        <translation>Datenansicht</translation>
+    </message>
+    <message>
+        <source>Briefly tints a value cell when its value changes. Individual rows can be excluded from the table&apos;s context menu.</source>
+        <translation>Färbt eine Wertzelle kurz ein, wenn sich ihr Wert ändert. Einzelne Zeilen lassen sich über das Kontextmenü der Tabelle ausnehmen.</translation>
+    </message>
+    <message>
+        <source>Highlight value changes</source>
+        <translation>Wertänderungen hervorheben</translation>
     </message>
     <message>
         <source>Application</source>

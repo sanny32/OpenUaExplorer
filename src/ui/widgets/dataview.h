@@ -231,6 +231,12 @@ public slots:
     ///
     void setTimestampMode(AppSettings::TimestampMode mode);
 
+    ///
+    /// \brief Applies the value-change highlight preference to the data-access tab.
+    /// \param enabled True to highlight value changes by default.
+    ///
+    void setHighlightValueChanges(bool enabled);
+
 protected:
     void changeEvent(QEvent *event) override;
 

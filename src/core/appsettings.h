@@ -283,6 +283,18 @@ public:
     void setReconnectEnabled(bool enabled);
 
     ///
+    /// \brief Reports whether the data-access table washes cells whose value changed.
+    /// \return True when change highlighting is enabled, defaulting to false.
+    ///
+    bool highlightValueChanges() const;
+
+    ///
+    /// \brief Stores whether the data-access table washes cells whose value changed.
+    /// \param enabled True to highlight value changes.
+    ///
+    void setHighlightValueChanges(bool enabled);
+
+    ///
     /// \brief Returns the delay between two reconnect attempts.
     /// \return Interval in seconds, clamped to the supported range.
     ///

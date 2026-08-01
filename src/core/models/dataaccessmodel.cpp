@@ -12,7 +12,9 @@
 #include <QApplication>
 #include <QBrush>
 #include <QColor>
+#include <QDateTime>
 #include <QFont>
+#include <QFontDatabase>
 #include <QPalette>
 
 #include "dataaccessmodel.h"
@@ -27,6 +29,24 @@ OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
         : OpcUaFormat::TimestampMode::LocalTime;
 }
 
+///
+/// \brief Returns the platform fixed-pitch font scaled to the interface font size.
+/// \return Monospace font at the application point size.
+///
+/// The system fixed font carries its own point size, which does not always match
+/// the interface font, so only the family and style are taken from it.
+///
+QFont monospaceFont()
+{
+    QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    const QFont appFont = qApp->font();
+    if (appFont.pointSizeF() > 0.0)
+        font.setPointSizeF(appFont.pointSizeF());
+    else if (appFont.pixelSize() > 0)
+        font.setPixelSize(appFont.pixelSize());
+    return font;
+}
+
 }
 
 ///
@@ -36,6 +56,7 @@ OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
 DataAccessModel::DataAccessModel(QObject *parent)
     : QAbstractTableModel(parent)
     , _timestampMode(AppSettings().timestampMode())
+    , _defaultHighlightChanges(AppSettings().highlightValueChanges())
 {
 }
 
@@ -59,10 +80,13 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
     for (int row = 0; row < _items.size(); ++row) {
         if (_items.at(row).nodeId != details.nodeId)
             continue;
+        const QString formatted = OpcUaFormat::displayValue(details.value);
         DataAccessItem &item = _items[row];
         item.displayName = details.displayName;
         item.typedValue = details.value;
-        item.value = OpcUaFormat::displayValue(details.value);
+        if (item.value != formatted)
+            item.valueChangedAt = QDateTime::currentMSecsSinceEpoch();
+        item.value = formatted;
         item.valueType = details.valueType;
         item.dataTypeId = details.dataTypeId;
         item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
@@ -157,8 +181,12 @@ void DataAccessModel::updateValues(const QVector<OpcUaDataValue> &values)
             DataAccessItem &item = _items[row];
             if (item.nodeId != value.nodeId)
                 continue;
+            const QString formatted = OpcUaFormat::displayValue(value.value);
             item.typedValue = value.value;
-            item.value = OpcUaFormat::displayValue(value.value);
+            // A notification repeating the previous value is not a change, and must not re-flash.
+            if (item.value != formatted)
+                item.valueChangedAt = QDateTime::currentMSecsSinceEpoch();
+            item.value = formatted;
             item.status = value.status;
             item.sourceTimestamp = value.sourceTimestamp;
             item.serverTimestamp = value.serverTimestamp;
@@ -410,9 +438,10 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     if (role == Qt::EditRole && col == ColSubscription)
         return item.subscriptionName;
 
-    if (role == Qt::FontRole && item.pending) {
-        QFont font = qApp->font();
-        font.setItalic(true);
+    // Values line up across rows only in a fixed-pitch font; pending rows stay italic either way.
+    if (role == Qt::FontRole && (item.pending || col == ColValue)) {
+        QFont font = col == ColValue ? monospaceFont() : qApp->font();
+        font.setItalic(item.pending);
         return font;
     }
 
@@ -422,10 +451,15 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
         if (item.pending || item.subscriptionName.isEmpty()) {
             return QBrush(qApp->palette().color(QPalette::Disabled, QPalette::Text));
         }
-        if (col == ColStatus && item.status == QLatin1String("Good"))
-            return QBrush(QColor(0, 150, 64));
         if (col == ColSubscription)
             return QBrush(QColor(0, 120, 200));
+    }
+
+    switch (role) {
+    case ValueChangedAtRole:   return item.valueChangedAt;
+    case StatusSeverityRole:   return int(OpcUaFormat::statusSeverity(item.status));
+    case HighlightChangesRole: return resolveHighlight(item);
+    default: break;
     }
 
     return QVariant();
@@ -453,6 +487,62 @@ void DataAccessModel::setColumnAlignment(int column, Qt::Alignment alignment)
 }
 
 ///
+/// \brief Overrides the change-highlight preference of the given rows.
+/// \param rows Rows to change; indexes of this model, not of a proxy.
+/// \param mode Preference to store.
+///
+void DataAccessModel::setHighlightMode(const QModelIndexList &rows, HighlightMode mode)
+{
+    for (const QModelIndex &row : rows) {
+        if (row.row() < 0 || row.row() >= _items.size())
+            continue;
+        DataAccessItem &item = _items[row.row()];
+        if (item.highlight == mode)
+            continue;
+        item.highlight = mode;
+        const QModelIndex changed = index(row.row(), ColValue);
+        emit dataChanged(changed, changed, {HighlightChangesRole});
+    }
+}
+
+///
+/// \brief Returns the stored change-highlight preference of a row.
+/// \param row Model row.
+/// \return Stored preference, or FollowDefault for an out-of-range row.
+///
+HighlightMode DataAccessModel::highlightMode(int row) const
+{
+    return row >= 0 && row < _items.size() ? _items.at(row).highlight
+                                           : HighlightMode::FollowDefault;
+}
+
+///
+/// \brief Reports the change-highlight preference a row resolves to.
+/// \param row Model row.
+/// \return True when changes of that row should be highlighted.
+///
+bool DataAccessModel::highlightsChanges(int row) const
+{
+    return row >= 0 && row < _items.size() ? resolveHighlight(_items.at(row))
+                                           : _defaultHighlightChanges;
+}
+
+///
+/// \brief Resolves a row's highlight preference against the application-wide default.
+/// \param item Row to resolve.
+/// \return True when changes of that row should be highlighted.
+///
+bool DataAccessModel::resolveHighlight(const DataAccessItem &item) const
+{
+    switch (item.highlight) {
+    case HighlightMode::Enabled:  return true;
+    case HighlightMode::Disabled: return false;
+    case HighlightMode::FollowDefault: break;
+    }
+    return _defaultHighlightChanges;
+}
+
+///
 /// \brief Sets the timestamp display mode and repaints the timestamp column.
 /// \param mode Local time or UTC.
 ///
@@ -464,6 +554,20 @@ void DataAccessModel::setTimestampMode(AppSettings::TimestampMode mode)
     if (rowCount() > 0)
         emit dataChanged(index(0, ColTimestamp), index(rowCount() - 1, ColTimestamp),
                          {Qt::DisplayRole});
+}
+
+///
+/// \brief Sets the change-highlight preference rows follow unless overridden.
+/// \param enabled True to highlight value changes by default.
+///
+void DataAccessModel::setDefaultHighlightChanges(bool enabled)
+{
+    if (_defaultHighlightChanges == enabled)
+        return;
+    _defaultHighlightChanges = enabled;
+    if (rowCount() > 0)
+        emit dataChanged(index(0, ColValue), index(rowCount() - 1, ColValue),
+                         {HighlightChangesRole});
 }
 
 ///

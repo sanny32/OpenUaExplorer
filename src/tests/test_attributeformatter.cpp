@@ -31,6 +31,7 @@ private slots:
     void displayValueFormatsScalarsAndArrays();
     void securityModeNameCoversAllModes();
     void statusFormatting();
+    void statusSeverityClassifiesQuality();
     void isoTimestampWithZoneRoundTrips();
     void valueTypeNameKnownAndUnknown();
     void dataTypeDisplayNamesBuiltIns();
@@ -94,6 +95,18 @@ void TestAttributeFormatter::statusFormatting()
     QCOMPARE(statusDisplay(QOpcUa::UaStatusCode::Good),
              QStringLiteral("%1 (0x00000000)")
                  .arg(statusName(QOpcUa::UaStatusCode::Good)));
+}
+
+void TestAttributeFormatter::statusSeverityClassifiesQuality()
+{
+    QCOMPARE(statusSeverity(statusName(QOpcUa::UaStatusCode::Good)), StatusSeverity::Good);
+    QCOMPARE(statusSeverity(QStringLiteral("GoodClamped")), StatusSeverity::Good);
+    QCOMPARE(statusSeverity(QStringLiteral("UncertainLastUsableValue")),
+             StatusSeverity::Uncertain);
+    QCOMPARE(statusSeverity(statusName(QOpcUa::UaStatusCode::BadNodeIdUnknown)),
+             StatusSeverity::Bad);
+    QCOMPARE(statusSeverity(QString()), StatusSeverity::Unknown);
+    QCOMPARE(statusSeverity(QStringLiteral("Pending…")), StatusSeverity::Unknown);
 }
 
 void TestAttributeFormatter::isoTimestampWithZoneRoundTrips()

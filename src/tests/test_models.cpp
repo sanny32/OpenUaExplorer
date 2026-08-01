@@ -11,6 +11,8 @@
 #include <QBrush>
 #include <QColor>
 #include <QDateTime>
+#include <QFont>
+#include <QFontDatabase>
 #include <QPalette>
 #include <QSignalSpy>
 #include <QStandardItemModel>
@@ -19,6 +21,7 @@
 
 #include "appsettings.h"
 #include "testdata.h"
+#include "formatters/attributeformatter.h"
 #include "opcua/opcuatypes.h"
 #include "models/attributesmodel.h"
 #include "models/csvexporter.h"
@@ -50,6 +53,9 @@ private slots:
     void dataAccessSubscriptionColumnIsEditable();
     void dataAccessTimestampModeReformats();
     void dataAccessOfflineGreysRowsAndLocksEditing();
+    void dataAccessTracksValueChanges();
+    void dataAccessResolvesHighlightPreference();
+    void dataAccessExposesQualityAndValueFont();
     void attributesModelTimestampModeReformats();
     void attributesModelOfflineGreysValues();
 
@@ -313,6 +319,130 @@ void TestModels::dataAccessUpdateValuesRefreshesValueColumns()
 }
 
 ///
+/// \brief Only a value that actually differs stamps the change time.
+///
+void TestModels::dataAccessTracksValueChanges()
+{
+    DataAccessModel model;
+    model.setItems(TestData::dataAccessItems());
+    const QModelIndex valueIndex = model.index(0, DataAccessModel::ColValue);
+    QCOMPARE(valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong(), 0);
+
+    OpcUaDataValue value;
+    value.nodeId = TestData::dataAccessItems().first().nodeId;
+    value.value = 42.0;
+    value.status = QStringLiteral("Good");
+    model.updateValues({value});
+
+    const qint64 firstChange = valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong();
+    QVERIFY(firstChange > 0);
+
+    // A notification repeating the value must not restart the highlight.
+    QTest::qWait(5);
+    model.updateValues({value});
+    QCOMPARE(valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong(), firstChange);
+
+    QTest::qWait(5);
+    value.value = 43.0;
+    model.updateValues({value});
+    QVERIFY(valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong() > firstChange);
+
+    // The attribute-read path stamps changes the same way.
+    OpcUaNodeDetails details;
+    details.nodeId = value.nodeId;
+    details.value = 44.0;
+    const qint64 beforeRead = valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong();
+    QTest::qWait(5);
+    model.addOrUpdate(details);
+    QVERIFY(valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong() > beforeRead);
+}
+
+///
+/// \brief Rows follow the default highlight preference until overridden individually.
+///
+void TestModels::dataAccessResolvesHighlightPreference()
+{
+    DataAccessModel model;
+    model.setItems(TestData::dataAccessItems());
+    const QModelIndex first = model.index(0, DataAccessModel::ColValue);
+    const QModelIndex second = model.index(1, DataAccessModel::ColValue);
+
+    // Highlighting is opt-in, so an untouched model leaves every row alone.
+    QVERIFY(!first.data(DataAccessModel::HighlightChangesRole).toBool());
+
+    model.setDefaultHighlightChanges(true);
+    QVERIFY(first.data(DataAccessModel::HighlightChangesRole).toBool());
+    QCOMPARE(model.highlightMode(0), HighlightMode::FollowDefault);
+
+    QSignalSpy changeSpy(&model, &QAbstractItemModel::dataChanged);
+    model.setHighlightMode({first}, HighlightMode::Disabled);
+    QCOMPARE(changeSpy.size(), 1);
+    QVERIFY(!first.data(DataAccessModel::HighlightChangesRole).toBool());
+    QVERIFY(second.data(DataAccessModel::HighlightChangesRole).toBool());
+    QVERIFY(!model.highlightsChanges(0));
+    QVERIFY(model.highlightsChanges(1));
+
+    // Re-applying the same override changes nothing and stays silent.
+    model.setHighlightMode({first}, HighlightMode::Disabled);
+    QCOMPARE(changeSpy.size(), 1);
+
+    // The default reaches rows that follow it, and leaves the overridden one alone.
+    model.setDefaultHighlightChanges(false);
+    QVERIFY(!second.data(DataAccessModel::HighlightChangesRole).toBool());
+    model.setHighlightMode({second}, HighlightMode::Enabled);
+    QVERIFY(second.data(DataAccessModel::HighlightChangesRole).toBool());
+    QVERIFY(!first.data(DataAccessModel::HighlightChangesRole).toBool());
+
+    // Out-of-range rows fall back to the default instead of asserting.
+    model.setHighlightMode({model.index(99, 0)}, HighlightMode::Enabled);
+    QCOMPARE(model.highlightMode(99), HighlightMode::FollowDefault);
+    QVERIFY(!model.highlightsChanges(99));
+}
+
+///
+/// \brief The quality role and the value font carry what the value delegate paints with.
+///
+void TestModels::dataAccessExposesQualityAndValueFont()
+{
+    DataAccessModel model;
+    model.setItems(TestData::dataAccessItems());
+
+    const QModelIndex monitored = model.index(0, DataAccessModel::ColValue);
+    QCOMPARE(monitored.data(DataAccessModel::StatusSeverityRole).toInt(),
+             int(OpcUaFormat::StatusSeverity::Good));
+
+    OpcUaDataValue uncertain;
+    uncertain.nodeId = TestData::dataAccessItems().first().nodeId;
+    uncertain.value = 1.0;
+    uncertain.status = QStringLiteral("UncertainLastUsableValue");
+    model.updateValues({uncertain});
+    QCOMPARE(monitored.data(DataAccessModel::StatusSeverityRole).toInt(),
+             int(OpcUaFormat::StatusSeverity::Uncertain));
+
+    OpcUaDataValue bad = uncertain;
+    bad.value = 2.0;
+    bad.status = QStringLiteral("BadNodeIdUnknown");
+    model.updateValues({bad});
+    QCOMPARE(monitored.data(DataAccessModel::StatusSeverityRole).toInt(),
+             int(OpcUaFormat::StatusSeverity::Bad));
+
+    // Values need a fixed pitch to line up; pending rows keep their italic marker.
+    const QFont valueFont = monitored.data(Qt::FontRole).value<QFont>();
+    QCOMPARE(valueFont.family(),
+             QFontDatabase::systemFont(QFontDatabase::FixedFont).family());
+    QCOMPARE(valueFont.pointSizeF(), qApp->font().pointSizeF());
+    QVERIFY(!valueFont.italic());
+    QVERIFY(!model.index(0, DataAccessModel::ColDisplayName).data(Qt::FontRole).isValid());
+
+    OpcUaNodeInfo pending;
+    pending.nodeId = QStringLiteral("ns=2;s=Pending");
+    pending.displayName = QStringLiteral("Pending");
+    model.addPending(pending);
+    const QModelIndex pendingValue = model.index(model.rowCount() - 1, DataAccessModel::ColValue);
+    QVERIFY(pendingValue.data(Qt::FontRole).value<QFont>().italic());
+}
+
+///
 /// \brief DataAccessModel formats byte-sized numbers and compound values consistently.
 ///
 void TestModels::dataAccessFormatsTypedValues()
@@ -512,8 +642,7 @@ void TestModels::dataAccessOfflineGreysRowsAndLocksEditing()
 
     model.setOffline(false);
     QVERIFY(!model.data(valueIndex, Qt::ForegroundRole).isValid());
-    QCOMPARE(model.data(statusIndex, Qt::ForegroundRole).value<QBrush>().color(),
-             QColor(0, 150, 64));
+    QVERIFY(!model.data(statusIndex, Qt::ForegroundRole).isValid());
     QVERIFY(model.setData(subscriptionIndex, QStringLiteral("Slow"), Qt::EditRole));
 }
 
@@ -1153,8 +1282,12 @@ void TestModels::dataAccessHeaderRolesAndHelpers()
     QCOMPARE(model.data(sub0, Qt::EditRole).toString(), QStringLiteral("Fast"));
     QVERIFY(!model.data(model.index(0, DataAccessModel::ColValue), Qt::ForegroundRole)
                  .isValid());
-    QCOMPARE(model.data(model.index(0, DataAccessModel::ColStatus), Qt::ForegroundRole)
-                 .value<QBrush>().color(), QColor(0, 150, 64));
+    // Quality colouring moved to ValueCellDelegate; the model only classifies the status.
+    QVERIFY(!model.data(model.index(0, DataAccessModel::ColStatus), Qt::ForegroundRole)
+                 .isValid());
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColStatus),
+                        DataAccessModel::StatusSeverityRole).toInt(),
+             int(OpcUaFormat::StatusSeverity::Good));
     QCOMPARE(model.data(sub0, Qt::ForegroundRole).value<QBrush>().color(),
              QColor(0, 120, 200));
 

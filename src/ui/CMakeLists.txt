@@ -231,6 +231,8 @@ add_library(ouaexp_ui STATIC
     widgets/trendpanelwidget.cpp
     widgets/trendpanelwidget.h
     widgets/trendsettings.h
+    widgets/valuecelldelegate.cpp
+    widgets/valuecelldelegate.h
 )
 
 if(APPLE)

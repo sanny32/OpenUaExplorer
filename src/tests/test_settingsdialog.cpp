@@ -18,6 +18,7 @@
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QSettings>
+#include <QSignalSpy>
 #include <QTabWidget>
 #include <QTemporaryDir>
 #include <QTest>
@@ -46,6 +47,7 @@ private slots:
     void categoryListSelectsPages();
     void restoreLastSessionCheckPersists();
     void reconnectSettingsPersistAndGateTheInterval();
+    void highlightChangesCheckPersists();
     void layoutResetWaitsForAcceptance();
 
 private:
@@ -298,6 +300,31 @@ void TestSettingsDialog::reconnectSettingsPersistAndGateTheInterval()
     QVERIFY(!interval->isEnabled());
     buttons->button(QDialogButtonBox::Apply)->click();
     QVERIFY(!AppSettings().reconnectEnabled());
+}
+
+///
+/// \brief The change-highlight checkbox persists and announces itself to the running UI.
+///
+void TestSettingsDialog::highlightChangesCheckPersists()
+{
+    SettingsDialog dialog;
+    auto *check = dialog.findChild<QCheckBox *>(QStringLiteral("highlightChangesCheck"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(check);
+    QVERIFY(buttons);
+    QVERIFY(!check->isChecked());
+
+    QSignalSpy spy(theApp(), &Application::highlightValueChangesChanged);
+    check->setChecked(true);
+    QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+
+    QVERIFY(AppSettings().highlightValueChanges());
+    QCOMPARE(spy.size(), 1);
+    QVERIFY(spy.first().first().toBool());
+
+    QVERIFY(SettingsDialog().findChild<QCheckBox *>(
+        QStringLiteral("highlightChangesCheck"))->isChecked());
 }
 
 ///

@@ -185,12 +185,39 @@ public:
     ///
     void setColumnAlignment(int column, Qt::Alignment alignment);
 
+    ///
+    /// \brief Overrides the change-highlight preference of the given rows.
+    /// \param rows Rows to change; indexes of this model, not of a proxy.
+    /// \param mode Preference to store.
+    ///
+    void setHighlightMode(const QModelIndexList &rows, HighlightMode mode);
+
+    ///
+    /// \brief Returns the stored change-highlight preference of a row.
+    /// \param row Model row.
+    /// \return Stored preference, or FollowDefault for an out-of-range row.
+    ///
+    HighlightMode highlightMode(int row) const;
+
+    ///
+    /// \brief Reports the change-highlight preference a row resolves to.
+    /// \param row Model row.
+    /// \return True when changes of that row should be highlighted.
+    ///
+    bool highlightsChanges(int row) const;
+
 public slots:
     ///
     /// \brief Sets the timestamp display mode and repaints the timestamp column.
     /// \param mode Local time or UTC.
     ///
     void setTimestampMode(AppSettings::TimestampMode mode);
+
+    ///
+    /// \brief Sets the change-highlight preference rows follow unless overridden.
+    /// \param enabled True to highlight value changes by default.
+    ///
+    void setDefaultHighlightChanges(bool enabled);
 
 public:
 
@@ -210,9 +237,29 @@ public:
         ColCount        = 9
     };
 
+    ///
+    /// \brief Row facts the value delegate paints with; the model itself stays theme-agnostic.
+    ///
+    enum Role {
+        /// \brief Time of the last value change in milliseconds since the epoch; 0 when never changed.
+        ValueChangedAtRole = Qt::UserRole + 1,
+        /// \brief OpcUaFormat::StatusSeverity of the row's status code, as an int.
+        StatusSeverityRole,
+        /// \brief Resolved change-highlight preference of the row, as a bool.
+        HighlightChangesRole
+    };
+
 private:
+    ///
+    /// \brief Resolves a row's highlight preference against the application-wide default.
+    /// \param item Row to resolve.
+    /// \return True when changes of that row should be highlighted.
+    ///
+    bool resolveHighlight(const DataAccessItem &item) const;
+
     QVector<DataAccessItem> _items;
     ColumnAlignmentStore _columnAlignments;
     AppSettings::TimestampMode _timestampMode;
     bool _offline = false;
+    bool _defaultHighlightChanges = false;
 };

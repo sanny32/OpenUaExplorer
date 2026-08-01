@@ -1313,6 +1313,10 @@
         <translation>清除</translation>
     </message>
     <message>
+        <source>Highlight Changes</source>
+        <translation>高亮变化</translation>
+    </message>
+    <message>
         <source>Unsubscribe</source>
         <translation>取消订阅</translation>
     </message>
@@ -3275,6 +3279,18 @@ Do you want to save them?</source>
     <message>
         <source>Logging</source>
         <translation>日志记录</translation>
+    </message>
+    <message>
+        <source>Data View</source>
+        <translation>数据视图</translation>
+    </message>
+    <message>
+        <source>Briefly tints a value cell when its value changes. Individual rows can be excluded from the table&apos;s context menu.</source>
+        <translation>数值变化时短暂为该单元格着色。可通过表格的右键菜单单独排除某些行。</translation>
+    </message>
+    <message>
+        <source>Highlight value changes</source>
+        <translation>高亮数值变化</translation>
     </message>
     <message>
         <source>Application</source>

@@ -32,6 +32,16 @@ enum class TimestampMode {
 };
 
 ///
+/// \brief Quality class of an OPC UA status code, derived from its name.
+///
+enum class StatusSeverity {
+    Unknown,
+    Good,
+    Uncertain,
+    Bad
+};
+
+///
 /// \brief Reports whether a value is an array, treating strings and byte arrays as scalars.
 /// \param value Variant to inspect.
 /// \return True when the value should be rendered as a list.
@@ -65,6 +75,16 @@ QString statusName(QOpcUa::UaStatusCode status);
 /// \return Combined name and hex representation.
 ///
 QString statusDisplay(QOpcUa::UaStatusCode status);
+
+///
+/// \brief Classifies a status-code name into its OPC UA quality class.
+/// \param statusName Status-code name as produced by statusName().
+/// \return Matching severity; Unknown for empty or unrecognised names.
+///
+/// OPC UA guarantees that every status-code name starts with "Good", "Uncertain",
+/// or "Bad", so the name alone carries the quality class.
+///
+StatusSeverity statusSeverity(const QString &statusName);
 
 ///
 /// \brief Formats a timestamp as ISO 8601 with a zone indicator, or empty when invalid.

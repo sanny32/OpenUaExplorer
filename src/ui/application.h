@@ -47,6 +47,12 @@ public:
     void setTimestampMode(AppSettings::TimestampMode mode);
 
     ///
+    /// \brief Persists the value-change highlight preference and notifies listeners.
+    /// \param enabled True to highlight value changes in the data-access table.
+    ///
+    void setHighlightValueChanges(bool enabled);
+
+    ///
     /// \brief Persists the interface language preference and retranslates the running UI.
     /// \param language Language to apply.
     ///
@@ -79,6 +85,12 @@ signals:
     /// \param mode The newly applied timestamp mode.
     ///
     void timestampModeChanged(AppSettings::TimestampMode mode);
+
+    ///
+    /// \brief Emitted when the value-change highlight preference changes.
+    /// \param enabled The newly applied preference.
+    ///
+    void highlightValueChangesChanged(bool enabled);
 
     ///
     /// \brief Emitted when the interface language preference changes.

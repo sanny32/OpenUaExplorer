@@ -6,6 +6,7 @@
 /// \brief Tests DataAccessWidget drag/drop, subscription and value toggle behaviour.
 ///
 
+#include <QAbstractItemDelegate>
 #include <QCoreApplication>
 #include <QDragEnterEvent>
 #include <QDropEvent>
@@ -13,7 +14,9 @@
 #include <QApplication>
 #include <QDialog>
 #include <QFont>
+#include <QImage>
 #include <QLineEdit>
+#include <QMenu>
 #include <QMimeData>
 #include <QPushButton>
 #include <QScopedPointer>
@@ -59,6 +62,9 @@ private slots:
     void doubleClickOnPendingRowWritesNothing();
     void doubleClickOutsideValueColumnWritesNothing();
     void doubleClickWhileOfflineWritesNothing();
+    void valueAndStatusColumnsShareTheStateDelegate();
+    void contextMenuOverridesChangeHighlight();
+    void selectedRowsStillShowTheChangeWash();
 };
 
 namespace {
@@ -214,6 +220,19 @@ void watchForDialog(bool *seen)
         *seen = true;
         modal->reject();
     });
+}
+
+///
+/// \brief Paints the table's viewport into an image the test can inspect.
+/// \param view View to render.
+/// \return Rendered viewport on a black background.
+///
+QImage renderViewport(QTableView *view)
+{
+    QImage image(view->viewport()->size(), QImage::Format_ARGB32);
+    image.fill(Qt::black);
+    view->viewport()->render(&image);
+    return image;
 }
 
 } // namespace
@@ -814,6 +833,99 @@ void TestDataAccessWidget::doubleClickWhileOfflineWritesNothing()
     QVERIFY(!dialogSeen);
     QCOMPARE(spy.size(), 0);
     QCOMPARE(writeSpy.size(), 0);
+}
+
+///
+/// \brief Value and status cells are painted by one state delegate, and values align right.
+///
+void TestDataAccessWidget::valueAndStatusColumnsShareTheStateDelegate()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+
+    QAbstractItemDelegate *valueDelegate =
+        view->itemDelegateForColumn(DataAccessModel::ColValue);
+    QVERIFY(valueDelegate);
+    QCOMPARE(view->itemDelegateForColumn(DataAccessModel::ColStatus), valueDelegate);
+    QVERIFY(view->itemDelegateForColumn(DataAccessModel::ColSubscription) != valueDelegate);
+
+    widget.addNode(makeNodeDetails());
+    QCOMPARE(view->model()->index(0, DataAccessModel::ColValue)
+                 .data(Qt::TextAlignmentRole).toInt(),
+             int(Qt::AlignRight | Qt::AlignVCenter));
+}
+
+///
+/// \brief The context menu switches change highlighting off for the selected rows only.
+///
+void TestDataAccessWidget::contextMenuOverridesChangeHighlight()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addNode(makeNodeDetails());
+    widget.addNode(makeBooleanNodeDetails(false, true));
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    const QModelIndex first = view->model()->index(0, DataAccessModel::ColValue);
+    const QModelIndex second = view->model()->index(1, DataAccessModel::ColValue);
+    QVERIFY(!first.data(DataAccessModel::HighlightChangesRole).toBool());
+
+    view->selectRow(0);
+    QTimer::singleShot(0, &widget, [&widget]() {
+        QMenu *menu = widget.findChild<QMenu *>();
+        QVERIFY(menu);
+        for (QAction *action : menu->actions()) {
+            if (!action->isCheckable())
+                continue;
+            QVERIFY(!action->isChecked());
+            action->trigger();
+            break;
+        }
+        menu->close();
+    });
+    QVERIFY(QMetaObject::invokeMethod(view, "customContextMenuRequested",
+                                      Q_ARG(QPoint, view->visualRect(first).center())));
+
+    QVERIFY(first.data(DataAccessModel::HighlightChangesRole).toBool());
+    QVERIFY(!second.data(DataAccessModel::HighlightChangesRole).toBool());
+}
+
+///
+/// \brief Selecting a row does not suppress the change wash on its value cell.
+///
+void TestDataAccessWidget::selectedRowsStillShowTheChangeWash()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.setHighlightValueChanges(true);
+    widget.addNode(makeNodeDetails());
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+    view->selectRow(0);
+
+    OpcUaDataValue value;
+    value.nodeId = makeNodeDetails().nodeId;
+    value.value = 42.0;
+    value.status = QStringLiteral("Good");
+    widget.updateValues({value});
+
+    const QModelIndex valueIndex = view->model()->index(0, DataAccessModel::ColValue);
+    QVERIFY(valueIndex.data(DataAccessModel::HighlightChangesRole).toBool());
+    const QImage washed = renderViewport(view);
+
+    widget.setHighlightValueChanges(false);
+    QVERIFY(!valueIndex.data(DataAccessModel::HighlightChangesRole).toBool());
+    const QImage plain = renderViewport(view);
+    // Without the wash the row no longer changes over time, so the difference
+    // below is the wash itself and not the fade between two captures.
+    QCOMPARE(plain, renderViewport(view));
+    QVERIFY(washed != plain);
 }
 
 QTEST_MAIN(TestDataAccessWidget)

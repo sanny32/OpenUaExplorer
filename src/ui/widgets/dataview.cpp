@@ -400,3 +400,12 @@ void DataView::setTimestampMode(AppSettings::TimestampMode mode)
     ui->dataHistoryWidget->setTimestampMode(mode);
     ui->eventsHistoryWidget->setTimestampMode(mode);
 }
+
+///
+/// \brief Applies the value-change highlight preference to the data-access tab.
+/// \param enabled True to highlight value changes by default.
+///
+void DataView::setHighlightValueChanges(bool enabled)
+{
+    ui->dataAccessWidget->setHighlightValueChanges(enabled);
+}

@@ -42,6 +42,7 @@ constexpr auto restoreLastSessionKey = "session/restoreLast";
 constexpr auto lastSavedSessionPathKey = "session/lastSavedPath";
 constexpr auto reconnectEnabledKey = "connection/reconnectEnabled";
 constexpr auto reconnectIntervalKey = "connection/reconnectIntervalSeconds";
+constexpr auto highlightValueChangesKey = "dataAccess/highlightValueChanges";
 constexpr int defaultReconnectIntervalSeconds = 5;
 constexpr int minReconnectIntervalSeconds = 1;
 constexpr int maxReconnectIntervalSeconds = 3600;
@@ -451,6 +452,26 @@ void AppSettings::setReconnectEnabled(bool enabled)
 {
     SettingsStore settings;
     settings.setValue(QLatin1String(reconnectEnabledKey), enabled);
+}
+
+///
+/// \brief Reports whether the data-access table washes cells whose value changed.
+/// \return True when change highlighting is enabled, defaulting to false.
+///
+bool AppSettings::highlightValueChanges() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(highlightValueChangesKey), false).toBool();
+}
+
+///
+/// \brief Stores whether the data-access table washes cells whose value changed.
+/// \param enabled True to highlight value changes.
+///
+void AppSettings::setHighlightValueChanges(bool enabled)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(highlightValueChangesKey), enabled);
 }
 
 ///

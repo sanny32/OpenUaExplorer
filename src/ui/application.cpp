@@ -141,6 +141,19 @@ void Application::setTimestampMode(AppSettings::TimestampMode mode)
 }
 
 ///
+/// \brief Persists the value-change highlight preference and notifies listeners.
+/// \param enabled True to highlight value changes in the data-access table.
+///
+void Application::setHighlightValueChanges(bool enabled)
+{
+    AppSettings settings;
+    if (settings.highlightValueChanges() == enabled)
+        return;
+    settings.setHighlightValueChanges(enabled);
+    emit highlightValueChangesChanged(enabled);
+}
+
+///
 /// \brief Persists the interface language preference and retranslates the running UI.
 /// \param language Language to apply.
 ///
