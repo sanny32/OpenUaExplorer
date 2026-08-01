@@ -25,7 +25,8 @@ QString storagePath()
 {
     if (QSettings::defaultFormat() == QSettings::NativeFormat)
         return QStringLiteral("HKEY_CURRENT_USER\\Software\\") + QStringLiteral(APP_PRODUCT_NAME);
-    return QSettings(QSettings::UserScope, QStringLiteral(APP_PRODUCT_NAME)).fileName();
+    return QSettings(QSettings::defaultFormat(), QSettings::UserScope,
+                     QStringLiteral(APP_PRODUCT_NAME)).fileName();
 }
 }
 

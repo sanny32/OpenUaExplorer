@@ -34,7 +34,13 @@ void TestSettingsIsolation::settingsUseTemporaryIniStorage()
 
     const QString temporaryRoot = QDir::cleanPath(QDir::tempPath()) + QLatin1Char('/');
     const QString settingsPath = QDir::cleanPath(QFileInfo(settings.fileName()).absoluteFilePath());
-    QVERIFY2(settingsPath.startsWith(temporaryRoot), qPrintable(settingsPath));
+#ifdef Q_OS_WIN
+    constexpr Qt::CaseSensitivity pathCaseSensitivity = Qt::CaseInsensitive;
+#else
+    constexpr Qt::CaseSensitivity pathCaseSensitivity = Qt::CaseSensitive;
+#endif
+    QVERIFY2(settingsPath.startsWith(temporaryRoot, pathCaseSensitivity),
+             qPrintable(settingsPath));
 }
 
 QTEST_GUILESS_MAIN(TestSettingsIsolation)
