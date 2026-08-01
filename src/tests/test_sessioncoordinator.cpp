@@ -866,10 +866,10 @@ void TestSessionCoordinator::lostConnectionHoldsWorkspaceForReconnect()
 
     QVERIFY(!harness.coordinator->hasPendingSession());
     QVERIFY(harness.window.windowTitle().contains(QStringLiteral("held")));
-    const QVector<QPair<QString, QString>> nodes = harness.dataView.dataAccess()->monitoredNodes();
+    const QVector<SessionNode> nodes = harness.dataView.dataAccess()->monitoredNodes();
     QCOMPARE(nodes.size(), 1);
-    QCOMPARE(nodes.first().first, QStringLiteral("ns=2;s=Temp"));
-    QCOMPARE(nodes.first().second, QStringLiteral("Telemetry"));
+    QCOMPARE(nodes.first().nodeId, QStringLiteral("ns=2;s=Temp"));
+    QCOMPARE(nodes.first().subscriptionName, QStringLiteral("Telemetry"));
 }
 
 ///
@@ -930,9 +930,9 @@ void TestSessionCoordinator::openedSessionIsNotReplacedByAHeldWorkspace()
     harness.coordinator->dropHeldWorkspaceIfEndpointChanged();
     harness.coordinator->applyPendingSession();
 
-    const QVector<QPair<QString, QString>> nodes = harness.dataView.dataAccess()->monitoredNodes();
+    const QVector<SessionNode> nodes = harness.dataView.dataAccess()->monitoredNodes();
     QCOMPARE(nodes.size(), 1);
-    QCOMPARE(nodes.first().first, QStringLiteral("ns=2;s=FromFile"));
+    QCOMPARE(nodes.first().nodeId, QStringLiteral("ns=2;s=FromFile"));
 }
 
 int main(int argc, char *argv[])

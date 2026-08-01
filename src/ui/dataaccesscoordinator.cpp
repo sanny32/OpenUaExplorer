@@ -367,10 +367,10 @@ QVector<SubscriptionItem> DataAccessCoordinator::sessionSubscriptions() const
 }
 
 ///
-/// \brief Returns the listed data-access nodes with their subscription for a saved session.
-/// \return NodeId and subscription-name pairs in row order.
+/// \brief Returns the listed data-access nodes with their session state.
+/// \return Saved-node records in row order.
 ///
-QVector<QPair<QString, QString>> DataAccessCoordinator::monitoredNodes() const
+QVector<SessionNode> DataAccessCoordinator::monitoredNodes() const
 {
     return _dataView->dataAccess()->monitoredNodes();
 }
@@ -395,15 +395,15 @@ QVector<SessionTrendTab> DataAccessCoordinator::trendTabs() const
 
 ///
 /// \brief Restores monitored data-access nodes from a loaded session.
-/// \param nodes NodeId and subscription-name pairs to re-add and monitor.
+/// \param nodes Saved nodes to re-add and monitor.
 ///
-void DataAccessCoordinator::restoreMonitoredNodes(const QVector<QPair<QString, QString>> &nodes)
+void DataAccessCoordinator::restoreMonitoredNodes(const QVector<SessionNode> &nodes)
 {
     DataAccessWidget *dataAccess = _dataView->dataAccess();
     dataAccess->restoreMonitoredNodes(nodes);
-    for (const QPair<QString, QString> &node : dataAccess->monitoredNodes()) {
-        _pendingRestoreSubscriptions.insert(node.first, node.second);
-        addNodeById(node.first);
+    for (const SessionNode &node : dataAccess->monitoredNodes()) {
+        _pendingRestoreSubscriptions.insert(node.nodeId, node.subscriptionName);
+        addNodeById(node.nodeId);
     }
 }
 

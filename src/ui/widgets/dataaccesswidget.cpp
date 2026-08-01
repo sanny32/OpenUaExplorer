@@ -208,23 +208,23 @@ void DataAccessWidget::addPendingNodes(const QVector<OpcUaNodeInfo> &nodes)
 
 ///
 /// \brief Replaces the table with saved nodes in their persisted order.
-/// \param nodes NodeId and subscription-name pairs to restore.
+/// \param nodes Saved nodes with their subscription and highlight preference.
 ///
-void DataAccessWidget::restoreMonitoredNodes(
-    const QVector<QPair<QString, QString>> &nodes)
+void DataAccessWidget::restoreMonitoredNodes(const QVector<SessionNode> &nodes)
 {
     QVector<DataAccessItem> items;
     items.reserve(nodes.size());
     QSet<QString> restoredNodeIds;
-    for (const QPair<QString, QString> &node : nodes) {
-        if (node.first.isEmpty() || restoredNodeIds.contains(node.first))
+    for (const SessionNode &node : nodes) {
+        if (node.nodeId.isEmpty() || restoredNodeIds.contains(node.nodeId))
             continue;
-        restoredNodeIds.insert(node.first);
+        restoredNodeIds.insert(node.nodeId);
 
         DataAccessItem item;
-        item.nodeId = node.first;
-        item.displayName = node.first;
-        item.subscriptionName = node.second;
+        item.nodeId = node.nodeId;
+        item.displayName = node.nodeId;
+        item.subscriptionName = node.subscriptionName;
+        item.highlight = node.highlight;
         item.pending = true;
         items.append(item);
     }
@@ -336,16 +336,16 @@ void DataAccessWidget::exportToCsv()
 }
 
 ///
-/// \brief Returns the listed nodes paired with their subscription assignment.
-/// \return NodeId and subscription-name pairs in row order.
+/// \brief Returns the listed nodes with their subscription and highlight preference.
+/// \return Saved-node records in row order.
 ///
-QVector<QPair<QString, QString>> DataAccessWidget::monitoredNodes() const
+QVector<SessionNode> DataAccessWidget::monitoredNodes() const
 {
-    QVector<QPair<QString, QString>> nodes;
+    QVector<SessionNode> nodes;
     nodes.reserve(_dataModel->rowCount());
     for (int row = 0; row < _dataModel->rowCount(); ++row) {
         const DataAccessItem item = _dataModel->itemAt(row);
-        nodes.append({item.nodeId, item.subscriptionName});
+        nodes.append({item.nodeId, item.subscriptionName, item.highlight});
     }
     return nodes;
 }

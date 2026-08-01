@@ -391,10 +391,10 @@ void TestDataAccessWidget::restoredNodesKeepSavedOrderAndSubscriptions()
     QVERIFY(view);
 
     widget.addNode(makeNodeDetails());
-    const QVector<QPair<QString, QString>> savedNodes{
-        {QStringLiteral("ns=2;s=Third"), QStringLiteral("Fast")},
-        {QStringLiteral("ns=2;s=First"), QString()},
-        {QStringLiteral("ns=2;s=Second"), QStringLiteral("Default")}
+    const QVector<SessionNode> savedNodes{
+        {QStringLiteral("ns=2;s=Third"), QStringLiteral("Fast"), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=First"), QString(), HighlightMode::Disabled},
+        {QStringLiteral("ns=2;s=Second"), QStringLiteral("Default"), HighlightMode::Enabled}
     };
 
     widget.restoreMonitoredNodes(savedNodes);
@@ -404,7 +404,7 @@ void TestDataAccessWidget::restoredNodesKeepSavedOrderAndSubscriptions()
     for (int row = 0; row < savedNodes.size(); ++row) {
         QCOMPARE(view->model()->data(
                      view->model()->index(row, DataAccessModel::ColNodeId)).toString(),
-                 savedNodes.at(row).first);
+                 savedNodes.at(row).nodeId);
     }
 }
 
@@ -917,6 +917,12 @@ void TestDataAccessWidget::contextMenuOverridesChangeHighlight()
 
     QVERIFY(first.data(DataAccessModel::HighlightChangesRole).toBool());
     QVERIFY(!second.data(DataAccessModel::HighlightChangesRole).toBool());
+
+    // The override belongs to the node, so a saved session carries it per row.
+    const QVector<SessionNode> nodes = widget.monitoredNodes();
+    QCOMPARE(nodes.size(), 2);
+    QCOMPARE(nodes.at(0).highlight, HighlightMode::Enabled);
+    QCOMPARE(nodes.at(1).highlight, HighlightMode::FollowDefault);
 }
 
 ///

@@ -52,8 +52,10 @@ QByteArray sessionFingerprint(const SessionData &data)
 
     QStringList nodes;
     nodes.reserve(data.dataAccessNodes.size());
-    for (const SessionNode &node : data.dataAccessNodes)
-        nodes.append(node.nodeId + QLatin1Char('\x1f') + node.subscriptionName);
+    for (const SessionNode &node : data.dataAccessNodes) {
+        nodes.append(node.nodeId + QLatin1Char('\x1f') + node.subscriptionName
+                     + QLatin1Char('\x1f') + QString::number(static_cast<int>(node.highlight)));
+    }
     nodes.sort();
 
     QStringList trends;
@@ -233,12 +235,7 @@ void SessionCoordinator::applyPendingSession()
     _pendingSessionPath.clear();
 
     _context.dataAccessCoordinator->restoreSubscriptions(session.subscriptions);
-
-    QVector<QPair<QString, QString>> nodes;
-    nodes.reserve(session.dataAccessNodes.size());
-    for (const SessionNode &node : session.dataAccessNodes)
-        nodes.append({node.nodeId, node.subscriptionName});
-    _context.dataAccessCoordinator->restoreMonitoredNodes(nodes);
+    _context.dataAccessCoordinator->restoreMonitoredNodes(session.dataAccessNodes);
 
     if (!session.trendTabs.isEmpty())
         _context.dataAccessCoordinator->restoreTrendTabs(session.trendTabs);
@@ -354,9 +351,7 @@ SessionData SessionCoordinator::sessionWorkspace() const
 {
     SessionData data;
     data.subscriptions = _context.dataAccessCoordinator->sessionSubscriptions();
-    const QVector<QPair<QString, QString>> nodes = _context.dataAccessCoordinator->monitoredNodes();
-    for (const QPair<QString, QString> &node : nodes)
-        data.dataAccessNodes.append({node.first, node.second});
+    data.dataAccessNodes = _context.dataAccessCoordinator->monitoredNodes();
     data.trendTabs = _context.dataAccessCoordinator->trendTabs();
     data.nodeMonitors = _context.captureNodeMonitors();
     return data;

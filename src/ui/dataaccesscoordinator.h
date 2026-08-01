@@ -219,10 +219,10 @@ public:
     QVector<SubscriptionItem> sessionSubscriptions() const;
 
     ///
-    /// \brief Returns the listed data-access nodes with their subscription for a saved session.
-    /// \return NodeId and subscription-name pairs in row order.
+    /// \brief Returns the listed data-access nodes with their session state.
+    /// \return Saved-node records in row order.
     ///
-    QVector<QPair<QString, QString>> monitoredNodes() const;
+    QVector<SessionNode> monitoredNodes() const;
 
     ///
     /// \brief Returns the charted trend node ids for a saved session.
@@ -238,9 +238,9 @@ public:
 
     ///
     /// \brief Restores monitored data-access nodes from a loaded session.
-    /// \param nodes NodeId and subscription-name pairs to re-add and monitor.
+    /// \param nodes Saved nodes to re-add and monitor.
     ///
-    void restoreMonitoredNodes(const QVector<QPair<QString, QString>> &nodes);
+    void restoreMonitoredNodes(const QVector<SessionNode> &nodes);
 
     ///
     /// \brief Restores charted trend nodes from a loaded session.

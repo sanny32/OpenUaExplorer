@@ -444,22 +444,22 @@ void TestDataAccessCoordinator::pageStateSurvivesSaveRestoreRoundTrip()
 void TestDataAccessCoordinator::restoredNodesKeepSavedOrderWhenReadsFinishOutOfOrder()
 {
     CoordinatorHarness harness;
-    const QVector<QPair<QString, QString>> savedNodes{
-        {QStringLiteral("ns=2;s=Third"), QStringLiteral("Fast")},
-        {QStringLiteral("ns=2;s=First"), QString()},
-        {QStringLiteral("ns=2;s=Second"), QStringLiteral("Default")}
+    const QVector<SessionNode> savedNodes{
+        {QStringLiteral("ns=2;s=Third"), QStringLiteral("Fast"), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=First"), QString(), HighlightMode::Enabled},
+        {QStringLiteral("ns=2;s=Second"), QStringLiteral("Default"), HighlightMode::Disabled}
     };
 
     harness.coordinator->restoreMonitoredNodes(savedNodes);
 
     QCOMPARE(harness.backend.readNodeIds,
-             QStringList({savedNodes.at(0).first, savedNodes.at(1).first,
-                          savedNodes.at(2).first}));
+             QStringList({savedNodes.at(0).nodeId, savedNodes.at(1).nodeId,
+                          savedNodes.at(2).nodeId}));
     QCOMPARE(harness.coordinator->monitoredNodes(), savedNodes);
 
     for (int index : {1, 2, 0}) {
         OpcUaNodeDetails details;
-        details.nodeId = savedNodes.at(index).first;
+        details.nodeId = savedNodes.at(index).nodeId;
         details.displayName = QStringLiteral("Node %1").arg(index);
         details.nodeClass = OpcUa::Variable;
         emit harness.backend.nodeDetailsReady(details, QString());
@@ -470,7 +470,7 @@ void TestDataAccessCoordinator::restoredNodesKeepSavedOrderWhenReadsFinishOutOfO
     QVERIFY(model);
     for (int row = 0; row < savedNodes.size(); ++row) {
         QCOMPARE(model->data(model->index(row, DataAccessModel::ColNodeId)).toString(),
-                 savedNodes.at(row).first);
+                 savedNodes.at(row).nodeId);
     }
 }
 
@@ -480,14 +480,15 @@ void TestDataAccessCoordinator::restoredNodesKeepSavedOrderWhenReadsFinishOutOfO
 void TestDataAccessCoordinator::failedRestoredNodeRemainsSavedAndSettles()
 {
     CoordinatorHarness harness;
-    const QVector<QPair<QString, QString>> savedNodes{
-        {QStringLiteral("ns=2;s=Unavailable"), QStringLiteral("Default")}
+    const QVector<SessionNode> savedNodes{
+        {QStringLiteral("ns=2;s=Unavailable"), QStringLiteral("Default"),
+         HighlightMode::FollowDefault}
     };
 
     harness.coordinator->restoreMonitoredNodes(savedNodes);
 
     OpcUaNodeDetails failed;
-    failed.nodeId = savedNodes.first().first;
+    failed.nodeId = savedNodes.first().nodeId;
     emit harness.backend.nodeDetailsReady(failed, QStringLiteral("Node read timed out."));
 
     QCOMPARE(harness.coordinator->monitoredNodes(), savedNodes);

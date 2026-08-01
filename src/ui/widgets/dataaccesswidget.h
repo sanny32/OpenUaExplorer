@@ -9,13 +9,13 @@
 #pragma once
 
 #include <QModelIndex>
-#include <QPair>
 #include <QVector>
 #include <QWidget>
 
 #include "appsettings.h"
 #include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
+#include "session/sessiondata.h"
 
 class QMenu;
 
@@ -71,9 +71,9 @@ public:
 
     ///
     /// \brief Replaces the table with saved nodes in their persisted order.
-    /// \param nodes NodeId and subscription-name pairs to restore.
+    /// \param nodes Saved nodes with their subscription and highlight preference.
     ///
-    void restoreMonitoredNodes(const QVector<QPair<QString, QString>> &nodes);
+    void restoreMonitoredNodes(const QVector<SessionNode> &nodes);
 
     ///
     /// \brief Clears the pending mark of a row once its request chain has finished.
@@ -151,10 +151,10 @@ public:
     void exportToCsv();
 
     ///
-    /// \brief Returns the listed nodes paired with their subscription assignment.
-    /// \return NodeId and subscription-name pairs in row order.
+    /// \brief Returns the listed nodes with their subscription and highlight preference.
+    /// \return Saved-node records in row order.
     ///
-    QVector<QPair<QString, QString>> monitoredNodes() const;
+    QVector<SessionNode> monitoredNodes() const;
 
     ///
     /// \brief Persists the data view header state.

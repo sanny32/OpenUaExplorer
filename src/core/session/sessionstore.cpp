@@ -240,6 +240,10 @@ bool SessionStore::save(const QString &path, const SessionData &data, QString *e
         QJsonObject entry;
         entry[QStringLiteral("nodeId")] = node.nodeId;
         entry[QStringLiteral("subscription")] = node.subscriptionName;
+        // Written only for an explicit override, so nodes that follow the
+        // application-wide default keep following it after it changes.
+        if (node.highlight != HighlightMode::FollowDefault)
+            entry[QStringLiteral("highlight")] = node.highlight == HighlightMode::Enabled;
         nodes.append(entry);
     }
     root[QStringLiteral("dataAccessNodes")] = nodes;
@@ -332,6 +336,11 @@ bool SessionStore::load(const QString &path, SessionData &data, QString *error)
         SessionNode node;
         node.nodeId = entry[QStringLiteral("nodeId")].toString();
         node.subscriptionName = entry[QStringLiteral("subscription")].toString();
+        const QJsonValue highlight = entry[QStringLiteral("highlight")];
+        if (highlight.isBool()) {
+            node.highlight = highlight.toBool() ? HighlightMode::Enabled
+                                                : HighlightMode::Disabled;
+        }
         if (!node.nodeId.isEmpty())
             parsed.dataAccessNodes.append(node);
     }
