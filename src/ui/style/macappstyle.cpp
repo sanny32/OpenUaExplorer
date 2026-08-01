@@ -196,7 +196,8 @@ void MacAppStyle::drawControl(ControlElement element, const QStyleOption* option
 }
 
 ///
-/// \brief Draws an outlined bezel behind ThemedToolButtons; everything else defers to the base style.
+/// \brief Draws an outlined bezel behind ThemedToolButtons; auto-raise buttons and everything
+///        else defer to the base style.
 /// \param element Primitive element to render.
 /// \param option Style option carrying the element state.
 /// \param painter Painter to draw with.
@@ -205,8 +206,8 @@ void MacAppStyle::drawControl(ControlElement element, const QStyleOption* option
 void MacAppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption* option,
                                  QPainter* painter, const QWidget* widget) const
 {
-    if (element == PE_PanelButtonTool && option
-        && qobject_cast<const ThemedToolButton*>(widget)
+    const auto* themedTool = qobject_cast<const ThemedToolButton*>(widget);
+    if (element == PE_PanelButtonTool && option && themedTool && !themedTool->autoRaise()
         && !qobject_cast<const MainToolButton*>(widget)
         && !option->state.testFlag(State_On)) {
         drawOutlinedToolButton(option, painter);

@@ -10,12 +10,17 @@
 #include <QColor>
 #include <QHeaderView>
 #include <QImage>
+#include <QPalette>
+#include <QSet>
 #include <QStandardItemModel>
 #include <QTableView>
 #include <QTest>
+#include <QWidget>
 
 #include "application.h"
+#include "style/macappstyle.h"
 #include "style/qlementineappstyle.h"
+#include "widgets/themedtoolbutton.h"
 
 ///
 /// \brief Tests for QlementineAppStyle's item painting.
@@ -26,6 +31,7 @@ class TestAppStyle : public QObject
 
 private slots:
     void centeredCellsKeepTheModelForeground();
+    void autoRaiseToolButtonsHaveNoMacBezel();
 };
 
 #if defined(HAVE_QLEMENTINE_APP_STYLE)
@@ -84,6 +90,52 @@ bool containsGreenText(const QImage &image)
     return false;
 }
 
+///
+/// \brief Renders a tool button of the macOS style on a plain white backdrop.
+/// \param autoRaise Whether the button is flat until hovered.
+/// \return Rendered button.
+///
+QImage renderMacToolButton(bool autoRaise)
+{
+    MacAppStyle style;
+    QWidget host;
+    host.setAutoFillBackground(true);
+    QPalette palette = host.palette();
+    palette.setColor(QPalette::Window, Qt::white);
+    host.setPalette(palette);
+    host.resize(80, 60);
+
+    ThemedToolButton button(&host);
+    button.setStyle(&style);
+    button.setAutoRaise(autoRaise);
+    button.setGeometry(20, 15, 28, 24);
+
+    host.show();
+    if (!QTest::qWaitForWindowExposed(&host))
+        return {};
+
+    const QImage rendered = host.grab(button.geometry()).toImage();
+    host.hide();
+    // The style outlives the button only if the button stops using it first.
+    button.setStyle(nullptr);
+    return rendered;
+}
+
+///
+/// \brief Counts the distinct colours of a rendering.
+/// \param image Rendered widget.
+/// \return Number of distinct pixel colours.
+///
+int distinctColorCount(const QImage &image)
+{
+    QSet<QRgb> colors;
+    for (int y = 0; y < image.height(); ++y) {
+        for (int x = 0; x < image.width(); ++x)
+            colors.insert(image.pixel(x, y));
+    }
+    return colors.size();
+}
+
 } // namespace
 
 ///
@@ -110,9 +162,31 @@ void TestAppStyle::centeredCellsKeepTheModelForeground()
     QVERIFY(!containsGreenText(themed));
 }
 
+///
+/// \brief Flat tool buttons stay borderless under the macOS style.
+///
+/// The style bezels ThemedToolButtons so toolbar rows line up, which drew a frame around
+/// the trend panel's collapse chevron as well.
+///
+void TestAppStyle::autoRaiseToolButtonsHaveNoMacBezel()
+{
+    const QImage bezeled = renderMacToolButton(false);
+    QVERIFY(!bezeled.isNull());
+    QVERIFY(distinctColorCount(bezeled) > 1);
+
+    const QImage flat = renderMacToolButton(true);
+    QVERIFY(!flat.isNull());
+    QCOMPARE(distinctColorCount(flat), 1);
+}
+
 #else
 
 void TestAppStyle::centeredCellsKeepTheModelForeground()
+{
+    QSKIP("Built without the Qlementine application style.");
+}
+
+void TestAppStyle::autoRaiseToolButtonsHaveNoMacBezel()
 {
     QSKIP("Built without the Qlementine application style.");
 }
