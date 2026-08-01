@@ -53,7 +53,9 @@ private slots:
     void doubleClickTogglesWritableBooleanValue();
     void declinedDoubleClickWritesNothing();
     void doubleClickOnReadOnlyBooleanWritesNothing();
-    void doubleClickOnNonBooleanWritesNothing();
+    void doubleClickOnNonBooleanOpensWriteDialog();
+    void doubleClickOnReadOnlyValueWritesNothing();
+    void doubleClickOnPendingRowWritesNothing();
     void doubleClickOutsideValueColumnWritesNothing();
     void doubleClickWhileOfflineWritesNothing();
 };
@@ -650,6 +652,7 @@ void TestDataAccessWidget::doubleClickOnReadOnlyBooleanWritesNothing()
     QVERIFY(QTest::qWaitForWindowExposed(&widget));
 
     QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
+    QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
     bool dialogSeen = false;
     watchForDialog(&dialogSeen);
     doubleClickCell(view, 0, DataAccessModel::ColValue);
@@ -657,12 +660,13 @@ void TestDataAccessWidget::doubleClickOnReadOnlyBooleanWritesNothing()
 
     QVERIFY(!dialogSeen);
     QCOMPARE(spy.size(), 0);
+    QCOMPARE(writeSpy.size(), 0);
 }
 
 ///
-/// \brief Values of other types keep opening the write dialog instead of toggling.
+/// \brief Values of other types ask for the write dialog instead of toggling.
 ///
-void TestDataAccessWidget::doubleClickOnNonBooleanWritesNothing()
+void TestDataAccessWidget::doubleClickOnNonBooleanOpensWriteDialog()
 {
     DataAccessWidget widget;
     auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
@@ -675,17 +679,59 @@ void TestDataAccessWidget::doubleClickOnNonBooleanWritesNothing()
     QVERIFY(QTest::qWaitForWindowExposed(&widget));
 
     QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
-    bool dialogSeen = false;
-    watchForDialog(&dialogSeen);
+    QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
     doubleClickCell(view, 0, DataAccessModel::ColValue);
-    QCoreApplication::processEvents();
 
-    QVERIFY(!dialogSeen);
     QCOMPARE(spy.size(), 0);
+    QCOMPARE(writeSpy.size(), 1);
+    QCOMPARE(writeSpy.first().at(0).toString(), details.nodeId);
+    QCOMPARE(writeSpy.first().at(1).toDouble(), details.value.toDouble());
+    QCOMPARE(writeSpy.first().at(3).toString(), details.dataTypeId);
+    QCOMPARE(writeSpy.first().at(4).toBool(), true);
 }
 
 ///
-/// \brief Only the Value column toggles; the other columns stay inert.
+/// \brief A value the user may not write opens no dialog.
+///
+void TestDataAccessWidget::doubleClickOnReadOnlyValueWritesNothing()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    OpcUaNodeDetails details = makeNodeDetails();
+    details.userAccessLevel = OpcUa::CurrentRead;
+    widget.addNode(details);
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
+    doubleClickCell(view, 0, DataAccessModel::ColValue);
+
+    QCOMPARE(writeSpy.size(), 0);
+}
+
+///
+/// \brief A row still waiting for its attributes opens no dialog.
+///
+void TestDataAccessWidget::doubleClickOnPendingRowWritesNothing()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addPendingNodes({makeDroppedNode(OpcUa::Variable)});
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
+    doubleClickCell(view, 0, DataAccessModel::ColValue);
+
+    QCOMPARE(writeSpy.size(), 0);
+}
+
+///
+/// \brief Only the Value column writes; the other columns stay inert.
 ///
 void TestDataAccessWidget::doubleClickOutsideValueColumnWritesNothing()
 {
@@ -698,6 +744,7 @@ void TestDataAccessWidget::doubleClickOutsideValueColumnWritesNothing()
     QVERIFY(QTest::qWaitForWindowExposed(&widget));
 
     QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
+    QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
     bool dialogSeen = false;
     watchForDialog(&dialogSeen);
     doubleClickCell(view, 0, DataAccessModel::ColDisplayName);
@@ -705,6 +752,7 @@ void TestDataAccessWidget::doubleClickOutsideValueColumnWritesNothing()
 
     QVERIFY(!dialogSeen);
     QCOMPARE(spy.size(), 0);
+    QCOMPARE(writeSpy.size(), 0);
 }
 
 ///
@@ -722,6 +770,7 @@ void TestDataAccessWidget::doubleClickWhileOfflineWritesNothing()
     widget.setOffline(true);
 
     QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
+    QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
     bool dialogSeen = false;
     watchForDialog(&dialogSeen);
     doubleClickCell(view, 0, DataAccessModel::ColValue);
@@ -729,6 +778,7 @@ void TestDataAccessWidget::doubleClickWhileOfflineWritesNothing()
 
     QVERIFY(!dialogSeen);
     QCOMPARE(spy.size(), 0);
+    QCOMPARE(writeSpy.size(), 0);
 }
 
 QTEST_MAIN(TestDataAccessWidget)

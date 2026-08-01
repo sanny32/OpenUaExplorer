@@ -26,6 +26,7 @@ class DataAccessWidget;
 class DataAccessFilterProxyModel;
 class DataAccessModel;
 class SubscriptionDelegate;
+struct DataAccessItem;
 
 ///
 /// \brief Tab widget for browsing and monitoring data access items.
@@ -284,7 +285,9 @@ private:
     void updateSelectionActions();
     void readSelectedNodes();
     void writeSelectedNode();
-    void toggleBooleanValue(const QModelIndex &index);
+    void requestWrite(const DataAccessItem &item);
+    void handleValueDoubleClick(const QModelIndex &index);
+    void toggleBooleanValue(const DataAccessItem &item);
     void rebuildSubscribeMenu();
     void populateSubscribeMenu(QMenu *menu);
     void promptNewSubscription(const QString &nodeId);

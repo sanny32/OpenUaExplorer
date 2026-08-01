@@ -521,7 +521,7 @@ void DataAccessWidget::setupDataView()
     ui->dataView->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->dataView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
     connect(ui->dataView, &QAbstractItemView::doubleClicked,
-            this, &DataAccessWidget::toggleBooleanValue);
+            this, &DataAccessWidget::handleValueDoubleClick);
     ui->dataView->verticalHeader()->hide();
     ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->dataView, &QWidget::customContextMenuRequested,
@@ -667,33 +667,54 @@ void DataAccessWidget::writeSelectedNode()
     const QModelIndexList rows = selectedSettledRows();
     if (rows.size() != 1)
         return;
-    const DataAccessItem item = _dataModel->itemAt(rows.first().row());
+    requestWrite(_dataModel->itemAt(rows.first().row()));
+}
+
+///
+/// \brief Asks for a value write of a data-access row.
+/// \param item Row to write.
+///
+void DataAccessWidget::requestWrite(const DataAccessItem &item)
+{
     emit writeRequested(item.nodeId, item.typedValue, item.valueType,
                         item.dataTypeId, OpcUa::isWritable(item.userAccessLevel));
 }
 
 ///
-/// \brief Writes the inverted value when a writable Boolean cell is double-clicked.
+/// \brief Toggles or opens the write dialog when a writable Value cell is double-clicked.
 /// \param index Double-clicked cell in the filter proxy.
 ///
-/// Boolean arrays and values that were never read are left alone, so the cell only
-/// toggles when the row really holds a single writable Boolean. The new value is
-/// confirmed first, since a double click would otherwise write to the server by
-/// accident.
+/// Rows that were never read and values the user may not write are left alone, so a
+/// double click never opens an editor the server would reject anyway.
 ///
-void DataAccessWidget::toggleBooleanValue(const QModelIndex &index)
+void DataAccessWidget::handleValueDoubleClick(const QModelIndex &index)
 {
     if (_offline || !index.isValid() || index.column() != DataAccessModel::ColValue)
         return;
 
     const DataAccessItem item = _dataModel->itemAt(_filterProxy->mapToSource(index).row());
-    if (item.pending
-        || item.valueType != static_cast<int>(QOpcUa::Types::Boolean)
-        || item.typedValue.userType() != QMetaType::Bool
-        || !OpcUa::isWritable(item.userAccessLevel)) {
+    if (item.pending || !OpcUa::isWritable(item.userAccessLevel))
+        return;
+
+    // Boolean arrays keep the dialog: only a single Boolean has an obvious opposite.
+    if (item.valueType == static_cast<int>(QOpcUa::Types::Boolean)
+        && item.typedValue.userType() == QMetaType::Bool) {
+        toggleBooleanValue(item);
         return;
     }
 
+    requestWrite(item);
+}
+
+///
+/// \brief Confirms and writes the inverted value of a Boolean row.
+/// \param item Row holding the Boolean.
+///
+/// The new value is confirmed first, since a double click would otherwise write to
+/// the server by accident.
+///
+void DataAccessWidget::toggleBooleanValue(const DataAccessItem &item)
+{
     const bool newValue = !item.typedValue.toBool();
     const DialogButtonBox::StandardButton answer = MessageBoxDialog::question(
         this, tr("Write Value"),
