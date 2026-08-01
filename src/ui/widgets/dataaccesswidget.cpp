@@ -684,9 +684,6 @@ void DataAccessWidget::requestWrite(const DataAccessItem &item)
 /// \brief Toggles or opens the write dialog when a writable Value cell is double-clicked.
 /// \param index Double-clicked cell in the filter proxy.
 ///
-/// Rows that were never read and values the user may not write are left alone, so a
-/// double click never opens an editor the server would reject anyway.
-///
 void DataAccessWidget::handleValueDoubleClick(const QModelIndex &index)
 {
     if (_offline || !index.isValid() || index.column() != DataAccessModel::ColValue)
@@ -710,8 +707,7 @@ void DataAccessWidget::handleValueDoubleClick(const QModelIndex &index)
 /// \brief Confirms and writes the inverted value of a Boolean row.
 /// \param item Row holding the Boolean.
 ///
-/// The new value is confirmed first, since a double click would otherwise write to
-/// the server by accident.
+/// The value is confirmed first: a double click would otherwise write by accident.
 ///
 void DataAccessWidget::toggleBooleanValue(const DataAccessItem &item)
 {

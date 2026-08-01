@@ -47,6 +47,30 @@ enum OpcUaType {
     ExpandedNodeId = 27,
     Undefined = -1
 };
+
+///
+/// \brief Replaces Byte and SByte values, including array elements, with plain numbers.
+/// \param value Value to normalise.
+/// \return Value whose char-typed entries render as numbers.
+///
+QVariant numericBytes(const QVariant &value)
+{
+    switch (value.userType()) {
+    case QMetaType::UChar: return value.toUInt();
+    case QMetaType::SChar:
+    case QMetaType::Char: return value.toInt();
+    default: break;
+    }
+
+    if (value.userType() != QMetaType::QString && value.userType() != QMetaType::QByteArray
+        && value.canConvert<QVariantList>()) {
+        QVariantList entries;
+        for (const QVariant &entry : value.toList())
+            entries.append(numericBytes(entry));
+        return entries;
+    }
+    return value;
+}
 }
 
 ///
@@ -91,15 +115,16 @@ void WriteValueDialog::setValue(const QVariant &value, int valueType,
         && value.userType() != QMetaType::QString
         && value.userType() != QMetaType::QByteArray;
     ui->arrayCheckBox->setChecked(array);
+    const QVariant displayed = numericBytes(value);
     if (array || value.userType() == QMetaType::QVariantMap) {
         ui->valueEdit->setPlainText(
-            QString::fromUtf8(QJsonDocument::fromVariant(value).toJson(QJsonDocument::Indented)));
+            QString::fromUtf8(QJsonDocument::fromVariant(displayed).toJson(QJsonDocument::Indented)));
     } else if (value.userType() == QMetaType::QDateTime) {
         ui->valueEdit->setPlainText(value.toDateTime().toString(Qt::ISODateWithMs));
     } else if (value.userType() == QMetaType::QByteArray) {
         ui->valueEdit->setPlainText(QString::fromLatin1(value.toByteArray().toBase64()));
     } else {
-        ui->valueEdit->setPlainText(value.toString());
+        ui->valueEdit->setPlainText(displayed.toString());
     }
 
     const bool knownExtension = value.userType() != QMetaType::QByteArray
