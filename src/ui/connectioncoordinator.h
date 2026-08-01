@@ -64,6 +64,11 @@ public:
                           QWidget *dialogParent);
 
     ///
+    /// \brief Releases a connection-attempt cursor still owned by the coordinator.
+    ///
+    ~ConnectionCoordinator() override;
+
+    ///
     /// \brief Runs the connection dialog and connects (optionally saving) the chosen profile.
     /// \param preset Profile used to pre-fill the dialog, or nullptr for a blank dialog.
     /// \return True when the user accepted the dialog and a connection was started.
@@ -119,6 +124,8 @@ private:
     void scheduleReconnect();
     void attemptReconnect();
     void stopReconnect();
+    void beginConnectionAttempt();
+    void endConnectionAttempt();
     void onClientError(const QString &message);
 
     ConnectionController *_controller;
@@ -133,4 +140,5 @@ private:
     bool _wasConnected = false;
     bool _connectionLost = false;
     bool _retryInProgress = false;
+    bool _connectionCursorActive = false;
 };

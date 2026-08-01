@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include <QAction>
+#include <QGuiApplication>
 #include <QHash>
 #include <QMenu>
 #include <QSettings>
@@ -213,6 +214,7 @@ private slots:
     void onlyALostConnectionIsReportedAsLost();
     void lostConnectionIsRetriedAtTheConfiguredInterval();
     void retriesStopWhenTheUserGivesUpOrConnectsElsewhere();
+    void connectionAttemptWaitsUnderTheWaitCursor();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -434,6 +436,50 @@ void TestConnectionCoordinator::retriesStopWhenTheUserGivesUpOrConnectsElsewhere
     harness.backend.setState(OpcUaConnectionState::Discovering);
     QVERIFY(!harness.coordinator->isReconnecting());
     QVERIFY(!harness.coordinator->connectionLost());
+}
+
+///
+/// \brief The wait cursor covers a connection attempt, but not an unattended retry.
+///
+void TestConnectionCoordinator::connectionAttemptWaitsUnderTheWaitCursor()
+{
+    AppSettings settings;
+    settings.setReconnectEnabled(false);
+
+    ConnectionHarness harness;
+    QVERIFY(!QGuiApplication::overrideCursor());
+
+    // Looking the endpoint up and connecting to it are both part of the attempt.
+    harness.backend.setState(OpcUaConnectionState::Discovering);
+    QVERIFY(QGuiApplication::overrideCursor());
+    QCOMPARE(QGuiApplication::overrideCursor()->shape(), Qt::WaitCursor);
+    harness.backend.setState(OpcUaConnectionState::Connecting);
+    QVERIFY(QGuiApplication::overrideCursor());
+
+    harness.backend.setState(OpcUaConnectionState::Connected);
+    QVERIFY(!QGuiApplication::overrideCursor());
+
+    // A failed attempt stops waiting just as a successful one does.
+    harness.coordinator->disconnectFromServer();
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    harness.backend.setState(OpcUaConnectionState::Connecting);
+    QVERIFY(QGuiApplication::overrideCursor());
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    QVERIFY(!QGuiApplication::overrideCursor());
+
+    // Retries of a lost connection run in the background and must not block the user.
+    settings.setReconnectEnabled(true);
+    settings.setReconnectIntervalSeconds(1);
+    connectHarness(harness);
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    QVERIFY(harness.coordinator->isReconnecting());
+
+    const int connectsBeforeRetry = harness.backend.connectCalls;
+    QTRY_VERIFY_WITH_TIMEOUT(harness.backend.connectCalls > connectsBeforeRetry, 4000);
+    harness.backend.setState(OpcUaConnectionState::Connecting);
+    QVERIFY(!QGuiApplication::overrideCursor());
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    QVERIFY(!QGuiApplication::overrideCursor());
 }
 
 ///

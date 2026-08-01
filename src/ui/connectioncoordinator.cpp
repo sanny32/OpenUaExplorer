@@ -11,6 +11,7 @@
 
 #include <QAction>
 #include <QDateTime>
+#include <QGuiApplication>
 #include <QMenu>
 #include <QTimer>
 #include <QToolButton>
@@ -74,6 +75,14 @@ ConnectionCoordinator::ConnectionCoordinator(ConnectionController *controller,
     _controller->setCertificateTrustDecider(this);
     rebuildRecentMenu();
     updateActions(_backend->state());
+}
+
+///
+/// \brief Releases a connection-attempt cursor still owned by the coordinator.
+///
+ConnectionCoordinator::~ConnectionCoordinator()
+{
+    endConnectionAttempt();
 }
 
 ///
@@ -155,6 +164,17 @@ bool ConnectionCoordinator::isReconnecting() const
 ///
 void ConnectionCoordinator::trackConnectionState(OpcUaConnectionState state)
 {
+    // The wait cursor lasts from the start of a connection attempt until the client reports
+    // it connected or back to idle. Retries of a lost connection run unattended, so they are
+    // left out: the user is working elsewhere and must not be blocked every retry interval.
+    if (state == OpcUaConnectionState::Discovering
+        || state == OpcUaConnectionState::Connecting) {
+        if (!_retryInProgress)
+            beginConnectionAttempt();
+    } else {
+        endConnectionAttempt();
+    }
+
     switch (state) {
     case OpcUaConnectionState::Connected:
         _wasConnected = true;
@@ -226,6 +246,28 @@ void ConnectionCoordinator::stopReconnect()
 }
 
 ///
+/// \brief Shows the application wait cursor while a connection attempt is running.
+///
+void ConnectionCoordinator::beginConnectionAttempt()
+{
+    if (_connectionCursorActive)
+        return;
+    QGuiApplication::setOverrideCursor(Qt::WaitCursor);
+    _connectionCursorActive = true;
+}
+
+///
+/// \brief Removes the wait cursor installed for a connection attempt.
+///
+void ConnectionCoordinator::endConnectionAttempt()
+{
+    if (!_connectionCursorActive)
+        return;
+    QGuiApplication::restoreOverrideCursor();
+    _connectionCursorActive = false;
+}
+
+///
 /// \brief Shows a read-only summary of the active connection's endpoint settings.
 ///
 void ConnectionCoordinator::showEndpointSettings()
@@ -247,7 +289,14 @@ CertificateTrustDecision ConnectionCoordinator::decide(const QByteArray &certifi
 {
     CertificateTrustDialog dialog(_dialogParent);
     dialog.setCertificate(certificate, message);
+    // The prompt interrupts the connection attempt and waits for the user, so the wait cursor
+    // of that attempt is lifted while the dialog is up and restored once it is answered.
+    const bool waiting = _connectionCursorActive;
+    if (waiting)
+        endConnectionAttempt();
     dialog.exec();
+    if (waiting)
+        beginConnectionAttempt();
     switch (dialog.decision()) {
     case CertificateTrustDialog::TrustOnce:
         return CertificateTrustDecision::TrustOnce;
