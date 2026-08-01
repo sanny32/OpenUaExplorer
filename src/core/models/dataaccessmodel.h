@@ -245,6 +245,8 @@ public:
         ValueChangedAtRole = Qt::UserRole + 1,
         /// \brief OpcUaFormat::StatusSeverity of the row's status code, as an int.
         StatusSeverityRole,
+        /// \brief Publishing interval in milliseconds, or 0 when the row is not monitored.
+        ExpectedIntervalRole,
         /// \brief Resolved change-highlight preference of the row, as a bool.
         HighlightChangesRole
     };

@@ -411,6 +411,18 @@ void TestModels::dataAccessExposesQualityAndValueFont()
     QCOMPARE(monitored.data(DataAccessModel::StatusSeverityRole).toInt(),
              int(OpcUaFormat::StatusSeverity::Good));
 
+    // The interval bounds the change wash, and only counts once the server granted one.
+    QCOMPARE(monitored.data(DataAccessModel::ExpectedIntervalRole).toDouble(), 0.0);
+    model.setRevisedInterval(TestData::dataAccessItems().first().nodeId, 250.0);
+    QCOMPARE(monitored.data(DataAccessModel::ExpectedIntervalRole).toDouble(), 250.0);
+
+    // An unmonitored row reports no interval even when one lingers on the item.
+    const int unmonitoredRow = 3;
+    QVERIFY(model.itemAt(unmonitoredRow).subscriptionName.isEmpty());
+    model.setRevisedInterval(model.itemAt(unmonitoredRow).nodeId, 250.0);
+    QCOMPARE(model.index(unmonitoredRow, DataAccessModel::ColValue)
+                 .data(DataAccessModel::ExpectedIntervalRole).toDouble(), 0.0);
+
     OpcUaDataValue uncertain;
     uncertain.nodeId = TestData::dataAccessItems().first().nodeId;
     uncertain.value = 1.0;

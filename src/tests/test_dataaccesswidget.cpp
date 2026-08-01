@@ -68,6 +68,7 @@ private slots:
     void subscriptionEditorHasOpaqueBackground();
     void contextMenuOverridesChangeHighlight();
     void selectedRowsStillShowTheChangeWash();
+    void fastSubscriptionsFadeWithinTheirInterval();
 };
 
 namespace {
@@ -950,6 +951,47 @@ void TestDataAccessWidget::selectedRowsStillShowTheChangeWash()
     // below is the wash itself and not the fade between two captures.
     QCOMPARE(plain, renderViewport(view));
     QVERIFY(washed != plain);
+}
+
+///
+/// \brief A short publishing interval shortens the wash instead of leaving the row tinted.
+///
+void TestDataAccessWidget::fastSubscriptionsFadeWithinTheirInterval()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.setHighlightValueChanges(true);
+
+    const OpcUaNodeDetails details = makeNodeDetails();
+    SubscriptionItem subscription;
+    subscription.name = QStringLiteral("Fast");
+    subscription.publishingInterval = 250.0;
+    widget.addNodeWithDefaultSubscription(details, subscription);
+    widget.setNodeRevisedInterval(details.nodeId, 250.0);
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    const QModelIndex valueIndex = view->model()->index(0, DataAccessModel::ColValue);
+    QCOMPARE(valueIndex.data(DataAccessModel::ExpectedIntervalRole).toDouble(), 250.0);
+
+    OpcUaDataValue value;
+    value.nodeId = details.nodeId;
+    value.value = 42.0;
+    value.status = QStringLiteral("Good");
+    widget.updateValues({value});
+    const QImage washed = renderViewport(view);
+
+    // Past the interval the cell must be back to exactly its unwashed look, where the
+    // default 800 ms wash would still be tinting it half-strength.
+    QTest::qWait(400);
+    const QImage faded = renderViewport(view);
+
+    widget.setHighlightValueChanges(false);
+    const QImage unwashed = renderViewport(view);
+    QVERIFY(washed != unwashed);
+    QCOMPARE(faded, unwashed);
 }
 
 QTEST_MAIN(TestDataAccessWidget)

@@ -18,12 +18,31 @@
 
 namespace {
 
-/// \brief Lifetime of the change wash, in milliseconds.
+/// \brief Longest lifetime of the change wash, in milliseconds.
 constexpr qint64 FlashDurationMs = 800;
+/// \brief Shortest lifetime of the change wash, in milliseconds.
+constexpr qint64 MinFlashDurationMs = 150;
 /// \brief Interval between wash frames, in milliseconds.
 constexpr int FlashFrameMs = 40;
 /// \brief Opacity of the wash at the moment of the change, out of 255.
 constexpr int FlashMaxAlpha = 64;
+
+///
+/// \brief Returns how long a row's change wash may last.
+/// \param index Cell to inspect.
+/// \return Wash lifetime in milliseconds.
+///
+/// A wash outliving the publishing interval would be restamped before it faded, leaving
+/// fast rows permanently tinted, so it is capped to one interval. Below the floor the
+/// updates outrun the eye and merging into a steady tint is the honest rendering.
+///
+qint64 flashDuration(const QModelIndex &index)
+{
+    const double interval = index.data(DataAccessModel::ExpectedIntervalRole).toDouble();
+    if (interval <= 0.0)
+        return FlashDurationMs;
+    return qBound(MinFlashDurationMs, static_cast<qint64>(interval), FlashDurationMs);
+}
 
 ///
 /// \brief Picks the text colour a cell's status quality calls for.
@@ -95,12 +114,13 @@ void ValueCellDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
 
     const qint64 changedAt = index.data(DataAccessModel::ValueChangedAtRole).toLongLong();
     const qint64 elapsed = QDateTime::currentMSecsSinceEpoch() - changedAt;
-    if (changedAt <= 0 || elapsed < 0 || elapsed >= FlashDurationMs)
+    const qint64 duration = flashDuration(index);
+    if (changedAt <= 0 || elapsed < 0 || elapsed >= duration)
         return;
 
     // Washing over the finished cell keeps the style in charge of the text; at this
     // opacity the tint reads on the background without dulling the glyphs.
-    const qreal remaining = 1.0 - static_cast<qreal>(elapsed) / FlashDurationMs;
+    const qreal remaining = 1.0 - static_cast<qreal>(elapsed) / duration;
     QColor wash = AppColors::accent();
     wash.setAlpha(qRound(FlashMaxAlpha * remaining));
     painter->fillRect(opt.rect, wash);

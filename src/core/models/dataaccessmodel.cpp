@@ -458,6 +458,9 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     switch (role) {
     case ValueChangedAtRole:   return item.valueChangedAt;
     case StatusSeverityRole:   return int(OpcUaFormat::statusSeverity(item.status));
+    case ExpectedIntervalRole: return item.subscriptionName.isEmpty()
+                                      ? 0.0
+                                      : item.revisedPublishingInterval;
     case HighlightChangesRole: return resolveHighlight(item);
     default: break;
     }
