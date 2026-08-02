@@ -70,6 +70,7 @@ public:
 
 private slots:
     void discoverEndpoints();
+    void findServers();
     void handleEndpoints(QList<EndpointInfo> endpoints, const QString &error);
     void updateEndpointSelection();
     void updateAuthenticationFields();
@@ -113,6 +114,8 @@ private:
     QString _presetId;
     bool _connectAfterDiscovery = false;
     QString _lastEnteredEndpointUrl;
+    QString _pendingSecurityPolicy;
+    int _pendingSecurityMode = -1;
     QString _clientCertificateFile;
     QString _privateKeyFile;
     int _selectedSecurityModeValue = 1;

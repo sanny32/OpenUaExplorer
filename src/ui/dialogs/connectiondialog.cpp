@@ -32,6 +32,7 @@
 #include "certificatedetailsdialog.h"
 #include "certificatesdialog.h"
 #include "connectiondialog.h"
+#include "findserversdialog.h"
 #include "messageboxdialog.h"
 #include "opcua/certificateinfo.h"
 #include "opcua/opcuabackend.h"
@@ -102,8 +103,8 @@ void ConnectionDialog::setupEndpointHistory()
     _endpointHistoryStore.seedIfUninitialized(defaultEndpoints);
     const QStringList endpointHistory = _endpointHistoryStore.history();
 
-    ui->discoveryUrlComboBox->clear();
-    ui->discoveryUrlComboBox->addItems(endpointHistory);
+    ui->discoveryUrlComboBox->setActionEntry(tr("Find Servers..."));
+    ui->discoveryUrlComboBox->setHistory(endpointHistory);
     _lastEnteredEndpointUrl = endpointHistory.isEmpty() ? QString() : endpointHistory.constFirst();
     ui->discoveryUrlComboBox->setEditText(_lastEnteredEndpointUrl);
 }
@@ -189,6 +190,8 @@ void ConnectionDialog::setupConnections()
     });
     connect(ui->discoveryUrlComboBox, &HistoryComboBox::itemRemoved,
             this, &ConnectionDialog::forgetEndpointUrl);
+    connect(ui->discoveryUrlComboBox, &HistoryComboBox::actionTriggered,
+            this, &ConnectionDialog::findServers);
     connect(ui->discoveryUrlComboBox->lineEdit(), &QLineEdit::textEdited,
             this, [this](const QString &text) {
         resetDiscovery();
@@ -364,6 +367,8 @@ QString ConnectionDialog::privateKeyPassword() const
 ///
 void ConnectionDialog::resetDiscovery()
 {
+    _pendingSecurityPolicy.clear();
+    _pendingSecurityMode = -1;
     ui->endpointsWidget->clear();
     ui->serverCertificateWidget->clear();
     ui->statusIconLabel->setIcon(QStringLiteral("disconnected"), QSize(16, 16));
@@ -393,6 +398,49 @@ void ConnectionDialog::discoverEndpoints()
 }
 
 ///
+/// \brief Browses a discovery server and adopts the endpoint the user picks there.
+///
+/// The child dialog runs GetEndpoints on the same backend, so this dialog stops
+/// listening for discovery results while it is open; otherwise every branch the user
+/// expands would overwrite the endpoint table here.
+///
+void ConnectionDialog::findServers()
+{
+    if (!_service) {
+        MessageBoxDialog::critical(this, tr("OPC UA Unavailable"),
+                                   tr("The OPC UA backend is unavailable."));
+        return;
+    }
+
+    const ConnectionProfile settings = profile();
+    disconnect(_service, &OpcUaBackend::endpointsDiscovered,
+               this, &ConnectionDialog::handleEndpoints);
+
+    FindServersDialog dialog(this);
+    dialog.setBackend(_service);
+    dialog.setRequestDefaults(settings.backend, settings.endpointTimeoutMs);
+    const int result = dialog.exec();
+
+    connect(_service, &OpcUaBackend::endpointsDiscovered,
+            this, &ConnectionDialog::handleEndpoints);
+
+    if (result != QDialog::Accepted)
+        return;
+
+    const EndpointInfo endpoint = dialog.selectedEndpoint();
+    {
+        const QSignalBlocker blocker(ui->discoveryUrlComboBox);
+        ui->discoveryUrlComboBox->setEditText(endpoint.endpointUrl);
+    }
+    _lastEnteredEndpointUrl = endpoint.endpointUrl;
+    discoverEndpoints();
+
+    // discoverEndpoints() resets the pending selection, so record it afterwards.
+    _pendingSecurityPolicy = endpoint.securityPolicy;
+    _pendingSecurityMode = endpoint.securityModeValue;
+}
+
+///
 /// \brief Shows the discovery result and, when queued, continues to connect.
 /// \param endpoints Discovered endpoints.
 /// \param error Discovery error.
@@ -404,10 +452,17 @@ void ConnectionDialog::handleEndpoints(QList<EndpointInfo> endpoints, const QStr
     ui->connectButton->setEnabled(true);
     if (!error.isEmpty()) {
         _connectAfterDiscovery = false;
+        _pendingSecurityPolicy.clear();
+        _pendingSecurityMode = -1;
         ui->statusLabel->setText(error);
         return;
     }
     ui->endpointsWidget->setEndpoints(endpoints);
+    if (_pendingSecurityMode >= 0) {
+        ui->endpointsWidget->selectEndpoint(_pendingSecurityPolicy, _pendingSecurityMode);
+        _pendingSecurityPolicy.clear();
+        _pendingSecurityMode = -1;
+    }
     if (endpoints.isEmpty()) {
         _connectAfterDiscovery = false;
         ui->statusLabel->setText(tr("No endpoints discovered."));
@@ -782,8 +837,7 @@ void ConnectionDialog::saveLastEndpointUrl()
     const QStringList endpointHistory = _endpointHistoryStore.history();
 
     const QSignalBlocker blocker(ui->discoveryUrlComboBox);
-    ui->discoveryUrlComboBox->clear();
-    ui->discoveryUrlComboBox->addItems(endpointHistory);
+    ui->discoveryUrlComboBox->setHistory(endpointHistory);
     ui->discoveryUrlComboBox->setEditText(endpointUrl);
 }
 

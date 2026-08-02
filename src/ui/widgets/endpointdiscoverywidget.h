@@ -69,6 +69,14 @@ public:
     ///
     EndpointInfo currentEndpoint() const;
 
+    ///
+    /// \brief Selects the row matching a security policy and message security mode.
+    /// \param securityPolicy Security policy URI or short name.
+    /// \param securityModeValue Message security mode value.
+    /// \return True when a matching row was found and selected.
+    ///
+    bool selectEndpoint(const QString &securityPolicy, int securityModeValue);
+
 signals:
     ///
     /// \brief Emitted whenever the selected endpoint row changes.

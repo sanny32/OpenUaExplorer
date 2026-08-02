@@ -11,6 +11,7 @@
 #include <QFontMetrics>
 #include <QStyle>
 
+#include "separatoritemdelegate.h"
 #include "subscriptiondelegate.h"
 
 namespace {
@@ -83,6 +84,7 @@ QWidget *SubscriptionDelegate::createEditor(QWidget *parent, const QStyleOptionV
     combo->insertSeparator(combo->count());
     combo->addItem(createNewLabel());
     combo->setItemData(combo->count() - 1, true, createNewRole);
+    SeparatorItemDelegate::attachTo(combo);
 
     connect(combo, QOverload<int>::of(&QComboBox::activated),
             this, &SubscriptionDelegate::commitAndCloseEditor);

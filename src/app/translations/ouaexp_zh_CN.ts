@@ -959,6 +959,10 @@
         <translation>连接</translation>
     </message>
     <message>
+        <source>Find Servers...</source>
+        <translation>查找服务器...</translation>
+    </message>
+    <message>
         <source>Server Certificate</source>
         <translation>服务器证书</translation>
     </message>
@@ -2042,6 +2046,51 @@
     </message>
 </context>
 <context>
+    <name>FindServersDialog</name>
+    <message>
+        <source>Find OPC UA Servers</source>
+        <translation>查找 OPC UA 服务器</translation>
+    </message>
+    <message>
+        <source>Discovery Server</source>
+        <translation>发现服务器</translation>
+    </message>
+    <message>
+        <source>Find Servers</source>
+        <translation>查找服务器</translation>
+    </message>
+    <message>
+        <source>Discovered Servers</source>
+        <translation>已发现的服务器</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>Select Server</source>
+        <translation>选择服务器</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n server(s) found.</source>
+        <translation>
+            <numerusform>找到 %n 个服务器。</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The OPC UA backend is unavailable.</source>
+        <translation>OPC UA 后端不可用。</translation>
+    </message>
+    <message>
+        <source>Searching for servers…</source>
+        <translation>正在搜索服务器…</translation>
+    </message>
+    <message>
+        <source>The server advertises no opc.tcp discovery URL.</source>
+        <translation>该服务器未公布 opc.tcp 发现地址。</translation>
+    </message>
+</context>
+<context>
     <name>HistoryModel</name>
     <message>
         <source>Source Timestamp</source>
@@ -3074,6 +3123,34 @@ Open the download page?</source>
     <message>
         <source>Series Colour</source>
         <translation>序列颜色</translation>
+    </message>
+</context>
+<context>
+    <name>ServerDiscoveryModel</name>
+    <message>
+        <source>Loading endpoints…</source>
+        <translation>正在加载端点…</translation>
+    </message>
+    <message>
+        <source>Endpoints could not be loaded.</source>
+        <translation>无法加载端点。</translation>
+    </message>
+    <message>
+        <source>No endpoints available.</source>
+        <translation>没有可用的端点。</translation>
+    </message>
+</context>
+<context>
+    <name>ServerDiscoveryWidget</name>
+    <message>
+        <source>No servers found.</source>
+        <translation>未找到服务器。</translation>
+    </message>
+    <message>
+        <source>No OPC UA servers were discovered using the specified discovery server.
+Please check the Discovery Server URL and try again.</source>
+        <translation>使用指定的发现服务器未发现任何 OPC UA 服务器。
+请检查发现服务器地址后重试。</translation>
     </message>
 </context>
 <context>

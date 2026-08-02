@@ -1,49 +1,8 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
-#include <algorithm>
 #include "endpointmodel.h"
-
-namespace {
-///
-/// \brief Picks the icon name representing a security mode.
-/// \param securityMode Message security mode value.
-/// \return Icon file name for the mode.
-///
-QString securityIconName(int securityMode)
-{
-    switch (securityMode) {
-    case 2:
-        return QStringLiteral("shield-check");
-    case 3:
-        return QStringLiteral("lock");
-    default:
-        return QStringLiteral("unlock");
-    }
-}
-
-///
-/// \brief Relative strength of a security policy, used to pick a recommendation.
-/// \param policy Short security-policy name (suffix after '#').
-/// \return Higher numbers denote stronger policies.
-///
-int policyStrength(const QString &policy)
-{
-    if (policy.compare(QStringLiteral("Aes256_Sha256_RsaPss"), Qt::CaseInsensitive) == 0)
-        return 6;
-    if (policy.compare(QStringLiteral("Aes128_Sha256_RsaOaep"), Qt::CaseInsensitive) == 0)
-        return 5;
-    if (policy.compare(QStringLiteral("Basic256Sha256"), Qt::CaseInsensitive) == 0)
-        return 4;
-    if (policy.compare(QStringLiteral("Basic256"), Qt::CaseInsensitive) == 0)
-        return 3;
-    if (policy.compare(QStringLiteral("Basic128Rsa15"), Qt::CaseInsensitive) == 0)
-        return 2;
-    if (policy.compare(QStringLiteral("None"), Qt::CaseInsensitive) == 0)
-        return 0;
-    return 1;
-}
-}
+#include "endpointranking.h"
 
 ///
 /// \brief Constructs an empty endpoint model.
@@ -75,49 +34,6 @@ int EndpointModel::columnCount(const QModelIndex &parent) const
 }
 
 ///
-/// \brief Reports whether an endpoint uses signing/encryption with a real security policy.
-/// \param endpoint Endpoint to classify.
-/// \return True when the endpoint is considered secure.
-///
-bool EndpointModel::isSecure(const EndpointInfo &endpoint) const
-{
-    const QString policy = endpoint.securityPolicy.section(QLatin1Char('#'), -1);
-    return endpoint.securityModeValue > 1
-        && policy.compare(QStringLiteral("None"), Qt::CaseInsensitive) != 0;
-}
-
-///
-/// \brief Scores an endpoint so stronger security ranks higher; insecure endpoints score -1.
-/// \param endpoint Endpoint to score.
-/// \return Ranking score, higher is better.
-///
-int EndpointModel::rankScore(const EndpointInfo &endpoint) const
-{
-    if (!isSecure(endpoint))
-        return -1;
-    const QString policy = endpoint.securityPolicy.section(QLatin1Char('#'), -1);
-    return policyStrength(policy) * 10 + endpoint.securityModeValue;
-}
-
-///
-/// \brief Finds the row of the highest-ranked endpoint.
-/// \return Index of the recommended endpoint, or -1 when empty.
-///
-int EndpointModel::recommendedRow() const
-{
-    int best = -1;
-    int bestScore = -1;
-    for (int row = 0; row < _endpoints.size(); ++row) {
-        const int score = rankScore(_endpoints.at(row));
-        if (score > bestScore) {
-            bestScore = score;
-            best = row;
-        }
-    }
-    return best;
-}
-
-///
 /// \brief Returns endpoint data for a cell and role, including status text, colour, and icon.
 /// \param index Cell to query.
 /// \param role Display or custom endpoint role.
@@ -128,9 +44,9 @@ QVariant EndpointModel::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() < 0 || index.row() >= _endpoints.size())
         return {};
     const EndpointInfo &endpoint = _endpoints.at(index.row());
-    const QString policy = endpoint.securityPolicy.section(QLatin1Char('#'), -1);
+    const QString policy = EndpointRanking::policyShortName(endpoint.securityPolicy);
     const bool recommended = index.row() == _recommendedRow;
-    const bool secure = isSecure(endpoint);
+    const bool secure = EndpointRanking::isSecure(endpoint);
 
     switch (role) {
     case Qt::DisplayRole:
@@ -150,7 +66,7 @@ QVariant EndpointModel::data(const QModelIndex &index, int role) const
     case ModeRole:
         return endpoint.securityMode;
     case IconRole:
-        return securityIconName(endpoint.securityModeValue);
+        return EndpointRanking::modeIconName(endpoint.securityModeValue);
     case StatusRole:
         return recommended ? tr("Recommended")
                            : (secure ? tr("Good") : tr("Not secure"));
@@ -215,12 +131,8 @@ QHash<int, QByteArray> EndpointModel::roleNames() const
 void EndpointModel::setEndpoints(const QList<EndpointInfo> &endpoints)
 {
     beginResetModel();
-    _endpoints = endpoints;
-    std::stable_sort(_endpoints.begin(), _endpoints.end(),
-                     [this](const EndpointInfo &a, const EndpointInfo &b) {
-                         return rankScore(a) > rankScore(b);
-                     });
-    _recommendedRow = recommendedRow();
+    _endpoints = EndpointRanking::ranked(endpoints);
+    _recommendedRow = EndpointRanking::recommendedRow(_endpoints);
     endResetModel();
 }
 

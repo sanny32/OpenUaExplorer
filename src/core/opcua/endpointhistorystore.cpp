@@ -5,9 +5,17 @@
 #include "settingsstore.h"
 
 namespace {
-constexpr auto lastEndpointUrlKey = "connectionDialog/lastEndpointUrl";
-constexpr auto endpointUrlHistoryKey = "connectionDialog/endpointUrlHistory";
 constexpr int maximumEndpointHistorySize = 10;
+}
+
+///
+/// \brief Binds the store to a settings group.
+/// \param group Settings group holding the history keys.
+///
+EndpointHistoryStore::EndpointHistoryStore(QString group)
+    : _lastUrlKey(group + QStringLiteral("/lastEndpointUrl"))
+    , _historyKey(group + QStringLiteral("/endpointUrlHistory"))
+{
 }
 
 ///
@@ -17,10 +25,8 @@ constexpr int maximumEndpointHistorySize = 10;
 void EndpointHistoryStore::seedIfUninitialized(const QStringList &endpointUrls) const
 {
     SettingsStore settings;
-    if (settings.contains(QLatin1String(endpointUrlHistoryKey))
-        || settings.contains(QLatin1String(lastEndpointUrlKey))) {
+    if (settings.contains(_historyKey) || settings.contains(_lastUrlKey))
         return;
-    }
 
     QStringList result;
     for (const QString &endpointUrl : endpointUrls) {
@@ -31,7 +37,7 @@ void EndpointHistoryStore::seedIfUninitialized(const QStringList &endpointUrls) 
             break;
     }
 
-    settings.setValue(QLatin1String(endpointUrlHistoryKey), result);
+    settings.setValue(_historyKey, result);
     settings.sync();
 }
 
@@ -42,10 +48,8 @@ void EndpointHistoryStore::seedIfUninitialized(const QStringList &endpointUrls) 
 QStringList EndpointHistoryStore::history() const
 {
     SettingsStore settings;
-    QStringList result =
-        settings.value(QLatin1String(endpointUrlHistoryKey)).toStringList();
-    const QString lastEndpoint =
-        settings.value(QLatin1String(lastEndpointUrlKey)).toString().trimmed();
+    QStringList result = settings.value(_historyKey).toStringList();
+    const QString lastEndpoint = settings.value(_lastUrlKey).toString().trimmed();
     if (!lastEndpoint.isEmpty()) {
         result.removeAll(lastEndpoint);
         result.prepend(lastEndpoint);
@@ -64,14 +68,13 @@ void EndpointHistoryStore::save(const QString &endpointUrl) const
         return;
 
     SettingsStore settings;
-    QStringList result =
-        settings.value(QLatin1String(endpointUrlHistoryKey)).toStringList();
+    QStringList result = settings.value(_historyKey).toStringList();
     result.removeAll(normalized);
     result.prepend(normalized);
     while (result.size() > maximumEndpointHistorySize)
         result.removeLast();
-    settings.setValue(QLatin1String(lastEndpointUrlKey), normalized);
-    settings.setValue(QLatin1String(endpointUrlHistoryKey), result);
+    settings.setValue(_lastUrlKey, normalized);
+    settings.setValue(_historyKey, result);
     settings.sync();
 }
 
@@ -86,15 +89,12 @@ void EndpointHistoryStore::remove(const QString &endpointUrl) const
         return;
 
     SettingsStore settings;
-    QStringList result =
-        settings.value(QLatin1String(endpointUrlHistoryKey)).toStringList();
+    QStringList result = settings.value(_historyKey).toStringList();
     result.removeAll(normalized);
-    settings.setValue(QLatin1String(endpointUrlHistoryKey), result);
+    settings.setValue(_historyKey, result);
 
-    const QString lastEndpoint =
-        settings.value(QLatin1String(lastEndpointUrlKey)).toString().trimmed();
-    if (lastEndpoint == normalized)
-        settings.remove(QLatin1String(lastEndpointUrlKey));
+    if (settings.value(_lastUrlKey).toString().trimmed() == normalized)
+        settings.remove(_lastUrlKey);
 
     settings.sync();
 }

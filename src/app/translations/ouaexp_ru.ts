@@ -961,6 +961,10 @@
         <translation>Подключиться</translation>
     </message>
     <message>
+        <source>Find Servers...</source>
+        <translation>Найти серверы...</translation>
+    </message>
+    <message>
         <source>Server Certificate</source>
         <translation>Сертификат сервера</translation>
     </message>
@@ -2050,6 +2054,53 @@
     </message>
 </context>
 <context>
+    <name>FindServersDialog</name>
+    <message>
+        <source>Find OPC UA Servers</source>
+        <translation>Поиск серверов OPC UA</translation>
+    </message>
+    <message>
+        <source>Discovery Server</source>
+        <translation>Сервер обнаружения</translation>
+    </message>
+    <message>
+        <source>Find Servers</source>
+        <translation>Найти серверы</translation>
+    </message>
+    <message>
+        <source>Discovered Servers</source>
+        <translation>Найденные серверы</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Отмена</translation>
+    </message>
+    <message>
+        <source>Select Server</source>
+        <translation>Выбрать сервер</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n server(s) found.</source>
+        <translation>
+            <numerusform>Найден %n сервер.</numerusform>
+            <numerusform>Найдено %n сервера.</numerusform>
+            <numerusform>Найдено %n серверов.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The OPC UA backend is unavailable.</source>
+        <translation>Бэкенд OPC UA недоступен.</translation>
+    </message>
+    <message>
+        <source>Searching for servers…</source>
+        <translation>Поиск серверов…</translation>
+    </message>
+    <message>
+        <source>The server advertises no opc.tcp discovery URL.</source>
+        <translation>Сервер не сообщает адрес обнаружения opc.tcp.</translation>
+    </message>
+</context>
+<context>
     <name>HistoryModel</name>
     <message>
         <source>Source Timestamp</source>
@@ -3082,6 +3133,34 @@ Open the download page?</source>
     <message>
         <source>Series Colour</source>
         <translation>Цвет серии</translation>
+    </message>
+</context>
+<context>
+    <name>ServerDiscoveryModel</name>
+    <message>
+        <source>Loading endpoints…</source>
+        <translation>Загрузка конечных точек…</translation>
+    </message>
+    <message>
+        <source>Endpoints could not be loaded.</source>
+        <translation>Не удалось загрузить конечные точки.</translation>
+    </message>
+    <message>
+        <source>No endpoints available.</source>
+        <translation>Нет доступных конечных точек.</translation>
+    </message>
+</context>
+<context>
+    <name>ServerDiscoveryWidget</name>
+    <message>
+        <source>No servers found.</source>
+        <translation>Серверы не найдены.</translation>
+    </message>
+    <message>
+        <source>No OPC UA servers were discovered using the specified discovery server.
+Please check the Discovery Server URL and try again.</source>
+        <translation>Указанный сервер обнаружения не вернул ни одного сервера OPC UA.
+Проверьте адрес сервера обнаружения и повторите попытку.</translation>
     </message>
 </context>
 <context>

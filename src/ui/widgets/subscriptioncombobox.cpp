@@ -9,6 +9,7 @@
 #include <QSignalBlocker>
 
 #include "dialogs/newsubscriptiondialog.h"
+#include "separatoritemdelegate.h"
 #include "subscriptioncombobox.h"
 
 namespace {
@@ -115,6 +116,15 @@ void SubscriptionComboBox::setCreateEntryVisible(bool visible)
         return;
     _createEntry = visible;
     rebuild();
+}
+
+///
+/// \brief Reattaches the separator delegate, then shows the popup.
+///
+void SubscriptionComboBox::showPopup()
+{
+    SeparatorItemDelegate::attachTo(this);
+    QComboBox::showPopup();
 }
 
 ///

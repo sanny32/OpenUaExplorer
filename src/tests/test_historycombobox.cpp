@@ -31,6 +31,11 @@ private slots:
     void deleteKeyRemovesTheHighlightedEntry();
     void clickingEntryTextStillActivatesIt();
     void removeButtonStaysLegibleOnASelectedEntry();
+    void actionEntryFollowsASeparatorAndSurvivesHistoryRefills();
+    void actionEntryIsNeitherRemovableNorSelectable();
+    void clickingTheActionEntryTriggersItWithoutChangingTheText();
+    void separatorIsDrawnAsAThinRuleWithoutARemoveButton();
+    void separatorStaysVisibleOnADarkPopup();
 
 private:
     static QAbstractItemView *openPopup(HistoryComboBox &comboBox);
@@ -44,9 +49,11 @@ private:
 QAbstractItemView *TestHistoryComboBox::openPopup(HistoryComboBox &comboBox)
 {
     comboBox.setEditable(true);
-    comboBox.addItems({QStringLiteral("opc.tcp://alpha:4840"),
-                       QStringLiteral("opc.tcp://beta:4840"),
-                       QStringLiteral("opc.tcp://gamma:4840")});
+    if (comboBox.count() == 0) {
+        comboBox.addItems({QStringLiteral("opc.tcp://alpha:4840"),
+                           QStringLiteral("opc.tcp://beta:4840"),
+                           QStringLiteral("opc.tcp://gamma:4840")});
+    }
     comboBox.resize(300, 30);
     comboBox.show();
     if (!QTest::qWaitForWindowExposed(&comboBox))
@@ -180,6 +187,163 @@ void TestHistoryComboBox::removeButtonStaysLegibleOnASelectedEntry()
              qPrintable(QStringLiteral("The cross blends into the selected entry "
                                        "(strongest contrast was %1, fill lightness %2).")
                             .arg(strongestContrast).arg(fill)));
+}
+
+void TestHistoryComboBox::actionEntryFollowsASeparatorAndSurvivesHistoryRefills()
+{
+    HistoryComboBox comboBox;
+    comboBox.setEditable(true);
+    comboBox.setActionEntry(QStringLiteral("Find Servers..."));
+    comboBox.setHistory({QStringLiteral("opc.tcp://alpha:4840"),
+                         QStringLiteral("opc.tcp://beta:4840")});
+
+    QCOMPARE(comboBox.count(), 4);
+    QCOMPARE(comboBox.itemText(3), QStringLiteral("Find Servers..."));
+    QVERIFY(comboBox.isActionEntry(3));
+    QVERIFY(!comboBox.isActionEntry(1));
+    QCOMPARE(comboBox.itemData(2, Qt::AccessibleDescriptionRole).toString(),
+             QStringLiteral("separator"));
+
+    comboBox.setHistory({QStringLiteral("opc.tcp://gamma:4840")});
+    QCOMPARE(comboBox.count(), 3);
+    QVERIFY(comboBox.isActionEntry(2));
+}
+
+void TestHistoryComboBox::actionEntryIsNeitherRemovableNorSelectable()
+{
+    HistoryComboBox comboBox;
+    comboBox.setHistory({QStringLiteral("opc.tcp://alpha:4840"),
+                         QStringLiteral("opc.tcp://beta:4840"),
+                         QStringLiteral("opc.tcp://gamma:4840")});
+    comboBox.setActionEntry(QStringLiteral("Find Servers..."));
+    QAbstractItemView *view = openPopup(comboBox);
+    if (!view)
+        QSKIP("The combo box popup is unavailable on this platform.");
+
+    const int actionRow = comboBox.count() - 1;
+    QVERIFY(comboBox.isActionEntry(actionRow));
+
+    QSignalSpy removedSpy(&comboBox, &HistoryComboBox::itemRemoved);
+    const QPoint target = HistoryComboBox::removeButtonRect(
+                              view->visualRect(comboBox.model()->index(actionRow, 0)))
+                              .center();
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::KeyboardModifiers(), target);
+    QCOMPARE(removedSpy.size(), 0);
+
+    view->setCurrentIndex(comboBox.model()->index(actionRow, 0));
+    QTest::keyClick(view, Qt::Key_Delete);
+    QCOMPARE(removedSpy.size(), 0);
+    QCOMPARE(comboBox.count(), actionRow + 1);
+
+    comboBox.setCurrentIndex(actionRow);
+    QVERIFY(!comboBox.isActionEntry(comboBox.currentIndex()));
+}
+
+void TestHistoryComboBox::clickingTheActionEntryTriggersItWithoutChangingTheText()
+{
+    HistoryComboBox comboBox;
+    comboBox.setHistory({QStringLiteral("opc.tcp://alpha:4840"),
+                         QStringLiteral("opc.tcp://beta:4840"),
+                         QStringLiteral("opc.tcp://gamma:4840")});
+    comboBox.setActionEntry(QStringLiteral("Find Servers..."));
+    QAbstractItemView *view = openPopup(comboBox);
+    if (!view)
+        QSKIP("The combo box popup is unavailable on this platform.");
+
+    comboBox.setCurrentIndex(1);
+    const QString before = comboBox.currentText();
+
+    QSignalSpy actionSpy(&comboBox, &HistoryComboBox::actionTriggered);
+    QSignalSpy activatedSpy(&comboBox, &HistoryComboBox::activated);
+
+    const int actionRow = comboBox.count() - 1;
+    const QRect itemRect = view->visualRect(comboBox.model()->index(actionRow, 0));
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::KeyboardModifiers(),
+                      QPoint(itemRect.left() + 8, itemRect.center().y()));
+
+    QCOMPARE(actionSpy.size(), 1);
+    QCOMPARE(activatedSpy.size(), 0);
+    QCOMPARE(comboBox.currentIndex(), 1);
+    QCOMPARE(comboBox.currentText(), before);
+}
+
+///
+/// \brief Guards the separator row, whose painting QComboBoxDelegate would normally own.
+///
+void TestHistoryComboBox::separatorIsDrawnAsAThinRuleWithoutARemoveButton()
+{
+    HistoryComboBox comboBox;
+    comboBox.setHistory({QStringLiteral("opc.tcp://alpha:4840"),
+                         QStringLiteral("opc.tcp://beta:4840")});
+    comboBox.setActionEntry(QStringLiteral("Find Servers..."));
+    QAbstractItemView *view = openPopup(comboBox);
+    if (!view)
+        QSKIP("The combo box popup is unavailable on this platform.");
+
+    const QRect entryRect = view->visualRect(comboBox.model()->index(0, 0));
+    const QRect separatorRect = view->visualRect(comboBox.model()->index(2, 0));
+    QVERIFY2(separatorRect.height() < entryRect.height() / 2,
+             qPrintable(QStringLiteral("The separator occupies a full entry row (%1 of %2 px).")
+                            .arg(separatorRect.height()).arg(entryRect.height())));
+
+    QImage rendering(view->viewport()->size(), QImage::Format_ARGB32);
+    rendering.fill(Qt::white);
+    view->viewport()->render(&rendering);
+
+    const QRect buttonRect = HistoryComboBox::removeButtonRect(separatorRect);
+    for (int y = buttonRect.top(); y <= buttonRect.bottom(); ++y) {
+        for (int x = buttonRect.left(); x <= buttonRect.right(); ++x) {
+            if (!rendering.rect().contains(x, y))
+                continue;
+            QVERIFY2(rendering.pixelColor(x, y).lightness() > 200,
+                     "A remove button was painted over the separator.");
+        }
+    }
+}
+
+///
+/// \brief Renders the separator on a dark popup and measures it against the background.
+///
+/// The style's toolbar-separator primitive draws a rule that is invisible on a dark
+/// popup, which is why the delegate derives the colour from QPalette::Text instead.
+///
+void TestHistoryComboBox::separatorStaysVisibleOnADarkPopup()
+{
+    const QColor background(0x2b, 0x2b, 0x2b);
+
+    HistoryComboBox comboBox;
+    comboBox.setHistory({QStringLiteral("opc.tcp://alpha:4840"),
+                         QStringLiteral("opc.tcp://beta:4840")});
+    comboBox.setActionEntry(QStringLiteral("Find Servers..."));
+    QAbstractItemView *view = openPopup(comboBox);
+    if (!view)
+        QSKIP("The combo box popup is unavailable on this platform.");
+
+    QPalette dark = view->palette();
+    dark.setColor(QPalette::Base, background);
+    dark.setColor(QPalette::Text, QColor(0xe0, 0xe0, 0xe0));
+    view->setPalette(dark);
+
+    QImage rendering(view->viewport()->size(), QImage::Format_ARGB32);
+    rendering.fill(background);
+    view->viewport()->render(&rendering);
+
+    const QRect separatorRect = view->visualRect(comboBox.model()->index(2, 0));
+    int strongestContrast = 0;
+    for (int y = separatorRect.top(); y <= separatorRect.bottom(); ++y) {
+        for (int x = separatorRect.left(); x <= separatorRect.right(); ++x) {
+            if (!rendering.rect().contains(x, y))
+                continue;
+            strongestContrast = qMax(strongestContrast,
+                                     qAbs(rendering.pixelColor(x, y).lightness()
+                                          - background.lightness()));
+        }
+    }
+
+    QVERIFY2(strongestContrast > 15,
+             qPrintable(QStringLiteral("The separator blends into the dark popup "
+                                       "(strongest contrast was %1).")
+                            .arg(strongestContrast)));
 }
 
 QTEST_MAIN(TestHistoryComboBox)

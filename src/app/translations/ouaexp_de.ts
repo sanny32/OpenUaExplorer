@@ -960,6 +960,10 @@
         <translation>Verbinden</translation>
     </message>
     <message>
+        <source>Find Servers...</source>
+        <translation>Server suchen...</translation>
+    </message>
+    <message>
         <source>Server Certificate</source>
         <translation>Serverzertifikat</translation>
     </message>
@@ -2046,6 +2050,52 @@
     </message>
 </context>
 <context>
+    <name>FindServersDialog</name>
+    <message>
+        <source>Find OPC UA Servers</source>
+        <translation>OPC-UA-Server suchen</translation>
+    </message>
+    <message>
+        <source>Discovery Server</source>
+        <translation>Discovery-Server</translation>
+    </message>
+    <message>
+        <source>Find Servers</source>
+        <translation>Server suchen</translation>
+    </message>
+    <message>
+        <source>Discovered Servers</source>
+        <translation>Gefundene Server</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Abbrechen</translation>
+    </message>
+    <message>
+        <source>Select Server</source>
+        <translation>Server auswählen</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n server(s) found.</source>
+        <translation>
+            <numerusform>%n Server gefunden.</numerusform>
+            <numerusform>%n Server gefunden.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The OPC UA backend is unavailable.</source>
+        <translation>Das OPC-UA-Backend ist nicht verfügbar.</translation>
+    </message>
+    <message>
+        <source>Searching for servers…</source>
+        <translation>Server werden gesucht…</translation>
+    </message>
+    <message>
+        <source>The server advertises no opc.tcp discovery URL.</source>
+        <translation>Der Server gibt keine opc.tcp-Discovery-URL an.</translation>
+    </message>
+</context>
+<context>
     <name>HistoryModel</name>
     <message>
         <source>Source Timestamp</source>
@@ -3078,6 +3128,34 @@ Download-Seite öffnen?</translation>
     <message>
         <source>Series Colour</source>
         <translation>Serienfarbe</translation>
+    </message>
+</context>
+<context>
+    <name>ServerDiscoveryModel</name>
+    <message>
+        <source>Loading endpoints…</source>
+        <translation>Endpunkte werden geladen…</translation>
+    </message>
+    <message>
+        <source>Endpoints could not be loaded.</source>
+        <translation>Endpunkte konnten nicht geladen werden.</translation>
+    </message>
+    <message>
+        <source>No endpoints available.</source>
+        <translation>Keine Endpunkte verfügbar.</translation>
+    </message>
+</context>
+<context>
+    <name>ServerDiscoveryWidget</name>
+    <message>
+        <source>No servers found.</source>
+        <translation>Keine Server gefunden.</translation>
+    </message>
+    <message>
+        <source>No OPC UA servers were discovered using the specified discovery server.
+Please check the Discovery Server URL and try again.</source>
+        <translation>Über den angegebenen Discovery-Server wurden keine OPC-UA-Server gefunden.
+Bitte prüfen Sie die Discovery-Server-URL und versuchen Sie es erneut.</translation>
     </message>
 </context>
 <context>

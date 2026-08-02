@@ -341,6 +341,28 @@ EndpointInfo EndpointDiscoveryWidget::currentEndpoint() const
 }
 
 ///
+/// \brief Selects the row matching a security policy and message security mode.
+/// \param securityPolicy Security policy URI or short name.
+/// \param securityModeValue Message security mode value.
+/// \return True when a matching row was found and selected.
+///
+bool EndpointDiscoveryWidget::selectEndpoint(const QString &securityPolicy,
+                                             int securityModeValue)
+{
+    const QList<EndpointInfo> &endpoints = _model->endpoints();
+    for (int row = 0; row < endpoints.size(); ++row) {
+        const EndpointInfo &endpoint = endpoints.at(row);
+        if (endpoint.securityModeValue != securityModeValue
+            || endpoint.securityPolicy != securityPolicy) {
+            continue;
+        }
+        _view->setCurrentIndex(_model->index(row, 0));
+        return true;
+    }
+    return false;
+}
+
+///
 /// \brief Tracks the hovered row from viewport mouse-move and leave events.
 /// \param watched Watched object.
 /// \param event Event being delivered.

@@ -76,6 +76,8 @@ add_library(ouaexp_core STATIC
     models/dataaccessmodel.h
     models/endpointmodel.cpp
     models/endpointmodel.h
+    models/endpointranking.cpp
+    models/endpointranking.h
     models/eventsmodel.cpp
     models/eventsmodel.h
     models/historymodel.cpp
@@ -88,6 +90,8 @@ add_library(ouaexp_core STATIC
     models/nodeitem.h
     models/referencesmodel.cpp
     models/referencesmodel.h
+    models/serverdiscoverymodel.cpp
+    models/serverdiscoverymodel.h
     models/subscriptionitem.h
     models/subscriptionsmodel.cpp
     models/subscriptionsmodel.h
