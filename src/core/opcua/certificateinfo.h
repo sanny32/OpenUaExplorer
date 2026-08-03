@@ -5,6 +5,8 @@
 
 #include <QByteArray>
 #include <QDateTime>
+#include <QList>
+#include <QPair>
 #include <QString>
 
 ///
@@ -34,6 +36,12 @@ struct CertificateInfo
     QString serialNumber;
     /// \brief SHA-256 fingerprint display text.
     QString fingerprint;
+    /// \brief Signature algorithm name, or empty when unavailable.
+    QString signatureAlgorithm;
+    /// \brief OPC UA application URI taken from the subject alternative names.
+    QString applicationUri;
+    /// \brief Subject alternative names as RFC 5280 GeneralName tag and value pairs.
+    QList<QPair<int, QString>> subjectAlternativeNames;
     /// \brief Start of the certificate validity window.
     QDateTime effectiveDate;
     /// \brief End of the certificate validity window.

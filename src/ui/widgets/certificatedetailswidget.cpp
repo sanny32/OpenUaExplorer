@@ -10,10 +10,7 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QLabel>
-#include <QRegularExpression>
 #include <QSslCertificate>
-#include <QSslCertificateExtension>
-#include <QVariant>
 
 #include "appcolors.h"
 #include "certificatedetailswidget.h"
@@ -72,64 +69,36 @@ QString distinguishedName(const QSslCertificate &certificate, bool subject)
 
 ///
 /// \brief Renders the subject alternative names as GeneralName tag/value pairs.
-/// \param certificate Certificate to inspect.
+/// \param info Parsed certificate details.
 /// \return Display text such as "[[6, urn:...], [2, host]]", or an unavailable placeholder.
 ///
-QString subjectAlternativeNameText(const QSslCertificate &certificate)
+QString subjectAlternativeNameText(const CertificateInfo &info)
 {
     // RFC 5280 GeneralName ASN.1 tag numbers, listed in the order OPC UA tooling shows them.
-    static const QList<QPair<QString, int>> generalNames = {
-        {QStringLiteral("URI"), 6},
-        {QStringLiteral("DNS"), 2},
-        {QStringLiteral("IP"), 7},
-        {QStringLiteral("Email"), 1},
-    };
+    static const QList<int> generalNameTags = {6, 2, 7, 1};
 
-    for (const QSslCertificateExtension &extension : certificate.extensions()) {
-        if (extension.oid() != QStringLiteral("2.5.29.17"))
-            continue;
-
-        const QVariantMap entries = extension.value().toMap();
-        QStringList parts;
-        for (const auto &generalName : generalNames) {
-            const QStringList values = entries.value(generalName.first).toStringList();
-            for (const QString &value : values) {
-                if (!value.isEmpty()) {
-                    parts.append(QStringLiteral("[%1, %2]")
-                                     .arg(QString::number(generalName.second), value));
-                }
+    QStringList parts;
+    for (int tag : generalNameTags) {
+        for (const auto &alternativeName : info.subjectAlternativeNames) {
+            if (alternativeName.first == tag) {
+                parts.append(QStringLiteral("[%1, %2]")
+                                 .arg(QString::number(tag), alternativeName.second));
             }
         }
-        if (!parts.isEmpty())
-            return QStringLiteral("[%1]").arg(parts.join(QStringLiteral(", ")));
     }
-    return unavailable();
+    return parts.isEmpty()
+        ? unavailable()
+        : QStringLiteral("[%1]").arg(parts.join(QStringLiteral(", ")));
 }
 
 ///
-/// \brief Extracts the OPC UA application URI from subject alternative names.
-/// \param certificate Certificate to inspect.
-/// \return Application URI, or an unavailable placeholder.
+/// \brief Returns a parsed value or the unavailable placeholder.
+/// \param value Value to show.
+/// \return Value text, or a placeholder when empty.
 ///
-QString applicationUri(const QSslCertificate &certificate)
+QString valueOrUnavailable(const QString &value)
 {
-    const QString alternativeNames = subjectAlternativeNameText(certificate);
-    const QRegularExpression uriPattern(QStringLiteral(R"((urn:[^\],\)\s]+))"));
-    const QRegularExpressionMatch match = uriPattern.match(alternativeNames);
-    return match.hasMatch() ? match.captured(1) : unavailable();
-}
-
-///
-/// \brief Extracts the signature algorithm from Qt's certificate text dump.
-/// \param certificate Certificate to inspect.
-/// \return Signature algorithm text.
-///
-QString signatureAlgorithm(const QSslCertificate &certificate)
-{
-    const QRegularExpression pattern(
-        QStringLiteral(R"(Signature Algorithm:\s*([^\r\n]+))"));
-    const QRegularExpressionMatch match = pattern.match(certificate.toText());
-    return match.hasMatch() ? match.captured(1).trimmed() : unavailable();
+    return value.isEmpty() ? unavailable() : value;
 }
 
 ///
@@ -216,7 +185,7 @@ void CertificateDetailsWidget::setCertificate(const QByteArray &certificate,
     }
 
     const QSslCertificate parsed = chain.constFirst();
-    const QString signedBy = parsed.isSelfSigned() ? tr("Self Signed") : info.issuer;
+    const QString signedBy = info.selfSigned ? tr("Self Signed") : info.issuer;
     const QString serialNumber =
         QString::fromLatin1(parsed.serialNumber()).remove(QLatin1Char(':')).toLower();
     const QString thumbprint = QStringLiteral("[%1] 0x%2")
@@ -226,17 +195,17 @@ void CertificateDetailsWidget::setCertificate(const QByteArray &certificate,
         ? QString::number(info.keyBits)
         : unavailable();
 
-    ui->nameValue->setText(info.subject.isEmpty() ? unavailable() : info.subject);
-    ui->signedByValue->setText(signedBy.isEmpty() ? unavailable() : signedBy);
+    ui->nameValue->setText(valueOrUnavailable(info.subject));
+    ui->signedByValue->setText(valueOrUnavailable(signedBy));
     ui->validFromValue->setText(formatDate(parsed.effectiveDate()));
     ui->validToValue->setText(formatDate(parsed.expiryDate()));
-    ui->applicationUriValue->setText(applicationUri(parsed));
+    ui->applicationUriValue->setText(valueOrUnavailable(info.applicationUri));
     ui->keySizeValue->setText(keySize);
-    ui->serialNumberValue->setText(serialNumber.isEmpty() ? unavailable() : serialNumber);
-    ui->signatureAlgorithmValue->setText(signatureAlgorithm(parsed));
+    ui->serialNumberValue->setText(valueOrUnavailable(serialNumber));
+    ui->signatureAlgorithmValue->setText(valueOrUnavailable(info.signatureAlgorithm));
     ui->issuerValue->setText(distinguishedName(parsed, false));
     ui->subjectValue->setText(distinguishedName(parsed, true));
-    ui->subjectAlternativeNameValue->setText(subjectAlternativeNameText(parsed));
+    ui->subjectAlternativeNameValue->setText(subjectAlternativeNameText(info));
     ui->thumbprintValue->setText(thumbprint);
 
     bool valid = false;
