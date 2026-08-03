@@ -86,8 +86,11 @@ VIAddVersionKey "LegalCopyright"  "Copyright (C) ${PRODUCT_PUBLISHER}"
 ; Interface
 
 !define MUI_ABORTWARNING
+; The uninstaller carries its own icon so that uninstall.exe and its Start menu
+; shortcut are not mistaken for the application itself. Both icons hold the same
+; sizes; see tools/gen_icons.py for the artwork it is rendered from.
 !define MUI_ICON   "${SRC_DIR}\src\app\res\icons\light\app.ico"
-!define MUI_UNICON "${SRC_DIR}\src\app\res\icons\light\app.ico"
+!define MUI_UNICON "${SRC_DIR}\.github\windows\uninstall.ico"
 
 ; 164x314 artwork shown on the Welcome and Finish pages of both the installer
 ; and the uninstaller.

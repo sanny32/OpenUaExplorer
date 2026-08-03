@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <title>Uninstall Open UaExplorer</title>
+    <defs>
+        <linearGradient id="can" x1="14" y1="20" x2="50" y2="56" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#f87171"/>
+            <stop offset="1" stop-color="#dc2626"/>
+        </linearGradient>
+        <linearGradient id="lid" x1="10" y1="6" x2="54" y2="19" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#fca5a5"/>
+            <stop offset="1" stop-color="#e0392b"/>
+        </linearGradient>
+    </defs>
+
+    <rect x="26" y="6" width="12" height="6" rx="2.5" fill="url(#lid)"/>
+    <rect x="10" y="11.5" width="44" height="7" rx="3" fill="url(#lid)"/>
+
+    <path d="M14.5 20H49.5L46.6 52.4a4 4 0 0 1-4 3.6H21.4a4 4 0 0 1-4-3.6z" fill="url(#can)"/>
+
+    <g fill="#ffffff">
+        <rect x="23.2" y="27" width="3.2" height="22" rx="1.6"/>
+        <rect x="30.4" y="27" width="3.2" height="22" rx="1.6"/>
+        <rect x="37.6" y="27" width="3.2" height="22" rx="1.6"/>
+    </g>
+</svg>
