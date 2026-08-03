@@ -96,8 +96,6 @@ jobs:
 
       - name: Set up OpenSSL
         uses: ./.github/actions/setup-openssl
-        with:
-          qt-version: ${{ env.QT_VERSION }}
 
       - name: Configure
         run: >

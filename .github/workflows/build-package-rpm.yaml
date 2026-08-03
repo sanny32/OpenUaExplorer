@@ -101,8 +101,6 @@ jobs:
       # Bundled: older target distributions have no libssl.so.3.
       - name: Set up OpenSSL
         uses: ./.github/actions/setup-openssl
-        with:
-          qt-version: ${{ env.QT_VERSION }}
 
       # qtopcua.cmake forwards the CMake variable, not the env one, to the sub-build.
       - name: Configure
