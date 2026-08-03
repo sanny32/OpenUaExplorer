@@ -164,7 +164,7 @@ void SettingsDialog::applyCategoryIcons()
     static const char *const categoryIcons[] = {"settings", "palette", "logs"};
     const int count = qMin(ui->categoryList->count(), int(std::size(categoryIcons)));
     for (int row = 0; row < count; ++row)
-        ui->categoryList->item(row)->setIcon(AppIcons::themed(QLatin1String(categoryIcons[row])));
+        ui->categoryList->item(row)->setIcon(AppIcons::selectableThemed(QLatin1String(categoryIcons[row])));
 }
 
 ///
