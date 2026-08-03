@@ -6,6 +6,7 @@
 /// \brief Implements the GitHub release update checker.
 ///
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkAccessManager>
@@ -21,10 +22,13 @@
 namespace {
 
 ///
-/// \brief GitHub releases API endpoint for the latest published release.
+/// \brief GitHub releases API endpoint listing published releases, newest first.
+///
+/// The /releases/latest endpoint is deliberately not used: it hides releases
+/// flagged as pre-release, so beta tags would never be reported.
 ///
 constexpr auto ReleasesApiUrl =
-    "https://api.github.com/repos/sanny32/OpenUaExplorer/releases/latest";
+    "https://api.github.com/repos/sanny32/OpenUaExplorer/releases?per_page=20";
 
 ///
 /// \brief Parsed version with pre-release suffix support.
@@ -55,6 +59,9 @@ struct ParsedVersion
 /// \param str Version string, optionally with a pre-release suffix.
 /// \return Parsed version.
 ///
+/// Both the spelled-out suffixes (beta1, alpha2) and their single-letter
+/// shorthands (b1, a2) are recognised, since release tags use the short form.
+///
 ParsedVersion parseVersion(const QString &str)
 {
     ParsedVersion v;
@@ -74,10 +81,63 @@ ParsedVersion parseVersion(const QString &str)
     } else if (suffix.startsWith(QLatin1String("alpha"))) {
         v.suffixRank = 1;
         v.suffixNum = suffix.mid(5).toInt();
+    } else if (suffix.startsWith(QLatin1Char('b'))) {
+        v.suffixRank = 2;
+        v.suffixNum = suffix.mid(1).toInt();
+    } else if (suffix.startsWith(QLatin1Char('a'))) {
+        v.suffixRank = 1;
+        v.suffixNum = suffix.mid(1).toInt();
     } else {
         v.suffixRank = 0;
     }
     return v;
+}
+
+///
+/// \brief A release entry reduced to what the checker needs.
+///
+struct ReleaseInfo
+{
+    QString version;
+    QString url;
+    ParsedVersion parsed;
+};
+
+///
+/// \brief Picks the highest-versioned release from a releases array.
+/// \param releases Array returned by the GitHub releases endpoint.
+/// \return Newest usable release, or an entry with an empty version when none qualifies.
+///
+/// Drafts are skipped, as are entries without a parseable tag or a page URL.
+/// Pre-releases are kept: they are ranked by parseVersion() like any other tag.
+///
+ReleaseInfo selectNewestRelease(const QJsonArray &releases)
+{
+    ReleaseInfo newest;
+    for (const QJsonValue &value : releases) {
+        if (!value.isObject())
+            continue;
+
+        const QJsonObject obj = value.toObject();
+        if (obj.value(QStringLiteral("draft")).toBool())
+            continue;
+
+        const QString url = obj.value(QStringLiteral("html_url")).toString();
+        QString version = obj.value(QStringLiteral("tag_name")).toString();
+        if (version.startsWith(QLatin1Char('v'), Qt::CaseInsensitive))
+            version = version.mid(1);
+
+        if (version.isEmpty() || url.isEmpty())
+            continue;
+
+        const ParsedVersion parsed = parseVersion(version);
+        if (parsed.isNull())
+            continue;
+
+        if (newest.version.isEmpty() || parsed > newest.parsed)
+            newest = ReleaseInfo{version, url, parsed};
+    }
+    return newest;
 }
 
 } // namespace
@@ -90,7 +150,6 @@ UpdateChecker::UpdateChecker(QObject *parent)
     : QObject(parent)
     , _networkManager(new QNetworkAccessManager(this))
 {
-    connect(_networkManager, &QNetworkAccessManager::finished, this, &UpdateChecker::onReplyFinished);
 }
 
 ///
@@ -104,7 +163,6 @@ UpdateChecker::UpdateChecker(QNetworkAccessManager *networkManager, QObject *par
 {
     if (_networkManager && !_networkManager->parent())
         _networkManager->setParent(this);
-    connect(_networkManager, &QNetworkAccessManager::finished, this, &UpdateChecker::onReplyFinished);
 }
 
 ///
@@ -141,7 +199,9 @@ void UpdateChecker::checkForUpdates()
     QNetworkRequest request{QUrl(QString::fromLatin1(ReleasesApiUrl))};
     request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("OpenUaExplorer"));
     request.setRawHeader("Accept", "application/vnd.github.v3+json");
-    _networkManager->get(request);
+
+    QNetworkReply *reply = _networkManager->get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply] { onReplyFinished(reply); });
 }
 
 ///
@@ -169,29 +229,25 @@ void UpdateChecker::onReplyFinished(QNetworkReply *reply)
     }
 
     const QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
-    if (!doc.isObject()) {
+    if (!doc.isArray()) {
         emit checkFailed(tr("Failed to parse update information."));
         return;
     }
 
-    const QJsonObject obj = doc.object();
-    const QString tagName = obj.value(QStringLiteral("tag_name")).toString();
-    const QString htmlUrl = obj.value(QStringLiteral("html_url")).toString();
+    const QJsonArray releases = doc.array();
+    const ReleaseInfo newest = selectNewestRelease(releases);
 
-    if (tagName.isEmpty() || htmlUrl.isEmpty()) {
+    if (newest.version.isEmpty() && !releases.isEmpty()) {
         emit checkFailed(tr("Update information is incomplete."));
         return;
     }
 
-    QString versionStr = tagName;
-    if (versionStr.startsWith(QLatin1Char('v'), Qt::CaseInsensitive))
-        versionStr = versionStr.mid(1);
-
-    if (isVersionNewer(versionStr, QStringLiteral(APP_VERSION))) {
+    if (!newest.version.isEmpty()
+        && isVersionNewer(newest.version, QStringLiteral(APP_VERSION))) {
         _hasNewVersion = true;
-        _latestVersion = versionStr;
-        _releaseUrl = htmlUrl;
-        emit newVersionAvailable(versionStr, htmlUrl);
+        _latestVersion = newest.version;
+        _releaseUrl = newest.url;
+        emit newVersionAvailable(newest.version, newest.url);
     } else {
         _hasNewVersion = false;
         _latestVersion.clear();
