@@ -34,6 +34,16 @@
       </widget>
      </item>
      <item>
+      <widget class="ThemedToolButton" name="restoreDefaultsButton">
+       <property name="text">
+        <string>Restore Defaults</string>
+       </property>
+       <property name="toolButtonStyle">
+        <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="subscriptionsToolbarSpacer">
        <property name="orientation">
         <enum>Qt::Orientation::Horizontal</enum>

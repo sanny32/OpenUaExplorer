@@ -96,7 +96,6 @@ jobs:
           version: ${{ env.QT_VERSION }}
           modules: ${{ env.QT_MODULES }}
           tools: ${{ env.QT_TOOLS }}
-          cache: true
           setup-python: false
 
       # Bundled: older target distributions have no libssl.so.3.
@@ -104,12 +103,6 @@ jobs:
         uses: ./.github/actions/setup-openssl
         with:
           qt-version: ${{ env.QT_VERSION }}
-
-      - name: Cache Qt OpcUa build
-        uses: actions/cache@v5
-        with:
-          path: build/_deps/qtopcua-install
-          key: qtopcua-ubuntu-20.04-${{ env.QT_VERSION }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
 
       # qtopcua.cmake forwards the CMake variable, not the env one, to the sub-build.
       - name: Configure

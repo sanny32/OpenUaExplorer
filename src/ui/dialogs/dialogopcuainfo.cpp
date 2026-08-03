@@ -141,6 +141,8 @@ void DialogOpcUaInfo::changeEvent(QEvent *event)
     if (event->type() == QEvent::PaletteChange
         || event->type() == QEvent::ApplicationPaletteChange) {
         setupLogo();
+    } else if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
     }
 }
 
@@ -169,11 +171,11 @@ void DialogOpcUaInfo::setupContent()
                 tr("%1 (built against %2)").arg(qVersion(), QStringLiteral(QT_VERSION_STR)));
     setRowValue(QStringLiteral("securityPoliciesValue"), displayList(policies));
     setRowValue(QStringLiteral("securityModesValue"),
-                tr("None, Sign, SignAndEncrypt"));
+                QStringLiteral("None, Sign, SignAndEncrypt"));
     setRowValue(QStringLiteral("userTokenTypesValue"),
-                tr("Anonymous, Username, X509 Certificate"));
-    setRowValue(QStringLiteral("specificationValue"), tr("Part 1-14"));
-    setRowValue(QStringLiteral("specificationVersionValue"), tr("1.05.01"));
+                QStringLiteral("Anonymous, Username, X509 Certificate"));
+    setRowValue(QStringLiteral("specificationValue"), QStringLiteral("Part 1-14"));
+    setRowValue(QStringLiteral("specificationVersionValue"), QStringLiteral("1.05.01"));
     setRowValue(QStringLiteral("profileValue"), tr("Client"));
 }
 
@@ -205,14 +207,28 @@ void DialogOpcUaInfo::setupFonts()
 ///
 void DialogOpcUaInfo::setupLayout()
 {
-    constexpr int captionColumnWidth = 170;
-
     const QList<QGridLayout *> grids = {
         ui->stackGrid,
         ui->securityGrid,
         ui->specificationGrid,
         ui->resourcesGrid,
     };
+
+    int captionColumnWidth = 0;
+    for (QGridLayout *grid : grids) {
+        for (int index = 0; index < grid->count(); ++index) {
+            int row = 0;
+            int column = 0;
+            int rowSpan = 0;
+            int columnSpan = 0;
+            grid->getItemPosition(index, &row, &column, &rowSpan, &columnSpan);
+            if (column != 0)
+                continue;
+            if (const QWidget *caption = grid->itemAt(index)->widget())
+                captionColumnWidth = qMax(captionColumnWidth, caption->sizeHint().width());
+        }
+    }
+
     for (QGridLayout *grid : grids) {
         grid->setColumnMinimumWidth(0, captionColumnWidth);
         grid->setColumnStretch(0, 0);

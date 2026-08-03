@@ -8,6 +8,7 @@ on:
       - build.ps1
       - .github/workflows/test-build-windows.yaml
       - src/**
+      - '!src/**/*.ts'
 
 concurrency:
   group: build-script-windows-${{ github.ref }}

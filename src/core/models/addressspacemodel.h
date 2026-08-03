@@ -156,6 +156,18 @@ public:
     void clear();
 
     ///
+    /// \brief Marks the tree as belonging to a connection that is no longer usable.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
+    ///
+    /// \brief Reports whether the tree shows data of a lost connection.
+    /// \return True while the tree is offline.
+    ///
+    bool isOffline() const;
+
+    ///
     /// \brief Returns the node information for an index.
     /// \param index Model index.
     /// \return Node information.
@@ -191,13 +203,15 @@ signals:
 
 private:
     AddressSpaceNode *nodeForIndex(const QModelIndex &index) const;
+    void emitAppearanceChanged(const QModelIndex &parent);
     AddressSpaceNode *findNode(AddressSpaceNode *node, const QString &nodeId) const;
     QModelIndex indexForNode(AddressSpaceNode *node) const;
     QModelIndex findFirstRecursive(AddressSpaceNode *node, const QString &displayName) const;
     void appendTestItems(AddressSpaceNode *parent, const QVector<AddressSpaceItem> &items,
                          const QString &path);
-    AddressSpaceItem::NodeType iconType(int nodeClass) const;
+    AddressSpaceItem::NodeType iconType(const OpcUaNodeInfo &node) const;
 
     std::unique_ptr<AddressSpaceNode> _root;
     std::function<QIcon(AddressSpaceItem::NodeType)> _iconProvider;
+    bool _offline = false;
 };

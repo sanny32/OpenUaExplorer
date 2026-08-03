@@ -423,6 +423,15 @@ signals:
     void monitoringFinished(QString nodeId, bool subscribed, bool success, QString error);
 
     ///
+    /// \brief Emitted with the monitoring parameters the server actually granted.
+    /// \param nodeId Monitored node.
+    /// \param publishingInterval Publishing interval granted by the server, in milliseconds.
+    /// \param samplingInterval Sampling interval granted by the server, in milliseconds.
+    ///
+    void monitoringIntervalRevised(QString nodeId, double publishingInterval,
+                                   double samplingInterval);
+
+    ///
     /// \brief Emitted when events are received for a monitored node.
     /// \param nodeId Monitored node that produced the events.
     /// \param events Received events.

@@ -173,6 +173,28 @@ void AddressSpaceFeature::clearRuntimeState()
 }
 
 ///
+/// \brief Keeps the browsed tree on screen, greyed out, while the connection is gone.
+///
+void AddressSpaceFeature::setOffline(bool offline)
+{
+    if (_widget)
+        _widget->setOffline(offline);
+}
+
+///
+/// \brief Re-applies the dock titles after a language change.
+///
+void AddressSpaceFeature::retranslate()
+{
+    if (_addressDock)
+        _addressDock->setWindowTitle(
+            QCoreApplication::translate("AddressSpaceFeature", "Address Space"));
+    if (_nodeDetailsDock)
+        _nodeDetailsDock->setWindowTitle(
+            QCoreApplication::translate("AddressSpaceFeature", "Node Details"));
+}
+
+///
 /// \brief Adds address-space navigation state to an already collected session payload.
 ///
 void AddressSpaceFeature::saveSession(SessionData &session) const
@@ -204,7 +226,8 @@ void AddressSpaceFeature::browseAddressSpace()
     root.nodeId = QString::fromLatin1(StandardNodeId::ObjectsFolder);
     root.browseName = QCoreApplication::translate("AddressSpaceFeature", "Root");
     root.displayName = QCoreApplication::translate("AddressSpaceFeature", "Root");
-    root.nodeClass = 1;
+    root.typeDefinitionId = QString::fromLatin1(StandardNodeId::FolderType);
+    root.nodeClass = OpcUa::Object;
     root.hasChildren = true;
     _widget->setRootNode(root);
 }

@@ -30,6 +30,11 @@ private slots:
     void timestampModeRoundTrips();
     void windowStateRoundTrips();
     void restoreLayoutDefaultsToTrue();
+    void restoreLastSessionDefaultsToFalse();
+    void reconnectDefaultsToEveryFiveSeconds();
+    void reconnectIntervalIsClampedToTheSupportedRange();
+    void lastSavedSessionPathRoundTrips();
+    void builtinSubscriptionOverridesRoundTrip();
     void dataAccessPageRoundTrips();
     void viewStateRoundTrips();
     void clearLayoutKeepsPreferences();
@@ -135,6 +140,94 @@ void TestAppSettings::restoreLayoutDefaultsToTrue()
 }
 
 ///
+/// \brief Session restoration is opt-in, defaulting to disabled.
+///
+void TestAppSettings::restoreLastSessionDefaultsToFalse()
+{
+    QVERIFY(!AppSettings().restoreLastSessionOnStartup());
+    AppSettings().setRestoreLastSessionOnStartup(true);
+    QVERIFY(AppSettings().restoreLastSessionOnStartup());
+}
+
+///
+/// \brief Reconnecting after a connection loss is on by default, every five seconds.
+///
+void TestAppSettings::reconnectDefaultsToEveryFiveSeconds()
+{
+    QVERIFY(AppSettings().reconnectEnabled());
+    QCOMPARE(AppSettings().reconnectIntervalSeconds(), 5);
+
+    AppSettings().setReconnectEnabled(false);
+    AppSettings().setReconnectIntervalSeconds(30);
+    QVERIFY(!AppSettings().reconnectEnabled());
+    QCOMPARE(AppSettings().reconnectIntervalSeconds(), 30);
+}
+
+///
+/// \brief A stored reconnect interval never leaves the range the retry timer accepts.
+///
+void TestAppSettings::reconnectIntervalIsClampedToTheSupportedRange()
+{
+    AppSettings().setReconnectIntervalSeconds(0);
+    QCOMPARE(AppSettings().reconnectIntervalSeconds(), 1);
+
+    AppSettings().setReconnectIntervalSeconds(100000);
+    QCOMPARE(AppSettings().reconnectIntervalSeconds(), 3600);
+}
+
+///
+/// \brief The named startup session path can be stored and cleared.
+///
+void TestAppSettings::lastSavedSessionPathRoundTrips()
+{
+    const QString path = QStringLiteral("/tmp/saved-session.ouas");
+    QVERIFY(AppSettings().lastSavedSessionPath().isEmpty());
+    AppSettings().setLastSavedSessionPath(path);
+    QCOMPARE(AppSettings().lastSavedSessionPath(), path);
+    AppSettings().setLastSavedSessionPath(QString());
+    QVERIFY(AppSettings().lastSavedSessionPath().isEmpty());
+}
+
+///
+/// \brief Built-in subscription overrides round-trip and stay separate from custom ones.
+///
+void TestAppSettings::builtinSubscriptionOverridesRoundTrip()
+{
+    QVERIFY(AppSettings().builtinSubscriptionOverrides().isEmpty());
+
+    SubscriptionItem renamed;
+    renamed.id = DefaultSubscriptionId;
+    renamed.name = QStringLiteral("Telemetry");
+    renamed.publishingInterval = 50.0;
+    renamed.builtin = true;
+
+    SubscriptionItem intervalOnly;
+    intervalOnly.id = SlowSubscriptionId;
+    intervalOnly.publishingInterval = 9000.0;
+    intervalOnly.builtin = true;
+
+    AppSettings().setBuiltinSubscriptionOverrides({renamed, intervalOnly});
+
+    const QVector<SubscriptionItem> stored = AppSettings().builtinSubscriptionOverrides();
+    QCOMPARE(stored.size(), 2);
+    QCOMPARE(stored.at(0).id, int(DefaultSubscriptionId));
+    QCOMPARE(stored.at(0).name, QStringLiteral("Telemetry"));
+    QCOMPARE(stored.at(0).publishingInterval, 50.0);
+    QVERIFY(stored.at(0).isBuiltin());
+
+    // An empty name means only the interval was overridden; the factory name stays in effect.
+    QCOMPARE(stored.at(1).id, int(SlowSubscriptionId));
+    QVERIFY(stored.at(1).name.isEmpty());
+    QCOMPARE(stored.at(1).publishingInterval, 9000.0);
+
+    // Built-in overrides live in their own group and never leak into the custom list.
+    QVERIFY(AppSettings().customSubscriptions().isEmpty());
+
+    AppSettings().setBuiltinSubscriptionOverrides({});
+    QVERIFY(AppSettings().builtinSubscriptionOverrides().isEmpty());
+}
+
+///
 /// \brief The data-access page index round-trips and defaults to zero.
 ///
 void TestAppSettings::dataAccessPageRoundTrips()
@@ -173,6 +266,7 @@ void TestAppSettings::clearLayoutKeepsPreferences()
     settings.setWindowState(QByteArrayLiteral("state"));
     settings.setCentralSplitterState(QByteArrayLiteral("splitter"));
     settings.setDataAccessPage(2);
+    settings.setTrendPanelVisible(false);
     settings.setViewState(QStringLiteral("dataView"), QByteArrayLiteral("view"));
 
     settings.clearLayout();
@@ -181,6 +275,7 @@ void TestAppSettings::clearLayoutKeepsPreferences()
     QVERIFY(AppSettings().windowState().isEmpty());
     QVERIFY(AppSettings().centralSplitterState().isEmpty());
     QCOMPARE(AppSettings().dataAccessPage(), 0);
+    QVERIFY(AppSettings().trendPanelVisible());
     QVERIFY(AppSettings().viewState(QStringLiteral("dataView")).isEmpty());
 
     QCOMPARE(AppSettings().themeMode(), AppSettings::ThemeMode::Dark);

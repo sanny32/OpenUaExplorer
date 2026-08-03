@@ -53,6 +53,20 @@
 #include "ui_mainwindow.h"
 #include "widgets/maintoolbar.h"
 #include "widgets/themedtoolbutton.h"
+#include "widgets/trendpanelwidget.h"
+
+namespace {
+
+///
+/// \brief Returns the default heights of the data view and the trend panel.
+/// \return Section sizes in central-splitter order.
+///
+QList<int> defaultCentralSplitterSizes()
+{
+    return {360, 310};
+}
+
+}
 
 ///
 /// \brief Builds the window, wires up menus, docks, icons, and the OPC UA client.
@@ -65,6 +79,11 @@ MainWindow::MainWindow(QWidget *parent)
     , _backend(_connectionController->backend())
 {
     ui->setupUi(this);
+
+    ui->actionSettings->setMenuRole(QAction::PreferencesRole);
+    ui->actionExit->setMenuRole(QAction::QuitRole);
+    ui->actionAbout->setMenuRole(QAction::AboutRole);
+    ui->actionEndpointSettings->setMenuRole(QAction::NoRole);
 
     const bool manualThemeSupported = theApp()->theme().isManualToggleSupported();
     ui->actionTheme->setVisible(manualThemeSupported);
@@ -92,6 +111,10 @@ MainWindow::MainWindow(QWidget *parent)
     updateClientUi(_backend->state());
     _sessionCoordinator->rebuildRecentSessionsMenu();
 
+    // Deferred so the window is up first, and so a session file passed on the command line
+    // has already claimed the pending slot by the time this runs.
+    QTimer::singleShot(0, _sessionCoordinator, &SessionCoordinator::connectStagedSession);
+
     auto *modifiedTimer = new QTimer(this);
     modifiedTimer->setInterval(500);
     connect(modifiedTimer, &QTimer::timeout,
@@ -117,6 +140,12 @@ void MainWindow::changeEvent(QEvent *event)
 
     if (event->type() == QEvent::PaletteChange || event->type() == QEvent::ApplicationPaletteChange) {
         setWindowIcon(AppIcons::application());
+    } else if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        if (_featureManager)
+            _featureManager->retranslate();
+        if (_sessionCoordinator)
+            _sessionCoordinator->retranslate();
     }
 }
 
@@ -203,6 +232,7 @@ void MainWindow::on_actionConnect_triggered()
 ///
 void MainWindow::on_actionDisconnect_triggered()
 {
+    _sessionCoordinator->discardLastSession();
     _connectionCoordinator->disconnectFromServer();
 }
 
@@ -550,6 +580,15 @@ void MainWindow::on_actionViewEventsHistory_triggered()
 }
 
 ///
+/// \brief Shows or hides the trend panel from the View menu.
+/// \param checked True to show the panel, false to hide it.
+///
+void MainWindow::on_actionViewTrendPanel_toggled(bool checked)
+{
+    ui->trendPanelWidget->setVisible(checked);
+}
+
+///
 /// \brief Restores the default dock layout.
 ///
 void MainWindow::on_actionResetLayout_triggered()
@@ -574,6 +613,34 @@ void MainWindow::setupDockOptions()
 {
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
     setCorner(Qt::TopLeftCorner, Qt::LeftDockWidgetArea);
+    applyCentralSplitterConstraints();
+}
+
+///
+/// \brief Shows or hides the trend panel and keeps the View menu entry in sync.
+/// \param visible True to show the panel.
+///
+void MainWindow::setTrendPanelVisible(bool visible)
+{
+    ui->trendPanelWidget->setVisible(visible);
+    ui->actionViewTrendPanel->setChecked(visible);
+}
+
+///
+/// \brief Keeps the central splitter sections from being dragged away entirely.
+///
+void MainWindow::applyCentralSplitterConstraints()
+{
+    ui->centralSplitter->setChildrenCollapsible(false);
+
+    const QList<int> sizes = ui->centralSplitter->sizes();
+    for (int i = 0; i < sizes.size(); ++i) {
+        const QWidget *section = ui->centralSplitter->widget(i);
+        if (sizes.at(i) == 0 && section && !section->isHidden()) {
+            ui->centralSplitter->setSizes(defaultCentralSplitterSizes());
+            return;
+        }
+    }
 }
 
 ///
@@ -582,7 +649,8 @@ void MainWindow::setupDockOptions()
 void MainWindow::resetLayout()
 {
     _featureManager->resetDockLayout(*this);
-    ui->centralSplitter->setSizes({360, 310});
+    setTrendPanelVisible(true);
+    ui->centralSplitter->setSizes(defaultCentralSplitterSizes());
 }
 
 ///
@@ -594,8 +662,11 @@ void MainWindow::saveSettings()
     settings.setWindowGeometry(saveGeometry());
     settings.setWindowState(saveState());
     settings.setCentralSplitterState(ui->centralSplitter->saveState());
+    settings.setTrendPanelVisible(!ui->trendPanelWidget->isHidden());
     _featureManager->saveState(settings);
     _dataAccessCoordinator->saveState(settings);
+    if (_backend->state() == OpcUaConnectionState::Connected)
+        _sessionCoordinator->saveAutosavedSession();
 }
 
 ///
@@ -608,6 +679,7 @@ void MainWindow::restoreSettings()
 {
     AppSettings settings;
     _dataAccessCoordinator->loadSubscriptions(settings);
+    _sessionCoordinator->stageLastSession();
 
     if (!settings.restoreLayoutOnStartup())
         return;
@@ -620,9 +692,15 @@ void MainWindow::restoreSettings()
     if (!state.isEmpty())
         restoreState(state);
 
+    setTrendPanelVisible(settings.trendPanelVisible());
+
     const QByteArray splitterState = settings.centralSplitterState();
-    if (!splitterState.isEmpty())
+    if (!splitterState.isEmpty()) {
+        // restoreState() also restores childrenCollapsible and may bring back a
+        // section dragged to zero height by an older build.
         ui->centralSplitter->restoreState(splitterState);
+        applyCentralSplitterConstraints();
+    }
 
     _featureManager->restoreState(settings);
     _dataAccessCoordinator->restoreState(settings);
@@ -654,9 +732,6 @@ void MainWindow::configureHistoryUi()
 ///
 void MainWindow::setupOpcUaClient()
 {
-    connect(_backend, &OpcUaBackend::stateChanged,
-            this, &MainWindow::updateClientUi);
-
     ConnectionActions connectionActions;
     connectionActions.connect = ui->actionConnect;
     connectionActions.newConnection = ui->actionNewConnection;
@@ -672,6 +747,12 @@ void MainWindow::setupOpcUaClient()
                                                        connectionActions,
                                                        this);
     ui->statusbar->setConnectionController(_connectionController);
+
+    // Connected after the coordinator so it has already worked out why the connection ended.
+    connect(_backend, &OpcUaBackend::stateChanged,
+            this, &MainWindow::updateClientUi);
+    connect(_connectionCoordinator, &ConnectionCoordinator::sessionAbandoned,
+            this, &MainWindow::closeSession);
 
     connect(ui->actionFileDisconnect, &QAction::triggered,
             ui->actionDisconnect, &QAction::trigger);
@@ -780,6 +861,7 @@ void MainWindow::setupModules()
                                                        _dataAccessModule,
                                                        _eventsModule,
                                                        _attributeModule,
+                                                       _addressSpaceModule,
                                                        _selectionContext,
                                                        _backend,
                                                        dataAccessActions,
@@ -830,17 +912,52 @@ void MainWindow::updateClientUi(OpcUaConnectionState state)
     ui->actionNodeMonitor->setEnabled(connected);
     ui->actionSaveSession->setEnabled(connected);
     ui->actionExportData->setEnabled(connected);
+    // A session the user closed is finished with; one the server dropped is kept on screen,
+    // greyed out, while it is retried, so coming back restores it instead of starting over.
+    const bool connectionLost = _connectionCoordinator->connectionLost();
+    ui->statusbar->setConnectionLost(connectionLost);
+
     if (connected) {
+        _sessionCoordinator->dropHeldWorkspaceIfEndpointChanged();
+        setRuntimeOffline(false);
         initializeAddressSpace();
         _sessionCoordinator->applyPendingSession();
     } else if (idle) {
-        _dataAccessCoordinator->clearRuntimeState();
+        // saveAutosavedSession() ends the connection the workspace belongs to, so the
+        // workspace has to be held for a reconnect before it runs.
+        if (connectionLost)
+            _sessionCoordinator->holdWorkspaceForReconnect();
+        _sessionCoordinator->saveAutosavedSession();
         _selectionContext->clear();
-        _featureManager->clearRuntimeState();
+        if (!connectionLost)
+            closeSession();
+        setRuntimeOffline(true);
         _namespaceCache = {};
         closeNodeMonitors();
-        _sessionCoordinator->closeCurrentSession();
     }
+}
+
+///
+/// \brief Drops the workspace and identity of a session that will not come back.
+///
+void MainWindow::closeSession()
+{
+    _dataAccessCoordinator->clearRuntimeState();
+    _featureManager->clearRuntimeState();
+    _sessionCoordinator->closeCurrentSession();
+    ui->statusbar->setConnectionLost(false);
+    setRuntimeOffline(true);
+    closeNodeMonitors();
+}
+
+///
+/// \brief Switches the views between live data and the greyed-out data of a lost connection.
+/// \param offline True while the server connection is gone.
+///
+void MainWindow::setRuntimeOffline(bool offline)
+{
+    _dataAccessCoordinator->setOffline(offline);
+    _featureManager->setOffline(offline);
 }
 
 ///
@@ -872,4 +989,3 @@ void MainWindow::bindIcons()
     AppIcons::bindIcon(ui->actionFavorites,   "star");
     AppIcons::bindIcon(ui->actionNodeMonitor, "trend");
 }
-

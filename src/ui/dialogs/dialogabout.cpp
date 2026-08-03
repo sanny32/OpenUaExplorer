@@ -193,6 +193,15 @@ void DialogAbout::setupComponents()
                  &layoutIndex,
                  &componentIndex);
 
+#if defined(HAVE_QLEMENTINE_APP_STYLE)
+    addComponent(QStringLiteral("Qlementine"),
+                 QStringLiteral(QLEMENTINE_VERSION),
+                 tr("Modern Qt Widgets style."),
+                 QUrl(QStringLiteral("https://github.com/oclero/qlementine")),
+                 &layoutIndex,
+                 &componentIndex);
+#endif
+
     addComponent(QStringLiteral("QtKeychain"),
                  QStringLiteral(APP_QTKEYCHAIN_VERSION),
                  tr("Secure storage integration for application secrets."),
@@ -207,28 +216,19 @@ void DialogAbout::setupComponents()
                  &layoutIndex,
                  &componentIndex);
 
+    addComponent(QStringLiteral("Lucide"),
+                 QString(),
+                 tr("Icon set the application artwork is derived from."),
+                 QUrl(QStringLiteral("https://lucide.dev")),
+                 &layoutIndex,
+                 &componentIndex);
+
     addComponent(QSysInfo::prettyProductName(),
                  QSysInfo::currentCpuArchitecture(),
                  tr("Underlying platform."),
                  {},
                  &layoutIndex,
                  &componentIndex);
-
-#if defined(HAVE_QLEMENTINE_APP_STYLE)
-    addComponent(QStringLiteral("Qlementine"),
-                 QStringLiteral(QLEMENTINE_VERSION),
-                 tr("Modern Qt Widgets style."),
-                 QUrl(QStringLiteral("https://github.com/oclero/qlementine")),
-                 &layoutIndex,
-                 &componentIndex);
-
-    addComponent(QStringLiteral("Qlementine Icons"),
-                 QStringLiteral(QLEMENTINE_ICONS_VERSION),
-                 tr("Modern Qt Widgets icon theme."),
-                 QUrl(QStringLiteral("https://github.com/oclero/qlementine-icons")),
-                 &layoutIndex,
-                 &componentIndex);
-#endif
 }
 
 ///
@@ -540,7 +540,7 @@ QString DialogAbout::iconButtonStyleSheet() const
 ///
 QString DialogAbout::licenseHtml() const
 {
-    return tr(
+    return QStringLiteral(
         "<h2>MIT License</h2>"
         "<p><b>Copyright %1 Alexandr Ananev</b></p>"
         "<p>Permission is hereby granted, free of charge, to any person obtaining a copy "

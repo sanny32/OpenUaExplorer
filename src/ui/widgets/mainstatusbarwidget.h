@@ -44,6 +44,12 @@ public:
     ///
     void setConnectionController(ConnectionController *controller);
 
+    ///
+    /// \brief Keeps the lost session's parameters on screen after the connection dropped.
+    /// \param lost True when the connection was lost rather than closed by the user.
+    ///
+    void setConnectionLost(bool lost);
+
 protected:
     void changeEvent(QEvent *event) override;
 
@@ -64,6 +70,7 @@ private:
 
     Ui::MainStatusBarWidget *ui;
     ConnectionController *_controller = nullptr;
+    bool _connectionLost = false;
     bool _serverTimeKnown = false;
     qint64 _serverTimeOffsetMs = 0;
 };

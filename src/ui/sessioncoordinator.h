@@ -100,7 +100,49 @@ public:
     ///
     bool maybeSaveSession();
 
+    ///
+    /// \brief Writes the active connection and workspace to the autosave file.
+    ///
+    void saveAutosavedSession();
+
+    ///
+    /// \brief Stages the workspace of a lost connection so reconnecting brings it back.
+    ///
+    void holdWorkspaceForReconnect();
+
+    ///
+    /// \brief Drops a held workspace, and the runtime state showing it, for another endpoint.
+    ///
+    void dropHeldWorkspaceIfEndpointChanged();
+
+    ///
+    /// \brief Clears startup restoration after a manual disconnect without deleting named files.
+    ///
+    void discardLastSession();
+
+    ///
+    /// \brief Stages the named session or autosaved workspace selected for startup restoration.
+    ///
+    void stageLastSession();
+
+    ///
+    /// \brief Starts the connection the staged last session belongs to.
+    ///
+    void connectStagedSession();
+
+    ///
+    /// \brief Reports whether a loaded workspace is waiting for its endpoint to connect.
+    /// \return True while a session is staged but not yet applied.
+    ///
+    bool hasPendingSession() const;
+
+    ///
+    /// \brief Re-applies the translated window title after a language change.
+    ///
+    void retranslate();
+
 private:
+    static QString autosavePath();
     bool saveSessionToFile(const QString &path);
     SessionData sessionWorkspace() const;
     SessionData collectSessionData() const;
@@ -120,7 +162,11 @@ private:
     SessionData _pendingSession;
     QString _pendingSessionPath;
     bool _hasPendingSession = false;
+    bool _pendingStartsConnection = false;
+    bool _pendingIsHoldOver = false;
     QString _sessionPath;
     QByteArray _savedSessionFingerprint;
     bool _sessionRestoreCursorActive = false;
+    bool _autosaveSuppressed = false;
+    bool _connectionEstablished = false;
 };

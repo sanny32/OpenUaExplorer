@@ -13,6 +13,18 @@
 #include <QVariant>
 
 ///
+/// \brief Per-row override of the change-highlight preference.
+///
+/// Rows keep following the application-wide default until the user overrides
+/// one explicitly, so changing the default still reaches existing rows.
+///
+enum class HighlightMode {
+    FollowDefault,
+    Enabled,
+    Disabled
+};
+
+///
 /// \brief Describes one OPC UA data access item row.
 ///
 struct DataAccessItem
@@ -31,6 +43,8 @@ struct DataAccessItem
     QString status;
     /// \brief Assigned subscription name.
     QString subscriptionName;
+    /// \brief Publishing interval granted by the server, in milliseconds; 0 when unknown.
+    double revisedPublishingInterval = 0.0;
     /// \brief Raw typed value used by writes.
     QVariant typedValue;
     /// \brief QOpcUa::Types numeric value.
@@ -41,4 +55,10 @@ struct DataAccessItem
     QDateTime serverTimestamp;
     /// \brief UserAccessLevel bit mask.
     quint8 userAccessLevel = 0;
+    /// \brief True while the row waits for its attribute read and subscription.
+    bool pending = false;
+    /// \brief Time of the last value change in milliseconds since the epoch; 0 when never changed.
+    qint64 valueChangedAt = 0;
+    /// \brief Per-row override of the change-highlight preference.
+    HighlightMode highlight = HighlightMode::FollowDefault;
 };

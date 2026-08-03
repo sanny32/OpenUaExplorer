@@ -1,9 +1,11 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+#include <QAbstractItemView>
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QPainter>
 #include <QPalette>
 #include <QProxyStyle>
 #include <QStyle>
@@ -42,6 +44,85 @@ static QStyle *createBaseStyle(const QString &baseStyleName)
 
     return QApplication::style();
 }
+
+namespace {
+
+///
+/// \brief Returns the neutral hover fill used by unstriped Windows 11 item views.
+/// \param palette Palette the view is drawn with.
+/// \return Subtle neutral fill for the current appearance.
+///
+QColor neutralHoverColor(const QPalette &palette)
+{
+    return palette.color(QPalette::Window).lightness() < 128 ? QColor(0xff, 0xff, 0xff, 15)
+                                                             : QColor(0x00, 0x00, 0x00, 10);
+}
+
+///
+/// \brief Copies a selected item option and resolves its system selection brush.
+/// \param option Selected item option to copy.
+/// \param selected Receives the adjusted option.
+/// \return True when the option represents a selected view item.
+///
+bool systemSelectionOption(const QStyleOption *option, QStyleOptionViewItem *selected)
+{
+    const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
+    if (!item || !item->state.testFlag(QStyle::State_Selected))
+        return false;
+
+    *selected = *item;
+    QPalette::ColorGroup group = QPalette::Inactive;
+    if (!item->state.testFlag(QStyle::State_Enabled))
+        group = QPalette::Disabled;
+    else if (item->state.testFlag(QStyle::State_Active))
+        group = QPalette::Active;
+    selected->backgroundBrush = item->palette.brush(group, QPalette::Highlight);
+    return true;
+}
+
+///
+/// \brief Replaces a hovered item background with the neutral hover fill.
+/// \param option Hovered item option to copy.
+/// \param hovered Receives the adjusted option.
+/// \return True when the option represents a hovered, unselected view item.
+///
+bool systemHoverOption(const QStyleOption *option, QStyleOptionViewItem *hovered)
+{
+    const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option);
+    if (!item || item->state.testFlag(QStyle::State_Selected)
+        || !item->state.testFlag(QStyle::State_MouseOver)) {
+        return false;
+    }
+
+    *hovered = *item;
+    hovered->backgroundBrush = neutralHoverColor(item->palette);
+    hovered->state.setFlag(QStyle::State_MouseOver, false);
+    return true;
+}
+
+///
+/// \brief Reports whether the current paint target is an item view or its viewport.
+/// \param widget Widget supplied by the style caller, if any.
+/// \param painter Painter whose device supplies the missing widget context.
+/// \return True when the primitive belongs to an item view.
+///
+bool paintsItemView(const QWidget *widget, const QPainter *painter)
+{
+    const QWidget *paintWidget = widget;
+    if (!paintWidget && painter && painter->device()
+        && painter->device()->devType() == QInternal::Widget) {
+        paintWidget = static_cast<const QWidget *>(painter->device());
+    }
+
+    if (qobject_cast<const QAbstractItemView *>(paintWidget))
+        return true;
+
+    const auto *view = paintWidget
+        ? qobject_cast<const QAbstractItemView *>(paintWidget->parentWidget())
+        : nullptr;
+    return view && view->viewport() == paintWidget;
+}
+} // namespace
 
 ///
 /// \brief Constructs the proxy style around the current application style.
@@ -85,7 +166,23 @@ bool AppStyle::isFusionStyle()
 }
 
 ///
-/// \brief Draws a control element, forcing highlighted text colour on the attributes tree.
+/// \brief Reports whether the native style needs item selection and hover normalised.
+/// \param widget Widget being painted.
+/// \return True for item views using the Windows 11 base style.
+///
+bool AppStyle::usesNativeItemStateOverride(const QWidget *widget) const
+{
+    if (!qobject_cast<const QAbstractItemView *>(widget))
+        return false;
+
+    const QStyle *base = QProxyStyle::baseStyle();
+    while (const auto *proxy = qobject_cast<const QProxyStyle *>(base))
+        base = proxy->baseStyle();
+    return base && base->name().compare(QLatin1String("windows11"), Qt::CaseInsensitive) == 0;
+}
+
+///
+/// \brief Draws item-view controls with system selection and neutral hover fills.
 /// \param element Control element to render.
 /// \param option Style option carrying the element state.
 /// \param painter Painter to draw with.
@@ -94,18 +191,57 @@ bool AppStyle::isFusionStyle()
 void AppStyle::drawControl(ControlElement element, const QStyleOption *option,
                            QPainter *painter, const QWidget *widget) const
 {
-    if (element == CE_ItemViewItem && widget
-        && widget->objectName() == QLatin1String("attributesTree")
-        && (option->state.testFlag(State_Selected)
-            || option->state.testFlag(State_MouseOver))) {
+    QStyleOptionViewItem focusless;
+    const QStyleOption *drawOption = option;
+    if (element == CE_ItemViewItem && qobject_cast<const QAbstractItemView *>(widget)) {
         if (const auto *item = qstyleoption_cast<const QStyleOptionViewItem *>(option)) {
-            QStyleOptionViewItem opt(*item);
-            opt.palette.setColor(QPalette::Text, opt.palette.color(QPalette::HighlightedText));
-            QProxyStyle::drawControl(element, &opt, painter, widget);
+            focusless = *item;
+            focusless.state.setFlag(QStyle::State_HasFocus, false);
+            drawOption = &focusless;
+        }
+    }
+
+    if (element == CE_ItemViewItem && usesNativeItemStateOverride(widget)) {
+        QStyleOptionViewItem adjusted;
+        if (systemSelectionOption(drawOption, &adjusted)) {
+            QCommonStyle::drawControl(element, &adjusted, painter, widget);
+            return;
+        }
+        if (systemHoverOption(drawOption, &adjusted)) {
+            QCommonStyle::drawControl(element, &adjusted, painter, widget);
             return;
         }
     }
-    QProxyStyle::drawControl(element, option, painter, widget);
+    QProxyStyle::drawControl(element, drawOption, painter, widget);
+}
+
+///
+/// \brief Draws item-view rows with system fills and without cell focus frames.
+/// \param element Primitive element to render.
+/// \param option Style option carrying the element state.
+/// \param painter Painter to draw with.
+/// \param widget Widget the element belongs to.
+///
+void AppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option,
+                             QPainter *painter, const QWidget *widget) const
+{
+    if (element == PE_FrameFocusRect && paintsItemView(widget, painter)) {
+        return;
+    }
+
+    if ((element == PE_PanelItemViewItem || element == PE_PanelItemViewRow)
+        && usesNativeItemStateOverride(widget)) {
+        QStyleOptionViewItem adjusted;
+        if (systemSelectionOption(option, &adjusted)) {
+            painter->fillRect(adjusted.rect, adjusted.backgroundBrush);
+            return;
+        }
+        if (systemHoverOption(option, &adjusted)) {
+            painter->fillRect(adjusted.rect, adjusted.backgroundBrush);
+            return;
+        }
+    }
+    QProxyStyle::drawPrimitive(element, option, painter, widget);
 }
 
 ///

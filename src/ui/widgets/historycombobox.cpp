@@ -22,6 +22,7 @@
 
 #include "appcolors.h"
 #include "historycombobox.h"
+#include "separatoritemdelegate.h"
 
 namespace {
 
@@ -43,6 +44,18 @@ int reservedWidth()
     return removeButtonSize + removeButtonMargin * 2;
 }
 
+///
+/// \brief Reports whether an entry is a separator line rather than a choice.
+/// \param combo Combo box owning the entry.
+/// \param index Entry index.
+/// \return True for separator entries.
+///
+bool isSeparatorEntry(const QComboBox *combo, int index)
+{
+    return combo->itemData(index, Qt::AccessibleDescriptionRole).toString()
+        == QLatin1String("separator");
+}
+
 }
 
 ///
@@ -61,10 +74,10 @@ QRect HistoryComboBox::removeButtonRect(const QRect &itemRect)
 ///
 /// \brief Paints each entry with a remove button and reserves room for it.
 ///
-class HistoryComboBoxDelegate : public QStyledItemDelegate
+class HistoryComboBoxDelegate : public SeparatorItemDelegate
 {
 public:
-    using QStyledItemDelegate::QStyledItemDelegate;
+    using SeparatorItemDelegate::SeparatorItemDelegate;
 
     ///
     /// \brief Returns the row whose remove button is under the pointer.
@@ -92,6 +105,9 @@ public:
     ///
     QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override
     {
+        if (isSeparator(index))
+            return separatorSizeHint();
+
         QSize size = QStyledItemDelegate::sizeHint(option, index);
         size.setWidth(size.width() + reservedWidth());
         size.setHeight(qMax(size.height(), removeButtonSize + removeButtonMargin * 2));
@@ -107,6 +123,11 @@ public:
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
                const QModelIndex &index) const override
     {
+        if (isSeparator(index)) {
+            drawSeparator(painter, option);
+            return;
+        }
+
         QStyleOptionViewItem viewItem = option;
         initStyleOption(&viewItem, index);
 
@@ -118,6 +139,9 @@ public:
             viewItem.text, viewItem.textElideMode,
             qMax(0, textRect.width() - reservedWidth()));
         style->drawControl(QStyle::CE_ItemViewItem, &viewItem, painter, widget);
+
+        if (index.data(HistoryComboBox::ActionRole).toBool())
+            return;
 
         if (!viewItem.state.testFlag(QStyle::State_Selected)
             && !viewItem.state.testFlag(QStyle::State_MouseOver))
@@ -190,6 +214,50 @@ HistoryComboBox::HistoryComboBox(QWidget *parent)
     , _delegate(new HistoryComboBoxDelegate(this))
 {
     attachToView();
+    connect(this, &QComboBox::currentIndexChanged, this, &HistoryComboBox::skipActionEntry);
+}
+
+///
+/// \brief Replaces the history entries, keeping the action entry last.
+/// \param entries History entries in display order.
+///
+void HistoryComboBox::setHistory(const QStringList &entries)
+{
+    clear();
+    addItems(entries);
+    appendActionEntry();
+}
+
+///
+/// \brief Appends an action entry below a separator, replacing any previous one.
+/// \param text Action entry label; an empty text removes the entry.
+///
+void HistoryComboBox::setActionEntry(const QString &text)
+{
+    if (_actionText == text)
+        return;
+
+    for (int index = count() - 1; index >= 0; --index) {
+        if (!isActionEntry(index))
+            continue;
+        removeItem(index);
+        if (index > 0 && isSeparatorEntry(this, index - 1))
+            removeItem(index - 1);
+        break;
+    }
+
+    _actionText = text;
+    appendActionEntry();
+}
+
+///
+/// \brief Reports whether an entry only triggers the action.
+/// \param index Entry index.
+/// \return True for the action entry.
+///
+bool HistoryComboBox::isActionEntry(int index) const
+{
+    return itemData(index, ActionRole).toBool();
 }
 
 ///
@@ -214,7 +282,20 @@ bool HistoryComboBox::eventFilter(QObject *watched, QEvent *event)
     if (_view && watched == _view && event->type() == QEvent::KeyPress) {
         auto *keyEvent = static_cast<QKeyEvent *>(event);
         const QModelIndex current = _view->currentIndex();
-        if (keyEvent->key() == Qt::Key_Delete && current.isValid()) {
+        if (current.isValid() && isActionEntry(current.row())) {
+            switch (keyEvent->key()) {
+            case Qt::Key_Enter:
+            case Qt::Key_Return:
+            case Qt::Key_Space:
+            case Qt::Key_Select:
+                triggerAction();
+                return true;
+            case Qt::Key_Delete:
+                return true;
+            default:
+                break;
+            }
+        } else if (keyEvent->key() == Qt::Key_Delete && current.isValid()) {
             removeRow(current.row());
             return true;
         }
@@ -239,7 +320,15 @@ bool HistoryComboBox::eventFilter(QObject *watched, QEvent *event)
         if (mouseEvent->button() != Qt::LeftButton)
             break;
 
-        const int row = rowUnderRemoveButton(mouseEvent->position().toPoint());
+        const QPoint position = mouseEvent->position().toPoint();
+        const QModelIndex pressed = _view->indexAt(position);
+        if (pressed.isValid() && isActionEntry(pressed.row())) {
+            if (event->type() == QEvent::MouseButtonRelease)
+                triggerAction();
+            return true;
+        }
+
+        const int row = rowUnderRemoveButton(position);
         if (row < 0)
             break;
 
@@ -305,7 +394,7 @@ void HistoryComboBox::updatePopupWidth()
 ///
 void HistoryComboBox::removeRow(int row)
 {
-    if (row < 0 || row >= count())
+    if (row < 0 || row >= count() || isActionEntry(row) || isSeparatorEntry(this, row))
         return;
 
     const QString text = itemText(row);
@@ -335,11 +424,53 @@ void HistoryComboBox::removeRow(int row)
 int HistoryComboBox::rowUnderRemoveButton(const QPoint &viewportPosition) const
 {
     const QModelIndex index = _view->indexAt(viewportPosition);
-    if (!index.isValid())
+    if (!index.isValid() || isActionEntry(index.row()) || isSeparatorEntry(this, index.row()))
         return -1;
     if (!removeButtonRect(_view->visualRect(index)).contains(viewportPosition))
         return -1;
     return index.row();
+}
+
+///
+/// \brief Appends the separator and action entry to the end of the list.
+///
+void HistoryComboBox::appendActionEntry()
+{
+    if (_actionText.isEmpty())
+        return;
+
+    if (count() > 0)
+        insertSeparator(count());
+    addItem(_actionText);
+    setItemData(count() - 1, true, ActionRole);
+}
+
+///
+/// \brief Closes the popup and reports that the action entry was chosen.
+///
+void HistoryComboBox::triggerAction()
+{
+    hidePopup();
+    emit actionTriggered();
+}
+
+///
+/// \brief Keeps the current entry off the action row when the keyboard lands on it.
+/// \param index Newly current entry index.
+///
+/// Separators are already skipped by QComboBox, but the action entry is a normal
+/// selectable item, so arrow-key navigation would otherwise put its label into the
+/// editable line edit.
+///
+void HistoryComboBox::skipActionEntry(int index)
+{
+    if (index < 0)
+        return;
+    if (!isActionEntry(index)) {
+        _lastSelectableIndex = index;
+        return;
+    }
+    setCurrentIndex(_lastSelectableIndex);
 }
 
 ///

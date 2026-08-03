@@ -7,6 +7,7 @@
 ///
 
 #include <QCoreApplication>
+#include <QEvent>
 
 #include "appcolors.h"
 #include "coloredpushbutton.h"
@@ -94,6 +95,51 @@ void DialogButtonBox::setStandardButtons(StandardButtons buttons)
             button->setColors(
                 { AppColors::accent(), AppColors::accentHover(), AppColors::accentPressed() });
     }
+
+    updateButtonWidths();
+}
+
+///
+/// \brief Refreshes button text and sizing after relevant UI changes.
+/// \param event Change event being handled.
+///
+void DialogButtonBox::changeEvent(QEvent *event)
+{
+    QDialogButtonBox::changeEvent(event);
+
+    if (event->type() == QEvent::LanguageChange) {
+        retranslateButtons();
+        updateButtonWidths();
+    } else if (event->type() == QEvent::FontChange
+               || event->type() == QEvent::StyleChange) {
+        updateButtonWidths();
+    }
+}
+
+///
+/// \brief Refreshes every present standard button's text for the active language.
+///
+void DialogButtonBox::retranslateButtons()
+{
+    for (const StandardButtonInfo &info : kStandardButtons) {
+        if (ColoredPushButton *button = _standardButtons.value(static_cast<int>(info.button)))
+            button->setText(QCoreApplication::translate("QPlatformTheme", info.text));
+    }
+}
+
+///
+/// \brief Gives Ok and Cancel the wider button's minimum width.
+///
+void DialogButtonBox::updateButtonWidths()
+{
+    ColoredPushButton *ok = coloredButton(QDialogButtonBox::Ok);
+    ColoredPushButton *cancel = coloredButton(QDialogButtonBox::Cancel);
+    if (ok == nullptr || cancel == nullptr)
+        return;
+
+    const int width = qMax(ok->sizeHint().width(), cancel->sizeHint().width());
+    ok->setMinimumWidth(width);
+    cancel->setMinimumWidth(width);
 }
 
 ///

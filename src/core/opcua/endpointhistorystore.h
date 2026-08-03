@@ -3,14 +3,24 @@
 
 #pragma once
 
+#include <QString>
 #include <QStringList>
 
 ///
 /// \brief Persists the recently used OPC UA endpoint URLs.
 ///
+/// Each settings group keeps an independent list, so dialogs that collect a different
+/// kind of URL (an endpoint versus a discovery server) do not share a history.
+///
 class EndpointHistoryStore
 {
 public:
+    ///
+    /// \brief Binds the store to a settings group.
+    /// \param group Settings group holding the history keys.
+    ///
+    explicit EndpointHistoryStore(QString group = QStringLiteral("connectionDialog"));
+
     ///
     /// \brief Stores default endpoint URLs only when history settings do not exist yet.
     /// \param endpointUrls Default URLs shown on the first application run.
@@ -34,4 +44,8 @@ public:
     /// \param endpointUrl URL to forget; blank values are ignored.
     ///
     void remove(const QString &endpointUrl) const;
+
+private:
+    QString _lastUrlKey;
+    QString _historyKey;
 };

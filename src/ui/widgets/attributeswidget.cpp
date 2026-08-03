@@ -7,7 +7,9 @@
 ///
 
 #include <QClipboard>
+#include <QComboBox>
 #include <QDateTime>
+#include <QEvent>
 #include <QGuiApplication>
 #include <QHeaderView>
 #include <QMenu>
@@ -66,6 +68,11 @@ QString typeName(int type)
     default:             return QStringLiteral("Unknown");
     }
 }
+
+///
+/// \brief Index of the True entry in the Boolean value combo.
+///
+constexpr int booleanTrueIndex = 1;
 
 ///
 /// \brief NodeId identifiers of the abstract OPC UA DataTypes in namespace 0.
@@ -183,6 +190,8 @@ AttributesWidget::AttributesWidget(QWidget *parent)
     setupAttributesView();
     connect(ui->writeButton, &QPushButton::clicked,
             this, &AttributesWidget::writeCurrentValue);
+    connect(ui->typeCombo, &QComboBox::currentIndexChanged,
+            this, &AttributesWidget::updateValueEditor);
 }
 
 ///
@@ -191,6 +200,19 @@ AttributesWidget::AttributesWidget(QWidget *parent)
 AttributesWidget::~AttributesWidget()
 {
     delete ui;
+}
+
+///
+/// \brief Retranslates the generated UI on a language change.
+/// \param event Change event being handled.
+///
+void AttributesWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        _model->retranslate();
+    }
 }
 
 ///
@@ -207,7 +229,7 @@ void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
     const bool writable = variable && OpcUa::isWritable(details.userAccessLevel);
     ui->writeValueGroup->setEnabled(writable);
     if (variable)
-        setupWriteEditor(details.valueType, details.dataTypeId);
+        setupWriteEditor(details.valueType, details.dataTypeId, details.value);
     else
         clearWriteEditor();
 }
@@ -220,6 +242,20 @@ void AttributesWidget::clear()
     _model->clear();
     ui->writeValueGroup->setEnabled(false);
     clearWriteEditor();
+}
+
+///
+/// \brief Keeps the last read attributes visible but inactive while the connection is gone.
+/// \param offline True while the server connection is gone.
+///
+void AttributesWidget::setOffline(bool offline)
+{
+    if (_offline == offline)
+        return;
+    _offline = offline;
+    _model->setOffline(offline);
+    if (offline)
+        ui->writeValueGroup->setEnabled(false);
 }
 
 ///
@@ -288,6 +324,7 @@ void AttributesWidget::setupAttributesView()
     connect(ui->attributesTree, &QWidget::customContextMenuRequested,
             this, &AttributesWidget::showAttributesContextMenu);
 
+    ui->verticalLayout->setAlignment(ui->writeValueGroup, Qt::AlignLeft);
     ui->writeValueGroup->setEnabled(false);
     clearWriteEditor();
 }
@@ -338,12 +375,14 @@ void AttributesWidget::showAttributesContextMenu(const QPoint &pos)
 /// \brief Configures the type combo and seeds a default value for the node.
 /// \param valueType QOpcUa::Types numeric value of the selected node.
 /// \param dataTypeId DataType NodeId, used to detect abstract DataTypes.
+/// \param value Current value of the node.
 ///
 /// For a concrete DataType the combo is locked to the node's own type, since the
 /// server accepts no other. For an abstract DataType the combo lists the concrete
 /// subtypes the user may choose between.
 ///
-void AttributesWidget::setupWriteEditor(int valueType, const QString &dataTypeId)
+void AttributesWidget::setupWriteEditor(int valueType, const QString &dataTypeId,
+                                        const QVariant &value)
 {
     ui->typeCombo->clear();
     const QVector<int> family = abstractFamily(dataTypeId);
@@ -351,16 +390,35 @@ void AttributesWidget::setupWriteEditor(int valueType, const QString &dataTypeId
         ui->typeCombo->addItem(typeName(valueType), valueType);
         ui->typeCombo->setCurrentIndex(0);
         ui->typeCombo->setEnabled(false);
-        ui->valueEdit->setDefaultValue(defaultValueText(valueType));
-        return;
+    } else {
+        for (int type : family)
+            ui->typeCombo->addItem(typeName(type), type);
+        const int index = ui->typeCombo->findData(valueType);
+        ui->typeCombo->setCurrentIndex(index >= 0 ? index : 0);
+        ui->typeCombo->setEnabled(true);
     }
 
-    for (int type : family)
-        ui->typeCombo->addItem(typeName(type), type);
-    const int index = ui->typeCombo->findData(valueType);
-    ui->typeCombo->setCurrentIndex(index >= 0 ? index : 0);
-    ui->typeCombo->setEnabled(true);
-    ui->valueEdit->setDefaultValue(defaultValueText(ui->typeCombo->currentData().toInt()));
+    updateValueEditor();
+    if (ui->typeCombo->currentData().toInt() == Boolean)
+        ui->valueCombo->setCurrentIndex(value.toBool() ? booleanTrueIndex : 0);
+}
+
+///
+/// \brief Shows the editor matching the selected write type.
+///
+/// Boolean values are picked from a True/False list so they never have to be typed,
+/// while every other type keeps the free-text field with its reset-to-default action.
+///
+void AttributesWidget::updateValueEditor()
+{
+    const QVariant type = ui->typeCombo->currentData();
+    const bool boolean = type.isValid() && type.toInt() == Boolean;
+    ui->valueEdit->setVisible(!boolean);
+    ui->valueCombo->setVisible(boolean);
+    if (boolean)
+        ui->valueCombo->setCurrentIndex(0);
+    else
+        ui->valueEdit->setDefaultValue(defaultValueText(type.toInt()));
 }
 
 ///
@@ -370,11 +428,17 @@ void AttributesWidget::clearWriteEditor()
 {
     _nodeId.clear();
     ui->typeCombo->clear();
+    ui->valueCombo->setCurrentIndex(0);
+    ui->valueCombo->hide();
+    ui->valueEdit->show();
     ui->valueEdit->setDefaultValue(QString());
 }
 
 ///
 /// \brief Converts the entered text to the selected type and requests the write.
+///
+/// Boolean values come from the True/False list and are written as they are, so
+/// they skip the text conversion entirely.
 ///
 void AttributesWidget::writeCurrentValue()
 {
@@ -382,6 +446,11 @@ void AttributesWidget::writeCurrentValue()
         return;
 
     const int valueType = ui->typeCombo->currentData().toInt();
+    if (valueType == Boolean) {
+        emit writeRequested(_nodeId, ui->valueCombo->currentIndex() == booleanTrueIndex, valueType);
+        return;
+    }
+
     bool ok = false;
     const QVariant value = OpcUaFormat::scalarFromText(
         ui->valueEdit->text(), static_cast<QOpcUa::Types>(valueType), &ok);

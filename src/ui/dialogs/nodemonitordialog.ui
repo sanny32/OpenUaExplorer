@@ -165,7 +165,7 @@
          </font>
         </property>
         <property name="text">
-         <string>—</string>
+         <string notr="true">—</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -323,7 +323,7 @@
         <bool>true</bool>
        </property>
        <property name="iconName" stdset="0">
-        <string>pause</string>
+        <string notr="true">pause</string>
        </property>
       </widget>
      </item>

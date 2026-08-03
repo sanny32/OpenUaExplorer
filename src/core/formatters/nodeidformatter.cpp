@@ -129,11 +129,11 @@ void addNodeIdChildren(OpcUaNodeAttribute *attribute, const QString &nodeId)
         return;
 
     attribute->children.append(
-        childAttribute(QObject::tr("NamespaceIndex"), QString::number(namespaceIndex)));
+        childAttribute(QStringLiteral("NamespaceIndex"), QString::number(namespaceIndex)));
     attribute->children.append(
-        childAttribute(QObject::tr("IdentifierType"), identifierTypeName(identifierType)));
+        childAttribute(QStringLiteral("IdentifierType"), identifierTypeName(identifierType)));
     attribute->children.append(
-        childAttribute(QObject::tr("Identifier"), identifier));
+        childAttribute(QStringLiteral("Identifier"), identifier));
 }
 
 ///

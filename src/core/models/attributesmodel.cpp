@@ -9,6 +9,8 @@
 #include <QBrush>
 #include <QColor>
 #include <QDateTime>
+#include <QApplication>
+#include <QPalette>
 
 #include "attributesmodel.h"
 #include "formatters/attributeformatter.h"
@@ -128,8 +130,8 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation orientation, i
         return QAbstractItemModel::headerData(section, orientation, role);
 
     switch (section) {
-    case ColAttribute: return QStringLiteral("Attribute");
-    case ColValue: return QStringLiteral("Value");
+    case ColAttribute: return tr("Attribute");
+    case ColValue: return tr("Value");
     default: return {};
     }
 }
@@ -153,6 +155,9 @@ QVariant AttributesModel::data(const QModelIndex &index, int role) const
 
     if (role == Qt::TextAlignmentRole)
         return QVariant(_columnAlignments.alignment(index.column()));
+
+    if (role == Qt::ForegroundRole && _offline)
+        return QBrush(qApp->palette().color(QPalette::Disabled, QPalette::Text));
 
     if (role == Qt::ForegroundRole && index.column() == ColValue) {
         if (item->value.startsWith(QLatin1String("Bad")))
@@ -258,6 +263,33 @@ QString AttributesModel::timestampValue(const Item &item) const
 }
 
 ///
+/// \brief Repaints a subtree after the offline state changed.
+/// \param parentIndex Subtree root, invalid for the whole tree.
+///
+void AttributesModel::emitForegroundChanged(const QModelIndex &parentIndex)
+{
+    const int rows = rowCount(parentIndex);
+    if (rows == 0)
+        return;
+    emit dataChanged(index(0, ColAttribute, parentIndex),
+                     index(rows - 1, ColValue, parentIndex), {Qt::ForegroundRole});
+    for (int row = 0; row < rows; ++row)
+        emitForegroundChanged(index(row, 0, parentIndex));
+}
+
+///
+/// \brief Marks the shown attributes as read from a connection that is gone.
+/// \param offline True while the server connection is gone.
+///
+void AttributesModel::setOffline(bool offline)
+{
+    if (_offline == offline)
+        return;
+    _offline = offline;
+    emitForegroundChanged(QModelIndex());
+}
+
+///
 /// \brief Recursively reformats timestamp rows under a parent index and notifies the view.
 /// \param parentIndex Parent model index.
 ///
@@ -297,4 +329,12 @@ void AttributesModel::setTimestampMode(AppSettings::TimestampMode mode)
 AttributesModel::Item *AttributesModel::itemForIndex(const QModelIndex &index) const
 {
     return index.isValid() ? static_cast<Item *>(index.internalPointer()) : _root.get();
+}
+
+///
+/// \brief Re-emits the header titles after a UI language change.
+///
+void AttributesModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
 }

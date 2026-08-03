@@ -100,6 +100,17 @@ public:
     void clearRuntimeState();
 
     ///
+    /// \brief Switches every feature between live and offline presentation.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
+    ///
+    /// \brief Re-applies translated text owned by every feature after a language change.
+    ///
+    void retranslate();
+
+    ///
     /// \brief Collects every feature's contribution to a saved working session.
     /// \param session Session payload to write to.
     ///

@@ -7,11 +7,13 @@ on:
       - 'src/**'
       - 'tools/**'
       - '.github/workflows/test-ci.yml'
+      - '!src/**/*.ts'
   pull_request:
     paths:
       - 'src/**'
       - 'tools/**'
       - '.github/workflows/test-ci.yml'
+      - '!src/**/*.ts'
 
 concurrency:
   group: test-${{ github.ref }}

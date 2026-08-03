@@ -196,7 +196,8 @@ void MacAppStyle::drawControl(ControlElement element, const QStyleOption* option
 }
 
 ///
-/// \brief Draws an outlined bezel behind ThemedToolButtons; everything else defers to the base style.
+/// \brief Draws an outlined bezel behind ThemedToolButtons; auto-raise buttons and everything
+///        else defer to the base style.
 /// \param element Primitive element to render.
 /// \param option Style option carrying the element state.
 /// \param painter Painter to draw with.
@@ -205,8 +206,8 @@ void MacAppStyle::drawControl(ControlElement element, const QStyleOption* option
 void MacAppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption* option,
                                  QPainter* painter, const QWidget* widget) const
 {
-    if (element == PE_PanelButtonTool && option
-        && qobject_cast<const ThemedToolButton*>(widget)
+    const auto* themedTool = qobject_cast<const ThemedToolButton*>(widget);
+    if (element == PE_PanelButtonTool && option && themedTool && !themedTool->autoRaise()
         && !qobject_cast<const MainToolButton*>(widget)
         && !option->state.testFlag(State_On)) {
         drawOutlinedToolButton(option, painter);
@@ -332,16 +333,16 @@ QColor const& MacAppStyle::buttonBackgroundColor(MouseState mouse, ColorRole rol
         using namespace Dark;
         switch (mouse) {
             case MouseState::Pressed:
-                return colorRef(0x545456);
+                return colorRef(0x5a5a5c);
             case MouseState::Hovered:
-                return colorRef(kChromePressed);
+                return colorRef(0x505052);
             case MouseState::Disabled:
-                return colorRef(kChrome);
+                return colorRef(0x3d3d40);
             case MouseState::Transparent:
                 return transparentRef(kChromeStrong);
             case MouseState::Normal:
             default:
-                return colorRef(kChromeStrong);
+                return colorRef(0x454547);
         }
     } else {
         using namespace Light;
@@ -379,7 +380,7 @@ QColor const& MacAppStyle::buttonForegroundColor(MouseState mouse, ColorRole rol
 
     if (isDarkMode()) {
         using namespace Dark;
-        return mouse == MouseState::Disabled ? colorRef(kDisabledText) : colorRef(kText);
+        return mouse == MouseState::Disabled ? colorRef(0x757579) : colorRef(kText);
     } else {
         using namespace Light;
         return mouse == MouseState::Disabled ? colorRef(kDisabledText) : colorRef(kText);
@@ -714,7 +715,7 @@ QColor const& MacAppStyle::textFieldBorderColor(MouseState mouse, FocusState foc
     if (isDarkMode()) {
         using namespace Dark;
         if (mouse == MouseState::Disabled)
-            return colorRef(kChrome);
+            return colorRef(0x424244);
         if (focus == FocusState::Focused)
             return colorRef(kBlue);
         if (mouse == MouseState::Hovered || mouse == MouseState::Pressed)

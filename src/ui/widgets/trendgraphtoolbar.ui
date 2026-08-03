@@ -59,7 +59,7 @@
         <string>Pause</string>
        </property>
        <property name="iconName" stdset="0">
-        <string>pause</string>
+        <string notr="true">pause</string>
        </property>
        <property name="squareIconOnly" stdset="0">
         <bool>true</bool>
@@ -240,7 +240,7 @@
       <string>Refresh history from now</string>
      </property>
      <property name="iconName" stdset="0">
-      <string>refresh</string>
+      <string notr="true">refresh</string>
      </property>
      <property name="squareIconOnly" stdset="0">
       <bool>true</bool>
@@ -266,14 +266,14 @@
       <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
      </property>
      <property name="iconName" stdset="0">
-      <string>fit</string>
+      <string notr="true">fit</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="ThemedToolButton" name="exportButton">
      <property name="iconName" stdset="0">
-      <string>export</string>
+      <string notr="true">export</string>
      </property>
      <property name="squareIconOnly" stdset="0">
       <bool>true</bool>
@@ -283,7 +283,7 @@
    <item>
     <widget class="ThemedToolButton" name="settingsButton">
      <property name="iconName" stdset="0">
-      <string>settings</string>
+      <string notr="true">settings</string>
      </property>
      <property name="squareIconOnly" stdset="0">
       <bool>true</bool>

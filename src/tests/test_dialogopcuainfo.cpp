@@ -12,11 +12,14 @@
 #include <QLabel>
 #include <QPixmap>
 #include <QPushButton>
+#include <QSettings>
+#include <QTemporaryDir>
 #include <QTest>
 
 #include "application.h"
 #include "appsettings.h"
 #include "dialogs/dialogopcuainfo.h"
+#include "settingsstore.h"
 
 ///
 /// \brief Unit tests for the OPC UA information dialog.
@@ -26,11 +29,39 @@ class TestDialogOpcUaInfo : public QObject
     Q_OBJECT
 
 private slots:
+    void initTestCase();
+    void cleanup();
+
     void showsSectionsAndRuntimeValues();
     void logoStaysVisibleOnDarkPalette();
     void exposesExternalLinks();
     void copiesDiagnosticSummary();
+
+private:
+    QTemporaryDir _settingsDirectory;
 };
+
+///
+/// \brief Routes QSettings to a temporary directory.
+///
+void TestDialogOpcUaInfo::initTestCase()
+{
+    QVERIFY(_settingsDirectory.isValid());
+    QCoreApplication::setOrganizationName(QStringLiteral("OpenUaExplorerTests"));
+    QCoreApplication::setApplicationName(QStringLiteral("DialogOpcUaInfo"));
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                       _settingsDirectory.path());
+}
+
+///
+/// \brief Clears stored settings between tests.
+///
+void TestDialogOpcUaInfo::cleanup()
+{
+    SettingsStore settings;
+    settings.clear();
+}
 
 ///
 /// \brief Verifies the dialog title, section labels and runtime fields.

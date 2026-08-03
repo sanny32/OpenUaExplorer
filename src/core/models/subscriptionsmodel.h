@@ -10,7 +10,6 @@
 
 #include <QAbstractTableModel>
 #include <QBrush>
-#include <QIcon>
 #include <QVector>
 
 #include "columnalignmentstore.h"
@@ -80,6 +79,11 @@ public:
                         int role = Qt::DisplayRole) const override;
 
     ///
+    /// \brief Re-emits the header titles after a UI language change.
+    ///
+    void retranslate();
+
+    ///
     /// \brief Replaces all subscription rows with row-change notifications.
     /// \param items New subscriptions to display.
     ///
@@ -139,12 +143,6 @@ public:
     void setColumnAlignment(int column, Qt::Alignment alignment);
 
     ///
-    /// \brief Sets the decoration icon shown next to built-in subscription names.
-    /// \param icon Icon to display, typically a lock glyph.
-    ///
-    void setBuiltinIcon(const QIcon &icon);
-
-    ///
     /// \brief Sets the row background brush used for built-in subscriptions.
     /// \param brush Background brush distinguishing built-in rows.
     ///
@@ -177,6 +175,5 @@ signals:
 private:
     QVector<SubscriptionItem>  _items;
     ColumnAlignmentStore _columnAlignments;
-    QIcon  _builtinIcon;
     QBrush _builtinBackground;
 };

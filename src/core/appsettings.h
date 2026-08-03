@@ -43,6 +43,17 @@ public:
     };
 
     ///
+    /// \brief User interface language preference.
+    ///
+    enum class Language {
+        System,
+        English,
+        Russian,
+        German,
+        ChineseSimplified
+    };
+
+    ///
     /// \brief Default OPC UA session and channel settings for new connections.
     ///
     /// Mirrors the Advanced Settings group of the connection dialog so the last
@@ -164,6 +175,18 @@ public:
     void setTimestampMode(TimestampMode mode);
 
     ///
+    /// \brief Returns the stored user interface language preference.
+    /// \return Saved language, or Language::System when none is stored.
+    ///
+    Language language() const;
+
+    ///
+    /// \brief Stores the user interface language preference.
+    /// \param language Language to persist.
+    ///
+    void setLanguage(Language language);
+
+    ///
     /// \brief Returns the saved top-level window geometry.
     /// \return Window geometry blob, or an empty array when none is stored.
     ///
@@ -212,6 +235,18 @@ public:
     void setDataAccessPage(int page);
 
     ///
+    /// \brief Reports whether the trend panel should be shown.
+    /// \return True when the panel is visible, defaulting to true.
+    ///
+    bool trendPanelVisible() const;
+
+    ///
+    /// \brief Stores whether the trend panel is shown.
+    /// \param visible True when the panel is visible.
+    ///
+    void setTrendPanelVisible(bool visible);
+
+    ///
     /// \brief Reports whether the saved window layout should be restored at startup.
     /// \return True when the layout should be restored, defaulting to true.
     ///
@@ -224,6 +259,66 @@ public:
     void setRestoreLayoutOnStartup(bool enabled);
 
     ///
+    /// \brief Reports whether the workspace left behind by the last run should be restored.
+    /// \return True when the last session should be restored, defaulting to false.
+    ///
+    bool restoreLastSessionOnStartup() const;
+
+    ///
+    /// \brief Stores whether the workspace left behind by the last run should be restored.
+    /// \param enabled True to stage the last named session or autosaved workspace.
+    ///
+    void setRestoreLastSessionOnStartup(bool enabled);
+
+    ///
+    /// \brief Reports whether a lost connection should be retried automatically.
+    /// \return True when reconnect attempts are enabled, defaulting to true.
+    ///
+    bool reconnectEnabled() const;
+
+    ///
+    /// \brief Stores whether a lost connection should be retried automatically.
+    /// \param enabled True to retry until the server answers again.
+    ///
+    void setReconnectEnabled(bool enabled);
+
+    ///
+    /// \brief Reports whether the data-access table washes cells whose value changed.
+    /// \return True when change highlighting is enabled, defaulting to false.
+    ///
+    bool highlightValueChanges() const;
+
+    ///
+    /// \brief Stores whether the data-access table washes cells whose value changed.
+    /// \param enabled True to highlight value changes.
+    ///
+    void setHighlightValueChanges(bool enabled);
+
+    ///
+    /// \brief Returns the delay between two reconnect attempts.
+    /// \return Interval in seconds, clamped to the supported range.
+    ///
+    int reconnectIntervalSeconds() const;
+
+    ///
+    /// \brief Stores the delay between two reconnect attempts.
+    /// \param seconds Interval in seconds, clamped to the supported range.
+    ///
+    void setReconnectIntervalSeconds(int seconds);
+
+    ///
+    /// \brief Returns the named session file selected for restoration at startup.
+    /// \return Stored session path, or an empty string when autosave should be used.
+    ///
+    QString lastSavedSessionPath() const;
+
+    ///
+    /// \brief Stores the named session file that takes priority over autosave at startup.
+    /// \param path Session file path, or an empty string to restore from autosave.
+    ///
+    void setLastSavedSessionPath(const QString &path);
+
+    ///
     /// \brief Returns the user-created subscriptions persisted from the last session.
     /// \return Custom subscriptions in stored order, or an empty vector when none are stored.
     ///
@@ -234,6 +329,18 @@ public:
     /// \param subscriptions Custom subscriptions to persist; built-in ones are ignored.
     ///
     void setCustomSubscriptions(const QVector<SubscriptionItem> &subscriptions);
+
+    ///
+    /// \brief Returns the stored edits applied to the built-in subscriptions.
+    /// \return Overrides keyed by built-in subscription id, or an empty vector when none exist.
+    ///
+    QVector<SubscriptionItem> builtinSubscriptionOverrides() const;
+
+    ///
+    /// \brief Stores the edits applied to the built-in subscriptions.
+    /// \param subscriptions Overrides to persist; leave the name empty to keep the factory name.
+    ///
+    void setBuiltinSubscriptionOverrides(const QVector<SubscriptionItem> &subscriptions);
 
     ///
     /// \brief Returns the saved element state for a named view.

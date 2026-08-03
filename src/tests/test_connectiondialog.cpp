@@ -41,6 +41,7 @@
 #include "widgets/certificatesummarywidget.h"
 #include "widgets/dialogbuttonbox.h"
 #include "widgets/endpointdiscoverywidget.h"
+#include "widgets/historycombobox.h"
 
 ///
 /// \brief Minimal OPC UA backend double that only counts discovery calls.
@@ -91,6 +92,7 @@ private slots:
     void clearedEndpointHistoryStaysEmpty();
     void usernamePasswordDefaultsAreEmpty();
     void discoveryPopulatesEndpointModelAndAuthentication();
+    void endpointsWidgetSelectsAPolicyAndModePair();
     void closingDuringDiscoveryRestoresCursor();
     void clientCertificateActionFollowsSelection();
     void clientCertificateSelectorFillsRow();
@@ -99,7 +101,7 @@ private slots:
     void advancedSettingsSeedFromStoredDefaults();
     void serverTrustStateFollowsTrustList();
     void trustIsRefusedForACertificateOutsideItsValidity();
-    void endpointHoverUsesSelectionBackgroundInFusion();
+    void endpointHoverDoesNotUseSelectionBackgroundInFusion();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -270,14 +272,18 @@ void TestConnectionDialog::cleanup()
 void TestConnectionDialog::designerEndpointsSeedEmptyHistory()
 {
     ConnectionDialog dialog;
-    auto *endpoints = dialog.findChild<QComboBox *>(QStringLiteral("discoveryUrlComboBox"));
+    auto *endpoints = dialog.findChild<HistoryComboBox *>(
+        QStringLiteral("discoveryUrlComboBox"));
     QVERIFY(endpoints);
 
-    QCOMPARE(endpoints->count(), 2);
+    QCOMPARE(endpoints->count(), 4);
     QCOMPARE(endpoints->itemText(0),
              QStringLiteral("opc.tcp://uademo.prosysopc.com:53530/OPCUA/SimulationServer"));
     QCOMPARE(endpoints->itemText(1),
              QStringLiteral("opc.tcp://opcua.demo-this.com:51210/UA/SampleServer"));
+    QCOMPARE(endpoints->itemData(2, Qt::AccessibleDescriptionRole).toString(),
+             QStringLiteral("separator"));
+    QVERIFY(endpoints->isActionEntry(3));
 }
 
 ///
@@ -286,19 +292,22 @@ void TestConnectionDialog::designerEndpointsSeedEmptyHistory()
 void TestConnectionDialog::clearedEndpointHistoryStaysEmpty()
 {
     ConnectionDialog initialDialog;
-    auto *initialEndpoints = initialDialog.findChild<QComboBox *>(
+    auto *initialEndpoints = initialDialog.findChild<HistoryComboBox *>(
         QStringLiteral("discoveryUrlComboBox"));
     QVERIFY(initialEndpoints);
 
     EndpointHistoryStore store;
-    for (int index = 0; index < initialEndpoints->count(); ++index)
-        store.remove(initialEndpoints->itemText(index));
+    for (int index = 0; index < initialEndpoints->count(); ++index) {
+        if (!initialEndpoints->isActionEntry(index))
+            store.remove(initialEndpoints->itemText(index));
+    }
 
     ConnectionDialog reopenedDialog;
-    auto *reopenedEndpoints = reopenedDialog.findChild<QComboBox *>(
+    auto *reopenedEndpoints = reopenedDialog.findChild<HistoryComboBox *>(
         QStringLiteral("discoveryUrlComboBox"));
     QVERIFY(reopenedEndpoints);
-    QCOMPARE(reopenedEndpoints->count(), 0);
+    QCOMPARE(reopenedEndpoints->count(), 1);
+    QVERIFY(reopenedEndpoints->isActionEntry(0));
     QVERIFY(reopenedEndpoints->currentText().isEmpty());
 }
 
@@ -363,6 +372,42 @@ void TestConnectionDialog::discoveryPopulatesEndpointModelAndAuthentication()
     QVERIFY(QGuiApplication::overrideCursor());
     emit backend.endpointsDiscovered({}, QStringLiteral("Discovery failed"));
     QVERIFY(!QGuiApplication::overrideCursor());
+}
+
+///
+/// \brief Verifies the pre-selection the find-servers dialog hands back after discovery.
+///
+void TestConnectionDialog::endpointsWidgetSelectsAPolicyAndModePair()
+{
+    ConnectionDialog dialog;
+    auto *endpoints = dialog.findChild<EndpointDiscoveryWidget *>();
+    QVERIFY(endpoints);
+
+    const QString policyPrefix =
+        QStringLiteral("http://opcfoundation.org/UA/SecurityPolicy#");
+    auto makeEndpoint = [&policyPrefix](const QString &policy, int modeValue) {
+        EndpointInfo endpoint;
+        endpoint.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
+        endpoint.securityPolicy = policyPrefix + policy;
+        endpoint.securityMode = modeValue == 3 ? QStringLiteral("Sign & Encrypt")
+                                               : QStringLiteral("Sign");
+        endpoint.securityModeValue = modeValue;
+        endpoint.supportsAnonymous = true;
+        return endpoint;
+    };
+
+    endpoints->setEndpoints({makeEndpoint(QStringLiteral("Aes256_Sha256_RsaPss"), 3),
+                             makeEndpoint(QStringLiteral("Aes256_Sha256_RsaPss"), 2),
+                             makeEndpoint(QStringLiteral("Basic256Sha256"), 3)});
+    QCOMPARE(endpoints->currentRow(), 0);
+
+    QVERIFY(endpoints->selectEndpoint(policyPrefix + QStringLiteral("Basic256Sha256"), 3));
+    QCOMPARE(endpoints->currentEndpoint().securityPolicy,
+             policyPrefix + QStringLiteral("Basic256Sha256"));
+
+    QVERIFY(!endpoints->selectEndpoint(policyPrefix + QStringLiteral("Basic128Rsa15"), 3));
+    QCOMPARE(endpoints->currentEndpoint().securityPolicy,
+             policyPrefix + QStringLiteral("Basic256Sha256"));
 }
 
 void TestConnectionDialog::closingDuringDiscoveryRestoresCursor()
@@ -596,7 +641,7 @@ void TestConnectionDialog::trustIsRefusedForACertificateOutsideItsValidity()
     QVERIFY(!trustButton->toolTip().isEmpty());
 }
 
-void TestConnectionDialog::endpointHoverUsesSelectionBackgroundInFusion()
+void TestConnectionDialog::endpointHoverDoesNotUseSelectionBackgroundInFusion()
 {
     if (!hasStyle(QStringLiteral("Fusion")))
         QSKIP("Fusion style is unavailable.");
@@ -619,8 +664,8 @@ void TestConnectionDialog::endpointHoverUsesSelectionBackgroundInFusion()
     QVERIFY(dialog.layout()->activate());
     endpointView->setProperty("hoveredRow", 1);
 
-    QCOMPARE(cellBackgroundColor(endpointView, 1, EndpointModel::PolicyColumn),
-             cellBackgroundColor(endpointView, 0, EndpointModel::PolicyColumn));
+    QVERIFY(cellBackgroundColor(endpointView, 1, EndpointModel::PolicyColumn)
+            != cellBackgroundColor(endpointView, 0, EndpointModel::PolicyColumn));
 }
 
 QTEST_MAIN(TestConnectionDialog)

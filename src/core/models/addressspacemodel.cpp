@@ -8,12 +8,16 @@
 
 #include "addressspacemodel.h"
 
+#include <QApplication>
+#include <QBrush>
 #include <QMimeData>
+#include <QPalette>
 #include <QSet>
 #include <QStringList>
 
 #include "addressspacemimedata.h"
 #include "addressspacenode.h"
+#include "opcua/standardnodeid.h"
 
 namespace {
 
@@ -287,7 +291,9 @@ QVariant AddressSpaceModel::data(const QModelIndex &index, int role) const
     if (role == Qt::UserRole)
         return info.nodeId;
     if (role == Qt::DecorationRole && _iconProvider)
-        return _iconProvider(iconType(info.nodeClass));
+        return _iconProvider(iconType(info));
+    if (role == Qt::ForegroundRole && _offline)
+        return QBrush(qApp->palette().color(QPalette::Disabled, QPalette::Text));
     return {};
 }
 
@@ -303,7 +309,7 @@ Qt::ItemFlags AddressSpaceModel::flags(const QModelIndex &index) const
         return itemFlags;
 
     const OpcUaNodeInfo &info = nodeForIndex(index)->info();
-    if (!info.nodeId.isEmpty())
+    if (!info.nodeId.isEmpty() && !_offline)
         itemFlags |= Qt::ItemIsDragEnabled;
     return itemFlags;
 }
@@ -326,7 +332,7 @@ bool AddressSpaceModel::hasChildren(const QModelIndex &parent) const
 ///
 bool AddressSpaceModel::canFetchMore(const QModelIndex &parent) const
 {
-    if (!parent.isValid())
+    if (!parent.isValid() || _offline)
         return false;
     AddressSpaceNode *node = nodeForIndex(parent);
     return node->info().hasChildren && !node->browseStarted() && !node->browseComplete();
@@ -458,6 +464,29 @@ void AddressSpaceModel::clear()
 }
 
 ///
+/// \brief Marks the tree as belonging to a connection that is no longer usable.
+/// \param offline True while the server connection is gone.
+///
+/// The nodes are kept and only repainted, so the view keeps its expansion and selection.
+///
+void AddressSpaceModel::setOffline(bool offline)
+{
+    if (_offline == offline)
+        return;
+    _offline = offline;
+    emitAppearanceChanged(QModelIndex());
+}
+
+///
+/// \brief Reports whether the tree shows data of a lost connection.
+/// \return True while the tree is offline.
+///
+bool AddressSpaceModel::isOffline() const
+{
+    return _offline;
+}
+
+///
 /// \brief Returns the node information for an index.
 /// \param index Model index.
 /// \return Node information.
@@ -507,6 +536,21 @@ AddressSpaceNode *AddressSpaceModel::nodeForIndex(const QModelIndex &index) cons
     return index.isValid()
         ? static_cast<AddressSpaceNode *>(index.internalPointer())
         : _root.get();
+}
+
+///
+/// \brief Repaints a subtree after the offline state changed.
+/// \param parent Subtree root, invalid for the whole tree.
+///
+void AddressSpaceModel::emitAppearanceChanged(const QModelIndex &parent)
+{
+    const int rows = rowCount(parent);
+    if (rows == 0)
+        return;
+    emit dataChanged(index(0, 0, parent), index(rows - 1, 0, parent),
+                     {Qt::ForegroundRole, Qt::DecorationRole});
+    for (int row = 0; row < rows; ++row)
+        emitAppearanceChanged(index(row, 0, parent));
 }
 
 ///
@@ -594,17 +638,18 @@ void AddressSpaceModel::appendTestItems(AddressSpaceNode *parent,
 }
 
 ///
-/// \brief Maps an OPC UA node class to an icon node type.
-/// \param nodeClass OPC UA NodeClass numeric value.
+/// \brief Maps OPC UA node metadata to an icon node type.
+/// \param node OPC UA node metadata.
 /// \return Existing application icon type.
 ///
-AddressSpaceItem::NodeType AddressSpaceModel::iconType(int nodeClass) const
+AddressSpaceItem::NodeType AddressSpaceModel::iconType(const OpcUaNodeInfo &node) const
 {
-    if (nodeClass & OpcUa::Variable)
+    if (node.nodeClass & OpcUa::Variable)
         return AddressSpaceItem::NodeType::Variable;
-    if (nodeClass & OpcUa::Method)
+    if (node.nodeClass & OpcUa::Method)
         return AddressSpaceItem::NodeType::Method;
-    if (nodeClass & OpcUa::Object)
+    if ((node.nodeClass & OpcUa::Object)
+        && node.typeDefinitionId == StandardNodeId::folderType())
         return AddressSpaceItem::NodeType::Folder;
     return AddressSpaceItem::NodeType::Node;
 }

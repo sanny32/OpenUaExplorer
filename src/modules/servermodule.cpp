@@ -75,16 +75,23 @@ void ServerModule::initialize(ServiceContext &context)
 {
     _backend = context.backend();
     _connectionController = context.connectionController();
+    _previousState = _backend->state();
     connect(_backend, &OpcUaBackend::stateChanged,
             this, &ServerModule::handleStateChanged);
 }
 
 ///
-/// \brief Logs the endpoint block on connect and every connection state transition.
+/// \brief Logs the endpoint block and connection state transitions useful to the user.
 /// \param state New connection state.
 ///
 void ServerModule::handleStateChanged(OpcUaConnectionState state)
 {
+    const bool discoveryFinished = _previousState == OpcUaConnectionState::Discovering
+        && state == OpcUaConnectionState::Disconnected;
+    _previousState = state;
+    if (discoveryFinished)
+        return;
+
     if (state == OpcUaConnectionState::Connecting && _connectionController) {
         const ConnectionProfile &profile = _connectionController->activeProfile();
         if (!profile.endpointUrl.isEmpty()) {

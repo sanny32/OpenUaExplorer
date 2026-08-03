@@ -51,6 +51,8 @@ void DataAccessModule::initialize(ServiceContext &context)
             this, &DataAccessModule::handleHistoryReady);
     connect(_backend, &OpcUaBackend::monitoringFinished,
             this, &DataAccessModule::handleMonitoringFinished);
+    connect(_backend, &OpcUaBackend::monitoringIntervalRevised,
+            this, &DataAccessModule::monitoringIntervalRevised);
 }
 
 ///

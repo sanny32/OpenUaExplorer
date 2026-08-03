@@ -9,7 +9,9 @@
 #include <QAbstractButton>
 #include <QDateTime>
 #include <QDateTimeEdit>
+#include <QEvent>
 #include <QHeaderView>
+#include <QResizeEvent>
 #include <QSpinBox>
 #include <QTimeZone>
 
@@ -22,6 +24,7 @@
 #include "nodelineedit.h"
 #include "tableview.h"
 #include "tableviewconfig.h"
+#include "toolbuttonlayout.h"
 #include "ui_datahistorywidget.h"
 
 namespace {
@@ -61,6 +64,7 @@ DataHistoryWidget::DataHistoryWidget(QWidget *parent)
     ui->dataHistoryClearButton->setIcon(QStringLiteral("trash"));
     setupDataHistoryView();
     updateActionButtons();
+    updateQueryButtonStyle();
 }
 
 ///
@@ -69,6 +73,34 @@ DataHistoryWidget::DataHistoryWidget(QWidget *parent)
 DataHistoryWidget::~DataHistoryWidget()
 {
     delete ui;
+}
+
+///
+/// \brief Handles changes that affect translated text and toolbar sizing.
+/// \param event Change event being handled.
+///
+void DataHistoryWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        _dataHistoryModel->retranslate();
+    }
+    if (event->type() == QEvent::LanguageChange
+        || event->type() == QEvent::FontChange
+        || event->type() == QEvent::StyleChange) {
+        updateQueryButtonStyle();
+    }
+}
+
+///
+/// \brief Updates the action-button presentation after the widget width changes.
+/// \param event Resize event being handled.
+///
+void DataHistoryWidget::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    updateQueryButtonStyle();
 }
 
 ///
@@ -219,6 +251,19 @@ void DataHistoryWidget::updateActionButtons()
     const bool hasSamples = _dataHistoryModel->rowCount() > 0;
     ui->dataHistoryExportButton->setEnabled(hasSamples);
     ui->dataHistoryClearButton->setEnabled(hasSamples);
+}
+
+///
+/// \brief Hides action-button text when the query row cannot fit its expanded controls.
+///
+void DataHistoryWidget::updateQueryButtonStyle()
+{
+    const QMargins margins = ui->dataHistoryLayout->contentsMargins();
+    const int availableWidth = width() - margins.left() - margins.right();
+    ToolButtonLayout::adaptToWidth(
+        ui->dataHistoryQueryLayout, availableWidth,
+        {ui->dataHistoryReadButton, ui->dataHistoryClearButton,
+         ui->dataHistoryExportButton});
 }
 
 ///

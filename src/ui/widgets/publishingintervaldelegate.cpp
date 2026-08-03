@@ -8,14 +8,11 @@
 
 #include <QSpinBox>
 
+#include "models/subscriptionitem.h"
 #include "publishingintervaldelegate.h"
 
 namespace {
 
-/// \brief Smallest publishing interval offered by the editor, in milliseconds.
-constexpr int minIntervalMs = 50;
-/// \brief Largest publishing interval offered by the editor, in milliseconds.
-constexpr int maxIntervalMs = 600000;
 /// \brief Spin-box step between offered intervals, in milliseconds.
 constexpr int intervalStepMs = 100;
 
@@ -39,7 +36,7 @@ QWidget *PublishingIntervalDelegate::createEditor(QWidget *parent, const QStyleO
                                                   const QModelIndex &) const
 {
     QSpinBox *spin = new QSpinBox(parent);
-    spin->setRange(minIntervalMs, maxIntervalMs);
+    spin->setRange(minPublishingIntervalMs, maxPublishingIntervalMs);
     spin->setSingleStep(intervalStepMs);
     spin->setSuffix(QStringLiteral(" ms"));
     return spin;

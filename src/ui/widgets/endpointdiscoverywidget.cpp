@@ -44,21 +44,17 @@ void applyRowHover(QStyleOptionViewItem &option, const QAbstractItemView *view,
     const int hovered = view ? view->property(kHoveredRowProperty).toInt() : -1;
     if (index.row() == hovered) {
         option.state |= QStyle::State_MouseOver;
-        option.state |= QStyle::State_Selected;
     } else {
         option.state &= ~QStyle::State_MouseOver;
     }
 }
 
 ///
-/// \brief Returns true when a row is selected or hovered.
+/// \brief Returns true when a row is selected.
 ///
-bool isRowActive(const QStyleOptionViewItem &option, const QAbstractItemView *view,
-                 const QModelIndex &index)
+bool isRowSelected(const QStyleOptionViewItem &option)
 {
-    if (option.state.testFlag(QStyle::State_Selected))
-        return true;
-    return view && view->property(kHoveredRowProperty).toInt() == index.row();
+    return option.state.testFlag(QStyle::State_Selected);
 }
 
 ///
@@ -135,7 +131,7 @@ public:
     {
         paintBackground(painter, option, index);
 
-        const bool active = isRowActive(option, _view, index);
+        const bool active = isRowSelected(option);
         const QColor color = option.palette.color(
             active ? QPalette::HighlightedText : QPalette::Text);
         const QRect textRect = option.rect.adjusted(kMarginH, 0, -kMarginH, 0);
@@ -342,6 +338,28 @@ bool EndpointDiscoveryWidget::hasSelection() const
 EndpointInfo EndpointDiscoveryWidget::currentEndpoint() const
 {
     return _model->endpointAt(currentRow());
+}
+
+///
+/// \brief Selects the row matching a security policy and message security mode.
+/// \param securityPolicy Security policy URI or short name.
+/// \param securityModeValue Message security mode value.
+/// \return True when a matching row was found and selected.
+///
+bool EndpointDiscoveryWidget::selectEndpoint(const QString &securityPolicy,
+                                             int securityModeValue)
+{
+    const QList<EndpointInfo> &endpoints = _model->endpoints();
+    for (int row = 0; row < endpoints.size(); ++row) {
+        const EndpointInfo &endpoint = endpoints.at(row);
+        if (endpoint.securityModeValue != securityModeValue
+            || endpoint.securityPolicy != securityPolicy) {
+            continue;
+        }
+        _view->setCurrentIndex(_model->index(row, 0));
+        return true;
+    }
+    return false;
 }
 
 ///

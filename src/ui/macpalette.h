@@ -50,8 +50,8 @@ namespace Dark {
     constexpr QRgb kChromeStrong   = 0x3a3a3c;
     constexpr QRgb kChromePressed  = 0x48484a;
     constexpr QRgb kAlternateRow   = 0x242426;
-    constexpr QRgb kBorder         = 0x38383a;
-    constexpr QRgb kBorderActive   = 0x545456;
+    constexpr QRgb kBorder         = 0x48484a;
+    constexpr QRgb kBorderActive   = 0x5c5c5e;
     constexpr QRgb kText           = 0xffffff;
     constexpr QRgb kMutedText      = 0x8e8e93;
     constexpr QRgb kDisabledText   = 0x48484a;

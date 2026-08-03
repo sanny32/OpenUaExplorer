@@ -56,7 +56,7 @@
      <item>
       <widget class="QLabel" name="connectionLabel">
        <property name="text">
-        <string>Connected: opc.tcp://localhost:4840</string>
+        <string notr="true">Connected: opc.tcp://localhost:4840</string>
        </property>
       </widget>
      </item>
@@ -185,7 +185,7 @@
      <item>
       <widget class="QLabel" name="sessionLabel">
        <property name="text">
-        <string>0000023A</string>
+        <string notr="true">0000023A</string>
        </property>
       </widget>
      </item>
@@ -214,7 +214,7 @@
    <item>
     <widget class="QLabel" name="serverTimeLabel">
      <property name="text">
-      <string>Server Time: 12:15:23</string>
+      <string notr="true">Server Time: 12:15:23</string>
      </property>
     </widget>
    </item>
@@ -228,7 +228,7 @@
    <item>
     <widget class="QLabel" name="localTimeLabel">
      <property name="text">
-      <string>Local Time: 12:15:23</string>
+      <string notr="true">Local Time: 12:15:23</string>
      </property>
     </widget>
    </item>

@@ -91,3 +91,21 @@ void AttributesFeature::clearRuntimeState()
     if (_widget)
         _widget->clear();
 }
+
+///
+/// \brief Keeps the last read attributes on screen, greyed out, while the connection is gone.
+///
+void AttributesFeature::setOffline(bool offline)
+{
+    if (_widget)
+        _widget->setOffline(offline);
+}
+
+///
+/// \brief Re-applies the dock title after a language change.
+///
+void AttributesFeature::retranslate()
+{
+    if (_dock)
+        _dock->setWindowTitle(QCoreApplication::translate("AttributesFeature", "Attributes"));
+}

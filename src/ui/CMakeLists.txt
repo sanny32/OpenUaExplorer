@@ -14,6 +14,7 @@ set(UI_FILES
     dialogs/certificatesdialog.ui
     dialogs/editfavoritedialog.ui
     dialogs/endpointsettingsdialog.ui
+    dialogs/findserversdialog.ui
     dialogs/namespaceinspectordialog.ui
     dialogs/nodemonitordialog.ui
     dialogs/settingsdialog.ui
@@ -123,6 +124,8 @@ add_library(ouaexp_ui STATIC
     dialogs/editfavoritedialog.h
     dialogs/endpointsettingsdialog.cpp
     dialogs/endpointsettingsdialog.h
+    dialogs/findserversdialog.cpp
+    dialogs/findserversdialog.h
     dialogs/messageboxdialog.cpp
     dialogs/messageboxdialog.h
     dialogs/namespaceinspectordialog.cpp
@@ -174,6 +177,8 @@ add_library(ouaexp_ui STATIC
     widgets/valuelineedit.h
     widgets/endpointdiscoverywidget.cpp
     widgets/endpointdiscoverywidget.h
+    widgets/serverdiscoverywidget.cpp
+    widgets/serverdiscoverywidget.h
     widgets/calendarwidget.cpp
     widgets/calendarwidget.h
     widgets/datetimeedit.cpp
@@ -202,6 +207,8 @@ add_library(ouaexp_ui STATIC
     widgets/publishingintervaldelegate.h
     widgets/subscriptiondelegate.cpp
     widgets/subscriptiondelegate.h
+    widgets/separatoritemdelegate.cpp
+    widgets/separatoritemdelegate.h
     widgets/severitydelegate.cpp
     widgets/severitydelegate.h
     widgets/tableview.cpp
@@ -216,6 +223,10 @@ add_library(ouaexp_ui STATIC
     widgets/themedpushbutton.h
     widgets/themedtoolbutton.cpp
     widgets/themedtoolbutton.h
+    widgets/treeview.cpp
+    widgets/treeview.h
+    widgets/toolbuttonlayout.cpp
+    widgets/toolbuttonlayout.h
     widgets/scrollarea.cpp
     widgets/scrollarea.h
     widgets/themepreviewbutton.cpp
@@ -229,6 +240,8 @@ add_library(ouaexp_ui STATIC
     widgets/trendpanelwidget.cpp
     widgets/trendpanelwidget.h
     widgets/trendsettings.h
+    widgets/valuecelldelegate.cpp
+    widgets/valuecelldelegate.h
 )
 
 if(APPLE)

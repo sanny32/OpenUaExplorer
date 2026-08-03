@@ -3,29 +3,40 @@
 
 ///
 /// \file test_attributeswidget.cpp
-/// \brief Tests AttributesWidget clipboard actions.
+/// \brief Tests AttributesWidget clipboard actions and its value write editor.
 ///
 
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
+#include <QComboBox>
+#include <QLayout>
+#include <QLineEdit>
 #include <QMenu>
+#include <QPushButton>
+#include <QSettings>
+#include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QTimer>
 #include <QTreeView>
 #include <QTest>
 
 #include "application.h"
+#include "settingsstore.h"
 #include "widgets/headerview.h"
 #include "widgets/attributeswidget.h"
 
 ///
-/// \brief UI tests for AttributesWidget clipboard actions.
+/// \brief UI tests for AttributesWidget clipboard actions and its value write editor.
 ///
 class TestAttributesWidget : public QObject
 {
     Q_OBJECT
 
 private slots:
+    void initTestCase();
+    void cleanup();
+
     void usesSharedHeaderView();
     void headerSectionsAreResizable();
     void valueSectionStretchesToFillView();
@@ -33,6 +44,14 @@ private slots:
     void copiesCurrentCell();
     void copiesFullTree();
     void contextMenuOnlyUsesValueColumn();
+    void booleanNodeOffersValueList();
+    void booleanListStartsAtTheCurrentValue();
+    void booleanWriteSendsTypedBoolean();
+    void nonBooleanNodeKeepsTextField();
+    void panelWidthDoesNotFollowTheValueType();
+
+private:
+    QTemporaryDir _settingsDirectory;
 };
 
 namespace {
@@ -73,7 +92,57 @@ OpcUaNodeDetails makeDetails()
     return details;
 }
 
+///
+/// \brief Builds details of a writable variable for write-editor tests.
+/// \param valueType QOpcUa::Types numeric value.
+/// \param dataTypeId DataType NodeId.
+/// \param value Current value of the node.
+/// \return Node details for widget tests.
+///
+OpcUaNodeDetails makeWritableDetails(int valueType, const QString &dataTypeId,
+                                     const QVariant &value)
+{
+    OpcUaNodeDetails details = makeDetails();
+    details.valueType = valueType;
+    details.dataTypeId = dataTypeId;
+    details.value = value;
+    details.userAccessLevel = OpcUa::CurrentRead | OpcUa::CurrentWrite;
+    return details;
+}
+
+///
+/// \brief Builds details of a writable Boolean variable.
+/// \param value Current value of the node.
+/// \return Node details for widget tests.
+///
+OpcUaNodeDetails makeBooleanDetails(bool value)
+{
+    return makeWritableDetails(0, QStringLiteral("ns=0;i=1"), value);
+}
+
 } // namespace
+
+///
+/// \brief Routes QSettings to a temporary directory.
+///
+void TestAttributesWidget::initTestCase()
+{
+    QVERIFY(_settingsDirectory.isValid());
+    QCoreApplication::setOrganizationName(QStringLiteral("OpenUaExplorerTests"));
+    QCoreApplication::setApplicationName(QStringLiteral("AttributesWidget"));
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                       _settingsDirectory.path());
+}
+
+///
+/// \brief Clears stored settings between tests.
+///
+void TestAttributesWidget::cleanup()
+{
+    SettingsStore settings;
+    settings.clear();
+}
 
 ///
 /// \brief Verifies the attributes tree uses the shared header implementation.
@@ -215,6 +284,125 @@ void TestAttributesWidget::contextMenuOnlyUsesValueColumn()
     QVERIFY(QMetaObject::invokeMethod(tree, "customContextMenuRequested",
                                       Q_ARG(QPoint, valuePos)));
     QCOMPARE(tree->currentIndex(), value);
+}
+
+///
+/// \brief A Boolean variable replaces the text field with the True/False list.
+///
+void TestAttributesWidget::booleanNodeOffersValueList()
+{
+    AttributesWidget widget;
+    widget.setNodeDetails(makeBooleanDetails(false));
+
+    auto *valueCombo = widget.findChild<QComboBox *>(QStringLiteral("valueCombo"));
+    auto *valueEdit = widget.findChild<QLineEdit *>(QStringLiteral("valueEdit"));
+    QVERIFY(valueCombo);
+    QVERIFY(valueEdit);
+    QVERIFY(valueCombo->isVisibleTo(&widget));
+    QVERIFY(!valueEdit->isVisibleTo(&widget));
+    QCOMPARE(valueCombo->count(), 2);
+}
+
+///
+/// \brief The True/False list opens on the value the node currently holds.
+///
+void TestAttributesWidget::booleanListStartsAtTheCurrentValue()
+{
+    AttributesWidget widget;
+    auto *valueCombo = widget.findChild<QComboBox *>(QStringLiteral("valueCombo"));
+    QVERIFY(valueCombo);
+
+    widget.setNodeDetails(makeBooleanDetails(true));
+    QCOMPARE(valueCombo->currentIndex(), 1);
+
+    widget.setNodeDetails(makeBooleanDetails(false));
+    QCOMPARE(valueCombo->currentIndex(), 0);
+}
+
+///
+/// \brief Writing a Boolean sends the picked value as a bool, without text conversion.
+///
+void TestAttributesWidget::booleanWriteSendsTypedBoolean()
+{
+    AttributesWidget widget;
+    widget.setNodeDetails(makeBooleanDetails(false));
+
+    auto *valueCombo = widget.findChild<QComboBox *>(QStringLiteral("valueCombo"));
+    auto *writeButton = widget.findChild<QPushButton *>(QStringLiteral("writeButton"));
+    QVERIFY(valueCombo);
+    QVERIFY(writeButton);
+
+    QSignalSpy spy(&widget, &AttributesWidget::writeRequested);
+    valueCombo->setCurrentIndex(1);
+    writeButton->click();
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=2;s=Device.Level"));
+    QCOMPARE(spy.first().at(1).userType(), static_cast<int>(QMetaType::Bool));
+    QCOMPARE(spy.first().at(1).toBool(), true);
+    QCOMPARE(spy.first().at(2).toInt(), 0);
+}
+
+///
+/// \brief Every other type keeps the free-text field with its default value.
+///
+void TestAttributesWidget::nonBooleanNodeKeepsTextField()
+{
+    AttributesWidget widget;
+    widget.setNodeDetails(makeWritableDetails(6, QStringLiteral("ns=0;i=21"),
+                                              QStringLiteral("Level")));
+
+    auto *valueCombo = widget.findChild<QComboBox *>(QStringLiteral("valueCombo"));
+    auto *valueEdit = widget.findChild<QLineEdit *>(QStringLiteral("valueEdit"));
+    QVERIFY(valueCombo);
+    QVERIFY(valueEdit);
+    QVERIFY(valueEdit->isVisibleTo(&widget));
+    QVERIFY(!valueCombo->isVisibleTo(&widget));
+}
+
+///
+/// \brief The panel keeps one width whatever type the selected node has.
+///
+/// The type name and the chosen value editor must not drive the layout, otherwise
+/// the docked panel would resize itself every time another node is selected.
+///
+void TestAttributesWidget::panelWidthDoesNotFollowTheValueType()
+{
+    AttributesWidget widget;
+    auto *valueCombo = widget.findChild<QComboBox *>(QStringLiteral("valueCombo"));
+    auto *valueEdit = widget.findChild<QLineEdit *>(QStringLiteral("valueEdit"));
+    QVERIFY(valueCombo);
+    QVERIFY(valueEdit);
+    QCOMPARE(valueCombo->maximumWidth(), valueEdit->maximumWidth());
+
+    auto *typeCombo = widget.findChild<QComboBox *>(QStringLiteral("typeCombo"));
+    auto *writeButton = widget.findChild<QPushButton *>(QStringLiteral("writeButton"));
+    QVERIFY(typeCombo);
+    QVERIFY(writeButton);
+
+    widget.resize(700, 400);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    const auto rowGeometry = [&]() {
+        QCoreApplication::sendPostedEvents();
+        widget.layout()->activate();
+        return QList<int>{valueEdit->isVisible() ? valueEdit->width() : valueCombo->width(),
+                          typeCombo->x(), typeCombo->width(), writeButton->x()};
+    };
+
+    widget.setNodeDetails(makeBooleanDetails(true));
+    const QList<int> booleanRow = rowGeometry();
+    QCOMPARE(valueCombo->width(), 100);
+
+    widget.setNodeDetails(makeWritableDetails(27, QStringLiteral("ns=0;i=18"),
+                                              QStringLiteral("ns=2;s=Device")));
+    QCOMPARE(typeCombo->currentText(), QStringLiteral("ExpandedNodeId"));
+    QCOMPARE(rowGeometry(), booleanRow);
+
+    widget.setNodeDetails(makeWritableDetails(12, QStringLiteral("ns=0;i=3"), 0u));
+    QCOMPARE(typeCombo->currentText(), QStringLiteral("Byte"));
+    QCOMPARE(rowGeometry(), booleanRow);
 }
 
 ///

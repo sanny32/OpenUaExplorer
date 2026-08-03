@@ -86,7 +86,7 @@
         <item>
          <widget class="QLabel" name="titleLabel">
           <property name="text">
-           <string>Open Platform Communications
+           <string notr="true">Open Platform Communications
 Unified Architecture</string>
           </property>
           <property name="wordWrap">
@@ -458,7 +458,7 @@ Unified Architecture</string>
         <string>Copy Info</string>
        </property>
        <property name="iconName" stdset="0">
-        <string>copy</string>
+        <string notr="true">copy</string>
        </property>
       </widget>
      </item>

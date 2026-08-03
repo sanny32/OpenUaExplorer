@@ -8,6 +8,7 @@
 
 #include <QAction>
 
+#include "addressspacemodule.h"
 #include "application.h"
 #include "appsettings.h"
 #include "attributemodule.h"
@@ -26,6 +27,20 @@
 #include "widgets/subscriptionswidget.h"
 #include "widgets/trendpanelwidget.h"
 
+namespace {
+
+///
+/// \brief Number of variables a dropped folder may add without asking.
+///
+constexpr int kFolderDropSilentLimit = 10;
+
+///
+/// \brief Hard cap on the variables one dropped folder may add.
+///
+constexpr int kFolderDropMaxNodes = 100;
+
+} // namespace
+
 ///
 /// \brief Builds the coordinator and wires the central area to the data modules.
 /// \param dataView Tabbed data view in the central widget.
@@ -33,6 +48,7 @@
 /// \param dataAccess Data-access module used for reads and monitoring.
 /// \param events Events module used for event monitoring and history.
 /// \param attributes Attribute module used for node reads and writes.
+/// \param addressSpace Address-space module used to browse dropped folders.
 /// \param selection Selection mediator shared with the UI features.
 /// \param backend Backend queried for the connection state.
 /// \param actions Menu and toolbar actions steered by the coordinator.
@@ -43,6 +59,7 @@ DataAccessCoordinator::DataAccessCoordinator(DataView *dataView,
                                              DataAccessModule *dataAccess,
                                              EventsModule *events,
                                              AttributeModule *attributes,
+                                             AddressSpaceModule *addressSpace,
                                              SelectionContext *selection,
                                              OpcUaBackend *backend,
                                              const DataAccessActions &actions,
@@ -53,6 +70,7 @@ DataAccessCoordinator::DataAccessCoordinator(DataView *dataView,
     , _dataAccess(dataAccess)
     , _events(events)
     , _attributes(attributes)
+    , _addressSpace(addressSpace)
     , _selection(selection)
     , _backend(backend)
     , _actions(actions)
@@ -283,6 +301,31 @@ void DataAccessCoordinator::clearRuntimeState()
     _monitoringState.clear();
     _pendingDataAccessNodeIds.clear();
     _pendingRestoreSubscriptions.clear();
+    _pendingFolderDropNodeIds.clear();
+    _folderAddNodeIds.clear();
+    _folderAddFailureCount = 0;
+    updateMonitoringActions();
+}
+
+///
+/// \brief Keeps the collected data on screen but drops the state tied to the connection.
+///
+/// The rows, charts and history stay so the user keeps the context of the lost session;
+/// monitoring bookkeeping is reset because the server no longer holds any subscription.
+/// \param offline True while the server connection is gone.
+///
+void DataAccessCoordinator::setOffline(bool offline)
+{
+    _dataView->setOffline(offline);
+    if (!offline)
+        return;
+
+    _monitoringState.clear();
+    _pendingDataAccessNodeIds.clear();
+    _pendingRestoreSubscriptions.clear();
+    _pendingFolderDropNodeIds.clear();
+    _folderAddNodeIds.clear();
+    _folderAddFailureCount = 0;
     updateMonitoringActions();
 }
 
@@ -324,10 +367,10 @@ QVector<SubscriptionItem> DataAccessCoordinator::sessionSubscriptions() const
 }
 
 ///
-/// \brief Returns the listed data-access nodes with their subscription for a saved session.
-/// \return NodeId and subscription-name pairs in row order.
+/// \brief Returns the listed data-access nodes with their session state.
+/// \return Saved-node records in row order.
 ///
-QVector<QPair<QString, QString>> DataAccessCoordinator::monitoredNodes() const
+QVector<SessionNode> DataAccessCoordinator::monitoredNodes() const
 {
     return _dataView->dataAccess()->monitoredNodes();
 }
@@ -352,15 +395,15 @@ QVector<SessionTrendTab> DataAccessCoordinator::trendTabs() const
 
 ///
 /// \brief Restores monitored data-access nodes from a loaded session.
-/// \param nodes NodeId and subscription-name pairs to re-add and monitor.
+/// \param nodes Saved nodes to re-add and monitor.
 ///
-void DataAccessCoordinator::restoreMonitoredNodes(const QVector<QPair<QString, QString>> &nodes)
+void DataAccessCoordinator::restoreMonitoredNodes(const QVector<SessionNode> &nodes)
 {
-    for (const QPair<QString, QString> &node : nodes) {
-        if (node.first.isEmpty())
-            continue;
-        _pendingRestoreSubscriptions.insert(node.first, node.second);
-        addNodeById(node.first);
+    DataAccessWidget *dataAccess = _dataView->dataAccess();
+    dataAccess->restoreMonitoredNodes(nodes);
+    for (const SessionNode &node : dataAccess->monitoredNodes()) {
+        _pendingRestoreSubscriptions.insert(node.nodeId, node.subscriptionName);
+        addNodeById(node.nodeId);
     }
 }
 
@@ -418,20 +461,27 @@ SubscriptionItem DataAccessCoordinator::subscriptionByName(const QString &name) 
 void DataAccessCoordinator::onAttributeDetailsReady(const OpcUaNodeDetails &details,
                                                     const QString &error)
 {
-    if (!error.isEmpty())
-        return;
-
     const bool pending = _pendingDataAccessNodeIds.remove(details.nodeId);
     const bool isRestore = _pendingRestoreSubscriptions.contains(details.nodeId);
     const QString restoreSubscription = _pendingRestoreSubscriptions.take(details.nodeId);
-    if (!pending || !OpcUa::isVariable(details.nodeClass))
+    if (!error.isEmpty()) {
+        finishFolderNode(details.nodeId, false);
         return;
+    }
+
+    if (!pending || !OpcUa::isVariable(details.nodeClass)) {
+        if (pending)
+            finishFolderNode(details.nodeId, false);
+        return;
+    }
 
     if (isRestore) {
-        if (restoreSubscription.isEmpty())
+        if (restoreSubscription.isEmpty()) {
             _dataView->addNode(details);
-        else
+            finishFolderNode(details.nodeId, true);
+        } else {
             _dataView->addNodeWithDefaultSubscription(details, subscriptionByName(restoreSubscription));
+        }
         return;
     }
 
@@ -539,15 +589,30 @@ void DataAccessCoordinator::onMonitoringFinished(const QString &nodeId, bool sub
                                                  bool success, const QString &error)
 {
     _monitoringState.finishRequest(nodeId, subscribed, success);
+    const bool fromFolderDrop = _folderAddNodeIds.contains(nodeId);
     if (success) {
         _dataView->setNodeSubscribed(nodeId, subscribed);
-    } else {
+        if (!subscribed)
+            _dataView->setNodeRevisedInterval(nodeId, 0.0);
+    } else if (!fromFolderDrop) {
         MessageBoxDialog::warning(_dialogParent,
                                   subscribed ? tr("Subscribe Failed") : tr("Unsubscribe Failed"),
                                   error,
                                   DialogButtonBox::Ok);
     }
+    finishFolderNode(nodeId, success);
     updateMonitoringActions();
+}
+
+///
+/// \brief Shows the monitoring parameters the server actually granted for a node.
+/// \param nodeId Monitored node.
+/// \param publishingInterval Publishing interval granted by the server, in milliseconds.
+///
+void DataAccessCoordinator::onMonitoringIntervalRevised(const QString &nodeId,
+                                                        double publishingInterval)
+{
+    _dataView->setNodeRevisedInterval(nodeId, publishingInterval);
 }
 
 ///
@@ -662,12 +727,16 @@ void DataAccessCoordinator::onAddToTrendRequested(const OpcUaNodeInfo &node)
 }
 
 ///
-/// \brief Starts monitoring a feature-selected node.
-/// \param node Variable node to subscribe.
+/// \brief Starts monitoring a feature-selected node, or a folder's direct variables.
+/// \param node Variable node to subscribe, or a container node to expand first.
 ///
 void DataAccessCoordinator::onSubscribeRequested(const OpcUaNodeInfo &node)
 {
-    addNodeById(node.nodeId);
+    if (OpcUa::isVariable(node.nodeClass)) {
+        addNodeById(node.nodeId);
+        return;
+    }
+    addFolderById(node.nodeId);
 }
 
 ///
@@ -693,6 +762,116 @@ void DataAccessCoordinator::addNodeById(const QString &nodeId)
         return;
     _pendingDataAccessNodeIds.insert(nodeId);
     _attributes->read(nodeId);
+}
+
+///
+/// \brief Browses a folder so its direct variable children can be added.
+/// \param nodeId Container node dropped onto or selected for Data Access.
+///
+void DataAccessCoordinator::addFolderById(const QString &nodeId)
+{
+    if (nodeId.isEmpty() || !_addressSpace)
+        return;
+    _pendingFolderDropNodeIds.insert(nodeId);
+    _addressSpace->browse(nodeId);
+}
+
+///
+/// \brief Adds the direct variable children of a folder, within the add limits.
+/// \param parentNodeId Browsed node.
+/// \param children Browse result.
+/// \param error Browse error, empty on success.
+///
+/// Only browse results for folders this coordinator asked about are handled; the same
+/// signal also serves the address-space tree.
+///
+void DataAccessCoordinator::onFolderChildrenReady(const QString &parentNodeId,
+                                                  const QVector<OpcUaNodeInfo> &children,
+                                                  const QString &error)
+{
+    if (!_pendingFolderDropNodeIds.remove(parentNodeId))
+        return;
+
+    if (!error.isEmpty()) {
+        MessageBoxDialog::warning(_dialogParent, tr("Add Folder"), error, DialogButtonBox::Ok);
+        return;
+    }
+
+    QVector<OpcUaNodeInfo> variables;
+    QSet<QString> seenNodeIds;
+    for (const OpcUaNodeInfo &child : children) {
+        if (!OpcUa::isVariable(child.nodeClass) || child.nodeId.isEmpty())
+            continue;
+        if (seenNodeIds.contains(child.nodeId))
+            continue;
+        seenNodeIds.insert(child.nodeId);
+        variables.append(child);
+    }
+
+    if (variables.isEmpty()) {
+        MessageBoxDialog::information(_dialogParent, tr("Add Folder"),
+                                      tr("This folder contains no variables to add."));
+        return;
+    }
+
+    if (variables.size() > kFolderDropMaxNodes) {
+        const DialogButtonBox::StandardButton answer = MessageBoxDialog::warning(
+            _dialogParent, tr("Add Folder"),
+            tr("This folder contains %1 variables, more than the limit of %2. "
+               "Only the first %2 will be added.")
+                .arg(variables.size()).arg(kFolderDropMaxNodes),
+            DialogButtonBox::Ok | DialogButtonBox::Cancel, DialogButtonBox::Ok);
+        if (answer != DialogButtonBox::Ok)
+            return;
+        variables.resize(kFolderDropMaxNodes);
+    } else if (variables.size() > kFolderDropSilentLimit) {
+        const DialogButtonBox::StandardButton answer = MessageBoxDialog::question(
+            _dialogParent, tr("Add Folder"),
+            tr("Add %n variable(s) to Data Access?", nullptr, variables.size()),
+            DialogButtonBox::Yes | DialogButtonBox::No, DialogButtonBox::Yes);
+        if (answer != DialogButtonBox::Yes)
+            return;
+    }
+
+    addFolderVariables(variables);
+}
+
+///
+/// \brief Shows the folder's variables at once and reads and subscribes them in the background.
+/// \param variables Variable nodes to add.
+///
+void DataAccessCoordinator::addFolderVariables(const QVector<OpcUaNodeInfo> &variables)
+{
+    _dataView->dataAccess()->addPendingNodes(variables);
+    for (const OpcUaNodeInfo &node : variables)
+        _folderAddNodeIds.insert(node.nodeId);
+    for (const OpcUaNodeInfo &node : variables)
+        addNodeById(node.nodeId);
+}
+
+///
+/// \brief Settles one row added by a folder drop and reports the batch's failures once.
+/// \param nodeId Node that finished its read-and-subscribe chain.
+/// \param success Whether the node was added successfully.
+///
+void DataAccessCoordinator::finishFolderNode(const QString &nodeId, bool success)
+{
+    _dataView->dataAccess()->clearNodePending(nodeId);
+    if (!_folderAddNodeIds.remove(nodeId))
+        return;
+    if (!success)
+        ++_folderAddFailureCount;
+    if (!_folderAddNodeIds.isEmpty())
+        return;
+
+    const int failures = _folderAddFailureCount;
+    _folderAddFailureCount = 0;
+    if (failures > 0) {
+        MessageBoxDialog::warning(
+            _dialogParent, tr("Add Folder"),
+            tr("%n variable(s) could not be added.", nullptr, failures),
+            DialogButtonBox::Ok);
+    }
 }
 
 ///
@@ -750,22 +929,20 @@ void DataAccessCoordinator::updateSelectionActions()
 ///
 SubscriptionItem DataAccessCoordinator::builtinSubscription(bool fast) const
 {
+    const int wantedId = fast ? FastSubscriptionId : DefaultSubscriptionId;
+
     const QVector<SubscriptionItem> items = _dataView->subscriptions()->subscriptions();
     for (const SubscriptionItem &item : items) {
-        const bool matches = fast ? (item.isBuiltin() && !item.isDefault()) : item.isDefault();
-        if (matches)
+        if (item.isBuiltin() && item.id == wantedId)
             return item;
     }
 
     SubscriptionItem fallback;
     fallback.builtin = true;
-    if (fast) {
-        fallback.name = tr("Fast");
+    fallback.id = wantedId;
+    fallback.name = SubscriptionsWidget::factoryName(wantedId);
+    if (fast)
         fallback.publishingInterval = 250.0;
-        fallback.id = 1;
-    } else {
-        fallback.name = tr("Default");
-    }
     return fallback;
 }
 
@@ -778,8 +955,12 @@ void DataAccessCoordinator::wireDataView()
             this, &DataAccessCoordinator::addSelectedToView);
     connect(_dataView->dataAccess(), &DataAccessWidget::nodeDropRequested,
             this, &DataAccessCoordinator::addNodeById);
+    connect(_dataView->dataAccess(), &DataAccessWidget::folderDropRequested,
+            this, &DataAccessCoordinator::addFolderById);
     connect(_dataView->dataAccess(), &DataAccessWidget::writeRequested,
             this, &DataAccessCoordinator::showWriteDialog);
+    connect(_dataView->dataAccess(), &DataAccessWidget::valueWriteRequested,
+            _attributes, &AttributeModule::write);
     connect(_dataView->dataAccess(), &DataAccessWidget::readRequested,
             _dataAccess, &DataAccessModule::read);
     connect(_dataView->dataAccess(), &DataAccessWidget::monitoringRequested,
@@ -820,6 +1001,8 @@ void DataAccessCoordinator::wireDataView()
             _dataView, &DataView::setTimestampMode);
     connect(theApp(), &Application::timestampModeChanged,
             _trendPanel, &TrendPanelWidget::setTimestampMode);
+    connect(theApp(), &Application::highlightValueChangesChanged,
+            _dataView, &DataView::setHighlightValueChanges);
 }
 
 ///
@@ -860,10 +1043,16 @@ void DataAccessCoordinator::wireModules()
             this, &DataAccessCoordinator::onDataValuesReady);
     connect(_dataAccess, &DataAccessModule::monitoringFinished,
             this, &DataAccessCoordinator::onMonitoringFinished);
+    connect(_dataAccess, &DataAccessModule::monitoringIntervalRevised,
+            this, &DataAccessCoordinator::onMonitoringIntervalRevised);
     connect(_events, &EventsModule::eventsReady,
             this, &DataAccessCoordinator::onEventsReady);
     connect(_events, &EventsModule::eventMonitoringFinished,
             this, &DataAccessCoordinator::onEventMonitoringFinished);
+    if (_addressSpace) {
+        connect(_addressSpace, &AddressSpaceModule::childrenReady,
+                this, &DataAccessCoordinator::onFolderChildrenReady);
+    }
     if (OpcUa::isHistoryReadSupported()) {
         connect(_dataAccess, &DataAccessModule::historyReady,
                 this, &DataAccessCoordinator::onHistoryReady);

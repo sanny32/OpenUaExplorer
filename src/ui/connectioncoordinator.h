@@ -64,6 +64,11 @@ public:
                           QWidget *dialogParent);
 
     ///
+    /// \brief Releases a connection-attempt cursor still owned by the coordinator.
+    ///
+    ~ConnectionCoordinator() override;
+
+    ///
     /// \brief Runs the connection dialog and connects (optionally saving) the chosen profile.
     /// \param preset Profile used to pre-fill the dialog, or nullptr for a blank dialog.
     /// \return True when the user accepted the dialog and a connection was started.
@@ -74,6 +79,18 @@ public:
     /// \brief Disconnects from the current endpoint.
     ///
     void disconnectFromServer();
+
+    ///
+    /// \brief Reports whether the connection dropped instead of being closed by the user.
+    /// \return True from a lost connection until it is back or the user starts another one.
+    ///
+    bool connectionLost() const;
+
+    ///
+    /// \brief Reports whether a reconnect attempt is scheduled or running.
+    /// \return True while the lost connection is being retried.
+    ///
+    bool isReconnecting() const;
 
     ///
     /// \brief Shows a read-only summary of the active connection's endpoint settings.
@@ -89,6 +106,12 @@ public:
     CertificateTrustDecision decide(const QByteArray &certificate,
                                     const QString &message) override;
 
+signals:
+    ///
+    /// \brief Emitted when the user gives up on a lost connection instead of retrying it.
+    ///
+    void sessionAbandoned();
+
 private:
     void openFavorites();
     void addCurrentToFavorites();
@@ -97,6 +120,12 @@ private:
     void connectRecentProfile();
     void rebuildRecentMenu();
     void updateActions(OpcUaConnectionState state);
+    void trackConnectionState(OpcUaConnectionState state);
+    void scheduleReconnect();
+    void attemptReconnect();
+    void stopReconnect();
+    void beginConnectionAttempt();
+    void endConnectionAttempt();
     void onClientError(const QString &message);
 
     ConnectionController *_controller;
@@ -106,4 +135,10 @@ private:
     ConnectionActions _actions;
     QWidget *_dialogParent;
     FavoritesCoordinator *_favorites;
+    class QTimer *_reconnectTimer;
+    bool _disconnectRequested = false;
+    bool _wasConnected = false;
+    bool _connectionLost = false;
+    bool _retryInProgress = false;
+    bool _connectionCursorActive = false;
 };

@@ -73,7 +73,7 @@
         <string>View details</string>
        </property>
        <property name="iconName" stdset="0">
-        <string>file-text</string>
+        <string notr="true">file-text</string>
        </property>
        <property name="linkStyle" stdset="0">
         <bool>true</bool>

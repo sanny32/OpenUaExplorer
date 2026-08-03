@@ -13,6 +13,7 @@
 #include <QStringList>
 #include <QVector>
 
+#include "models/dataaccessitem.h"
 #include "models/subscriptionitem.h"
 #include "opcua/connectionprofile.h"
 
@@ -26,6 +27,17 @@ struct SessionNode
 
     /// \brief Assigned subscription name, empty when the node is not monitored.
     QString subscriptionName;
+
+    /// \brief Per-node override of the change-highlight preference.
+    HighlightMode highlight = HighlightMode::FollowDefault;
+
+    /// \brief Compares two saved nodes field by field.
+    friend bool operator==(const SessionNode &lhs, const SessionNode &rhs)
+    {
+        return lhs.nodeId == rhs.nodeId
+            && lhs.subscriptionName == rhs.subscriptionName
+            && lhs.highlight == rhs.highlight;
+    }
 };
 
 ///

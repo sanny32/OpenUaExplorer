@@ -13,7 +13,17 @@
 #include <QStyle>
 #include <QVBoxLayout>
 
+#include "appcolors.h"
 #include "messageboxdialog.h"
+
+namespace {
+
+///
+/// \brief Widest secondary line rendered before it is elided, in average characters.
+///
+constexpr int kInformativeTextChars = 90;
+
+}
 
 ///
 /// \brief Builds an empty message dialog.
@@ -23,6 +33,7 @@ MessageBoxDialog::MessageBoxDialog(QWidget *parent)
     : AppBaseDialog(parent)
     , _iconLabel(new QLabel(this))
     , _textLabel(new QLabel(this))
+    , _informativeLabel(new QLabel(this))
     , _buttonBox(new DialogButtonBox(this))
 {
     setWindowFlag(Qt::WindowStaysOnTopHint, true);
@@ -32,10 +43,26 @@ MessageBoxDialog::MessageBoxDialog(QWidget *parent)
     _textLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     _textLabel->setMinimumWidth(fontMetrics().averageCharWidth() * 60);
 
+    _informativeLabel->setObjectName(QStringLiteral("informativeLabel"));
+    _informativeLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    QFont informativeFont = _informativeLabel->font();
+    if (informativeFont.pointSizeF() > 0)
+        informativeFont.setPointSizeF(informativeFont.pointSizeF() * 0.92);
+    _informativeLabel->setFont(informativeFont);
+    QPalette informativePalette = _informativeLabel->palette();
+    informativePalette.setColor(QPalette::WindowText, AppColors::subtitleText());
+    _informativeLabel->setPalette(informativePalette);
+    _informativeLabel->hide();
+
+    auto *message = new QVBoxLayout;
+    message->setSpacing(6);
+    message->addWidget(_textLabel);
+    message->addWidget(_informativeLabel);
+
     auto *content = new QHBoxLayout;
     content->setSpacing(16);
     content->addWidget(_iconLabel, 0, Qt::AlignTop);
-    content->addWidget(_textLabel, 1);
+    content->addLayout(message, 1);
 
     auto *layout = new QVBoxLayout(this);
     layout->addLayout(content);
@@ -55,6 +82,21 @@ MessageBoxDialog::MessageBoxDialog(QWidget *parent)
 void MessageBoxDialog::setText(const QString &text)
 {
     _textLabel->setText(text);
+}
+
+///
+/// \brief Sets the secondary text shown in a muted font below the message.
+/// \param text Detail such as a file path; long values are elided and kept in the tooltip.
+///
+/// The line is never wrapped, so a path stays readable instead of breaking mid-segment.
+///
+void MessageBoxDialog::setInformativeText(const QString &text)
+{
+    const QFontMetrics metrics = _informativeLabel->fontMetrics();
+    _informativeLabel->setText(metrics.elidedText(
+        text, Qt::ElideMiddle, metrics.averageCharWidth() * kInformativeTextChars));
+    _informativeLabel->setToolTip(text);
+    _informativeLabel->setVisible(!text.isEmpty());
 }
 
 ///

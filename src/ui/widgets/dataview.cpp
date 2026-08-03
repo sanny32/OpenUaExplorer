@@ -6,6 +6,7 @@
 /// \brief Implements the tabbed data view container.
 ///
 
+#include <QEvent>
 #include <QTabWidget>
 
 #include "appsettings.h"
@@ -98,6 +99,17 @@ DataView::DataView(QWidget *parent)
 DataView::~DataView()
 {
     delete ui;
+}
+
+///
+/// \brief Retranslates the generated UI on a language change.
+/// \param event Change event being handled.
+///
+void DataView::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange)
+        ui->retranslateUi(this);
 }
 
 ///
@@ -334,6 +346,16 @@ void DataView::setNodeSubscribed(const QString &nodeId, bool subscribed)
 }
 
 ///
+/// \brief Shows the publishing interval the server granted for a monitored node.
+/// \param nodeId Affected node.
+/// \param publishingInterval Granted interval in milliseconds; 0 clears the shown value.
+///
+void DataView::setNodeRevisedInterval(const QString &nodeId, double publishingInterval)
+{
+    ui->dataAccessWidget->setNodeRevisedInterval(nodeId, publishingInterval);
+}
+
+///
 /// \brief Removes every node from the Data Access page, cancelling their monitoring.
 ///
 void DataView::clearDataAccessNodes()
@@ -356,6 +378,19 @@ void DataView::clearRuntimeData()
 }
 
 ///
+/// \brief Keeps the collected data visible but inactive while the connection is gone.
+///
+/// Only the Data Access page shows live values, so it is the page that has to signal
+/// that its rows are stale; the events and history tabs are read snapshots that simply
+/// stop being updated.
+/// \param offline True while the server connection is gone.
+///
+void DataView::setOffline(bool offline)
+{
+    ui->dataAccessWidget->setOffline(offline);
+}
+
+///
 /// \brief Applies the OPC UA timestamp display mode to the data and history tabs.
 /// \param mode Local time or UTC.
 ///
@@ -364,4 +399,13 @@ void DataView::setTimestampMode(AppSettings::TimestampMode mode)
     ui->dataAccessWidget->setTimestampMode(mode);
     ui->dataHistoryWidget->setTimestampMode(mode);
     ui->eventsHistoryWidget->setTimestampMode(mode);
+}
+
+///
+/// \brief Applies the value-change highlight preference to the data-access tab.
+/// \param enabled True to highlight value changes by default.
+///
+void DataView::setHighlightValueChanges(bool enabled)
+{
+    ui->dataAccessWidget->setHighlightValueChanges(enabled);
 }

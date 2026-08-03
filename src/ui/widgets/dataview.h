@@ -202,6 +202,13 @@ public:
     void setNodeSubscribed(const QString &nodeId, bool subscribed);
 
     ///
+    /// \brief Shows the publishing interval the server granted for a monitored node.
+    /// \param nodeId Affected node.
+    /// \param publishingInterval Granted interval in milliseconds; 0 clears the shown value.
+    ///
+    void setNodeRevisedInterval(const QString &nodeId, double publishingInterval);
+
+    ///
     /// \brief Removes every node from the Data Access page, cancelling their monitoring.
     ///
     void clearDataAccessNodes();
@@ -211,12 +218,27 @@ public:
     ///
     void clearRuntimeData();
 
+    ///
+    /// \brief Keeps the collected data visible but inactive while the connection is gone.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
 public slots:
     ///
     /// \brief Applies the OPC UA timestamp display mode to the data and history tabs.
     /// \param mode Local time or UTC.
     ///
     void setTimestampMode(AppSettings::TimestampMode mode);
+
+    ///
+    /// \brief Applies the value-change highlight preference to the data-access tab.
+    /// \param enabled True to highlight value changes by default.
+    ///
+    void setHighlightValueChanges(bool enabled);
+
+protected:
+    void changeEvent(QEvent *event) override;
 
 private:
     Ui::DataView *ui;

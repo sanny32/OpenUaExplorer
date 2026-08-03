@@ -19,6 +19,7 @@
 #include "opcua/opcuatypes.h"
 #include "session/sessiondata.h"
 
+class AddressSpaceModule;
 class AppSettings;
 class AttributeModule;
 class DataAccessModule;
@@ -70,6 +71,7 @@ public:
     /// \param dataAccess Data-access module used for reads and monitoring.
     /// \param events Events module used for event monitoring and history.
     /// \param attributes Attribute module used for node reads and writes.
+    /// \param addressSpace Address-space module used to browse dropped folders.
     /// \param selection Selection mediator shared with the UI features.
     /// \param backend Backend queried for the connection state.
     /// \param actions Menu and toolbar actions steered by the coordinator.
@@ -80,6 +82,7 @@ public:
                           DataAccessModule *dataAccess,
                           EventsModule *events,
                           AttributeModule *attributes,
+                          AddressSpaceModule *addressSpace,
                           SelectionContext *selection,
                           OpcUaBackend *backend,
                           const DataAccessActions &actions,
@@ -199,6 +202,12 @@ public:
     void clearRuntimeState();
 
     ///
+    /// \brief Keeps the collected data on screen but drops the state tied to the connection.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
+    ///
     /// \brief Exports the currently visible central-area view to a file.
     ///
     void exportActiveView();
@@ -210,10 +219,10 @@ public:
     QVector<SubscriptionItem> sessionSubscriptions() const;
 
     ///
-    /// \brief Returns the listed data-access nodes with their subscription for a saved session.
-    /// \return NodeId and subscription-name pairs in row order.
+    /// \brief Returns the listed data-access nodes with their session state.
+    /// \return Saved-node records in row order.
     ///
-    QVector<QPair<QString, QString>> monitoredNodes() const;
+    QVector<SessionNode> monitoredNodes() const;
 
     ///
     /// \brief Returns the charted trend node ids for a saved session.
@@ -229,9 +238,9 @@ public:
 
     ///
     /// \brief Restores monitored data-access nodes from a loaded session.
-    /// \param nodes NodeId and subscription-name pairs to re-add and monitor.
+    /// \param nodes Saved nodes to re-add and monitor.
     ///
-    void restoreMonitoredNodes(const QVector<QPair<QString, QString>> &nodes);
+    void restoreMonitoredNodes(const QVector<SessionNode> &nodes);
 
     ///
     /// \brief Restores charted trend nodes from a loaded session.
@@ -262,6 +271,7 @@ private:
     void onWriteFinished(const QString &nodeId, bool success, const QString &error);
     void onMonitoringFinished(const QString &nodeId, bool subscribed,
                               bool success, const QString &error);
+    void onMonitoringIntervalRevised(const QString &nodeId, double publishingInterval);
     void onEventsReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
                        const QString &error);
     void onEventsHistoryReady(const QString &nodeId, const QVector<OpcUaEvent> &events,
@@ -277,6 +287,12 @@ private:
     void onSubscribeRequested(const OpcUaNodeInfo &node);
     void onUnsubscribeRequested(const OpcUaNodeInfo &node);
     void addNodeById(const QString &nodeId);
+    void addFolderById(const QString &nodeId);
+    void onFolderChildrenReady(const QString &parentNodeId,
+                               const QVector<OpcUaNodeInfo> &children,
+                               const QString &error);
+    void addFolderVariables(const QVector<OpcUaNodeInfo> &variables);
+    void finishFolderNode(const QString &nodeId, bool success);
     void showWriteDialog(const QString &nodeId, const QVariant &value, int valueType,
                          const QString &dataTypeId, bool writable);
     void updateMonitoringActions();
@@ -291,6 +307,7 @@ private:
     DataAccessModule *_dataAccess;
     EventsModule *_events;
     AttributeModule *_attributes;
+    AddressSpaceModule *_addressSpace;
     SelectionContext *_selection;
     OpcUaBackend *_backend;
     DataAccessActions _actions;
@@ -299,4 +316,7 @@ private:
     DataAccessMonitoringState _monitoringState;
     QSet<QString> _pendingDataAccessNodeIds;
     QHash<QString, QString> _pendingRestoreSubscriptions;
+    QSet<QString> _pendingFolderDropNodeIds;
+    QSet<QString> _folderAddNodeIds;
+    int _folderAddFailureCount = 0;
 };

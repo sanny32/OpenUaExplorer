@@ -55,6 +55,17 @@ public:
     virtual void clearRuntimeState();
 
     ///
+    /// \brief Keeps runtime data visible but inactive while no connection is available.
+    /// \param offline True while the server connection is gone.
+    ///
+    virtual void setOffline(bool offline);
+
+    ///
+    /// \brief Re-applies translated text the feature owns after a language change.
+    ///
+    virtual void retranslate();
+
+    ///
     /// \brief Contributes feature state to a saved working session.
     /// \param session Session payload to write to.
     ///

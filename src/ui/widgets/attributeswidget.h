@@ -18,6 +18,7 @@ class AttributesWidget;
 }
 
 class AttributesModel;
+class QEvent;
 class QPoint;
 class ThemedAction;
 
@@ -52,6 +53,12 @@ public:
     void clear();
 
     ///
+    /// \brief Keeps the last read attributes visible but inactive while the connection is gone.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
+    ///
     /// \brief Persists the attributes tree header state.
     /// \param settings Settings store to write to.
     ///
@@ -79,12 +86,16 @@ signals:
     ///
     void writeRequested(const QString &nodeId, const QVariant &value, int valueType);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
     void setupAttributesView();
     void copySelectedAttributeCell();
     void copyAttributeTree();
     void showAttributesContextMenu(const QPoint &pos);
-    void setupWriteEditor(int valueType, const QString &dataTypeId);
+    void setupWriteEditor(int valueType, const QString &dataTypeId, const QVariant &value);
+    void updateValueEditor();
     void clearWriteEditor();
     void writeCurrentValue();
 
@@ -93,4 +104,5 @@ private:
     ThemedAction         *_copyCellAction = nullptr;
     ThemedAction         *_copyTreeAction = nullptr;
     QString               _nodeId;
+    bool                  _offline = false;
 };

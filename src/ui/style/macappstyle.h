@@ -40,7 +40,8 @@ public:
                      QPainter* painter, const QWidget* widget = nullptr) const override;
 
     ///
-    /// \brief Draws an outlined bezel behind opted-in tool buttons; everything else defers to the base style.
+    /// \brief Draws an outlined bezel behind opted-in tool buttons; auto-raise buttons and
+    ///        everything else defer to the base style.
     /// \param element Primitive element to render.
     /// \param option Style option carrying the element state.
     /// \param painter Painter to draw with.

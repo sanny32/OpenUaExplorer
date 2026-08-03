@@ -472,7 +472,17 @@ void QlementineAppStyle::drawControl(ControlElement element, const QStyleOption*
                 const ActiveState active = (itemOption->state & State_Active)
                                         ? ActiveState::Active
                                         : ActiveState::NotActive;
-                const QColor textColor = listItemForegroundColor(mouse, selected, focus, active);
+                QColor textColor = listItemForegroundColor(mouse, selected, focus, active);
+
+                // QStyledItemDelegate puts a model's Qt::ForegroundRole into the item palette,
+                // which this hand-rolled text drawing would otherwise drop. Selected rows keep
+                // the theme colour, as they do in the stock item delegate.
+                const QColor itemText = itemOption->palette.color(QPalette::Text);
+                if (selected == SelectionState::NotSelected && widget
+                    && itemText != widget->palette().color(QPalette::Text)) {
+                    textColor = itemText;
+                }
+
                 const QString elidedText = itemOption->fontMetrics.elidedText(
                     itemOption->text, Qt::ElideRight, textRect.width(), Qt::TextSingleLine);
 

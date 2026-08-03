@@ -7,6 +7,7 @@
 ///
 
 #include <QAbstractButton>
+#include <QEvent>
 #include <QHeaderView>
 #include <QLineEdit>
 
@@ -45,6 +46,19 @@ EventsWidget::EventsWidget(QWidget *parent)
 EventsWidget::~EventsWidget()
 {
     delete ui;
+}
+
+///
+/// \brief Retranslates the generated UI on a language change.
+/// \param event Change event being handled.
+///
+void EventsWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        _eventsModel->retranslate();
+    }
 }
 
 ///

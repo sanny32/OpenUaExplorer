@@ -231,6 +231,19 @@ void MainStatusBarWidget::setConnectionController(ConnectionController *controll
 }
 
 ///
+/// \brief Keeps the lost session's parameters on screen after the connection dropped.
+/// \param lost True when the connection was lost rather than closed by the user.
+///
+void MainStatusBarWidget::setConnectionLost(bool lost)
+{
+    if (_connectionLost == lost)
+        return;
+    _connectionLost = lost;
+    if (_controller)
+        updateConnectionState(_controller->backend()->state());
+}
+
+///
 /// \brief Refreshes the labels from the current state and the active profile.
 /// \param state Current client state.
 ///
@@ -239,11 +252,15 @@ void MainStatusBarWidget::updateConnectionState(OpcUaConnectionState state)
     const ConnectionProfile &profile = _controller->activeProfile();
     const bool connected = state == OpcUaConnectionState::Connected;
     const bool active = connected || state == OpcUaConnectionState::Connecting;
+
+    // Retry attempts pass through the intermediate states, so the lost session's parameters
+    // stay on screen until the window reports that it is gone or back.
+    const bool retained = _connectionLost && !active;
     setConnectionState(state, profile.endpointUrl,
-                       active ? profile.securityPolicy : QString(),
-                       active ? profile.securityMode : 0,
-                       connected ? _controller->activeSessionName() : QString(),
-                       active ? authenticationSummary(profile) : QString());
+                       active || retained ? profile.securityPolicy : QString(),
+                       active || retained ? profile.securityMode : 0,
+                       connected || retained ? _controller->activeSessionName() : QString(),
+                       active || retained ? authenticationSummary(profile) : QString());
 
     if (connected) {
         _controller->backend()->readValues(
@@ -263,6 +280,12 @@ void MainStatusBarWidget::changeEvent(QEvent *event)
 
     switch (event->type()) {
     case QEvent::LanguageChange:
+        if (_controller)
+            updateConnectionState(_controller->backend()->state());
+        else
+            setConnectionState(OpcUaConnectionState::Disconnected);
+        updateClocks();
+        break;
     case QEvent::FontChange:
     case QEvent::StyleChange:
         updateClocks();
@@ -310,15 +333,15 @@ void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
         icon = QStringLiteral("disconnect");
         break;
     case OpcUaConnectionState::Disconnected:
-        text = tr("Disconnected");
+        text = _connectionLost && !endpoint.isEmpty() ? endpoint : tr("Disconnected");
         break;
     }
     const QString security = securitySummary(securityPolicy, securityMode);
     ui->statusIconLabel->setIcon(icon, QSize(12, 12));
     ui->connectionLabel->setText(text);
-    ui->securityLabel->setText(security.isEmpty() ? tr("-") : security);
-    ui->authenticationLabel->setText(authentication.isEmpty() ? tr("-") : authentication);
-    ui->sessionLabel->setText(sessionName.isEmpty() ? tr("-") : sessionName);
+    ui->securityLabel->setText(security.isEmpty() ? QStringLiteral("-") : security);
+    ui->authenticationLabel->setText(authentication.isEmpty() ? QStringLiteral("-") : authentication);
+    ui->sessionLabel->setText(sessionName.isEmpty() ? QStringLiteral("-") : sessionName);
     ui->serverTimeLabel->setText(tr("Server Time: -"));
 }
 

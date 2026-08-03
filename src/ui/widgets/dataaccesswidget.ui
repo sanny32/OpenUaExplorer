@@ -84,8 +84,14 @@
          <height>16777215</height>
         </size>
        </property>
+       <property name="toolTip">
+        <string>Shows only the rows whose Display Name or Node Id contains this text</string>
+       </property>
        <property name="placeholderText">
         <string>Filter...</string>
+       </property>
+       <property name="clearButtonEnabled">
+        <bool>true</bool>
        </property>
       </widget>
      </item>

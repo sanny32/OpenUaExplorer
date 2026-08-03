@@ -78,6 +78,25 @@ void FeatureManager::clearRuntimeState()
 }
 
 ///
+/// \brief Switches every feature between live and offline presentation.
+/// \param offline True while the server connection is gone.
+///
+void FeatureManager::setOffline(bool offline)
+{
+    for (const std::unique_ptr<FeatureModule> &feature : _features)
+        feature->setOffline(offline);
+}
+
+///
+/// \brief Re-applies translated text owned by every feature after a language change.
+///
+void FeatureManager::retranslate()
+{
+    for (const std::unique_ptr<FeatureModule> &feature : _features)
+        feature->retranslate();
+}
+
+///
 /// \brief Collects every feature's contribution to a saved working session.
 /// \param session Session payload to write to.
 ///

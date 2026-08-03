@@ -41,6 +41,22 @@ void FeatureModule::clearRuntimeState()
 }
 
 ///
+/// \brief Keeps runtime data visible but inactive while no connection is available.
+/// \param offline True while the server connection is gone.
+///
+void FeatureModule::setOffline(bool offline)
+{
+    Q_UNUSED(offline)
+}
+
+///
+/// \brief Re-applies translated text the feature owns after a language change.
+///
+void FeatureModule::retranslate()
+{
+}
+
+///
 /// \brief Contributes feature state to a saved working session.
 /// \param session Session payload to write to.
 ///

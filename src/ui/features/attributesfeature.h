@@ -48,6 +48,16 @@ public:
     ///
     void clearRuntimeState() override;
 
+    ///
+    /// \brief Keeps the last read attributes on screen, greyed out, while the connection is gone.
+    ///
+    void setOffline(bool offline) override;
+
+    ///
+    /// \brief Re-applies the dock title after a language change.
+    ///
+    void retranslate() override;
+
 private:
     QDockWidget *_dock = nullptr;
     AttributesWidget *_widget = nullptr;

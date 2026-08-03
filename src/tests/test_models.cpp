@@ -7,9 +7,15 @@
 ///
 
 #include <QAbstractItemModelTester>
+#include <QApplication>
 #include <QBrush>
 #include <QColor>
 #include <QDateTime>
+#include <QFont>
+#include <QFontDatabase>
+#include <QMimeData>
+#include <QPalette>
+#include <QScopedPointer>
 #include <QSignalSpy>
 #include <QStandardItemModel>
 #include <QTest>
@@ -17,6 +23,7 @@
 
 #include "appsettings.h"
 #include "testdata.h"
+#include "formatters/attributeformatter.h"
 #include "opcua/opcuatypes.h"
 #include "models/attributesmodel.h"
 #include "models/csvexporter.h"
@@ -43,10 +50,19 @@ private slots:
     void dataAccessSetItemsExposesColumns();
     void dataAccessAddOrUpdateInsertsThenUpdates();
     void dataAccessUpdateValuesRefreshesValueColumns();
+    void dataAccessFormatsTypedValues();
     void dataAccessRemoveRowsDropsSelected();
+    void dataAccessMoveRowsKeepsTheDraggedBlockTogether();
+    void dataAccessMoveRowsIgnoresPointlessMoves();
+    void dataAccessRowDropReordersByNodeId();
     void dataAccessSubscriptionColumnIsEditable();
     void dataAccessTimestampModeReformats();
+    void dataAccessOfflineGreysRowsAndLocksEditing();
+    void dataAccessTracksValueChanges();
+    void dataAccessResolvesHighlightPreference();
+    void dataAccessExposesQualityAndValueFont();
     void attributesModelTimestampModeReformats();
+    void attributesModelOfflineGreysValues();
 
     // LogModel.
     void logFilterByLevel();
@@ -67,6 +83,8 @@ private slots:
     void referencesModelHeaderAndEdges();
     void subscriptionsModelHeaderRolesAndReset();
     void subscriptionsModelEditingAndMutators();
+    void dataAccessActualIntervalColumnTracksServerValue();
+    void subscriptionsModelBuiltinRowsAreEditable();
     void logModelColumnsRolesAndFilters();
     void attributesModelHeaderRolesAndMutators();
     void eventsModelHeaderRolesAndMutators();
@@ -306,6 +324,177 @@ void TestModels::dataAccessUpdateValuesRefreshesValueColumns()
 }
 
 ///
+/// \brief Only a value that actually differs stamps the change time.
+///
+void TestModels::dataAccessTracksValueChanges()
+{
+    DataAccessModel model;
+    model.setItems(TestData::dataAccessItems());
+    const QModelIndex valueIndex = model.index(0, DataAccessModel::ColValue);
+    QCOMPARE(valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong(), 0);
+
+    OpcUaDataValue value;
+    value.nodeId = TestData::dataAccessItems().first().nodeId;
+    value.value = 42.0;
+    value.status = QStringLiteral("Good");
+    model.updateValues({value});
+
+    const qint64 firstChange = valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong();
+    QVERIFY(firstChange > 0);
+
+    // A notification repeating the value must not restart the highlight.
+    QTest::qWait(5);
+    model.updateValues({value});
+    QCOMPARE(valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong(), firstChange);
+
+    QTest::qWait(5);
+    value.value = 43.0;
+    model.updateValues({value});
+    QVERIFY(valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong() > firstChange);
+
+    // The attribute-read path stamps changes the same way.
+    OpcUaNodeDetails details;
+    details.nodeId = value.nodeId;
+    details.value = 44.0;
+    const qint64 beforeRead = valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong();
+    QTest::qWait(5);
+    model.addOrUpdate(details);
+    QVERIFY(valueIndex.data(DataAccessModel::ValueChangedAtRole).toLongLong() > beforeRead);
+}
+
+///
+/// \brief Rows follow the default highlight preference until overridden individually.
+///
+void TestModels::dataAccessResolvesHighlightPreference()
+{
+    DataAccessModel model;
+    model.setItems(TestData::dataAccessItems());
+    const QModelIndex first = model.index(0, DataAccessModel::ColValue);
+    const QModelIndex second = model.index(1, DataAccessModel::ColValue);
+
+    // Highlighting is opt-in, so an untouched model leaves every row alone.
+    QVERIFY(!first.data(DataAccessModel::HighlightChangesRole).toBool());
+
+    model.setDefaultHighlightChanges(true);
+    QVERIFY(first.data(DataAccessModel::HighlightChangesRole).toBool());
+    QCOMPARE(model.highlightMode(0), HighlightMode::FollowDefault);
+
+    QSignalSpy changeSpy(&model, &QAbstractItemModel::dataChanged);
+    model.setHighlightMode({first}, HighlightMode::Disabled);
+    QCOMPARE(changeSpy.size(), 1);
+    QVERIFY(!first.data(DataAccessModel::HighlightChangesRole).toBool());
+    QVERIFY(second.data(DataAccessModel::HighlightChangesRole).toBool());
+    QVERIFY(!model.highlightsChanges(0));
+    QVERIFY(model.highlightsChanges(1));
+
+    // Re-applying the same override changes nothing and stays silent.
+    model.setHighlightMode({first}, HighlightMode::Disabled);
+    QCOMPARE(changeSpy.size(), 1);
+
+    // The default reaches rows that follow it, and leaves the overridden one alone.
+    model.setDefaultHighlightChanges(false);
+    QVERIFY(!second.data(DataAccessModel::HighlightChangesRole).toBool());
+    model.setHighlightMode({second}, HighlightMode::Enabled);
+    QVERIFY(second.data(DataAccessModel::HighlightChangesRole).toBool());
+    QVERIFY(!first.data(DataAccessModel::HighlightChangesRole).toBool());
+
+    // Out-of-range rows fall back to the default instead of asserting.
+    model.setHighlightMode({model.index(99, 0)}, HighlightMode::Enabled);
+    QCOMPARE(model.highlightMode(99), HighlightMode::FollowDefault);
+    QVERIFY(!model.highlightsChanges(99));
+}
+
+///
+/// \brief The quality role and the value font carry what the value delegate paints with.
+///
+void TestModels::dataAccessExposesQualityAndValueFont()
+{
+    DataAccessModel model;
+    model.setItems(TestData::dataAccessItems());
+
+    const QModelIndex monitored = model.index(0, DataAccessModel::ColValue);
+    QCOMPARE(monitored.data(DataAccessModel::StatusSeverityRole).toInt(),
+             int(OpcUaFormat::StatusSeverity::Good));
+
+    // The interval bounds the change wash, and only counts once the server granted one.
+    QCOMPARE(monitored.data(DataAccessModel::ExpectedIntervalRole).toDouble(), 0.0);
+    model.setRevisedInterval(TestData::dataAccessItems().first().nodeId, 250.0);
+    QCOMPARE(monitored.data(DataAccessModel::ExpectedIntervalRole).toDouble(), 250.0);
+
+    // An unmonitored row reports no interval even when one lingers on the item.
+    const int unmonitoredRow = 3;
+    QVERIFY(model.itemAt(unmonitoredRow).subscriptionName.isEmpty());
+    model.setRevisedInterval(model.itemAt(unmonitoredRow).nodeId, 250.0);
+    QCOMPARE(model.index(unmonitoredRow, DataAccessModel::ColValue)
+                 .data(DataAccessModel::ExpectedIntervalRole).toDouble(), 0.0);
+
+    OpcUaDataValue uncertain;
+    uncertain.nodeId = TestData::dataAccessItems().first().nodeId;
+    uncertain.value = 1.0;
+    uncertain.status = QStringLiteral("UncertainLastUsableValue");
+    model.updateValues({uncertain});
+    QCOMPARE(monitored.data(DataAccessModel::StatusSeverityRole).toInt(),
+             int(OpcUaFormat::StatusSeverity::Uncertain));
+
+    OpcUaDataValue bad = uncertain;
+    bad.value = 2.0;
+    bad.status = QStringLiteral("BadNodeIdUnknown");
+    model.updateValues({bad});
+    QCOMPARE(monitored.data(DataAccessModel::StatusSeverityRole).toInt(),
+             int(OpcUaFormat::StatusSeverity::Bad));
+
+    // Values need a fixed pitch to line up; pending rows keep their italic marker.
+    const QFont valueFont = monitored.data(Qt::FontRole).value<QFont>();
+    QCOMPARE(valueFont.family(),
+             QFontDatabase::systemFont(QFontDatabase::FixedFont).family());
+    QCOMPARE(valueFont.pointSizeF(), qApp->font().pointSizeF());
+    QVERIFY(!valueFont.italic());
+    QVERIFY(!model.index(0, DataAccessModel::ColDisplayName).data(Qt::FontRole).isValid());
+
+    OpcUaNodeInfo pending;
+    pending.nodeId = QStringLiteral("ns=2;s=Pending");
+    pending.displayName = QStringLiteral("Pending");
+    model.addPending(pending);
+    const QModelIndex pendingValue = model.index(model.rowCount() - 1, DataAccessModel::ColValue);
+    QVERIFY(pendingValue.data(Qt::FontRole).value<QFont>().italic());
+}
+
+///
+/// \brief DataAccessModel formats byte-sized numbers and compound values consistently.
+///
+void TestModels::dataAccessFormatsTypedValues()
+{
+    DataAccessModel model;
+
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=Byte");
+    details.value = QVariant::fromValue<quint8>(122);
+    model.addOrUpdate(details);
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("122"));
+
+    details.nodeId = QStringLiteral("ns=2;s=SByte");
+    details.value = QVariant::fromValue<qint8>(-6);
+    model.addOrUpdate(details);
+    QCOMPARE(model.data(model.index(1, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("-6"));
+
+    details.nodeId = QStringLiteral("ns=2;s=ByteString");
+    details.value = QByteArray::fromHex("01ab");
+    model.addOrUpdate(details);
+    QCOMPARE(model.data(model.index(2, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("01 ab"));
+
+    OpcUaDataValue update;
+    update.nodeId = details.nodeId;
+    update.value = QVariantList{QVariant::fromValue<quint8>(122),
+                                QVariant::fromValue<qint8>(-6)};
+    model.updateValues({update});
+    QCOMPARE(model.data(model.index(2, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("[122, -6]"));
+}
+
+///
 /// \brief removeRows drops the selected rows and reports them via nodeIds().
 ///
 void TestModels::dataAccessRemoveRowsDropsSelected()
@@ -321,6 +510,85 @@ void TestModels::dataAccessRemoveRowsDropsSelected()
 
     QCOMPARE(model.rowCount(), items.size() - 1);
     QVERIFY(!model.nodeIds().contains(items.last().nodeId));
+}
+
+///
+/// \brief Dragged rows land in front of the destination row, in one block.
+///
+void TestModels::dataAccessMoveRowsKeepsTheDraggedBlockTogether()
+{
+    DataAccessModel model;
+    new QAbstractItemModelTester(&model, &model);
+    const QVector<DataAccessItem> items = TestData::dataAccessItems();
+    model.setItems(items);
+
+    // Two rows picked apart from each other end up next to each other.
+    const QPersistentModelIndex followed(model.index(2, DataAccessModel::ColNodeId));
+    QVERIFY(model.moveRows({model.index(0, 0), model.index(2, 0)}, model.rowCount() - 1));
+
+    QCOMPARE(model.nodeIds(), QStringList({items.at(1).nodeId, items.at(3).nodeId,
+                                           items.at(4).nodeId, items.at(0).nodeId,
+                                           items.at(2).nodeId, items.at(5).nodeId}));
+    // The selection and open editors ride along with their row.
+    QCOMPARE(followed.row(), 4);
+    QCOMPARE(followed.column(), DataAccessModel::ColNodeId);
+
+    // Moving up inserts in front of the destination row.
+    QVERIFY(model.moveRows({model.index(4, 0)}, 1));
+    QCOMPARE(model.nodeIds().at(1), items.at(2).nodeId);
+    // The "#" column renumbers with the rows.
+    QCOMPARE(model.data(model.index(1, DataAccessModel::ColNumber)).toInt(), 2);
+}
+
+///
+/// \brief A move that would leave the order untouched changes nothing.
+///
+void TestModels::dataAccessMoveRowsIgnoresPointlessMoves()
+{
+    DataAccessModel model;
+    const QVector<DataAccessItem> items = TestData::dataAccessItems();
+    model.setItems(items);
+    const QStringList before = model.nodeIds();
+
+    QVERIFY(!model.moveRows({}, 0));
+    QVERIFY(!model.moveRows({model.index(99, 0)}, 0));
+    // Dropping a row on either of its own edges keeps it where it is.
+    QVERIFY(!model.moveRows({model.index(2, 0)}, 2));
+    QVERIFY(!model.moveRows({model.index(2, 0)}, 3));
+    QCOMPARE(model.nodeIds(), before);
+}
+
+///
+/// \brief Rows dropped back on the table are reordered by the NodeIds they carry.
+///
+void TestModels::dataAccessRowDropReordersByNodeId()
+{
+    DataAccessModel model;
+    const QVector<DataAccessItem> items = TestData::dataAccessItems();
+    model.setItems(items);
+
+    QScopedPointer<QMimeData> dragged(model.mimeData({model.index(0, 0), model.index(0, 1),
+                                                      model.index(1, 0)}));
+    QVERIFY(dragged);
+    QVERIFY(dragged->hasFormat(DataAccessModel::rowMimeType()));
+
+    // Only a move of the table's own rows onto the root is accepted.
+    QVERIFY(!model.canDropMimeData(dragged.data(), Qt::CopyAction, 4, 0, QModelIndex()));
+    QVERIFY(!model.canDropMimeData(dragged.data(), Qt::MoveAction, 4, 0, model.index(3, 0)));
+    QScopedPointer<QMimeData> foreign(new QMimeData);
+    foreign->setText(QStringLiteral("ns=2;s=Elsewhere"));
+    QVERIFY(!model.canDropMimeData(foreign.data(), Qt::MoveAction, 4, 0, QModelIndex()));
+
+    QVERIFY(model.canDropMimeData(dragged.data(), Qt::MoveAction, 4, 0, QModelIndex()));
+    QVERIFY(model.dropMimeData(dragged.data(), Qt::MoveAction, 4, 0, QModelIndex()));
+    QCOMPARE(model.nodeIds(), QStringList({items.at(2).nodeId, items.at(3).nodeId,
+                                           items.at(0).nodeId, items.at(1).nodeId,
+                                           items.at(4).nodeId, items.at(5).nodeId}));
+
+    // A disconnected table shows the rows it had, but stops accepting drops.
+    model.setOffline(true);
+    QVERIFY(!model.canDropMimeData(dragged.data(), Qt::MoveAction, 0, 0, QModelIndex()));
+    QVERIFY(!model.dropMimeData(dragged.data(), Qt::MoveAction, 0, 0, QModelIndex()));
 }
 
 ///
@@ -404,6 +672,74 @@ void TestModels::attributesModelTimestampModeReformats()
                       .replace(QLatin1Char('T'), QLatin1Char(' ')));
     QVERIFY(utc.endsWith(QLatin1Char('Z')));
     QVERIFY(!utc.contains(QLatin1Char('T')));
+}
+
+///
+/// \brief A lost connection greys the attribute values it was read with (issue #7).
+///
+void TestModels::attributesModelOfflineGreysValues()
+{
+    OpcUaNodeAttribute value;
+    value.name = QStringLiteral("Value");
+    value.displayValue = QStringLiteral("Good");
+
+    AttributesModel model;
+    model.setAttributes({value});
+
+    const QModelIndex valueIndex = model.index(0, AttributesModel::ColValue);
+    QCOMPARE(model.data(valueIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             QColor(0, 150, 64));
+
+    QSignalSpy spy(&model, &QAbstractItemModel::dataChanged);
+    model.setOffline(true);
+    QVERIFY(spy.count() >= 1);
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(model.data(valueIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             qApp->palette().color(QPalette::Disabled, QPalette::Text));
+
+    model.setOffline(false);
+    QCOMPARE(model.data(valueIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             QColor(0, 150, 64));
+}
+
+///
+/// \brief A lost connection greys the listed rows and locks the subscription column (issue #7).
+///
+void TestModels::dataAccessOfflineGreysRowsAndLocksEditing()
+{
+    DataAccessModel model;
+    DataAccessItem item;
+    item.nodeId = QStringLiteral("ns=2;s=A");
+    item.displayName = QStringLiteral("Alpha");
+    item.value = QStringLiteral("42");
+    item.status = QStringLiteral("Good");
+    item.subscriptionName = QStringLiteral("Fast");
+    model.setItems({item});
+
+    const QModelIndex valueIndex = model.index(0, DataAccessModel::ColValue);
+    const QModelIndex statusIndex = model.index(0, DataAccessModel::ColStatus);
+    const QModelIndex subscriptionIndex = model.index(0, DataAccessModel::ColSubscription);
+    QVERIFY(!model.isOffline());
+    QVERIFY(model.flags(subscriptionIndex).testFlag(Qt::ItemIsEditable));
+
+    QSignalSpy spy(&model, &QAbstractItemModel::dataChanged);
+    model.setOffline(true);
+
+    QVERIFY(model.isOffline());
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(model.data(valueIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             qApp->palette().color(QPalette::Disabled, QPalette::Text));
+    QCOMPARE(model.data(statusIndex, Qt::ForegroundRole).value<QBrush>().color(),
+             qApp->palette().color(QPalette::Disabled, QPalette::Text));
+    QVERIFY(!model.flags(subscriptionIndex).testFlag(Qt::ItemIsEditable));
+    QVERIFY(!model.setData(subscriptionIndex, QStringLiteral("Slow"), Qt::EditRole));
+    QCOMPARE(model.itemAt(0).subscriptionName, QStringLiteral("Fast"));
+
+    model.setOffline(false);
+    QVERIFY(!model.data(valueIndex, Qt::ForegroundRole).isValid());
+    QVERIFY(!model.data(statusIndex, Qt::ForegroundRole).isValid());
+    QVERIFY(model.setData(subscriptionIndex, QStringLiteral("Slow"), Qt::EditRole));
 }
 
 ///
@@ -561,6 +897,7 @@ void TestModels::dataAccessModelExportsCsv()
     item.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 6), QTimeZone::UTC);
     item.status = QStringLiteral("Good,Clamped");
     item.subscriptionName = QStringLiteral("Default");
+    item.revisedPublishingInterval = 100.0;
 
     DataAccessModel model;
     model.setTimestampMode(AppSettings::TimestampMode::Utc);
@@ -568,9 +905,9 @@ void TestModels::dataAccessModelExportsCsv()
 
     QCOMPARE(model.toCsv(),
              QStringLiteral("#,Node Id,Display Name,Value,Data Type,Source Timestamp,"
-                            "Status,Subscription\n"
+                            "Status,Subscription,Actual Interval\n"
                             "1,ns=2;s=Temp,Temperature,\"12,\"\"quoted\"\"\nline\",Double,"
-                            "2024-01-02 03:04:05.006Z,\"Good,Clamped\",Default\n"));
+                            "2024-01-02 03:04:05.006Z,\"Good,Clamped\",Default,100 ms\n"));
 }
 
 ///
@@ -709,6 +1046,13 @@ void TestModels::subscriptionsModelEditingAndMutators()
     QVERIFY(!model.setData(intervalIndex, 0.0, Qt::EditRole));
     QVERIFY(model.setData(intervalIndex, 2000.0, Qt::EditRole));
     QCOMPARE(intervalSpy.size(), 1);
+
+    // Values outside the offered range are clamped rather than rejected.
+    QVERIFY(model.setData(intervalIndex, 1.0, Qt::EditRole));
+    QCOMPARE(model.itemAt(0).publishingInterval, double(minPublishingIntervalMs));
+    QVERIFY(model.setData(intervalIndex, 5000000.0, Qt::EditRole));
+    QCOMPARE(model.itemAt(0).publishingInterval, double(maxPublishingIntervalMs));
+    QVERIFY(model.setData(intervalIndex, 2000.0, Qt::EditRole));
     QCOMPARE(model.intervalFor(QStringLiteral("Slow")), 2000.0);
     QCOMPARE(model.intervalFor(QStringLiteral("missing")), 1000.0);
 
@@ -722,6 +1066,71 @@ void TestModels::subscriptionsModelEditingAndMutators()
     QCOMPARE(model.names(), QStringList{QStringLiteral("Fast")});
     model.removeRow(99); // out of range: no-op
     QCOMPARE(model.rowCount(), 1);
+}
+
+///
+/// \brief DataAccessModel: the actual-interval column tracks the server-granted value.
+///
+void TestModels::dataAccessActualIntervalColumnTracksServerValue()
+{
+    DataAccessItem item;
+    item.nodeId = QStringLiteral("ns=2;s=Temp");
+    item.subscriptionName = QStringLiteral("Default");
+
+    DataAccessModel model;
+    model.setItems({item});
+
+    const QModelIndex intervalIndex = model.index(0, DataAccessModel::ColActualInterval);
+    QCOMPARE(model.headerData(DataAccessModel::ColActualInterval, Qt::Horizontal).toString(),
+             QStringLiteral("Actual Interval"));
+    QCOMPARE(model.data(intervalIndex).toString(), QStringLiteral("—"));
+
+    // The column is read-only: only the subscription cell accepts edits.
+    QVERIFY(!(model.flags(intervalIndex) & Qt::ItemIsEditable));
+    QVERIFY(!model.setData(intervalIndex, 100.0, Qt::EditRole));
+
+    QSignalSpy changedSpy(&model, &QAbstractItemModel::dataChanged);
+    model.setRevisedInterval(QStringLiteral("ns=2;s=Temp"), 100.0);
+    QCOMPARE(model.data(intervalIndex).toString(), QStringLiteral("100 ms"));
+    QCOMPARE(changedSpy.size(), 1);
+
+    // Repeating the same value is a no-op; an unknown node is ignored.
+    model.setRevisedInterval(QStringLiteral("ns=2;s=Temp"), 100.0);
+    model.setRevisedInterval(QStringLiteral("ns=2;s=Missing"), 500.0);
+    QCOMPARE(changedSpy.size(), 1);
+
+    // Unsubscribing clears the value back to the placeholder.
+    model.setRevisedInterval(QStringLiteral("ns=2;s=Temp"), 0.0);
+    QCOMPARE(model.data(intervalIndex).toString(), QStringLiteral("—"));
+}
+
+///
+/// \brief SubscriptionsModel: built-in rows are editable but stay visually distinct.
+///
+void TestModels::subscriptionsModelBuiltinRowsAreEditable()
+{
+    SubscriptionsModel model;
+    SubscriptionItem builtin;
+    builtin.name = QStringLiteral("Default");
+    builtin.id = DefaultSubscriptionId;
+    builtin.builtin = true;
+    model.setItems({builtin});
+
+    const QModelIndex nameIndex = model.index(0, SubscriptionsModel::ColName);
+    const QModelIndex intervalIndex = model.index(0, SubscriptionsModel::ColPublishingInterval);
+    QVERIFY(model.flags(nameIndex) & Qt::ItemIsEditable);
+    QVERIFY(model.flags(intervalIndex) & Qt::ItemIsEditable);
+
+    QVERIFY(model.setData(nameIndex, QStringLiteral("Telemetry"), Qt::EditRole));
+    QVERIFY(model.setData(intervalIndex, 50.0, Qt::EditRole));
+    QCOMPARE(model.itemAt(0).name, QStringLiteral("Telemetry"));
+    QCOMPARE(model.itemAt(0).publishingInterval, 50.0);
+    QVERIFY(model.itemAt(0).isBuiltin());
+
+    // The lock decoration is gone, but the shaded background still marks the row as permanent.
+    QVERIFY(!model.data(nameIndex, Qt::DecorationRole).isValid());
+    model.setBuiltinBackground(QBrush(Qt::gray));
+    QVERIFY(model.data(nameIndex, Qt::BackgroundRole).isValid());
 }
 
 ///
@@ -967,10 +1376,14 @@ void TestModels::dataAccessHeaderRolesAndHelpers()
     const QModelIndex sub0 = model.index(0, DataAccessModel::ColSubscription);
     QVERIFY(model.setData(sub0, QStringLiteral("Fast"), Qt::EditRole));
     QCOMPARE(model.data(sub0, Qt::EditRole).toString(), QStringLiteral("Fast"));
-    QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue), Qt::ForegroundRole)
-                 .value<QBrush>().color(), QColor(0, 150, 64));
-    QCOMPARE(model.data(model.index(0, DataAccessModel::ColStatus), Qt::ForegroundRole)
-                 .value<QBrush>().color(), QColor(0, 150, 64));
+    QVERIFY(!model.data(model.index(0, DataAccessModel::ColValue), Qt::ForegroundRole)
+                 .isValid());
+    // Quality colouring moved to ValueCellDelegate; the model only classifies the status.
+    QVERIFY(!model.data(model.index(0, DataAccessModel::ColStatus), Qt::ForegroundRole)
+                 .isValid());
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColStatus),
+                        DataAccessModel::StatusSeverityRole).toInt(),
+             int(OpcUaFormat::StatusSeverity::Good));
     QCOMPARE(model.data(sub0, Qt::ForegroundRole).value<QBrush>().color(),
              QColor(0, 120, 200));
 

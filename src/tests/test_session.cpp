@@ -46,8 +46,10 @@ static SessionData sampleSession()
     fast.publishingInterval = 250.0;
     data.subscriptions.append(fast);
 
-    data.dataAccessNodes.append({QStringLiteral("ns=2;s=Temp"), QStringLiteral("Fast")});
-    data.dataAccessNodes.append({QStringLiteral("ns=2;s=Idle"), QString()});
+    data.dataAccessNodes.append(
+        {QStringLiteral("ns=2;s=Temp"), QStringLiteral("Fast"), HighlightMode::Disabled});
+    data.dataAccessNodes.append({QStringLiteral("ns=2;s=Idle"), QString(),
+                                 HighlightMode::FollowDefault});
     data.trendNodes = {QStringLiteral("ns=2;s=Temp")};
 
     SessionNodeMonitor monitor;
@@ -100,7 +102,9 @@ void TestSession::roundTripPreservesWorkspace()
     QCOMPARE(loaded.dataAccessNodes.size(), 2);
     QCOMPARE(loaded.dataAccessNodes.at(0).nodeId, QStringLiteral("ns=2;s=Temp"));
     QCOMPARE(loaded.dataAccessNodes.at(0).subscriptionName, QStringLiteral("Fast"));
+    QCOMPARE(loaded.dataAccessNodes.at(0).highlight, HighlightMode::Disabled);
     QCOMPARE(loaded.dataAccessNodes.at(1).subscriptionName, QString());
+    QCOMPARE(loaded.dataAccessNodes.at(1).highlight, HighlightMode::FollowDefault);
 
     QCOMPARE(loaded.trendNodes, original.trendNodes);
     QCOMPARE(loaded.expandedNodes, original.expandedNodes);

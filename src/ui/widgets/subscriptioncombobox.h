@@ -77,6 +77,11 @@ public:
     ///
     void setCreateEntryVisible(bool visible);
 
+    ///
+    /// \brief Reattaches the separator delegate, then shows the popup.
+    ///
+    void showPopup() override;
+
 signals:
     ///
     /// \brief Emitted when the user selects a subscription (or the empty choice).

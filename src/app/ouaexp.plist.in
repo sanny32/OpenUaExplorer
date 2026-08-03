@@ -11,6 +11,15 @@
     <string>io.github.sanny32.ouaexp@VERSION_MAJOR@</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>ru</string>
+        <string>de</string>
+        <string>zh-Hans</string>
+    </array>
     <key>CFBundleName</key>
     <string>@PRODUCT_NAME@</string>
     <key>CFBundleDisplayName</key>

@@ -6,12 +6,19 @@
 /// \brief Unit tests for DataAccessCoordinator using a fake OPC UA backend.
 ///
 
+#include <QAbstractItemModel>
 #include <QAction>
+#include <QApplication>
+#include <QDialog>
+#include <QPushButton>
 #include <QSettings>
+#include <QTableView>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTimer>
 #include <QWidget>
 
+#include "addressspacemodule.h"
 #include "appsettings.h"
 #include "application.h"
 #include "attributemodule.h"
@@ -20,8 +27,11 @@
 #include "eventsmodule.h"
 #include "features/selectioncontext.h"
 #include "opcua/opcuabackend.h"
+#include "models/dataaccessmodel.h"
 #include "servicecontext.h"
 #include "settingsstore.h"
+#include "widgets/dataaccesswidget.h"
+#include "widgets/dialogbuttonbox.h"
 #include "widgets/dataview.h"
 #include "widgets/trendpanelwidget.h"
 
@@ -44,7 +54,7 @@ public:
     void connectToEndpoint(const ConnectionProfile &, const QString &,
                            const QString &) override {}
     void disconnectFromEndpoint() override {}
-    void browse(const QString &) override {}
+    void browse(const QString &nodeId) override { browsedNodeIds.append(nodeId); }
     void browseReferences(const QString &) override {}
     void readNode(const QString &nodeId) override { readNodeIds.append(nodeId); }
     void readValues(const QStringList &) override {}
@@ -59,6 +69,7 @@ public:
     }
 
     OpcUaConnectionState currentState = OpcUaConnectionState::Disconnected;
+    QStringList browsedNodeIds;
     QStringList readNodeIds;
     QStringList subscribedNodeIds;
     QStringList unsubscribedNodeIds;
@@ -75,6 +86,7 @@ struct CoordinatorHarness
         dataAccess.initialize(context);
         events.initialize(context);
         attributes.initialize(context);
+        addressSpace.initialize(context);
 
         actions.read = newAction();
         actions.readSelected = newAction();
@@ -93,8 +105,8 @@ struct CoordinatorHarness
         actions.readEventsHistory = newAction();
 
         coordinator = new DataAccessCoordinator(&dataView, &trendPanel, &dataAccess,
-                                                &events, &attributes, &selection,
-                                                &backend, actions, &window);
+                                                &events, &attributes, &addressSpace,
+                                                &selection, &backend, actions, &window);
     }
 
     QAction *newAction()
@@ -127,12 +139,89 @@ struct CoordinatorHarness
     DataAccessModule dataAccess;
     EventsModule events;
     AttributeModule attributes;
+    AddressSpaceModule addressSpace;
     DataView dataView;
     TrendPanelWidget trendPanel;
     SelectionContext selection;
     DataAccessActions actions;
     DataAccessCoordinator *coordinator = nullptr;
 };
+
+namespace {
+
+///
+/// \brief NodeId of the folder used by the folder-drop tests.
+///
+const QString kFolderNodeId = QStringLiteral("ns=2;s=MyDevice");
+
+///
+/// \brief Builds a browse result of variables plus one nested folder that must be skipped.
+/// \param variableCount Number of variable children.
+/// \return Browse result.
+///
+QVector<OpcUaNodeInfo> makeFolderChildren(int variableCount)
+{
+    QVector<OpcUaNodeInfo> children;
+    for (int i = 0; i < variableCount; ++i) {
+        OpcUaNodeInfo variable;
+        variable.nodeId = QStringLiteral("ns=2;s=Var%1").arg(i);
+        variable.displayName = QStringLiteral("Var%1").arg(i);
+        variable.nodeClass = OpcUa::Variable;
+        variable.hasChildren = false;
+        children.append(variable);
+    }
+    OpcUaNodeInfo nested;
+    nested.nodeId = QStringLiteral("ns=2;s=Nested");
+    nested.displayName = QStringLiteral("Nested");
+    nested.nodeClass = OpcUa::Object;
+    children.append(nested);
+    return children;
+}
+
+///
+/// \brief Returns the model behind the Data Access table.
+/// \param harness Coordinator harness to inspect.
+/// \return Table model, or nullptr when the view is missing.
+///
+QAbstractItemModel *dataAccessModel(CoordinatorHarness &harness)
+{
+    auto *view = harness.dataView.dataAccess()
+                     ->findChild<QTableView *>(QStringLiteral("dataView"));
+    return view ? view->model() : nullptr;
+}
+
+///
+/// \brief Drops a folder onto Data Access and delivers its browse result.
+/// \param harness Coordinator harness to drive.
+/// \param children Browse result to deliver.
+///
+void dropFolder(CoordinatorHarness &harness, const QVector<OpcUaNodeInfo> &children)
+{
+    emit harness.dataView.dataAccess()->folderDropRequested(kFolderNodeId);
+    emit harness.backend.browseFinished(kFolderNodeId, children, QString());
+}
+
+///
+/// \brief Answers the next modal dialog, waiting for it to appear.
+/// \param answer Standard button to click once the dialog is up.
+///
+void answerNextDialog(DialogButtonBox::StandardButton answer)
+{
+    QTimer::singleShot(0, qApp, [answer]() {
+        auto *modal = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+        if (!modal) {
+            answerNextDialog(answer);
+            return;
+        }
+        auto *buttons = modal->findChild<DialogButtonBox *>();
+        QVERIFY(buttons);
+        QPushButton *button = buttons->button(answer);
+        QVERIFY(button);
+        QTest::mouseClick(button, Qt::LeftButton);
+    });
+}
+
+} // namespace
 
 ///
 /// \brief Verifies the coordinator's action enabling, monitoring state, and persistence.
@@ -151,7 +240,20 @@ private slots:
     void subscribeSelectedMarksNodePending();
     void monitoringResultTogglesActions();
     void clearRuntimeStateResetsMonitoring();
+    void offlineKeepsTheCollectedRows();
     void pageStateSurvivesSaveRestoreRoundTrip();
+    void restoredNodesKeepSavedOrderWhenReadsFinishOutOfOrder();
+    void failedRestoredNodeRemainsSavedAndSettles();
+    void folderDropBrowsesDroppedFolder();
+    void folderDropAddsDirectVariablesWithoutPrompt();
+    void folderDropIgnoresBrowseResultsOfOtherNodes();
+    void folderDropAsksBeforeAddingManyVariables();
+    void folderDropDeclinedLeavesTableEmpty();
+    void folderDropCapsVariablesAtHardLimit();
+    void folderDropRowSettlesAfterSubscription();
+    void folderDropRowSettlesAfterFailedRead();
+    void subscribeRequestOnFolderAddsItsVariables();
+    void subscribeRequestOnVariableReadsThatNodeOnly();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -295,6 +397,29 @@ void TestDataAccessCoordinator::clearRuntimeStateResetsMonitoring()
 }
 
 ///
+/// \brief Going offline keeps the listed rows the user collected, unlike clearing (issue #7).
+///
+void TestDataAccessCoordinator::offlineKeepsTheCollectedRows()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+    const QString nodeId = QStringLiteral("ns=2;s=Demo");
+    harness.publishWritableVariable(nodeId);
+    harness.coordinator->addSelectedToView();
+    QVERIFY(harness.dataView.dataAccess()->hasData());
+
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    harness.coordinator->setOffline(true);
+
+    QCOMPARE(harness.dataView.dataAccess()->monitoredNodes().size(), 1);
+    QVERIFY(!harness.actions.subscribe->isEnabled());
+    QVERIFY(!harness.actions.unsubscribe->isEnabled());
+
+    harness.coordinator->clearRuntimeState();
+    QVERIFY(!harness.dataView.dataAccess()->hasData());
+}
+
+///
 /// \brief The visible page round-trips through saveState/restoreState.
 ///
 void TestDataAccessCoordinator::pageStateSurvivesSaveRestoreRoundTrip()
@@ -311,6 +436,272 @@ void TestDataAccessCoordinator::pageStateSurvivesSaveRestoreRoundTrip()
 
     harness.coordinator->restoreState(settings);
     QCOMPARE(harness.dataView.currentPage(), static_cast<int>(DataView::EventsPage));
+}
+
+///
+/// \brief Attribute responses update restored rows without changing their saved order.
+///
+void TestDataAccessCoordinator::restoredNodesKeepSavedOrderWhenReadsFinishOutOfOrder()
+{
+    CoordinatorHarness harness;
+    const QVector<SessionNode> savedNodes{
+        {QStringLiteral("ns=2;s=Third"), QStringLiteral("Fast"), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=First"), QString(), HighlightMode::Enabled},
+        {QStringLiteral("ns=2;s=Second"), QStringLiteral("Default"), HighlightMode::Disabled}
+    };
+
+    harness.coordinator->restoreMonitoredNodes(savedNodes);
+
+    QCOMPARE(harness.backend.readNodeIds,
+             QStringList({savedNodes.at(0).nodeId, savedNodes.at(1).nodeId,
+                          savedNodes.at(2).nodeId}));
+    QCOMPARE(harness.coordinator->monitoredNodes(), savedNodes);
+
+    for (int index : {1, 2, 0}) {
+        OpcUaNodeDetails details;
+        details.nodeId = savedNodes.at(index).nodeId;
+        details.displayName = QStringLiteral("Node %1").arg(index);
+        details.nodeClass = OpcUa::Variable;
+        emit harness.backend.nodeDetailsReady(details, QString());
+    }
+
+    QCOMPARE(harness.coordinator->monitoredNodes(), savedNodes);
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    for (int row = 0; row < savedNodes.size(); ++row) {
+        QCOMPARE(model->data(model->index(row, DataAccessModel::ColNodeId)).toString(),
+                 savedNodes.at(row).nodeId);
+    }
+}
+
+///
+/// \brief A failed restore read leaves the saved row reusable and no longer pending.
+///
+void TestDataAccessCoordinator::failedRestoredNodeRemainsSavedAndSettles()
+{
+    CoordinatorHarness harness;
+    const QVector<SessionNode> savedNodes{
+        {QStringLiteral("ns=2;s=Unavailable"), QStringLiteral("Default"),
+         HighlightMode::FollowDefault}
+    };
+
+    harness.coordinator->restoreMonitoredNodes(savedNodes);
+
+    OpcUaNodeDetails failed;
+    failed.nodeId = savedNodes.first().nodeId;
+    emit harness.backend.nodeDetailsReady(failed, QStringLiteral("Node read timed out."));
+
+    QCOMPARE(harness.coordinator->monitoredNodes(), savedNodes);
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QVERIFY(model->flags(model->index(0, DataAccessModel::ColSubscription))
+            & Qt::ItemIsEditable);
+}
+
+///
+/// \brief A folder dropped onto Data Access is browsed for its children.
+///
+void TestDataAccessCoordinator::folderDropBrowsesDroppedFolder()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    emit harness.dataView.dataAccess()->folderDropRequested(kFolderNodeId);
+
+    QCOMPARE(harness.backend.browsedNodeIds, QStringList{kFolderNodeId});
+}
+
+///
+/// \brief Up to the silent limit the folder's direct variables are added without a prompt.
+///
+void TestDataAccessCoordinator::folderDropAddsDirectVariablesWithoutPrompt()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    dropFolder(harness, makeFolderChildren(4));
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    // The nested folder is skipped and the rows are visible before any read answers.
+    QCOMPARE(model->rowCount(), 4);
+    QCOMPARE(harness.backend.readNodeIds.size(), 4);
+    QCOMPARE(model->data(model->index(0, DataAccessModel::ColDisplayName)).toString(),
+             QStringLiteral("Var0"));
+    QVERIFY(!(model->flags(model->index(0, DataAccessModel::ColSubscription))
+              & Qt::ItemIsEditable));
+}
+
+///
+/// \brief Browse results for nodes the coordinator did not drop are ignored.
+///
+void TestDataAccessCoordinator::folderDropIgnoresBrowseResultsOfOtherNodes()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    emit harness.backend.browseFinished(QStringLiteral("ns=2;s=Other"),
+                                        makeFolderChildren(3), QString());
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QCOMPARE(model->rowCount(), 0);
+    QVERIFY(harness.backend.readNodeIds.isEmpty());
+}
+
+///
+/// \brief Above the silent limit the user is asked before the variables are added.
+///
+void TestDataAccessCoordinator::folderDropAsksBeforeAddingManyVariables()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    answerNextDialog(DialogButtonBox::Yes);
+    dropFolder(harness, makeFolderChildren(11));
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QCOMPARE(model->rowCount(), 11);
+    QCOMPARE(harness.backend.readNodeIds.size(), 11);
+}
+
+///
+/// \brief Declining the prompt adds nothing at all.
+///
+void TestDataAccessCoordinator::folderDropDeclinedLeavesTableEmpty()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    answerNextDialog(DialogButtonBox::No);
+    dropFolder(harness, makeFolderChildren(11));
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QCOMPARE(model->rowCount(), 0);
+    QVERIFY(harness.backend.readNodeIds.isEmpty());
+}
+
+///
+/// \brief Beyond the hard limit only the first 100 variables are added.
+///
+void TestDataAccessCoordinator::folderDropCapsVariablesAtHardLimit()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    answerNextDialog(DialogButtonBox::Ok);
+    dropFolder(harness, makeFolderChildren(150));
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QCOMPARE(model->rowCount(), 100);
+    QCOMPARE(harness.backend.readNodeIds.size(), 100);
+    QCOMPARE(model->data(model->index(99, DataAccessModel::ColDisplayName)).toString(),
+             QStringLiteral("Var99"));
+}
+
+///
+/// \brief A dropped row stays inactive until its read and subscription have finished.
+///
+void TestDataAccessCoordinator::folderDropRowSettlesAfterSubscription()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    dropFolder(harness, makeFolderChildren(1));
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QCOMPARE(model->rowCount(), 1);
+
+    const QString nodeId = QStringLiteral("ns=2;s=Var0");
+    OpcUaNodeDetails details;
+    details.nodeId = nodeId;
+    details.displayName = QStringLiteral("Var0");
+    details.nodeClass = OpcUa::Variable;
+    details.status = QStringLiteral("Good");
+    emit harness.backend.nodeDetailsReady(details, QString());
+
+    // The attribute read alone must not settle the row; the subscription is still open.
+    QCOMPARE(harness.backend.subscribedNodeIds, QStringList{nodeId});
+    QVERIFY(!(model->flags(model->index(0, DataAccessModel::ColSubscription))
+              & Qt::ItemIsEditable));
+
+    emit harness.backend.monitoringFinished(nodeId, true, true, QString());
+
+    QVERIFY(model->flags(model->index(0, DataAccessModel::ColSubscription))
+            & Qt::ItemIsEditable);
+    QCOMPARE(model->data(model->index(0, DataAccessModel::ColStatus)).toString(),
+             QStringLiteral("Good"));
+}
+
+///
+/// \brief A failed attribute read settles the row and reports the batch failure once.
+///
+void TestDataAccessCoordinator::folderDropRowSettlesAfterFailedRead()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    dropFolder(harness, makeFolderChildren(1));
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+
+    OpcUaNodeDetails failed;
+    failed.nodeId = QStringLiteral("ns=2;s=Var0");
+    answerNextDialog(DialogButtonBox::Ok);
+    emit harness.backend.nodeDetailsReady(failed, QStringLiteral("Node read timed out."));
+
+    QVERIFY(harness.backend.subscribedNodeIds.isEmpty());
+    QCOMPARE(model->rowCount(), 1);
+    QVERIFY(model->flags(model->index(0, DataAccessModel::ColSubscription))
+            & Qt::ItemIsEditable);
+}
+
+///
+/// \brief Subscribing a folder from the tree adds its direct variables, like a drop does.
+///
+void TestDataAccessCoordinator::subscribeRequestOnFolderAddsItsVariables()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    OpcUaNodeInfo folder;
+    folder.nodeId = kFolderNodeId;
+    folder.displayName = QStringLiteral("MyDevice");
+    folder.nodeClass = OpcUa::Object;
+    harness.selection.requestSubscribe(folder);
+
+    QCOMPARE(harness.backend.browsedNodeIds, QStringList{kFolderNodeId});
+    QVERIFY(harness.backend.readNodeIds.isEmpty());
+
+    emit harness.backend.browseFinished(kFolderNodeId, makeFolderChildren(3), QString());
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QCOMPARE(model->rowCount(), 3);
+    QCOMPARE(harness.backend.readNodeIds.size(), 3);
+}
+
+///
+/// \brief Subscribing a variable from the tree still reads just that node.
+///
+void TestDataAccessCoordinator::subscribeRequestOnVariableReadsThatNodeOnly()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    OpcUaNodeInfo variable;
+    variable.nodeId = QStringLiteral("ns=2;s=Temperature");
+    variable.displayName = QStringLiteral("Temperature");
+    variable.nodeClass = OpcUa::Variable;
+    harness.selection.requestSubscribe(variable);
+
+    QCOMPARE(harness.backend.readNodeIds, QStringList{variable.nodeId});
+    QVERIFY(harness.backend.browsedNodeIds.isEmpty());
 }
 
 ///

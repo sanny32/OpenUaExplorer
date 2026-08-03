@@ -164,6 +164,8 @@ struct OpcUaNodeInfo
     QString displayPath;
     /// \brief Reference type that led to this node.
     QString referenceTypeId;
+    /// \brief TypeDefinition NodeId reported by the browse result.
+    QString typeDefinitionId;
     /// \brief OPC UA NodeClass numeric value.
     int nodeClass = 0;
     /// \brief EventNotifier bit mask (Object/View nodes only; 0 otherwise).

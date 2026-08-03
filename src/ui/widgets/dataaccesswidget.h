@@ -9,13 +9,13 @@
 #pragma once
 
 #include <QModelIndex>
-#include <QPair>
 #include <QVector>
 #include <QWidget>
 
 #include "appsettings.h"
 #include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
+#include "session/sessiondata.h"
 
 class QMenu;
 
@@ -23,8 +23,11 @@ namespace Ui {
 class DataAccessWidget;
 }
 
+class DataAccessFilterProxyModel;
 class DataAccessModel;
 class SubscriptionDelegate;
+class ValueCellDelegate;
+struct DataAccessItem;
 
 ///
 /// \brief Tab widget for browsing and monitoring data access items.
@@ -61,6 +64,24 @@ public:
         const SubscriptionItem &subscription = SubscriptionItem());
 
     ///
+    /// \brief Adds placeholder rows for nodes whose attributes are still being read.
+    /// \param nodes Browsed variable nodes to show.
+    ///
+    void addPendingNodes(const QVector<OpcUaNodeInfo> &nodes);
+
+    ///
+    /// \brief Replaces the table with saved nodes in their persisted order.
+    /// \param nodes Saved nodes with their subscription and highlight preference.
+    ///
+    void restoreMonitoredNodes(const QVector<SessionNode> &nodes);
+
+    ///
+    /// \brief Clears the pending mark of a row once its request chain has finished.
+    /// \param nodeId Node to update.
+    ///
+    void clearNodePending(const QString &nodeId);
+
+    ///
     /// \brief Applies read results to the data rows.
     /// \param values Read results.
     ///
@@ -72,6 +93,13 @@ public:
     /// \param subscribed Whether the node belongs to the default subscription.
     ///
     void setNodeSubscribed(const QString &nodeId, bool subscribed);
+
+    ///
+    /// \brief Shows the publishing interval the server granted for a monitored node.
+    /// \param nodeId Affected node.
+    /// \param publishingInterval Granted interval in milliseconds; 0 clears the shown value.
+    ///
+    void setNodeRevisedInterval(const QString &nodeId, double publishingInterval);
 
     ///
     /// \brief Assigns a subscription (or clears it) on every selected data row.
@@ -106,6 +134,12 @@ public:
     void clear();
 
     ///
+    /// \brief Keeps the listed nodes visible but inactive while the connection is gone.
+    /// \param offline True while the server connection is gone.
+    ///
+    void setOffline(bool offline);
+
+    ///
     /// \brief Reports whether the data-access table has any rows.
     /// \return True when at least one node is listed.
     ///
@@ -117,10 +151,10 @@ public:
     void exportToCsv();
 
     ///
-    /// \brief Returns the listed nodes paired with their subscription assignment.
-    /// \return NodeId and subscription-name pairs in row order.
+    /// \brief Returns the listed nodes with their subscription and highlight preference.
+    /// \return Saved-node records in row order.
     ///
-    QVector<QPair<QString, QString>> monitoredNodes() const;
+    QVector<SessionNode> monitoredNodes() const;
 
     ///
     /// \brief Persists the data view header state.
@@ -140,6 +174,12 @@ public slots:
     /// \param mode Local time or UTC.
     ///
     void setTimestampMode(AppSettings::TimestampMode mode);
+
+    ///
+    /// \brief Sets whether rows highlight value changes unless overridden individually.
+    /// \param enabled True to highlight value changes by default.
+    ///
+    void setHighlightValueChanges(bool enabled);
 
     ///
     /// \brief Replaces the known subscriptions and rebuilds the subscribe menu.
@@ -180,6 +220,12 @@ signals:
     void nodeDropRequested(QString nodeId);
 
     ///
+    /// \brief Emitted when an address-space folder is dropped onto Data Access.
+    /// \param nodeId Dropped OPC UA container node whose variables should be added.
+    ///
+    void folderDropRequested(QString nodeId);
+
+    ///
     /// \brief Emitted when the user requests a read of nodes.
     /// \param nodeIds Nodes to read.
     ///
@@ -195,6 +241,14 @@ signals:
     ///
     void writeRequested(QString nodeId, QVariant currentValue, int valueType,
                         QString dataTypeId, bool writable);
+
+    ///
+    /// \brief Emitted when a value should be written without asking the user first.
+    /// \param nodeId Target node.
+    /// \param value Value to write.
+    /// \param valueType OPC UA value type.
+    ///
+    void valueWriteRequested(QString nodeId, QVariant value, int valueType);
 
     ///
     /// \brief Emitted when a node should be monitored at a subscription's publishing interval.
@@ -229,13 +283,20 @@ signals:
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
+    void changeEvent(QEvent *event) override;
 
 private:
     void setupDataView();
     void configureToolbar();
     void showDataContextMenu(const QPoint &pos);
+    void updateSelectionActions();
     void readSelectedNodes();
     void writeSelectedNode();
+    bool canWriteSelection() const;
+    void requestWrite(const DataAccessItem &item);
+    void handleValueDoubleClick(const QModelIndex &index);
+    void toggleBooleanValue(const DataAccessItem &item);
+    void toggleHighlightForSelection(bool enabled);
     void rebuildSubscribeMenu();
     void populateSubscribeMenu(QMenu *menu);
     void promptNewSubscription(const QString &nodeId);
@@ -243,9 +304,13 @@ private:
     double intervalFor(const QString &name) const;
     SubscriptionItem defaultSubscription() const;
     QModelIndexList selectedDataRows() const;
+    QModelIndexList selectedSettledRows() const;
 
     Ui::DataAccessWidget      *ui;
     DataAccessModel           *_dataModel;
+    DataAccessFilterProxyModel *_filterProxy;
     SubscriptionDelegate      *_subscriptionDelegate = nullptr;
+    ValueCellDelegate         *_valueDelegate = nullptr;
     QVector<SubscriptionItem>  _subscriptions;
+    bool                       _offline = false;
 };

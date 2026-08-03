@@ -10,6 +10,7 @@
 
 #include <QAction>
 #include <QIcon>
+#include <QSize>
 #include <QString>
 
 #include "application.h"
@@ -34,6 +35,25 @@ inline QIcon themed(const QString &icon)
 {
     const QString name = icon.contains(QLatin1Char('.')) ? icon : icon + QStringLiteral(".svg");
     return QIcon(QString(":/icons/%1/%2").arg(isDarkTheme() ? "dark" : "light", name));
+}
+
+///
+/// \brief Builds a themed icon that keeps its glyph legible on a highlighted row.
+///
+/// Selection highlights use a dark accent fill, so the light-stroked dark-set glyph is
+/// attached for the selected state while the normal state follows the active theme.
+///
+/// \param icon Icon resource file name.
+/// \return Theme-matching icon with a selected-state variant.
+///
+inline QIcon selectableThemed(const QString &icon)
+{
+    const QString name = icon.contains(QLatin1Char('.')) ? icon : icon + QStringLiteral(".svg");
+    QIcon result = themed(name);
+    const QString highlighted = QStringLiteral(":/icons/dark/%1").arg(name);
+    result.addFile(highlighted, QSize(), QIcon::Selected, QIcon::Off);
+    result.addFile(highlighted, QSize(), QIcon::Selected, QIcon::On);
+    return result;
 }
 
 ///

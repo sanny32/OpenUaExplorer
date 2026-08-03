@@ -61,6 +61,11 @@ public:
                         int role = Qt::DisplayRole) const override;
 
     ///
+    /// \brief Re-emits the header titles after a UI language change.
+    ///
+    void retranslate();
+
+    ///
     /// \brief Appends a log entry, inserting a row only when it passes the active filters.
     /// \param item Log entry to add.
     ///

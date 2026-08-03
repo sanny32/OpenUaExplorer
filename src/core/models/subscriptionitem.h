@@ -10,6 +10,21 @@
 
 #include <QString>
 
+/// \brief Smallest publishing interval accepted from the user, in milliseconds.
+constexpr int minPublishingIntervalMs = 50;
+
+/// \brief Largest publishing interval accepted from the user, in milliseconds.
+constexpr int maxPublishingIntervalMs = 600000;
+
+///
+/// \brief Stable identifiers of the built-in subscriptions.
+///
+enum BuiltinSubscriptionId {
+    DefaultSubscriptionId = 0,
+    FastSubscriptionId = 1,
+    SlowSubscriptionId = 2
+};
+
 ///
 /// \brief Describes a configured OPC UA subscription.
 ///
@@ -24,7 +39,7 @@ struct SubscriptionItem
     /// \brief Stable subscription identifier; 0 is the built-in Default subscription.
     int id = 0;
 
-    /// \brief Whether this subscription is built in and cannot be edited or removed.
+    /// \brief Whether this subscription is built in and cannot be removed.
     bool builtin = false;
 
     ///
@@ -34,7 +49,7 @@ struct SubscriptionItem
     bool isDefault() const { return id == 0; }
 
     ///
-    /// \brief Reports whether this subscription is protected from editing and removal.
+    /// \brief Reports whether this subscription is protected from removal.
     /// \return True for built-in subscriptions.
     ///
     bool isBuiltin() const { return builtin; }

@@ -7,12 +7,16 @@
 ///
 
 #include <algorithm>
+#include <utility>
 
 #include <QAction>
 #include <QDateTime>
+#include <QGuiApplication>
 #include <QMenu>
+#include <QTimer>
 #include <QToolButton>
 
+#include "appsettings.h"
 #include "connectioncoordinator.h"
 #include "dialogs/certificatetrustdialog.h"
 #include "dialogs/connectioncredentialsdialog.h"
@@ -47,11 +51,17 @@ ConnectionCoordinator::ConnectionCoordinator(ConnectionController *controller,
     , _actions(actions)
     , _dialogParent(dialogParent)
     , _favorites(new FavoritesCoordinator(controller, backend, dialogParent))
+    , _reconnectTimer(new QTimer(this))
 {
+    _reconnectTimer->setSingleShot(true);
+    connect(_reconnectTimer, &QTimer::timeout, this, &ConnectionCoordinator::attemptReconnect);
+
     connect(_controller, &ConnectionController::recentsChanged,
             this, &ConnectionCoordinator::rebuildRecentMenu);
     connect(_controller, &ConnectionController::errorOccurred,
             this, &ConnectionCoordinator::onClientError);
+    connect(_backend, &OpcUaBackend::stateChanged,
+            this, &ConnectionCoordinator::trackConnectionState);
     connect(_backend, &OpcUaBackend::stateChanged,
             this, &ConnectionCoordinator::updateActions);
     connect(_favoritesButton, &QToolButton::clicked,
@@ -65,6 +75,14 @@ ConnectionCoordinator::ConnectionCoordinator(ConnectionController *controller,
     _controller->setCertificateTrustDecider(this);
     rebuildRecentMenu();
     updateActions(_backend->state());
+}
+
+///
+/// \brief Releases a connection-attempt cursor still owned by the coordinator.
+///
+ConnectionCoordinator::~ConnectionCoordinator()
+{
+    endConnectionAttempt();
 }
 
 ///
@@ -99,11 +117,154 @@ bool ConnectionCoordinator::openConnectionDialog(const ConnectionProfile *preset
 }
 
 ///
-/// \brief Disconnects from the current endpoint.
+/// \brief Disconnects from the current endpoint, or gives up on a lost one.
+///
+/// While a lost connection is being retried there is nothing to close, so the retries are
+/// abandoned and the session is reported as finished for good.
 ///
 void ConnectionCoordinator::disconnectFromServer()
 {
+    _disconnectRequested = true;
+    const bool abandoningRetries = _connectionLost;
+    _connectionLost = false;
+    stopReconnect();
     _backend->disconnectFromEndpoint();
+
+    if (abandoningRetries) {
+        _disconnectRequested = false;
+        updateActions(_backend->state());
+        emit sessionAbandoned();
+    }
+}
+
+///
+/// \brief Reports whether the connection dropped instead of being closed by the user.
+///
+/// Lets the window tell a deliberate disconnect, which drops the workspace, apart from a
+/// connection the server lost, whose workspace is kept for a reconnect.
+/// \return True from a lost connection until it is back or the user starts another one.
+///
+bool ConnectionCoordinator::connectionLost() const
+{
+    return _connectionLost;
+}
+
+///
+/// \brief Reports whether a reconnect attempt is scheduled or running.
+/// \return True while the lost connection is being retried.
+///
+bool ConnectionCoordinator::isReconnecting() const
+{
+    return _reconnectTimer->isActive() || _retryInProgress;
+}
+
+///
+/// \brief Tracks why the connection ended and drives the reconnect attempts.
+/// \param state Current OPC UA client state.
+///
+void ConnectionCoordinator::trackConnectionState(OpcUaConnectionState state)
+{
+    // The wait cursor lasts from the start of a connection attempt until the client reports
+    // it connected or back to idle. Retries of a lost connection run unattended, so they are
+    // left out: the user is working elsewhere and must not be blocked every retry interval.
+    if (state == OpcUaConnectionState::Discovering
+        || state == OpcUaConnectionState::Connecting) {
+        if (!_retryInProgress)
+            beginConnectionAttempt();
+    } else {
+        endConnectionAttempt();
+    }
+
+    switch (state) {
+    case OpcUaConnectionState::Connected:
+        _wasConnected = true;
+        _connectionLost = false;
+        stopReconnect();
+        break;
+    case OpcUaConnectionState::Discovering:
+    case OpcUaConnectionState::Connecting:
+        // A connection the user starts replaces the one that was lost.
+        if (!_retryInProgress) {
+            _connectionLost = false;
+            stopReconnect();
+        }
+        break;
+    case OpcUaConnectionState::Disconnected:
+    case OpcUaConnectionState::Unavailable: {
+        const bool requested = std::exchange(_disconnectRequested, false);
+        if (_wasConnected && !requested)
+            _connectionLost = true;
+        else if (!_retryInProgress)
+            _connectionLost = false;
+        _wasConnected = false;
+        _retryInProgress = false;
+        if (_connectionLost)
+            scheduleReconnect();
+        else
+            stopReconnect();
+        break;
+    }
+    case OpcUaConnectionState::Closing:
+        break;
+    }
+}
+
+///
+/// \brief Arms the next reconnect attempt for a lost connection.
+///
+void ConnectionCoordinator::scheduleReconnect()
+{
+    AppSettings settings;
+    if (!settings.reconnectEnabled() || _controller->activeProfile().endpointUrl.isEmpty())
+        return;
+    _reconnectTimer->start(settings.reconnectIntervalSeconds() * 1000);
+}
+
+///
+/// \brief Reconnects the lost session, rearming the timer when the attempt fails.
+///
+void ConnectionCoordinator::attemptReconnect()
+{
+    if (!_connectionLost)
+        return;
+
+    qCInfo(lcClient).noquote()
+        << tr("Reconnecting to '%1'.").arg(_controller->activeProfile().endpointUrl);
+
+    _retryInProgress = true;
+    if (!_controller->reconnectActiveProfile())
+        _retryInProgress = false;
+}
+
+///
+/// \brief Stops retrying the connection.
+///
+void ConnectionCoordinator::stopReconnect()
+{
+    _reconnectTimer->stop();
+    _retryInProgress = false;
+}
+
+///
+/// \brief Shows the application wait cursor while a connection attempt is running.
+///
+void ConnectionCoordinator::beginConnectionAttempt()
+{
+    if (_connectionCursorActive)
+        return;
+    QGuiApplication::setOverrideCursor(Qt::WaitCursor);
+    _connectionCursorActive = true;
+}
+
+///
+/// \brief Removes the wait cursor installed for a connection attempt.
+///
+void ConnectionCoordinator::endConnectionAttempt()
+{
+    if (!_connectionCursorActive)
+        return;
+    QGuiApplication::restoreOverrideCursor();
+    _connectionCursorActive = false;
 }
 
 ///
@@ -128,7 +289,14 @@ CertificateTrustDecision ConnectionCoordinator::decide(const QByteArray &certifi
 {
     CertificateTrustDialog dialog(_dialogParent);
     dialog.setCertificate(certificate, message);
+    // The prompt interrupts the connection attempt and waits for the user, so the wait cursor
+    // of that attempt is lifted while the dialog is up and restored once it is answered.
+    const bool waiting = _connectionCursorActive;
+    if (waiting)
+        endConnectionAttempt();
     dialog.exec();
+    if (waiting)
+        beginConnectionAttempt();
     switch (dialog.decision()) {
     case CertificateTrustDialog::TrustOnce:
         return CertificateTrustDecision::TrustOnce;
@@ -244,7 +412,8 @@ void ConnectionCoordinator::updateActions(OpcUaConnectionState state)
         || state == OpcUaConnectionState::Unavailable;
     _actions.connect->setEnabled(idle);
     _actions.newConnection->setEnabled(idle);
-    _actions.disconnect->setEnabled(connected);
+    // Disconnecting a lost connection gives up on it instead of retrying forever.
+    _actions.disconnect->setEnabled(connected || _connectionLost);
     _actions.browse->setEnabled(connected);
     _actions.browseAddressSpace->setEnabled(connected);
     _actions.refresh->setEnabled(connected);

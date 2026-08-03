@@ -6,16 +6,24 @@
 /// \brief Implements the application settings dialog.
 ///
 
+#include <iterator>
+
 #include <QAbstractButton>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QEvent>
 #include <QGridLayout>
+#include <QListWidget>
 #include <QLoggingCategory>
 #include <QPushButton>
+#include <QSignalBlocker>
+#include <QSpinBox>
 #include <QSizePolicy>
+#include <QStackedWidget>
 #include <QVector>
 
+#include "appicons.h"
 #include "application.h"
 #include "appsettings.h"
 #include "apptheme.h"
@@ -33,6 +41,15 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     ui->setupUi(this);
     ui->themeGroup->setVisible(theApp()->theme().isManualToggleSupported());
 
+    ui->categoryList->setCurrentRow(ui->categoryPages->currentIndex());
+    connect(ui->categoryList, &QListWidget::currentRowChanged,
+            ui->categoryPages, &QStackedWidget::setCurrentIndex);
+
+    applyCategoryIcons();
+    connect(&theApp()->theme(), &AppTheme::colorSchemeChanged,
+            this, &SettingsDialog::applyCategoryIcons);
+
+    populateLanguageCombo();
     setupLogCategories();
     loadSettings();
     setDirty(false);
@@ -51,6 +68,20 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     connect(ui->systemThemeButton, &QAbstractButton::clicked,
             this, &SettingsDialog::markDirty);
     connect(ui->timestampModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &SettingsDialog::markDirty);
+    connect(ui->languageCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &SettingsDialog::markDirty);
+    connect(ui->restoreLastSessionCheck, &QAbstractButton::toggled,
+            this, &SettingsDialog::markDirty);
+    connect(ui->reconnectCheck, &QAbstractButton::toggled,
+            this, &SettingsDialog::markDirty);
+    connect(ui->reconnectCheck, &QAbstractButton::toggled,
+            ui->reconnectIntervalLabel, &QWidget::setEnabled);
+    connect(ui->reconnectCheck, &QAbstractButton::toggled,
+            ui->reconnectIntervalSpin, &QWidget::setEnabled);
+    connect(ui->reconnectIntervalSpin, &QSpinBox::valueChanged,
+            this, &SettingsDialog::markDirty);
+    connect(ui->highlightChangesCheck, &QAbstractButton::toggled,
             this, &SettingsDialog::markDirty);
 }
 
@@ -123,6 +154,20 @@ void SettingsDialog::populateLogCategoryLayout(
 }
 
 ///
+/// \brief Applies theme-matching icons to the category rows.
+///
+/// The icons come from the light/dark resource sets, so they are re-applied whenever the
+/// colour scheme changes.
+///
+void SettingsDialog::applyCategoryIcons()
+{
+    static const char *const categoryIcons[] = {"settings", "palette", "logs"};
+    const int count = qMin(ui->categoryList->count(), int(std::size(categoryIcons)));
+    for (int row = 0; row < count; ++row)
+        ui->categoryList->item(row)->setIcon(AppIcons::selectableThemed(QLatin1String(categoryIcons[row])));
+}
+
+///
 /// \brief Pre-selects the dialog controls from the stored preferences.
 ///
 void SettingsDialog::loadSettings()
@@ -130,6 +175,13 @@ void SettingsDialog::loadSettings()
     AppSettings settings;
     setThemeSelection(settings.themeMode());
     setTimestampSelection(settings.timestampMode());
+    setLanguageSelection(settings.language());
+    ui->restoreLastSessionCheck->setChecked(settings.restoreLastSessionOnStartup());
+    ui->reconnectCheck->setChecked(settings.reconnectEnabled());
+    ui->reconnectIntervalSpin->setValue(settings.reconnectIntervalSeconds());
+    ui->reconnectIntervalLabel->setEnabled(ui->reconnectCheck->isChecked());
+    ui->reconnectIntervalSpin->setEnabled(ui->reconnectCheck->isChecked());
+    ui->highlightChangesCheck->setChecked(settings.highlightValueChanges());
 
     const QHash<QString, bool> states = settings.logCategoryStates();
     for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
@@ -149,6 +201,10 @@ void SettingsDialog::applyChanges()
     settings.setLogCategoryStates(states);
     QLoggingCategory::setFilterRules(settings.logFilterRules());
 
+    settings.setRestoreLastSessionOnStartup(ui->restoreLastSessionCheck->isChecked());
+    settings.setReconnectEnabled(ui->reconnectCheck->isChecked());
+    settings.setReconnectIntervalSeconds(ui->reconnectIntervalSpin->value());
+
     if (_layoutResetRequested)
         settings.clearLayout();
 
@@ -156,6 +212,8 @@ void SettingsDialog::applyChanges()
         theApp()->theme().setColorSchemePreference(selectedThemeMode());
 
     theApp()->setTimestampMode(selectedTimestampMode());
+    theApp()->setHighlightValueChanges(ui->highlightChangesCheck->isChecked());
+    theApp()->setLanguage(selectedLanguage());
 
     setDirty(false);
 }
@@ -235,6 +293,76 @@ AppSettings::TimestampMode SettingsDialog::selectedTimestampMode() const
     return ui->timestampModeCombo->currentIndex() == 1
         ? AppSettings::TimestampMode::Utc
         : AppSettings::TimestampMode::LocalTime;
+}
+
+///
+/// \brief Fills the language combo with the supported languages.
+///
+/// The "System" entry follows the platform locale and is translatable; the remaining
+/// entries carry their own endonyms so they read the same in every language.
+///
+void SettingsDialog::populateLanguageCombo()
+{
+    const QSignalBlocker blocker(ui->languageCombo);
+    ui->languageCombo->clear();
+    ui->languageCombo->addItem(tr("System", "interface language"),
+                               static_cast<int>(AppSettings::Language::System));
+    ui->languageCombo->addItem(QStringLiteral("English"),
+                               static_cast<int>(AppSettings::Language::English));
+    ui->languageCombo->addItem(QStringLiteral("Русский"),
+                               static_cast<int>(AppSettings::Language::Russian));
+    ui->languageCombo->addItem(QStringLiteral("Deutsch"),
+                               static_cast<int>(AppSettings::Language::German));
+    ui->languageCombo->addItem(QStringLiteral("简体中文"),
+                               static_cast<int>(AppSettings::Language::ChineseSimplified));
+}
+
+///
+/// \brief Selects the combo entry for a stored language preference.
+/// \param language Stored language preference.
+///
+void SettingsDialog::setLanguageSelection(AppSettings::Language language)
+{
+    const int index = ui->languageCombo->findData(static_cast<int>(language));
+    ui->languageCombo->setCurrentIndex(index < 0 ? 0 : index);
+}
+
+///
+/// \brief Returns the language selected in the combo box.
+/// \return Selected language preference.
+///
+AppSettings::Language SettingsDialog::selectedLanguage() const
+{
+    const int data = ui->languageCombo->currentData().toInt();
+    switch (data) {
+    case static_cast<int>(AppSettings::Language::English):
+        return AppSettings::Language::English;
+    case static_cast<int>(AppSettings::Language::Russian):
+        return AppSettings::Language::Russian;
+    case static_cast<int>(AppSettings::Language::German):
+        return AppSettings::Language::German;
+    case static_cast<int>(AppSettings::Language::ChineseSimplified):
+        return AppSettings::Language::ChineseSimplified;
+    default:
+        return AppSettings::Language::System;
+    }
+}
+
+///
+/// \brief Retranslates the generated UI and the code-populated combo entries on a language change.
+/// \param event Change event being handled.
+///
+void SettingsDialog::changeEvent(QEvent *event)
+{
+    AppBaseDialog::changeEvent(event);
+
+    if (event->type() == QEvent::LanguageChange) {
+        const AppSettings::Language language = selectedLanguage();
+        ui->retranslateUi(this);
+        const QSignalBlocker blocker(ui->languageCombo);
+        populateLanguageCombo();
+        setLanguageSelection(language);
+    }
 }
 
 ///

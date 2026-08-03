@@ -252,6 +252,9 @@ void LogWidget::changeEvent(QEvent *event)
     if (event->type() == QEvent::PaletteChange
         || event->type() == QEvent::ApplicationPaletteChange) {
         refreshIcons();
+    } else if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        _model->retranslate();
     }
 }
 

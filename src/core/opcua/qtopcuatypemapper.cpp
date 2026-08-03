@@ -194,6 +194,7 @@ QVector<OpcUaNodeInfo> nodeInfos(const QVector<QOpcUaReferenceDescription> &refe
         info.browseName = reference.browseName().name();
         info.displayName = reference.displayName().text();
         info.referenceTypeId = reference.refTypeId();
+        info.typeDefinitionId = reference.typeDefinition().nodeId();
         info.nodeClass = static_cast<int>(reference.nodeClass());
         result.append(info);
     }

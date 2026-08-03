@@ -6,6 +6,7 @@
 /// \brief Tests EventsHistoryWidget query, export and clear behaviour.
 ///
 
+#include <QCoreApplication>
 #include <QDateTimeEdit>
 #include <QSignalSpy>
 #include <QSpinBox>
@@ -29,6 +30,8 @@ private slots:
     void exportButtonFollowsResults();
     void exportFileNameDescribesQuery();
     void dateTimeFieldsFitZoneSuffix();
+    void maxValuesFieldIsCompact();
+    void actionButtonsAdaptToWidth();
     void nodeClearClearsResults();
     void readButtonEmitsQuery();
     void clearButtonUsesTrashIcon();
@@ -113,6 +116,48 @@ void TestEventsHistoryWidget::dateTimeFieldsFitZoneSuffix()
 
     QVERIFY(startEdit->minimumWidth() >= 190);
     QVERIFY(endEdit->minimumWidth() >= 190);
+}
+
+///
+/// \brief The maximum-values field does not consume excess query-row width.
+///
+void TestEventsHistoryWidget::maxValuesFieldIsCompact()
+{
+    EventsHistoryWidget widget;
+    auto *maxEdit = widget.findChild<QSpinBox *>(QStringLiteral("eventsHistoryMaxEdit"));
+    QVERIFY(maxEdit);
+    QCOMPARE(maxEdit->maximumWidth(), 100);
+}
+
+///
+/// \brief Query actions keep text when it fits and switch to icons when width is limited.
+///
+void TestEventsHistoryWidget::actionButtonsAdaptToWidth()
+{
+    EventsHistoryWidget widget;
+    const QList<QToolButton *> buttons = {
+        widget.findChild<QToolButton *>(QStringLiteral("eventsHistoryReadButton")),
+        widget.findChild<QToolButton *>(QStringLiteral("eventsHistoryClearButton")),
+        widget.findChild<QToolButton *>(QStringLiteral("eventsHistoryExportButton"))
+    };
+    QVERIFY(!buttons.contains(nullptr));
+    widget.show();
+    QCoreApplication::processEvents();
+
+    widget.resize(3000, 300);
+    QCoreApplication::processEvents();
+    for (QToolButton *button : buttons)
+        QCOMPARE(button->toolButtonStyle(), Qt::ToolButtonTextBesideIcon);
+
+    widget.resize(widget.minimumSizeHint().width(), 300);
+    QCoreApplication::processEvents();
+    for (QToolButton *button : buttons)
+        QCOMPARE(button->toolButtonStyle(), Qt::ToolButtonIconOnly);
+
+    widget.resize(3000, 300);
+    QCoreApplication::processEvents();
+    for (QToolButton *button : buttons)
+        QCOMPARE(button->toolButtonStyle(), Qt::ToolButtonTextBesideIcon);
 }
 
 ///

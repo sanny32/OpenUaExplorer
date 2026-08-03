@@ -15,6 +15,7 @@
 
 class QDateTime;
 class QDateTimeEdit;
+class QResizeEvent;
 
 namespace Ui {
 class EventsHistoryWidget;
@@ -102,9 +103,14 @@ signals:
     void eventsHistoryReadRequested(QString nodeId, QDateTime start, QDateTime end,
                                     quint32 maxValues);
 
+protected:
+    void changeEvent(QEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
+
 private:
     void setupEventsHistoryView();
     void updateActionButtons();
+    void updateQueryButtonStyle();
     void clearEventsHistoryNode();
     void requestEventsHistoryRead();
     void applyEventsHistoryTimestampMode(AppSettings::TimestampMode mode);

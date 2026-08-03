@@ -8,13 +8,17 @@
 
 #include <QAbstractButton>
 #include <QCheckBox>
+#include <QListWidget>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDialogButtonBox>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QPushButton>
+#include <QSpinBox>
+#include <QStackedWidget>
 #include <QSettings>
+#include <QSignalSpy>
 #include <QTabWidget>
 #include <QTemporaryDir>
 #include <QTest>
@@ -40,6 +44,10 @@ private slots:
     void themeCardsSelectOneMode();
     void applyPersistsWithoutClosing();
     void timestampModeComboPersists();
+    void categoryListSelectsPages();
+    void restoreLastSessionCheckPersists();
+    void reconnectSettingsPersistAndGateTheInterval();
+    void highlightChangesCheckPersists();
     void layoutResetWaitsForAcceptance();
 
 private:
@@ -84,7 +92,7 @@ void TestSettingsDialog::referenceControlsArePresent()
     auto *lightCard = dialog.findChild<ThemePreviewButton *>(
         QStringLiteral("lightThemeButton"));
     QVERIFY(lightCard);
-    QCOMPARE(lightCard->sizeHint(), QSize(150, 118));
+    QCOMPARE(lightCard->sizeHint(), QSize(140, 66));
     QVERIFY(dialog.findChild<ThemePreviewButton *>(QStringLiteral("darkThemeButton")));
     QVERIFY(dialog.findChild<ThemePreviewButton *>(QStringLiteral("systemThemeButton")));
     QVERIFY(dialog.findChild<QPushButton *>(QStringLiteral("resetButton")));
@@ -204,6 +212,119 @@ void TestSettingsDialog::timestampModeComboPersists()
 
     QCOMPARE(AppSettings().timestampMode(), AppSettings::TimestampMode::LocalTime);
     QCOMPARE(dialog.result(), 0);
+}
+
+///
+/// \brief Verifies the category list drives the page stack and stays aligned with it.
+///
+void TestSettingsDialog::categoryListSelectsPages()
+{
+    SettingsDialog dialog;
+    auto *list = dialog.findChild<QListWidget *>(QStringLiteral("categoryList"));
+    auto *pages = dialog.findChild<QStackedWidget *>(QStringLiteral("categoryPages"));
+    QVERIFY(list);
+    QVERIFY(pages);
+
+    // One row per page, General first.
+    QCOMPARE(list->count(), pages->count());
+    QCOMPARE(list->count(), 3);
+    QCOMPARE(list->item(0)->text(), QStringLiteral("General"));
+    QCOMPARE(list->item(1)->text(), QStringLiteral("Appearance"));
+    QCOMPARE(list->item(2)->text(), QStringLiteral("Logging"));
+    QCOMPARE(list->currentRow(), 0);
+    QCOMPARE(pages->currentWidget()->objectName(), QStringLiteral("generalPage"));
+
+    // Every row carries a themed icon; a missing resource would yield a null icon.
+    for (int row = 0; row < list->count(); ++row)
+        QVERIFY(!list->item(row)->icon().isNull());
+
+    list->setCurrentRow(1);
+    QCOMPARE(pages->currentWidget()->objectName(), QStringLiteral("appearancePage"));
+    QVERIFY(dialog.findChild<QGroupBox *>(QStringLiteral("themeGroup"))->parentWidget()
+            == pages->currentWidget());
+
+    list->setCurrentRow(2);
+    QCOMPARE(pages->currentWidget()->objectName(), QStringLiteral("loggingPage"));
+
+    // Switching pages is navigation, not a preference change.
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(!buttons->button(QDialogButtonBox::Apply)->isEnabled());
+}
+
+///
+/// \brief Verifies the session-restore check box reflects and persists the preference.
+///
+void TestSettingsDialog::restoreLastSessionCheckPersists()
+{
+    SettingsDialog dialog;
+    auto *check = dialog.findChild<QCheckBox *>(QStringLiteral("restoreLastSessionCheck"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(check);
+    QVERIFY(buttons);
+
+    // Restoring the last session is opt-in.
+    QVERIFY(!check->isChecked());
+    QVERIFY(!buttons->button(QDialogButtonBox::Apply)->isEnabled());
+
+    check->setChecked(true);
+    QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+
+    QVERIFY(AppSettings().restoreLastSessionOnStartup());
+}
+
+///
+/// \brief The reconnect controls persist, and the interval follows the checkbox.
+///
+void TestSettingsDialog::reconnectSettingsPersistAndGateTheInterval()
+{
+    SettingsDialog dialog;
+    auto *check = dialog.findChild<QCheckBox *>(QStringLiteral("reconnectCheck"));
+    auto *interval = dialog.findChild<QSpinBox *>(QStringLiteral("reconnectIntervalSpin"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(check);
+    QVERIFY(interval);
+    QVERIFY(buttons);
+
+    QVERIFY(check->isChecked());
+    QVERIFY(interval->isEnabled());
+    QCOMPARE(interval->value(), 5);
+
+    interval->setValue(20);
+    QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+    QCOMPARE(AppSettings().reconnectIntervalSeconds(), 20);
+
+    // Turning retries off takes the interval out of reach.
+    check->setChecked(false);
+    QVERIFY(!interval->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+    QVERIFY(!AppSettings().reconnectEnabled());
+}
+
+///
+/// \brief The change-highlight checkbox persists and announces itself to the running UI.
+///
+void TestSettingsDialog::highlightChangesCheckPersists()
+{
+    SettingsDialog dialog;
+    auto *check = dialog.findChild<QCheckBox *>(QStringLiteral("highlightChangesCheck"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(check);
+    QVERIFY(buttons);
+    QVERIFY(!check->isChecked());
+
+    QSignalSpy spy(theApp(), &Application::highlightValueChangesChanged);
+    check->setChecked(true);
+    QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+
+    QVERIFY(AppSettings().highlightValueChanges());
+    QCOMPARE(spy.size(), 1);
+    QVERIFY(spy.first().first().toBool());
+
+    QVERIFY(SettingsDialog().findChild<QCheckBox *>(
+        QStringLiteral("highlightChangesCheck"))->isChecked());
 }
 
 ///

@@ -9,11 +9,15 @@
 #include <functional>
 
 #include <QAbstractItemView>
+#include <QEvent>
 #include <QHeaderView>
+#include <QImage>
 #include <QItemSelectionModel>
 #include <QLineEdit>
 #include <QMenu>
+#include <QPixmap>
 #include <QPushButton>
+#include <QStyle>
 
 #include "addressspacewidget.h"
 #include "appicons.h"
@@ -25,6 +29,41 @@
 #include "spinneraction.h"
 #include "tableview.h"
 #include "ui_addressspacewidget.h"
+
+namespace {
+
+///
+/// \brief Returns a desaturated, dimmed copy of an icon.
+/// \param icon Icon to fade.
+/// \param size Size the faded pixmap is rendered at.
+/// \param devicePixelRatio Device pixel ratio of the target view.
+/// \return Faded icon, or the original when it renders nothing.
+///
+/// Greying only the labels leaves the coloured icons reading as live data, so the whole
+/// row has to lose its colour while the connection is gone.
+///
+QIcon fadedIcon(const QIcon &icon, const QSize &size, qreal devicePixelRatio)
+{
+    QPixmap pixmap = icon.pixmap(size, devicePixelRatio);
+    if (pixmap.isNull())
+        return icon;
+
+    QImage image = pixmap.toImage().convertToFormat(QImage::Format_ARGB32);
+    for (int y = 0; y < image.height(); ++y) {
+        auto *scanLine = reinterpret_cast<QRgb *>(image.scanLine(y));
+        for (int x = 0; x < image.width(); ++x) {
+            const QRgb pixel = scanLine[x];
+            const int gray = qGray(pixel);
+            scanLine[x] = qRgba(gray, gray, gray, qAlpha(pixel) * 3 / 4);
+        }
+    }
+
+    QPixmap faded = QPixmap::fromImage(image);
+    faded.setDevicePixelRatio(devicePixelRatio);
+    return QIcon(faded);
+}
+
+} // namespace
 
 ///
 /// \brief Builds the browser, wiring its tree, node-info, and references views.
@@ -55,13 +94,7 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     });
 
     _treeModel->setIconProvider([this](AddressSpaceItem::NodeType type) {
-        switch (type) {
-        case AddressSpaceItem::NodeType::Folder:   return AppIcons::themed("folder");
-        case AddressSpaceItem::NodeType::Node:     return AppIcons::themed("node");
-        case AddressSpaceItem::NodeType::Variable: return AppIcons::themed("variable");
-        case AddressSpaceItem::NodeType::Method:   return AppIcons::themed("method");
-        }
-        return QIcon();
+        return nodeIcon(type);
     });
 
     ui->addressTree->expandAll();
@@ -161,6 +194,31 @@ void AddressSpaceWidget::clear()
     _treeModel->clear();
     _nodeInfoModel->clear();
     _referencesModel->clear();
+}
+
+///
+/// \brief Keeps the browsed tree visible but inactive after the connection is gone.
+///
+/// The tree, its expansion, the selection and the already browsed references stay so the
+/// user does not lose the navigation context; everything that would need the server is
+/// switched off until the next connection.
+/// \param offline True while the server connection is gone.
+///
+void AddressSpaceWidget::setOffline(bool offline)
+{
+    if (_offline == offline)
+        return;
+    _offline = offline;
+    _treeModel->setOffline(offline);
+    if (offline) {
+        cancelSearch();
+        _subscribedNodeIds.clear();
+        _pendingExpand.clear();
+        _pendingSelect.clear();
+        setSearchFailure(QString());
+    }
+    ui->searchEdit->setEnabled(!offline);
+    ui->refreshButton->setEnabled(!offline);
 }
 
 ///
@@ -296,6 +354,40 @@ AddressSpaceWidget::~AddressSpaceWidget()
 }
 
 ///
+/// \brief Retranslates the generated UI on a language change.
+/// \param event Change event being handled.
+///
+void AddressSpaceWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
+        _referencesModel->retranslate();
+    }
+}
+
+///
+/// \brief Returns the node-class icon, greyed out while the tree is offline.
+/// \param type Icon node type.
+/// \return Icon for the node class.
+///
+QIcon AddressSpaceWidget::nodeIcon(AddressSpaceItem::NodeType type) const
+{
+    QIcon icon;
+    switch (type) {
+    case AddressSpaceItem::NodeType::Folder:   icon = AppIcons::themed("folder"); break;
+    case AddressSpaceItem::NodeType::Node:     icon = AppIcons::themed("node"); break;
+    case AddressSpaceItem::NodeType::Variable: icon = AppIcons::themed("variable"); break;
+    case AddressSpaceItem::NodeType::Method:   icon = AppIcons::themed("method"); break;
+    }
+    if (!_offline)
+        return icon;
+
+    const int extent = style()->pixelMetric(QStyle::PM_SmallIconSize, nullptr, ui->addressTree);
+    return fadedIcon(icon, QSize(extent, extent), ui->addressTree->devicePixelRatioF());
+}
+
+///
 /// \brief Binds the tree view to the address-space model.
 ///
 void AddressSpaceWidget::setupTreeView()
@@ -318,7 +410,7 @@ void AddressSpaceWidget::setupTreeView()
 void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
 {
     const QModelIndex index = ui->addressTree->indexAt(pos);
-    if (!index.isValid())
+    if (!index.isValid() || _offline)
         return;
     const OpcUaNodeInfo info = _treeModel->nodeInfo(index);
     if (info.nodeId.isEmpty())
@@ -335,6 +427,8 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
         menu.addSeparator();
     }
 
+    // A folder subscribes its direct variable children, mirroring a folder drop.
+    const bool folder = (info.nodeClass & OpcUa::Object) != 0 && info.hasChildren;
     const bool subscribed = _subscribedNodeIds.contains(info.nodeId);
     const QString monitoringIcon = subscribed ? QStringLiteral("unsubscribe")
                                               : QStringLiteral("subscribe");
@@ -346,7 +440,7 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
         else
             emit subscribeRequested(info);
     });
-    monitoringAction->setEnabled(OpcUa::isVariable(info.nodeClass));
+    monitoringAction->setEnabled(OpcUa::isVariable(info.nodeClass) || folder);
 
     QAction *trendAction = menu.addAction(AppIcons::themed(QStringLiteral("trend")),
                                           tr("Add to Trend"), this, [this, info] {
@@ -545,7 +639,7 @@ void AddressSpaceWidget::onCurrentNodeChanged(const QModelIndex &current)
     const OpcUaNodeInfo info = _treeModel->nodeInfo(current);
     _selectedNodeId = info.nodeId;
     updateReferencesForNode(info.nodeId);
-    if (!info.nodeId.isEmpty()) {
+    if (!info.nodeId.isEmpty() && !_offline) {
         emit referencesRequested(info.nodeId);
         emit nodeSelected(info);
     }

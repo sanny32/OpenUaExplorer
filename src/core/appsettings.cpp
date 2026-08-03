@@ -6,6 +6,8 @@
 /// \brief Implements the central application settings store.
 ///
 
+#include <algorithm>
+
 #include <QObject>
 #include <QStringList>
 
@@ -15,10 +17,12 @@
 namespace {
 constexpr auto themeModeKey = "appearance/themeMode";
 constexpr auto timestampModeKey = "appearance/timestampMode";
+constexpr auto languageKey = "appearance/language";
 constexpr auto windowGeometryKey = "mainWindow/geometry";
 constexpr auto windowStateKey = "mainWindow/state";
 constexpr auto centralSplitterKey = "mainWindow/centralSplitter";
 constexpr auto dataAccessPageKey = "mainWindow/dataAccessPage";
+constexpr auto trendPanelVisibleKey = "mainWindow/trendPanelVisible";
 constexpr auto restoreLayoutKey = "mainWindow/restoreLayout";
 constexpr auto viewStateGroup = "viewState";
 constexpr auto sessionDefaultsGroup = "connectionDialog/sessionDefaults";
@@ -30,8 +34,18 @@ constexpr auto secureChannelLifetimeKey = "secureChannelLifetimeMs";
 constexpr auto maxMessageSizeKey = "maxMessageSizeBytes";
 constexpr auto loggingGroup = "logging";
 constexpr auto subscriptionsGroup = "subscriptions/custom";
+constexpr auto subscriptionsBuiltinGroup = "subscriptions/builtin";
 constexpr auto subscriptionNameKey = "name";
 constexpr auto subscriptionIntervalKey = "interval";
+constexpr auto subscriptionIdKey = "id";
+constexpr auto restoreLastSessionKey = "session/restoreLast";
+constexpr auto lastSavedSessionPathKey = "session/lastSavedPath";
+constexpr auto reconnectEnabledKey = "connection/reconnectEnabled";
+constexpr auto reconnectIntervalKey = "connection/reconnectIntervalSeconds";
+constexpr auto highlightValueChangesKey = "dataAccess/highlightValueChanges";
+constexpr int defaultReconnectIntervalSeconds = 5;
+constexpr int minReconnectIntervalSeconds = 1;
+constexpr int maxReconnectIntervalSeconds = 3600;
 }
 
 ///
@@ -91,20 +105,53 @@ void AppSettings::setTimestampMode(TimestampMode mode)
 }
 
 ///
+/// \brief Returns the stored user interface language preference.
+/// \return Saved language, or Language::System when none is stored.
+///
+AppSettings::Language AppSettings::language() const
+{
+    SettingsStore settings;
+    const int language = settings.value(QLatin1String(languageKey),
+                                        static_cast<int>(Language::System)).toInt();
+    switch (language) {
+    case static_cast<int>(Language::English):
+        return Language::English;
+    case static_cast<int>(Language::Russian):
+        return Language::Russian;
+    case static_cast<int>(Language::German):
+        return Language::German;
+    case static_cast<int>(Language::ChineseSimplified):
+        return Language::ChineseSimplified;
+    default:
+        return Language::System;
+    }
+}
+
+///
+/// \brief Stores the user interface language preference.
+/// \param language Language to persist.
+///
+void AppSettings::setLanguage(Language language)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(languageKey), static_cast<int>(language));
+}
+
+///
 /// \brief Returns the catalogue of configurable application logging categories.
 /// \return Ordered list of every application category the user can toggle.
 ///
 QVector<AppSettings::LogCategory> AppSettings::availableApplicationLogCategories()
 {
     return {
-        { QStringLiteral("application.app"),          QStringLiteral("ouaexp.App"),          QObject::tr("App"),           true },
-        { QStringLiteral("application.addressspace"), QStringLiteral("ouaexp.AddressSpace"), QObject::tr("Address Space"), true },
-        { QStringLiteral("application.attribute"),    QStringLiteral("ouaexp.Attribute"),    QObject::tr("Attribute"),     true },
-        { QStringLiteral("application.client"),       QStringLiteral("ouaexp.Client"),       QObject::tr("Client"),        true },
-        { QStringLiteral("application.dataaccess"),   QStringLiteral("ouaexp.DataAccess"),   QObject::tr("Data Access"),   true },
-        { QStringLiteral("application.reference"),    QStringLiteral("ouaexp.Reference"),    QObject::tr("Reference"),     true },
-        { QStringLiteral("application.server"),       QStringLiteral("ouaexp.Server"),       QObject::tr("Server"),        true },
-        { QStringLiteral("application.session"),      QStringLiteral("ouaexp.Session"),      QObject::tr("Session"),       true }
+        { QStringLiteral("application.app"),          QStringLiteral("ouaexp.App"),          QStringLiteral("App"),           true },
+        { QStringLiteral("application.addressspace"), QStringLiteral("ouaexp.AddressSpace"), QStringLiteral("Address Space"), true },
+        { QStringLiteral("application.attribute"),    QStringLiteral("ouaexp.Attribute"),    QStringLiteral("Attribute"),     true },
+        { QStringLiteral("application.client"),       QStringLiteral("ouaexp.Client"),       QStringLiteral("Client"),        true },
+        { QStringLiteral("application.dataaccess"),   QStringLiteral("ouaexp.DataAccess"),   QStringLiteral("Data Access"),   true },
+        { QStringLiteral("application.reference"),    QStringLiteral("ouaexp.Reference"),    QStringLiteral("Reference"),     true },
+        { QStringLiteral("application.server"),       QStringLiteral("ouaexp.Server"),       QStringLiteral("Server"),        true },
+        { QStringLiteral("application.session"),      QStringLiteral("ouaexp.Session"),      QStringLiteral("Session"),       true }
     };
 }
 
@@ -117,7 +164,7 @@ QVector<AppSettings::LogCategory> AppSettings::availableQtOpcUaLogCategories()
     return {
         { QStringLiteral("plugin"),
           QStringLiteral("qt.opcua.plugins.open62541"),
-          QObject::tr("plugin"), true }
+          QStringLiteral("plugin"), true }
     };
 }
 
@@ -131,16 +178,16 @@ QVector<AppSettings::LogCategory> AppSettings::availableOpen62541LogCategories()
         return QStringLiteral("qt.opcua.plugins.open62541.sdk.") + QLatin1String(suffix);
     };
     return {
-        { QStringLiteral("network"),        sdk("network"),        QObject::tr("network"),         false },
-        { QStringLiteral("securechannel"),  sdk("securechannel"),  QObject::tr("secure channel"),  false },
-        { QStringLiteral("session"),        sdk("session"),        QObject::tr("session"),         true  },
-        { QStringLiteral("server"),         sdk("server"),         QObject::tr("server"),          true  },
-        { QStringLiteral("client"),         sdk("client"),         QObject::tr("client"),          false },
-        { QStringLiteral("userland"),       sdk("userland"),       QObject::tr("userland"),        true  },
-        { QStringLiteral("securitypolicy"), sdk("securitypolicy"), QObject::tr("security policy"), true  },
-        { QStringLiteral("eventloop"),      sdk("eventloop"),      QObject::tr("event loop"),      false },
-        { QStringLiteral("pubsub"),         sdk("pubsub"),         QObject::tr("pubsub"),          true  },
-        { QStringLiteral("discovery"),      sdk("discovery"),      QObject::tr("discovery"),       true  }
+        { QStringLiteral("network"),        sdk("network"),        QStringLiteral("network"),         false },
+        { QStringLiteral("securechannel"),  sdk("securechannel"),  QStringLiteral("secure channel"),  false },
+        { QStringLiteral("session"),        sdk("session"),        QStringLiteral("session"),         true  },
+        { QStringLiteral("server"),         sdk("server"),         QStringLiteral("server"),          true  },
+        { QStringLiteral("client"),         sdk("client"),         QStringLiteral("client"),          false },
+        { QStringLiteral("userland"),       sdk("userland"),       QStringLiteral("userland"),        true  },
+        { QStringLiteral("securitypolicy"), sdk("securitypolicy"), QStringLiteral("security policy"), true  },
+        { QStringLiteral("eventloop"),      sdk("eventloop"),      QStringLiteral("event loop"),      false },
+        { QStringLiteral("pubsub"),         sdk("pubsub"),         QStringLiteral("pubsub"),          true  },
+        { QStringLiteral("discovery"),      sdk("discovery"),      QStringLiteral("discovery"),       true  }
     };
 }
 
@@ -328,6 +375,26 @@ void AppSettings::setDataAccessPage(int page)
 }
 
 ///
+/// \brief Reports whether the trend panel should be shown.
+/// \return True when the panel is visible, defaulting to true.
+///
+bool AppSettings::trendPanelVisible() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(trendPanelVisibleKey), true).toBool();
+}
+
+///
+/// \brief Stores whether the trend panel is shown.
+/// \param visible True when the panel is visible.
+///
+void AppSettings::setTrendPanelVisible(bool visible)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(trendPanelVisibleKey), visible);
+}
+
+///
 /// \brief Reports whether the saved window layout should be restored at startup.
 /// \return True when the layout should be restored, defaulting to true.
 ///
@@ -345,6 +412,112 @@ void AppSettings::setRestoreLayoutOnStartup(bool enabled)
 {
     SettingsStore settings;
     settings.setValue(QLatin1String(restoreLayoutKey), enabled);
+}
+
+///
+/// \brief Reports whether the workspace left behind by the last run should be restored.
+/// \return True when the last session should be restored, defaulting to false.
+///
+bool AppSettings::restoreLastSessionOnStartup() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(restoreLastSessionKey), false).toBool();
+}
+
+///
+/// \brief Stores whether the workspace left behind by the last run should be restored.
+/// \param enabled True to stage the last named session or autosaved workspace.
+///
+void AppSettings::setRestoreLastSessionOnStartup(bool enabled)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(restoreLastSessionKey), enabled);
+}
+
+///
+/// \brief Reports whether a lost connection should be retried automatically.
+/// \return True when reconnect attempts are enabled, defaulting to true.
+///
+bool AppSettings::reconnectEnabled() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(reconnectEnabledKey), true).toBool();
+}
+
+///
+/// \brief Stores whether a lost connection should be retried automatically.
+/// \param enabled True to retry until the server answers again.
+///
+void AppSettings::setReconnectEnabled(bool enabled)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(reconnectEnabledKey), enabled);
+}
+
+///
+/// \brief Reports whether the data-access table washes cells whose value changed.
+/// \return True when change highlighting is enabled, defaulting to false.
+///
+bool AppSettings::highlightValueChanges() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(highlightValueChangesKey), false).toBool();
+}
+
+///
+/// \brief Stores whether the data-access table washes cells whose value changed.
+/// \param enabled True to highlight value changes.
+///
+void AppSettings::setHighlightValueChanges(bool enabled)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(highlightValueChangesKey), enabled);
+}
+
+///
+/// \brief Returns the delay between two reconnect attempts.
+/// \return Interval in seconds, clamped to the supported range.
+///
+int AppSettings::reconnectIntervalSeconds() const
+{
+    SettingsStore settings;
+    const int seconds = settings.value(QLatin1String(reconnectIntervalKey),
+                                       defaultReconnectIntervalSeconds).toInt();
+    return std::clamp(seconds, minReconnectIntervalSeconds, maxReconnectIntervalSeconds);
+}
+
+///
+/// \brief Stores the delay between two reconnect attempts.
+/// \param seconds Interval in seconds, clamped to the supported range.
+///
+void AppSettings::setReconnectIntervalSeconds(int seconds)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(reconnectIntervalKey),
+                      std::clamp(seconds, minReconnectIntervalSeconds, maxReconnectIntervalSeconds));
+}
+
+///
+/// \brief Returns the named session file selected for restoration at startup.
+/// \return Stored session path, or an empty string when autosave should be used.
+///
+QString AppSettings::lastSavedSessionPath() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(lastSavedSessionPathKey)).toString();
+}
+
+///
+/// \brief Stores the named session file that takes priority over autosave at startup.
+/// \param path Session file path, or an empty string to restore from autosave.
+///
+void AppSettings::setLastSavedSessionPath(const QString &path)
+{
+    SettingsStore settings;
+    if (path.isEmpty())
+        settings.remove(QLatin1String(lastSavedSessionPathKey));
+    else
+        settings.setValue(QLatin1String(lastSavedSessionPathKey), path);
 }
 
 ///
@@ -391,6 +564,54 @@ void AppSettings::setCustomSubscriptions(const QVector<SubscriptionItem> &subscr
 }
 
 ///
+/// \brief Returns the stored edits applied to the built-in subscriptions.
+///
+/// An entry with an empty name means only the publishing interval was changed, so the
+/// translated factory name stays in effect.
+///
+/// \return Overrides keyed by built-in subscription id, or an empty vector when none are stored.
+///
+QVector<SubscriptionItem> AppSettings::builtinSubscriptionOverrides() const
+{
+    SettingsStore settings;
+    QVector<SubscriptionItem> overrides;
+    const int count = settings.beginReadArray(QLatin1String(subscriptionsBuiltinGroup));
+    overrides.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        settings.setArrayIndex(i);
+        SubscriptionItem item;
+        item.builtin = true;
+        item.id = settings.value(QLatin1String(subscriptionIdKey), -1).toInt();
+        item.name = settings.value(QLatin1String(subscriptionNameKey)).toString();
+        item.publishingInterval =
+            settings.value(QLatin1String(subscriptionIntervalKey), 1000.0).toDouble();
+        if (item.id >= 0)
+            overrides.append(item);
+    }
+    settings.endArray();
+    return overrides;
+}
+
+///
+/// \brief Stores the edits applied to the built-in subscriptions.
+/// \param subscriptions Overrides to persist; leave the name empty to keep the factory name.
+///
+void AppSettings::setBuiltinSubscriptionOverrides(const QVector<SubscriptionItem> &subscriptions)
+{
+    SettingsStore settings;
+    settings.remove(QLatin1String(subscriptionsBuiltinGroup));
+    settings.beginWriteArray(QLatin1String(subscriptionsBuiltinGroup));
+    int index = 0;
+    for (const SubscriptionItem &item : subscriptions) {
+        settings.setArrayIndex(index++);
+        settings.setValue(QLatin1String(subscriptionIdKey), item.id);
+        settings.setValue(QLatin1String(subscriptionNameKey), item.name);
+        settings.setValue(QLatin1String(subscriptionIntervalKey), item.publishingInterval);
+    }
+    settings.endArray();
+}
+
+///
 /// \brief Returns the saved element state for a named view.
 /// \param viewKey Stable identifier of the view (its object name).
 /// \return State blob, or an empty array when none is stored.
@@ -426,5 +647,6 @@ void AppSettings::clearLayout()
     settings.remove(QLatin1String(windowStateKey));
     settings.remove(QLatin1String(centralSplitterKey));
     settings.remove(QLatin1String(dataAccessPageKey));
+    settings.remove(QLatin1String(trendPanelVisibleKey));
     settings.remove(QLatin1String(viewStateGroup));
 }

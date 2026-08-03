@@ -61,6 +61,11 @@ public:
                         int role = Qt::DisplayRole) const override;
 
     ///
+    /// \brief Re-emits the header titles after a UI language change.
+    ///
+    void retranslate();
+
+    ///
     /// \brief Replaces all event rows.
     /// \param items New events to display.
     ///

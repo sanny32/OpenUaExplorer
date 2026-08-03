@@ -87,6 +87,8 @@
         <file alias="icons/dark/theme-system.svg">res/icons/dark/theme-system.svg</file>
         <file alias="icons/light/search.svg">res/icons/light/search.svg</file>
         <file alias="icons/dark/search.svg">res/icons/dark/search.svg</file>
+        <file alias="icons/light/server.svg">res/icons/light/server.svg</file>
+        <file alias="icons/dark/server.svg">res/icons/dark/server.svg</file>
         <file alias="icons/light/website.svg">res/icons/light/website.svg</file>
         <file alias="icons/dark/website.svg">res/icons/dark/website.svg</file>
         <file alias="icons/light/github.svg">res/icons/light/github.svg</file>
@@ -121,6 +123,10 @@
         <file alias="icons/dark/download.svg">res/icons/dark/download.svg</file>
         <file alias="icons/light/key-round.svg">res/icons/light/key-round.svg</file>
         <file alias="icons/dark/key-round.svg">res/icons/dark/key-round.svg</file>
+        <file alias="icons/light/palette.svg">res/icons/light/palette.svg</file>
+        <file alias="icons/dark/palette.svg">res/icons/dark/palette.svg</file>
+        <file alias="icons/light/logs.svg">res/icons/light/logs.svg</file>
+        <file alias="icons/dark/logs.svg">res/icons/dark/logs.svg</file>
         <file alias="icons/light/opcua-logo.png">res/icons/light/opcua-logo.png</file>
         <file alias="icons/dark/opcua-logo.png">res/icons/dark/opcua-logo.png</file>
     </qresource>

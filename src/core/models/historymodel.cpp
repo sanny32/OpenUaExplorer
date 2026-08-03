@@ -67,10 +67,10 @@ QVariant HistoryModel::headerData(int section, Qt::Orientation orientation, int 
 
     switch (section) {
     case ColNumber:          return QStringLiteral("#");
-    case ColSourceTimestamp: return QStringLiteral("Source Timestamp");
-    case ColServerTimestamp: return QStringLiteral("Server Timestamp");
-    case ColValue:           return QStringLiteral("Value");
-    case ColStatus:          return QStringLiteral("Status");
+    case ColSourceTimestamp: return tr("Source Timestamp");
+    case ColServerTimestamp: return tr("Server Timestamp");
+    case ColValue:           return tr("Value");
+    case ColStatus:          return tr("Status");
     default:                 return QVariant();
     }
 }
@@ -174,4 +174,12 @@ void HistoryModel::setTimestampMode(AppSettings::TimestampMode mode)
 QString HistoryModel::toCsv() const
 {
     return CsvExporter::tableToCsv(*this);
+}
+
+///
+/// \brief Re-emits the header titles after a UI language change.
+///
+void HistoryModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
 }

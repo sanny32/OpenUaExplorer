@@ -110,6 +110,12 @@ public:
                                             const QString &privateKeyPassword);
 
     ///
+    /// \brief Reconnects the active profile with the credentials its last attempt used.
+    /// \return True when an attempt was started; false without an endpoint to return to.
+    ///
+    bool reconnectActiveProfile();
+
+    ///
     /// \brief Persists a profile and its secrets, emitting profilesChanged() on success.
     /// \param profile Profile to store.
     /// \param password User password to store, if non-empty.
@@ -167,6 +173,8 @@ private:
     bool _ownsDependencies;
     ConnectionProfile _activeProfile;
     QString _activeSessionName;
+    QString _activePassword;
+    QString _activePrivateKeyPassword;
     QString _instanceSessionSuffix;
     ConnectionProfile _pendingProfile;
     QString _pendingPassword;

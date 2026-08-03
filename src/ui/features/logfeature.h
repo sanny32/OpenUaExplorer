@@ -43,6 +43,11 @@ public:
     ///
     void restoreState(AppSettings &settings) override;
 
+    ///
+    /// \brief Re-applies the dock title after a language change.
+    ///
+    void retranslate() override;
+
 private:
     QDockWidget *_dock = nullptr;
     LogWidget *_widget = nullptr;

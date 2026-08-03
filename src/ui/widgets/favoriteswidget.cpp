@@ -135,6 +135,8 @@ void FavoritesWidget::changeEvent(QEvent *event)
         updateDropIndicatorStyle();
         rebuildList();
         _refreshingTheme = false;
+    } else if (event->type() == QEvent::LanguageChange) {
+        ui->retranslateUi(this);
     }
 }
 
