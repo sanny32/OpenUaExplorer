@@ -17,9 +17,11 @@ class QNetworkReply;
 ///
 /// \brief Queries the GitHub releases API for a newer application version.
 ///
-/// The checker compares the latest published release tag against APP_VERSION,
-/// understanding semantic pre-release suffixes (rc/beta/alpha). Results are
-/// reported through signals so callers can present them however they like.
+/// The checker compares the highest published release tag against APP_VERSION,
+/// understanding semantic pre-release suffixes (rc/beta/alpha and the b/a
+/// shorthands). Releases flagged as pre-release on GitHub are included, drafts
+/// are not. Results are reported through signals so callers can present them
+/// however they like.
 ///
 class UpdateChecker : public QObject
 {

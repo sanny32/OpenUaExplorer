@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+    <title>Uninstall Open UaExplorer</title>
+    <defs>
+        <linearGradient id="can" x1="3" y1="6" x2="13" y2="14" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#f87171"/>
+            <stop offset="1" stop-color="#dc2626"/>
+        </linearGradient>
+        <linearGradient id="lid" x1="2" y1="1" x2="14" y2="5" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#fca5a5"/>
+            <stop offset="1" stop-color="#e0392b"/>
+        </linearGradient>
+    </defs>
+
+    <!-- Every edge sits on a whole pixel and the can loses its taper: at this size a
+         shallow diagonal only smears the silhouette. The lid keeps a one pixel gap
+         above the body and the slats are two pixels wide, the narrowest white that
+         still survives the shell's downscaling. -->
+    <rect x="6" y="1" width="4" height="2" rx=".75" fill="url(#lid)"/>
+    <rect x="2" y="3" width="12" height="2" rx=".75" fill="url(#lid)"/>
+
+    <path d="M3 6H13V12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="url(#can)"/>
+
+    <g fill="#ffffff">
+        <rect x="5" y="8" width="2" height="4"/>
+        <rect x="9" y="8" width="2" height="4"/>
+    </g>
+</svg>

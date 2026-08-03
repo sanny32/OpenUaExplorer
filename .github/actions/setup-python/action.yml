@@ -19,24 +19,8 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Identify the platform
-      id: platform
-      shell: bash
-      run: |
-        . /etc/os-release
-        echo "id=$ID-$VERSION_ID" >> "$GITHUB_OUTPUT"
-
-    # The key is pinned to the platform: the interpreter links its libraries.
-    - name: Cache Python
-      id: cache
-      uses: actions/cache@v5
-      with:
-        path: ${{ inputs.prefix }}
-        key: python-${{ steps.platform.outputs.id }}-${{ runner.arch }}-${{ inputs.version }}
-
     # A missing -dev package skips the module silently, so the build is checked below.
     - name: Build Python ${{ inputs.version }}
-      if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
       env:
         VERSION: ${{ inputs.version }}

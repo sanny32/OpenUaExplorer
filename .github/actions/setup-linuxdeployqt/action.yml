@@ -2,8 +2,7 @@ name: Set up linuxdeployqt
 description: >-
   Installs the linuxdeployqt release the AppDir is deployed with and puts it on
   PATH. The tool has no versioned releases: 'continuous' is the only one there is,
-  so the download is pinned to a tag of the repository instead, and cached, to keep
-  a build from silently changing under a new upload.
+  so the download is pinned to a tag of the repository instead.
 
 inputs:
   release:
@@ -38,15 +37,7 @@ runs:
         esac
         echo "arch=$arch" >> "$GITHUB_OUTPUT"
 
-    - name: Cache linuxdeployqt
-      id: cache
-      uses: actions/cache@v5
-      with:
-        path: ${{ inputs.prefix }}
-        key: linuxdeployqt-${{ inputs.release }}-${{ steps.arch.outputs.arch }}
-
     - name: Download linuxdeployqt
-      if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
       env:
         RELEASE: ${{ inputs.release }}

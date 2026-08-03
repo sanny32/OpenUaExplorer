@@ -101,8 +101,6 @@ jobs:
       # Bundled: target distributions (e.g. Astra Linux 1.7) have no libssl3.
       - name: Set up OpenSSL
         uses: ./.github/actions/setup-openssl
-        with:
-          qt-version: ${{ env.QT_VERSION }}
 
       # qtopcua.cmake forwards the CMake variable, not the env one, to the sub-build.
       - name: Configure

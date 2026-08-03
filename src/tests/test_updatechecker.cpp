@@ -101,6 +101,18 @@ FakeReplyData jsonReply(const QByteArray &body)
     return data;
 }
 
+QByteArray releaseList(const QByteArray &entries)
+{
+    return "[" + entries + "]";
+}
+
+QByteArray release(const char *tag, const char *url, bool draft = false, bool prerelease = false)
+{
+    return QByteArray("{\"tag_name\":\"") + tag + "\",\"html_url\":\"" + url
+           + "\",\"draft\":" + (draft ? "true" : "false")
+           + ",\"prerelease\":" + (prerelease ? "true" : "false") + "}";
+}
+
 } // namespace
 
 ///
@@ -113,10 +125,15 @@ class TestUpdateChecker : public QObject
 private slots:
     void comparesNumericVersions();
     void comparesPreReleaseSuffixes();
+    void comparesShortPreReleaseSuffixes();
+    void ranksDevBuildsBelowPreReleases();
     void rejectsInvalidCandidates();
     void sendsGithubReleaseRequest();
     void ignoresConcurrentChecks();
     void reportsNewerRelease();
+    void reportsNewestOfSeveralReleases();
+    void skipsDraftReleases();
+    void reportsEmptyReleaseListAsNoUpdate();
     void reportsNotFoundAsNoUpdate();
     void reportsNetworkError();
     void rejectsMalformedResponses_data();
@@ -147,6 +164,33 @@ void TestUpdateChecker::comparesPreReleaseSuffixes()
 }
 
 ///
+/// \brief Verifies the short b/a suffixes rank like beta/alpha.
+///
+void TestUpdateChecker::comparesShortPreReleaseSuffixes()
+{
+    QVERIFY(UpdateChecker::isVersionNewer(QStringLiteral("1.0.0-b2"), QStringLiteral("1.0.0-b1")));
+    QVERIFY(UpdateChecker::isVersionNewer(QStringLiteral("1.0.0-b1"), QStringLiteral("1.0.0-a9")));
+    QVERIFY(UpdateChecker::isVersionNewer(QStringLiteral("1.0.0-rc1"), QStringLiteral("1.0.0-b3")));
+    QVERIFY(UpdateChecker::isVersionNewer(QStringLiteral("1.0.0"), QStringLiteral("1.0.0-b2")));
+    QVERIFY(!UpdateChecker::isVersionNewer(QStringLiteral("1.0.0-b2"), QStringLiteral("1.0.0")));
+    QVERIFY(!UpdateChecker::isVersionNewer(QStringLiteral("1.0.0-b1"), QStringLiteral("1.0.0-beta1")));
+}
+
+///
+/// \brief Verifies a dev build ranks below every published pre-release.
+///
+/// Dev builds carry a "-dev.g<sha>" suffix of unknown rank, so any published
+/// release is offered to them. This keeps the feature testable from a dev build.
+///
+void TestUpdateChecker::ranksDevBuildsBelowPreReleases()
+{
+    QVERIFY(UpdateChecker::isVersionNewer(QStringLiteral("1.0.0-b2"),
+                                          QStringLiteral("1.0-dev.gabc1234")));
+    QVERIFY(!UpdateChecker::isVersionNewer(QStringLiteral("1.0-dev.gabc1234"),
+                                           QStringLiteral("1.0.0-b2")));
+}
+
+///
 /// \brief Verifies unparseable candidates are never treated as newer.
 ///
 void TestUpdateChecker::rejectsInvalidCandidates()
@@ -161,7 +205,7 @@ void TestUpdateChecker::rejectsInvalidCandidates()
 void TestUpdateChecker::sendsGithubReleaseRequest()
 {
     auto *manager = new FakeNetworkAccessManager;
-    manager->replies.append(jsonReply("{\"tag_name\":\"v0.0.0\",\"html_url\":\"https://example.test/release\"}"));
+    manager->replies.append(jsonReply(releaseList(release("v0.0.0", "https://example.test/release"))));
 
     UpdateChecker checker(manager);
     QSignalSpy done(&checker, &UpdateChecker::noUpdatesAvailable);
@@ -170,7 +214,7 @@ void TestUpdateChecker::sendsGithubReleaseRequest()
     QVERIFY(done.wait(1000));
     QCOMPARE(manager->requests.size(), 1);
     const QNetworkRequest request = manager->requests.constFirst();
-    QCOMPARE(request.url(), QUrl(QStringLiteral("https://api.github.com/repos/sanny32/OpenUaExplorer/releases/latest")));
+    QCOMPARE(request.url(), QUrl(QStringLiteral("https://api.github.com/repos/sanny32/OpenUaExplorer/releases?per_page=20")));
     QCOMPARE(request.header(QNetworkRequest::UserAgentHeader).toString(), QStringLiteral("OpenUaExplorer"));
     QCOMPARE(request.rawHeader("Accept"), QByteArray("application/vnd.github.v3+json"));
 }
@@ -181,7 +225,7 @@ void TestUpdateChecker::sendsGithubReleaseRequest()
 void TestUpdateChecker::ignoresConcurrentChecks()
 {
     auto *manager = new FakeNetworkAccessManager;
-    manager->replies.append(jsonReply("{\"tag_name\":\"v0.0.0\",\"html_url\":\"https://example.test/release\"}"));
+    manager->replies.append(jsonReply(releaseList(release("v0.0.0", "https://example.test/release"))));
 
     UpdateChecker checker(manager);
     QSignalSpy done(&checker, &UpdateChecker::noUpdatesAvailable);
@@ -198,7 +242,7 @@ void TestUpdateChecker::ignoresConcurrentChecks()
 void TestUpdateChecker::reportsNewerRelease()
 {
     auto *manager = new FakeNetworkAccessManager;
-    manager->replies.append(jsonReply("{\"tag_name\":\"v9999.0.0\",\"html_url\":\"https://example.test/new\"}"));
+    manager->replies.append(jsonReply(releaseList(release("v9999.0.0", "https://example.test/new"))));
 
     UpdateChecker checker(manager);
     QSignalSpy found(&checker, &UpdateChecker::newVersionAvailable);
@@ -210,6 +254,62 @@ void TestUpdateChecker::reportsNewerRelease()
     QCOMPARE(checker.latestVersion(), QStringLiteral("9999.0.0"));
     QCOMPARE(checker.releaseUrl(), QStringLiteral("https://example.test/new"));
     QVERIFY(checker.hasNewVersion());
+}
+
+///
+/// \brief Verifies the highest version wins regardless of list order, including pre-releases.
+///
+void TestUpdateChecker::reportsNewestOfSeveralReleases()
+{
+    auto *manager = new FakeNetworkAccessManager;
+    manager->replies.append(jsonReply(releaseList(
+        release("v9999.0.0-b1", "https://example.test/b1", false, true) + ","
+        + release("v9999.0.0-b2", "https://example.test/b2", false, true) + ","
+        + release("v0.9.0", "https://example.test/old"))));
+
+    UpdateChecker checker(manager);
+    QSignalSpy found(&checker, &UpdateChecker::newVersionAvailable);
+    checker.checkForUpdates();
+
+    QVERIFY(found.wait(1000));
+    QCOMPARE(found.takeFirst().at(0).toString(), QStringLiteral("9999.0.0-b2"));
+    QCOMPARE(checker.releaseUrl(), QStringLiteral("https://example.test/b2"));
+}
+
+///
+/// \brief Verifies draft releases are never offered as updates.
+///
+void TestUpdateChecker::skipsDraftReleases()
+{
+    auto *manager = new FakeNetworkAccessManager;
+    manager->replies.append(jsonReply(releaseList(
+        release("v9999.0.0", "https://example.test/draft", true) + ","
+        + release("v0.0.1", "https://example.test/published"))));
+
+    UpdateChecker checker(manager);
+    QSignalSpy noUpdate(&checker, &UpdateChecker::noUpdatesAvailable);
+    checker.checkForUpdates();
+
+    QVERIFY(noUpdate.wait(1000));
+    QVERIFY(!checker.hasNewVersion());
+}
+
+///
+/// \brief Verifies a repository without releases reports no available update.
+///
+void TestUpdateChecker::reportsEmptyReleaseListAsNoUpdate()
+{
+    auto *manager = new FakeNetworkAccessManager;
+    manager->replies.append(jsonReply("[]"));
+
+    UpdateChecker checker(manager);
+    QSignalSpy noUpdate(&checker, &UpdateChecker::noUpdatesAvailable);
+    QSignalSpy failed(&checker, &UpdateChecker::checkFailed);
+    checker.checkForUpdates();
+
+    QVERIFY(noUpdate.wait(1000));
+    QCOMPARE(failed.size(), 0);
+    QVERIFY(!checker.hasNewVersion());
 }
 
 ///
@@ -262,8 +362,10 @@ void TestUpdateChecker::rejectsMalformedResponses_data()
     QTest::addColumn<QByteArray>("body");
 
     QTest::newRow("not-json") << QByteArray("not json");
-    QTest::newRow("missing-tag") << QByteArray("{\"html_url\":\"https://example.test/release\"}");
-    QTest::newRow("missing-url") << QByteArray("{\"tag_name\":\"v9999.0.0\"}");
+    QTest::newRow("not-an-array") << QByteArray("{\"tag_name\":\"v9999.0.0\"}");
+    QTest::newRow("missing-tag") << releaseList("{\"html_url\":\"https://example.test/release\"}");
+    QTest::newRow("missing-url") << releaseList("{\"tag_name\":\"v9999.0.0\"}");
+    QTest::newRow("unparseable-tag") << releaseList(release("nightly", "https://example.test/release"));
 }
 
 ///

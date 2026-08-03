@@ -105,16 +105,29 @@ void TestCertificateDetailsWidget::generatedCertificateFillsDetailsAndDetailsTex
     auto *certificatePathValue =
         widget.findChild<QLabel *>(QStringLiteral("certificatePathValue"));
     auto *serialNumberValue = widget.findChild<QLabel *>(QStringLiteral("serialNumberValue"));
+    auto *signatureAlgorithmValue =
+        widget.findChild<QLabel *>(QStringLiteral("signatureAlgorithmValue"));
+    auto *applicationUriValue =
+        widget.findChild<QLabel *>(QStringLiteral("applicationUriValue"));
+    auto *subjectAlternativeNameValue =
+        widget.findChild<QLabel *>(QStringLiteral("subjectAlternativeNameValue"));
     QVERIFY(statusValue);
     QVERIFY(nameValue);
     QVERIFY(keySizeValue);
     QVERIFY(certificatePathValue);
     QVERIFY(serialNumberValue);
+    QVERIFY(signatureAlgorithmValue);
+    QVERIFY(applicationUriValue);
+    QVERIFY(subjectAlternativeNameValue);
 
     QCOMPARE(widget.certificate(), certificate);
     QCOMPARE(statusValue->text(), QStringLiteral("Valid"));
     QCOMPARE(nameValue->text(), commonName);
     QCOMPARE(keySizeValue->text(), QStringLiteral("2048"));
+    QCOMPARE(signatureAlgorithmValue->text(), QStringLiteral("sha256WithRSAEncryption"));
+    QCOMPARE(applicationUriValue->text(), PkiManager::applicationUri());
+    QVERIFY(subjectAlternativeNameValue->text().startsWith(
+        QStringLiteral("[[6, %1], [2, ").arg(PkiManager::applicationUri())));
     QVERIFY(!certificatePathValue->isHidden());
     QCOMPARE(certificatePathValue->text(), QDir::toNativeSeparators(certificateFile));
     QVERIFY(serialNumberValue->text() != QStringLiteral("Unavailable"));

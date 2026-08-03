@@ -16,6 +16,14 @@ if(TARGET Qt${QT_VERSION_MAJOR}::QOpen62541Plugin)
         DESTINATION plugins/opcua)
 endif()
 
+# windeployqt skips the OpenSSL TLS backend unless it finds the OpenSSL libraries.
+# Without that plugin QSslCertificate falls back to the Schannel backend, whose
+# generic X509 parser exposes no certificate text and no URI alternative names.
+if(TARGET Qt${QT_VERSION_MAJOR}::QTlsBackendOpenSSLPlugin)
+    install(FILES "$<TARGET_FILE:Qt${QT_VERSION_MAJOR}::QTlsBackendOpenSSLPlugin>"
+        DESTINATION plugins/tls)
+endif()
+
 if(WINDEPLOYQT_EXECUTABLE)
     get_filename_component(_QT_BIN_DIR "${WINDEPLOYQT_EXECUTABLE}" DIRECTORY)
 
