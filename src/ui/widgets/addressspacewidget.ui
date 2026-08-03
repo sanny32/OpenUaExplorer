@@ -49,7 +49,7 @@
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
-     <widget class="QTreeView" name="addressTree">
+     <widget class="TreeView" name="addressTree">
       <property name="alternatingRowColors">
        <bool>false</bool>
       </property>
@@ -123,6 +123,11 @@
    <class>ThemedToolButton</class>
    <extends>QToolButton</extends>
    <header>widgets/themedtoolbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>TreeView</class>
+   <extends>QTreeView</extends>
+   <header>widgets/treeview.h</header>
   </customwidget>
   <customwidget>
    <class>TableView</class>

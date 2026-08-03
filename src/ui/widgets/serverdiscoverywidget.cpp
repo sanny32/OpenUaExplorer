@@ -28,6 +28,7 @@
 #include "models/serverdiscoverymodel.h"
 #include "serverdiscoverywidget.h"
 #include "themediconlabel.h"
+#include "treeview.h"
 
 namespace {
 
@@ -324,7 +325,7 @@ QWidget *createEmptyPage(QWidget *parent)
 ServerDiscoveryWidget::ServerDiscoveryWidget(QWidget *parent)
     : QWidget(parent)
     , _pages(new QStackedWidget(this))
-    , _view(new QTreeView(this))
+    , _view(new TreeView(this))
     , _model(new ServerDiscoveryModel(this))
 {
     auto *layout = new QVBoxLayout(this);

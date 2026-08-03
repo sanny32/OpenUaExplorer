@@ -223,6 +223,8 @@ add_library(ouaexp_ui STATIC
     widgets/themedpushbutton.h
     widgets/themedtoolbutton.cpp
     widgets/themedtoolbutton.h
+    widgets/treeview.cpp
+    widgets/treeview.h
     widgets/toolbuttonlayout.cpp
     widgets/toolbuttonlayout.h
     widgets/scrollarea.cpp
