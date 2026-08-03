@@ -849,6 +849,7 @@ void ConnectionDialog::forgetEndpointUrl(const QString &endpointUrl)
 {
     _endpointHistoryStore.remove(endpointUrl);
     _lastEnteredEndpointUrl = ui->discoveryUrlComboBox->currentText();
+    resetDiscovery();
 }
 
 ///
