@@ -483,7 +483,8 @@ linux_qt6_packages() {
         suse)
             packages=(
                 qt6-base-devel qt6-base-private-devel
-                qt6-tools-devel qt6-svg-devel qt6-charts-devel
+                qt6-tools-devel qt6-linguist-devel
+                qt6-svg-devel qt6-charts-devel
             )
             ;;
         arch)
