@@ -155,6 +155,20 @@ public:
     ///
     static bool toNumeric(const QVariant &value, double *out);
 
+    ///
+    /// \brief Reports whether a browsed node may be charted as a series.
+    /// \param node Browsed node carrying its NodeClass, DataType and ValueRank.
+    /// \return True for scalar variable nodes of a numeric DataType.
+    ///
+    static bool isTrendable(const OpcUaNodeInfo &node);
+
+    ///
+    /// \brief Reports whether a read node may be charted as a series.
+    /// \param details Node details carrying the NodeClass, DataType and ValueRank.
+    /// \return True for scalar variable nodes of a numeric DataType.
+    ///
+    static bool isTrendable(const OpcUaNodeDetails &details);
+
 private:
     void trim();
 

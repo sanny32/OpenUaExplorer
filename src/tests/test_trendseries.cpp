@@ -30,6 +30,22 @@ OpcUaDataValue makeValue(const QVariant &value, qint64 msec, const QString &stat
     return item;
 }
 
+///
+/// \brief Builds a browsed variable node with a DataType and ValueRank.
+/// \param dataTypeId DataType NodeId string.
+/// \param valueRank OPC UA ValueRank.
+/// \return Browsed node record.
+///
+OpcUaNodeInfo makeNode(const QString &dataTypeId, int valueRank = -1)
+{
+    OpcUaNodeInfo node;
+    node.nodeId = QStringLiteral("ns=2;s=Demo");
+    node.nodeClass = OpcUa::Variable;
+    node.dataTypeId = dataTypeId;
+    node.valueRank = valueRank;
+    return node;
+}
+
 } // namespace
 
 ///
@@ -54,6 +70,11 @@ private slots:
     void backfillHistoryKeepsNewerLivePoints();
     void backfillHistoryWithoutSamplesIsNoOp();
     void clearRemovesAllPoints();
+    void isTrendableAcceptsNumericScalars();
+    void isTrendableRejectsNonNumericTypes();
+    void isTrendableRejectsArraysAndNonVariables();
+    void isTrendableAcceptsUnresolvableDataTypes();
+    void isTrendableReadsNodeDetails();
 };
 
 namespace {
@@ -279,6 +300,80 @@ void TestTrendSeries::clearRemovesAllPoints()
     series.clear();
     QVERIFY(series.points().isEmpty());
     QVERIFY(series.statuses().isEmpty());
+}
+
+///
+/// \brief Integer and floating-point DataTypes, including their abstract parents, are chartable.
+///
+void TestTrendSeries::isTrendableAcceptsNumericScalars()
+{
+    QVERIFY(TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=11")))); // Double
+    QVERIFY(TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=6"))));  // Int32
+    QVERIFY(TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=3"))));  // Byte
+    QVERIFY(TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=26")))); // Number
+    QVERIFY(TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=290"))));// Duration
+}
+
+///
+/// \brief Booleans, text, timestamps and structures have no numeric axis position.
+///
+void TestTrendSeries::isTrendableRejectsNonNumericTypes()
+{
+    QVERIFY(!TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=1"))));  // Boolean
+    QVERIFY(!TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=12")))); // String
+    QVERIFY(!TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=13")))); // DateTime
+    QVERIFY(!TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=14")))); // Guid
+    QVERIFY(!TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=15")))); // ByteString
+    QVERIFY(!TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=21")))); // LocalizedText
+    QVERIFY(!TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=22")))); // Structure
+    QVERIFY(!TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=884"))));// Range
+}
+
+///
+/// \brief Arrays of numbers and non-variable nodes are refused.
+///
+void TestTrendSeries::isTrendableRejectsArraysAndNonVariables()
+{
+    QVERIFY(!TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=11"), 1)));
+    QVERIFY(!TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=11"), 0)));
+
+    OpcUaNodeInfo object = makeNode(QStringLiteral("ns=0;i=11"));
+    object.nodeClass = OpcUa::Object;
+    QVERIFY(!TrendSeries::isTrendable(object));
+}
+
+///
+/// \brief Custom DataTypes and unread attributes stay chartable rather than blocking the node.
+///
+void TestTrendSeries::isTrendableAcceptsUnresolvableDataTypes()
+{
+    QVERIFY(TrendSeries::isTrendable(makeNode(QStringLiteral("ns=2;i=3002"))));
+    QVERIFY(TrendSeries::isTrendable(makeNode(QStringLiteral("ns=0;i=24")))); // BaseDataType
+
+    OpcUaNodeInfo unread;
+    unread.nodeId = QStringLiteral("ns=2;s=Demo");
+    unread.nodeClass = OpcUa::Variable;
+    QVERIFY(TrendSeries::isTrendable(unread));
+}
+
+///
+/// \brief Read node details are classified by the same rules as browsed nodes.
+///
+void TestTrendSeries::isTrendableReadsNodeDetails()
+{
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=Demo");
+    details.nodeClass = OpcUa::Variable;
+    details.dataTypeId = QStringLiteral("ns=0;i=10");
+    details.valueRank = -1;
+    QVERIFY(TrendSeries::isTrendable(details));
+
+    details.dataTypeId = QStringLiteral("ns=0;i=12");
+    QVERIFY(!TrendSeries::isTrendable(details));
+
+    details.dataTypeId = QStringLiteral("ns=0;i=10");
+    details.valueRank = 1;
+    QVERIFY(!TrendSeries::isTrendable(details));
 }
 
 QTEST_MAIN(TestTrendSeries)

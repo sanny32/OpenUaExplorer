@@ -178,6 +178,8 @@ void TestAddressSpaceModel::dragMimeIncludesNodesWithNodeId()
     variable.displayName = QStringLiteral("Temperature");
     variable.nodeClass = OpcUa::Variable;
     variable.historizing = true;
+    variable.dataTypeId = QStringLiteral("ns=0;i=11");
+    variable.valueRank = -1;
 
     OpcUaNodeInfo object;
     object.nodeId = QStringLiteral("ns=2;s=Device");
@@ -204,6 +206,8 @@ void TestAddressSpaceModel::dragMimeIncludesNodesWithNodeId()
     QCOMPARE(decoded.displayPath, QStringLiteral("Root/Temperature"));
     QCOMPARE(decoded.nodeClass, variable.nodeClass);
     QCOMPARE(decoded.historizing, variable.historizing);
+    QCOMPARE(decoded.dataTypeId, variable.dataTypeId);
+    QCOMPARE(decoded.valueRank, variable.valueRank);
 
     QScopedPointer<QMimeData> objectMime(model.mimeData({objectIndex}));
     QVERIFY(AddressSpaceMime::decodeNode(objectMime.data(), &decoded));

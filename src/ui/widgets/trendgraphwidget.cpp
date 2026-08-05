@@ -842,27 +842,30 @@ void TrendGraphWidget::applyTheme()
 }
 
 ///
-/// \brief Reports whether a drag carries a droppable variable node.
+/// \brief Reports whether a drag carries a chartable variable node.
 /// \param mimeData Drag MIME data.
-/// \return True when the drag holds a variable node.
+/// \return True when the drag holds a numeric scalar variable node.
+///
+/// Nodes whose DataType cannot be plotted are refused by the drag itself, so the
+/// cursor already reports that the drop will not add a series.
 ///
 bool TrendGraphWidget::acceptsNodeDrag(const QMimeData *mimeData) const
 {
     OpcUaNodeInfo node;
     return AddressSpaceMime::decodeNode(mimeData, &node)
-        && !node.nodeId.isEmpty() && OpcUa::isVariable(node.nodeClass);
+        && !node.nodeId.isEmpty() && TrendSeries::isTrendable(node);
 }
 
 ///
 /// \brief Adds a dropped variable node as a new series.
 /// \param mimeData Drop MIME data.
-/// \return True when a variable node was added.
+/// \return True when a chartable variable node was added.
 ///
 bool TrendGraphWidget::dropNode(const QMimeData *mimeData)
 {
     OpcUaNodeInfo node;
     if (!AddressSpaceMime::decodeNode(mimeData, &node)
-        || node.nodeId.isEmpty() || !OpcUa::isVariable(node.nodeClass)) {
+        || node.nodeId.isEmpty() || !TrendSeries::isTrendable(node)) {
         return false;
     }
     const QString label = node.displayName.isEmpty()

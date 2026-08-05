@@ -224,6 +224,21 @@ bool attributeAppliesToNodeClass(QOpcUa::NodeAttribute attribute,
 QOpcUa::Types valueTypeForDataType(const QString &nodeId);
 
 ///
+/// \brief Reports whether a DataType NodeId denotes values that can be read as numbers.
+/// \param nodeId DataType NodeId string.
+/// \return True for numeric namespace-0 DataTypes and for types that cannot be classified.
+///
+/// Namespace-0 DataTypes are classified from the specification: the integer and
+/// floating-point built-ins and their abstract parents (Number, Integer, UInteger)
+/// and numeric subtypes (IntegerId, Counter, Duration) are numeric, every other
+/// namespace-0 type (Boolean, String, DateTime, structures, ...) is not. Types from
+/// other namespaces and the abstract BaseDataType are accepted, because resolving
+/// their supertype needs extra server reads and rejecting them would hide the custom
+/// numeric and enumeration types servers commonly define.
+///
+bool isNumericDataType(const QString &nodeId);
+
+///
 /// \brief Converts text to a typed scalar, range-checking integral types.
 /// \param text Source text.
 /// \param type Target OPC UA value type.

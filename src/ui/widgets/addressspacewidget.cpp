@@ -26,6 +26,7 @@
 #include "models/addressspacemodel.h"
 #include "models/nodeinfomodel.h"
 #include "models/referencesmodel.h"
+#include "models/trendseries.h"
 #include "spinneraction.h"
 #include "tableview.h"
 #include "ui_addressspacewidget.h"
@@ -442,11 +443,12 @@ void AddressSpaceWidget::showTreeContextMenu(const QPoint &pos)
     });
     monitoringAction->setEnabled(OpcUa::isVariable(info.nodeClass) || folder);
 
+    // Only numeric scalars have an axis position, so other variables stay unchartable.
     QAction *trendAction = menu.addAction(AppIcons::themed(QStringLiteral("trend")),
                                           tr("Add to Trend"), this, [this, info] {
         emit addToTrendRequested(info);
     });
-    trendAction->setEnabled(OpcUa::isVariable(info.nodeClass));
+    trendAction->setEnabled(TrendSeries::isTrendable(info));
 
     QAction *monitorAction = menu.addAction(AppIcons::themed(QStringLiteral("trend")),
                                             tr("Monitor Node..."), this, [this, info] {
