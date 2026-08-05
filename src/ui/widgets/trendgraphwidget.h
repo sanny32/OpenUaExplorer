@@ -283,6 +283,8 @@ private:
     void openCustomInterval();
     void enterCustomInterval(const QDateTime &start, const QDateTime &end, bool relative);
     void refreshHistory();
+    void refreshLiveView();
+    void extendLiveSeries(qint64 endMsEpoch);
     void applyWindow();
     void updateIntervalBar(qint64 startMs, qint64 endMs);
     void subscribeNode(const QString &nodeId);

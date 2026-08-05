@@ -540,6 +540,7 @@ void QtChartsView::removeSeries(const ChartSeriesId &id)
     if (!series)
         return;
     _statuses.remove(id);
+    _extendedSeries.remove(id);
     hideCallout();
     _chart->removeSeries(series);
     delete series;
@@ -554,6 +555,7 @@ void QtChartsView::clearSeries(const ChartSeriesId &id)
     if (QLineSeries *series = _series.value(id)) {
         series->clear();
         _statuses[id].clear();
+        _extendedSeries.remove(id);
     }
 }
 
@@ -569,6 +571,7 @@ void QtChartsView::clearAll()
     }
     _series.clear();
     _statuses.clear();
+    _extendedSeries.clear();
     _paletteIndex = 0;
 }
 
@@ -582,9 +585,41 @@ void QtChartsView::appendPoint(const ChartSeriesId &id, qreal xMsEpoch, qreal y,
                                const QString &status)
 {
     if (QLineSeries *series = _series.value(id)) {
+        if (_extendedSeries.remove(id)) {
+            series->removePoints(series->count() - 1, 1);
+            if (!_statuses[id].isEmpty())
+                _statuses[id].removeLast();
+        }
         series->append(xMsEpoch, y);
         _statuses[id].append(status);
     }
+}
+
+///
+/// \brief Extends a series from its last sample to a later X position.
+/// \param id Target series.
+/// \param xMsEpoch New trailing X position in milliseconds since the epoch.
+///
+void QtChartsView::extendSeriesTo(const ChartSeriesId &id, qreal xMsEpoch)
+{
+    QLineSeries *series = _series.value(id);
+    if (!series || series->count() == 0)
+        return;
+
+    const int lastIndex = series->count() - 1;
+    const QPointF last = series->at(lastIndex);
+    if (xMsEpoch <= last.x())
+        return;
+
+    if (_extendedSeries.contains(id)) {
+        series->replace(lastIndex, QPointF(xMsEpoch, last.y()));
+        return;
+    }
+
+    series->append(xMsEpoch, last.y());
+    const QVector<QString> &statuses = _statuses.value(id);
+    _statuses[id].append(statuses.isEmpty() ? QString() : statuses.constLast());
+    _extendedSeries.insert(id);
 }
 
 ///
@@ -608,6 +643,7 @@ void QtChartsView::setPoints(const ChartSeriesId &id, const QVector<ChartPoint> 
     }
     series->replace(replacement);
     _statuses[id] = std::move(statuses);
+    _extendedSeries.remove(id);
 }
 
 ///

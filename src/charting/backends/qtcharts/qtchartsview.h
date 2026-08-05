@@ -13,6 +13,7 @@
 
 #include <QHash>
 #include <QObject>
+#include <QSet>
 
 #include "ichartview.h"
 
@@ -49,6 +50,13 @@ public:
     void clearAll() override;
     void appendPoint(const ChartSeriesId &id, qreal xMsEpoch, qreal y,
                      const QString &status) override;
+
+    ///
+    /// \brief Extends a series from its last sample to a later X position.
+    /// \param id Target series.
+    /// \param xMsEpoch New trailing X position in milliseconds since the epoch.
+    ///
+    void extendSeriesTo(const ChartSeriesId &id, qreal xMsEpoch) override;
     void setPoints(const ChartSeriesId &id, const QVector<ChartPoint> &points) override;
     void setTimeWindow(qreal startMsEpoch, qreal endMsEpoch) override;
     void autoScaleY() override;
@@ -76,6 +84,7 @@ private:
     QDateTimeAxis *_axisX = nullptr;
     QHash<ChartSeriesId, QLineSeries *> _series;
     QHash<ChartSeriesId, QVector<QString>> _statuses;
+    QSet<ChartSeriesId> _extendedSeries;
     ChartCallout *_callout = nullptr;
     QGraphicsEllipseItem *_marker = nullptr;
     ChartTheme _theme;
