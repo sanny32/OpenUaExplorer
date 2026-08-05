@@ -736,8 +736,32 @@
         <translation>Не удалось сохранить порядок избранного.</translation>
     </message>
     <message>
-        <source>The server rejected the credentials.</source>
-        <translation>Сервер отклонил учётные данные.</translation>
+        <source>The server rejected the credentials.
+Enter them again.</source>
+        <translation>Сервер отклонил учётные данные.
+Введите их снова.</translation>
+    </message>
+    <message>
+        <source>The server rejected the credentials: %1
+Enter them again.</source>
+        <translation>Сервер отклонил учётные данные: %1
+Введите их снова.</translation>
+    </message>
+    <message>
+        <source>The client certificate is missing:
+%1
+Select it again.</source>
+        <translation>Сертификат клиента не найден:
+%1
+Выберите его заново.</translation>
+    </message>
+    <message>
+        <source>The private key is missing:
+%1
+Select it again.</source>
+        <translation>Закрытый ключ не найден:
+%1
+Выберите его заново.</translation>
     </message>
 </context>
 <context>
@@ -796,12 +820,6 @@
     <message>
         <source>Leave empty for an unencrypted key</source>
         <translation>Оставьте пустым для незашифрованного ключа</translation>
-    </message>
-    <message>
-        <source>The server rejected these credentials: %1
-Enter them again.</source>
-        <translation>Сервер отклонил эти учётные данные: %1
-Введите их снова.</translation>
     </message>
     <message>
         <source>Remember password</source>

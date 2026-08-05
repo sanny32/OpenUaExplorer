@@ -47,10 +47,10 @@ public:
     void setProfile(const ConnectionProfile &profile);
 
     ///
-    /// \brief Explains that the previous credentials were turned down by the server.
-    /// \param rejection Reason reported by the server; an empty string restores the hint.
+    /// \brief Explains what is wrong with the credentials the profile came with.
+    /// \param reason Ready-to-show explanation; an empty string restores the plain hint.
     ///
-    void setRejection(const QString &rejection);
+    void setReason(const QString &reason);
 
     ///
     /// \brief Returns the favourite with the entered username and certificate paths applied.

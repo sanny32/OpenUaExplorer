@@ -734,8 +734,32 @@
         <translation>无法保存收藏夹的顺序。</translation>
     </message>
     <message>
-        <source>The server rejected the credentials.</source>
-        <translation>服务器拒绝了凭据。</translation>
+        <source>The server rejected the credentials.
+Enter them again.</source>
+        <translation>服务器拒绝了凭据。
+请重新输入。</translation>
+    </message>
+    <message>
+        <source>The server rejected the credentials: %1
+Enter them again.</source>
+        <translation>服务器拒绝了凭据：%1
+请重新输入。</translation>
+    </message>
+    <message>
+        <source>The client certificate is missing:
+%1
+Select it again.</source>
+        <translation>找不到客户端证书：
+%1
+请重新选择。</translation>
+    </message>
+    <message>
+        <source>The private key is missing:
+%1
+Select it again.</source>
+        <translation>找不到私钥：
+%1
+请重新选择。</translation>
     </message>
 </context>
 <context>
@@ -794,12 +818,6 @@
     <message>
         <source>Leave empty for an unencrypted key</source>
         <translation>若密钥未加密请留空</translation>
-    </message>
-    <message>
-        <source>The server rejected these credentials: %1
-Enter them again.</source>
-        <translation>服务器拒绝了这些凭据：%1
-请重新输入。</translation>
     </message>
     <message>
         <source>Remember password</source>

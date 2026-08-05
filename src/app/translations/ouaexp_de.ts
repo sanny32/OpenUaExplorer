@@ -735,8 +735,32 @@
         <translation>Die Reihenfolge der Favoriten konnte nicht gespeichert werden.</translation>
     </message>
     <message>
-        <source>The server rejected the credentials.</source>
-        <translation>Der Server hat die Anmeldedaten abgelehnt.</translation>
+        <source>The server rejected the credentials.
+Enter them again.</source>
+        <translation>Der Server hat die Anmeldedaten abgelehnt.
+Geben Sie sie erneut ein.</translation>
+    </message>
+    <message>
+        <source>The server rejected the credentials: %1
+Enter them again.</source>
+        <translation>Der Server hat die Anmeldedaten abgelehnt: %1
+Geben Sie sie erneut ein.</translation>
+    </message>
+    <message>
+        <source>The client certificate is missing:
+%1
+Select it again.</source>
+        <translation>Das Clientzertifikat fehlt:
+%1
+Wählen Sie es erneut aus.</translation>
+    </message>
+    <message>
+        <source>The private key is missing:
+%1
+Select it again.</source>
+        <translation>Der private Schlüssel fehlt:
+%1
+Wählen Sie ihn erneut aus.</translation>
     </message>
 </context>
 <context>
@@ -795,12 +819,6 @@
     <message>
         <source>Leave empty for an unencrypted key</source>
         <translation>Für einen unverschlüsselten Schlüssel leer lassen</translation>
-    </message>
-    <message>
-        <source>The server rejected these credentials: %1
-Enter them again.</source>
-        <translation>Der Server hat diese Anmeldedaten abgelehnt: %1
-Geben Sie sie erneut ein.</translation>
     </message>
     <message>
         <source>Remember password</source>

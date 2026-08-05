@@ -45,11 +45,11 @@ public:
     virtual ~ConnectionCredentialsProvider() = default;
 
     ///
-    /// \brief Asks for the credentials missing from the credential store.
+    /// \brief Asks for the credentials the profile cannot connect without.
     /// \param profile Profile waiting to connect.
-    /// \param rejection Reason the previous credentials were turned down, empty on a first ask.
+    /// \param reason What went wrong, ready to show; empty when nothing was configured yet.
     /// \return The supplied credentials, or a rejected result when the user gives up.
     ///
     virtual ConnectionCredentials requestCredentials(const ConnectionProfile &profile,
-                                                     const QString &rejection) = 0;
+                                                     const QString &reason) = 0;
 };

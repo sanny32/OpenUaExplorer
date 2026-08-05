@@ -112,11 +112,11 @@ public:
     ///
     /// \brief Asks for the credentials a profile needs but has none stored for.
     /// \param profile Profile waiting to connect.
-    /// \param rejection Reason the previous credentials were turned down, empty on a first ask.
+    /// \param reason What went wrong, ready to show; empty when nothing was configured yet.
     /// \return The entered credentials, or a rejected result when the user cancels.
     ///
     ConnectionCredentials requestCredentials(const ConnectionProfile &profile,
-                                             const QString &rejection) override;
+                                             const QString &reason) override;
 
 signals:
     ///

@@ -8,6 +8,8 @@
 
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
 #include <QTimer>
 #include <QUuid>
 
@@ -202,10 +204,11 @@ void ConnectionController::connectNewProfile(const ConnectionProfile &profile,
 }
 
 ///
-/// \brief Connects a saved profile, first loading any required secrets from the keychain.
+/// \brief Connects a saved profile, first loading the password from the keychain.
 ///
-/// Stored secrets let the profile reconnect unattended; the credentials provider is only
-/// asked for what the keychain could not supply.
+/// A stored password lets the profile reconnect unattended; the credentials provider is only
+/// asked for what the keychain could not supply. The private-key password is never among it:
+/// the backend only accepts unencrypted keys, so it is collected per attempt and never kept.
 /// \param profile Saved profile to connect with.
 ///
 void ConnectionController::connectSavedProfile(const ConnectionProfile &profile)
@@ -218,17 +221,11 @@ void ConnectionController::connectSavedProfile(const ConnectionProfile &profile)
 
     const bool needsPassword =
         profile.authentication == ConnectionProfile::Authentication::Username;
-    const bool needsPrivateKeyPassword = !profile.privateKeyFile.isEmpty();
-    _pendingSecretReads = static_cast<int>(needsPassword)
-        + static_cast<int>(needsPrivateKeyPassword);
+    _pendingSecretReads = static_cast<int>(needsPassword);
 
-    if (needsPassword) {
+    if (needsPassword)
         _secretStore->read(profile.id, SecretStore::Secret::Password);
-    }
-    if (needsPrivateKeyPassword) {
-        _secretStore->read(profile.id, SecretStore::Secret::PrivateKeyPassword);
-    }
-    if (!needsPassword && !needsPrivateKeyPassword)
+    else
         startPendingConnection();
 }
 
@@ -273,14 +270,12 @@ bool ConnectionController::reconnectActiveProfile()
 }
 
 ///
-/// \brief Persists a profile and its secrets, emitting profilesChanged() on success.
+/// \brief Persists a profile and its password, emitting profilesChanged() on success.
 /// \param profile Profile to store.
 /// \param password User password to store, if non-empty.
-/// \param privateKeyPassword Private-key password to store, if non-empty.
 ///
 void ConnectionController::saveProfile(const ConnectionProfile &profile,
-                                       const QString &password,
-                                       const QString &privateKeyPassword)
+                                       const QString &password)
 {
     const QList<ConnectionProfile> existing = _profileStore->profiles();
     for (const ConnectionProfile &other : existing) {
@@ -294,10 +289,6 @@ void ConnectionController::saveProfile(const ConnectionProfile &profile,
     }
     if (!password.isEmpty())
         _secretStore->write(profile.id, SecretStore::Secret::Password, password);
-    if (!privateKeyPassword.isEmpty()) {
-        _secretStore->write(profile.id, SecretStore::Secret::PrivateKeyPassword,
-                            privateKeyPassword);
-    }
     emit profilesChanged();
 }
 
@@ -389,6 +380,10 @@ void ConnectionController::handleSecretRead(const QString &profileId,
 ///
 /// An empty private-key password is a legitimate answer, so it never counts as missing;
 /// what cannot be guessed is a login password or the certificate files to authenticate with.
+///
+/// A profile keeps the paths of its certificate and key, not the files themselves, so one that
+/// was moved away or deleted counts as missing too: asking beats failing inside the backend.
+///
 /// \return True when the connection cannot be attempted without asking the user.
 ///
 bool ConnectionController::pendingCredentialsMissing() const
@@ -398,7 +393,9 @@ bool ConnectionController::pendingCredentialsMissing() const
         return _pendingPassword.isEmpty();
     case ConnectionProfile::Authentication::Certificate:
         return _pendingProfile.clientCertificateFile.isEmpty()
-            || _pendingProfile.privateKeyFile.isEmpty();
+            || _pendingProfile.privateKeyFile.isEmpty()
+            || !QFileInfo::exists(_pendingProfile.clientCertificateFile)
+            || !QFileInfo::exists(_pendingProfile.privateKeyFile);
     case ConnectionProfile::Authentication::Anonymous:
         break;
     }
@@ -406,23 +403,45 @@ bool ConnectionController::pendingCredentialsMissing() const
 }
 
 ///
-/// \brief Keeps the credentials just entered so the profile connects unattended next time.
+/// \brief Explains a credential the profile names but the machine no longer has.
 ///
-/// The secrets are filed under the profile identifier, which saved sessions and favourites
-/// both carry, so either can find them again; a profile without one has nothing to key on.
+/// A prompt that merely opens is self-explanatory when nothing was configured yet; one that
+/// opens because a configured file disappeared is not, so that case says so.
+///
+/// \return The warning to show with the prompt, or an empty string for a plain first ask.
+///
+QString ConnectionController::pendingCredentialsWarning() const
+{
+    if (_pendingProfile.authentication != ConnectionProfile::Authentication::Certificate)
+        return QString();
+
+    const QString certificate = _pendingProfile.clientCertificateFile;
+    if (!certificate.isEmpty() && !QFileInfo::exists(certificate)) {
+        return tr("The client certificate is missing:\n%1\nSelect it again.")
+            .arg(QDir::toNativeSeparators(certificate));
+    }
+
+    const QString privateKey = _pendingProfile.privateKeyFile;
+    if (!privateKey.isEmpty() && !QFileInfo::exists(privateKey)) {
+        return tr("The private key is missing:\n%1\nSelect it again.")
+            .arg(QDir::toNativeSeparators(privateKey));
+    }
+    return QString();
+}
+
+///
+/// \brief Keeps the password just entered so the profile connects unattended next time.
+///
+/// The secret is filed under the profile identifier, which saved sessions and favourites both
+/// carry, so either can find it again; a profile without one has nothing to key on. The
+/// private-key password is deliberately not kept: the backend refuses encrypted keys, so a
+/// stored one could only make every later connection of this profile fail.
 ///
 void ConnectionController::storePendingCredentials()
 {
-    if (_pendingProfile.id.isEmpty())
+    if (_pendingProfile.id.isEmpty() || _pendingPassword.isEmpty())
         return;
-    if (!_pendingPassword.isEmpty()) {
-        _secretStore->write(_pendingProfile.id, SecretStore::Secret::Password,
-                            _pendingPassword);
-    }
-    if (!_pendingPrivateKeyPassword.isEmpty()) {
-        _secretStore->write(_pendingProfile.id, SecretStore::Secret::PrivateKeyPassword,
-                            _pendingPrivateKeyPassword);
-    }
+    _secretStore->write(_pendingProfile.id, SecretStore::Secret::Password, _pendingPassword);
 }
 
 ///
@@ -434,10 +453,14 @@ void ConnectionController::storePendingCredentials()
 ///
 void ConnectionController::startPendingConnection()
 {
-    const QString rejection = std::exchange(_pendingRejection, QString());
-    if (_credentialsProvider && (!rejection.isEmpty() || pendingCredentialsMissing())) {
+    QString reason = std::exchange(_pendingRejection, QString());
+    const bool missing = pendingCredentialsMissing();
+    if (reason.isEmpty() && missing)
+        reason = pendingCredentialsWarning();
+
+    if (_credentialsProvider && (missing || !reason.isEmpty())) {
         const ConnectionCredentials credentials =
-            _credentialsProvider->requestCredentials(_pendingProfile, rejection);
+            _credentialsProvider->requestCredentials(_pendingProfile, reason);
         if (!credentials.accepted) {
             emit connectionAborted();
             return;
@@ -470,7 +493,9 @@ void ConnectionController::handleAuthenticationRejected(const QString &message)
         || _activeProfile.authentication == ConnectionProfile::Authentication::Anonymous) {
         return;
     }
-    _rejectionMessage = message.isEmpty() ? tr("The server rejected the credentials.") : message;
+    _rejectionMessage = message.isEmpty()
+        ? tr("The server rejected the credentials.\nEnter them again.")
+        : tr("The server rejected the credentials: %1\nEnter them again.").arg(message);
 }
 
 ///

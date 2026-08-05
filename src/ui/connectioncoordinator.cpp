@@ -108,10 +108,8 @@ bool ConnectionCoordinator::openConnectionDialog(const ConnectionProfile *preset
             return favorite.id == preset->id;
         });
     const ConnectionProfile profile = dialog.profile();
-    if (editingFavorite) {
-        _controller->saveProfile(
-            profile, dialog.password(), dialog.privateKeyPassword());
-    }
+    if (editingFavorite)
+        _controller->saveProfile(profile, dialog.password());
     _controller->connectNewProfile(
         profile, dialog.password(), dialog.privateKeyPassword());
     return true;
@@ -329,7 +327,7 @@ void ConnectionCoordinator::addCurrentToFavorites()
     }
     profile.saveProfile = true;
     profile.lastUsed = QDateTime::currentDateTime();
-    _controller->saveProfile(profile, QString(), QString());
+    _controller->saveProfile(profile, QString());
 }
 
 ///
@@ -348,15 +346,15 @@ void ConnectionCoordinator::connectFavorite(const ConnectionProfile &favorite)
 /// lifted for as long as the dialog waits for typing.
 ///
 /// \param profile Profile waiting to connect.
-/// \param rejection Reason the previous credentials were turned down, empty on a first ask.
+/// \param reason What went wrong, ready to show; empty when nothing was configured yet.
 /// \return The entered credentials, or a rejected result when the user cancels.
 ///
 ConnectionCredentials ConnectionCoordinator::requestCredentials(const ConnectionProfile &profile,
-                                                                const QString &rejection)
+                                                                const QString &reason)
 {
     ConnectionCredentialsDialog dialog(_dialogParent);
     dialog.setProfile(profile);
-    dialog.setRejection(rejection);
+    dialog.setReason(reason);
 
     QGuiApplication::setOverrideCursor(Qt::ArrowCursor);
     const bool accepted = dialog.exec() == QDialog::Accepted;
@@ -383,7 +381,7 @@ void ConnectionCoordinator::editFavorite(const ConnectionProfile &favorite)
     dialog.setProfile(favorite);
     if (dialog.exec() != QDialog::Accepted)
         return;
-    _controller->saveProfile(dialog.profile(), QString(), QString());
+    _controller->saveProfile(dialog.profile(), QString());
 }
 
 ///

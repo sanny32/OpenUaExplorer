@@ -126,14 +126,15 @@ public:
     bool reconnectActiveProfile();
 
     ///
-    /// \brief Persists a profile and its secrets, emitting profilesChanged() on success.
+    /// \brief Persists a profile and its password, emitting profilesChanged() on success.
+    ///
+    /// Only the user password is kept. A private-key password would be useless later: the
+    /// backend refuses encrypted keys, so it is collected per attempt instead.
+    ///
     /// \param profile Profile to store.
     /// \param password User password to store, if non-empty.
-    /// \param privateKeyPassword Private-key password to store, if non-empty.
     ///
-    void saveProfile(const ConnectionProfile &profile,
-                     const QString &password,
-                     const QString &privateKeyPassword);
+    void saveProfile(const ConnectionProfile &profile, const QString &password);
 
     ///
     /// \brief Removes the saved favourite with the given id, along with its secrets.
@@ -191,6 +192,7 @@ private:
     void connectBackend(const ConnectionProfile &profile, const QString &password,
                         const QString &privateKeyPassword);
     bool pendingCredentialsMissing() const;
+    QString pendingCredentialsWarning() const;
     void retryWithNewCredentials(const ConnectionProfile &profile, const QString &rejection);
     void storePendingCredentials();
     void startPendingConnection();

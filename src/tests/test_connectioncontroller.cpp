@@ -8,9 +8,12 @@
 
 #include <algorithm>
 
+#include <QFile>
+#include <QFileInfo>
 #include <QHash>
 #include <QRegularExpression>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QTest>
 
 #include "opcua/connectioncontroller.h"
@@ -219,11 +222,11 @@ class FakeCredentialsProvider : public ConnectionCredentialsProvider
 {
 public:
     ConnectionCredentials requestCredentials(const ConnectionProfile &profile,
-                                             const QString &rejection) override
+                                             const QString &reason) override
     {
         ++requests;
         requestedProfile = profile;
-        requestedRejection = rejection;
+        requestedReason = reason;
         ConnectionCredentials credentials = reply;
         if (credentials.profile.endpointUrl.isEmpty())
             credentials.profile = profile;
@@ -232,7 +235,7 @@ public:
 
     int requests = 0;
     ConnectionProfile requestedProfile;
-    QString requestedRejection;
+    QString requestedReason;
     ConnectionCredentials reply;
 };
 
@@ -248,15 +251,17 @@ private slots:
     void connectingAppliesTheProfileRequestTimeout();
     void connectingAddsStableInstanceSuffixToSessionNames();
     void savedProfileWithoutSecretsDiscoversThenConnects();
-    void savedProfileLoadsBothSecrets();
+    void savedProfileLoadsOnlyTheUserPassword();
     void storedPasswordConnectsWithoutPrompting();
     void missingPasswordIsAskedForBeforeConnecting();
     void decliningTheCredentialsPromptAbortsTheConnection();
     void rememberedCredentialsAreStoredForTheNextConnection();
+    void rememberedCredentialsNeverStoreTheKeyPassword();
+    void missingCertificateFileIsAskedForAgain();
     void rejectedCredentialsAreAskedForAgain();
     void decliningAfterARejectionStopsRetrying();
     void discoveryFailureDoesNotConnect();
-    void savePersistsProfileAndSecrets();
+    void savePersistsProfileAndPassword();
     void savingSameEndpointReplacesFavorite();
     void savingSameEndpointDifferentSecurityKeepsBoth();
     void savingSameEndpointDifferentAuthenticationKeepsBoth();
@@ -361,7 +366,13 @@ void TestConnectionController::savedProfileWithoutSecretsDiscoversThenConnects()
     QCOMPARE(backend.connectedProfile.id, profile.id);
 }
 
-void TestConnectionController::savedProfileLoadsBothSecrets()
+///
+/// \brief Only the user password comes from the keychain; a stored key password is left alone.
+///
+/// The backend refuses encrypted keys outright, so passing a stored key password on would turn
+/// every connection of the profile into that error.
+///
+void TestConnectionController::savedProfileLoadsOnlyTheUserPassword()
 {
     FakeOpcUaBackend backend;
     FakeSecretStore secrets;
@@ -377,6 +388,7 @@ void TestConnectionController::savedProfileLoadsBothSecrets()
     secrets.values.insert(
         FakeSecretStore::key(profile.id, SecretStore::Secret::Password),
         QStringLiteral("login-secret"));
+    // Left over from an older version that stored it; it must not reach the backend.
     secrets.values.insert(
         FakeSecretStore::key(profile.id, SecretStore::Secret::PrivateKeyPassword),
         QStringLiteral("key-secret"));
@@ -385,7 +397,7 @@ void TestConnectionController::savedProfileLoadsBothSecrets()
     QCOMPARE(backend.discoveryCalls, 1);
     backend.completeDiscovery();
     QCOMPARE(backend.connectedPassword, QStringLiteral("login-secret"));
-    QCOMPARE(backend.connectedPrivateKeyPassword, QStringLiteral("key-secret"));
+    QVERIFY(backend.connectedPrivateKeyPassword.isEmpty());
 }
 
 ///
@@ -508,6 +520,90 @@ void TestConnectionController::rememberedCredentialsAreStoredForTheNextConnectio
 }
 
 ///
+/// \brief The private-key password is used for the attempt only, never filed in the keychain.
+///
+void TestConnectionController::rememberedCredentialsNeverStoreTheKeyPassword()
+{
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    FakeCredentialsProvider credentials;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+    controller.setCredentialsProvider(&credentials);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("key-password");
+    profile.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
+    profile.authentication = ConnectionProfile::Authentication::Username;
+    credentials.reply.accepted = true;
+    credentials.reply.password = QStringLiteral("typed-secret");
+    credentials.reply.privateKeyPassword = QStringLiteral("key-secret");
+    credentials.reply.remember = true;
+
+    controller.connectSavedProfile(profile);
+    backend.completeDiscovery();
+
+    QCOMPARE(backend.connectedPrivateKeyPassword, QStringLiteral("key-secret"));
+    QVERIFY(secrets.values.contains(
+        FakeSecretStore::key(profile.id, SecretStore::Secret::Password)));
+    QVERIFY(!secrets.values.contains(
+        FakeSecretStore::key(profile.id, SecretStore::Secret::PrivateKeyPassword)));
+}
+
+///
+/// \brief A certificate the profile names but the machine no longer has is asked for again.
+///
+void TestConnectionController::missingCertificateFileIsAskedForAgain()
+{
+    QTemporaryDir pkiDirectory;
+    QVERIFY(pkiDirectory.isValid());
+    const QString certificatePath = pkiDirectory.filePath(QStringLiteral("client.der"));
+    const QString privateKeyPath = pkiDirectory.filePath(QStringLiteral("client.pem"));
+    for (const QString &path : {certificatePath, privateKeyPath}) {
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("test");
+    }
+
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    FakeCredentialsProvider credentials;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+    controller.setCredentialsProvider(&credentials);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("certificate");
+    profile.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
+    profile.authentication = ConnectionProfile::Authentication::Certificate;
+    profile.clientCertificateFile = certificatePath;
+    profile.privateKeyFile = privateKeyPath;
+
+    // Both files are there, so the profile connects on its own.
+    controller.connectSavedProfile(profile);
+    QCOMPARE(credentials.requests, 0);
+    QCOMPARE(backend.discoveryCalls, 1);
+    backend.completeDiscovery();
+
+    QVERIFY(QFile::remove(certificatePath));
+    ConnectionProfile replacement = profile;
+    replacement.clientCertificateFile = privateKeyPath;
+    credentials.reply.accepted = true;
+    credentials.reply.profile = replacement;
+
+    controller.connectSavedProfile(profile);
+
+    QCOMPARE(credentials.requests, 1);
+    QVERIFY2(credentials.requestedReason.contains(QFileInfo(certificatePath).fileName()),
+             qPrintable(credentials.requestedReason));
+    QCOMPARE(backend.discoveryCalls, 2);
+    backend.completeDiscovery();
+    QCOMPARE(backend.connectedProfile.clientCertificateFile, privateKeyPath);
+}
+
+///
 /// \brief A password the server turns down is asked for again, with the reason shown.
 ///
 void TestConnectionController::rejectedCredentialsAreAskedForAgain()
@@ -538,7 +634,7 @@ void TestConnectionController::rejectedCredentialsAreAskedForAgain()
     backend.setState(OpcUaConnectionState::Disconnected);
 
     QTRY_COMPARE(credentials.requests, 1);
-    QCOMPARE(credentials.requestedRejection, QStringLiteral("Access denied."));
+    QVERIFY(credentials.requestedReason.contains(QStringLiteral("Access denied.")));
     QCOMPARE(backend.discoveryCalls, 2);
     backend.completeDiscovery();
     QCOMPARE(backend.connectedPassword, QStringLiteral("second-try"));
@@ -597,7 +693,7 @@ void TestConnectionController::discoveryFailureDoesNotConnect()
     QCOMPARE(errorSpy.size(), 1);
 }
 
-void TestConnectionController::savePersistsProfileAndSecrets()
+void TestConnectionController::savePersistsProfileAndPassword()
 {
     FakeOpcUaBackend backend;
     FakeSecretStore secrets;
@@ -608,16 +704,12 @@ void TestConnectionController::savePersistsProfileAndSecrets()
 
     ConnectionProfile profile;
     profile.id = QStringLiteral("saved");
-    controller.saveProfile(profile, QStringLiteral("password"),
-                           QStringLiteral("key-password"));
+    controller.saveProfile(profile, QStringLiteral("password"));
 
     QCOMPARE(profiles.storedProfiles.size(), 1);
     QCOMPARE(secrets.values.value(FakeSecretStore::key(
                  profile.id, SecretStore::Secret::Password)),
              QStringLiteral("password"));
-    QCOMPARE(secrets.values.value(FakeSecretStore::key(
-                 profile.id, SecretStore::Secret::PrivateKeyPassword)),
-             QStringLiteral("key-password"));
     QCOMPARE(changedSpy.size(), 1);
 }
 
@@ -634,14 +726,14 @@ void TestConnectionController::savingSameEndpointReplacesFavorite()
     first.endpointUrl = QStringLiteral("opc.tcp://host:4840");
     first.securityPolicy = QStringLiteral("Basic256Sha256");
     first.securityMode = 3;
-    controller.saveProfile(first, QStringLiteral("pw1"), QString());
+    controller.saveProfile(first, QStringLiteral("pw1"));
 
     ConnectionProfile second;
     second.id = QStringLiteral("second");
     second.endpointUrl = QStringLiteral("opc.tcp://host:4840");
     second.securityPolicy = QStringLiteral("Basic256Sha256");
     second.securityMode = 3;
-    controller.saveProfile(second, QString(), QString());
+    controller.saveProfile(second, QString());
 
     QCOMPARE(profiles.storedProfiles.size(), 1);
     QCOMPARE(profiles.storedProfiles.first().id, QStringLiteral("second"));
@@ -662,14 +754,14 @@ void TestConnectionController::savingSameEndpointDifferentSecurityKeepsBoth()
     signEncrypt.endpointUrl = QStringLiteral("opc.tcp://host:4840");
     signEncrypt.securityPolicy = QStringLiteral("Basic256Sha256");
     signEncrypt.securityMode = 3;
-    controller.saveProfile(signEncrypt, QString(), QString());
+    controller.saveProfile(signEncrypt, QString());
 
     ConnectionProfile sign;
     sign.id = QStringLiteral("sign");
     sign.endpointUrl = QStringLiteral("opc.tcp://host:4840");
     sign.securityPolicy = QStringLiteral("Aes128_Sha256_RsaOaep");
     sign.securityMode = 2;
-    controller.saveProfile(sign, QString(), QString());
+    controller.saveProfile(sign, QString());
 
     QCOMPARE(profiles.storedProfiles.size(), 2);
 }
@@ -688,7 +780,7 @@ void TestConnectionController::savingSameEndpointDifferentAuthenticationKeepsBot
     anonymous.securityPolicy = QStringLiteral("Basic256Sha256");
     anonymous.securityMode = 3;
     anonymous.authentication = ConnectionProfile::Authentication::Anonymous;
-    controller.saveProfile(anonymous, QString(), QString());
+    controller.saveProfile(anonymous, QString());
 
     ConnectionProfile username;
     username.id = QStringLiteral("username");
@@ -696,7 +788,7 @@ void TestConnectionController::savingSameEndpointDifferentAuthenticationKeepsBot
     username.securityPolicy = QStringLiteral("Basic256Sha256");
     username.securityMode = 3;
     username.authentication = ConnectionProfile::Authentication::Username;
-    controller.saveProfile(username, QStringLiteral("pw"), QString());
+    controller.saveProfile(username, QStringLiteral("pw"));
 
     QCOMPARE(profiles.storedProfiles.size(), 2);
 }
@@ -712,7 +804,7 @@ void TestConnectionController::removeFavoriteDeletesProfileAndSecrets()
     ConnectionProfile profile;
     profile.id = QStringLiteral("fav");
     profile.endpointUrl = QStringLiteral("opc.tcp://host:4840");
-    controller.saveProfile(profile, QStringLiteral("pw"), QString());
+    controller.saveProfile(profile, QStringLiteral("pw"));
     QCOMPARE(profiles.storedProfiles.size(), 1);
 
     QSignalSpy changedSpy(&controller, &ConnectionController::profilesChanged);
