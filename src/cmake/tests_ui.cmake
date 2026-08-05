@@ -1,7 +1,7 @@
 function(ouaexp_configure_common_ui_tests)
     ouaexp_add_ui_test(ouaexp_tests_application         test_application.cpp)
     ouaexp_add_ui_test(ouaexp_tests_app_colors          test_appcolors.cpp)
-    ouaexp_add_ui_test(ouaexp_tests_app_style           test_appstyle.cpp)
+    ouaexp_add_ui_test(ouaexp_tests_app_style           test_appstyle.cpp NO_PCH)
     ouaexp_configure_qlementine_app_style(ouaexp_tests_app_style)
     ouaexp_add_ui_test(ouaexp_tests_connection_dialog   test_connectiondialog.cpp)
     ouaexp_add_ui_test(ouaexp_tests_connection_credentials_dialog
