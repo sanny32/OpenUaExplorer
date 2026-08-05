@@ -36,6 +36,7 @@
 #include "messageboxdialog.h"
 #include "opcua/certificateinfo.h"
 #include "opcua/opcuabackend.h"
+#include "opcua/recentconnectionstore.h"
 #include "opcua/connectionprofilevalidator.h"
 #include "opcua/pkimanager.h"
 #include "ui_connectiondialog.h"
@@ -51,8 +52,12 @@
 ConnectionDialog::ConnectionDialog(QWidget *parent)
     : AppBaseDialog(parent)
     , ui(new Ui::ConnectionDialog)
+    , _secretStore(new SecretStore(this))
 {
     ui->setupUi(this);
+
+    connect(_secretStore, &SecretStore::readFinished,
+            this, &ConnectionDialog::applyStoredPassword);
 
     setupEndpointHistory();
     setupCertificatePanels();
@@ -60,6 +65,7 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
     setupConnections();
     applySessionDefaults();
     updateAuthenticationFields();
+    restoreConnectionFor(_lastEnteredEndpointUrl);
 }
 
 ///
@@ -107,6 +113,88 @@ void ConnectionDialog::setupEndpointHistory()
     ui->discoveryUrlComboBox->setHistory(endpointHistory);
     _lastEnteredEndpointUrl = endpointHistory.isEmpty() ? QString() : endpointHistory.constFirst();
     ui->discoveryUrlComboBox->setEditText(_lastEnteredEndpointUrl);
+}
+
+///
+/// \brief Restores how this server was connected the last time it was used.
+///
+/// The recent-connection history keeps the authentication method, the user name and the
+/// endpoint that was picked, and the password lives in the credential store when the user
+/// asked to remember it. Reopening the dialog for a known server therefore starts where the
+/// last connection left off instead of at the defaults.
+///
+/// \param endpointUrl Endpoint URL the dialog currently shows.
+///
+void ConnectionDialog::restoreConnectionFor(const QString &endpointUrl)
+{
+    // Reaching the same server again is not a change of server: whatever the user has typed
+    // by now stays, and only a different URL starts the panel over.
+    const QString wanted = endpointUrl.trimmed();
+    if (wanted == _restoredEndpointUrl)
+        return;
+
+    _restoredEndpointUrl = wanted;
+    _restoredProfileId.clear();
+    ui->rememberCheckBox->setChecked(false);
+    ui->passwordEdit->clear();
+    if (wanted.isEmpty())
+        return;
+
+    const QList<ConnectionProfile> recent = RecentConnectionStore().connections();
+    const auto match = std::find_if(
+        recent.cbegin(), recent.cend(), [&wanted](const ConnectionProfile &profile) {
+            return profile.endpointUrl == wanted;
+        });
+    if (match == recent.cend())
+        return;
+
+    // Connecting the same server again continues its profile instead of starting a new one,
+    // so the stored password keeps being found and sessions keep a stable identity.
+    _presetId = match->id;
+    _restoredProfileId = match->id;
+
+    const int authValue = static_cast<int>(match->authentication);
+    const int authIndex = ui->authenticationComboBox->findData(authValue);
+    ui->authenticationComboBox->setCurrentIndex(
+        authIndex >= 0 ? authIndex
+                       : qBound(0, authValue, ui->authenticationComboBox->count() - 1));
+    ui->usernameEdit->setText(match->username);
+
+    if (match->authentication == ConnectionProfile::Authentication::Certificate) {
+        ui->certificateEdit->setText(match->clientCertificateFile);
+        ui->privateKeyEdit->setText(match->privateKeyFile);
+    }
+
+    // Discovery re-selects the endpoint that was connected last time.
+    _pendingSecurityPolicy = match->securityPolicy;
+    _pendingSecurityMode = match->securityMode;
+
+    updateAuthenticationFields();
+    if (!_restoredProfileId.isEmpty())
+        _secretStore->read(_restoredProfileId, SecretStore::Secret::Password);
+}
+
+///
+/// \brief Fills in the password the credential store held for the restored server.
+///
+/// The read is asynchronous, so anything the user typed in the meantime wins, and a result
+/// for a server that is no longer shown is dropped.
+///
+/// \param profileId Profile the secret belongs to.
+/// \param secret Which secret was read.
+/// \param value Stored password, empty when nothing was kept.
+/// \param error Read error, if any.
+///
+void ConnectionDialog::applyStoredPassword(const QString &profileId, SecretStore::Secret secret,
+                                           const QString &value, const QString &error)
+{
+    if (secret != SecretStore::Secret::Password || profileId != _restoredProfileId)
+        return;
+    if (!error.isEmpty() || value.isEmpty() || !ui->passwordEdit->text().isEmpty())
+        return;
+
+    ui->passwordEdit->setText(value);
+    ui->rememberCheckBox->setChecked(true);
 }
 
 ///
@@ -187,6 +275,7 @@ void ConnectionDialog::setupConnections()
             this, [this](int index) {
         resetDiscovery();
         _lastEnteredEndpointUrl = ui->discoveryUrlComboBox->itemText(index);
+        restoreConnectionFor(_lastEnteredEndpointUrl);
     });
     connect(ui->discoveryUrlComboBox, &HistoryComboBox::itemRemoved,
             this, &ConnectionDialog::forgetEndpointUrl);
@@ -200,6 +289,7 @@ void ConnectionDialog::setupConnections()
     connect(ui->discoveryUrlComboBox->lineEdit(), &QLineEdit::editingFinished, this, [this]() {
         saveLastEndpointUrl();
         ui->discoveryUrlComboBox->lineEdit()->setCursorPosition(0);
+        restoreConnectionFor(_lastEnteredEndpointUrl);
     });
     connect(ui->authenticationComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -313,7 +403,11 @@ void ConnectionDialog::setProfile(const ConnectionProfile &profile)
     if (profile.endpointUrl.isEmpty())
         return;
 
+    // The caller knows better than the history what this dialog is for, so a restore that is
+    // still on its way must not write over it.
     _presetId = profile.id;
+    _restoredEndpointUrl = profile.endpointUrl;
+    _restoredProfileId.clear();
     resetDiscovery();
     _lastEnteredEndpointUrl = profile.endpointUrl;
     {
@@ -355,6 +449,15 @@ void ConnectionDialog::setProfile(const ConnectionProfile &profile)
 QString ConnectionDialog::password() const
 {
     return ui->passwordEdit->text();
+}
+
+///
+/// \brief Reports whether the entered password should be kept in the credential store.
+/// \return True when the user asked to be remembered.
+///
+bool ConnectionDialog::rememberCredentials() const
+{
+    return ui->rememberCheckBox->isEnabled() && ui->rememberCheckBox->isChecked();
 }
 
 ///
@@ -512,7 +615,9 @@ void ConnectionDialog::updateEndpointSelection()
     const EndpointInfo endpoint = ui->endpointsWidget->currentEndpoint();
     ui->serverCertificateWidget->setCertificate(endpoint.serverCertificate);
     _selectedSecurityModeValue = endpoint.securityModeValue;
-    const int previousAuthentication = ui->authenticationComboBox->currentIndex();
+    // The list is rebuilt from the tokens this endpoint advertises, so the choice is carried
+    // over by what it means, not by where it sat: the offered methods differ per endpoint.
+    const int previousAuthentication = currentAuthentication();
     ui->authenticationComboBox->clear();
     if (endpoint.supportsAnonymous)
         ui->authenticationComboBox->addItem(tr("Anonymous"),
@@ -523,8 +628,8 @@ void ConnectionDialog::updateEndpointSelection()
     if (endpoint.supportsCertificate)
         ui->authenticationComboBox->addItem(tr("Certificate"),
                                             static_cast<int>(ConnectionProfile::Authentication::Certificate));
-    ui->authenticationComboBox->setCurrentIndex(
-        qBound(0, previousAuthentication, ui->authenticationComboBox->count() - 1));
+    const int carriedOver = ui->authenticationComboBox->findData(previousAuthentication);
+    ui->authenticationComboBox->setCurrentIndex(qMax(0, carriedOver));
     updateAuthenticationFields();
 }
 
@@ -542,6 +647,9 @@ void ConnectionDialog::updateAuthenticationFields()
 
     ui->usernameEdit->setEnabled(username);
     ui->passwordEdit->setEnabled(username);
+    // Only a user password can be stored: the backend refuses encrypted private keys, so a
+    // key password would be useless on the next connection anyway.
+    ui->rememberCheckBox->setEnabled(username);
 
     const bool showHintText = !certificate && !username;
     const QString hintStyle = showHintText

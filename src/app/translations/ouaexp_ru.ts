@@ -1124,6 +1124,14 @@ Select it again.</source>
         <source>Import...</source>
         <translation>Импорт...</translation>
     </message>
+    <message>
+        <source>Remember password</source>
+        <translation>Запомнить пароль</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>Сохранить пароль в хранилище учётных данных операционной системы, чтобы это подключение восстанавливалось без повторного запроса.</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionStatusWidget</name>

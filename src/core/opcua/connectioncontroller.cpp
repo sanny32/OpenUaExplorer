@@ -293,6 +293,23 @@ void ConnectionController::saveProfile(const ConnectionProfile &profile,
 }
 
 ///
+/// \brief Keeps a password for a profile without making the profile a favourite.
+///
+/// Lets a plain connection be restored unattended later: a session saved from it carries the
+/// profile identifier the password is filed under.
+///
+/// \param profile Profile the password belongs to.
+/// \param password Password to store; nothing is written when it is empty.
+///
+void ConnectionController::rememberPassword(const ConnectionProfile &profile,
+                                            const QString &password)
+{
+    if (profile.id.isEmpty() || password.isEmpty())
+        return;
+    _secretStore->write(profile.id, SecretStore::Secret::Password, password);
+}
+
+///
 /// \brief Removes the saved favourite with the given id, along with its secrets.
 /// \param id Identifier of the favourite to remove.
 ///

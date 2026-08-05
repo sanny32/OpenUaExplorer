@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QCursor>
@@ -27,9 +28,11 @@
 #include <QSslCertificate>
 #include <QStyleFactory>
 #include <QTableView>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QTimer>
+#include <QUuid>
 
 #include "appsettings.h"
 #include "dialogs/connectiondialog.h"
@@ -37,6 +40,8 @@
 #include "opcua/endpointhistorystore.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/pkimanager.h"
+#include "opcua/recentconnectionstore.h"
+#include "opcua/secretstore.h"
 #include "settingsstore.h"
 #include "widgets/certificatesummarywidget.h"
 #include "widgets/dialogbuttonbox.h"
@@ -91,6 +96,9 @@ private slots:
     void designerEndpointsSeedEmptyHistory();
     void clearedEndpointHistoryStaysEmpty();
     void usernamePasswordDefaultsAreEmpty();
+    void rememberOptionFollowsUsernameAuthentication();
+    void reopeningRestoresTheAuthenticationOfTheLastConnection();
+    void reopeningFillsInTheRememberedPassword();
     void discoveryPopulatesEndpointModelAndAuthentication();
     void endpointsWidgetSelectsAPolicyAndModePair();
     void closingDuringDiscoveryRestoresCursor();
@@ -321,6 +329,108 @@ void TestConnectionDialog::usernamePasswordDefaultsAreEmpty()
 
     QVERIFY(username->text().isEmpty());
     QVERIFY(password->text().isEmpty());
+}
+
+///
+/// \brief Remembering a password is offered for username authentication and nothing else.
+///
+void TestConnectionDialog::rememberOptionFollowsUsernameAuthentication()
+{
+    ConnectionDialog dialog;
+    auto *remember = dialog.findChild<QCheckBox *>(QStringLiteral("rememberCheckBox"));
+    auto *authentication = dialog.findChild<QComboBox *>(
+        QStringLiteral("authenticationComboBox"));
+    QVERIFY(remember);
+    QVERIFY(authentication);
+
+    // The designer items are ordered like the authentication enum.
+    authentication->setCurrentIndex(
+        static_cast<int>(ConnectionProfile::Authentication::Anonymous));
+    QVERIFY(!remember->isEnabled());
+    QVERIFY(!dialog.rememberCredentials());
+
+    authentication->setCurrentIndex(
+        static_cast<int>(ConnectionProfile::Authentication::Username));
+    QVERIFY(remember->isEnabled());
+    QVERIFY(!dialog.rememberCredentials());
+
+    remember->setChecked(true);
+    QVERIFY(dialog.rememberCredentials());
+
+    // A mode without a password to store must not report a leftover tick as an answer.
+    authentication->setCurrentIndex(
+        static_cast<int>(ConnectionProfile::Authentication::Certificate));
+    QVERIFY(!dialog.rememberCredentials());
+}
+
+///
+/// \brief Reopening the dialog for a known server brings back how it was connected.
+///
+void TestConnectionDialog::reopeningRestoresTheAuthenticationOfTheLastConnection()
+{
+    const QString endpoint = QStringLiteral("opc.tcp://restored:4840");
+    EndpointHistoryStore().save(endpoint);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("restored-profile");
+    profile.endpointUrl = endpoint;
+    profile.authentication = ConnectionProfile::Authentication::Username;
+    profile.username = QStringLiteral("operator");
+    RecentConnectionStore().record(profile);
+
+    ConnectionDialog dialog;
+    auto *authentication = dialog.findChild<QComboBox *>(
+        QStringLiteral("authenticationComboBox"));
+    auto *username = dialog.findChild<QLineEdit *>(QStringLiteral("usernameEdit"));
+    QVERIFY(authentication);
+    QVERIFY(username);
+
+    QCOMPARE(authentication->currentIndex(),
+             static_cast<int>(ConnectionProfile::Authentication::Username));
+    QCOMPARE(username->text(), QStringLiteral("operator"));
+    // The connection continues the profile it had, so its stored password keeps being found.
+    QCOMPARE(dialog.profile().id, profile.id);
+}
+
+///
+/// \brief A password kept for the server is filled in, with the remember option ticked.
+///
+void TestConnectionDialog::reopeningFillsInTheRememberedPassword()
+{
+    const QString endpoint = QStringLiteral("opc.tcp://remembered:4840");
+    // Unique per run so the credential store of the machine keeps no test leftovers around.
+    const QString profileId = QStringLiteral("ouaexp-dialog-test-")
+        + QUuid::createUuid().toString(QUuid::WithoutBraces);
+
+    SecretStore secrets;
+    QSignalSpy writeSpy(&secrets, &SecretStore::writeFinished);
+    secrets.write(profileId, SecretStore::Secret::Password, QStringLiteral("kept-secret"));
+    if (!writeSpy.wait(5000) || !writeSpy.takeFirst().at(2).toString().isEmpty())
+        QSKIP("No usable keychain backend.");
+
+    EndpointHistoryStore().save(endpoint);
+    ConnectionProfile profile;
+    profile.id = profileId;
+    profile.endpointUrl = endpoint;
+    profile.authentication = ConnectionProfile::Authentication::Username;
+    profile.username = QStringLiteral("operator");
+    RecentConnectionStore().record(profile);
+
+    {
+        ConnectionDialog dialog;
+        auto *password = dialog.findChild<QLineEdit *>(QStringLiteral("passwordEdit"));
+        auto *remember = dialog.findChild<QCheckBox *>(QStringLiteral("rememberCheckBox"));
+        QVERIFY(password);
+        QVERIFY(remember);
+
+        QTRY_COMPARE(password->text(), QStringLiteral("kept-secret"));
+        QVERIFY(remember->isChecked());
+        QCOMPARE(dialog.password(), QStringLiteral("kept-secret"));
+    }
+
+    QSignalSpy removeSpy(&secrets, &SecretStore::writeFinished);
+    secrets.remove(profileId, SecretStore::Secret::Password);
+    removeSpy.wait(5000);
 }
 
 void TestConnectionDialog::discoveryPopulatesEndpointModelAndAuthentication()

@@ -1123,6 +1123,14 @@ Wählen Sie ihn erneut aus.</translation>
         <source>Import...</source>
         <translation>Importieren …</translation>
     </message>
+    <message>
+        <source>Remember password</source>
+        <translation>Passwort merken</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>Das Passwort im Anmeldeinformationsspeicher des Betriebssystems ablegen, damit diese Verbindung ohne erneute Abfrage wiederhergestellt wird.</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionStatusWidget</name>

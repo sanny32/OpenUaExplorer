@@ -1122,6 +1122,14 @@ Select it again.</source>
         <source>Import...</source>
         <translation>导入…</translation>
     </message>
+    <message>
+        <source>Remember password</source>
+        <translation>记住密码</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>将密码保存到操作系统的凭据存储中，以便无需再次询问即可恢复此连接。</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionStatusWidget</name>

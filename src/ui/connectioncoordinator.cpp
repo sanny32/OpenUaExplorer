@@ -108,8 +108,14 @@ bool ConnectionCoordinator::openConnectionDialog(const ConnectionProfile *preset
             return favorite.id == preset->id;
         });
     const ConnectionProfile profile = dialog.profile();
+    // The password is kept only when the user asked for it; a session saved from this
+    // connection then finds it again under the same profile identifier.
+    const QString rememberedPassword =
+        dialog.rememberCredentials() ? dialog.password() : QString();
     if (editingFavorite)
-        _controller->saveProfile(profile, dialog.password());
+        _controller->saveProfile(profile, rememberedPassword);
+    else
+        _controller->rememberPassword(profile, rememberedPassword);
     _controller->connectNewProfile(
         profile, dialog.password(), dialog.privateKeyPassword());
     return true;

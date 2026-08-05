@@ -262,6 +262,7 @@ private slots:
     void decliningAfterARejectionStopsRetrying();
     void discoveryFailureDoesNotConnect();
     void savePersistsProfileAndPassword();
+    void rememberPasswordStoresTheSecretWithoutTheProfile();
     void savingSameEndpointReplacesFavorite();
     void savingSameEndpointDifferentSecurityKeepsBoth();
     void savingSameEndpointDifferentAuthenticationKeepsBoth();
@@ -711,6 +712,36 @@ void TestConnectionController::savePersistsProfileAndPassword()
                  profile.id, SecretStore::Secret::Password)),
              QStringLiteral("password"));
     QCOMPARE(changedSpy.size(), 1);
+}
+
+///
+/// \brief Remembering a password of a plain connection stores the secret and nothing else.
+///
+void TestConnectionController::rememberPasswordStoresTheSecretWithoutTheProfile()
+{
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("plain");
+    profile.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
+    profile.authentication = ConnectionProfile::Authentication::Username;
+
+    controller.rememberPassword(profile, QStringLiteral("kept"));
+
+    QCOMPARE(secrets.values.value(FakeSecretStore::key(
+                 profile.id, SecretStore::Secret::Password)),
+             QStringLiteral("kept"));
+    QVERIFY(profiles.storedProfiles.isEmpty());
+
+    // An unchecked box arrives as an empty password and must not clear what is stored.
+    controller.rememberPassword(profile, QString());
+    QCOMPARE(secrets.values.value(FakeSecretStore::key(
+                 profile.id, SecretStore::Secret::Password)),
+             QStringLiteral("kept"));
 }
 
 void TestConnectionController::savingSameEndpointReplacesFavorite()

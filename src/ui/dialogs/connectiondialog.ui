@@ -220,6 +220,16 @@
                 </property>
                </widget>
               </item>
+              <item row="2" column="1">
+               <widget class="QCheckBox" name="rememberCheckBox">
+                <property name="text">
+                 <string>Remember password</string>
+                </property>
+                <property name="toolTip">
+                 <string>Store the password in the credential store of the operating system so this connection is restored without asking again.</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
             <widget class="QWidget" name="certificatePanel">
@@ -950,6 +960,7 @@
   <tabstop>authenticationComboBox</tabstop>
   <tabstop>usernameEdit</tabstop>
   <tabstop>passwordEdit</tabstop>
+  <tabstop>rememberCheckBox</tabstop>
   <tabstop>certificateEdit</tabstop>
   <tabstop>certificateBrowseButton</tabstop>
   <tabstop>privateKeyEdit</tabstop>
