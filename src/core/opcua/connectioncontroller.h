@@ -10,6 +10,7 @@
 #include "secretstore.h"
 
 class CertificateTrustDecider;
+class ConnectionCredentialsProvider;
 class ConnectionProfileStore;
 class OpcUaBackend;
 class RecentConnectionStore;
@@ -84,6 +85,12 @@ public:
     void setCertificateTrustDecider(CertificateTrustDecider *decider);
 
     ///
+    /// \brief Sets the delegate asked for credentials the credential store does not hold.
+    /// \param provider Credentials provider; without one the connection is attempted as is.
+    ///
+    void setCredentialsProvider(ConnectionCredentialsProvider *provider);
+
+    ///
     /// \brief Connects immediately using credentials supplied by the user (no stored-secret lookup).
     /// \param profile Profile to connect with.
     /// \param password User password, if any.
@@ -95,6 +102,9 @@ public:
 
     ///
     /// \brief Connects a saved profile, first loading any required secrets from the keychain.
+    ///
+    /// Credentials the keychain does not hold are asked for through the credentials provider,
+    /// so a profile with stored secrets reconnects without interrupting the user.
     /// \param profile Saved profile to connect with.
     ///
     void connectSavedProfile(const ConnectionProfile &profile);
@@ -154,19 +164,42 @@ signals:
     ///
     void errorOccurred(QString message);
 
+    ///
+    /// \brief Emitted when the user supplies credentials the stored ones could not cover.
+    ///
+    /// Raised for a first prompt as well as for one the server's refusal forced, so an open
+    /// session can record that its connection no longer matches what was saved with it.
+    ///
+    void credentialsEntered();
+
+    ///
+    /// \brief Emitted when a connection is given up on before it is attempted.
+    ///
+    /// Raised when the user declines to supply the credentials a saved profile is missing,
+    /// so callers waiting for that connection can stop waiting.
+    ///
+    void connectionAborted();
+
 private slots:
     void handleSecretRead(const QString &profileId, SecretStore::Secret secret,
                           const QString &value, const QString &error);
     void handleEndpoints(const QList<EndpointInfo> &endpoints, const QString &error);
+    void handleAuthenticationRejected(const QString &message);
+    void handleConnectionState(OpcUaConnectionState state);
 
 private:
     void connectBackend(const ConnectionProfile &profile, const QString &password,
                         const QString &privateKeyPassword);
+    bool pendingCredentialsMissing() const;
+    void retryWithNewCredentials(const ConnectionProfile &profile, const QString &rejection);
+    void storePendingCredentials();
+    void startPendingConnection();
     void discoverPendingProfile();
     void forgetProfile(const QString &id);
     void touchFavorite(const ConnectionProfile &profile);
 
     OpcUaBackend *_backend;
+    ConnectionCredentialsProvider *_credentialsProvider = nullptr;
     SecretStore *_secretStore;
     ConnectionProfileStore *_profileStore;
     RecentConnectionStore *_recentStore;
@@ -179,6 +212,8 @@ private:
     ConnectionProfile _pendingProfile;
     QString _pendingPassword;
     QString _pendingPrivateKeyPassword;
+    QString _pendingRejection;
+    QString _rejectionMessage;
     int _pendingSecretReads = 0;
     bool _waitingForDiscovery = false;
 };

@@ -326,6 +326,12 @@ signals:
     void errorOccurred(QString message);
 
     ///
+    /// \brief Emitted when the server turns down the credentials of a connection attempt.
+    /// \param message Reason reported by the server.
+    ///
+    void authenticationRejected(QString message);
+
+    ///
     /// \brief Emitted when endpoint discovery finishes.
     /// \param endpoints Discovered endpoints.
     /// \param error Error description, empty on success.

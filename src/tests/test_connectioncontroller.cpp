@@ -14,6 +14,7 @@
 #include <QTest>
 
 #include "opcua/connectioncontroller.h"
+#include "opcua/connectioncredentialsprovider.h"
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/recentconnectionstore.h"
@@ -81,6 +82,12 @@ public:
     void completeDiscovery(const QString &message = {})
     {
         emit endpointsDiscovered({}, message);
+    }
+
+    void setState(OpcUaConnectionState state)
+    {
+        currentState = state;
+        emit stateChanged(state);
     }
 
     OpcUaConnectionState currentState = OpcUaConnectionState::Disconnected;
@@ -206,6 +213,30 @@ public:
 };
 
 ///
+/// \brief Credentials provider double answering with a prepared reply.
+///
+class FakeCredentialsProvider : public ConnectionCredentialsProvider
+{
+public:
+    ConnectionCredentials requestCredentials(const ConnectionProfile &profile,
+                                             const QString &rejection) override
+    {
+        ++requests;
+        requestedProfile = profile;
+        requestedRejection = rejection;
+        ConnectionCredentials credentials = reply;
+        if (credentials.profile.endpointUrl.isEmpty())
+            credentials.profile = profile;
+        return credentials;
+    }
+
+    int requests = 0;
+    ConnectionProfile requestedProfile;
+    QString requestedRejection;
+    ConnectionCredentials reply;
+};
+
+///
 /// \brief Tests connect/save flows and timeout propagation through the controller and backend.
 ///
 class TestConnectionController : public QObject
@@ -218,6 +249,12 @@ private slots:
     void connectingAddsStableInstanceSuffixToSessionNames();
     void savedProfileWithoutSecretsDiscoversThenConnects();
     void savedProfileLoadsBothSecrets();
+    void storedPasswordConnectsWithoutPrompting();
+    void missingPasswordIsAskedForBeforeConnecting();
+    void decliningTheCredentialsPromptAbortsTheConnection();
+    void rememberedCredentialsAreStoredForTheNextConnection();
+    void rejectedCredentialsAreAskedForAgain();
+    void decliningAfterARejectionStopsRetrying();
     void discoveryFailureDoesNotConnect();
     void savePersistsProfileAndSecrets();
     void savingSameEndpointReplacesFavorite();
@@ -349,6 +386,196 @@ void TestConnectionController::savedProfileLoadsBothSecrets()
     backend.completeDiscovery();
     QCOMPARE(backend.connectedPassword, QStringLiteral("login-secret"));
     QCOMPARE(backend.connectedPrivateKeyPassword, QStringLiteral("key-secret"));
+}
+
+///
+/// \brief A profile whose password is stored reconnects without interrupting the user.
+///
+void TestConnectionController::storedPasswordConnectsWithoutPrompting()
+{
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    FakeCredentialsProvider credentials;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+    controller.setCredentialsProvider(&credentials);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("stored");
+    profile.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
+    profile.authentication = ConnectionProfile::Authentication::Username;
+    profile.username = QStringLiteral("operator");
+    secrets.values.insert(FakeSecretStore::key(profile.id, SecretStore::Secret::Password),
+                          QStringLiteral("stored-secret"));
+
+    controller.connectSavedProfile(profile);
+
+    QCOMPARE(credentials.requests, 0);
+    QCOMPARE(backend.discoveryCalls, 1);
+    backend.completeDiscovery();
+    QCOMPARE(backend.connectedPassword, QStringLiteral("stored-secret"));
+}
+
+///
+/// \brief Without a stored password the provider is asked, and its answer is what connects.
+///
+void TestConnectionController::missingPasswordIsAskedForBeforeConnecting()
+{
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    FakeCredentialsProvider credentials;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+    controller.setCredentialsProvider(&credentials);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("asked");
+    profile.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
+    profile.authentication = ConnectionProfile::Authentication::Username;
+    profile.username = QStringLiteral("operator");
+    credentials.reply.accepted = true;
+    credentials.reply.password = QStringLiteral("typed-secret");
+
+    controller.connectSavedProfile(profile);
+
+    QCOMPARE(credentials.requests, 1);
+    QCOMPARE(credentials.requestedProfile.id, profile.id);
+    QCOMPARE(backend.discoveryCalls, 1);
+    backend.completeDiscovery();
+    QCOMPARE(backend.connectedPassword, QStringLiteral("typed-secret"));
+}
+
+///
+/// \brief Cancelling the credentials prompt leaves the connection unstarted and unrecorded.
+///
+void TestConnectionController::decliningTheCredentialsPromptAbortsTheConnection()
+{
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    FakeCredentialsProvider credentials;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+    controller.setCredentialsProvider(&credentials);
+    QSignalSpy abortedSpy(&controller, &ConnectionController::connectionAborted);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("declined");
+    profile.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
+    profile.authentication = ConnectionProfile::Authentication::Username;
+
+    controller.connectSavedProfile(profile);
+
+    QCOMPARE(credentials.requests, 1);
+    QCOMPARE(abortedSpy.size(), 1);
+    QCOMPARE(backend.discoveryCalls, 0);
+    QCOMPARE(backend.connectCalls, 0);
+    QVERIFY(recents.recent.isEmpty());
+}
+
+///
+/// \brief Credentials the user asked to remember reconnect the same profile unattended.
+///
+void TestConnectionController::rememberedCredentialsAreStoredForTheNextConnection()
+{
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    FakeCredentialsProvider credentials;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+    controller.setCredentialsProvider(&credentials);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("remembered");
+    profile.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
+    profile.authentication = ConnectionProfile::Authentication::Username;
+    credentials.reply.accepted = true;
+    credentials.reply.password = QStringLiteral("typed-secret");
+    credentials.reply.remember = true;
+
+    controller.connectSavedProfile(profile);
+    QCOMPARE(credentials.requests, 1);
+
+    controller.connectSavedProfile(profile);
+
+    QCOMPARE(credentials.requests, 1);
+    QCOMPARE(backend.discoveryCalls, 2);
+    backend.completeDiscovery();
+    QCOMPARE(backend.connectedPassword, QStringLiteral("typed-secret"));
+}
+
+///
+/// \brief A password the server turns down is asked for again, with the reason shown.
+///
+void TestConnectionController::rejectedCredentialsAreAskedForAgain()
+{
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    FakeCredentialsProvider credentials;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+    controller.setCredentialsProvider(&credentials);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("rejected");
+    profile.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
+    profile.authentication = ConnectionProfile::Authentication::Username;
+    secrets.values.insert(FakeSecretStore::key(profile.id, SecretStore::Secret::Password),
+                          QStringLiteral("stale-secret"));
+
+    controller.connectSavedProfile(profile);
+    backend.completeDiscovery();
+    QCOMPARE(backend.connectedPassword, QStringLiteral("stale-secret"));
+    QCOMPARE(credentials.requests, 0);
+
+    credentials.reply.accepted = true;
+    credentials.reply.password = QStringLiteral("second-try");
+    emit backend.authenticationRejected(QStringLiteral("Access denied."));
+    backend.setState(OpcUaConnectionState::Disconnected);
+
+    QTRY_COMPARE(credentials.requests, 1);
+    QCOMPARE(credentials.requestedRejection, QStringLiteral("Access denied."));
+    QCOMPARE(backend.discoveryCalls, 2);
+    backend.completeDiscovery();
+    QCOMPARE(backend.connectedPassword, QStringLiteral("second-try"));
+}
+
+///
+/// \brief Giving up at the second prompt ends the attempt instead of retrying forever.
+///
+void TestConnectionController::decliningAfterARejectionStopsRetrying()
+{
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    FakeCredentialsProvider credentials;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+    controller.setCredentialsProvider(&credentials);
+    QSignalSpy abortedSpy(&controller, &ConnectionController::connectionAborted);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("declined-retry");
+    profile.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
+    profile.authentication = ConnectionProfile::Authentication::Username;
+    credentials.reply.accepted = true;
+    credentials.reply.password = QStringLiteral("first-try");
+
+    controller.connectSavedProfile(profile);
+    backend.completeDiscovery();
+    QCOMPARE(credentials.requests, 1);
+
+    credentials.reply = {};
+    emit backend.authenticationRejected(QStringLiteral("Access denied."));
+    backend.setState(OpcUaConnectionState::Disconnected);
+
+    QTRY_COMPARE(credentials.requests, 2);
+    QCOMPARE(abortedSpy.size(), 1);
+    QCOMPARE(backend.discoveryCalls, 1);
 }
 
 void TestConnectionController::discoveryFailureDoesNotConnect()

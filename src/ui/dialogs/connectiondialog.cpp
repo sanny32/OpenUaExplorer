@@ -322,10 +322,14 @@ void ConnectionDialog::setProfile(const ConnectionProfile &profile)
         ui->discoveryUrlComboBox->lineEdit()->setCursorPosition(0);
     }
 
-    const int authIndex =
-        ui->authenticationComboBox->findData(static_cast<int>(profile.authentication));
-    if (authIndex >= 0)
-        ui->authenticationComboBox->setCurrentIndex(authIndex);
+    // Until an endpoint is discovered the combo box holds the designer items, which carry no
+    // user data; there the authentication mode is the item position.
+    const int authValue = static_cast<int>(profile.authentication);
+    const int authIndex = ui->authenticationComboBox->findData(authValue);
+    ui->authenticationComboBox->setCurrentIndex(
+        authIndex >= 0
+            ? authIndex
+            : qBound(0, authValue, ui->authenticationComboBox->count() - 1));
     ui->usernameEdit->setText(profile.username);
 
     if (profile.sessionTimeoutMs > 0)

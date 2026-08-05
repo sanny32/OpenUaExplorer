@@ -735,6 +735,10 @@
         <source>Could not save the favourites order.</source>
         <translation>Не удалось сохранить порядок избранного.</translation>
     </message>
+    <message>
+        <source>The server rejected the credentials.</source>
+        <translation>Сервер отклонил учётные данные.</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionCoordinator</name>
@@ -792,6 +796,20 @@
     <message>
         <source>Leave empty for an unencrypted key</source>
         <translation>Оставьте пустым для незашифрованного ключа</translation>
+    </message>
+    <message>
+        <source>The server rejected these credentials: %1
+Enter them again.</source>
+        <translation>Сервер отклонил эти учётные данные: %1
+Введите их снова.</translation>
+    </message>
+    <message>
+        <source>Remember password</source>
+        <translation>Запомнить пароль</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>Сохранить пароль в хранилище учётных данных операционной системы, чтобы это подключение восстанавливалось без повторного запроса.</translation>
     </message>
     <message>
         <source>Cancel</source>

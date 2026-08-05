@@ -20,7 +20,6 @@
 #include <QStringList>
 
 #include "appsettings.h"
-#include "connectioncoordinator.h"
 #include "dataaccesscoordinator.h"
 #include "dialogs/messageboxdialog.h"
 #include "features/featuremanager.h"
@@ -108,6 +107,10 @@ SessionCoordinator::SessionCoordinator(const SessionCoordinatorContext &context,
 {
     connect(_context.backend, &OpcUaBackend::stateChanged,
             this, &SessionCoordinator::handleConnectionState);
+    connect(_context.connectionController, &ConnectionController::connectionAborted,
+            this, &SessionCoordinator::handleConnectionAborted);
+    connect(_context.connectionController, &ConnectionController::credentialsEntered,
+            this, &SessionCoordinator::handleCredentialsEntered);
     updateWindowTitle();
 }
 
@@ -159,24 +162,61 @@ void SessionCoordinator::openSessionFromFile(const QString &path)
     _hasPendingSession = true;
     _pendingStartsConnection = false;
     _pendingIsHoldOver = false;
+    _pendingDropsOnAbort = true;
+    _credentialsChanged = false;
     recordRecentSession(path);
 
-    if (data.profile.authentication == ConnectionProfile::Authentication::Anonymous) {
-        beginSessionRestore();
-        _context.connectionController->connectSavedProfileWithCredentials(data.profile,
-                                                                          QString(),
+    beginSessionRestore();
+    connectSessionProfile(data.profile);
+}
+
+///
+/// \brief Reconnects the endpoint a staged workspace belongs to.
+///
+/// Credentials are deliberately kept out of the session file, so the controller loads them
+/// from the credential store and asks the user only for what it does not find there.
+/// \param profile Connection profile saved with the session.
+///
+void SessionCoordinator::connectSessionProfile(const ConnectionProfile &profile)
+{
+    if (profile.authentication == ConnectionProfile::Authentication::Anonymous) {
+        _context.connectionController->connectSavedProfileWithCredentials(profile, QString(),
                                                                           QString());
-    } else if (_context.connectionCoordinator->openConnectionDialog(&data.profile)) {
-        if (_hasPendingSession) {
-            beginSessionRestore();
-            handleConnectionState(_context.backend->state());
-        }
-    } else {
-        _pendingSession = {};
-        _pendingSessionPath.clear();
-        _hasPendingSession = false;
-        _pendingIsHoldOver = false;
+        return;
     }
+    _context.connectionController->connectSavedProfile(profile);
+}
+
+///
+/// \brief Marks the session changed once its connection needed credentials typed by hand.
+///
+/// Having to enter them again means the credentials saved with the session no longer hold,
+/// so the session counts as changed and the user is offered to save it.
+///
+/// Only one connection is ever being established, so whatever was typed belongs to the
+/// session that connection carries. Credentials typed for a connection that never becomes a
+/// session are harmless: the mark is dropped again when that connection ends.
+///
+void SessionCoordinator::handleCredentialsEntered()
+{
+    _credentialsChanged = true;
+    updateModifiedState();
+}
+
+///
+/// \brief Stops waiting for a connection the user declined to supply credentials for.
+///
+void SessionCoordinator::handleConnectionAborted()
+{
+    endSessionRestore();
+    if (!_hasPendingSession || !_pendingDropsOnAbort)
+        return;
+
+    _pendingSession = {};
+    _pendingSessionPath.clear();
+    _hasPendingSession = false;
+    _pendingIsHoldOver = false;
+    _pendingDropsOnAbort = false;
 }
 
 ///
@@ -230,6 +270,7 @@ void SessionCoordinator::applyPendingSession()
     _hasPendingSession = false;
     _pendingStartsConnection = false;
     _pendingIsHoldOver = false;
+    _pendingDropsOnAbort = false;
     const SessionData session = _pendingSession;
     const QString sessionPath = _pendingSessionPath;
     _pendingSession = {};
@@ -260,6 +301,11 @@ void SessionCoordinator::applyPendingSession()
 ///
 void SessionCoordinator::closeCurrentSession()
 {
+    // A staged session is on its way in, and its connection may well have dropped to idle once
+    // on the way (a client restart, a first attempt the server refused). Credentials typed for
+    // it must survive that, so only a session that is really going away drops the mark.
+    if (!_hasPendingSession)
+        _credentialsChanged = false;
     if (_sessionPath.isEmpty() && _savedSessionFingerprint.isEmpty())
         return;
     _savedSessionFingerprint.clear();
@@ -273,7 +319,7 @@ void SessionCoordinator::updateModifiedState()
 {
     const bool connected = _context.backend->state() == OpcUaConnectionState::Connected;
     const bool modified = connected
-        && (_sessionPath.isEmpty()
+        && (_sessionPath.isEmpty() || _credentialsChanged
             || sessionFingerprint(sessionWorkspace()) != _savedSessionFingerprint);
     if (modified != _context.window->isWindowModified()) {
         _context.window->setWindowModified(modified);
@@ -295,8 +341,10 @@ bool SessionCoordinator::maybeSaveSession()
     if (_sessionPath.isEmpty()) {
         message = tr("The current session has not been saved.\nDo you want to save it?");
     } else {
-        if (sessionFingerprint(sessionWorkspace()) == _savedSessionFingerprint)
+        if (!_credentialsChanged
+            && sessionFingerprint(sessionWorkspace()) == _savedSessionFingerprint) {
             return true;
+        }
         message = tr("The session \"%1\" has unsaved changes.\nDo you want to save them?")
                       .arg(sessionDisplayName());
     }
@@ -332,6 +380,7 @@ bool SessionCoordinator::saveSessionToFile(const QString &path)
     }
 
     _savedSessionFingerprint = sessionFingerprint(data);
+    _credentialsChanged = false;
     setCurrentSessionPath(path);
     recordRecentSession(path);
     MessageBoxDialog saved(_context.window);
@@ -473,6 +522,7 @@ void SessionCoordinator::holdWorkspaceForReconnect()
     _hasPendingSession = true;
     _pendingStartsConnection = false;
     _pendingIsHoldOver = true;
+    _pendingDropsOnAbort = false;
 }
 
 ///
@@ -494,6 +544,7 @@ void SessionCoordinator::dropHeldWorkspaceIfEndpointChanged()
     _pendingSessionPath.clear();
     _hasPendingSession = false;
     _pendingIsHoldOver = false;
+    _pendingDropsOnAbort = false;
     _context.dataAccessCoordinator->clearRuntimeState();
     _context.featureManager->clearRuntimeState();
     closeCurrentSession();
@@ -510,6 +561,8 @@ void SessionCoordinator::discardLastSession()
     _hasPendingSession = false;
     _pendingStartsConnection = false;
     _pendingIsHoldOver = false;
+    _pendingDropsOnAbort = false;
+    _credentialsChanged = false;
     AppSettings().setLastSavedSessionPath(QString());
     QFile::remove(autosavePath());
     endSessionRestore();
@@ -535,6 +588,7 @@ void SessionCoordinator::stageLastSession()
             _pendingSessionPath = savedPath;
             _hasPendingSession = true;
             _pendingStartsConnection = true;
+            _pendingDropsOnAbort = false;
             return;
         }
 
@@ -566,6 +620,7 @@ void SessionCoordinator::stageLastSession()
     _pendingSessionPath.clear();
     _hasPendingSession = true;
     _pendingStartsConnection = true;
+    _pendingDropsOnAbort = false;
 }
 
 ///
@@ -578,25 +633,13 @@ void SessionCoordinator::connectStagedSession()
     if (_context.backend->state() == OpcUaConnectionState::Connected)
         return;
 
-    ConnectionProfile profile = _pendingSession.profile;
+    const ConnectionProfile profile = _pendingSession.profile;
     qCInfo(lcSession).noquote()
         << tr("Reconnecting to '%1' to restore the last session.")
                .arg(profile.endpointUrl);
 
-    if (profile.authentication == ConnectionProfile::Authentication::Anonymous) {
-        beginSessionRestore();
-        _context.connectionController->connectSavedProfileWithCredentials(profile, QString(),
-                                                                          QString());
-        return;
-    }
-
-    // Credentials are deliberately not stored with the workspace, so they must be asked for.
-    if (!_context.connectionCoordinator)
-        return;
-    if (_context.connectionCoordinator->openConnectionDialog(&profile)) {
-        beginSessionRestore();
-        handleConnectionState(_context.backend->state());
-    }
+    beginSessionRestore();
+    connectSessionProfile(profile);
 }
 
 ///

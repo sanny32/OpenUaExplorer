@@ -733,6 +733,10 @@
         <source>Could not save the favourites order.</source>
         <translation>无法保存收藏夹的顺序。</translation>
     </message>
+    <message>
+        <source>The server rejected the credentials.</source>
+        <translation>服务器拒绝了凭据。</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionCoordinator</name>
@@ -790,6 +794,20 @@
     <message>
         <source>Leave empty for an unencrypted key</source>
         <translation>若密钥未加密请留空</translation>
+    </message>
+    <message>
+        <source>The server rejected these credentials: %1
+Enter them again.</source>
+        <translation>服务器拒绝了这些凭据：%1
+请重新输入。</translation>
+    </message>
+    <message>
+        <source>Remember password</source>
+        <translation>记住密码</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>将密码保存到操作系统的凭据存储中，以便无需再次询问即可恢复此连接。</translation>
     </message>
     <message>
         <source>Cancel</source>

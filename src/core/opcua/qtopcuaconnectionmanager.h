@@ -82,6 +82,7 @@ public:
 signals:
     void stateChanged(OpcUaConnectionState state);
     void errorOccurred(QString message);
+    void authenticationRejected(QString message);
     void clientInvalidated();
 
 private slots:

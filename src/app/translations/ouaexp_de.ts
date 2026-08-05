@@ -734,6 +734,10 @@
         <source>Could not save the favourites order.</source>
         <translation>Die Reihenfolge der Favoriten konnte nicht gespeichert werden.</translation>
     </message>
+    <message>
+        <source>The server rejected the credentials.</source>
+        <translation>Der Server hat die Anmeldedaten abgelehnt.</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionCoordinator</name>
@@ -791,6 +795,20 @@
     <message>
         <source>Leave empty for an unencrypted key</source>
         <translation>Für einen unverschlüsselten Schlüssel leer lassen</translation>
+    </message>
+    <message>
+        <source>The server rejected these credentials: %1
+Enter them again.</source>
+        <translation>Der Server hat diese Anmeldedaten abgelehnt: %1
+Geben Sie sie erneut ein.</translation>
+    </message>
+    <message>
+        <source>Remember password</source>
+        <translation>Passwort merken</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>Das Passwort im Anmeldeinformationsspeicher des Betriebssystems ablegen, damit diese Verbindung ohne erneute Abfrage wiederhergestellt wird.</translation>
     </message>
     <message>
         <source>Cancel</source>

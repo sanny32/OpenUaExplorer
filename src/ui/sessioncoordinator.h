@@ -11,7 +11,6 @@
 #include "session/sessiondata.h"
 
 class ConnectionController;
-class ConnectionCoordinator;
 class DataAccessCoordinator;
 class FeatureManager;
 class OpcUaBackend;
@@ -30,7 +29,6 @@ struct SessionCoordinatorContext
     QWidget *window = nullptr;
     QMenu *recentSessionsMenu = nullptr;
     ConnectionController *connectionController = nullptr;
-    ConnectionCoordinator *connectionCoordinator = nullptr;
     DataAccessCoordinator *dataAccessCoordinator = nullptr;
     FeatureManager *featureManager = nullptr;
     OpcUaBackend *backend = nullptr;
@@ -147,6 +145,7 @@ private:
     SessionData sessionWorkspace() const;
     SessionData collectSessionData() const;
     void recordRecentSession(const QString &path);
+    void connectSessionProfile(const ConnectionProfile &profile);
     void setCurrentSessionPath(const QString &path);
     QString sessionDisplayName() const;
     void updateWindowTitle();
@@ -156,6 +155,8 @@ private:
 private slots:
     void openRecentSession();
     void handleConnectionState(OpcUaConnectionState state);
+    void handleConnectionAborted();
+    void handleCredentialsEntered();
 
 private:
     SessionCoordinatorContext _context;
@@ -164,6 +165,8 @@ private:
     bool _hasPendingSession = false;
     bool _pendingStartsConnection = false;
     bool _pendingIsHoldOver = false;
+    bool _pendingDropsOnAbort = false;
+    bool _credentialsChanged = false;
     QString _sessionPath;
     QByteArray _savedSessionFingerprint;
     bool _sessionRestoreCursorActive = false;

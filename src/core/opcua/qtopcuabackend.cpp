@@ -66,6 +66,8 @@ public:
                          q, &QtOpcUaBackend::stateChanged);
         QObject::connect(&connection, &QtOpcUaConnectionManager::errorOccurred,
                          q, &QtOpcUaBackend::errorOccurred);
+        QObject::connect(&connection, &QtOpcUaConnectionManager::authenticationRejected,
+                         q, &QtOpcUaBackend::authenticationRejected);
         QObject::connect(&connection, &QtOpcUaConnectionManager::clientInvalidated,
                           q, [this]() {
             cancelRequests();

@@ -4,11 +4,14 @@
 #include "connectioncontroller.h"
 
 #include <algorithm>
+#include <utility>
 
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QTimer>
 #include <QUuid>
 
+#include "connectioncredentialsprovider.h"
 #include "connectionprofilestore.h"
 #include "opcuabackend.h"
 #include "pkimanager.h"
@@ -76,6 +79,10 @@ ConnectionController::ConnectionController(OpcUaBackend *backend,
             this, &ConnectionController::handleSecretRead);
     connect(_backend, &OpcUaBackend::endpointsDiscovered,
             this, &ConnectionController::handleEndpoints);
+    connect(_backend, &OpcUaBackend::authenticationRejected,
+            this, &ConnectionController::handleAuthenticationRejected);
+    connect(_backend, &OpcUaBackend::stateChanged,
+            this, &ConnectionController::handleConnectionState);
 }
 
 ///
@@ -144,6 +151,15 @@ void ConnectionController::setCertificateTrustDecider(CertificateTrustDecider *d
 }
 
 ///
+/// \brief Sets the delegate asked for credentials the credential store does not hold.
+/// \param provider Credentials provider; without one the connection is attempted as is.
+///
+void ConnectionController::setCredentialsProvider(ConnectionCredentialsProvider *provider)
+{
+    _credentialsProvider = provider;
+}
+
+///
 /// \brief Applies the profile's request timeout to the backend, then connects.
 /// \param profile Profile to connect with.
 /// \param password User password, if any.
@@ -156,6 +172,8 @@ void ConnectionController::connectBackend(const ConnectionProfile &profile,
     // Kept in memory only, so a dropped connection can be retried without asking again.
     _activePassword = password;
     _activePrivateKeyPassword = privateKeyPassword;
+    // A refusal belongs to the attempt it ended; this one has not been judged yet.
+    _rejectionMessage.clear();
 
     _backend->setRequestTimeout(profile.requestTimeoutMs);
     ConnectionProfile instanceProfile = profile;
@@ -185,6 +203,9 @@ void ConnectionController::connectNewProfile(const ConnectionProfile &profile,
 
 ///
 /// \brief Connects a saved profile, first loading any required secrets from the keychain.
+///
+/// Stored secrets let the profile reconnect unattended; the credentials provider is only
+/// asked for what the keychain could not supply.
 /// \param profile Saved profile to connect with.
 ///
 void ConnectionController::connectSavedProfile(const ConnectionProfile &profile)
@@ -194,10 +215,6 @@ void ConnectionController::connectSavedProfile(const ConnectionProfile &profile)
     _pendingPrivateKeyPassword.clear();
     _pendingSecretReads = 0;
     _waitingForDiscovery = false;
-
-    _recentStore->record(profile);
-    emit recentsChanged();
-    touchFavorite(profile);
 
     const bool needsPassword =
         profile.authentication == ConnectionProfile::Authentication::Username;
@@ -212,7 +229,7 @@ void ConnectionController::connectSavedProfile(const ConnectionProfile &profile)
         _secretStore->read(profile.id, SecretStore::Secret::PrivateKeyPassword);
     }
     if (!needsPassword && !needsPrivateKeyPassword)
-        discoverPendingProfile();
+        startPendingConnection();
 }
 
 ///
@@ -364,7 +381,150 @@ void ConnectionController::handleSecretRead(const QString &profileId,
     else
         _pendingPrivateKeyPassword = value;
     if (--_pendingSecretReads == 0)
-        discoverPendingProfile();
+        startPendingConnection();
+}
+
+///
+/// \brief Reports whether the pending profile still lacks credentials its endpoint requires.
+///
+/// An empty private-key password is a legitimate answer, so it never counts as missing;
+/// what cannot be guessed is a login password or the certificate files to authenticate with.
+/// \return True when the connection cannot be attempted without asking the user.
+///
+bool ConnectionController::pendingCredentialsMissing() const
+{
+    switch (_pendingProfile.authentication) {
+    case ConnectionProfile::Authentication::Username:
+        return _pendingPassword.isEmpty();
+    case ConnectionProfile::Authentication::Certificate:
+        return _pendingProfile.clientCertificateFile.isEmpty()
+            || _pendingProfile.privateKeyFile.isEmpty();
+    case ConnectionProfile::Authentication::Anonymous:
+        break;
+    }
+    return false;
+}
+
+///
+/// \brief Keeps the credentials just entered so the profile connects unattended next time.
+///
+/// The secrets are filed under the profile identifier, which saved sessions and favourites
+/// both carry, so either can find them again; a profile without one has nothing to key on.
+///
+void ConnectionController::storePendingCredentials()
+{
+    if (_pendingProfile.id.isEmpty())
+        return;
+    if (!_pendingPassword.isEmpty()) {
+        _secretStore->write(_pendingProfile.id, SecretStore::Secret::Password,
+                            _pendingPassword);
+    }
+    if (!_pendingPrivateKeyPassword.isEmpty()) {
+        _secretStore->write(_pendingProfile.id, SecretStore::Secret::PrivateKeyPassword,
+                            _pendingPrivateKeyPassword);
+    }
+}
+
+///
+/// \brief Starts the pending connection, asking for the credentials the store did not hold.
+///
+/// Secrets stored for a profile are enough to reconnect it unattended; only when they are
+/// missing, or when the server has just turned them down, is the user interrupted, and
+/// declining leaves the connection unstarted.
+///
+void ConnectionController::startPendingConnection()
+{
+    const QString rejection = std::exchange(_pendingRejection, QString());
+    if (_credentialsProvider && (!rejection.isEmpty() || pendingCredentialsMissing())) {
+        const ConnectionCredentials credentials =
+            _credentialsProvider->requestCredentials(_pendingProfile, rejection);
+        if (!credentials.accepted) {
+            emit connectionAborted();
+            return;
+        }
+        _pendingProfile = credentials.profile;
+        _pendingPassword = credentials.password;
+        _pendingPrivateKeyPassword = credentials.privateKeyPassword;
+        if (credentials.remember)
+            storePendingCredentials();
+        emit credentialsEntered();
+    }
+
+    _recentStore->record(_pendingProfile);
+    emit recentsChanged();
+    touchFavorite(_pendingProfile);
+
+    discoverPendingProfile();
+}
+
+///
+/// \brief Remembers that the server refused the credentials of the running attempt.
+///
+/// The client is still tearing the failed session down, so the retry waits for it to settle
+/// back into the disconnected state before the user is asked again.
+/// \param message Reason reported by the server.
+///
+void ConnectionController::handleAuthenticationRejected(const QString &message)
+{
+    if (!_credentialsProvider
+        || _activeProfile.authentication == ConnectionProfile::Authentication::Anonymous) {
+        return;
+    }
+    _rejectionMessage = message.isEmpty() ? tr("The server rejected the credentials.") : message;
+}
+
+///
+/// \brief Asks for new credentials once a refused connection attempt has finished failing.
+///
+/// The retry is queued rather than run here, so every listener of the failed attempt sees
+/// the state change through before a modal prompt takes over the event loop.
+/// \param state Current connection state.
+///
+void ConnectionController::handleConnectionState(OpcUaConnectionState state)
+{
+    if (state == OpcUaConnectionState::Connected) {
+        _rejectionMessage.clear();
+        return;
+    }
+    if (state != OpcUaConnectionState::Disconnected
+        && state != OpcUaConnectionState::Unavailable) {
+        return;
+    }
+
+    const QString rejection = std::exchange(_rejectionMessage, QString());
+    if (rejection.isEmpty())
+        return;
+
+    const ConnectionProfile profile = _activeProfile;
+    QTimer::singleShot(0, this, [this, profile, rejection]() {
+        retryWithNewCredentials(profile, rejection);
+    });
+}
+
+///
+/// \brief Reconnects a profile whose credentials were refused, asking for them again.
+///
+/// The credentials just used are known to be wrong, so the attempt starts from the profile
+/// alone instead of reading the same stored secret back.
+/// \param profile Profile the server turned down.
+/// \param rejection Reason reported by the server.
+///
+void ConnectionController::retryWithNewCredentials(const ConnectionProfile &profile,
+                                                   const QString &rejection)
+{
+    const OpcUaConnectionState state = _backend->state();
+    const bool idle = state == OpcUaConnectionState::Disconnected
+        || state == OpcUaConnectionState::Unavailable;
+    if (!idle || _activeProfile.id != profile.id)
+        return;
+
+    _pendingProfile = profile;
+    _pendingPassword.clear();
+    _pendingPrivateKeyPassword.clear();
+    _pendingSecretReads = 0;
+    _waitingForDiscovery = false;
+    _pendingRejection = rejection;
+    startPendingConnection();
 }
 
 ///

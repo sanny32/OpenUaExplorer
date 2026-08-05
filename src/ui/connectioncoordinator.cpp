@@ -73,6 +73,7 @@ ConnectionCoordinator::ConnectionCoordinator(ConnectionController *controller,
     connect(_favorites, &FavoritesCoordinator::addFavoriteRequested,
             this, &ConnectionCoordinator::addCurrentToFavorites);
     _controller->setCertificateTrustDecider(this);
+    _controller->setCredentialsProvider(this);
     rebuildRecentMenu();
     updateActions(_backend->state());
 }
@@ -332,22 +333,44 @@ void ConnectionCoordinator::addCurrentToFavorites()
 }
 
 ///
-/// \brief Connects a favourite, prompting for its credentials when it needs authentication.
+/// \brief Connects a favourite from its stored credentials, asking only for what is missing.
 /// \param favorite Favourite to connect to.
 ///
 void ConnectionCoordinator::connectFavorite(const ConnectionProfile &favorite)
 {
-    if (favorite.authentication == ConnectionProfile::Authentication::Anonymous) {
-        _controller->connectSavedProfile(favorite);
-        return;
-    }
+    _controller->connectSavedProfile(favorite);
+}
 
+///
+/// \brief Asks for the credentials a profile needs but has none stored for.
+///
+/// The prompt interrupts a connection the user started elsewhere, so any wait cursor is
+/// lifted for as long as the dialog waits for typing.
+///
+/// \param profile Profile waiting to connect.
+/// \param rejection Reason the previous credentials were turned down, empty on a first ask.
+/// \return The entered credentials, or a rejected result when the user cancels.
+///
+ConnectionCredentials ConnectionCoordinator::requestCredentials(const ConnectionProfile &profile,
+                                                                const QString &rejection)
+{
     ConnectionCredentialsDialog dialog(_dialogParent);
-    dialog.setProfile(favorite);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-    _controller->connectSavedProfileWithCredentials(
-        dialog.profile(), dialog.password(), dialog.privateKeyPassword());
+    dialog.setProfile(profile);
+    dialog.setRejection(rejection);
+
+    QGuiApplication::setOverrideCursor(Qt::ArrowCursor);
+    const bool accepted = dialog.exec() == QDialog::Accepted;
+    QGuiApplication::restoreOverrideCursor();
+    if (!accepted)
+        return {};
+
+    ConnectionCredentials credentials;
+    credentials.accepted = true;
+    credentials.profile = dialog.profile();
+    credentials.password = dialog.password();
+    credentials.privateKeyPassword = dialog.privateKeyPassword();
+    credentials.remember = dialog.rememberCredentials();
+    return credentials;
 }
 
 ///

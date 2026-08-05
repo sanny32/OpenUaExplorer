@@ -11,6 +11,7 @@
 #include <QObject>
 
 #include "opcua/certificatetrustdecider.h"
+#include "opcua/connectioncredentialsprovider.h"
 #include "opcua/opcuatypes.h"
 
 class ConnectionController;
@@ -40,9 +41,11 @@ struct ConnectionActions
 ///
 /// Owns the favourites popup coordinator, rebuilds the Recent Connections menu,
 /// enables the connection actions for the client state, and answers the server
-/// certificate trust prompt.
+/// certificate trust and credential prompts.
 ///
-class ConnectionCoordinator : public QObject, public CertificateTrustDecider
+class ConnectionCoordinator : public QObject,
+                              public CertificateTrustDecider,
+                              public ConnectionCredentialsProvider
 {
     Q_OBJECT
 
@@ -105,6 +108,15 @@ public:
     ///
     CertificateTrustDecision decide(const QByteArray &certificate,
                                     const QString &message) override;
+
+    ///
+    /// \brief Asks for the credentials a profile needs but has none stored for.
+    /// \param profile Profile waiting to connect.
+    /// \param rejection Reason the previous credentials were turned down, empty on a first ask.
+    /// \return The entered credentials, or a rejected result when the user cancels.
+    ///
+    ConnectionCredentials requestCredentials(const ConnectionProfile &profile,
+                                             const QString &rejection) override;
 
 signals:
     ///

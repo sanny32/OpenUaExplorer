@@ -110,6 +110,32 @@ void ConnectionCredentialsDialog::setProfile(const ConnectionProfile &profile)
 }
 
 ///
+/// \brief Explains that the previous credentials were turned down by the server.
+///
+/// The dialog reopens on a rejection, so the reason takes the place of the generic hint;
+/// without it the second prompt would look exactly like the first one.
+///
+/// \param rejection Reason reported by the server; an empty string restores the hint.
+///
+void ConnectionCredentialsDialog::setRejection(const QString &rejection)
+{
+    if (rejection.isEmpty()) {
+        ui->subtitleLabel->setText(tr("Enter the credentials used to connect to this server."));
+        ui->subtitleLabel->setStyleSheet(
+            QStringLiteral("color: %1;").arg(AppColors::subtitleText().name()));
+        return;
+    }
+
+    ui->subtitleLabel->setText(
+        tr("The server rejected these credentials: %1\nEnter them again.").arg(rejection));
+    ui->subtitleLabel->setStyleSheet(
+        QStringLiteral("color: %1;").arg(AppColors::statusWarning().name()));
+    ui->passwordEdit->clear();
+    ui->passwordEdit->setFocus();
+    adjustSize();
+}
+
+///
 /// \brief Shows one credential panel and hides the other from the size calculation.
 /// \param page Panel to display.
 ///
@@ -162,6 +188,15 @@ QString ConnectionCredentialsDialog::password() const
 QString ConnectionCredentialsDialog::privateKeyPassword() const
 {
     return ui->privateKeyPasswordEdit->text();
+}
+
+///
+/// \brief Reports whether the entered secrets should be kept in the credential store.
+/// \return True when the user asked to be remembered.
+///
+bool ConnectionCredentialsDialog::rememberCredentials() const
+{
+    return ui->rememberCheckBox->isChecked();
 }
 
 ///

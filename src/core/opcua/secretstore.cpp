@@ -45,7 +45,11 @@ void SecretStore::read(const QString &profileId, Secret secret)
     auto *job = new QKeychain::ReadPasswordJob(QLatin1String(serviceName), this);
     job->setKey(key(profileId, secret));
     connect(job, &QKeychain::Job::finished, this, [this, job, profileId, secret]() {
-        const QString error = job->error() == QKeychain::NoError ? QString() : job->errorString();
+        // Nothing stored is the normal answer for a profile whose secret was never kept,
+        // so it is reported as an empty value rather than as a failure of the store.
+        const bool succeeded = job->error() == QKeychain::NoError
+            || job->error() == QKeychain::EntryNotFound;
+        const QString error = succeeded ? QString() : job->errorString();
         emit readFinished(profileId, secret, job->textData(), error);
         job->deleteLater();
     });

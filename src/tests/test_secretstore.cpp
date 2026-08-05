@@ -27,6 +27,7 @@ private slots:
     void isAvailableReflectsRequiredDependency();
     void roundTripWriteReadRemove();
     void distinctSecretsDoNotCollide();
+    void unstoredSecretReadsAsEmptyWithoutAnError();
 
 private:
     // Unique per run so the test never clobbers real stored credentials.
@@ -129,6 +130,21 @@ void TestSecretStore::distinctSecretsDoNotCollide()
     QSignalSpy cleanupSpy(&store, &SecretStore::writeFinished);
     store.remove(profileId, SecretStore::Secret::PrivateKeyPassword);
     cleanupSpy.wait(5000);
+}
+
+///
+/// \brief A profile with nothing stored reads back empty, so callers can ask the user instead.
+///
+void TestSecretStore::unstoredSecretReadsAsEmptyWithoutAnError()
+{
+    SecretStore store;
+
+    QString value = QStringLiteral("untouched");
+    const QString readError =
+        readSync(store, uniqueProfileId(), SecretStore::Secret::Password, &value);
+
+    QVERIFY2(readError.isEmpty(), qPrintable(readError));
+    QVERIFY(value.isEmpty());
 }
 
 QTEST_MAIN(TestSecretStore)

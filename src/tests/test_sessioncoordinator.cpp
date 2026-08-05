@@ -37,6 +37,7 @@
 #include "widgets/subscriptionswidget.h"
 #include "widgets/trendpanelwidget.h"
 #include "opcua/connectioncontroller.h"
+#include "opcua/connectioncredentialsprovider.h"
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/recentconnectionstore.h"
@@ -127,8 +128,33 @@ public:
         emit stateChanged(state);
     }
 
+    void completeDiscovery()
+    {
+        emit endpointsDiscovered({}, QString());
+    }
+
     OpcUaConnectionState currentState = OpcUaConnectionState::Disconnected;
     QString lastDiscoveryUrl;
+};
+
+///
+/// \brief Credentials provider double that answers every prompt with a typed password.
+///
+class SessionCredentialsProvider : public ConnectionCredentialsProvider
+{
+public:
+    ConnectionCredentials requestCredentials(const ConnectionProfile &profile,
+                                             const QString &) override
+    {
+        ++requests;
+        ConnectionCredentials credentials;
+        credentials.accepted = true;
+        credentials.profile = profile;
+        credentials.password = QStringLiteral("typed-secret");
+        return credentials;
+    }
+
+    int requests = 0;
 };
 
 
@@ -238,6 +264,7 @@ private slots:
     void cleanupTestCase();
     void cleanup();
     void openSessionUsesWaitCursorUntilConnectionFails();
+    void usernameSessionConnectsWithoutTheConnectionDialog();
     void autosavedSessionIsStagedButNotConnected();
     void autosavedSessionIsSkippedWhenDisabled();
     void savedSessionTakesPriorityOverAutosaveAtStartup();
@@ -255,6 +282,10 @@ private slots:
     void stagedSessionReconnectsAtStartup();
     void commandLineSessionKeepsPriorityOverAutosave();
     void savingASessionConfirmsTheDestination();
+    void reenteredCredentialsMarkTheSessionModified();
+    void restoringASessionWithTypedCredentialsMarksItModified();
+    void idleBetweenTypingAndConnectingKeepsTheSessionModified();
+    void sessionWithoutAProfileIdIsStillMarkedModified();
     void failedSaveReportsTheError();
     void lostConnectionHoldsWorkspaceForReconnect();
     void heldWorkspaceIsDroppedForAnotherEndpoint();
@@ -359,6 +390,34 @@ void TestSessionCoordinator::openSessionUsesWaitCursorUntilConnectionFails()
 
     backend.setState(OpcUaConnectionState::Disconnected);
     QVERIFY(!QGuiApplication::overrideCursor());
+}
+
+///
+/// \brief A session authenticating with a username reconnects on its own.
+///
+/// The credentials come from the credential store, so opening the file starts the connection
+/// straight away instead of handing the user the connection dialog.
+///
+void TestSessionCoordinator::usernameSessionConnectsWithoutTheConnectionDialog()
+{
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString path = sessionsDirectory.filePath(QStringLiteral("credentials.ouas"));
+    const QString endpoint = QStringLiteral("opc.tcp://credentials.invalid:4840");
+
+    SessionData session;
+    session.profile.id = QStringLiteral("credentials-profile");
+    session.profile.endpointUrl = endpoint;
+    session.profile.authentication = ConnectionProfile::Authentication::Username;
+    session.profile.username = QStringLiteral("operator");
+    QVERIFY(SessionStore::save(path, session));
+
+    WorkspaceHarness harness;
+    harness.coordinator->openSessionFromFile(path);
+
+    QVERIFY(harness.coordinator->hasPendingSession());
+    QTRY_COMPARE(harness.backend.state(), OpcUaConnectionState::Discovering);
+    QCOMPARE(harness.backend.lastDiscoveryUrl, endpoint);
 }
 
 ///
@@ -815,6 +874,133 @@ void TestSessionCoordinator::savingASessionConfirmsTheDestination()
     dismissNextDialog();
     QVERIFY(harness.coordinator->saveCurrentSession());
     QVERIFY(dismissedDialogText.contains(QStringLiteral("confirmed.ouas")));
+}
+
+///
+/// \brief Credentials typed by hand make the open session count as changed until it is saved.
+///
+void TestSessionCoordinator::reenteredCredentialsMarkTheSessionModified()
+{
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString path = sessionsDirectory.filePath(QStringLiteral("credentials.ouas"));
+
+    WorkspaceHarness harness;
+    openConnectedSession(harness, path);
+
+    // Saving first takes the workspace as the baseline, so only the credentials differ later.
+    dismissNextDialog();
+    QVERIFY(harness.coordinator->saveCurrentSession());
+    QVERIFY(!harness.window.isWindowModified());
+
+    emit harness.controller.credentialsEntered();
+
+    QVERIFY(harness.window.isWindowModified());
+
+    dismissNextDialog();
+    QVERIFY(harness.coordinator->saveCurrentSession());
+    QVERIFY(!harness.window.isWindowModified());
+}
+
+///
+/// \brief Opening a session that asks for its password leaves it marked as changed.
+///
+/// Walks the whole path the window drives: the file is opened, the credentials are typed in,
+/// the connection reaches the endpoint and the workspace is applied.
+///
+void TestSessionCoordinator::restoringASessionWithTypedCredentialsMarksItModified()
+{
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString path = sessionsDirectory.filePath(QStringLiteral("typed.ouas"));
+    const QString endpoint = QStringLiteral("opc.tcp://typed.invalid:4840");
+
+    SessionData session;
+    session.profile.id = QStringLiteral("typed-profile");
+    session.profile.endpointUrl = endpoint;
+    session.profile.authentication = ConnectionProfile::Authentication::Username;
+    session.profile.username = QStringLiteral("operator");
+    QVERIFY(SessionStore::save(path, session));
+
+    WorkspaceHarness harness;
+    SessionCredentialsProvider provider;
+    harness.controller.setCredentialsProvider(&provider);
+
+    harness.coordinator->openSessionFromFile(path);
+
+    QTRY_COMPARE(provider.requests, 1);
+    harness.backend.completeDiscovery();
+    harness.backend.setState(OpcUaConnectionState::Connected);
+    harness.coordinator->applyPendingSession();
+
+    QCOMPARE(harness.controller.activeProfile().endpointUrl, endpoint);
+    QVERIFY(harness.window.isWindowModified());
+}
+
+///
+/// \brief A connection that drops to idle before it succeeds keeps the credentials mark.
+///
+/// The window closes the session on every idle transition, and one happens whenever the first
+/// attempt after typing the password fails or the client restarts.
+///
+void TestSessionCoordinator::idleBetweenTypingAndConnectingKeepsTheSessionModified()
+{
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString path = sessionsDirectory.filePath(QStringLiteral("retried.ouas"));
+    const QString endpoint = QStringLiteral("opc.tcp://retried.invalid:4840");
+
+    SessionData session;
+    session.profile.id = QStringLiteral("retried-profile");
+    session.profile.endpointUrl = endpoint;
+    session.profile.authentication = ConnectionProfile::Authentication::Username;
+    QVERIFY(SessionStore::save(path, session));
+
+    WorkspaceHarness harness;
+    SessionCredentialsProvider provider;
+    harness.controller.setCredentialsProvider(&provider);
+
+    harness.coordinator->openSessionFromFile(path);
+    QTRY_COMPARE(provider.requests, 1);
+
+    // What MainWindow does when an attempt ends without a connection.
+    harness.backend.setState(OpcUaConnectionState::Disconnected);
+    harness.coordinator->closeCurrentSession();
+
+    harness.backend.completeDiscovery();
+    harness.backend.setState(OpcUaConnectionState::Connected);
+    harness.coordinator->applyPendingSession();
+
+    QVERIFY(harness.window.isWindowModified());
+}
+
+///
+/// \brief A session file written without a profile identifier is marked like any other.
+///
+void TestSessionCoordinator::sessionWithoutAProfileIdIsStillMarkedModified()
+{
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString path = sessionsDirectory.filePath(QStringLiteral("anonymous-id.ouas"));
+    const QString endpoint = QStringLiteral("opc.tcp://no-id.invalid:4840");
+
+    SessionData session;
+    session.profile.endpointUrl = endpoint;
+    session.profile.authentication = ConnectionProfile::Authentication::Username;
+    QVERIFY(SessionStore::save(path, session));
+    QVERIFY(session.profile.id.isEmpty());
+
+    WorkspaceHarness harness;
+    SessionCredentialsProvider provider;
+    harness.controller.setCredentialsProvider(&provider);
+
+    harness.coordinator->openSessionFromFile(path);
+    QTRY_COMPARE(provider.requests, 1);
+    harness.backend.completeDiscovery();
+    harness.backend.setState(OpcUaConnectionState::Connected);
+    harness.coordinator->applyPendingSession();
+
+    QVERIFY(harness.window.isWindowModified());
 }
 
 ///

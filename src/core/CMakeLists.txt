@@ -25,6 +25,7 @@ add_library(ouaexp_core STATIC
     opcua/certificatetrustdecider.h
     opcua/connectioncontroller.cpp
     opcua/connectioncontroller.h
+    opcua/connectioncredentialsprovider.h
     opcua/connectionprofile.h
     opcua/connectionprofilestore.cpp
     opcua/connectionprofilestore.h
