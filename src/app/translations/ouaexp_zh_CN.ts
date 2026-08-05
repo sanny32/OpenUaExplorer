@@ -931,6 +931,10 @@ Select it again.</source>
         <translation>会话超时：</translation>
     </message>
     <message>
+        <source>ms</source>
+        <translation>毫秒</translation>
+    </message>
+    <message>
         <source>Endpoint Timeout:</source>
         <translation>端点超时：</translation>
     </message>
@@ -949,6 +953,10 @@ Select it again.</source>
     <message>
         <source>Max. Message Size:</source>
         <translation>最大消息大小：</translation>
+    </message>
+    <message>
+        <source>bytes</source>
+        <translation>字节</translation>
     </message>
     <message>
         <source>Certificates</source>
@@ -1129,6 +1137,14 @@ Select it again.</source>
     <message>
         <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
         <translation>将密码保存到操作系统的凭据存储中，以便无需再次询问即可恢复此连接。</translation>
+    </message>
+    <message>
+        <source>Select certificate file</source>
+        <translation>选择证书文件</translation>
+    </message>
+    <message>
+        <source>Select private key file</source>
+        <translation>选择私钥文件</translation>
     </message>
 </context>
 <context>

@@ -932,6 +932,10 @@ Wählen Sie ihn erneut aus.</translation>
         <translation>Sitzungs-Timeout:</translation>
     </message>
     <message>
+        <source>ms</source>
+        <translation>ms</translation>
+    </message>
+    <message>
         <source>Endpoint Timeout:</source>
         <translation>Endpunkt-Timeout:</translation>
     </message>
@@ -950,6 +954,10 @@ Wählen Sie ihn erneut aus.</translation>
     <message>
         <source>Max. Message Size:</source>
         <translation>Max. Nachrichtengröße:</translation>
+    </message>
+    <message>
+        <source>bytes</source>
+        <translation>Byte</translation>
     </message>
     <message>
         <source>Certificates</source>
@@ -1130,6 +1138,14 @@ Wählen Sie ihn erneut aus.</translation>
     <message>
         <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
         <translation>Das Passwort im Anmeldeinformationsspeicher des Betriebssystems ablegen, damit diese Verbindung ohne erneute Abfrage wiederhergestellt wird.</translation>
+    </message>
+    <message>
+        <source>Select certificate file</source>
+        <translation>Zertifikatsdatei auswählen</translation>
+    </message>
+    <message>
+        <source>Select private key file</source>
+        <translation>Datei mit privatem Schlüssel auswählen</translation>
     </message>
 </context>
 <context>

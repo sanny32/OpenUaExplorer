@@ -933,6 +933,10 @@ Select it again.</source>
         <translation>Тайм-аут сессии:</translation>
     </message>
     <message>
+        <source>ms</source>
+        <translation>мс</translation>
+    </message>
+    <message>
         <source>Endpoint Timeout:</source>
         <translation>Тайм-аут точки подключения:</translation>
     </message>
@@ -951,6 +955,10 @@ Select it again.</source>
     <message>
         <source>Max. Message Size:</source>
         <translation>Макс. размер сообщения:</translation>
+    </message>
+    <message>
+        <source>bytes</source>
+        <translation>байт</translation>
     </message>
     <message>
         <source>Certificates</source>
@@ -1131,6 +1139,14 @@ Select it again.</source>
     <message>
         <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
         <translation>Сохранить пароль в хранилище учётных данных операционной системы, чтобы это подключение восстанавливалось без повторного запроса.</translation>
+    </message>
+    <message>
+        <source>Select certificate file</source>
+        <translation>Выбрать файл сертификата</translation>
+    </message>
+    <message>
+        <source>Select private key file</source>
+        <translation>Выбрать файл закрытого ключа</translation>
     </message>
 </context>
 <context>
