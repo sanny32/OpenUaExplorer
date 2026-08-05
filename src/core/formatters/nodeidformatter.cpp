@@ -43,14 +43,33 @@ bool namespace0NumericId(const QString &nodeId, int *identifier)
 } // namespace
 
 ///
-/// \brief Resolves a DataType NodeId to a built-in OPC UA type name.
+/// \brief Resolves a DataType NodeId to its type name.
 /// \param nodeId DataType NodeId string.
-/// \return Built-in type name, or the original NodeId for custom types.
+/// \return Built-in type name, standard BrowseName, or the original NodeId for custom types.
+///
+/// Built-in types are named from the value-type mapping. The remaining standard types
+/// (enumerations such as ServerState and structures such as BuildInfo) have no value
+/// type, so they fall back to their namespace-0 BrowseName; only DataTypes defined by
+/// the server keep the raw NodeId, since their name lives on the server.
 ///
 QString dataTypeDisplay(const QString &nodeId)
 {
     const QOpcUa::Types type = valueTypeForDataType(nodeId);
-    return type == QOpcUa::Types::Undefined ? nodeId : valueTypeName(type);
+    return type == QOpcUa::Types::Undefined ? standardNodeDisplayName(nodeId)
+                                            : valueTypeName(type);
+}
+
+///
+/// \brief Names the type of a value, falling back to its declared DataType.
+/// \param type Value type resolved from the DataType, may be Undefined.
+/// \param dataTypeId DataType NodeId string backing the value.
+/// \return Value-type name, or the DataType's own name when it is not a built-in type.
+///
+QString valueTypeDisplay(QOpcUa::Types type, const QString &dataTypeId)
+{
+    if (type != QOpcUa::Types::Undefined || dataTypeId.isEmpty())
+        return valueTypeName(type);
+    return dataTypeDisplay(dataTypeId);
 }
 
 ///

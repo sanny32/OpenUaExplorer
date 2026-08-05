@@ -251,7 +251,7 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
         attribute.status = statusName(node->attributeError(field.second));
         attribute.sourceTimestamp = node->sourceTimestamp(field.second);
         attribute.serverTimestamp = node->serverTimestamp(field.second);
-        formatAttribute(&attribute, field.second, value, valueType);
+        formatAttribute(&attribute, field.second, value, valueType, details.dataTypeId);
         if (field.second == QOpcUa::NodeAttribute::Value) {
             if (attribute.sourceTimestamp.isValid()) {
                 OpcUaNodeAttribute timestamp = childAttribute(translate("Source Timestamp"), QString());
@@ -264,7 +264,7 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
                 attribute.children.append(timestamp);
             }
             attribute.children.append(childAttribute(translate("Status Code"), statusDisplay(node->attributeError(field.second))));
-            attribute.children.append(valueAttribute(value, valueType));
+            attribute.children.append(valueAttribute(value, valueType, details.dataTypeId));
         }
         details.attributes.append(attribute);
     }

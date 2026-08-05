@@ -103,11 +103,19 @@ QString isoTimestampWithZone(const QDateTime &timestamp,
 QString valueTypeName(QOpcUa::Types type);
 
 ///
-/// \brief Resolves a DataType NodeId to a built-in OPC UA type name.
+/// \brief Resolves a DataType NodeId to its type name.
 /// \param nodeId DataType NodeId string.
-/// \return Built-in type name, or the original NodeId for custom types.
+/// \return Built-in type name, standard BrowseName, or the original NodeId for custom types.
 ///
 QString dataTypeDisplay(const QString &nodeId);
+
+///
+/// \brief Names the type of a value, falling back to its declared DataType.
+/// \param type Value type resolved from the DataType, may be Undefined.
+/// \param dataTypeId DataType NodeId string backing the value.
+/// \return Value-type name, or the DataType's own name when it is not a built-in type.
+///
+QString valueTypeDisplay(QOpcUa::Types type, const QString &dataTypeId);
 
 ///
 /// \brief Resolves a known namespace-0 NodeId to its BrowseName.
@@ -191,9 +199,11 @@ void formatDataTypeAttribute(OpcUaNodeAttribute *attribute, const QString &nodeI
 /// \brief Builds the Value attribute, expanding arrays into indexed child rows.
 /// \param value Node value.
 /// \param type Declared value type, used to label arrays.
+/// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
 /// \return The constructed Value attribute.
 ///
-OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type);
+OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type,
+                                  const QString &dataTypeId = QString());
 
 ///
 /// \brief Fills an attribute's display value (and children) using the rules for its attribute id.
@@ -201,11 +211,13 @@ OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type);
 /// \param nodeAttribute Which OPC UA attribute is being formatted.
 /// \param value Raw attribute value.
 /// \param valueType Value type, used when formatting the Value attribute.
+/// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
 ///
 void formatAttribute(OpcUaNodeAttribute *attribute,
                      QOpcUa::NodeAttribute nodeAttribute,
                      const QVariant &value,
-                     QOpcUa::Types valueType);
+                     QOpcUa::Types valueType,
+                     const QString &dataTypeId = QString());
 
 ///
 /// \brief Reports whether an attribute is meaningful for a given node class.

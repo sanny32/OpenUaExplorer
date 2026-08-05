@@ -35,6 +35,8 @@ private slots:
     void isoTimestampWithZoneRoundTrips();
     void valueTypeNameKnownAndUnknown();
     void dataTypeDisplayNamesBuiltIns();
+    void dataTypeDisplayNamesStandardEnumsAndStructures();
+    void valueTypeDisplayFallsBackToDataType();
     void standardNodeDisplayNameNamesKnownNodes();
     void nodeClassNameKnownAndUnknown();
     void accessLevelDisplayDecodesFlags();
@@ -140,6 +142,26 @@ void TestAttributeFormatter::dataTypeDisplayNamesBuiltIns()
 {
     QCOMPARE(dataTypeDisplay(QStringLiteral("ns=0;i=11")), QStringLiteral("Double"));
     QCOMPARE(dataTypeDisplay(QStringLiteral("ns=3;i=5001")), QStringLiteral("ns=3;i=5001"));
+}
+
+void TestAttributeFormatter::dataTypeDisplayNamesStandardEnumsAndStructures()
+{
+    // Standard types without a built-in value type are named by their BrowseName.
+    QCOMPARE(dataTypeDisplay(QStringLiteral("ns=0;i=852")), QStringLiteral("ServerState"));
+    QCOMPARE(dataTypeDisplay(QStringLiteral("ns=0;i=338")), QStringLiteral("BuildInfo"));
+    QCOMPARE(dataTypeDisplay(QStringLiteral("i=884")), QStringLiteral("Range"));
+    // Server-defined types keep the NodeId, since their name lives on the server.
+    QCOMPARE(dataTypeDisplay(QStringLiteral("ns=2;i=3002")), QStringLiteral("ns=2;i=3002"));
+}
+
+void TestAttributeFormatter::valueTypeDisplayFallsBackToDataType()
+{
+    QCOMPARE(valueTypeDisplay(QOpcUa::Types::Int32, QStringLiteral("ns=0;i=6")),
+             QStringLiteral("Int32"));
+    QCOMPARE(valueTypeDisplay(QOpcUa::Types::Undefined, QStringLiteral("ns=0;i=852")),
+             QStringLiteral("ServerState"));
+    QCOMPARE(valueTypeDisplay(QOpcUa::Types::Undefined, QString()),
+             QStringLiteral("Undefined"));
 }
 
 void TestAttributeFormatter::standardNodeDisplayNameNamesKnownNodes()
@@ -264,9 +286,15 @@ void TestAttributeFormatter::valueAttributeScalarAndArray()
     const OpcUaNodeAttribute array =
         valueAttribute(QVariant(QVariantList{10, 20}), QOpcUa::Types::Int32);
     QCOMPARE(array.displayValue, QStringLiteral("Int32 Array[2]"));
+
     QCOMPARE(array.children.size(), 2);
     QCOMPARE(array.children.at(0).name, QStringLiteral("[0]"));
     QCOMPARE(array.children.at(1).displayValue, QStringLiteral("20"));
+
+    const OpcUaNodeAttribute structures =
+        valueAttribute(QVariant(QVariantList{1, 2}), QOpcUa::Types::Undefined,
+                       QStringLiteral("ns=0;i=338"));
+    QCOMPARE(structures.displayValue, QStringLiteral("BuildInfo Array[2]"));
 }
 
 void TestAttributeFormatter::formatAttributeDispatchesPerAttribute()
@@ -338,6 +366,12 @@ void TestAttributeFormatter::formatAttributeDispatchesPerAttribute()
     formatAttribute(&arrayValue, QOpcUa::NodeAttribute::Value,
                     QVariant(QVariantList{1, 2, 3}), QOpcUa::Types::Int32);
     QCOMPARE(arrayValue.displayValue, QStringLiteral("Int32 Array[3]"));
+
+    // A value of a standard non-builtin type is labelled with that type, not "Undefined".
+    OpcUaNodeAttribute enumValue;
+    formatAttribute(&enumValue, QOpcUa::NodeAttribute::Value, QVariant(0),
+                    QOpcUa::Types::Undefined, QStringLiteral("ns=0;i=852"));
+    QCOMPARE(enumValue.displayValue, QStringLiteral("ServerState"));
 }
 
 void TestAttributeFormatter::attributeAppliesToNodeClassMatrix()
