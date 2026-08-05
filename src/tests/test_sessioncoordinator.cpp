@@ -29,6 +29,7 @@
 #include "dataaccesscoordinator.h"
 #include "dataaccessmodule.h"
 #include "eventsmodule.h"
+#include "fakesecretstore.h"
 #include "features/featuremanager.h"
 #include "features/selectioncontext.h"
 #include "servicecontext.h"
@@ -235,7 +236,7 @@ struct WorkspaceHarness
 
     QWidget window;
     SessionFakeBackend backend;
-    SecretStore secrets;
+    FakeSecretStore secrets;
     ConnectionProfileStore profiles;
     RecentConnectionStore recents;
     ConnectionController controller;
@@ -368,7 +369,7 @@ void TestSessionCoordinator::openSessionUsesWaitCursorUntilConnectionFails()
     QVERIFY(SessionStore::save(path, session));
 
     SessionFakeBackend backend;
-    SecretStore secrets;
+    FakeSecretStore secrets;
     ConnectionProfileStore profiles;
     RecentConnectionStore recents;
     ConnectionController controller(&backend, &secrets, &profiles, &recents);
@@ -428,7 +429,7 @@ void TestSessionCoordinator::autosavedSessionIsStagedButNotConnected()
     QVERIFY(!writeAutosavedSession().isEmpty());
 
     SessionFakeBackend backend;
-    SecretStore secrets;
+    FakeSecretStore secrets;
     ConnectionProfileStore profiles;
     RecentConnectionStore recents;
     ConnectionController controller(&backend, &secrets, &profiles, &recents);
@@ -466,7 +467,7 @@ void TestSessionCoordinator::autosavedSessionIsSkippedWhenDisabled()
     AppSettings().setRestoreLastSessionOnStartup(false);
 
     SessionFakeBackend backend;
-    SecretStore secrets;
+    FakeSecretStore secrets;
     ConnectionProfileStore profiles;
     RecentConnectionStore recents;
     ConnectionController controller(&backend, &secrets, &profiles, &recents);

@@ -16,6 +16,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include "fakesecretstore.h"
 #include "opcua/connectioncontroller.h"
 #include "opcua/connectioncredentialsprovider.h"
 #include "opcua/connectionprofilestore.h"
@@ -109,46 +110,6 @@ public:
     QString subscribedNodeId;
     QString unsubscribedNodeId;
     double subscriptionPublishingInterval = 0.0;
-};
-
-///
-/// \brief Secret store double backed by an in-memory map, resolving reads synchronously.
-///
-class FakeSecretStore : public SecretStore
-{
-    Q_OBJECT
-
-public:
-    using SecretStore::SecretStore;
-
-    bool isAvailable() const override { return true; }
-
-    void read(const QString &profileId, Secret secret) override
-    {
-        const QString value = values.value(key(profileId, secret));
-        emit readFinished(profileId, secret, value, errors.value(key(profileId, secret)));
-    }
-
-    void write(const QString &profileId, Secret secret, const QString &value) override
-    {
-        values.insert(key(profileId, secret), value);
-        emit writeFinished(profileId, secret, {});
-    }
-
-    void remove(const QString &profileId, Secret secret) override
-    {
-        values.remove(key(profileId, secret));
-        emit writeFinished(profileId, secret, {});
-    }
-
-    static QString key(const QString &profileId, Secret secret)
-    {
-        return profileId + QLatin1Char('/')
-            + QString::number(static_cast<int>(secret));
-    }
-
-    QHash<QString, QString> values;
-    QHash<QString, QString> errors;
 };
 
 ///

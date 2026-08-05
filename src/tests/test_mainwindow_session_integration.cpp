@@ -286,10 +286,12 @@ void TestMainWindowSessionIntegration::refusedPasswordIsRetypedAndMarksTheSessio
     QVERIFY2(writeUsernameSession(path, server.endpoint(), profileId),
              "No unsecured username endpoint was advertised.");
 
+    // Longer than the store waits for the machine keychain, so an unresponsive one is reported
+    // as a failed write and skips the test instead of running it without a stored secret.
     SecretStore secrets;
     QSignalSpy writeSpy(&secrets, &SecretStore::writeFinished);
     secrets.write(profileId, SecretStore::Secret::Password, QStringLiteral("outdated-secret"));
-    QVERIFY(writeSpy.wait(5000));
+    QVERIFY(writeSpy.wait(15000));
     if (!writeSpy.takeFirst().at(2).toString().isEmpty())
         QSKIP("No usable keychain backend.");
 
@@ -309,7 +311,7 @@ void TestMainWindowSessionIntegration::refusedPasswordIsRetypedAndMarksTheSessio
 
     QSignalSpy removeSpy(&secrets, &SecretStore::writeFinished);
     secrets.remove(profileId, SecretStore::Secret::Password);
-    removeSpy.wait(5000);
+    removeSpy.wait(15000);
 
     QVERIFY2(typed, "The refused password was not asked for again.");
     QVERIFY2(connected, "The session did not connect with the retyped password.");
