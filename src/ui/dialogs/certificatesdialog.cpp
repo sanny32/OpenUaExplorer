@@ -181,8 +181,7 @@ CertificatesDialog::CertificatesDialog(QWidget *parent)
     connect(ui->importCertificateButton, &QPushButton::clicked,
             this, &CertificatesDialog::importCertificate);
 
-    connect(ui->buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked,
-            this, &CertificatesDialog::apply);
+    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &CertificatesDialog::accept);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
     loadClientCertificate();
@@ -256,7 +255,6 @@ void CertificatesDialog::loadTrustStore()
     for (const QByteArray &der : _pki.certificates(PkiManager::Category::Rejected))
         addTrustRow(der, OriginRejected, TargetRejected);
     _proxy->invalidate();
-    updatePendingState();
 }
 
 ///
@@ -341,7 +339,6 @@ void CertificatesDialog::stageTargetForSelection(int target)
     if (target != TargetRemoved)
         styleStatusItem(_model->item(row, 3), target);
     _proxy->invalidate();
-    updatePendingState();
     updateTrustSelectionActions();
 }
 
@@ -413,7 +410,6 @@ void CertificatesDialog::importCertificate()
 
     addTrustRow(der, OriginNew, TargetTrusted);
     _proxy->invalidate();
-    updatePendingState();
     const int lastRow = _model->rowCount() - 1;
     const QModelIndex proxyIndex = _proxy->mapFromSource(_model->index(lastRow, 0));
     if (proxyIndex.isValid())
@@ -422,16 +418,8 @@ void CertificatesDialog::importCertificate()
 }
 
 ///
-/// \brief Enables the Apply button when there are staged changes to commit.
-///
-void CertificatesDialog::updatePendingState()
-{
-    ui->buttonBox->button(QDialogButtonBox::Apply)->setEnabled(hasPendingChanges());
-}
-
-///
 /// \brief Reports whether any staged change differs from the on-disk state.
-/// \return True when Apply has work to do.
+/// \return True when OK has work to do.
 ///
 bool CertificatesDialog::hasPendingChanges() const
 {
@@ -597,7 +585,6 @@ void CertificatesDialog::chooseAndStageClientCertificate(const QString &title)
     _pendingKeySource = key;
     _pendingCertificate = der;
     refreshClientCertificateView();
-    updatePendingState();
 }
 
 ///
@@ -628,7 +615,6 @@ void CertificatesDialog::removeClientCertificate()
     _pendingKeySource.clear();
     _pendingCertificate.clear();
     refreshClientCertificateView();
-    updatePendingState();
 }
 
 ///
@@ -661,23 +647,25 @@ void CertificatesDialog::exportClientCertificate()
 
 ///
 /// \brief Writes every staged change to the PKI store, then reloads the committed state.
+/// \return True when every staged change was committed.
 ///
-void CertificatesDialog::apply()
+bool CertificatesDialog::apply()
 {
     QString error;
 
     if (_clientOp == ClientRemove) {
         if (!_pki.removeClientCertificate(&error)) {
             MessageBoxDialog::warning(this, tr("Certificates"), error, DialogButtonBox::Ok);
-            return;
+            return false;
         }
     } else if (_clientOp == ClientImportReplace) {
         if (!_pki.importClientCertificate(_pendingCertificateSource, _pendingKeySource, &error)) {
             MessageBoxDialog::warning(this, tr("Certificates"), error, DialogButtonBox::Ok);
-            return;
+            return false;
         }
     }
 
+    bool success = true;
     for (int row = 0; row < _model->rowCount(); ++row) {
         const QStandardItem *item = _model->item(row, 0);
         const QByteArray der = item->data(DerRole).toByteArray();
@@ -695,6 +683,7 @@ void CertificatesDialog::apply()
         }
         if (!ok) {
             MessageBoxDialog::warning(this, tr("Certificates"), error, DialogButtonBox::Ok);
+            success = false;
             break;
         }
     }
@@ -702,6 +691,16 @@ void CertificatesDialog::apply()
     loadClientCertificate();
     loadTrustStore();
     updateTrustSelectionActions();
+    return success;
+}
+
+///
+/// \brief Commits the staged changes and closes the dialog once they are written.
+///
+void CertificatesDialog::accept()
+{
+    if (apply())
+        AppBaseDialog::accept();
 }
 
 ///

@@ -283,8 +283,20 @@
                   <height>16777215</height>
                  </size>
                 </property>
+                <property name="toolTip">
+                 <string>Select certificate file</string>
+                </property>
                 <property name="text">
-                 <string>...</string>
+                 <string/>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>16</width>
+                  <height>16</height>
+                 </size>
+                </property>
+                <property name="iconName" stdset="0">
+                 <string notr="true">file-text</string>
                 </property>
                </widget>
               </item>
@@ -325,8 +337,20 @@
                   <height>16777215</height>
                  </size>
                 </property>
+                <property name="toolTip">
+                 <string>Select private key file</string>
+                </property>
                 <property name="text">
-                 <string>...</string>
+                 <string/>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>16</width>
+                  <height>16</height>
+                 </size>
+                </property>
+                <property name="iconName" stdset="0">
+                 <string notr="true">file-text</string>
                 </property>
                </widget>
               </item>
@@ -431,7 +455,7 @@
              <item row="0" column="2">
               <widget class="QLabel" name="sessionTimeoutUnitLabel">
                <property name="text">
-                <string notr="true">ms</string>
+                <string>ms</string>
                </property>
               </widget>
              </item>
@@ -461,7 +485,7 @@
              <item row="0" column="6">
               <widget class="QLabel" name="endpointTimeoutUnitLabel">
                <property name="text">
-                <string notr="true">ms</string>
+                <string>ms</string>
                </property>
               </widget>
              </item>
@@ -491,7 +515,7 @@
              <item row="1" column="2">
               <widget class="QLabel" name="connectTimeoutUnitLabel">
                <property name="text">
-                <string notr="true">ms</string>
+                <string>ms</string>
                </property>
               </widget>
              </item>
@@ -521,7 +545,7 @@
              <item row="1" column="6">
               <widget class="QLabel" name="requestTimeoutUnitLabel">
                <property name="text">
-                <string notr="true">ms</string>
+                <string>ms</string>
                </property>
               </widget>
              </item>
@@ -551,7 +575,7 @@
              <item row="2" column="2">
               <widget class="QLabel" name="secureChannelLifetimeUnitLabel">
                <property name="text">
-                <string notr="true">ms</string>
+                <string>ms</string>
                </property>
               </widget>
              </item>
@@ -581,7 +605,7 @@
              <item row="2" column="6">
               <widget class="QLabel" name="maxMessageSizeUnitLabel">
                <property name="text">
-                <string notr="true">bytes</string>
+                <string>bytes</string>
                </property>
               </widget>
              </item>

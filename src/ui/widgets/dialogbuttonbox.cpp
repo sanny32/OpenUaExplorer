@@ -128,18 +128,25 @@ void DialogButtonBox::retranslateButtons()
 }
 
 ///
-/// \brief Gives Ok and Cancel the wider button's minimum width.
+/// \brief Gives Ok, Cancel and Close the widest of those buttons' minimum width.
 ///
 void DialogButtonBox::updateButtonWidths()
 {
-    ColoredPushButton *ok = coloredButton(QDialogButtonBox::Ok);
-    ColoredPushButton *cancel = coloredButton(QDialogButtonBox::Cancel);
-    if (ok == nullptr || cancel == nullptr)
+    constexpr StandardButton kPairedButtons[] = { Ok, Cancel, Close };
+
+    QList<ColoredPushButton *> buttons;
+    int width = 0;
+    for (const StandardButton which : kPairedButtons) {
+        if (ColoredPushButton *button = coloredButton(which)) {
+            buttons.append(button);
+            width = qMax(width, button->sizeHint().width());
+        }
+    }
+    if (buttons.size() < 2)
         return;
 
-    const int width = qMax(ok->sizeHint().width(), cancel->sizeHint().width());
-    ok->setMinimumWidth(width);
-    cancel->setMinimumWidth(width);
+    for (ColoredPushButton *button : buttons)
+        button->setMinimumWidth(width);
 }
 
 ///
