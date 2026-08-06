@@ -893,12 +893,16 @@ Select it again.</source>
         <translation>Сертификат</translation>
     </message>
     <message>
-        <source>Username:</source>
-        <translation>Имя пользователя:</translation>
+        <source>No authentication</source>
+        <translation>Без аутентификации</translation>
     </message>
     <message>
-        <source>(not used with Anonymous)</source>
-        <translation>(не используется при анонимном)</translation>
+        <source>The server asks for no credentials. A server that only accepts a user name or a certificate refuses the connection.</source>
+        <translation>Сервер не требует учётных данных. Если сервер настроен на приём только имени пользователя или сертификата, подключение будет отклонено.</translation>
+    </message>
+    <message>
+        <source>Username:</source>
+        <translation>Имя пользователя:</translation>
     </message>
     <message>
         <source>Password:</source>
@@ -1744,8 +1748,8 @@ Select it again.</source>
         <translation>Режим безопасности</translation>
     </message>
     <message>
-        <source>Message Security / Status</source>
-        <translation>Безопасность сообщений / состояние</translation>
+        <source>Status</source>
+        <translation>Статус</translation>
     </message>
 </context>
 <context>

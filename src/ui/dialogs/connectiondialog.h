@@ -98,6 +98,7 @@ private:
     void applyStoredPassword(const QString &profileId, SecretStore::Secret secret,
                              const QString &value, const QString &error);
     void setupCertificatePanels();
+    void setupAnonymousNotice();
     void setupControls();
     void setupConnections();
     void applySessionDefaults();

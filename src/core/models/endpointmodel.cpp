@@ -101,7 +101,7 @@ QVariant EndpointModel::headerData(int section, Qt::Orientation orientation, int
     case ModeColumn:
         return tr("Security Mode");
     case StatusColumn:
-        return tr("Message Security / Status");
+        return tr("Status");
     default:
         return {};
     }

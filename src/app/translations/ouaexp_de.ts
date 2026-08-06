@@ -892,12 +892,16 @@ Wählen Sie ihn erneut aus.</translation>
         <translation>Zertifikat</translation>
     </message>
     <message>
-        <source>Username:</source>
-        <translation>Benutzername:</translation>
+        <source>No authentication</source>
+        <translation>Keine Authentifizierung</translation>
     </message>
     <message>
-        <source>(not used with Anonymous)</source>
-        <translation>(bei Anonym nicht verwendet)</translation>
+        <source>The server asks for no credentials. A server that only accepts a user name or a certificate refuses the connection.</source>
+        <translation>Der Server verlangt keine Anmeldedaten. Ist der Server nur auf Benutzernamen oder Zertifikat eingestellt, wird die Verbindung abgelehnt.</translation>
+    </message>
+    <message>
+        <source>Username:</source>
+        <translation>Benutzername:</translation>
     </message>
     <message>
         <source>Password:</source>
@@ -1740,8 +1744,8 @@ Wählen Sie ihn erneut aus.</translation>
         <translation>Sicherheitsmodus</translation>
     </message>
     <message>
-        <source>Message Security / Status</source>
-        <translation>Nachrichtensicherheit / Status</translation>
+        <source>Status</source>
+        <translation>Status</translation>
     </message>
 </context>
 <context>

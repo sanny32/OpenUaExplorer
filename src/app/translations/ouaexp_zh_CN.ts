@@ -891,12 +891,16 @@ Select it again.</source>
         <translation>证书</translation>
     </message>
     <message>
-        <source>Username:</source>
-        <translation>用户名：</translation>
+        <source>No authentication</source>
+        <translation>无需身份验证</translation>
     </message>
     <message>
-        <source>(not used with Anonymous)</source>
-        <translation>（匿名时不使用）</translation>
+        <source>The server asks for no credentials. A server that only accepts a user name or a certificate refuses the connection.</source>
+        <translation>服务器不要求凭据。若服务器仅接受用户名或证书，连接将被拒绝。</translation>
+    </message>
+    <message>
+        <source>Username:</source>
+        <translation>用户名：</translation>
     </message>
     <message>
         <source>Password:</source>
@@ -1736,8 +1740,8 @@ Select it again.</source>
         <translation>安全模式</translation>
     </message>
     <message>
-        <source>Message Security / Status</source>
-        <translation>消息安全 / 状态</translation>
+        <source>Status</source>
+        <translation>状态</translation>
     </message>
 </context>
 <context>

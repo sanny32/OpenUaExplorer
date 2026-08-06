@@ -102,7 +102,7 @@
          <property name="title">
           <string>Authentication</string>
          </property>
-         <layout class="QGridLayout" name="authenticationLayout" columnstretch="0,1,0">
+         <layout class="QGridLayout" name="authenticationLayout" columnstretch="0,0,1">
           <item row="0" column="0">
            <widget class="QLabel" name="authenticationLabel">
             <property name="minimumSize">
@@ -120,7 +120,7 @@
            <widget class="QComboBox" name="authenticationComboBox">
             <property name="minimumSize">
              <size>
-              <width>200</width>
+              <width>300</width>
               <height>0</height>
              </size>
             </property>
@@ -143,8 +143,101 @@
           </item>
           <item row="1" column="0" colspan="3">
            <widget class="QStackedWidget" name="authStack">
+            <widget class="QWidget" name="anonymousPanel">
+             <layout class="QGridLayout" name="anonymousLayout" columnstretch="0,1">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QFrame" name="anonymousNotice">
+                <layout class="QHBoxLayout" name="anonymousNoticeLayout">
+                 <property name="spacing">
+                  <number>10</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>12</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>10</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>14</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>10</number>
+                 </property>
+                 <item>
+                  <widget class="ThemedIconLabel" name="anonymousNoticeIcon">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignHCenter|Qt::AlignTop</set>
+                   </property>
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <layout class="QVBoxLayout" name="anonymousNoticeTextLayout">
+                   <property name="spacing">
+                    <number>4</number>
+                   </property>
+                   <item>
+                    <widget class="QLabel" name="anonymousNoticeTitle">
+                     <property name="text">
+                      <string>No authentication</string>
+                     </property>
+                     <property name="wordWrap">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="anonymousNoticeText">
+                     <property name="text">
+                      <string>The server asks for no credentials. A server that only accepts a user name or a certificate refuses the connection.</string>
+                     </property>
+                     <property name="wordWrap">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <spacer name="anonymousNoticeSpacer">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </widget>
             <widget class="QWidget" name="usernamePanel">
-             <layout class="QGridLayout" name="usernameLayout" columnstretch="0,0,0">
+             <layout class="QGridLayout" name="usernameLayout" columnstretch="0,0,1">
               <property name="leftMargin">
                <number>0</number>
               </property>
@@ -174,16 +267,9 @@
                <widget class="QLineEdit" name="usernameEdit">
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>300</width>
                   <height>0</height>
                  </size>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="2">
-               <widget class="QLabel" name="usernameHintLabel">
-                <property name="text">
-                 <string>(not used with Anonymous)</string>
                 </property>
                </widget>
               </item>
@@ -204,19 +290,12 @@
                <widget class="QLineEdit" name="passwordEdit">
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>300</width>
                   <height>0</height>
                  </size>
                 </property>
                 <property name="echoMode">
                  <enum>QLineEdit::EchoMode::Password</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="2">
-               <widget class="QLabel" name="passwordHintLabel">
-                <property name="text">
-                 <string>(not used with Anonymous)</string>
                 </property>
                </widget>
               </item>
@@ -233,7 +312,7 @@
              </layout>
             </widget>
             <widget class="QWidget" name="certificatePanel">
-             <layout class="QGridLayout" name="certificateLayout" columnstretch="0,0,0">
+             <layout class="QGridLayout" name="certificateLayout" columnstretch="0,0,1">
               <property name="leftMargin">
                <number>0</number>
               </property>
@@ -263,7 +342,7 @@
                <widget class="QLineEdit" name="certificateEdit">
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>300</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -317,7 +396,7 @@
                <widget class="QLineEdit" name="privateKeyEdit">
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>300</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -371,7 +450,7 @@
                <widget class="QLineEdit" name="privateKeyPasswordEdit">
                 <property name="minimumSize">
                  <size>
-                  <width>200</width>
+                  <width>300</width>
                   <height>0</height>
                  </size>
                 </property>

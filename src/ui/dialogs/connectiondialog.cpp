@@ -24,6 +24,7 @@
 #include <QSizePolicy>
 #include <QStackedWidget>
 #include <QStringList>
+#include <QStyle>
 #include <QUuid>
 
 #include "appcolors.h"
@@ -61,6 +62,7 @@ ConnectionDialog::ConnectionDialog(QWidget *parent)
 
     setupEndpointHistory();
     setupCertificatePanels();
+    setupAnonymousNotice();
     setupControls();
     setupConnections();
     applySessionDefaults();
@@ -226,6 +228,26 @@ void ConnectionDialog::setupCertificatePanels()
     }
     updateClientCertificateAction();
     updateClientCertificate();
+}
+
+///
+/// \brief Styles the notice that stands in for the credential fields under Anonymous.
+///
+void ConnectionDialog::setupAnonymousNotice()
+{
+    ui->anonymousNoticeIcon->setIcon(QStringLiteral("info"), QSize(16, 16));
+    // qlementine leaves a plain QFrame's stylesheet background unpainted without this.
+    ui->anonymousNotice->setAttribute(Qt::WA_StyledBackground, true);
+    ui->anonymousNotice->setStyleSheet(QStringLiteral(
+        "#anonymousNotice { background-color: %1; border: 1px solid %2; border-radius: 8px; }")
+        .arg(AppColors::noticeNeutralBackground().name(),
+             AppColors::noticeNeutralBorder().name()));
+    ui->anonymousNoticeTitle->setStyleSheet(
+        QStringLiteral("color: %1; font-weight: 600; background: transparent;")
+            .arg(AppColors::titleText().name()));
+    ui->anonymousNoticeText->setStyleSheet(
+        QStringLiteral("color: %1; background: transparent;")
+            .arg(AppColors::subtitleText().name()));
 }
 
 ///
@@ -634,7 +656,11 @@ void ConnectionDialog::updateEndpointSelection()
 }
 
 ///
-/// \brief Enables the username and certificate fields appropriate to the chosen auth and security.
+/// \brief Shows the fields the chosen authentication needs and follows the security mode.
+///
+/// Anonymous asks for nothing, so instead of credential fields it gets a page that explains
+/// what connecting without them means. The stack keeps the height of its tallest page, so the
+/// dialog below the group box stays where it is while the mode changes.
 ///
 void ConnectionDialog::updateAuthenticationFields()
 {
@@ -643,7 +669,12 @@ void ConnectionDialog::updateAuthenticationFields()
         == static_cast<int>(ConnectionProfile::Authentication::Username);
     const bool certificate = authentication
         == static_cast<int>(ConnectionProfile::Authentication::Certificate);
-    ui->authStack->setCurrentWidget(certificate ? ui->certificatePanel : ui->usernamePanel);
+    QWidget *panel = ui->anonymousPanel;
+    if (certificate)
+        panel = ui->certificatePanel;
+    else if (username)
+        panel = ui->usernamePanel;
+    ui->authStack->setCurrentWidget(panel);
 
     ui->usernameEdit->setEnabled(username);
     ui->passwordEdit->setEnabled(username);
@@ -651,22 +682,21 @@ void ConnectionDialog::updateAuthenticationFields()
     // key password would be useless on the next connection anyway.
     ui->rememberCheckBox->setEnabled(username);
 
-    const bool showHintText = !certificate && !username;
-    const QString hintStyle = showHintText
-        ? QStringLiteral("color: %1;").arg(AppColors::hint().name())
-        : QStringLiteral("color: transparent;");
-    ui->usernameHintLabel->setStyleSheet(hintStyle);
-    ui->passwordHintLabel->setStyleSheet(hintStyle);
-
     const int labelColumn = ui->authenticationLabel->sizeHint().width();
-    const int hintColumn = qMax(ui->usernameHintLabel->sizeHint().width(),
-                                ui->passwordHintLabel->sizeHint().width());
     ui->authenticationLayout->setColumnMinimumWidth(0, labelColumn);
-    ui->authenticationLayout->setColumnMinimumWidth(2, hintColumn);
     ui->usernameLayout->setColumnMinimumWidth(0, labelColumn);
-    ui->usernameLayout->setColumnMinimumWidth(2, hintColumn);
     ui->certificateLayout->setColumnMinimumWidth(0, labelColumn);
-    ui->certificateLayout->setColumnMinimumWidth(2, hintColumn);
+    // The notice starts at the left edge of the form and ends where the combo box above it
+    // ends: it covers the label column, the gap between the columns, and the field column.
+    const int labelColumnWidth = qMax(labelColumn, ui->authenticationLabel->minimumWidth());
+    const int fieldColumn = qMax(ui->authenticationComboBox->minimumWidth(),
+                                 ui->authenticationComboBox->sizeHint().width());
+    int columnGap = ui->authenticationLayout->horizontalSpacing();
+    if (columnGap < 0)
+        columnGap = style()->pixelMetric(QStyle::PM_LayoutHorizontalSpacing, nullptr, this);
+    // Fixed, not maximum: the trailing stretch column would otherwise pull the notice down to
+    // the width its wrapped text can survive at.
+    ui->anonymousNotice->setFixedWidth(labelColumnWidth + columnGap + fieldColumn);
 
     // The client certificate stays available regardless of the security mode
     // (it can still be imported, generated or inspected). Only the server

@@ -26,6 +26,7 @@
 #include <QSpinBox>
 #include <QStandardPaths>
 #include <QSslCertificate>
+#include <QStackedWidget>
 #include <QStyleFactory>
 #include <QTableView>
 #include <QSignalSpy>
@@ -97,6 +98,7 @@ private slots:
     void clearedEndpointHistoryStaysEmpty();
     void usernamePasswordDefaultsAreEmpty();
     void rememberOptionFollowsUsernameAuthentication();
+    void anonymousAuthenticationHidesTheCredentialFields();
     void reopeningRestoresTheAuthenticationOfTheLastConnection();
     void reopeningFillsInTheRememberedPassword();
     void discoveryPopulatesEndpointModelAndAuthentication();
@@ -361,6 +363,65 @@ void TestConnectionDialog::rememberOptionFollowsUsernameAuthentication()
     authentication->setCurrentIndex(
         static_cast<int>(ConnectionProfile::Authentication::Certificate));
     QVERIFY(!dialog.rememberCredentials());
+}
+
+///
+/// \brief Anonymous shows its notice instead of credential fields, without growing the stack.
+///
+void TestConnectionDialog::anonymousAuthenticationHidesTheCredentialFields()
+{
+    ConnectionDialog dialog;
+    auto *stack = dialog.findChild<QStackedWidget *>(QStringLiteral("authStack"));
+    auto *anonymousPanel = dialog.findChild<QWidget *>(QStringLiteral("anonymousPanel"));
+    auto *usernamePanel = dialog.findChild<QWidget *>(QStringLiteral("usernamePanel"));
+    auto *certificatePanel = dialog.findChild<QWidget *>(QStringLiteral("certificatePanel"));
+    auto *authentication = dialog.findChild<QComboBox *>(
+        QStringLiteral("authenticationComboBox"));
+    QVERIFY(stack);
+    QVERIFY(anonymousPanel);
+    QVERIFY(usernamePanel);
+    QVERIFY(certificatePanel);
+    QVERIFY(authentication);
+
+    // The designer items are ordered like the authentication enum.
+    authentication->setCurrentIndex(
+        static_cast<int>(ConnectionProfile::Authentication::Anonymous));
+    QCOMPARE(stack->currentWidget(), anonymousPanel);
+
+    authentication->setCurrentIndex(
+        static_cast<int>(ConnectionProfile::Authentication::Username));
+    QCOMPARE(stack->currentWidget(), usernamePanel);
+
+    authentication->setCurrentIndex(
+        static_cast<int>(ConnectionProfile::Authentication::Certificate));
+    QCOMPARE(stack->currentWidget(), certificatePanel);
+
+    authentication->setCurrentIndex(
+        static_cast<int>(ConnectionProfile::Authentication::Anonymous));
+
+    // The notice fills the space the credential fields leave behind, and must fit in it: a
+    // taller page would make the stack reserve extra height on the other pages as well.
+    auto *notice = dialog.findChild<QWidget *>(QStringLiteral("anonymousNotice"));
+    QVERIFY(notice);
+    QVERIFY(!notice->isHidden());
+    QVERIFY(anonymousPanel->sizeHint().height() <= usernamePanel->sizeHint().height());
+    QVERIFY(anonymousPanel->sizeHint().height() <= certificatePanel->sizeHint().height());
+
+    // It reads as part of the form: left edge where the labels start, right edge where the
+    // combo box above it ends.
+    dialog.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+    auto *label = dialog.findChild<QLabel *>(QStringLiteral("authenticationLabel"));
+    QVERIFY(label);
+    const QRect noticeRect(notice->mapTo(&dialog, QPoint(0, 0)), notice->size());
+    const QRect labelRect(label->mapTo(&dialog, QPoint(0, 0)), label->size());
+    const QRect comboRect(authentication->mapTo(&dialog, QPoint(0, 0)), authentication->size());
+    QCOMPARE(noticeRect.left(), labelRect.left());
+    QCOMPARE(noticeRect.right(), comboRect.right());
+
+    // Hiding a shown dialog only once it is destroyed sends the focus-out through slots of a
+    // half-destroyed object, so close it while it is still whole.
+    dialog.hide();
 }
 
 ///
