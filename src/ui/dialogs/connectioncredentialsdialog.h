@@ -16,12 +16,13 @@ class ConnectionCredentialsDialog;
 }
 
 ///
-/// \brief Prompts for the credentials a favourite needs before connecting.
+/// \brief Prompts for the credentials a connection needs and none are stored for.
 ///
-/// Favourites store the authentication method but not the secrets, so connecting one
-/// that uses username or certificate authentication opens this dialog to collect the
-/// password, or the certificate and private key. It shows only the panel matching the
-/// favourite's authentication method.
+/// Favourites and saved sessions keep the authentication method but not the secrets, so
+/// connecting one that uses username or certificate authentication opens this dialog to
+/// collect the password, or the certificate and private key. It shows only the panel
+/// matching the profile's authentication method, and offers to remember what was typed
+/// so the next connection needs no prompt.
 ///
 class ConnectionCredentialsDialog : public AppBaseDialog
 {
@@ -46,6 +47,12 @@ public:
     void setProfile(const ConnectionProfile &profile);
 
     ///
+    /// \brief Explains what is wrong with the credentials the profile came with.
+    /// \param reason Ready-to-show explanation; an empty string restores the plain hint.
+    ///
+    void setReason(const QString &reason);
+
+    ///
     /// \brief Returns the favourite with the entered username and certificate paths applied.
     /// \return Updated profile.
     ///
@@ -62,6 +69,12 @@ public:
     /// \return Private-key password.
     ///
     QString privateKeyPassword() const;
+
+    ///
+    /// \brief Reports whether the entered secrets should be kept in the credential store.
+    /// \return True when the user asked to be remembered.
+    ///
+    bool rememberCredentials() const;
 
 private:
     void applyStyling();

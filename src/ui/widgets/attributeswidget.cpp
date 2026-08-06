@@ -324,7 +324,6 @@ void AttributesWidget::setupAttributesView()
     connect(ui->attributesTree, &QWidget::customContextMenuRequested,
             this, &AttributesWidget::showAttributesContextMenu);
 
-    ui->verticalLayout->setAlignment(ui->writeValueGroup, Qt::AlignLeft);
     ui->writeValueGroup->setEnabled(false);
     clearWriteEditor();
 }

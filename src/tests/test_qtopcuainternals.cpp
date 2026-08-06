@@ -202,10 +202,23 @@ void TestQtOpcUaInternals::mapsReadResultsAndBrowseEnrichment()
     historizing.setAttribute(QOpcUa::NodeAttribute::Historizing);
     historizing.setValue(true);
     historizing.setStatusCode(QOpcUa::UaStatusCode::Good);
+    QOpcUaReadResult dataType;
+    dataType.setNodeId(variable.nodeId);
+    dataType.setAttribute(QOpcUa::NodeAttribute::DataType);
+    dataType.setValue(QStringLiteral("ns=0;i=11"));
+    dataType.setStatusCode(QOpcUa::UaStatusCode::Good);
+    QOpcUaReadResult valueRank;
+    valueRank.setNodeId(variable.nodeId);
+    valueRank.setAttribute(QOpcUa::NodeAttribute::ValueRank);
+    valueRank.setValue(-1);
+    valueRank.setStatusCode(QOpcUa::UaStatusCode::Good);
 
-    QtOpcUaResultMapper::applyBrowseAttributeResults(&nodes, {eventNotifier, historizing});
+    QtOpcUaResultMapper::applyBrowseAttributeResults(
+        &nodes, {eventNotifier, historizing, dataType, valueRank});
     QCOMPARE(nodes.at(0).eventNotifier, OpcUa::SubscribeToEvents);
     QVERIFY(nodes.at(1).historizing);
+    QCOMPARE(nodes.at(1).dataTypeId, QStringLiteral("ns=0;i=11"));
+    QCOMPARE(nodes.at(1).valueRank, -1);
 }
 
 /// \brief Verifies mapping of raw history data samples.

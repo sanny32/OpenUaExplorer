@@ -73,6 +73,7 @@ ConnectionCoordinator::ConnectionCoordinator(ConnectionController *controller,
     connect(_favorites, &FavoritesCoordinator::addFavoriteRequested,
             this, &ConnectionCoordinator::addCurrentToFavorites);
     _controller->setCertificateTrustDecider(this);
+    _controller->setCredentialsProvider(this);
     rebuildRecentMenu();
     updateActions(_backend->state());
 }
@@ -107,10 +108,14 @@ bool ConnectionCoordinator::openConnectionDialog(const ConnectionProfile *preset
             return favorite.id == preset->id;
         });
     const ConnectionProfile profile = dialog.profile();
-    if (editingFavorite) {
-        _controller->saveProfile(
-            profile, dialog.password(), dialog.privateKeyPassword());
-    }
+    // The password is kept only when the user asked for it; a session saved from this
+    // connection then finds it again under the same profile identifier.
+    const QString rememberedPassword =
+        dialog.rememberCredentials() ? dialog.password() : QString();
+    if (editingFavorite)
+        _controller->saveProfile(profile, rememberedPassword);
+    else
+        _controller->rememberPassword(profile, rememberedPassword);
     _controller->connectNewProfile(
         profile, dialog.password(), dialog.privateKeyPassword());
     return true;
@@ -328,26 +333,48 @@ void ConnectionCoordinator::addCurrentToFavorites()
     }
     profile.saveProfile = true;
     profile.lastUsed = QDateTime::currentDateTime();
-    _controller->saveProfile(profile, QString(), QString());
+    _controller->saveProfile(profile, QString());
 }
 
 ///
-/// \brief Connects a favourite, prompting for its credentials when it needs authentication.
+/// \brief Connects a favourite from its stored credentials, asking only for what is missing.
 /// \param favorite Favourite to connect to.
 ///
 void ConnectionCoordinator::connectFavorite(const ConnectionProfile &favorite)
 {
-    if (favorite.authentication == ConnectionProfile::Authentication::Anonymous) {
-        _controller->connectSavedProfile(favorite);
-        return;
-    }
+    _controller->connectSavedProfile(favorite);
+}
 
+///
+/// \brief Asks for the credentials a profile needs but has none stored for.
+///
+/// The prompt interrupts a connection the user started elsewhere, so any wait cursor is
+/// lifted for as long as the dialog waits for typing.
+///
+/// \param profile Profile waiting to connect.
+/// \param reason What went wrong, ready to show; empty when nothing was configured yet.
+/// \return The entered credentials, or a rejected result when the user cancels.
+///
+ConnectionCredentials ConnectionCoordinator::requestCredentials(const ConnectionProfile &profile,
+                                                                const QString &reason)
+{
     ConnectionCredentialsDialog dialog(_dialogParent);
-    dialog.setProfile(favorite);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-    _controller->connectSavedProfileWithCredentials(
-        dialog.profile(), dialog.password(), dialog.privateKeyPassword());
+    dialog.setProfile(profile);
+    dialog.setReason(reason);
+
+    QGuiApplication::setOverrideCursor(Qt::ArrowCursor);
+    const bool accepted = dialog.exec() == QDialog::Accepted;
+    QGuiApplication::restoreOverrideCursor();
+    if (!accepted)
+        return {};
+
+    ConnectionCredentials credentials;
+    credentials.accepted = true;
+    credentials.profile = dialog.profile();
+    credentials.password = dialog.password();
+    credentials.privateKeyPassword = dialog.privateKeyPassword();
+    credentials.remember = dialog.rememberCredentials();
+    return credentials;
 }
 
 ///
@@ -360,7 +387,7 @@ void ConnectionCoordinator::editFavorite(const ConnectionProfile &favorite)
     dialog.setProfile(favorite);
     if (dialog.exec() != QDialog::Accepted)
         return;
-    _controller->saveProfile(dialog.profile(), QString(), QString());
+    _controller->saveProfile(dialog.profile(), QString());
 }
 
 ///

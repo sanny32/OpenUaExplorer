@@ -23,7 +23,8 @@ QVector<QOpcUaEndpointDescription> endpointsWithSupportedPolicy(
     const QStringList &supportedPolicies,
     const QString &scheme = QString());
 
-/// \brief Fills browsed children with EventNotifier/Historizing values from a batch read.
+/// \brief Fills browsed children with EventNotifier/Historizing/DataType/ValueRank values
+///        from a batch read.
 void applyBrowseAttributeResults(QVector<OpcUaNodeInfo> *nodes,
                                  const QVector<QOpcUaReadResult> &results);
 

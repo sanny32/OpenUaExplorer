@@ -103,16 +103,7 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
 
     _liveTimer = new QTimer(this);
     _liveTimer->setInterval(kLiveTickMs);
-    connect(_liveTimer, &QTimer::timeout, this, [this]() {
-        if (_livePaused)
-            return;
-        if (_series.isEmpty())
-            return;
-        if (_display.autoScrollLive)
-            applyWindow();
-        if (_display.autoScale)
-            autoScale();
-    });
+    connect(_liveTimer, &QTimer::timeout, this, &TrendGraphWidget::refreshLiveView);
 
     applyTheme();
     applyDisplaySettings();
@@ -234,6 +225,7 @@ void TrendGraphWidget::applyLiveValues(const QVector<OpcUaDataValue> &values)
 {
     if (_mode != Mode::Live)
         return;
+    QSet<QString> updatedNodes;
     for (const OpcUaDataValue &value : values) {
         auto it = _series.find(value.nodeId);
         if (it == _series.end())
@@ -249,6 +241,12 @@ void TrendGraphWidget::applyLiveValues(const QVector<OpcUaDataValue> &values)
             _chart->appendPoint(value.nodeId, toChartX(point.x()),
                                 points.at(points.size() - 2).y(), value.status);
         _chart->appendPoint(value.nodeId, toChartX(point.x()), point.y(), value.status);
+        updatedNodes.insert(value.nodeId);
+    }
+    if (!_livePaused && !updatedNodes.isEmpty()) {
+        const qreal now = toChartX(QDateTime::currentMSecsSinceEpoch());
+        for (const QString &nodeId : std::as_const(updatedNodes))
+            _chart->extendSeriesTo(nodeId, now);
     }
 }
 
@@ -269,6 +267,8 @@ void TrendGraphWidget::applyHistory(const QString &nodeId,
     else
         it->setHistory(values);
     refeedSeries(*it);
+    if (_mode == Mode::Live && !_livePaused)
+        _chart->extendSeriesTo(nodeId, toChartX(QDateTime::currentMSecsSinceEpoch()));
 }
 
 ///
@@ -524,6 +524,7 @@ void TrendGraphWidget::setLivePaused(bool paused)
     _livePaused = paused;
     ui->toolbar->setLivePaused(paused);
     if (!paused) {
+        extendLiveSeries(QDateTime::currentMSecsSinceEpoch());
         applyWindow();
         if (_display.autoScale)
             autoScale();
@@ -631,6 +632,32 @@ void TrendGraphWidget::refreshHistory()
     const QStringList ids = chartedNodeIds();
     for (const QString &nodeId : ids)
         requestHistory(nodeId);
+}
+
+///
+/// \brief Advances live series to now and refreshes the rolling axes.
+///
+void TrendGraphWidget::refreshLiveView()
+{
+    if (_livePaused || _series.isEmpty())
+        return;
+
+    extendLiveSeries(QDateTime::currentMSecsSinceEpoch());
+    if (_display.autoScrollLive)
+        applyWindow();
+    if (_display.autoScale)
+        autoScale();
+}
+
+///
+/// \brief Extends every non-empty live series with its last known value.
+/// \param endMsEpoch Trailing timestamp in milliseconds since the epoch.
+///
+void TrendGraphWidget::extendLiveSeries(qint64 endMsEpoch)
+{
+    const qreal chartEnd = toChartX(static_cast<qreal>(endMsEpoch));
+    for (auto it = _series.cbegin(); it != _series.cend(); ++it)
+        _chart->extendSeriesTo(it.key(), chartEnd);
 }
 
 ///
@@ -782,6 +809,8 @@ void TrendGraphWidget::setTimestampMode(AppSettings::TimestampMode mode)
     _timestampMode = mode;
     for (const TrendSeries &series : std::as_const(_series))
         refeedSeries(series);
+    if (_mode == Mode::Live && !_livePaused)
+        extendLiveSeries(QDateTime::currentMSecsSinceEpoch());
     applyWindow();
 }
 
@@ -842,27 +871,30 @@ void TrendGraphWidget::applyTheme()
 }
 
 ///
-/// \brief Reports whether a drag carries a droppable variable node.
+/// \brief Reports whether a drag carries a chartable variable node.
 /// \param mimeData Drag MIME data.
-/// \return True when the drag holds a variable node.
+/// \return True when the drag holds a numeric scalar variable node.
+///
+/// Nodes whose DataType cannot be plotted are refused by the drag itself, so the
+/// cursor already reports that the drop will not add a series.
 ///
 bool TrendGraphWidget::acceptsNodeDrag(const QMimeData *mimeData) const
 {
     OpcUaNodeInfo node;
     return AddressSpaceMime::decodeNode(mimeData, &node)
-        && !node.nodeId.isEmpty() && OpcUa::isVariable(node.nodeClass);
+        && !node.nodeId.isEmpty() && TrendSeries::isTrendable(node);
 }
 
 ///
 /// \brief Adds a dropped variable node as a new series.
 /// \param mimeData Drop MIME data.
-/// \return True when a variable node was added.
+/// \return True when a chartable variable node was added.
 ///
 bool TrendGraphWidget::dropNode(const QMimeData *mimeData)
 {
     OpcUaNodeInfo node;
     if (!AddressSpaceMime::decodeNode(mimeData, &node)
-        || node.nodeId.isEmpty() || !OpcUa::isVariable(node.nodeClass)) {
+        || node.nodeId.isEmpty() || !TrendSeries::isTrendable(node)) {
         return false;
     }
     const QString label = node.displayName.isEmpty()

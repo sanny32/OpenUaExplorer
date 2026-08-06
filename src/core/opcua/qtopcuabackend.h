@@ -220,14 +220,16 @@ public:
 
 private:
     ///
-    /// \brief Reads EventNotifier/Historizing of browsed children, then emits browseFinished().
+    /// \brief Reads EventNotifier/Historizing/DataType/ValueRank of browsed children, then
+    ///        emits browseFinished().
     /// \param parentNodeId Browsed node whose children are being delivered.
-    /// \param nodes Browsed children to enrich with event-source and history-read capability.
+    /// \param nodes Browsed children to enrich with event-source, history-read and charting
+    ///        capability.
     /// \param timeoutMs Request timeout in milliseconds.
     ///
-    /// Browse references omit EventNotifier (Object) and Historizing (Variable), so a follow-up
-    /// batch read fills them in. Enrichment is best-effort: the children are still delivered if
-    /// the read fails or times out.
+    /// Browse references omit EventNotifier (Object) and Historizing, DataType and ValueRank
+    /// (Variable), so a follow-up batch read fills them in. Enrichment is best-effort: the
+    /// children are still delivered if the read fails or times out.
     ///
     void enrichAndFinishBrowse(const QString &parentNodeId,
                                QVector<OpcUaNodeInfo> nodes, int timeoutMs);

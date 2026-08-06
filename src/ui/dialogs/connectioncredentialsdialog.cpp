@@ -82,8 +82,8 @@ void ConnectionCredentialsDialog::setupPasswordToggle()
 }
 
 ///
-/// \brief Pre-fills the dialog from a favourite and shows the matching credential panel.
-/// \param profile Favourite being connected.
+/// \brief Pre-fills the dialog from a profile and shows the matching credential panel.
+/// \param profile Profile being connected.
 ///
 void ConnectionCredentialsDialog::setProfile(const ConnectionProfile &profile)
 {
@@ -95,6 +95,9 @@ void ConnectionCredentialsDialog::setProfile(const ConnectionProfile &profile)
     ui->headerIcon->setIcon(certificate ? QStringLiteral("certificate")
                                          : QStringLiteral("lock"),
                             QSize(20, 20));
+    // Only the user password is ever stored: an encrypted private key cannot be used by the
+    // backend at all, so its password is good for this attempt and nothing else.
+    ui->rememberCheckBox->setVisible(!certificate);
 
     if (certificate) {
         ui->certificateEdit->setText(profile.clientCertificateFile);
@@ -106,6 +109,39 @@ void ConnectionCredentialsDialog::setProfile(const ConnectionProfile &profile)
         ui->passwordEdit->setFocus();
     }
 
+    adjustSize();
+}
+
+///
+/// \brief Explains what is wrong with the credentials the profile came with.
+///
+/// The dialog reopens when a password is refused or a certificate file has gone missing, so
+/// the explanation takes the place of the generic hint; without it the second prompt would
+/// look exactly like the first one. The wording comes from the caller, which knows what
+/// failed; the dialog only presents it.
+///
+/// \param reason Ready-to-show explanation; an empty string restores the plain hint.
+///
+void ConnectionCredentialsDialog::setReason(const QString &reason)
+{
+    if (reason.isEmpty()) {
+        ui->subtitleLabel->setText(tr("Enter the credentials used to connect to this server."));
+        ui->subtitleLabel->setStyleSheet(
+            QStringLiteral("color: %1;").arg(AppColors::subtitleText().name()));
+        return;
+    }
+
+    ui->subtitleLabel->setText(reason);
+    ui->subtitleLabel->setStyleSheet(
+        QStringLiteral("color: %1;").arg(AppColors::statusWarning().name()));
+
+    // The field to correct differs per panel; the one behind the stack must be left alone.
+    if (ui->authStack->currentWidget() == ui->certificatePage) {
+        ui->certificateEdit->setFocus();
+    } else {
+        ui->passwordEdit->clear();
+        ui->passwordEdit->setFocus();
+    }
     adjustSize();
 }
 
@@ -162,6 +198,15 @@ QString ConnectionCredentialsDialog::password() const
 QString ConnectionCredentialsDialog::privateKeyPassword() const
 {
     return ui->privateKeyPasswordEdit->text();
+}
+
+///
+/// \brief Reports whether the entered secrets should be kept in the credential store.
+/// \return True when the user asked to be remembered.
+///
+bool ConnectionCredentialsDialog::rememberCredentials() const
+{
+    return ui->rememberCheckBox->isChecked();
 }
 
 ///

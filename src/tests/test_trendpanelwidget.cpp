@@ -10,6 +10,9 @@
 #include <QDateTime>
 #include <QSignalSpy>
 #include <QTest>
+#include <QtCharts/QChart>
+#include <QtCharts/QChartView>
+#include <QtCharts/QLineSeries>
 
 #include "opcua/opcuatypes.h"
 #include "widgets/trendpanelwidget.h"
@@ -32,6 +35,7 @@ private slots:
     void switchingToHistoryModeReadsHistory();
     void refreshingHistoryReanchorsWindow();
     void consumeHistoryMatchesPendingNode();
+    void unchangedLiveValueExtendsToNow();
 };
 
 ///
@@ -115,6 +119,40 @@ void TestTrendPanelWidget::consumeHistoryMatchesPendingNode()
     QVERIFY(!panel.consumeHistory(QStringLiteral("ns=2;s=Other"), QString(), values));
     QVERIFY(panel.consumeHistory(QString::fromLatin1(kNodeId), QString(), values));
     QVERIFY(!panel.consumeHistory(QString::fromLatin1(kNodeId), QString(), values));
+}
+
+///
+/// \brief An unchanged live value stays visible by moving one trailing point to now.
+///
+void TestTrendPanelWidget::unchangedLiveValueExtendsToNow()
+{
+    TrendPanelWidget panel;
+    SubscriptionItem subscription;
+    subscription.name = QStringLiteral("Default");
+    subscription.publishingInterval = 50.0;
+    panel.setSubscriptions({subscription});
+    panel.addNode(QString::fromLatin1(kNodeId), QStringLiteral("Demo"));
+
+    OpcUaDataValue value;
+    value.nodeId = QString::fromLatin1(kNodeId);
+    value.value = 7;
+    value.sourceTimestamp = QDateTime::currentDateTime().addSecs(-1);
+    value.status = QStringLiteral("Good");
+    panel.applyLiveValues({value});
+
+    auto *chartView = panel.findChild<QChartView *>();
+    QVERIFY(chartView);
+    QCOMPARE(chartView->chart()->series().size(), 1);
+    auto *series = qobject_cast<QLineSeries *>(chartView->chart()->series().constFirst());
+    QVERIFY(series);
+    QVERIFY(series->count() >= 2);
+    const int pointCount = series->count();
+    const qreal firstEnd = series->at(pointCount - 1).x();
+    QCOMPARE(series->at(pointCount - 1).y(), 7.0);
+
+    QTRY_VERIFY_WITH_TIMEOUT(series->at(series->count() - 1).x() > firstEnd, 500);
+    QCOMPARE(series->count(), pointCount);
+    QCOMPARE(series->at(series->count() - 1).y(), 7.0);
 }
 
 QTEST_MAIN(TestTrendPanelWidget)

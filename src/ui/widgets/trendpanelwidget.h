@@ -51,7 +51,7 @@ public:
     ~TrendPanelWidget() override;
 
     ///
-    /// \brief Adds a node series to the active chart.
+    /// \brief Adds a node series to the active chart when its DataType can be charted.
     /// \param details Variable node details.
     ///
     void addNode(const OpcUaNodeDetails &details);

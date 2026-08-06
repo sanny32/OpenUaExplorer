@@ -75,6 +75,16 @@ public:
                              const QString &status) = 0;
 
     ///
+    /// \brief Extends a series from its last sample to a later X position.
+    /// \param id Target series.
+    /// \param xMsEpoch New trailing X position in milliseconds since the epoch.
+    ///
+    /// Repeated calls move the transient trailing point instead of accumulating
+    /// samples. Appending or replacing real samples removes that transient point.
+    ///
+    virtual void extendSeriesTo(const ChartSeriesId &id, qreal xMsEpoch) = 0;
+
+    ///
     /// \brief Replaces all points of a series (history read).
     /// \param id Target series.
     /// \param points Replacement points in time order.

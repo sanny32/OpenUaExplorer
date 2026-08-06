@@ -24,6 +24,7 @@
 #include <QSizePolicy>
 #include <QStackedWidget>
 #include <QStringList>
+#include <QStyle>
 #include <QUuid>
 
 #include "appcolors.h"
@@ -36,6 +37,7 @@
 #include "messageboxdialog.h"
 #include "opcua/certificateinfo.h"
 #include "opcua/opcuabackend.h"
+#include "opcua/recentconnectionstore.h"
 #include "opcua/connectionprofilevalidator.h"
 #include "opcua/pkimanager.h"
 #include "ui_connectiondialog.h"
@@ -51,15 +53,21 @@
 ConnectionDialog::ConnectionDialog(QWidget *parent)
     : AppBaseDialog(parent)
     , ui(new Ui::ConnectionDialog)
+    , _secretStore(new SecretStore(this))
 {
     ui->setupUi(this);
 
+    connect(_secretStore, &SecretStore::readFinished,
+            this, &ConnectionDialog::applyStoredPassword);
+
     setupEndpointHistory();
     setupCertificatePanels();
+    setupAnonymousNotice();
     setupControls();
     setupConnections();
     applySessionDefaults();
     updateAuthenticationFields();
+    restoreConnectionFor(_lastEnteredEndpointUrl);
 }
 
 ///
@@ -110,6 +118,88 @@ void ConnectionDialog::setupEndpointHistory()
 }
 
 ///
+/// \brief Restores how this server was connected the last time it was used.
+///
+/// The recent-connection history keeps the authentication method, the user name and the
+/// endpoint that was picked, and the password lives in the credential store when the user
+/// asked to remember it. Reopening the dialog for a known server therefore starts where the
+/// last connection left off instead of at the defaults.
+///
+/// \param endpointUrl Endpoint URL the dialog currently shows.
+///
+void ConnectionDialog::restoreConnectionFor(const QString &endpointUrl)
+{
+    // Reaching the same server again is not a change of server: whatever the user has typed
+    // by now stays, and only a different URL starts the panel over.
+    const QString wanted = endpointUrl.trimmed();
+    if (wanted == _restoredEndpointUrl)
+        return;
+
+    _restoredEndpointUrl = wanted;
+    _restoredProfileId.clear();
+    ui->rememberCheckBox->setChecked(false);
+    ui->passwordEdit->clear();
+    if (wanted.isEmpty())
+        return;
+
+    const QList<ConnectionProfile> recent = RecentConnectionStore().connections();
+    const auto match = std::find_if(
+        recent.cbegin(), recent.cend(), [&wanted](const ConnectionProfile &profile) {
+            return profile.endpointUrl == wanted;
+        });
+    if (match == recent.cend())
+        return;
+
+    // Connecting the same server again continues its profile instead of starting a new one,
+    // so the stored password keeps being found and sessions keep a stable identity.
+    _presetId = match->id;
+    _restoredProfileId = match->id;
+
+    const int authValue = static_cast<int>(match->authentication);
+    const int authIndex = ui->authenticationComboBox->findData(authValue);
+    ui->authenticationComboBox->setCurrentIndex(
+        authIndex >= 0 ? authIndex
+                       : qBound(0, authValue, ui->authenticationComboBox->count() - 1));
+    ui->usernameEdit->setText(match->username);
+
+    if (match->authentication == ConnectionProfile::Authentication::Certificate) {
+        ui->certificateEdit->setText(match->clientCertificateFile);
+        ui->privateKeyEdit->setText(match->privateKeyFile);
+    }
+
+    // Discovery re-selects the endpoint that was connected last time.
+    _pendingSecurityPolicy = match->securityPolicy;
+    _pendingSecurityMode = match->securityMode;
+
+    updateAuthenticationFields();
+    if (!_restoredProfileId.isEmpty())
+        _secretStore->read(_restoredProfileId, SecretStore::Secret::Password);
+}
+
+///
+/// \brief Fills in the password the credential store held for the restored server.
+///
+/// The read is asynchronous, so anything the user typed in the meantime wins, and a result
+/// for a server that is no longer shown is dropped.
+///
+/// \param profileId Profile the secret belongs to.
+/// \param secret Which secret was read.
+/// \param value Stored password, empty when nothing was kept.
+/// \param error Read error, if any.
+///
+void ConnectionDialog::applyStoredPassword(const QString &profileId, SecretStore::Secret secret,
+                                           const QString &value, const QString &error)
+{
+    if (secret != SecretStore::Secret::Password || profileId != _restoredProfileId)
+        return;
+    if (!error.isEmpty() || value.isEmpty() || !ui->passwordEdit->text().isEmpty())
+        return;
+
+    ui->passwordEdit->setText(value);
+    ui->rememberCheckBox->setChecked(true);
+}
+
+///
 /// \brief Configures the server and client certificate panels, seeding any existing
 ///        auto-generated client certificate.
 ///
@@ -138,6 +228,26 @@ void ConnectionDialog::setupCertificatePanels()
     }
     updateClientCertificateAction();
     updateClientCertificate();
+}
+
+///
+/// \brief Styles the notice that stands in for the credential fields under Anonymous.
+///
+void ConnectionDialog::setupAnonymousNotice()
+{
+    ui->anonymousNoticeIcon->setIcon(QStringLiteral("info"), QSize(16, 16));
+    // qlementine leaves a plain QFrame's stylesheet background unpainted without this.
+    ui->anonymousNotice->setAttribute(Qt::WA_StyledBackground, true);
+    ui->anonymousNotice->setStyleSheet(QStringLiteral(
+        "#anonymousNotice { background-color: %1; border: 1px solid %2; border-radius: 8px; }")
+        .arg(AppColors::noticeNeutralBackground().name(),
+             AppColors::noticeNeutralBorder().name()));
+    ui->anonymousNoticeTitle->setStyleSheet(
+        QStringLiteral("color: %1; font-weight: 600; background: transparent;")
+            .arg(AppColors::titleText().name()));
+    ui->anonymousNoticeText->setStyleSheet(
+        QStringLiteral("color: %1; background: transparent;")
+            .arg(AppColors::subtitleText().name()));
 }
 
 ///
@@ -187,6 +297,7 @@ void ConnectionDialog::setupConnections()
             this, [this](int index) {
         resetDiscovery();
         _lastEnteredEndpointUrl = ui->discoveryUrlComboBox->itemText(index);
+        restoreConnectionFor(_lastEnteredEndpointUrl);
     });
     connect(ui->discoveryUrlComboBox, &HistoryComboBox::itemRemoved,
             this, &ConnectionDialog::forgetEndpointUrl);
@@ -200,6 +311,7 @@ void ConnectionDialog::setupConnections()
     connect(ui->discoveryUrlComboBox->lineEdit(), &QLineEdit::editingFinished, this, [this]() {
         saveLastEndpointUrl();
         ui->discoveryUrlComboBox->lineEdit()->setCursorPosition(0);
+        restoreConnectionFor(_lastEnteredEndpointUrl);
     });
     connect(ui->authenticationComboBox,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -313,7 +425,11 @@ void ConnectionDialog::setProfile(const ConnectionProfile &profile)
     if (profile.endpointUrl.isEmpty())
         return;
 
+    // The caller knows better than the history what this dialog is for, so a restore that is
+    // still on its way must not write over it.
     _presetId = profile.id;
+    _restoredEndpointUrl = profile.endpointUrl;
+    _restoredProfileId.clear();
     resetDiscovery();
     _lastEnteredEndpointUrl = profile.endpointUrl;
     {
@@ -322,10 +438,14 @@ void ConnectionDialog::setProfile(const ConnectionProfile &profile)
         ui->discoveryUrlComboBox->lineEdit()->setCursorPosition(0);
     }
 
-    const int authIndex =
-        ui->authenticationComboBox->findData(static_cast<int>(profile.authentication));
-    if (authIndex >= 0)
-        ui->authenticationComboBox->setCurrentIndex(authIndex);
+    // Until an endpoint is discovered the combo box holds the designer items, which carry no
+    // user data; there the authentication mode is the item position.
+    const int authValue = static_cast<int>(profile.authentication);
+    const int authIndex = ui->authenticationComboBox->findData(authValue);
+    ui->authenticationComboBox->setCurrentIndex(
+        authIndex >= 0
+            ? authIndex
+            : qBound(0, authValue, ui->authenticationComboBox->count() - 1));
     ui->usernameEdit->setText(profile.username);
 
     if (profile.sessionTimeoutMs > 0)
@@ -351,6 +471,15 @@ void ConnectionDialog::setProfile(const ConnectionProfile &profile)
 QString ConnectionDialog::password() const
 {
     return ui->passwordEdit->text();
+}
+
+///
+/// \brief Reports whether the entered password should be kept in the credential store.
+/// \return True when the user asked to be remembered.
+///
+bool ConnectionDialog::rememberCredentials() const
+{
+    return ui->rememberCheckBox->isEnabled() && ui->rememberCheckBox->isChecked();
 }
 
 ///
@@ -508,7 +637,9 @@ void ConnectionDialog::updateEndpointSelection()
     const EndpointInfo endpoint = ui->endpointsWidget->currentEndpoint();
     ui->serverCertificateWidget->setCertificate(endpoint.serverCertificate);
     _selectedSecurityModeValue = endpoint.securityModeValue;
-    const int previousAuthentication = ui->authenticationComboBox->currentIndex();
+    // The list is rebuilt from the tokens this endpoint advertises, so the choice is carried
+    // over by what it means, not by where it sat: the offered methods differ per endpoint.
+    const int previousAuthentication = currentAuthentication();
     ui->authenticationComboBox->clear();
     if (endpoint.supportsAnonymous)
         ui->authenticationComboBox->addItem(tr("Anonymous"),
@@ -519,13 +650,17 @@ void ConnectionDialog::updateEndpointSelection()
     if (endpoint.supportsCertificate)
         ui->authenticationComboBox->addItem(tr("Certificate"),
                                             static_cast<int>(ConnectionProfile::Authentication::Certificate));
-    ui->authenticationComboBox->setCurrentIndex(
-        qBound(0, previousAuthentication, ui->authenticationComboBox->count() - 1));
+    const int carriedOver = ui->authenticationComboBox->findData(previousAuthentication);
+    ui->authenticationComboBox->setCurrentIndex(qMax(0, carriedOver));
     updateAuthenticationFields();
 }
 
 ///
-/// \brief Enables the username and certificate fields appropriate to the chosen auth and security.
+/// \brief Shows the fields the chosen authentication needs and follows the security mode.
+///
+/// Anonymous asks for nothing, so instead of credential fields it gets a page that explains
+/// what connecting without them means. The stack keeps the height of its tallest page, so the
+/// dialog below the group box stays where it is while the mode changes.
 ///
 void ConnectionDialog::updateAuthenticationFields()
 {
@@ -534,27 +669,34 @@ void ConnectionDialog::updateAuthenticationFields()
         == static_cast<int>(ConnectionProfile::Authentication::Username);
     const bool certificate = authentication
         == static_cast<int>(ConnectionProfile::Authentication::Certificate);
-    ui->authStack->setCurrentWidget(certificate ? ui->certificatePanel : ui->usernamePanel);
+    QWidget *panel = ui->anonymousPanel;
+    if (certificate)
+        panel = ui->certificatePanel;
+    else if (username)
+        panel = ui->usernamePanel;
+    ui->authStack->setCurrentWidget(panel);
 
     ui->usernameEdit->setEnabled(username);
     ui->passwordEdit->setEnabled(username);
-
-    const bool showHintText = !certificate && !username;
-    const QString hintStyle = showHintText
-        ? QStringLiteral("color: %1;").arg(AppColors::hint().name())
-        : QStringLiteral("color: transparent;");
-    ui->usernameHintLabel->setStyleSheet(hintStyle);
-    ui->passwordHintLabel->setStyleSheet(hintStyle);
+    // Only a user password can be stored: the backend refuses encrypted private keys, so a
+    // key password would be useless on the next connection anyway.
+    ui->rememberCheckBox->setEnabled(username);
 
     const int labelColumn = ui->authenticationLabel->sizeHint().width();
-    const int hintColumn = qMax(ui->usernameHintLabel->sizeHint().width(),
-                                ui->passwordHintLabel->sizeHint().width());
     ui->authenticationLayout->setColumnMinimumWidth(0, labelColumn);
-    ui->authenticationLayout->setColumnMinimumWidth(2, hintColumn);
     ui->usernameLayout->setColumnMinimumWidth(0, labelColumn);
-    ui->usernameLayout->setColumnMinimumWidth(2, hintColumn);
     ui->certificateLayout->setColumnMinimumWidth(0, labelColumn);
-    ui->certificateLayout->setColumnMinimumWidth(2, hintColumn);
+    // The notice starts at the left edge of the form and ends where the combo box above it
+    // ends: it covers the label column, the gap between the columns, and the field column.
+    const int labelColumnWidth = qMax(labelColumn, ui->authenticationLabel->minimumWidth());
+    const int fieldColumn = qMax(ui->authenticationComboBox->minimumWidth(),
+                                 ui->authenticationComboBox->sizeHint().width());
+    int columnGap = ui->authenticationLayout->horizontalSpacing();
+    if (columnGap < 0)
+        columnGap = style()->pixelMetric(QStyle::PM_LayoutHorizontalSpacing, nullptr, this);
+    // Fixed, not maximum: the trailing stretch column would otherwise pull the notice down to
+    // the width its wrapped text can survive at.
+    ui->anonymousNotice->setFixedWidth(labelColumnWidth + columnGap + fieldColumn);
 
     // The client certificate stays available regardless of the security mode
     // (it can still be imported, generated or inspected). Only the server

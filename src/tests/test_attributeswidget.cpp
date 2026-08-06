@@ -10,6 +10,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QComboBox>
+#include <QGroupBox>
 #include <QLayout>
 #include <QLineEdit>
 #include <QMenu>
@@ -48,7 +49,7 @@ private slots:
     void booleanListStartsAtTheCurrentValue();
     void booleanWriteSendsTypedBoolean();
     void nonBooleanNodeKeepsTextField();
-    void panelWidthDoesNotFollowTheValueType();
+    void valueEditorStretchesWithPanel();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -361,48 +362,34 @@ void TestAttributesWidget::nonBooleanNodeKeepsTextField()
 }
 
 ///
-/// \brief The panel keeps one width whatever type the selected node has.
+/// \brief The write group and text editor fill the available panel width.
 ///
-/// The type name and the chosen value editor must not drive the layout, otherwise
-/// the docked panel would resize itself every time another node is selected.
-///
-void TestAttributesWidget::panelWidthDoesNotFollowTheValueType()
+void TestAttributesWidget::valueEditorStretchesWithPanel()
 {
     AttributesWidget widget;
-    auto *valueCombo = widget.findChild<QComboBox *>(QStringLiteral("valueCombo"));
+    auto *writeGroup = widget.findChild<QGroupBox *>(QStringLiteral("writeValueGroup"));
     auto *valueEdit = widget.findChild<QLineEdit *>(QStringLiteral("valueEdit"));
-    QVERIFY(valueCombo);
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("attributesTree"));
+    QVERIFY(writeGroup);
     QVERIFY(valueEdit);
-    QCOMPARE(valueCombo->maximumWidth(), valueEdit->maximumWidth());
-
-    auto *typeCombo = widget.findChild<QComboBox *>(QStringLiteral("typeCombo"));
-    auto *writeButton = widget.findChild<QPushButton *>(QStringLiteral("writeButton"));
-    QVERIFY(typeCombo);
-    QVERIFY(writeButton);
+    QVERIFY(tree);
 
     widget.resize(700, 400);
     widget.show();
     QVERIFY(QTest::qWaitForWindowExposed(&widget));
-
-    const auto rowGeometry = [&]() {
-        QCoreApplication::sendPostedEvents();
-        widget.layout()->activate();
-        return QList<int>{valueEdit->isVisible() ? valueEdit->width() : valueCombo->width(),
-                          typeCombo->x(), typeCombo->width(), writeButton->x()};
-    };
-
-    widget.setNodeDetails(makeBooleanDetails(true));
-    const QList<int> booleanRow = rowGeometry();
-    QCOMPARE(valueCombo->width(), 100);
-
-    widget.setNodeDetails(makeWritableDetails(27, QStringLiteral("ns=0;i=18"),
-                                              QStringLiteral("ns=2;s=Device")));
-    QCOMPARE(typeCombo->currentText(), QStringLiteral("ExpandedNodeId"));
-    QCOMPARE(rowGeometry(), booleanRow);
-
     widget.setNodeDetails(makeWritableDetails(12, QStringLiteral("ns=0;i=3"), 0u));
-    QCOMPARE(typeCombo->currentText(), QStringLiteral("Byte"));
-    QCOMPARE(rowGeometry(), booleanRow);
+    widget.layout()->activate();
+
+    QCOMPARE(writeGroup->width(), tree->width());
+    const int initialEditorWidth = valueEdit->width();
+    QVERIFY(initialEditorWidth > valueEdit->minimumWidth());
+
+    widget.resize(800, 400);
+    QCoreApplication::processEvents();
+    widget.layout()->activate();
+
+    QCOMPARE(writeGroup->width(), tree->width());
+    QCOMPARE(valueEdit->width(), initialEditorWidth + 100);
 }
 
 ///

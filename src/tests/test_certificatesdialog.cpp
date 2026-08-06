@@ -33,7 +33,7 @@ class TestCertificatesDialog : public QObject
 
 private slots:
     void showsClientCertificate();
-    void rejectsTrustedCertificateOnApply();
+    void rejectsTrustedCertificateOnAccept();
     void trustStoreTableKeepsLongCellsScrollable();
 };
 
@@ -95,9 +95,9 @@ void TestCertificatesDialog::showsClientCertificate()
 }
 
 ///
-/// \brief Rejecting a trusted certificate and applying moves it to the rejected store.
+/// \brief Rejecting a trusted certificate and confirming moves it to the rejected store.
 ///
-void TestCertificatesDialog::rejectsTrustedCertificateOnApply()
+void TestCertificatesDialog::rejectsTrustedCertificateOnAccept()
 {
     const QByteArray der = generateCertificate();
     if (der.isEmpty())
@@ -115,8 +115,8 @@ void TestCertificatesDialog::rejectsTrustedCertificateOnApply()
     QVERIFY(table);
     QVERIFY(rejectButton);
     QVERIFY(buttonBox);
-    QPushButton *applyButton = buttonBox->button(QDialogButtonBox::Apply);
-    QVERIFY(applyButton);
+    QPushButton *okButton = buttonBox->button(QDialogButtonBox::Ok);
+    QVERIFY(okButton);
 
     QAbstractItemModel *model = table->model();
     int targetRow = -1;
@@ -132,8 +132,8 @@ void TestCertificatesDialog::rejectsTrustedCertificateOnApply()
     table->selectRow(targetRow);
     QVERIFY(rejectButton->isEnabled());
     rejectButton->click();
-    QVERIFY(applyButton->isEnabled());
-    applyButton->click();
+    QVERIFY(okButton->isEnabled());
+    okButton->click();
 
     const auto contains = [&fingerprint](const QList<QByteArray> &certificates) {
         for (const QByteArray &certificate : certificates)

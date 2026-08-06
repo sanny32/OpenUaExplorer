@@ -81,6 +81,35 @@ QString connectionStepName(QOpcUaErrorState::ConnectionStep step)
     return backendTr("Step %1").arg(static_cast<int>(step));
 }
 
+/// \brief Returns true when a client error means the server turned the credentials down.
+bool rejectsCredentials(QOpcUaClient::ClientError error)
+{
+    switch (error) {
+    case QOpcUaClient::AccessDenied:
+    case QOpcUaClient::UnsupportedAuthenticationInformation:
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+    case QOpcUaClient::InvalidAuthenticationInformation:
+    case QOpcUaClient::NoMatchingUserIdentityTokenFound:
+#endif
+        return true;
+    default:
+        return false;
+    }
+}
+
+/// \brief Returns true when a connection step failed because the identity was refused.
+bool rejectsCredentials(QOpcUa::UaStatusCode status)
+{
+    switch (status) {
+    case QOpcUa::UaStatusCode::BadUserAccessDenied:
+    case QOpcUa::UaStatusCode::BadIdentityTokenInvalid:
+    case QOpcUa::UaStatusCode::BadIdentityTokenRejected:
+        return true;
+    default:
+        return false;
+    }
+}
+
 /// \brief Returns true when an endpoint advertises the requested user-token type.
 bool supportsAuthentication(const QOpcUaEndpointDescription &endpoint,
                             ConnectionProfile::Authentication authentication)
@@ -256,8 +285,12 @@ void QtOpcUaConnectionManager::handleClientState(QOpcUaClient::ClientState state
 /// \brief Reports a Qt client error when it is not NoError.
 void QtOpcUaConnectionManager::handleClientError(QOpcUaClient::ClientError error)
 {
-    if (error != QOpcUaClient::NoError)
-        setError(backendTr("OPC UA client error: %1").arg(clientErrorName(error)));
+    if (error == QOpcUaClient::NoError)
+        return;
+    const QString name = clientErrorName(error);
+    setError(backendTr("OPC UA client error: %1").arg(name));
+    if (rejectsCredentials(error))
+        emit authenticationRejected(name);
 }
 
 /// \brief Applies certificate trust decisions or reports a connection-step failure.
@@ -272,6 +305,8 @@ void QtOpcUaConnectionManager::handleConnectError(QOpcUaErrorState *state)
     }
     if (state->connectionStep() != QOpcUaErrorState::ConnectionStep::CertificateValidation) {
         setError(message);
+        if (rejectsCredentials(state->errorCode()))
+            emit authenticationRejected(statusName(state->errorCode()));
         return;
     }
     const CertificateTrustDecision decision = _trustDecider

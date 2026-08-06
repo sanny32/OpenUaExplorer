@@ -18,6 +18,7 @@
 #include "dialogs/writevaluedialog.h"
 #include "eventsmodule.h"
 #include "features/selectioncontext.h"
+#include "models/trendseries.h"
 #include "opcua/opcuabackend.h"
 #include "widgets/dataaccesswidget.h"
 #include "widgets/datahistorywidget.h"
@@ -717,11 +718,13 @@ void DataAccessCoordinator::onEventMonitorRequested(const OpcUaNodeInfo &node)
 }
 
 ///
-/// \brief Adds a feature-selected node to the trend panel.
+/// \brief Adds a feature-selected node to the trend panel when it can be charted.
 /// \param node Variable node to chart.
 ///
 void DataAccessCoordinator::onAddToTrendRequested(const OpcUaNodeInfo &node)
 {
+    if (!TrendSeries::isTrendable(node))
+        return;
     const QString name = node.displayName.isEmpty() ? node.browseName : node.displayName;
     _trendPanel->addNode(node.nodeId, name, node.displayPath);
 }

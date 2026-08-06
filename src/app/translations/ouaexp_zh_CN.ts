@@ -733,6 +733,34 @@
         <source>Could not save the favourites order.</source>
         <translation>无法保存收藏夹的顺序。</translation>
     </message>
+    <message>
+        <source>The server rejected the credentials.
+Enter them again.</source>
+        <translation>服务器拒绝了凭据。
+请重新输入。</translation>
+    </message>
+    <message>
+        <source>The server rejected the credentials: %1
+Enter them again.</source>
+        <translation>服务器拒绝了凭据：%1
+请重新输入。</translation>
+    </message>
+    <message>
+        <source>The client certificate is missing:
+%1
+Select it again.</source>
+        <translation>找不到客户端证书：
+%1
+请重新选择。</translation>
+    </message>
+    <message>
+        <source>The private key is missing:
+%1
+Select it again.</source>
+        <translation>找不到私钥：
+%1
+请重新选择。</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionCoordinator</name>
@@ -790,6 +818,14 @@
     <message>
         <source>Leave empty for an unencrypted key</source>
         <translation>若密钥未加密请留空</translation>
+    </message>
+    <message>
+        <source>Remember password</source>
+        <translation>记住密码</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>将密码保存到操作系统的凭据存储中，以便无需再次询问即可恢复此连接。</translation>
     </message>
     <message>
         <source>Cancel</source>
@@ -855,12 +891,16 @@
         <translation>证书</translation>
     </message>
     <message>
-        <source>Username:</source>
-        <translation>用户名：</translation>
+        <source>No authentication</source>
+        <translation>无需身份验证</translation>
     </message>
     <message>
-        <source>(not used with Anonymous)</source>
-        <translation>（匿名时不使用）</translation>
+        <source>The server asks for no credentials. A server that only accepts a user name or a certificate refuses the connection.</source>
+        <translation>服务器不要求凭据。若服务器仅接受用户名或证书，连接将被拒绝。</translation>
+    </message>
+    <message>
+        <source>Username:</source>
+        <translation>用户名：</translation>
     </message>
     <message>
         <source>Password:</source>
@@ -895,6 +935,10 @@
         <translation>会话超时：</translation>
     </message>
     <message>
+        <source>ms</source>
+        <translation>毫秒</translation>
+    </message>
+    <message>
         <source>Endpoint Timeout:</source>
         <translation>端点超时：</translation>
     </message>
@@ -913,6 +957,10 @@
     <message>
         <source>Max. Message Size:</source>
         <translation>最大消息大小：</translation>
+    </message>
+    <message>
+        <source>bytes</source>
+        <translation>字节</translation>
     </message>
     <message>
         <source>Certificates</source>
@@ -1085,6 +1133,26 @@
     <message>
         <source>Import...</source>
         <translation>导入…</translation>
+    </message>
+    <message>
+        <source>Remember password</source>
+        <translation>记住密码</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>将密码保存到操作系统的凭据存储中，以便无需再次询问即可恢复此连接。</translation>
+    </message>
+    <message>
+        <source>Select certificate file</source>
+        <translation>选择证书文件</translation>
+    </message>
+    <message>
+        <source>Select private key file</source>
+        <translation>选择私钥文件</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>浏览…</translation>
     </message>
 </context>
 <context>
@@ -1676,8 +1744,8 @@
         <translation>安全模式</translation>
     </message>
     <message>
-        <source>Message Security / Status</source>
-        <translation>消息安全 / 状态</translation>
+        <source>Status</source>
+        <translation>状态</translation>
     </message>
 </context>
 <context>

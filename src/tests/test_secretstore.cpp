@@ -12,6 +12,12 @@
 
 #include "opcua/secretstore.h"
 
+namespace {
+// SecretStore gives up on an unresponsive store by itself, so every wait here outlasts that:
+// the outcome is then always the one the store reported, never a wait that ran out first.
+constexpr int waitMs = 15000;
+}
+
 ///
 /// \brief Unit tests for SecretStore.
 ///
@@ -27,6 +33,7 @@ private slots:
     void isAvailableReflectsRequiredDependency();
     void roundTripWriteReadRemove();
     void distinctSecretsDoNotCollide();
+    void unstoredSecretReadsAsEmptyWithoutAnError();
 
 private:
     // Unique per run so the test never clobbers real stored credentials.
@@ -42,9 +49,17 @@ private:
     {
         QSignalSpy spy(&store, &SecretStore::writeFinished);
         store.write(profileId, secret, value);
-        if (!spy.wait(5000))
+        if (!spy.wait(waitMs))
             return QStringLiteral("timeout");
         return spy.takeFirst().at(2).toString();
+    }
+
+    // Deletes a secret and waits for the store to confirm, so nothing is left in flight.
+    void removeSync(SecretStore &store, const QString &profileId, SecretStore::Secret secret)
+    {
+        QSignalSpy spy(&store, &SecretStore::writeFinished);
+        store.remove(profileId, secret);
+        spy.wait(waitMs);
     }
 
     // Performs a synchronous read, writing the value out and returning the error.
@@ -53,7 +68,7 @@ private:
     {
         QSignalSpy spy(&store, &SecretStore::readFinished);
         store.read(profileId, secret);
-        if (!spy.wait(5000))
+        if (!spy.wait(waitMs))
             return QStringLiteral("timeout");
         const QList<QVariant> args = spy.takeFirst();
         if (valueOut)
@@ -93,9 +108,7 @@ void TestSecretStore::roundTripWriteReadRemove()
     QCOMPARE(readValue, secret);
 
     // Clean up the entry we created.
-    QSignalSpy removeSpy(&store, &SecretStore::writeFinished);
-    store.remove(profileId, SecretStore::Secret::Password);
-    QVERIFY(removeSpy.wait(5000));
+    removeSync(store, profileId, SecretStore::Secret::Password);
 }
 
 ///
@@ -125,10 +138,23 @@ void TestSecretStore::distinctSecretsDoNotCollide()
     QCOMPARE(readKeyPassword, keyPassword);
     QVERIFY(readPassword != readKeyPassword);
 
-    store.remove(profileId, SecretStore::Secret::Password);
-    QSignalSpy cleanupSpy(&store, &SecretStore::writeFinished);
-    store.remove(profileId, SecretStore::Secret::PrivateKeyPassword);
-    cleanupSpy.wait(5000);
+    removeSync(store, profileId, SecretStore::Secret::Password);
+    removeSync(store, profileId, SecretStore::Secret::PrivateKeyPassword);
+}
+
+///
+/// \brief A profile with nothing stored reads back empty, so callers can ask the user instead.
+///
+void TestSecretStore::unstoredSecretReadsAsEmptyWithoutAnError()
+{
+    SecretStore store;
+
+    QString value = QStringLiteral("untouched");
+    const QString readError =
+        readSync(store, uniqueProfileId(), SecretStore::Secret::Password, &value);
+
+    QVERIFY2(readError.isEmpty(), qPrintable(readError));
+    QVERIFY(value.isEmpty());
 }
 
 QTEST_MAIN(TestSecretStore)

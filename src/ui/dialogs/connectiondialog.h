@@ -14,6 +14,7 @@
 #include "opcua/endpointhistorystore.h"
 #include "opcua/connectionprofile.h"
 #include "opcua/opcuatypes.h"
+#include "opcua/secretstore.h"
 
 namespace Ui {
 class ConnectionDialog;
@@ -68,6 +69,12 @@ public:
     ///
     QString privateKeyPassword() const;
 
+    ///
+    /// \brief Reports whether the entered password should be kept in the credential store.
+    /// \return True when the user asked to be remembered.
+    ///
+    bool rememberCredentials() const;
+
 private slots:
     void discoverEndpoints();
     void findServers();
@@ -87,7 +94,11 @@ private slots:
 
 private:
     void setupEndpointHistory();
+    void restoreConnectionFor(const QString &endpointUrl);
+    void applyStoredPassword(const QString &profileId, SecretStore::Secret secret,
+                             const QString &value, const QString &error);
     void setupCertificatePanels();
+    void setupAnonymousNotice();
     void setupControls();
     void setupConnections();
     void applySessionDefaults();
@@ -110,8 +121,11 @@ private:
 
     Ui::ConnectionDialog *ui;
     class OpcUaBackend *_service = nullptr;
+    SecretStore *_secretStore;
     EndpointHistoryStore _endpointHistoryStore;
     QString _presetId;
+    QString _restoredEndpointUrl;
+    QString _restoredProfileId;
     bool _connectAfterDiscovery = false;
     QString _lastEnteredEndpointUrl;
     QString _pendingSecurityPolicy;

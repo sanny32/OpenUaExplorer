@@ -3,7 +3,7 @@ function(ouaexp_configure_linux_dbus_tests)
         return()
     endif()
 
-    ouaexp_add_ui_test(ouaexp_tests_theme_dbus test_theme_dbus.cpp)
+    ouaexp_add_ui_test(ouaexp_tests_theme_dbus test_theme_dbus.cpp NO_PCH)
     target_link_libraries(ouaexp_tests_theme_dbus PRIVATE Qt${QT_VERSION_MAJOR}::DBus)
     target_compile_definitions(ouaexp_tests_theme_dbus PRIVATE HAS_QTDBUS)
 endfunction()

@@ -159,9 +159,11 @@ QString valueTypeName(QOpcUa::Types type)
 /// \brief Builds the Value attribute, expanding arrays into indexed child rows.
 /// \param value Node value.
 /// \param type Declared value type, used to label arrays.
+/// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
 /// \return The constructed Value attribute.
 ///
-OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type)
+OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type,
+                                  const QString &dataTypeId)
 {
     OpcUaNodeAttribute result = childAttribute(QStringLiteral("Value"), displayValue(value));
     if (!isValueArray(value))
@@ -169,7 +171,7 @@ OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type)
 
     const QVariantList values = value.toList();
     result.displayValue = QStringLiteral("%1 Array[%2]")
-                              .arg(valueTypeName(type))
+                              .arg(valueTypeDisplay(type, dataTypeId))
                               .arg(values.size());
     for (int index = 0; index < values.size(); ++index) {
         result.children.append(

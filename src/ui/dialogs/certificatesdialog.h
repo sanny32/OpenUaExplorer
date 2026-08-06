@@ -25,8 +25,8 @@ class CertificatesDialog;
 ///
 /// \brief Manages the client certificate and the trusted/rejected trust store.
 ///
-/// Edits are staged in memory and written to the PKI directory only on Apply, so
-/// closing the dialog without applying leaves the store untouched.
+/// Edits are staged in memory and written to the PKI directory only on OK, so
+/// closing the dialog without confirming leaves the store untouched.
 ///
 class CertificatesDialog : public AppBaseDialog
 {
@@ -45,6 +45,7 @@ public:
     ~CertificatesDialog() override;
 
 protected:
+    void accept() override;
     void reject() override;
 
 private slots:
@@ -63,14 +64,12 @@ private slots:
     void importCertificate();
     void applyFilter();
 
-    void apply();
-
 private:
+    bool apply();
     void setupTrustStore();
     void loadClientCertificate();
     void loadTrustStore();
     void refreshClientCertificateView();
-    void updatePendingState();
     void chooseAndStageClientCertificate(const QString &title);
     void stageTargetForSelection(int target);
     QStandardItem *selectedSourceItem() const;

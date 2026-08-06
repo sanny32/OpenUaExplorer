@@ -66,6 +66,8 @@ public:
                          q, &QtOpcUaBackend::stateChanged);
         QObject::connect(&connection, &QtOpcUaConnectionManager::errorOccurred,
                          q, &QtOpcUaBackend::errorOccurred);
+        QObject::connect(&connection, &QtOpcUaConnectionManager::authenticationRejected,
+                         q, &QtOpcUaBackend::authenticationRejected);
         QObject::connect(&connection, &QtOpcUaConnectionManager::clientInvalidated,
                           q, [this]() {
             cancelRequests();
@@ -558,22 +560,28 @@ void QtOpcUaBackend::browse(const QString &nodeId)
 }
 
 ///
-/// \brief Reads EventNotifier/Historizing of browsed children, then emits browseFinished().
+/// \brief Reads EventNotifier/Historizing/DataType/ValueRank of browsed children, then emits
+///        browseFinished().
 /// \param parentNodeId Browsed node whose children are being delivered.
-/// \param nodes Browsed children to enrich with event-source and history-read capability.
+/// \param nodes Browsed children to enrich with event-source, history-read and charting
+///        capability.
 /// \param timeoutMs Request timeout in milliseconds.
 ///
 void QtOpcUaBackend::enrichAndFinishBrowse(const QString &parentNodeId,
                                            QVector<OpcUaNodeInfo> nodes, int timeoutMs)
 {
-    // Browse references omit EventNotifier (Object) and Historizing (Variable); read them so
-    // drop targets can filter on event-source and history-read capability.
+    // Browse references omit EventNotifier (Object) and Historizing, DataType and ValueRank
+    // (Variable); read them so drop targets can filter on event-source and history-read
+    // capability and on whether the value can be charted.
     QVector<QOpcUaReadItem> items;
     for (const OpcUaNodeInfo &node : nodes) {
-        if (node.nodeClass == OpcUa::Object)
+        if (node.nodeClass == OpcUa::Object) {
             items.append(QOpcUaReadItem(node.nodeId, QOpcUa::NodeAttribute::EventNotifier));
-        else if (OpcUa::isVariable(node.nodeClass))
+        } else if (OpcUa::isVariable(node.nodeClass)) {
             items.append(QOpcUaReadItem(node.nodeId, QOpcUa::NodeAttribute::Historizing));
+            items.append(QOpcUaReadItem(node.nodeId, QOpcUa::NodeAttribute::DataType));
+            items.append(QOpcUaReadItem(node.nodeId, QOpcUa::NodeAttribute::ValueRank));
+        }
     }
     if (items.isEmpty() || !_d->connection.client()) {
         emit browseFinished(parentNodeId, nodes, QString());

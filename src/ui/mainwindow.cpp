@@ -879,7 +879,6 @@ void MainWindow::setupSessionCoordinator()
     context.window = this;
     context.recentSessionsMenu = ui->menuRecentSessions;
     context.connectionController = _connectionController;
-    context.connectionCoordinator = _connectionCoordinator;
     context.dataAccessCoordinator = _dataAccessCoordinator;
     context.featureManager = _featureManager;
     context.backend = _backend;

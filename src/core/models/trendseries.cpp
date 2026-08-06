@@ -12,6 +12,22 @@
 
 #include <QMetaType>
 
+#include "formatters/attributeformatter.h"
+
+namespace {
+
+///
+/// \brief Reports whether a ValueRank denotes a single value rather than an array.
+/// \param valueRank OPC UA ValueRank attribute value.
+/// \return True for Scalar, ScalarOrOneDimension and the unconstrained Any rank.
+///
+bool isScalarRank(int valueRank)
+{
+    return valueRank <= -1;
+}
+
+}
+
 ///
 /// \brief Constructs a series for a node.
 /// \param nodeId Node NodeId (series identity).
@@ -174,6 +190,35 @@ bool TrendSeries::toNumeric(const QVariant &value, double *out)
     default:
         return false;
     }
+}
+
+///
+/// \brief Reports whether a browsed node may be charted as a series.
+/// \param node Browsed node carrying its NodeClass, DataType and ValueRank.
+/// \return True for scalar variable nodes of a numeric DataType.
+///
+/// The gate is on the declared type, not on a sampled value, so a node is refused
+/// before it is charted instead of forming a series that stays empty. Booleans,
+/// strings, timestamps, structures and arrays have no numeric axis position and are
+/// therefore excluded.
+///
+bool TrendSeries::isTrendable(const OpcUaNodeInfo &node)
+{
+    return OpcUa::isVariable(node.nodeClass)
+        && isScalarRank(node.valueRank)
+        && OpcUaFormat::isNumericDataType(node.dataTypeId);
+}
+
+///
+/// \brief Reports whether a read node may be charted as a series.
+/// \param details Node details carrying the NodeClass, DataType and ValueRank.
+/// \return True for scalar variable nodes of a numeric DataType.
+///
+bool TrendSeries::isTrendable(const OpcUaNodeDetails &details)
+{
+    return OpcUa::isVariable(details.nodeClass)
+        && isScalarRank(details.valueRank)
+        && OpcUaFormat::isNumericDataType(details.dataTypeId);
 }
 
 ///

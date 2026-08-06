@@ -168,6 +168,10 @@ struct OpcUaNodeInfo
     QString typeDefinitionId;
     /// \brief OPC UA NodeClass numeric value.
     int nodeClass = 0;
+    /// \brief DataType NodeId string (Variable nodes only; empty when unread).
+    QString dataTypeId;
+    /// \brief OPC UA ValueRank (Variable nodes only; -2 for "any" when unread).
+    int valueRank = -2;
     /// \brief EventNotifier bit mask (Object/View nodes only; 0 otherwise).
     quint8 eventNotifier = 0;
     /// \brief Whether the server stores historical values (Variable nodes only).

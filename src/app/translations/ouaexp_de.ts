@@ -734,6 +734,34 @@
         <source>Could not save the favourites order.</source>
         <translation>Die Reihenfolge der Favoriten konnte nicht gespeichert werden.</translation>
     </message>
+    <message>
+        <source>The server rejected the credentials.
+Enter them again.</source>
+        <translation>Der Server hat die Anmeldedaten abgelehnt.
+Geben Sie sie erneut ein.</translation>
+    </message>
+    <message>
+        <source>The server rejected the credentials: %1
+Enter them again.</source>
+        <translation>Der Server hat die Anmeldedaten abgelehnt: %1
+Geben Sie sie erneut ein.</translation>
+    </message>
+    <message>
+        <source>The client certificate is missing:
+%1
+Select it again.</source>
+        <translation>Das Clientzertifikat fehlt:
+%1
+Wählen Sie es erneut aus.</translation>
+    </message>
+    <message>
+        <source>The private key is missing:
+%1
+Select it again.</source>
+        <translation>Der private Schlüssel fehlt:
+%1
+Wählen Sie ihn erneut aus.</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionCoordinator</name>
@@ -791,6 +819,14 @@
     <message>
         <source>Leave empty for an unencrypted key</source>
         <translation>Für einen unverschlüsselten Schlüssel leer lassen</translation>
+    </message>
+    <message>
+        <source>Remember password</source>
+        <translation>Passwort merken</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>Das Passwort im Anmeldeinformationsspeicher des Betriebssystems ablegen, damit diese Verbindung ohne erneute Abfrage wiederhergestellt wird.</translation>
     </message>
     <message>
         <source>Cancel</source>
@@ -856,12 +892,16 @@
         <translation>Zertifikat</translation>
     </message>
     <message>
-        <source>Username:</source>
-        <translation>Benutzername:</translation>
+        <source>No authentication</source>
+        <translation>Keine Authentifizierung</translation>
     </message>
     <message>
-        <source>(not used with Anonymous)</source>
-        <translation>(bei Anonym nicht verwendet)</translation>
+        <source>The server asks for no credentials. A server that only accepts a user name or a certificate refuses the connection.</source>
+        <translation>Der Server verlangt keine Anmeldedaten. Ist der Server nur auf Benutzernamen oder Zertifikat eingestellt, wird die Verbindung abgelehnt.</translation>
+    </message>
+    <message>
+        <source>Username:</source>
+        <translation>Benutzername:</translation>
     </message>
     <message>
         <source>Password:</source>
@@ -896,6 +936,10 @@
         <translation>Sitzungs-Timeout:</translation>
     </message>
     <message>
+        <source>ms</source>
+        <translation>ms</translation>
+    </message>
+    <message>
         <source>Endpoint Timeout:</source>
         <translation>Endpunkt-Timeout:</translation>
     </message>
@@ -914,6 +958,10 @@
     <message>
         <source>Max. Message Size:</source>
         <translation>Max. Nachrichtengröße:</translation>
+    </message>
+    <message>
+        <source>bytes</source>
+        <translation>Byte</translation>
     </message>
     <message>
         <source>Certificates</source>
@@ -1086,6 +1134,26 @@
     <message>
         <source>Import...</source>
         <translation>Importieren …</translation>
+    </message>
+    <message>
+        <source>Remember password</source>
+        <translation>Passwort merken</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>Das Passwort im Anmeldeinformationsspeicher des Betriebssystems ablegen, damit diese Verbindung ohne erneute Abfrage wiederhergestellt wird.</translation>
+    </message>
+    <message>
+        <source>Select certificate file</source>
+        <translation>Zertifikatsdatei auswählen</translation>
+    </message>
+    <message>
+        <source>Select private key file</source>
+        <translation>Datei mit privatem Schlüssel auswählen</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>Durchsuchen …</translation>
     </message>
 </context>
 <context>
@@ -1680,8 +1748,8 @@
         <translation>Sicherheitsmodus</translation>
     </message>
     <message>
-        <source>Message Security / Status</source>
-        <translation>Nachrichtensicherheit / Status</translation>
+        <source>Status</source>
+        <translation>Status</translation>
     </message>
 </context>
 <context>

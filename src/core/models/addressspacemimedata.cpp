@@ -37,6 +37,8 @@ QMimeData *AddressSpaceMime::createNodeMimeData(const OpcUaNodeInfo &node)
            << node.referenceTypeId
            << node.typeDefinitionId
            << node.nodeClass
+           << node.dataTypeId
+           << node.valueRank
            << node.eventNotifier
            << node.historizing
            << node.hasChildren;
@@ -68,6 +70,8 @@ bool AddressSpaceMime::decodeNode(const QMimeData *mimeData, OpcUaNodeInfo *node
            >> decoded.referenceTypeId
            >> decoded.typeDefinitionId
            >> decoded.nodeClass
+           >> decoded.dataTypeId
+           >> decoded.valueRank
            >> decoded.eventNotifier
            >> decoded.historizing
            >> decoded.hasChildren;

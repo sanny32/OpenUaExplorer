@@ -735,6 +735,34 @@
         <source>Could not save the favourites order.</source>
         <translation>Не удалось сохранить порядок избранного.</translation>
     </message>
+    <message>
+        <source>The server rejected the credentials.
+Enter them again.</source>
+        <translation>Сервер отклонил учётные данные.
+Введите их снова.</translation>
+    </message>
+    <message>
+        <source>The server rejected the credentials: %1
+Enter them again.</source>
+        <translation>Сервер отклонил учётные данные: %1
+Введите их снова.</translation>
+    </message>
+    <message>
+        <source>The client certificate is missing:
+%1
+Select it again.</source>
+        <translation>Сертификат клиента не найден:
+%1
+Выберите его заново.</translation>
+    </message>
+    <message>
+        <source>The private key is missing:
+%1
+Select it again.</source>
+        <translation>Закрытый ключ не найден:
+%1
+Выберите его заново.</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionCoordinator</name>
@@ -792,6 +820,14 @@
     <message>
         <source>Leave empty for an unencrypted key</source>
         <translation>Оставьте пустым для незашифрованного ключа</translation>
+    </message>
+    <message>
+        <source>Remember password</source>
+        <translation>Запомнить пароль</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>Сохранить пароль в хранилище учётных данных операционной системы, чтобы это подключение восстанавливалось без повторного запроса.</translation>
     </message>
     <message>
         <source>Cancel</source>
@@ -857,12 +893,16 @@
         <translation>Сертификат</translation>
     </message>
     <message>
-        <source>Username:</source>
-        <translation>Имя пользователя:</translation>
+        <source>No authentication</source>
+        <translation>Без аутентификации</translation>
     </message>
     <message>
-        <source>(not used with Anonymous)</source>
-        <translation>(не используется при анонимном)</translation>
+        <source>The server asks for no credentials. A server that only accepts a user name or a certificate refuses the connection.</source>
+        <translation>Сервер не требует учётных данных. Если сервер настроен на приём только имени пользователя или сертификата, подключение будет отклонено.</translation>
+    </message>
+    <message>
+        <source>Username:</source>
+        <translation>Имя пользователя:</translation>
     </message>
     <message>
         <source>Password:</source>
@@ -897,6 +937,10 @@
         <translation>Тайм-аут сессии:</translation>
     </message>
     <message>
+        <source>ms</source>
+        <translation>мс</translation>
+    </message>
+    <message>
         <source>Endpoint Timeout:</source>
         <translation>Тайм-аут точки подключения:</translation>
     </message>
@@ -915,6 +959,10 @@
     <message>
         <source>Max. Message Size:</source>
         <translation>Макс. размер сообщения:</translation>
+    </message>
+    <message>
+        <source>bytes</source>
+        <translation>байт</translation>
     </message>
     <message>
         <source>Certificates</source>
@@ -1087,6 +1135,26 @@
     <message>
         <source>Import...</source>
         <translation>Импорт...</translation>
+    </message>
+    <message>
+        <source>Remember password</source>
+        <translation>Запомнить пароль</translation>
+    </message>
+    <message>
+        <source>Store the password in the credential store of the operating system so this connection is restored without asking again.</source>
+        <translation>Сохранить пароль в хранилище учётных данных операционной системы, чтобы это подключение восстанавливалось без повторного запроса.</translation>
+    </message>
+    <message>
+        <source>Select certificate file</source>
+        <translation>Выбрать файл сертификата</translation>
+    </message>
+    <message>
+        <source>Select private key file</source>
+        <translation>Выбрать файл закрытого ключа</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>Обзор...</translation>
     </message>
 </context>
 <context>
@@ -1684,8 +1752,8 @@
         <translation>Режим безопасности</translation>
     </message>
     <message>
-        <source>Message Security / Status</source>
-        <translation>Безопасность сообщений / состояние</translation>
+        <source>Status</source>
+        <translation>Статус</translation>
     </message>
 </context>
 <context>

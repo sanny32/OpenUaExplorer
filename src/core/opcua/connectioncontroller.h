@@ -10,6 +10,7 @@
 #include "secretstore.h"
 
 class CertificateTrustDecider;
+class ConnectionCredentialsProvider;
 class ConnectionProfileStore;
 class OpcUaBackend;
 class RecentConnectionStore;
@@ -84,6 +85,12 @@ public:
     void setCertificateTrustDecider(CertificateTrustDecider *decider);
 
     ///
+    /// \brief Sets the delegate asked for credentials the credential store does not hold.
+    /// \param provider Credentials provider; without one the connection is attempted as is.
+    ///
+    void setCredentialsProvider(ConnectionCredentialsProvider *provider);
+
+    ///
     /// \brief Connects immediately using credentials supplied by the user (no stored-secret lookup).
     /// \param profile Profile to connect with.
     /// \param password User password, if any.
@@ -95,6 +102,9 @@ public:
 
     ///
     /// \brief Connects a saved profile, first loading any required secrets from the keychain.
+    ///
+    /// Credentials the keychain does not hold are asked for through the credentials provider,
+    /// so a profile with stored secrets reconnects without interrupting the user.
     /// \param profile Saved profile to connect with.
     ///
     void connectSavedProfile(const ConnectionProfile &profile);
@@ -116,14 +126,26 @@ public:
     bool reconnectActiveProfile();
 
     ///
-    /// \brief Persists a profile and its secrets, emitting profilesChanged() on success.
+    /// \brief Persists a profile and its password, emitting profilesChanged() on success.
+    ///
+    /// Only the user password is kept. A private-key password would be useless later: the
+    /// backend refuses encrypted keys, so it is collected per attempt instead.
+    ///
     /// \param profile Profile to store.
     /// \param password User password to store, if non-empty.
-    /// \param privateKeyPassword Private-key password to store, if non-empty.
     ///
-    void saveProfile(const ConnectionProfile &profile,
-                     const QString &password,
-                     const QString &privateKeyPassword);
+    void saveProfile(const ConnectionProfile &profile, const QString &password);
+
+    ///
+    /// \brief Keeps a password for a profile without making the profile a favourite.
+    ///
+    /// Lets a plain connection be restored unattended later: a session saved from it carries
+    /// the profile identifier the password is filed under.
+    ///
+    /// \param profile Profile the password belongs to.
+    /// \param password Password to store; nothing is written when it is empty.
+    ///
+    void rememberPassword(const ConnectionProfile &profile, const QString &password);
 
     ///
     /// \brief Removes the saved favourite with the given id, along with its secrets.
@@ -154,19 +176,43 @@ signals:
     ///
     void errorOccurred(QString message);
 
+    ///
+    /// \brief Emitted when the user supplies credentials the stored ones could not cover.
+    ///
+    /// Raised for a first prompt as well as for one the server's refusal forced, so an open
+    /// session can record that its connection no longer matches what was saved with it.
+    ///
+    void credentialsEntered();
+
+    ///
+    /// \brief Emitted when a connection is given up on before it is attempted.
+    ///
+    /// Raised when the user declines to supply the credentials a saved profile is missing,
+    /// so callers waiting for that connection can stop waiting.
+    ///
+    void connectionAborted();
+
 private slots:
     void handleSecretRead(const QString &profileId, SecretStore::Secret secret,
                           const QString &value, const QString &error);
     void handleEndpoints(const QList<EndpointInfo> &endpoints, const QString &error);
+    void handleAuthenticationRejected(const QString &message);
+    void handleConnectionState(OpcUaConnectionState state);
 
 private:
     void connectBackend(const ConnectionProfile &profile, const QString &password,
                         const QString &privateKeyPassword);
+    bool pendingCredentialsMissing() const;
+    QString pendingCredentialsWarning() const;
+    void retryWithNewCredentials(const ConnectionProfile &profile, const QString &rejection);
+    void storePendingCredentials();
+    void startPendingConnection();
     void discoverPendingProfile();
     void forgetProfile(const QString &id);
     void touchFavorite(const ConnectionProfile &profile);
 
     OpcUaBackend *_backend;
+    ConnectionCredentialsProvider *_credentialsProvider = nullptr;
     SecretStore *_secretStore;
     ConnectionProfileStore *_profileStore;
     RecentConnectionStore *_recentStore;
@@ -179,6 +225,8 @@ private:
     ConnectionProfile _pendingProfile;
     QString _pendingPassword;
     QString _pendingPrivateKeyPassword;
+    QString _pendingRejection;
+    QString _rejectionMessage;
     int _pendingSecretReads = 0;
     bool _waitingForDiscovery = false;
 };

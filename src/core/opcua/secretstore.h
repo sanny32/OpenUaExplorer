@@ -11,6 +11,12 @@
 #include <QObject>
 #include <QString>
 
+class QTimer;
+
+namespace QKeychain {
+class Job;
+}
+
 ///
 /// \brief Asynchronous adapter for the operating system credential store.
 ///
@@ -86,6 +92,7 @@ signals:
 
 private:
     QString key(const QString &profileId, Secret secret) const;
+    QTimer *watchdogFor(QKeychain::Job *job);
 };
 
 Q_DECLARE_METATYPE(SecretStore::Secret)

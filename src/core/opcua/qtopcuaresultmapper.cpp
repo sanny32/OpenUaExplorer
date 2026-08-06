@@ -37,7 +37,8 @@ QVector<QOpcUaEndpointDescription> endpointsWithSupportedPolicy(
 }
 
 ///
-/// \brief Fills browsed children with EventNotifier/Historizing values from a batch read.
+/// \brief Fills browsed children with EventNotifier/Historizing/DataType/ValueRank values
+///        from a batch read.
 /// \param nodes Children to update in place, addressed by NodeId.
 /// \param results Read results carrying each node's requested attribute.
 ///
@@ -49,6 +50,8 @@ void applyBrowseAttributeResults(QVector<OpcUaNodeInfo> *nodes,
 
     QHash<QString, quint8> eventNotifiers;
     QHash<QString, bool> historizing;
+    QHash<QString, QString> dataTypes;
+    QHash<QString, int> valueRanks;
     for (const QOpcUaReadResult &result : results) {
         if (!QOpcUa::isSuccessStatus(result.statusCode()))
             continue;
@@ -56,12 +59,20 @@ void applyBrowseAttributeResults(QVector<OpcUaNodeInfo> *nodes,
             eventNotifiers.insert(result.nodeId(), static_cast<quint8>(result.value().toUInt()));
         else if (result.attribute() == QOpcUa::NodeAttribute::Historizing)
             historizing.insert(result.nodeId(), result.value().toBool());
+        else if (result.attribute() == QOpcUa::NodeAttribute::DataType)
+            dataTypes.insert(result.nodeId(), result.value().toString());
+        else if (result.attribute() == QOpcUa::NodeAttribute::ValueRank)
+            valueRanks.insert(result.nodeId(), result.value().toInt());
     }
     for (OpcUaNodeInfo &node : *nodes) {
         if (const auto it = eventNotifiers.constFind(node.nodeId); it != eventNotifiers.constEnd())
             node.eventNotifier = it.value();
         if (const auto it = historizing.constFind(node.nodeId); it != historizing.constEnd())
             node.historizing = it.value();
+        if (const auto it = dataTypes.constFind(node.nodeId); it != dataTypes.constEnd())
+            node.dataTypeId = it.value();
+        if (const auto it = valueRanks.constFind(node.nodeId); it != valueRanks.constEnd())
+            node.valueRank = it.value();
     }
 }
 

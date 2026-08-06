@@ -33,11 +33,13 @@ OpcUaNodeAttribute childAttribute(const QString &name, const QString &displayVal
 /// \param nodeAttribute Which OPC UA attribute is being formatted.
 /// \param value Raw attribute value.
 /// \param valueType Value type, used when formatting the Value attribute.
+/// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
 ///
 void formatAttribute(OpcUaNodeAttribute *attribute,
                      QOpcUa::NodeAttribute nodeAttribute,
                      const QVariant &value,
-                     QOpcUa::Types valueType)
+                     QOpcUa::Types valueType,
+                     const QString &dataTypeId)
 {
     switch (nodeAttribute) {
     case QOpcUa::NodeAttribute::NodeId:
@@ -99,11 +101,10 @@ void formatAttribute(OpcUaNodeAttribute *attribute,
     }
 
     if (nodeAttribute == QOpcUa::NodeAttribute::Value) {
+        const QString typeName = valueTypeDisplay(valueType, dataTypeId);
         attribute->displayValue = isValueArray(value)
-            ? QStringLiteral("%1 Array[%2]")
-                  .arg(valueTypeName(valueType))
-                  .arg(value.toList().size())
-            : valueTypeName(valueType);
+            ? QStringLiteral("%1 Array[%2]").arg(typeName).arg(value.toList().size())
+            : typeName;
     }
 }
 

@@ -43,14 +43,33 @@ bool namespace0NumericId(const QString &nodeId, int *identifier)
 } // namespace
 
 ///
-/// \brief Resolves a DataType NodeId to a built-in OPC UA type name.
+/// \brief Resolves a DataType NodeId to its type name.
 /// \param nodeId DataType NodeId string.
-/// \return Built-in type name, or the original NodeId for custom types.
+/// \return Built-in type name, standard BrowseName, or the original NodeId for custom types.
+///
+/// Built-in types are named from the value-type mapping. The remaining standard types
+/// (enumerations such as ServerState and structures such as BuildInfo) have no value
+/// type, so they fall back to their namespace-0 BrowseName; only DataTypes defined by
+/// the server keep the raw NodeId, since their name lives on the server.
 ///
 QString dataTypeDisplay(const QString &nodeId)
 {
     const QOpcUa::Types type = valueTypeForDataType(nodeId);
-    return type == QOpcUa::Types::Undefined ? nodeId : valueTypeName(type);
+    return type == QOpcUa::Types::Undefined ? standardNodeDisplayName(nodeId)
+                                            : valueTypeName(type);
+}
+
+///
+/// \brief Names the type of a value, falling back to its declared DataType.
+/// \param type Value type resolved from the DataType, may be Undefined.
+/// \param dataTypeId DataType NodeId string backing the value.
+/// \return Value-type name, or the DataType's own name when it is not a built-in type.
+///
+QString valueTypeDisplay(QOpcUa::Types type, const QString &dataTypeId)
+{
+    if (type != QOpcUa::Types::Undefined || dataTypeId.isEmpty())
+        return valueTypeName(type);
+    return dataTypeDisplay(dataTypeId);
 }
 
 ///
@@ -194,6 +213,41 @@ QOpcUa::Types valueTypeForDataType(const QString &nodeId)
     case 22: return QOpcUa::Types::ExtensionObject;
     case 25: return QOpcUa::Types::DiagnosticInfo;
     default: return QOpcUa::Types::Undefined;
+    }
+}
+
+///
+/// \brief Reports whether a DataType NodeId denotes values that can be read as numbers.
+/// \param nodeId DataType NodeId string.
+/// \return True for numeric namespace-0 DataTypes and for types that cannot be classified.
+///
+bool isNumericDataType(const QString &nodeId)
+{
+    int identifier = 0;
+    if (!namespace0NumericId(nodeId, &identifier))
+        return true;
+
+    switch (identifier) {
+    case 2:   // SByte
+    case 3:   // Byte
+    case 4:   // Int16
+    case 5:   // UInt16
+    case 6:   // Int32
+    case 7:   // UInt32
+    case 8:   // Int64
+    case 9:   // UInt64
+    case 10:  // Float
+    case 11:  // Double
+    case 24:  // BaseDataType, the unconstrained root of the hierarchy
+    case 26:  // Number
+    case 27:  // Integer
+    case 28:  // UInteger
+    case 288: // IntegerId
+    case 289: // Counter
+    case 290: // Duration
+        return true;
+    default:
+        return false;
     }
 }
 
