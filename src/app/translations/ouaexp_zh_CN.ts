@@ -1150,6 +1150,10 @@ Select it again.</source>
         <source>Select private key file</source>
         <translation>选择私钥文件</translation>
     </message>
+    <message>
+        <source>Browse...</source>
+        <translation>浏览…</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionStatusWidget</name>

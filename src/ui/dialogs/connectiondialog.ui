@@ -356,26 +356,11 @@
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>32</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
                 <property name="toolTip">
                  <string>Select certificate file</string>
                 </property>
                 <property name="text">
-                 <string/>
-                </property>
-                <property name="iconSize">
-                 <size>
-                  <width>16</width>
-                  <height>16</height>
-                 </size>
-                </property>
-                <property name="iconName" stdset="0">
-                 <string notr="true">file-text</string>
+                 <string>Browse...</string>
                 </property>
                </widget>
               </item>
@@ -410,26 +395,11 @@
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>32</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
                 <property name="toolTip">
                  <string>Select private key file</string>
                 </property>
                 <property name="text">
-                 <string/>
-                </property>
-                <property name="iconSize">
-                 <size>
-                  <width>16</width>
-                  <height>16</height>
-                 </size>
-                </property>
-                <property name="iconName" stdset="0">
-                 <string notr="true">file-text</string>
+                 <string>Browse...</string>
                 </property>
                </widget>
               </item>

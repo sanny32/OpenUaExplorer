@@ -1151,6 +1151,10 @@ Wählen Sie ihn erneut aus.</translation>
         <source>Select private key file</source>
         <translation>Datei mit privatem Schlüssel auswählen</translation>
     </message>
+    <message>
+        <source>Browse...</source>
+        <translation>Durchsuchen …</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionStatusWidget</name>

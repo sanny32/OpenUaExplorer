@@ -1152,6 +1152,10 @@ Select it again.</source>
         <source>Select private key file</source>
         <translation>Выбрать файл закрытого ключа</translation>
     </message>
+    <message>
+        <source>Browse...</source>
+        <translation>Обзор...</translation>
+    </message>
 </context>
 <context>
     <name>ConnectionStatusWidget</name>
