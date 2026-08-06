@@ -1,0 +1,123 @@
+name: Bug report
+description: Report something that does not work as expected in OpenUaExplorer
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+
+        Please fill in as much as you can — the version, the platform and the
+        exact steps are what make a report reproducible.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checklist
+      options:
+        - label: I searched the [existing issues](https://github.com/sanny32/OpenUaExplorer/issues?q=is%3Aissue) and did not find a duplicate.
+          required: true
+        - label: I reproduced the problem with the [latest release](https://github.com/sanny32/OpenUaExplorer/releases/latest).
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the problem, including any error message shown by the application.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps that lead to the problem, starting from a freshly started application.
+      placeholder: |
+        1. Choose File → New Connection
+        2. Enter opc.tcp://... and click Discover Endpoints
+        3. Select the Basic256Sha256 / Sign & Encrypt endpoint and click Connect
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What you expected to happen instead.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: OpenUaExplorer version
+      description: See **Help → About**.
+      placeholder: "1.2.3"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: platform-details
+    attributes:
+      label: Operating system version
+      description: For Linux, please also name the distribution.
+      placeholder: "Windows 11 24H2 / macOS 26.0 / Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-source
+    attributes:
+      label: How did you install it?
+      options:
+        - Windows installer (.exe)
+        - macOS disk image (.dmg)
+        - Linux AppImage
+        - Linux .deb package
+        - Linux .rpm package
+        - Built from source
+    validations:
+      required: true
+
+  - type: input
+    id: server
+    attributes:
+      label: OPC UA server
+      description: Vendor and product of the server you connected to, if the problem involves a connection.
+      placeholder: "Prosys OPC UA Simulation Server 5.4 / Siemens S7-1500 / open62541"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Application log
+      description: >-
+        Relevant output from the log panel — you can save it with
+        **File → Export Log...**. This is automatically formatted as code,
+        no backticks needed.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Screenshots and additional context
+      description: Screenshots, a session file, or anything else that helps to understand the problem.
+    validations:
+      required: false
