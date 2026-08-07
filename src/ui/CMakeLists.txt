@@ -183,6 +183,8 @@ add_library(ouaexp_ui STATIC
     widgets/calendarwidget.h
     widgets/datetimeedit.cpp
     widgets/datetimeedit.h
+    widgets/elidedlabel.cpp
+    widgets/elidedlabel.h
     widgets/fixedgap.cpp
     widgets/fixedgap.h
     widgets/headerview.cpp

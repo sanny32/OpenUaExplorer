@@ -183,7 +183,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="sessionLabel">
+      <widget class="ElidedLabel" name="sessionLabel">
        <property name="text">
         <string notr="true">0000023A</string>
        </property>
@@ -239,6 +239,11 @@
    <class>ThemedIconLabel</class>
    <extends>QLabel</extends>
    <header>widgets/themediconlabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>widgets/elidedlabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
