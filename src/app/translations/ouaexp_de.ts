@@ -3482,7 +3482,7 @@ Möchten Sie sie speichern?</translation>
     </message>
     <message>
         <source>Reconnect after a connection loss</source>
-        <translation>Nach Verbindungsverlust erneut verbinden</translation>
+        <translation>Automatisch neu verbinden</translation>
     </message>
     <message>
         <source>Interval (s):</source>

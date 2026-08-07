@@ -3488,7 +3488,7 @@ Do you want to save them?</source>
     </message>
     <message>
         <source>Reconnect after a connection loss</source>
-        <translation>Переподключаться при потере соединения</translation>
+        <translation>Автоподключение при обрыве связи</translation>
     </message>
     <message>
         <source>Interval (s):</source>
