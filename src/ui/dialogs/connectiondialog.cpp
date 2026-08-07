@@ -698,12 +698,11 @@ void ConnectionDialog::updateAuthenticationFields()
     // the width its wrapped text can survive at.
     ui->anonymousNotice->setFixedWidth(labelColumnWidth + columnGap + fieldColumn);
 
-    // The client certificate stays available regardless of the security mode
-    // (it can still be imported, generated or inspected). Only the server
-    // certificate and trust settings depend on a secure channel.
-    const bool secureChannel = certificate || _selectedSecurityModeValue > 1;
-    ui->serverCertificateGroupBox->setEnabled(secureChannel);
-    _secureChannel = secureChannel;
+    // Both certificate cards stay available regardless of the security mode: the client one can
+    // still be imported, generated or inspected, and an endpoint without security still advertises
+    // a server certificate worth looking at. Only trusting it depends on a secure channel, as
+    // nothing validates the certificate without one.
+    _secureChannel = certificate || _selectedSecurityModeValue > 1;
     updateServerTrustState();
 }
 
