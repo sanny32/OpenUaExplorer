@@ -13,6 +13,7 @@
 #include <QDesktopServices>
 #include <QEvent>
 #include <QFileDialog>
+#include <QMenu>
 #include <QTimer>
 #include <QUrl>
 
@@ -66,6 +67,25 @@ QList<int> defaultCentralSplitterSizes()
     return {360, 310};
 }
 
+///
+/// \brief Opts every menu entry out of the macOS text heuristic for menu roles.
+/// \param actions Actions of the menu being visited.
+///
+/// Without an explicit role macOS guesses one from the item text, and a translation may
+/// start with a word it looks for: the Chinese "Set Subscription" ("设置订阅") begins with
+/// the translation of "Setting", so the item is moved into the application menu. Moving a
+/// submenu that way destroys the native item its menu is still attached to, and the next
+/// menu bar update dereferences it. Roles the window wants are set afterwards.
+///
+void clearMenuRoles(const QList<QAction *> &actions)
+{
+    for (QAction *action : actions) {
+        action->setMenuRole(QAction::NoRole);
+        if (QMenu *menu = action->menu())
+            clearMenuRoles(menu->actions());
+    }
+}
+
 }
 
 ///
@@ -79,6 +99,8 @@ MainWindow::MainWindow(QWidget *parent)
     , _backend(_connectionController->backend())
 {
     ui->setupUi(this);
+
+    clearMenuRoles(ui->menubar->actions());
 
     ui->actionSettings->setMenuRole(QAction::PreferencesRole);
     ui->actionExit->setMenuRole(QAction::QuitRole);
