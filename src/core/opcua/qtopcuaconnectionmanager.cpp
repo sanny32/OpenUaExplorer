@@ -288,7 +288,12 @@ void QtOpcUaConnectionManager::handleClientError(QOpcUaClient::ClientError error
     if (error == QOpcUaClient::NoError)
         return;
     const QString name = clientErrorName(error);
-    setError(backendTr("OPC UA client error: %1").arg(name));
+    // The backend maps every status code except AccessDenied to UnknownError, but it always
+    // reports the real one through connectError first. Keep that message instead of this one.
+    if (_connectErrorReported)
+        _connectErrorReported = false;
+    else
+        setError(backendTr("OPC UA client error: %1").arg(name));
     if (rejectsCredentials(error))
         emit authenticationRejected(name);
 }
@@ -305,6 +310,7 @@ void QtOpcUaConnectionManager::handleConnectError(QOpcUaErrorState *state)
     }
     if (state->connectionStep() != QOpcUaErrorState::ConnectionStep::CertificateValidation) {
         setError(message);
+        _connectErrorReported = true;
         if (rejectsCredentials(state->errorCode()))
             emit authenticationRejected(statusName(state->errorCode()));
         return;
@@ -442,4 +448,5 @@ void QtOpcUaConnectionManager::clearConnectionData()
 {
     _activeCertificate.clear();
     _activeClientCertificateFile.clear();
+    _connectErrorReported = false;
 }

@@ -107,5 +107,6 @@ private:
     QVector<QOpcUaEndpointDescription> _endpoints;
     QByteArray _activeCertificate;
     QString _activeClientCertificateFile;
+    bool _connectErrorReported = false;
     CertificateTrustDecider *_trustDecider = nullptr;
 };
