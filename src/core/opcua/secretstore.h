@@ -52,14 +52,14 @@ public:
 
     ///
     /// \brief Asynchronously reads a profile secret; the result arrives via readFinished().
-    /// \param profileId Profile identifier.
+    /// \param profileId Name the secret is filed under.
     /// \param secret Secret kind.
     ///
     virtual void read(const QString &profileId, Secret secret);
 
     ///
     /// \brief Asynchronously stores a profile secret; completion arrives via writeFinished().
-    /// \param profileId Profile identifier.
+    /// \param profileId Name the secret is filed under.
     /// \param secret Secret kind.
     /// \param value Secret value.
     ///
@@ -67,7 +67,7 @@ public:
 
     ///
     /// \brief Asynchronously deletes a profile secret; completion arrives via writeFinished().
-    /// \param profileId Profile identifier.
+    /// \param profileId Name the secret is filed under.
     /// \param secret Secret kind.
     ///
     virtual void remove(const QString &profileId, Secret secret);
@@ -75,7 +75,7 @@ public:
 signals:
     ///
     /// \brief Emitted when a read completes.
-    /// \param profileId Profile identifier.
+    /// \param profileId Name the secret is filed under.
     /// \param secret Secret kind.
     /// \param value Secret value, empty on error.
     /// \param error Error message, empty on success.
@@ -84,7 +84,7 @@ signals:
 
     ///
     /// \brief Emitted when a write or delete completes.
-    /// \param profileId Profile identifier.
+    /// \param profileId Name the secret is filed under.
     /// \param secret Secret kind.
     /// \param error Error message, empty on success.
     ///

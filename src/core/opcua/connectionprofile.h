@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QCryptographicHash>
 #include <QDateTime>
 #include <QString>
 
@@ -97,5 +98,32 @@ struct ConnectionProfile
             && securityPolicy == other.securityPolicy
             && securityMode == other.securityMode
             && authentication == other.authentication;
+    }
+
+    ///
+    /// \brief Returns the name a stored secret of this profile is filed under.
+    ///
+    /// A secret is only safe to replay at the endpoint it was given to, so the name covers the
+    /// endpoint identity as well as the profile identifier. A profile whose URL, security or
+    /// authentication was changed therefore no longer finds the secret of the old one, and
+    /// neither does a session file that carries a known identifier next to a foreign URL.
+    ///
+    /// The hashed fields are exactly those isSameEndpoint() compares: two profiles that count
+    /// as the same favourite must resolve the same secret.
+    ///
+    /// \return Secret name, or an empty string for a profile without an identifier.
+    ///
+    QString secretScope() const
+    {
+        if (id.isEmpty())
+            return {};
+
+        const QString identity = QStringLiteral("%1|%2|%3|%4")
+            .arg(endpointUrl, securityPolicy)
+            .arg(securityMode)
+            .arg(static_cast<int>(authentication));
+        const QByteArray digest =
+            QCryptographicHash::hash(identity.toUtf8(), QCryptographicHash::Sha256).toHex();
+        return id + QLatin1Char('@') + QString::fromLatin1(digest.left(16));
     }
 };

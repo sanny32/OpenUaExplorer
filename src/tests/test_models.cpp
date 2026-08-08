@@ -77,6 +77,8 @@ private slots:
     void historyModelHeaderRolesAndMutators();
     void historyModelExportsCsv();
     void csvExporterEscapesDisplayedTable();
+    void csvExporterNeutralizesFormulaPrefixes();
+    void csvExporterNeutralizesFormulaHeaders();
     void dataAccessModelExportsCsv();
     void eventsModelExportsCsv();
     void eventsModelDisplaysKnownEventTypeNames();
@@ -884,6 +886,47 @@ void TestModels::csvExporterEscapesDisplayedTable()
              QStringLiteral("Text,Comma,Quote,Break\n"
                             "plain,\"a,b\",\"a\"\"b\",\"a\r\nb\"\n"));
 }
+
+///
+/// \brief CsvExporter defuses fields a spreadsheet would evaluate as a formula.
+///
+void TestModels::csvExporterNeutralizesFormulaPrefixes()
+{
+    QStandardItemModel model(1, 7);
+    model.setHeaderData(0, Qt::Horizontal, QStringLiteral("Equals"));
+    model.setHeaderData(1, Qt::Horizontal, QStringLiteral("Plus"));
+    model.setHeaderData(2, Qt::Horizontal, QStringLiteral("Minus"));
+    model.setHeaderData(3, Qt::Horizontal, QStringLiteral("At"));
+    model.setHeaderData(4, Qt::Horizontal, QStringLiteral("Tab"));
+    model.setHeaderData(5, Qt::Horizontal, QStringLiteral("Inner"));
+    model.setHeaderData(6, Qt::Horizontal, QStringLiteral("Plain"));
+    model.setData(model.index(0, 0), QStringLiteral("=1+1"));
+    model.setData(model.index(0, 1), QStringLiteral("+A1"));
+    // A negative reading is quoted too: telling it from a formula would need a number parser,
+    // and a leading apostrophe costs a spreadsheet user nothing.
+    model.setData(model.index(0, 2), QStringLiteral("-2"));
+    model.setData(model.index(0, 3), QStringLiteral("@SUM(A1)"));
+    model.setData(model.index(0, 4), QStringLiteral("\tx"));
+    model.setData(model.index(0, 5), QStringLiteral("a=b"));
+    model.setData(model.index(0, 6), QStringLiteral("plain"));
+
+    QCOMPARE(CsvExporter::tableToCsv(model),
+             QStringLiteral("Equals,Plus,Minus,At,Tab,Inner,Plain\n"
+                            "'=1+1,'+A1,'-2,'@SUM(A1),'\tx,a=b,plain\n"));
+}
+
+///
+/// \brief A formula-shaped header is defused just like a cell.
+///
+void TestModels::csvExporterNeutralizesFormulaHeaders()
+{
+    QStandardItemModel model(0, 2);
+    model.setHeaderData(0, Qt::Horizontal, QStringLiteral("=cmd"));
+    model.setHeaderData(1, Qt::Horizontal, QStringLiteral("Plain"));
+
+    QCOMPARE(CsvExporter::tableToCsv(model), QStringLiteral("'=cmd,Plain\n"));
+}
+
 ///
 /// \brief DataAccessModel exports listed rows as escaped CSV with a header.
 ///

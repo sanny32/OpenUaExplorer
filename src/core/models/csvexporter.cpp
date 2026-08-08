@@ -12,8 +12,22 @@
 #include <QStringList>
 
 namespace {
+// A field a spreadsheet would take for a formula rather than for text. The values come from
+// the server, so an exported table must not turn into something executable when opened.
+bool startsFormula(const QString &value)
+{
+    if (value.isEmpty())
+        return false;
+    const QChar first = value.at(0);
+    return first == QLatin1Char('=') || first == QLatin1Char('+') || first == QLatin1Char('-')
+        || first == QLatin1Char('@') || first == QLatin1Char('\t') || first == QLatin1Char('\r');
+}
+
 QString csvField(QString value)
 {
+    if (startsFormula(value))
+        value.prepend(QLatin1Char('\''));
+
     const bool quote = value.contains(QLatin1Char(','))
         || value.contains(QLatin1Char('"'))
         || value.contains(QLatin1Char('\n'))

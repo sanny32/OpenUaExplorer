@@ -149,6 +149,7 @@ set_property(TEST
     ouaexp_tests_certificates_dialog
     ouaexp_tests_connection_dialog
     ouaexp_tests_endpoint_settings_dialog
+    ouaexp_tests_pkimanager
     APPEND PROPERTY RESOURCE_LOCK application_pki)
 
 include(ProcessorCount)

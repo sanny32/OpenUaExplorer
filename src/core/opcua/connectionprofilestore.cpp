@@ -15,6 +15,22 @@
 namespace {
 const char profilesGroup[] = "opcua/profiles";
 const char favoritesOrderKey[] = "opcua/favoritesOrder";
+
+///
+/// \brief Maps a stored authentication value onto a valid enumerator.
+/// \param value Value read from the settings backend.
+/// \return The matching mode, or Anonymous for anything outside the enumeration.
+///
+ConnectionProfile::Authentication storedAuthentication(int value)
+{
+    switch (static_cast<ConnectionProfile::Authentication>(value)) {
+    case ConnectionProfile::Authentication::Anonymous:
+    case ConnectionProfile::Authentication::Username:
+    case ConnectionProfile::Authentication::Certificate:
+        return static_cast<ConnectionProfile::Authentication>(value);
+    }
+    return ConnectionProfile::Authentication::Anonymous;
+}
 }
 
 ///
@@ -36,9 +52,10 @@ QList<ConnectionProfile> ConnectionProfileStore::profiles() const
         profile.backend = settings.value(QStringLiteral("backend"), QStringLiteral("open62541")).toString();
         profile.endpointUrl = settings.value(QStringLiteral("endpointUrl")).toString();
         profile.securityPolicy = settings.value(QStringLiteral("securityPolicy")).toString();
-        profile.securityMode = settings.value(QStringLiteral("securityMode"), 1).toInt();
-        profile.authentication = static_cast<ConnectionProfile::Authentication>(
-            settings.value(QStringLiteral("authentication"), 0).toInt());
+        profile.securityMode =
+            qBound(1, settings.value(QStringLiteral("securityMode"), 1).toInt(), 3);
+        profile.authentication =
+            storedAuthentication(settings.value(QStringLiteral("authentication"), 0).toInt());
         profile.username = settings.value(QStringLiteral("username")).toString();
         profile.clientCertificateFile = settings.value(QStringLiteral("clientCertificateFile")).toString();
         profile.privateKeyFile = settings.value(QStringLiteral("privateKeyFile")).toString();

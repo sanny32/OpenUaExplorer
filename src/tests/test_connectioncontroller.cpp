@@ -231,6 +231,9 @@ private slots:
     void reorderFavoritesPersistsOrderAndNotifies();
     void reorderFavoritesFailureReportsError();
     void connectingRecordsRecentConnection();
+    void secretScopeFollowsTheEndpointIdentity();
+    void aProfilePointedAtAnotherServerCannotReadTheStoredPassword();
+    void editingAFavoriteEndpointLeavesItsPasswordBehind();
 };
 
 ///
@@ -348,11 +351,11 @@ void TestConnectionController::savedProfileLoadsOnlyTheUserPassword()
     profile.authentication = ConnectionProfile::Authentication::Username;
     profile.privateKeyFile = QStringLiteral("client.pem");
     secrets.values.insert(
-        FakeSecretStore::key(profile.id, SecretStore::Secret::Password),
+        FakeSecretStore::key(profile.secretScope(), SecretStore::Secret::Password),
         QStringLiteral("login-secret"));
     // Left over from an older version that stored it; it must not reach the backend.
     secrets.values.insert(
-        FakeSecretStore::key(profile.id, SecretStore::Secret::PrivateKeyPassword),
+        FakeSecretStore::key(profile.secretScope(), SecretStore::Secret::PrivateKeyPassword),
         QStringLiteral("key-secret"));
 
     controller.connectSavedProfile(profile);
@@ -380,7 +383,7 @@ void TestConnectionController::storedPasswordConnectsWithoutPrompting()
     profile.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
     profile.authentication = ConnectionProfile::Authentication::Username;
     profile.username = QStringLiteral("operator");
-    secrets.values.insert(FakeSecretStore::key(profile.id, SecretStore::Secret::Password),
+    secrets.values.insert(FakeSecretStore::key(profile.secretScope(), SecretStore::Secret::Password),
                           QStringLiteral("stored-secret"));
 
     controller.connectSavedProfile(profile);
@@ -508,9 +511,9 @@ void TestConnectionController::rememberedCredentialsNeverStoreTheKeyPassword()
 
     QCOMPARE(backend.connectedPrivateKeyPassword, QStringLiteral("key-secret"));
     QVERIFY(secrets.values.contains(
-        FakeSecretStore::key(profile.id, SecretStore::Secret::Password)));
+        FakeSecretStore::key(profile.secretScope(), SecretStore::Secret::Password)));
     QVERIFY(!secrets.values.contains(
-        FakeSecretStore::key(profile.id, SecretStore::Secret::PrivateKeyPassword)));
+        FakeSecretStore::key(profile.secretScope(), SecretStore::Secret::PrivateKeyPassword)));
 }
 
 ///
@@ -582,7 +585,7 @@ void TestConnectionController::rejectedCredentialsAreAskedForAgain()
     profile.id = QStringLiteral("rejected");
     profile.endpointUrl = QStringLiteral("opc.tcp://localhost:4840");
     profile.authentication = ConnectionProfile::Authentication::Username;
-    secrets.values.insert(FakeSecretStore::key(profile.id, SecretStore::Secret::Password),
+    secrets.values.insert(FakeSecretStore::key(profile.secretScope(), SecretStore::Secret::Password),
                           QStringLiteral("stale-secret"));
 
     controller.connectSavedProfile(profile);
@@ -670,7 +673,7 @@ void TestConnectionController::savePersistsProfileAndPassword()
 
     QCOMPARE(profiles.storedProfiles.size(), 1);
     QCOMPARE(secrets.values.value(FakeSecretStore::key(
-                 profile.id, SecretStore::Secret::Password)),
+                 profile.secretScope(), SecretStore::Secret::Password)),
              QStringLiteral("password"));
     QCOMPARE(changedSpy.size(), 1);
 }
@@ -694,14 +697,14 @@ void TestConnectionController::rememberPasswordStoresTheSecretWithoutTheProfile(
     controller.rememberPassword(profile, QStringLiteral("kept"));
 
     QCOMPARE(secrets.values.value(FakeSecretStore::key(
-                 profile.id, SecretStore::Secret::Password)),
+                 profile.secretScope(), SecretStore::Secret::Password)),
              QStringLiteral("kept"));
     QVERIFY(profiles.storedProfiles.isEmpty());
 
     // An unchecked box arrives as an empty password and must not clear what is stored.
     controller.rememberPassword(profile, QString());
     QCOMPARE(secrets.values.value(FakeSecretStore::key(
-                 profile.id, SecretStore::Secret::Password)),
+                 profile.secretScope(), SecretStore::Secret::Password)),
              QStringLiteral("kept"));
 }
 
@@ -730,7 +733,7 @@ void TestConnectionController::savingSameEndpointReplacesFavorite()
     QCOMPARE(profiles.storedProfiles.size(), 1);
     QCOMPARE(profiles.storedProfiles.first().id, QStringLiteral("second"));
     QVERIFY(!secrets.values.contains(
-        FakeSecretStore::key(QStringLiteral("first"), SecretStore::Secret::Password)));
+        FakeSecretStore::key(first.secretScope(), SecretStore::Secret::Password)));
 }
 
 void TestConnectionController::savingSameEndpointDifferentSecurityKeepsBoth()
@@ -804,7 +807,7 @@ void TestConnectionController::removeFavoriteDeletesProfileAndSecrets()
 
     QVERIFY(profiles.storedProfiles.isEmpty());
     QVERIFY(!secrets.values.contains(
-        FakeSecretStore::key(QStringLiteral("fav"), SecretStore::Secret::Password)));
+        FakeSecretStore::key(profile.secretScope(), SecretStore::Secret::Password)));
     QCOMPARE(changedSpy.size(), 1);
 }
 
@@ -869,6 +872,114 @@ void TestConnectionController::connectingRecordsRecentConnection()
     const QList<ConnectionProfile> reordered = controller.recentConnections();
     QCOMPARE(reordered.size(), 2);
     QCOMPARE(reordered.first().endpointUrl, first.endpointUrl);
+}
+
+///
+/// \brief A secret is named after the endpoint it may be replayed at, not the profile alone.
+///
+void TestConnectionController::secretScopeFollowsTheEndpointIdentity()
+{
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("scoped");
+    profile.endpointUrl = QStringLiteral("opc.tcp://host:4840");
+    profile.securityPolicy = QStringLiteral("Basic256Sha256");
+    profile.securityMode = 3;
+    profile.authentication = ConnectionProfile::Authentication::Username;
+
+    // Two profiles that count as the same favourite must resolve the same secret.
+    ConnectionProfile same = profile;
+    same.name = QStringLiteral("A different display name");
+    same.username = QStringLiteral("operator");
+    QVERIFY(profile.isSameEndpoint(same));
+    QCOMPARE(same.secretScope(), profile.secretScope());
+
+    ConnectionProfile otherUrl = profile;
+    otherUrl.endpointUrl = QStringLiteral("opc.tcp://attacker:4840");
+    QVERIFY(otherUrl.secretScope() != profile.secretScope());
+
+    ConnectionProfile otherPolicy = profile;
+    otherPolicy.securityPolicy = QStringLiteral("None");
+    QVERIFY(otherPolicy.secretScope() != profile.secretScope());
+
+    ConnectionProfile otherMode = profile;
+    otherMode.securityMode = 1;
+    QVERIFY(otherMode.secretScope() != profile.secretScope());
+
+    ConnectionProfile otherAuthentication = profile;
+    otherAuthentication.authentication = ConnectionProfile::Authentication::Anonymous;
+    QVERIFY(otherAuthentication.secretScope() != profile.secretScope());
+
+    ConnectionProfile withoutId = profile;
+    withoutId.id.clear();
+    QVERIFY(withoutId.secretScope().isEmpty());
+}
+
+///
+/// \brief A session file naming a known profile but a foreign server gets no stored password.
+///
+void TestConnectionController::aProfilePointedAtAnotherServerCannotReadTheStoredPassword()
+{
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    FakeCredentialsProvider credentials;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+    controller.setCredentialsProvider(&credentials);
+
+    ConnectionProfile saved;
+    saved.id = QStringLiteral("shared-id");
+    saved.endpointUrl = QStringLiteral("opc.tcp://trusted:4840");
+    saved.authentication = ConnectionProfile::Authentication::Username;
+    saved.username = QStringLiteral("operator");
+    controller.saveProfile(saved, QStringLiteral("top-secret"));
+
+    // What a tampered session file looks like: the identifier the secret was filed under, and
+    // somebody else's server to send it to.
+    ConnectionProfile tampered = saved;
+    tampered.endpointUrl = QStringLiteral("opc.tcp://attacker:4840");
+    credentials.reply.accepted = false;
+
+    controller.connectSavedProfile(tampered);
+
+    QCOMPARE(credentials.requests, 1);
+    QCOMPARE(backend.discoveryCalls, 0);
+    QVERIFY(backend.connectedPassword.isEmpty());
+}
+
+///
+/// \brief Repointing a favourite at another server does not carry its password along.
+///
+void TestConnectionController::editingAFavoriteEndpointLeavesItsPasswordBehind()
+{
+    FakeOpcUaBackend backend;
+    FakeSecretStore secrets;
+    FakeProfileStore profiles;
+    FakeRecentStore recents;
+    FakeCredentialsProvider credentials;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+    controller.setCredentialsProvider(&credentials);
+
+    ConnectionProfile favorite;
+    favorite.id = QStringLiteral("favorite");
+    favorite.endpointUrl = QStringLiteral("opc.tcp://trusted:4840");
+    favorite.authentication = ConnectionProfile::Authentication::Username;
+    controller.saveProfile(favorite, QStringLiteral("top-secret"));
+
+    ConnectionProfile moved = favorite;
+    moved.endpointUrl = QStringLiteral("opc.tcp://elsewhere:4840");
+    controller.saveProfile(moved, QString());
+
+    credentials.reply.accepted = false;
+    controller.connectSavedProfile(moved);
+
+    QCOMPARE(credentials.requests, 1);
+    QVERIFY(backend.connectedPassword.isEmpty());
+    // The original secret is untouched: the favourite it belonged to can still be reached by
+    // pointing a profile back at that endpoint.
+    QCOMPARE(secrets.values.value(
+                 FakeSecretStore::key(favorite.secretScope(), SecretStore::Secret::Password)),
+             QStringLiteral("top-secret"));
 }
 
 QTEST_GUILESS_MAIN(TestConnectionController)

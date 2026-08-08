@@ -235,6 +235,30 @@ bool writeFileAtomically(const QString &path, const QByteArray &data)
 }
 
 ///
+/// \brief Copies the contents of a memory BIO into a byte array.
+/// \param bio Memory BIO to read.
+/// \return Bytes buffered in the BIO.
+///
+QByteArray memoryBioData(BIO *bio)
+{
+    char *data = nullptr;
+    const long length = BIO_get_mem_data(bio, &data);
+    return length > 0 ? QByteArray(data, static_cast<int>(length)) : QByteArray();
+}
+
+///
+/// \brief Writes a private key to a file atomically, readable only by its owner.
+/// \param path Destination file path.
+/// \param data Key bytes to write.
+/// \return True when the file was written, committed and restricted.
+///
+bool writePrivateKeyAtomically(const QString &path, const QByteArray &data)
+{
+    return writeFileAtomically(path, data)
+        && QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+}
+
+///
 /// \brief Reads a DER or PEM certificate file and returns it in DER encoding.
 /// \param path Certificate file path.
 /// \return DER-encoded certificate, or an empty array when it cannot be read.
@@ -487,13 +511,17 @@ bool PkiManager::generateClientCertificate(const QString &commonName,
             + QStringLiteral(".pem");
         const QString certPath = p.ownCertificates + QLatin1Char('/') + fileBaseName
             + QStringLiteral(".der");
-        BIO *keyBio = BIO_new_file(QFile::encodeName(keyPath).constData(), "wb");
+        // The key is buffered rather than written straight to its file: a file BIO would
+        // create it with the process umask, leaving the key world-readable until it could
+        // be restricted afterwards.
+        BIO *keyBio = BIO_new(BIO_s_mem());
         BIO *certBio = BIO_new_file(QFile::encodeName(certPath).constData(), "wb");
         success = certificateInitialized && subjectInitialized && extensionsAdded
             && keyBio && certBio
             && X509_sign(certificate, key, EVP_sha256()) > 0
             && PEM_write_bio_PrivateKey(keyBio, key, nullptr, nullptr, 0, nullptr, nullptr) == 1
-            && i2d_X509_bio(certBio, certificate) == 1;
+            && i2d_X509_bio(certBio, certificate) == 1
+            && writePrivateKeyAtomically(keyPath, memoryBioData(keyBio));
         BIO_free(keyBio);
         BIO_free(certBio);
 
@@ -680,7 +708,7 @@ bool PkiManager::importClientCertificate(const QString &certificateSource,
         + QStringLiteral(".der");
     const QString keyPath = p.ownPrivate + QLatin1Char('/') + fileBaseName
         + QStringLiteral(".pem");
-    if (!writeFileAtomically(certPath, certificate) || !writeFileAtomically(keyPath, key)) {
+    if (!writeFileAtomically(certPath, certificate) || !writePrivateKeyAtomically(keyPath, key)) {
         if (error)
             *error = QObject::tr("Could not store the imported client certificate.");
         return false;
