@@ -912,10 +912,6 @@ Wählen Sie ihn erneut aus.</translation>
         <translation>Zertifikat:</translation>
     </message>
     <message>
-        <source>...</source>
-        <translation>…</translation>
-    </message>
-    <message>
         <source>Private Key:</source>
         <translation>Privater Schlüssel:</translation>
     </message>
@@ -3141,6 +3137,120 @@ Download-Seite öffnen?</translation>
         <source>Event history read timed out.</source>
         <translation>Zeitüberschreitung beim Lesen des Ereignisverlaufs.</translation>
     </message>
+    <message>
+        <source>No error.</source>
+        <translation>Kein Fehler.</translation>
+    </message>
+    <message>
+        <source>Invalid server URL.</source>
+        <translation>Ungültige Server-URL.</translation>
+    </message>
+    <message>
+        <source>Access denied: authentication failed.</source>
+        <translation>Zugriff verweigert: Authentifizierung fehlgeschlagen.</translation>
+    </message>
+    <message>
+        <source>Connection error.</source>
+        <translation>Verbindungsfehler.</translation>
+    </message>
+    <message>
+        <source>Unknown client error.</source>
+        <translation>Unbekannter Client-Fehler.</translation>
+    </message>
+    <message>
+        <source>Unsupported authentication information.</source>
+        <translation>Nicht unterstützte Authentifizierungsdaten.</translation>
+    </message>
+    <message>
+        <source>Invalid authentication information.</source>
+        <translation>Ungültige Authentifizierungsdaten.</translation>
+    </message>
+    <message>
+        <source>Invalid endpoint description.</source>
+        <translation>Ungültige Endpunktbeschreibung.</translation>
+    </message>
+    <message>
+        <source>No matching user identity token found.</source>
+        <translation>Kein passendes Benutzeridentitätstoken gefunden.</translation>
+    </message>
+    <message>
+        <source>Unsupported security policy.</source>
+        <translation>Nicht unterstützte Sicherheitsrichtlinie.</translation>
+    </message>
+    <message>
+        <source>Invalid PKI configuration.</source>
+        <translation>Ungültige PKI-Konfiguration.</translation>
+    </message>
+    <message>
+        <source>Certificate is not trusted.</source>
+        <translation>Dem Zertifikat wird nicht vertraut.</translation>
+    </message>
+    <message>
+        <source>Unknown client error (%1).</source>
+        <translation>Unbekannter Client-Fehler (%1).</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Unbekannt</translation>
+    </message>
+    <message>
+        <source>Certificate validation</source>
+        <translation>Zertifikatprüfung</translation>
+    </message>
+    <message>
+        <source>Open secure channel</source>
+        <translation>Sicheren Kanal öffnen</translation>
+    </message>
+    <message>
+        <source>Create session</source>
+        <translation>Sitzung erstellen</translation>
+    </message>
+    <message>
+        <source>Activate session</source>
+        <translation>Sitzung aktivieren</translation>
+    </message>
+    <message>
+        <source>Step %1</source>
+        <translation>Schritt %1</translation>
+    </message>
+    <message>
+        <source>Encrypted private keys are not supported by Qt OPC UA.</source>
+        <translation>Verschlüsselte private Schlüssel werden von Qt OPC UA nicht unterstützt.</translation>
+    </message>
+    <message>
+        <source>The selected endpoint is no longer available. Run discovery again.</source>
+        <translation>Der ausgewählte Endpunkt ist nicht mehr verfügbar. Führen Sie die Ermittlung erneut aus.</translation>
+    </message>
+    <message>
+        <source>OPC UA client error: %1</source>
+        <translation>OPC-UA-Client-Fehler: %1</translation>
+    </message>
+    <message>
+        <source>Connection failed: %1</source>
+        <translation>Verbindung fehlgeschlagen: %1</translation>
+    </message>
+    <message>
+        <source>Connection step &apos;%1&apos; failed: %2</source>
+        <translation>Verbindungsschritt „%1“ fehlgeschlagen: %2</translation>
+    </message>
+    <message>
+        <source>
+The server rejected the client certificate. Add this certificate to the server trust list and retry: %1</source>
+        <translation>
+Der Server hat das Client-Zertifikat abgelehnt. Fügen Sie dieses Zertifikat der Vertrauensliste des Servers hinzu und versuchen Sie es erneut: %1</translation>
+    </message>
+    <message>
+        <source>The OPC UA connection timed out.</source>
+        <translation>Zeitüberschreitung bei der OPC-UA-Verbindung.</translation>
+    </message>
+    <message>
+        <source>The requested OPC UA backend &apos;%1&apos; is unavailable. Installed backends: %2</source>
+        <translation>Das angeforderte OPC-UA-Backend „%1“ ist nicht verfügbar. Installierte Backends: %2</translation>
+    </message>
+    <message>
+        <source>Could not create the OPC UA backend &apos;%1&apos;.</source>
+        <translation>Das OPC-UA-Backend „%1“ konnte nicht erstellt werden.</translation>
+    </message>
 </context>
 <context>
     <name>QtOpcUaMonitoringManager</name>
@@ -3189,6 +3299,13 @@ Download-Seite öffnen?</translation>
     <message>
         <source>Target</source>
         <translation>Ziel</translation>
+    </message>
+</context>
+<context>
+    <name>SecretStore</name>
+    <message>
+        <source>The credential store did not respond.</source>
+        <translation>Der Anmeldedatenspeicher hat nicht geantwortet.</translation>
     </message>
 </context>
 <context>

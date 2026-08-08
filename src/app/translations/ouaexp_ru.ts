@@ -913,10 +913,6 @@ Select it again.</source>
         <translation>Сертификат:</translation>
     </message>
     <message>
-        <source>...</source>
-        <translation>...</translation>
-    </message>
-    <message>
         <source>Private Key:</source>
         <translation>Закрытый ключ:</translation>
     </message>
@@ -3146,6 +3142,120 @@ Open the download page?</source>
         <source>Event history read timed out.</source>
         <translation>Истекло время чтения истории событий.</translation>
     </message>
+    <message>
+        <source>No error.</source>
+        <translation>Нет ошибки.</translation>
+    </message>
+    <message>
+        <source>Invalid server URL.</source>
+        <translation>Недопустимый URL сервера.</translation>
+    </message>
+    <message>
+        <source>Access denied: authentication failed.</source>
+        <translation>Доступ запрещён: не удалось пройти аутентификацию.</translation>
+    </message>
+    <message>
+        <source>Connection error.</source>
+        <translation>Ошибка подключения.</translation>
+    </message>
+    <message>
+        <source>Unknown client error.</source>
+        <translation>Неизвестная ошибка клиента.</translation>
+    </message>
+    <message>
+        <source>Unsupported authentication information.</source>
+        <translation>Неподдерживаемые данные аутентификации.</translation>
+    </message>
+    <message>
+        <source>Invalid authentication information.</source>
+        <translation>Недопустимые данные аутентификации.</translation>
+    </message>
+    <message>
+        <source>Invalid endpoint description.</source>
+        <translation>Недопустимое описание точки подключения.</translation>
+    </message>
+    <message>
+        <source>No matching user identity token found.</source>
+        <translation>Не найден подходящий токен удостоверения пользователя.</translation>
+    </message>
+    <message>
+        <source>Unsupported security policy.</source>
+        <translation>Неподдерживаемая политика безопасности.</translation>
+    </message>
+    <message>
+        <source>Invalid PKI configuration.</source>
+        <translation>Недопустимая конфигурация PKI.</translation>
+    </message>
+    <message>
+        <source>Certificate is not trusted.</source>
+        <translation>Сертификат не является доверенным.</translation>
+    </message>
+    <message>
+        <source>Unknown client error (%1).</source>
+        <translation>Неизвестная ошибка клиента (%1).</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Неизвестно</translation>
+    </message>
+    <message>
+        <source>Certificate validation</source>
+        <translation>Проверка сертификата</translation>
+    </message>
+    <message>
+        <source>Open secure channel</source>
+        <translation>Открытие защищённого канала</translation>
+    </message>
+    <message>
+        <source>Create session</source>
+        <translation>Создание сессии</translation>
+    </message>
+    <message>
+        <source>Activate session</source>
+        <translation>Активация сессии</translation>
+    </message>
+    <message>
+        <source>Step %1</source>
+        <translation>Шаг %1</translation>
+    </message>
+    <message>
+        <source>Encrypted private keys are not supported by Qt OPC UA.</source>
+        <translation>Qt OPC UA не поддерживает зашифрованные закрытые ключи.</translation>
+    </message>
+    <message>
+        <source>The selected endpoint is no longer available. Run discovery again.</source>
+        <translation>Выбранная точка подключения больше недоступна. Выполните обнаружение заново.</translation>
+    </message>
+    <message>
+        <source>OPC UA client error: %1</source>
+        <translation>Ошибка клиента OPC UA: %1</translation>
+    </message>
+    <message>
+        <source>Connection failed: %1</source>
+        <translation>Не удалось подключиться: %1</translation>
+    </message>
+    <message>
+        <source>Connection step &apos;%1&apos; failed: %2</source>
+        <translation>Шаг подключения «%1» не выполнен: %2</translation>
+    </message>
+    <message>
+        <source>
+The server rejected the client certificate. Add this certificate to the server trust list and retry: %1</source>
+        <translation>
+Сервер отклонил клиентский сертификат. Добавьте этот сертификат в список доверия сервера и повторите попытку: %1</translation>
+    </message>
+    <message>
+        <source>The OPC UA connection timed out.</source>
+        <translation>Истекло время подключения OPC UA.</translation>
+    </message>
+    <message>
+        <source>The requested OPC UA backend &apos;%1&apos; is unavailable. Installed backends: %2</source>
+        <translation>Запрошенный бэкенд OPC UA «%1» недоступен. Установленные бэкенды: %2</translation>
+    </message>
+    <message>
+        <source>Could not create the OPC UA backend &apos;%1&apos;.</source>
+        <translation>Не удалось создать бэкенд OPC UA «%1».</translation>
+    </message>
 </context>
 <context>
     <name>QtOpcUaMonitoringManager</name>
@@ -3194,6 +3304,13 @@ Open the download page?</source>
     <message>
         <source>Target</source>
         <translation>Цель</translation>
+    </message>
+</context>
+<context>
+    <name>SecretStore</name>
+    <message>
+        <source>The credential store did not respond.</source>
+        <translation>Хранилище учётных данных не ответило.</translation>
     </message>
 </context>
 <context>

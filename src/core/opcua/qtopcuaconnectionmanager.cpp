@@ -22,11 +22,13 @@ using namespace OpcUaFormat;
 
 namespace {
 
-/// \brief Translates user-facing text in the stable QtOpcUaBackend context.
-QString backendTr(const char *text)
+/// \brief Carries the stable QtOpcUaBackend translation context for this file.
+///
+/// The literals have to sit at the tr() call itself, otherwise lupdate cannot collect them.
+class BackendText
 {
-    return QCoreApplication::translate("QtOpcUaBackend", text);
-}
+    Q_DECLARE_TR_FUNCTIONS(QtOpcUaBackend)
+};
 
 /// \brief Builds the identity this client reports to servers when no certificate is configured.
 QOpcUaApplicationIdentity applicationIdentity()
@@ -43,42 +45,42 @@ QOpcUaApplicationIdentity applicationIdentity()
 QString clientErrorName(QOpcUaClient::ClientError error)
 {
     switch (error) {
-    case QOpcUaClient::NoError:         return backendTr("No error.");
-    case QOpcUaClient::InvalidUrl:      return backendTr("Invalid server URL.");
-    case QOpcUaClient::AccessDenied:    return backendTr("Access denied: authentication failed.");
-    case QOpcUaClient::ConnectionError: return backendTr("Connection error.");
-    case QOpcUaClient::UnknownError:    return backendTr("Unknown client error.");
+    case QOpcUaClient::NoError:         return BackendText::tr("No error.");
+    case QOpcUaClient::InvalidUrl:      return BackendText::tr("Invalid server URL.");
+    case QOpcUaClient::AccessDenied:    return BackendText::tr("Access denied: authentication failed.");
+    case QOpcUaClient::ConnectionError: return BackendText::tr("Connection error.");
+    case QOpcUaClient::UnknownError:    return BackendText::tr("Unknown client error.");
     case QOpcUaClient::UnsupportedAuthenticationInformation:
-        return backendTr("Unsupported authentication information.");
+        return BackendText::tr("Unsupported authentication information.");
 #if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
     case QOpcUaClient::InvalidAuthenticationInformation:
-        return backendTr("Invalid authentication information.");
+        return BackendText::tr("Invalid authentication information.");
     case QOpcUaClient::InvalidEndpointDescription:
-        return backendTr("Invalid endpoint description.");
+        return BackendText::tr("Invalid endpoint description.");
     case QOpcUaClient::NoMatchingUserIdentityTokenFound:
-        return backendTr("No matching user identity token found.");
+        return BackendText::tr("No matching user identity token found.");
     case QOpcUaClient::UnsupportedSecurityPolicy:
-        return backendTr("Unsupported security policy.");
+        return BackendText::tr("Unsupported security policy.");
     case QOpcUaClient::InvalidPki:
-        return backendTr("Invalid PKI configuration.");
+        return BackendText::tr("Invalid PKI configuration.");
     case QOpcUaClient::CertificateUntrusted:
-        return backendTr("Certificate is not trusted.");
+        return BackendText::tr("Certificate is not trusted.");
 #endif
     }
-    return backendTr("Unknown client error (%1).").arg(static_cast<int>(error));
+    return BackendText::tr("Unknown client error (%1).").arg(static_cast<int>(error));
 }
 
 /// \brief Returns a user-facing name for a connection step.
 QString connectionStepName(QOpcUaErrorState::ConnectionStep step)
 {
     switch (step) {
-    case QOpcUaErrorState::ConnectionStep::Unknown: return backendTr("Unknown");
-    case QOpcUaErrorState::ConnectionStep::CertificateValidation: return backendTr("Certificate validation");
-    case QOpcUaErrorState::ConnectionStep::OpenSecureChannel: return backendTr("Open secure channel");
-    case QOpcUaErrorState::ConnectionStep::CreateSession: return backendTr("Create session");
-    case QOpcUaErrorState::ConnectionStep::ActivateSession: return backendTr("Activate session");
+    case QOpcUaErrorState::ConnectionStep::Unknown: return BackendText::tr("Unknown");
+    case QOpcUaErrorState::ConnectionStep::CertificateValidation: return BackendText::tr("Certificate validation");
+    case QOpcUaErrorState::ConnectionStep::OpenSecureChannel: return BackendText::tr("Open secure channel");
+    case QOpcUaErrorState::ConnectionStep::CreateSession: return BackendText::tr("Create session");
+    case QOpcUaErrorState::ConnectionStep::ActivateSession: return BackendText::tr("Activate session");
     }
-    return backendTr("Step %1").arg(static_cast<int>(step));
+    return BackendText::tr("Step %1").arg(static_cast<int>(step));
 }
 
 /// \brief Returns true when a client error means the server turned the credentials down.
@@ -224,12 +226,12 @@ bool QtOpcUaConnectionManager::connectToEndpoint(const ConnectionProfile &profil
     if (!ensureClient(profile.backend))
         return false;
     if (!privateKeyPassword.isEmpty()) {
-        setError(backendTr("Encrypted private keys are not supported by Qt OPC UA."));
+        setError(BackendText::tr("Encrypted private keys are not supported by Qt OPC UA."));
         return false;
     }
     const int index = endpointIndex(profile);
     if (index < 0) {
-        setError(backendTr("The selected endpoint is no longer available. Run discovery again."));
+        setError(BackendText::tr("The selected endpoint is no longer available. Run discovery again."));
         return false;
     }
     configureClient(profile, password);
@@ -293,7 +295,7 @@ void QtOpcUaConnectionManager::handleClientError(QOpcUaClient::ClientError error
     if (_connectErrorReported)
         _connectErrorReported = false;
     else
-        setError(backendTr("OPC UA client error: %1").arg(name));
+        setError(BackendText::tr("OPC UA client error: %1").arg(name));
     if (rejectsCredentials(error))
         emit authenticationRejected(name);
 }
@@ -301,10 +303,14 @@ void QtOpcUaConnectionManager::handleClientError(QOpcUaClient::ClientError error
 /// \brief Applies certificate trust decisions or reports a connection-step failure.
 void QtOpcUaConnectionManager::handleConnectError(QOpcUaErrorState *state)
 {
-    QString message = backendTr("Connection step '%1' failed: %2")
-        .arg(connectionStepName(state->connectionStep()), statusName(state->errorCode()));
+    // open62541 runs the whole handshake inside one call, so it can only ever report the
+    // Unknown step. Naming it adds nothing.
+    QString message = state->connectionStep() == QOpcUaErrorState::ConnectionStep::Unknown
+        ? BackendText::tr("Connection failed: %1").arg(statusName(state->errorCode()))
+        : BackendText::tr("Connection step '%1' failed: %2")
+              .arg(connectionStepName(state->connectionStep()), statusName(state->errorCode()));
     if (state->errorCode() == QOpcUa::UaStatusCode::BadCertificateInvalid) {
-        message += backendTr("\nThe server rejected the client certificate. Add this certificate "
+        message += BackendText::tr("\nThe server rejected the client certificate. Add this certificate "
                       "to the server trust list and retry: %1")
                        .arg(_activeClientCertificateFile);
     }
@@ -332,7 +338,7 @@ void QtOpcUaConnectionManager::handleConnectError(QOpcUaErrorState *state)
 /// \brief Aborts a connection attempt after its watchdog expires.
 void QtOpcUaConnectionManager::handleConnectTimeout()
 {
-    setError(backendTr("The OPC UA connection timed out."));
+    setError(BackendText::tr("The OPC UA connection timed out."));
     if (_client)
         _client->disconnectFromEndpoint();
 }
@@ -360,14 +366,14 @@ bool QtOpcUaConnectionManager::ensureClient(const QString &backend)
             selected = *match;
     }
     if (!backends.contains(selected)) {
-        setError(backendTr("The requested OPC UA backend '%1' is unavailable. Installed backends: %2")
+        setError(BackendText::tr("The requested OPC UA backend '%1' is unavailable. Installed backends: %2")
                      .arg(backend, backends.join(QStringLiteral(", "))));
         setState(OpcUaConnectionState::Unavailable);
         return false;
     }
     _client = _provider.createClient(selected);
     if (!_client) {
-        setError(backendTr("Could not create the OPC UA backend '%1'.").arg(selected));
+        setError(BackendText::tr("Could not create the OPC UA backend '%1'.").arg(selected));
         setState(OpcUaConnectionState::Unavailable);
         return false;
     }

@@ -911,10 +911,6 @@ Select it again.</source>
         <translation>证书：</translation>
     </message>
     <message>
-        <source>...</source>
-        <translation>…</translation>
-    </message>
-    <message>
         <source>Private Key:</source>
         <translation>私钥：</translation>
     </message>
@@ -3136,6 +3132,120 @@ Open the download page?</source>
         <source>Event history read timed out.</source>
         <translation>事件历史读取超时。</translation>
     </message>
+    <message>
+        <source>No error.</source>
+        <translation>无错误。</translation>
+    </message>
+    <message>
+        <source>Invalid server URL.</source>
+        <translation>无效的服务器 URL。</translation>
+    </message>
+    <message>
+        <source>Access denied: authentication failed.</source>
+        <translation>访问被拒绝：身份验证失败。</translation>
+    </message>
+    <message>
+        <source>Connection error.</source>
+        <translation>连接错误。</translation>
+    </message>
+    <message>
+        <source>Unknown client error.</source>
+        <translation>未知的客户端错误。</translation>
+    </message>
+    <message>
+        <source>Unsupported authentication information.</source>
+        <translation>不支持的身份验证信息。</translation>
+    </message>
+    <message>
+        <source>Invalid authentication information.</source>
+        <translation>无效的身份验证信息。</translation>
+    </message>
+    <message>
+        <source>Invalid endpoint description.</source>
+        <translation>无效的端点描述。</translation>
+    </message>
+    <message>
+        <source>No matching user identity token found.</source>
+        <translation>未找到匹配的用户身份令牌。</translation>
+    </message>
+    <message>
+        <source>Unsupported security policy.</source>
+        <translation>不支持的安全策略。</translation>
+    </message>
+    <message>
+        <source>Invalid PKI configuration.</source>
+        <translation>无效的 PKI 配置。</translation>
+    </message>
+    <message>
+        <source>Certificate is not trusted.</source>
+        <translation>证书不受信任。</translation>
+    </message>
+    <message>
+        <source>Unknown client error (%1).</source>
+        <translation>未知的客户端错误 (%1)。</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>未知</translation>
+    </message>
+    <message>
+        <source>Certificate validation</source>
+        <translation>证书验证</translation>
+    </message>
+    <message>
+        <source>Open secure channel</source>
+        <translation>打开安全通道</translation>
+    </message>
+    <message>
+        <source>Create session</source>
+        <translation>创建会话</translation>
+    </message>
+    <message>
+        <source>Activate session</source>
+        <translation>激活会话</translation>
+    </message>
+    <message>
+        <source>Step %1</source>
+        <translation>步骤 %1</translation>
+    </message>
+    <message>
+        <source>Encrypted private keys are not supported by Qt OPC UA.</source>
+        <translation>Qt OPC UA 不支持加密的私钥。</translation>
+    </message>
+    <message>
+        <source>The selected endpoint is no longer available. Run discovery again.</source>
+        <translation>所选端点已不可用。请重新执行发现。</translation>
+    </message>
+    <message>
+        <source>OPC UA client error: %1</source>
+        <translation>OPC UA 客户端错误：%1</translation>
+    </message>
+    <message>
+        <source>Connection failed: %1</source>
+        <translation>连接失败：%1</translation>
+    </message>
+    <message>
+        <source>Connection step &apos;%1&apos; failed: %2</source>
+        <translation>连接步骤“%1”失败：%2</translation>
+    </message>
+    <message>
+        <source>
+The server rejected the client certificate. Add this certificate to the server trust list and retry: %1</source>
+        <translation>
+服务器拒绝了客户端证书。请将此证书添加到服务器的信任列表后重试：%1</translation>
+    </message>
+    <message>
+        <source>The OPC UA connection timed out.</source>
+        <translation>OPC UA 连接超时。</translation>
+    </message>
+    <message>
+        <source>The requested OPC UA backend &apos;%1&apos; is unavailable. Installed backends: %2</source>
+        <translation>请求的 OPC UA 后端“%1”不可用。已安装的后端：%2</translation>
+    </message>
+    <message>
+        <source>Could not create the OPC UA backend &apos;%1&apos;.</source>
+        <translation>无法创建 OPC UA 后端“%1”。</translation>
+    </message>
 </context>
 <context>
     <name>QtOpcUaMonitoringManager</name>
@@ -3184,6 +3294,13 @@ Open the download page?</source>
     <message>
         <source>Target</source>
         <translation>目标</translation>
+    </message>
+</context>
+<context>
+    <name>SecretStore</name>
+    <message>
+        <source>The credential store did not respond.</source>
+        <translation>凭据存储未响应。</translation>
     </message>
 </context>
 <context>
