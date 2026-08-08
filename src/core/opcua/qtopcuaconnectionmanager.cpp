@@ -22,15 +22,20 @@ using namespace OpcUaFormat;
 
 namespace {
 
+///
 /// \brief Carries the stable QtOpcUaBackend translation context for this file.
 ///
 /// The literals have to sit at the tr() call itself, otherwise lupdate cannot collect them.
+///
 class BackendText
 {
     Q_DECLARE_TR_FUNCTIONS(QtOpcUaBackend)
 };
 
+///
 /// \brief Builds the identity this client reports to servers when no certificate is configured.
+/// \return Application identity naming this installation.
+///
 QOpcUaApplicationIdentity applicationIdentity()
 {
     QOpcUaApplicationIdentity identity;
@@ -41,7 +46,11 @@ QOpcUaApplicationIdentity applicationIdentity()
     return identity;
 }
 
+///
 /// \brief Returns a user-facing description of a Qt OPC UA client error.
+/// \param error Client error reported by QOpcUaClient.
+/// \return Translated error description.
+///
 QString clientErrorName(QOpcUaClient::ClientError error)
 {
     switch (error) {
@@ -70,7 +79,11 @@ QString clientErrorName(QOpcUaClient::ClientError error)
     return BackendText::tr("Unknown client error (%1).").arg(static_cast<int>(error));
 }
 
+///
 /// \brief Returns a user-facing name for a connection step.
+/// \param step Connection step reported by the backend.
+/// \return Translated step name.
+///
 QString connectionStepName(QOpcUaErrorState::ConnectionStep step)
 {
     switch (step) {
@@ -83,7 +96,11 @@ QString connectionStepName(QOpcUaErrorState::ConnectionStep step)
     return BackendText::tr("Step %1").arg(static_cast<int>(step));
 }
 
+///
 /// \brief Returns true when a client error means the server turned the credentials down.
+/// \param error Client error reported by QOpcUaClient.
+/// \return True when the error means the credentials were refused.
+///
 bool rejectsCredentials(QOpcUaClient::ClientError error)
 {
     switch (error) {
@@ -99,7 +116,11 @@ bool rejectsCredentials(QOpcUaClient::ClientError error)
     }
 }
 
+///
 /// \brief Returns true when a connection step failed because the identity was refused.
+/// \param status Status code of the failed connection step.
+/// \return True when the status means the credentials were refused.
+///
 bool rejectsCredentials(QOpcUa::UaStatusCode status)
 {
     switch (status) {
@@ -112,7 +133,12 @@ bool rejectsCredentials(QOpcUa::UaStatusCode status)
     }
 }
 
+///
 /// \brief Returns true when an endpoint advertises the requested user-token type.
+/// \param endpoint Endpoint description to inspect.
+/// \param authentication Authentication method the connection profile asks for.
+/// \return True when the endpoint offers a matching user identity token.
+///
 bool supportsAuthentication(const QOpcUaEndpointDescription &endpoint,
                             ConnectionProfile::Authentication authentication)
 {
@@ -136,7 +162,10 @@ bool supportsAuthentication(const QOpcUaEndpointDescription &endpoint,
 
 } // namespace
 
+///
 /// \brief Constructs an idle connection manager.
+/// \param parent Owning QObject.
+///
 QtOpcUaConnectionManager::QtOpcUaConnectionManager(QObject *parent)
     : QObject(parent)
 {
@@ -144,67 +173,100 @@ QtOpcUaConnectionManager::QtOpcUaConnectionManager(QObject *parent)
     connect(&_watchdog, &QTimer::timeout, this, &QtOpcUaConnectionManager::handleConnectTimeout);
 }
 
+///
 /// \brief Destroys the managed client.
+///
 QtOpcUaConnectionManager::~QtOpcUaConnectionManager()
 {
     delete _client;
 }
 
+///
 /// \brief Reports whether a Qt OPC UA backend is installed.
+/// \return True when at least one backend is available.
+///
 bool QtOpcUaConnectionManager::isAvailable() const
 {
     return !_provider.availableBackends().isEmpty();
 }
 
+///
 /// \brief Returns the installed Qt OPC UA backend names.
+/// \return Backend names reported by the Qt OPC UA provider.
+///
 QStringList QtOpcUaConnectionManager::availableBackends() const
 {
     return _provider.availableBackends();
 }
 
+///
 /// \brief Returns the current connection state.
+/// \return Transport-neutral connection state.
+///
 OpcUaConnectionState QtOpcUaConnectionManager::state() const
 {
     return _state;
 }
 
+///
 /// \brief Returns the most recent connection error.
+/// \return Error message, or an empty string when none was recorded.
+///
 QString QtOpcUaConnectionManager::lastError() const
 {
     return _error;
 }
 
+///
 /// \brief Returns the managed Qt OPC UA client.
+/// \return Client instance, or nullptr while no backend has been created.
+///
 QOpcUaClient *QtOpcUaConnectionManager::client() const
 {
     return _client;
 }
 
+///
 /// \brief Returns the endpoints from the latest successful discovery.
+/// \return Cached endpoint descriptions.
+///
 const QVector<QOpcUaEndpointDescription> &QtOpcUaConnectionManager::endpointDescriptions() const
 {
     return _endpoints;
 }
 
-/// \brief Returns the DER-encoded certificate of the endpoint in use, or empty.
+///
+/// \brief Returns the DER-encoded certificate of the endpoint in use.
+/// \return Server certificate, or an empty array outside a connection attempt.
+///
 QByteArray QtOpcUaConnectionManager::activeServerCertificate() const
 {
     return _activeCertificate;
 }
 
+///
 /// \brief Sets the server-certificate trust delegate.
+/// \param decider Delegate deciding on an untrusted server certificate; nullptr rejects every one.
+///
 void QtOpcUaConnectionManager::setCertificateTrustDecider(CertificateTrustDecider *decider)
 {
     _trustDecider = decider;
 }
 
+///
 /// \brief Creates the requested backend for endpoint discovery.
+/// \param backend Preferred backend name.
+/// \return True when a client for the backend is ready.
+///
 bool QtOpcUaConnectionManager::prepareDiscovery(const QString &backend)
 {
     return ensureClient(backend);
 }
 
+///
 /// \brief Stores a discovery result and returns to disconnected state.
+/// \param endpoints Endpoints reported by the discovery request.
+///
 void QtOpcUaConnectionManager::finishDiscovery(
     const QVector<QOpcUaEndpointDescription> &endpoints)
 {
@@ -212,13 +274,24 @@ void QtOpcUaConnectionManager::finishDiscovery(
     setState(OpcUaConnectionState::Disconnected);
 }
 
+///
 /// \brief Returns to disconnected state, keeping the cached endpoints intact.
+///
+/// FindServers resolves servers rather than endpoints, so the endpoint list a pending
+/// connectToEndpoint() still selects from must survive the request.
+///
 void QtOpcUaConnectionManager::finishServerLookup()
 {
     setState(OpcUaConnectionState::Disconnected);
 }
 
+///
 /// \brief Configures the client and connects to the profile's discovered endpoint.
+/// \param profile Connection profile selecting the endpoint and carrying its settings.
+/// \param password User password used by username authentication.
+/// \param privateKeyPassword Client private key password; a non-empty one is rejected.
+/// \return True when the connection attempt was started.
+///
 bool QtOpcUaConnectionManager::connectToEndpoint(const ConnectionProfile &profile,
                                                  const QString &password,
                                                  const QString &privateKeyPassword)
@@ -241,7 +314,9 @@ bool QtOpcUaConnectionManager::connectToEndpoint(const ConnectionProfile &profil
     return true;
 }
 
+///
 /// \brief Invalidates requests and disconnects the client.
+///
 void QtOpcUaConnectionManager::disconnectFromEndpoint()
 {
     emit clientInvalidated();
@@ -249,7 +324,10 @@ void QtOpcUaConnectionManager::disconnectFromEndpoint()
         _client->disconnectFromEndpoint();
 }
 
+///
 /// \brief Updates the externally visible connection state.
+/// \param state New connection state; an unchanged one emits no signal.
+///
 void QtOpcUaConnectionManager::setState(OpcUaConnectionState state)
 {
     if (_state == state)
@@ -258,7 +336,10 @@ void QtOpcUaConnectionManager::setState(OpcUaConnectionState state)
     emit stateChanged(state);
 }
 
+///
 /// \brief Records and reports a connection error.
+/// \param message Error message written to the log and delivered to the user.
+///
 void QtOpcUaConnectionManager::setError(const QString &message)
 {
     _error = message;
@@ -266,7 +347,10 @@ void QtOpcUaConnectionManager::setError(const QString &message)
     emit errorOccurred(message);
 }
 
+///
 /// \brief Maps a Qt client state transition to the transport-neutral state.
+/// \param state Client state reported by QOpcUaClient.
+///
 void QtOpcUaConnectionManager::handleClientState(QOpcUaClient::ClientState state)
 {
     switch (state) {
@@ -284,7 +368,10 @@ void QtOpcUaConnectionManager::handleClientState(QOpcUaClient::ClientState state
     }
 }
 
+///
 /// \brief Reports a Qt client error when it is not NoError.
+/// \param error Client error reported by QOpcUaClient.
+///
 void QtOpcUaConnectionManager::handleClientError(QOpcUaClient::ClientError error)
 {
     if (error == QOpcUaClient::NoError)
@@ -300,7 +387,10 @@ void QtOpcUaConnectionManager::handleClientError(QOpcUaClient::ClientError error
         emit authenticationRejected(name);
 }
 
+///
 /// \brief Applies certificate trust decisions or reports a connection-step failure.
+/// \param state Error state of the failed step; its ignore flag carries the trust decision back.
+///
 void QtOpcUaConnectionManager::handleConnectError(QOpcUaErrorState *state)
 {
     // open62541 runs the whole handshake inside one call, so it can only ever report the
@@ -335,7 +425,9 @@ void QtOpcUaConnectionManager::handleConnectError(QOpcUaErrorState *state)
     state->setIgnoreError(decision != CertificateTrustDecision::Reject);
 }
 
+///
 /// \brief Aborts a connection attempt after its watchdog expires.
+///
 void QtOpcUaConnectionManager::handleConnectTimeout()
 {
     setError(BackendText::tr("The OPC UA connection timed out."));
@@ -343,7 +435,11 @@ void QtOpcUaConnectionManager::handleConnectTimeout()
         _client->disconnectFromEndpoint();
 }
 
+///
 /// \brief Creates or reuses a client for the requested backend.
+/// \param backend Preferred backend name; "open62541" also matches a versioned plugin name.
+/// \return True when a client for the backend is available.
+///
 bool QtOpcUaConnectionManager::ensureClient(const QString &backend)
 {
     if (_client && _activeBackend == backend)
@@ -384,7 +480,11 @@ bool QtOpcUaConnectionManager::ensureClient(const QString &backend)
     return true;
 }
 
+///
 /// \brief Replaces authentication, PKI and timeout settings for a connection profile.
+/// \param profile Connection profile holding the credentials, certificates and timeouts.
+/// \param password User password used by username authentication.
+///
 void QtOpcUaConnectionManager::configureClient(const ConnectionProfile &profile,
                                                 const QString &password)
 {
@@ -436,7 +536,11 @@ void QtOpcUaConnectionManager::configureClient(const ConnectionProfile &profile,
     _client->setConnectionSettings(settings);
 }
 
+///
 /// \brief Finds the discovered endpoint selected by a connection profile.
+/// \param profile Connection profile naming the endpoint URL, security and authentication.
+/// \return Index into the cached endpoints, or -1 when none of them matches.
+///
 int QtOpcUaConnectionManager::endpointIndex(const ConnectionProfile &profile) const
 {
     for (int i = 0; i < _endpoints.size(); ++i) {
@@ -451,7 +555,9 @@ int QtOpcUaConnectionManager::endpointIndex(const ConnectionProfile &profile) co
     return -1;
 }
 
+///
 /// \brief Clears certificate state that must not cross connection profiles.
+///
 void QtOpcUaConnectionManager::clearConnectionData()
 {
     _activeCertificate.clear();
