@@ -18,7 +18,9 @@ class AttributesWidget;
 }
 
 class AttributesModel;
+class ElidedTextDelegate;
 class QEvent;
+class QModelIndex;
 class QPoint;
 class ThemedAction;
 
@@ -94,6 +96,7 @@ private:
     void copySelectedAttributeCell();
     void copyAttributeTree();
     void showAttributesContextMenu(const QPoint &pos);
+    void showAttributeValue(const QModelIndex &index);
     void setupWriteEditor(int valueType, const QString &dataTypeId, const QVariant &value);
     void updateValueEditor();
     void clearWriteEditor();
@@ -103,6 +106,7 @@ private:
     AttributesModel      *_model;
     ThemedAction         *_copyCellAction = nullptr;
     ThemedAction         *_copyTreeAction = nullptr;
+    ElidedTextDelegate   *_valueDelegate = nullptr;
     QString               _nodeId;
     bool                  _offline = false;
 };

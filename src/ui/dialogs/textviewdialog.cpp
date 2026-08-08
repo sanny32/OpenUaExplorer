@@ -8,7 +8,9 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QFont>
 #include <QFontDatabase>
+#include <QTextOption>
 
 #include "appcolors.h"
 #include "textviewdialog.h"
@@ -24,7 +26,19 @@ TextViewDialog::TextViewDialog(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->textEdit->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+    // The fixed-pitch system font carries its own point size, which is larger than the
+    // one the rest of the application uses, so only the family is taken from it.
+    QFont monospace = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    const QFont base = ui->textEdit->font();
+    if (base.pointSizeF() > 0.0)
+        monospace.setPointSizeF(base.pointSizeF());
+    else
+        monospace.setPixelSize(base.pixelSize());
+    ui->textEdit->setFont(monospace);
+
+    // A ByteString or a NodeId is one unbroken token, so word boundaries alone would
+    // leave it running off the edge.
+    ui->textEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
 
     ui->closeButton->setColors(
         { AppColors::accent(), AppColors::accentHover(), AppColors::accentPressed() });

@@ -19,6 +19,8 @@
 #include "appsettings.h"
 #include "attributeswidget.h"
 #include "dialogs/messageboxdialog.h"
+#include "dialogs/textviewdialog.h"
+#include "elidedtextdelegate.h"
 #include "formatters/attributeformatter.h"
 #include "headerview.h"
 #include "themedaction.h"
@@ -306,6 +308,11 @@ void AttributesWidget::setupAttributesView()
 
     ui->attributesTree->setColumnWidth(AttributesModel::ColAttribute, 165);
 
+    _valueDelegate = new ElidedTextDelegate(ui->attributesTree);
+    ui->attributesTree->setItemDelegateForColumn(AttributesModel::ColValue, _valueDelegate);
+    connect(_valueDelegate, &ElidedTextDelegate::viewRequested,
+            this, &AttributesWidget::showAttributeValue);
+
     _copyCellAction = new ThemedAction(QStringLiteral("copy"), tr("Copy"), this);
     _copyCellAction->setObjectName(QStringLiteral("actionCopyAttributeCell"));
     _copyCellAction->setShortcut(QKeySequence::Copy);
@@ -368,6 +375,20 @@ void AttributesWidget::showAttributesContextMenu(const QPoint &pos)
     menu.addAction(_copyCellAction);
     menu.addAction(_copyTreeAction);
     menu.exec(ui->attributesTree->viewport()->mapToGlobal(pos));
+}
+
+///
+/// \brief Opens the full text of an attribute value in a read-only viewer.
+/// \param index Value cell to show.
+///
+void AttributesWidget::showAttributeValue(const QModelIndex &index)
+{
+    if (!index.isValid())
+        return;
+    const QString name = index.sibling(index.row(), AttributesModel::ColAttribute)
+                             .data().toString();
+    TextViewDialog::showText(this, name.isEmpty() ? tr("Value") : name,
+                             index.data().toString());
 }
 
 ///

@@ -209,6 +209,8 @@ add_library(ouaexp_ui STATIC
     widgets/publishingintervaldelegate.h
     widgets/subscriptiondelegate.cpp
     widgets/subscriptiondelegate.h
+    widgets/elidedtextdelegate.cpp
+    widgets/elidedtextdelegate.h
     widgets/separatoritemdelegate.cpp
     widgets/separatoritemdelegate.h
     widgets/severitydelegate.cpp

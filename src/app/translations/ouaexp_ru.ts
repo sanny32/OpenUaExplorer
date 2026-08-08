@@ -207,6 +207,10 @@
 <context>
     <name>AttributesWidget</name>
     <message>
+        <source>Value</source>
+        <translation>Значение</translation>
+    </message>
+    <message>
         <source>Write Value</source>
         <translation>Запись значения</translation>
     </message>

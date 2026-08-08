@@ -206,6 +206,10 @@
 <context>
     <name>AttributesWidget</name>
     <message>
+        <source>Value</source>
+        <translation>Wert</translation>
+    </message>
+    <message>
         <source>Write Value</source>
         <translation>Wert schreiben</translation>
     </message>
