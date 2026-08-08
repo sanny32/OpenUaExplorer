@@ -1,0 +1,20 @@
+An empty PKI directory is the normal state of a fresh client, not a fault: a trust list holds
+nothing until the user trusts a server, and a revocation list stays empty unless the operator
+maintains CRLs. loadAllFilesInDirectory() nevertheless logs it at warning level and returns
+success, so every single connect prints two warnings. They also name no path, which makes the
+pair indistinguishable -- the reader cannot tell the trust list from the revocation list. Log
+the expected case at debug level and say which directory it was.
+
+diff --git a/src/plugins/opcua/open62541/qopen62541backend.cpp b/src/plugins/opcua/open62541/qopen62541backend.cpp
+--- a/src/plugins/opcua/open62541/qopen62541backend.cpp
++++ b/src/plugins/opcua/open62541/qopen62541backend.cpp
+@@ -2166,7 +2166,8 @@ bool Open62541AsyncBackend::loadAllFilesInDirectory(const QString &location, UA_B
+     auto entries = dir.entryList(QDir::Files);
+
+     if (entries.isEmpty()) {
+-        qCWarning(QT_OPCUA_PLUGINS_OPEN62541) << "Directory is empty";
++        // ouaexp patch: an empty trust or revocation list is expected, and the path identifies it
++        qCDebug(QT_OPCUA_PLUGINS_OPEN62541) << "No files to load in" << location;
+         return true;
+     }
+
