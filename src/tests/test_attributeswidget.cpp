@@ -378,6 +378,9 @@ void TestAttributesWidget::valueEditorStretchesWithPanel()
     widget.show();
     QVERIFY(QTest::qWaitForWindowExposed(&widget));
     widget.setNodeDetails(makeWritableDetails(12, QStringLiteral("ns=0;i=3"), 0u));
+    // Filling the type combo invalidates its size hint through a posted layout request,
+    // so the baseline is only stable once that request has been delivered.
+    QCoreApplication::processEvents();
     widget.layout()->activate();
 
     QCOMPARE(writeGroup->width(), tree->width());
