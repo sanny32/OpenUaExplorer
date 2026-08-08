@@ -18,10 +18,6 @@
         <source>Node Details</source>
         <translation>Сведения об узле</translation>
     </message>
-    <message>
-        <source>Root</source>
-        <translation>Корень</translation>
-    </message>
 </context>
 <context>
     <name>AddressSpaceModule</name>

@@ -18,10 +18,6 @@
         <source>Node Details</source>
         <translation>Knotendetails</translation>
     </message>
-    <message>
-        <source>Root</source>
-        <translation>Wurzel</translation>
-    </message>
 </context>
 <context>
     <name>AddressSpaceModule</name>

@@ -18,10 +18,6 @@
         <source>Node Details</source>
         <translation>节点详情</translation>
     </message>
-    <message>
-        <source>Root</source>
-        <translation>根</translation>
-    </message>
 </context>
 <context>
     <name>AddressSpaceModule</name>
