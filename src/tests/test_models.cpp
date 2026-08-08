@@ -88,6 +88,9 @@ private slots:
     void dataAccessActualIntervalColumnTracksServerValue();
     void subscriptionsModelBuiltinRowsAreEditable();
     void logModelColumnsRolesAndFilters();
+    void logModelDropsTheOldestBeyondItsDepth();
+    void logModelDepthCountsHiddenRowsToo();
+    void logModelLoweringTheDepthTrimsImmediately();
     void attributesModelHeaderRolesAndMutators();
     void eventsModelHeaderRolesAndMutators();
     void nodeInfoModelColumnsAndClear();
@@ -1174,6 +1177,80 @@ void TestModels::subscriptionsModelBuiltinRowsAreEditable()
     QVERIFY(!model.data(nameIndex, Qt::DecorationRole).isValid());
     model.setBuiltinBackground(QBrush(Qt::gray));
     QVERIFY(model.data(nameIndex, Qt::BackgroundRole).isValid());
+}
+
+///
+/// \brief The log keeps only its most recent entries once the depth is reached.
+///
+void TestModels::logModelDropsTheOldestBeyondItsDepth()
+{
+    LogModel model;
+    model.setMaxRows(3);
+    QCOMPARE(model.maxRows(), 3);
+
+    for (int index = 0; index < 5; ++index) {
+        model.addItem({QStringLiteral("t%1").arg(index), LogItem::Level::Info,
+                       QStringLiteral("Client"), QStringLiteral("m%1").arg(index)});
+    }
+
+    QCOMPARE(model.rowCount(), 3);
+    QCOMPARE(model.data(model.index(0, LogModel::ColMessage)).toString(),
+             QStringLiteral("m2"));
+    QCOMPARE(model.data(model.index(2, LogModel::ColMessage)).toString(),
+             QStringLiteral("m4"));
+}
+
+///
+/// \brief The depth caps everything held, so a filtered view cannot hide unbounded growth.
+///
+void TestModels::logModelDepthCountsHiddenRowsToo()
+{
+    LogModel model;
+    model.setMaxRows(2);
+    model.setFilterLevel(LogItem::Level::Error);
+
+    model.addItem({QStringLiteral("t0"), LogItem::Level::Error,
+                   QStringLiteral("Client"), QStringLiteral("boom")});
+    // Two entries the filter hides; they still count against the depth and push the error out.
+    model.addItem({QStringLiteral("t1"), LogItem::Level::Info,
+                   QStringLiteral("Client"), QStringLiteral("chatter")});
+    model.addItem({QStringLiteral("t2"), LogItem::Level::Info,
+                   QStringLiteral("Client"), QStringLiteral("chatter")});
+
+    QCOMPARE(model.rowCount(), 0);
+
+    model.clearFilterLevel();
+    QCOMPARE(model.rowCount(), 2);
+    QCOMPARE(model.data(model.index(0, LogModel::ColTimestamp)).toString(),
+             QStringLiteral("t1"));
+}
+
+///
+/// \brief Lowering the depth trims what is already there instead of waiting for new entries.
+///
+void TestModels::logModelLoweringTheDepthTrimsImmediately()
+{
+    LogModel model;
+    for (int index = 0; index < 6; ++index) {
+        model.addItem({QStringLiteral("t%1").arg(index), LogItem::Level::Info,
+                       QStringLiteral("Client"), QStringLiteral("m%1").arg(index)});
+    }
+    QCOMPARE(model.rowCount(), 6);
+
+    QSignalSpy removedSpy(&model, &QAbstractItemModel::rowsRemoved);
+    model.setMaxRows(2);
+
+    QCOMPARE(model.rowCount(), 2);
+    QCOMPARE(removedSpy.size(), 1);
+    QCOMPARE(model.data(model.index(0, LogModel::ColMessage)).toString(),
+             QStringLiteral("m4"));
+
+    // A depth below one is meaningless; the model keeps at least the newest entry.
+    model.setMaxRows(0);
+    QCOMPARE(model.maxRows(), 1);
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(model.data(model.index(0, LogModel::ColMessage)).toString(),
+             QStringLiteral("m5"));
 }
 
 ///

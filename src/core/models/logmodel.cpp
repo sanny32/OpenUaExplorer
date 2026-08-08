@@ -8,6 +8,7 @@
 
 #include <QColor>
 
+#include "appsettings.h"
 #include "logmodel.h"
 
 namespace {
@@ -52,6 +53,7 @@ QColor levelColor(LogItem::Level level)
 ///
 LogModel::LogModel(QObject *parent)
     : QAbstractTableModel(parent)
+    , _maxRows(AppSettings::defaultMaxLogRows)
 {
 }
 
@@ -139,11 +141,7 @@ QVariant LogModel::data(const QModelIndex &index, int role) const
 ///
 void LogModel::addItem(const LogItem &item)
 {
-    const bool levelOk  = !_filtered || item.level == _filterLevel;
-    const bool searchOk = _searchText.isEmpty()
-                          || item.message.contains(_searchText, Qt::CaseInsensitive);
-    const bool sourceOk = _sourceFilter.isEmpty() || item.source == _sourceFilter;
-    if (levelOk && searchOk && sourceOk) {
+    if (matchesFilters(item)) {
         const int row = visibleItems().size();
         beginInsertRows(QModelIndex(), row, row);
         _items.append(item);
@@ -151,6 +149,56 @@ void LogModel::addItem(const LogItem &item)
     } else {
         _items.append(item);
     }
+    trimToMaxRows();
+}
+
+///
+/// \brief Returns how many entries the model keeps.
+/// \return Current row cap.
+///
+int LogModel::maxRows() const
+{
+    return _maxRows;
+}
+
+///
+/// \brief Caps how many entries the model keeps, dropping the oldest beyond the cap.
+/// \param rows Row cap; values below one are raised to one.
+///
+void LogModel::setMaxRows(int rows)
+{
+    const int wanted = qMax(1, rows);
+    if (_maxRows == wanted)
+        return;
+    _maxRows = wanted;
+    trimToMaxRows();
+}
+
+///
+/// \brief Drops the oldest entries until the model is back within its row cap.
+///
+/// The cap counts every entry the model holds, not only the rows a filter leaves visible, so
+/// what the log costs in memory does not depend on what the user is currently looking at.
+/// Dropped entries are the oldest ones, and those of them that are visible are always the
+/// leading rows of the view.
+///
+void LogModel::trimToMaxRows()
+{
+    const int excess = _items.size() - _maxRows;
+    if (excess <= 0)
+        return;
+
+    int visibleExcess = 0;
+    for (int index = 0; index < excess; ++index) {
+        if (matchesFilters(_items.at(index)))
+            ++visibleExcess;
+    }
+
+    if (visibleExcess > 0)
+        beginRemoveRows(QModelIndex(), 0, visibleExcess - 1);
+    _items.remove(0, excess);
+    if (visibleExcess > 0)
+        endRemoveRows();
 }
 
 ///
@@ -235,15 +283,26 @@ QVector<LogItem> LogModel::visibleItems() const
 {
     QVector<LogItem> result;
     for (const LogItem &item : _items) {
-        if (_filtered && item.level != _filterLevel)
-            continue;
-        if (!_searchText.isEmpty() && !item.message.contains(_searchText, Qt::CaseInsensitive))
-            continue;
-        if (!_sourceFilter.isEmpty() && item.source != _sourceFilter)
-            continue;
-        result.append(item);
+        if (matchesFilters(item))
+            result.append(item);
     }
     return result;
+}
+
+///
+/// \brief Reports whether an entry survives the active level, search and source filters.
+/// \param item Entry to test.
+/// \return True when the entry is shown.
+///
+bool LogModel::matchesFilters(const LogItem &item) const
+{
+    if (_filtered && item.level != _filterLevel)
+        return false;
+    if (!_searchText.isEmpty() && !item.message.contains(_searchText, Qt::CaseInsensitive))
+        return false;
+    if (!_sourceFilter.isEmpty() && item.source != _sourceFilter)
+        return false;
+    return true;
 }
 
 ///

@@ -85,6 +85,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
             this, &SettingsDialog::markDirty);
     connect(ui->debugLoggingCheck, &QAbstractButton::toggled,
             this, &SettingsDialog::markDirty);
+    connect(ui->maxLogRowsSpin, &QSpinBox::valueChanged,
+            this, &SettingsDialog::markDirty);
 }
 
 ///
@@ -186,6 +188,8 @@ void SettingsDialog::loadSettings()
     ui->highlightChangesCheck->setChecked(settings.highlightValueChanges());
 
     ui->debugLoggingCheck->setChecked(settings.debugLoggingEnabled());
+    ui->maxLogRowsSpin->setRange(AppSettings::minMaxLogRows, AppSettings::maxMaxLogRows);
+    ui->maxLogRowsSpin->setValue(settings.maxLogRows());
 
     const QHash<QString, bool> states = settings.logCategoryStates();
     for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
@@ -218,6 +222,7 @@ void SettingsDialog::applyChanges()
 
     theApp()->setTimestampMode(selectedTimestampMode());
     theApp()->setHighlightValueChanges(ui->highlightChangesCheck->isChecked());
+    theApp()->setMaxLogRows(ui->maxLogRowsSpin->value());
     theApp()->setLanguage(selectedLanguage());
 
     setDirty(false);

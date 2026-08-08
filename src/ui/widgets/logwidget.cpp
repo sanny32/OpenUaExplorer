@@ -20,6 +20,7 @@
 #include <QSignalBlocker>
 
 #include "appicons.h"
+#include "application.h"
 #include "appsettings.h"
 #include "fileexport.h"
 #include "headerview.h"
@@ -181,6 +182,9 @@ LogWidget::LogWidget(QWidget *parent)
         if (ui->autoScrollCheck->isChecked())
             scrollToBottom();
     });
+
+    _model->setMaxRows(AppSettings().maxLogRows());
+    connect(theApp(), &Application::maxLogRowsChanged, _model, &LogModel::setMaxRows);
 }
 
 ///

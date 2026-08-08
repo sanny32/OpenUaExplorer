@@ -77,6 +77,18 @@ public:
     void clear();
 
     ///
+    /// \brief Returns how many entries the model keeps.
+    /// \return Current row cap.
+    ///
+    int maxRows() const;
+
+    ///
+    /// \brief Caps how many entries the model keeps, dropping the oldest beyond the cap.
+    /// \param rows Row cap; values below one are raised to one.
+    ///
+    void setMaxRows(int rows);
+
+    ///
     /// \brief Returns the level the log is filtered to.
     /// \return Active filter level.
     ///
@@ -125,11 +137,14 @@ public:
 
 private:
     QVector<LogItem> visibleItems() const;
+    bool matchesFilters(const LogItem &item) const;
+    void trimToMaxRows();
 
     QVector<LogItem>          _items;
     LogItem::Level            _filterLevel;
     bool                      _filtered = false;
     QString                   _searchText;
     QString                   _sourceFilter;
+    int                       _maxRows;
     ColumnAlignmentStore     _columnAlignments;
 };

@@ -144,6 +144,27 @@ public:
     ///
     void setDebugLoggingEnabled(bool enabled);
 
+    /// \brief Number of log entries kept when the user has expressed no preference.
+    static constexpr int defaultMaxLogRows = 5000;
+
+    /// \brief Smallest log depth the application accepts.
+    static constexpr int minMaxLogRows = 100;
+
+    /// \brief Largest log depth the application accepts.
+    static constexpr int maxMaxLogRows = 1000000;
+
+    ///
+    /// \brief Returns how many log entries the application keeps.
+    /// \return Stored row cap, clamped to the supported range.
+    ///
+    int maxLogRows() const;
+
+    ///
+    /// \brief Stores how many log entries the application keeps.
+    /// \param rows Row cap, clamped to the supported range.
+    ///
+    void setMaxLogRows(int rows);
+
     ///
     /// \brief Builds the QLoggingCategory filter rules from the stored preferences.
     /// \return Newline-separated rule string suitable for QLoggingCategory::setFilterRules().

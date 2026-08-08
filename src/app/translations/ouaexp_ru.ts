@@ -3495,6 +3495,10 @@ Do you want to save them?</source>
         <source>The session file does not describe a connection.</source>
         <translation>Файл сессии не описывает подключение.</translation>
     </message>
+    <message>
+        <source>The session file was written by a newer version of the application.</source>
+        <translation>Файл сессии создан более новой версией приложения.</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -3622,6 +3626,18 @@ Do you want to save them?</source>
     <message>
         <source>Log debug messages of the enabled categories</source>
         <translation>Записывать отладочные сообщения включённых категорий</translation>
+    </message>
+    <message>
+        <source>Keep the last</source>
+        <translation>Хранить последние</translation>
+    </message>
+    <message>
+        <source>Older entries are dropped once the log reaches this many.</source>
+        <translation>Более старые записи удаляются, когда журнал достигает этого объёма.</translation>
+    </message>
+    <message>
+        <source>log entries</source>
+        <translation>записей журнала</translation>
     </message>
 </context>
 <context>

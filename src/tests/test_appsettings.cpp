@@ -33,6 +33,7 @@ private slots:
     void restoreLastSessionDefaultsToFalse();
     void reconnectDefaultsToEveryFiveSeconds();
     void reconnectIntervalIsClampedToTheSupportedRange();
+    void maxLogRowsRoundTripsAndIsClamped();
     void lastSavedSessionPathRoundTrips();
     void builtinSubscriptionOverridesRoundTrip();
     void dataAccessPageRoundTrips();
@@ -173,6 +174,23 @@ void TestAppSettings::reconnectIntervalIsClampedToTheSupportedRange()
 
     AppSettings().setReconnectIntervalSeconds(100000);
     QCOMPARE(AppSettings().reconnectIntervalSeconds(), 3600);
+}
+
+///
+/// \brief The log depth defaults, round-trips, and never leaves the supported range.
+///
+void TestAppSettings::maxLogRowsRoundTripsAndIsClamped()
+{
+    QCOMPARE(AppSettings().maxLogRows(), AppSettings::defaultMaxLogRows);
+
+    AppSettings().setMaxLogRows(250);
+    QCOMPARE(AppSettings().maxLogRows(), 250);
+
+    AppSettings().setMaxLogRows(0);
+    QCOMPARE(AppSettings().maxLogRows(), AppSettings::minMaxLogRows);
+
+    AppSettings().setMaxLogRows(AppSettings::maxMaxLogRows * 10);
+    QCOMPARE(AppSettings().maxLogRows(), AppSettings::maxMaxLogRows);
 }
 
 ///

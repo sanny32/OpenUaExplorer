@@ -3489,6 +3489,10 @@ Möchten Sie sie speichern?</translation>
         <source>The session file does not describe a connection.</source>
         <translation>Die Sitzungsdatei beschreibt keine Verbindung.</translation>
     </message>
+    <message>
+        <source>The session file was written by a newer version of the application.</source>
+        <translation>Die Sitzungsdatei wurde von einer neueren Version der Anwendung geschrieben.</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -3616,6 +3620,18 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>Log debug messages of the enabled categories</source>
         <translation>Debug-Meldungen der aktivierten Kategorien protokollieren</translation>
+    </message>
+    <message>
+        <source>Keep the last</source>
+        <translation>Die letzten</translation>
+    </message>
+    <message>
+        <source>Older entries are dropped once the log reaches this many.</source>
+        <translation>Ältere Einträge werden verworfen, sobald das Protokoll diese Anzahl erreicht.</translation>
+    </message>
+    <message>
+        <source>log entries</source>
+        <translation>Protokolleinträge behalten</translation>
     </message>
 </context>
 <context>

@@ -3483,6 +3483,10 @@ Do you want to save them?</source>
         <source>The session file does not describe a connection.</source>
         <translation>会话文件未描述任何连接。</translation>
     </message>
+    <message>
+        <source>The session file was written by a newer version of the application.</source>
+        <translation>该会话文件由更新版本的应用程序写入。</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -3610,6 +3614,18 @@ Do you want to save them?</source>
     <message>
         <source>Log debug messages of the enabled categories</source>
         <translation>记录已启用类别的调试消息</translation>
+    </message>
+    <message>
+        <source>Keep the last</source>
+        <translation>保留最近</translation>
+    </message>
+    <message>
+        <source>Older entries are dropped once the log reaches this many.</source>
+        <translation>当日志达到该数量时，较早的条目将被丢弃。</translation>
+    </message>
+    <message>
+        <source>log entries</source>
+        <translation>条日志记录</translation>
     </message>
 </context>
 <context>

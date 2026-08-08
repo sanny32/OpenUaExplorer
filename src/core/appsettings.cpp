@@ -34,6 +34,7 @@ constexpr auto secureChannelLifetimeKey = "secureChannelLifetimeMs";
 constexpr auto maxMessageSizeKey = "maxMessageSizeBytes";
 constexpr auto loggingGroup = "logging";
 constexpr auto debugLoggingKey = "logging/debugMessages";
+constexpr auto maxLogRowsKey = "logging/maxRows";
 constexpr auto subscriptionsGroup = "subscriptions/custom";
 constexpr auto subscriptionsBuiltinGroup = "subscriptions/builtin";
 constexpr auto subscriptionNameKey = "name";
@@ -254,6 +255,28 @@ void AppSettings::setDebugLoggingEnabled(bool enabled)
 {
     SettingsStore settings;
     settings.setValue(QLatin1String(debugLoggingKey), enabled);
+}
+
+///
+/// \brief Returns how many log entries the application keeps.
+/// \return Stored row cap, clamped to the supported range.
+///
+int AppSettings::maxLogRows() const
+{
+    SettingsStore settings;
+    const int rows = settings.value(QLatin1String(maxLogRowsKey), defaultMaxLogRows).toInt();
+    return std::clamp(rows, minMaxLogRows, maxMaxLogRows);
+}
+
+///
+/// \brief Stores how many log entries the application keeps.
+/// \param rows Row cap, clamped to the supported range.
+///
+void AppSettings::setMaxLogRows(int rows)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(maxLogRowsKey),
+                      std::clamp(rows, minMaxLogRows, maxMaxLogRows));
 }
 
 ///

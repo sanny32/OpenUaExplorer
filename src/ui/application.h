@@ -53,6 +53,12 @@ public:
     void setHighlightValueChanges(bool enabled);
 
     ///
+    /// \brief Persists the log depth preference and notifies listeners.
+    /// \param rows Number of log entries to keep.
+    ///
+    void setMaxLogRows(int rows);
+
+    ///
     /// \brief Persists the interface language preference and retranslates the running UI.
     /// \param language Language to apply.
     ///
@@ -91,6 +97,12 @@ signals:
     /// \param enabled The newly applied preference.
     ///
     void highlightValueChangesChanged(bool enabled);
+
+    ///
+    /// \brief Emitted when the log depth preference changes.
+    /// \param rows The newly applied number of log entries to keep.
+    ///
+    void maxLogRowsChanged(int rows);
 
     ///
     /// \brief Emitted when the interface language preference changes.
