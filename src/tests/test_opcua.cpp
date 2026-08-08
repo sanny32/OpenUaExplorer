@@ -17,7 +17,6 @@
 #include <QTest>
 
 #include <QOpcUaConnectionSettings>
-#include <QOpcUaPkiConfiguration>
 #include <QSslCertificate>
 #include <QSslCertificateExtension>
 
@@ -168,12 +167,11 @@ void TestOpcUa::generatedCertificateProvidesApplicationIdentity()
     QCOMPARE(QFileInfo(certificateFile).completeBaseName(), executableBaseName);
     QCOMPARE(QFileInfo(privateKeyFile).completeBaseName(), executableBaseName);
 
-    QOpcUaPkiConfiguration configuration;
-    configuration.setClientCertificateFile(certificateFile);
-    configuration.setPrivateKeyFile(privateKeyFile);
-    QCOMPARE(configuration.applicationIdentity().applicationUri(),
+    // Not QOpcUaPkiConfiguration::applicationIdentity(): it reads the URI through
+    // QSslCertificate::extensions(), which only reports one while Qt runs on its OpenSSL
+    // TLS backend, so the assertion would follow the test environment rather than the code.
+    QCOMPARE(PkiManager::certificateApplicationUri(certificateFile),
              PkiManager::applicationUri());
-    QVERIFY(configuration.applicationIdentity().isValid());
 
     QString existingCertificateFile;
     QString existingPrivateKeyFile;

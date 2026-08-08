@@ -26,6 +26,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#include "certificateinfo.h"
 #include "pkimanager.h"
 #include "utils.h"
 
@@ -281,6 +282,19 @@ QString PkiManager::productUri()
 {
     const QString productName = withoutSpaces(QString::fromUtf8(APP_PRODUCT_NAME));
     return QStringLiteral("%1:%1").arg(productName);
+}
+
+///
+/// \brief Returns the application URI a client certificate was issued for.
+/// \param certificateFile DER or PEM certificate file.
+/// \return The application URI, or an empty string when the certificate carries none.
+/// \note Does not use QOpcUaPkiConfiguration::applicationIdentity(), which reads the URI
+///       through QSslCertificate::extensions() and therefore yields nothing unless Qt runs
+///       on its OpenSSL TLS backend.
+///
+QString PkiManager::certificateApplicationUri(const QString &certificateFile)
+{
+    return CertificateInfo::fromDer(readCertificateAsDer(certificateFile)).applicationUri;
 }
 
 ///

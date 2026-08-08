@@ -67,6 +67,13 @@ public:
     static QString productUri();
 
     ///
+    /// \brief Returns the application URI a client certificate was issued for.
+    /// \param certificateFile DER or PEM certificate file.
+    /// \return The application URI, or an empty string when the certificate carries none.
+    ///
+    static QString certificateApplicationUri(const QString &certificateFile);
+
+    ///
     /// \brief Returns the common name for the auto-generated client certificate.
     /// \return Common name used by the auto-generated client certificate.
     ///

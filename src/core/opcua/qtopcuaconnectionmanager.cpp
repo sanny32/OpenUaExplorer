@@ -416,12 +416,14 @@ void QtOpcUaConnectionManager::configureClient(const ConnectionProfile &profile,
         configuration.setIssuerListDirectory(paths.issuerCertificates);
         configuration.setIssuerRevocationListDirectory(paths.issuerCrl);
         _client->setPkiConfiguration(configuration);
-        if (configuration.isKeyAndCertificateFileSet()) {
-            QOpcUaApplicationIdentity identity = configuration.applicationIdentity();
-            if (identity.isValid()) {
-                identity.setApplicationName(PkiManager::applicationName());
-                _client->setApplicationIdentity(identity);
-            }
+        // The server matches the session's application URI against the one in the client
+        // certificate, so an imported certificate dictates the identity we may present.
+        const QString certificateUri =
+            PkiManager::certificateApplicationUri(profile.clientCertificateFile);
+        if (!certificateUri.isEmpty()) {
+            QOpcUaApplicationIdentity identity = applicationIdentity();
+            identity.setApplicationUri(certificateUri);
+            _client->setApplicationIdentity(identity);
         }
         _activeClientCertificateFile = profile.clientCertificateFile;
     }
