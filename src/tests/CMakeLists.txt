@@ -4,6 +4,7 @@ function(ouaexp_configure_test_environment test_name)
         set(test_appdata "${CMAKE_BINARY_DIR}/.test-appdata")
         set(test_environment
             "QT_QPA_PLATFORM=offscreen"
+            "QT_FORCE_STDERR_LOGGING=1"
             "USERPROFILE=${test_home}"
             "HOME=${test_home}"
             "APPDATA=${test_home}/AppData/Roaming"
