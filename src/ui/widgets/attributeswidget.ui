@@ -68,7 +68,7 @@
        <widget class="ValueLineEdit" name="valueEdit">
         <property name="minimumSize">
          <size>
-          <width>100</width>
+          <width>60</width>
           <height>0</height>
          </size>
         </property>
@@ -78,7 +78,7 @@
        <widget class="QComboBox" name="valueCombo">
         <property name="minimumSize">
          <size>
-          <width>100</width>
+          <width>60</width>
           <height>0</height>
          </size>
         </property>
@@ -110,7 +110,7 @@
        <widget class="QComboBox" name="typeCombo">
         <property name="minimumSize">
          <size>
-          <width>90</width>
+          <width>70</width>
           <height>0</height>
          </size>
         </property>

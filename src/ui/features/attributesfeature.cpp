@@ -38,7 +38,7 @@ void AttributesFeature::initialize(FeatureHost &host)
     _dock = new QDockWidget(QCoreApplication::translate("AttributesFeature", "Attributes"),
                             host.mainWindow());
     _dock->setObjectName(QStringLiteral("attributesDock"));
-    _dock->setMinimumSize(390, 220);
+    _dock->setMinimumSize(260, 220);
     _dock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetFloatable);
     _dock->setWidget(_widget);
 
