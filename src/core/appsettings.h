@@ -133,6 +133,18 @@ public:
     void setLogCategoryStates(const QHash<QString, bool> &states);
 
     ///
+    /// \brief Reports whether debug messages reach the log.
+    /// \return True when the enabled categories also log at debug level.
+    ///
+    bool debugLoggingEnabled() const;
+
+    ///
+    /// \brief Stores whether debug messages reach the log.
+    /// \param enabled True to let the enabled categories log at debug level.
+    ///
+    void setDebugLoggingEnabled(bool enabled);
+
+    ///
     /// \brief Builds the QLoggingCategory filter rules from the stored preferences.
     /// \return Newline-separated rule string suitable for QLoggingCategory::setFilterRules().
     ///

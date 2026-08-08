@@ -2265,6 +2265,10 @@ Select it again.</source>
         <source>Log files (*.log);;Text files (*.txt);;All files (*)</source>
         <translation>日志文件 (*.log);;文本文件 (*.txt);;所有文件 (*)</translation>
     </message>
+    <message>
+        <source>Debug</source>
+        <translation>调试</translation>
+    </message>
 </context>
 <context>
     <name>MainStatusBarWidget</name>
@@ -3598,6 +3602,14 @@ Do you want to save them?</source>
     <message>
         <source>Interval (s):</source>
         <translation>间隔（秒）：</translation>
+    </message>
+    <message>
+        <source>Debug messages are verbose and are meant for diagnosing a problem.</source>
+        <translation>调试消息内容冗长，用于诊断问题。</translation>
+    </message>
+    <message>
+        <source>Log debug messages of the enabled categories</source>
+        <translation>记录已启用类别的调试消息</translation>
     </message>
 </context>
 <context>

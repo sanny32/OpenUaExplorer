@@ -15,11 +15,12 @@ namespace {
 ///
 /// \brief Returns the short label for a log level.
 /// \param level Log level.
-/// \return "INFO", "WARN", or "ERROR".
+/// \return "DEBUG", "INFO", "WARN", or "ERROR".
 ///
 QString levelText(LogItem::Level level)
 {
     switch (level) {
+    case LogItem::Level::Debug:   return "DEBUG";
     case LogItem::Level::Info:    return "INFO";
     case LogItem::Level::Warning: return "WARN";
     case LogItem::Level::Error:   return "ERROR";
@@ -35,6 +36,7 @@ QString levelText(LogItem::Level level)
 QColor levelColor(LogItem::Level level)
 {
     switch (level) {
+    case LogItem::Level::Debug:   return QColor(130, 130, 130);
     case LogItem::Level::Info:    return QColor(0, 150, 64);
     case LogItem::Level::Warning: return QColor(200, 140, 0);
     case LogItem::Level::Error:   return QColor(200, 40, 40);

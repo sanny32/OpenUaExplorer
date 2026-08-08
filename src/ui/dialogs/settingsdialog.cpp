@@ -83,6 +83,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
             this, &SettingsDialog::markDirty);
     connect(ui->highlightChangesCheck, &QAbstractButton::toggled,
             this, &SettingsDialog::markDirty);
+    connect(ui->debugLoggingCheck, &QAbstractButton::toggled,
+            this, &SettingsDialog::markDirty);
 }
 
 ///
@@ -183,6 +185,8 @@ void SettingsDialog::loadSettings()
     ui->reconnectIntervalSpin->setEnabled(ui->reconnectCheck->isChecked());
     ui->highlightChangesCheck->setChecked(settings.highlightValueChanges());
 
+    ui->debugLoggingCheck->setChecked(settings.debugLoggingEnabled());
+
     const QHash<QString, bool> states = settings.logCategoryStates();
     for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
         it.value()->setChecked(states.value(it.key(), true));
@@ -199,6 +203,7 @@ void SettingsDialog::applyChanges()
     for (auto it = _logCategoryChecks.cbegin(); it != _logCategoryChecks.cend(); ++it)
         states.insert(it.key(), it.value()->isChecked());
     settings.setLogCategoryStates(states);
+    settings.setDebugLoggingEnabled(ui->debugLoggingCheck->isChecked());
     QLoggingCategory::setFilterRules(settings.logFilterRules());
 
     settings.setRestoreLastSessionOnStartup(ui->restoreLastSessionCheck->isChecked());

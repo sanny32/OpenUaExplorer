@@ -2270,6 +2270,10 @@ Wählen Sie ihn erneut aus.</translation>
         <source>Log files (*.log);;Text files (*.txt);;All files (*)</source>
         <translation>Protokolldateien (*.log);;Textdateien (*.txt);;Alle Dateien (*)</translation>
     </message>
+    <message>
+        <source>Debug</source>
+        <translation>Debug</translation>
+    </message>
 </context>
 <context>
     <name>MainStatusBarWidget</name>
@@ -3604,6 +3608,14 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>Interval (s):</source>
         <translation>Intervall (s):</translation>
+    </message>
+    <message>
+        <source>Debug messages are verbose and are meant for diagnosing a problem.</source>
+        <translation>Debug-Meldungen sind ausführlich und dienen der Diagnose eines Problems.</translation>
+    </message>
+    <message>
+        <source>Log debug messages of the enabled categories</source>
+        <translation>Debug-Meldungen der aktivierten Kategorien protokollieren</translation>
     </message>
 </context>
 <context>

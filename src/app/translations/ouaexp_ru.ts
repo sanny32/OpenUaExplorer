@@ -2275,6 +2275,10 @@ Select it again.</source>
         <source>Log files (*.log);;Text files (*.txt);;All files (*)</source>
         <translation>Файлы журнала (*.log);;Текстовые файлы (*.txt);;Все файлы (*)</translation>
     </message>
+    <message>
+        <source>Debug</source>
+        <translation>Отладка</translation>
+    </message>
 </context>
 <context>
     <name>MainStatusBarWidget</name>
@@ -3610,6 +3614,14 @@ Do you want to save them?</source>
     <message>
         <source>Interval (s):</source>
         <translation>Интервал (с):</translation>
+    </message>
+    <message>
+        <source>Debug messages are verbose and are meant for diagnosing a problem.</source>
+        <translation>Отладочные сообщения многословны и предназначены для диагностики проблемы.</translation>
+    </message>
+    <message>
+        <source>Log debug messages of the enabled categories</source>
+        <translation>Записывать отладочные сообщения включённых категорий</translation>
     </message>
 </context>
 <context>

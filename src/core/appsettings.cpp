@@ -33,6 +33,7 @@ constexpr auto requestTimeoutKey = "requestTimeoutMs";
 constexpr auto secureChannelLifetimeKey = "secureChannelLifetimeMs";
 constexpr auto maxMessageSizeKey = "maxMessageSizeBytes";
 constexpr auto loggingGroup = "logging";
+constexpr auto debugLoggingKey = "logging/debugMessages";
 constexpr auto subscriptionsGroup = "subscriptions/custom";
 constexpr auto subscriptionsBuiltinGroup = "subscriptions/builtin";
 constexpr auto subscriptionNameKey = "name";
@@ -236,6 +237,26 @@ void AppSettings::setLogCategoryStates(const QHash<QString, bool> &states)
 }
 
 ///
+/// \brief Reports whether debug messages reach the log.
+/// \return True when the enabled categories also log at debug level.
+///
+bool AppSettings::debugLoggingEnabled() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(debugLoggingKey), false).toBool();
+}
+
+///
+/// \brief Stores whether debug messages reach the log.
+/// \param enabled True to let the enabled categories log at debug level.
+///
+void AppSettings::setDebugLoggingEnabled(bool enabled)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(debugLoggingKey), enabled);
+}
+
+///
 /// \brief Builds the QLoggingCategory filter rules from the stored preferences.
 /// \return Newline-separated rule string suitable for QLoggingCategory::setFilterRules().
 ///
@@ -250,6 +271,11 @@ QString AppSettings::logFilterRules() const
         const bool enabled = states.value(category.key, category.defaultEnabled);
         rules << category.categoryName + QLatin1Char('=')
                      + (enabled ? QStringLiteral("true") : QStringLiteral("false"));
+    }
+    // Last, because a per-category rule above enables every message type of that category.
+    if (!debugLoggingEnabled()) {
+        rules << QStringLiteral("ouaexp.*.debug=false");
+        rules << QStringLiteral("qt.opcua.*.debug=false");
     }
     return rules.join(QLatin1Char('\n'));
 }

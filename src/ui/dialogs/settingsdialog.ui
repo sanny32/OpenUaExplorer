@@ -633,6 +633,16 @@
               </layout>
              </widget>
             </item>
+            <item>
+             <widget class="QCheckBox" name="debugLoggingCheck">
+              <property name="toolTip">
+               <string>Debug messages are verbose and are meant for diagnosing a problem.</string>
+              </property>
+              <property name="text">
+               <string>Log debug messages of the enabled categories</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>
