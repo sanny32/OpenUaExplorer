@@ -463,12 +463,6 @@ void TestConnectionDialog::reopeningFillsInTheRememberedPassword()
     const QString profileId = QStringLiteral("ouaexp-dialog-test-")
         + QUuid::createUuid().toString(QUuid::WithoutBraces);
 
-    SecretStore secrets;
-    QSignalSpy writeSpy(&secrets, &SecretStore::writeFinished);
-    secrets.write(profileId, SecretStore::Secret::Password, QStringLiteral("kept-secret"));
-    if (!writeSpy.wait(5000) || !writeSpy.takeFirst().at(2).toString().isEmpty())
-        QSKIP("No usable keychain backend.");
-
     EndpointHistoryStore().save(endpoint);
     ConnectionProfile profile;
     profile.id = profileId;
@@ -476,6 +470,15 @@ void TestConnectionDialog::reopeningFillsInTheRememberedPassword()
     profile.authentication = ConnectionProfile::Authentication::Username;
     profile.username = QStringLiteral("operator");
     RecentConnectionStore().record(profile);
+
+    // The secret is filed under the endpoint identity of the profile, not under its bare
+    // identifier, so the dialog only finds it when it is stored under the same scope.
+    const QString scope = profile.secretScope();
+    SecretStore secrets;
+    QSignalSpy writeSpy(&secrets, &SecretStore::writeFinished);
+    secrets.write(scope, SecretStore::Secret::Password, QStringLiteral("kept-secret"));
+    if (!writeSpy.wait(5000) || !writeSpy.takeFirst().at(2).toString().isEmpty())
+        QSKIP("No usable keychain backend.");
 
     {
         ConnectionDialog dialog;
@@ -490,7 +493,7 @@ void TestConnectionDialog::reopeningFillsInTheRememberedPassword()
     }
 
     QSignalSpy removeSpy(&secrets, &SecretStore::writeFinished);
-    secrets.remove(profileId, SecretStore::Secret::Password);
+    secrets.remove(scope, SecretStore::Secret::Password);
     removeSpy.wait(5000);
 }
 
