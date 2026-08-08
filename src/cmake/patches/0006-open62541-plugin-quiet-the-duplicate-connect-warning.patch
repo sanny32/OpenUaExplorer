@@ -1,0 +1,28 @@
+The connect-failure warning duplicates what the caller already knows. One line above it the
+plugin emits connectError() with the very same status code over a BlockingQueuedConnection, so
+every consumer has already been told, in full, before this reaches the log; ouaexp turns that
+signal into its own translated message. Anyone reading the log therefore sees the same failure
+twice, once in their language and once in English.
+
+The message is also the only one in the plugin that prefixes itself with the product name --
+which the qt.opcua.plugins.open62541 category already carries, reading "open62541: Open62541:
+Failed to connect" -- and the only failure message that drops its status code, where its ~10
+siblings end in UA_StatusCode_name().
+
+Keep it as plugin diagnostics rather than a second warning: name the status like the rest of the
+plugin does, and log it at debug level, where a consumer that ignores connectError() can still
+reach it with qt.opcua.plugins.open62541.debug=true.
+
+diff --git a/src/plugins/opcua/open62541/qopen62541backend.cpp b/src/plugins/opcua/open62541/qopen62541backend.cpp
+--- a/src/plugins/opcua/open62541/qopen62541backend.cpp
++++ b/src/plugins/opcua/open62541/qopen62541backend.cpp
+@@ -1398,7 +1398,8 @@ void Open62541AsyncBackend::connectToEndpoint(const QOpcUaEndpointDescription &e
+         emit QOpcUaBackend::connectError(&errorState);
+
+         emit stateAndOrErrorChanged(QOpcUaClient::Disconnected, error);
+-        qCWarning(QT_OPCUA_PLUGINS_OPEN62541) << "Open62541: Failed to connect";
++        // ouaexp patch: connectError() above already carried this status to the caller
++        qCDebug(QT_OPCUA_PLUGINS_OPEN62541) << "Failed to connect:" << UA_StatusCode_name(ret);
+         return;
+     }
+
