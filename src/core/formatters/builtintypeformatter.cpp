@@ -8,17 +8,31 @@
 
 #include "attributeformatter.h"
 
+#include <QMetaEnum>
+
 #include <QOpcUaArgument>
 #include <QOpcUaAxisInformation>
 #include <QOpcUaComplexNumber>
+#include <QOpcUaContentFilterElement>
+#include <QOpcUaDataValue>
+#include <QOpcUaDiagnosticInfo>
 #include <QOpcUaDoubleComplexNumber>
 #include <QOpcUaEUInformation>
+#include <QOpcUaElementOperand>
+#include <QOpcUaEnumDefinition>
+#include <QOpcUaEnumField>
 #include <QOpcUaExpandedNodeId>
 #include <QOpcUaExtensionObject>
+#include <QOpcUaLiteralOperand>
 #include <QOpcUaLocalizedText>
+#include <QOpcUaMonitoringParameters>
 #include <QOpcUaMultiDimensionalArray>
 #include <QOpcUaQualifiedName>
 #include <QOpcUaRange>
+#include <QOpcUaRelativePathElement>
+#include <QOpcUaSimpleAttributeOperand>
+#include <QOpcUaStructureDefinition>
+#include <QOpcUaStructureField>
 #include <QOpcUaVariant>
 #include <QOpcUaXValue>
 
@@ -49,6 +63,21 @@ QString field(const QString &name, const QVariant &value)
 }
 
 ///
+/// \brief Wraps a typed list so it formats like any other array.
+/// \param items List to wrap.
+/// \return The same elements as a variant list.
+///
+template <typename T>
+QVariant variantList(const QList<T> &items)
+{
+    QVariantList list;
+    list.reserve(items.size());
+    for (const T &item : items)
+        list.append(QVariant::fromValue(item));
+    return list;
+}
+
+///
 /// \brief Names an axis scale.
 /// \param scale Scale to name.
 /// \return Scale name, or its numeric value when unrecognised.
@@ -61,6 +90,66 @@ QString axisScaleName(QOpcUa::AxisScale scale)
     case QOpcUa::AxisScale::Ln: return QStringLiteral("Ln");
     }
     return QString::number(static_cast<quint32>(scale));
+}
+
+///
+/// \brief Names a structure kind.
+/// \param type Structure type to name.
+/// \return Type name, or its numeric value when unrecognised.
+///
+QString structureTypeName(QOpcUaStructureDefinition::StructureType type)
+{
+    switch (type) {
+    case QOpcUaStructureDefinition::StructureType::Structure:
+        return QStringLiteral("Structure");
+    case QOpcUaStructureDefinition::StructureType::StructureWithOptionalFields:
+        return QStringLiteral("StructureWithOptionalFields");
+    case QOpcUaStructureDefinition::StructureType::Union:
+        return QStringLiteral("Union");
+    }
+    return QString::number(static_cast<int>(type));
+}
+
+///
+/// \brief Names a content-filter operator.
+/// \param filterOperator Operator to name.
+/// \return Operator name, or its numeric value when unrecognised.
+///
+QString filterOperatorName(QOpcUaContentFilterElement::FilterOperator filterOperator)
+{
+    switch (filterOperator) {
+    case QOpcUaContentFilterElement::Equals: return QStringLiteral("Equals");
+    case QOpcUaContentFilterElement::IsNull: return QStringLiteral("IsNull");
+    case QOpcUaContentFilterElement::GreaterThan: return QStringLiteral("GreaterThan");
+    case QOpcUaContentFilterElement::LessThan: return QStringLiteral("LessThan");
+    case QOpcUaContentFilterElement::GreaterThanOrEqual: return QStringLiteral("GreaterThanOrEqual");
+    case QOpcUaContentFilterElement::LessThanOrEqual: return QStringLiteral("LessThanOrEqual");
+    case QOpcUaContentFilterElement::Like: return QStringLiteral("Like");
+    case QOpcUaContentFilterElement::Not: return QStringLiteral("Not");
+    case QOpcUaContentFilterElement::Between: return QStringLiteral("Between");
+    case QOpcUaContentFilterElement::InList: return QStringLiteral("InList");
+    case QOpcUaContentFilterElement::And: return QStringLiteral("And");
+    case QOpcUaContentFilterElement::Or: return QStringLiteral("Or");
+    case QOpcUaContentFilterElement::Cast: return QStringLiteral("Cast");
+    case QOpcUaContentFilterElement::InView: return QStringLiteral("InView");
+    case QOpcUaContentFilterElement::OfType: return QStringLiteral("OfType");
+    case QOpcUaContentFilterElement::RelatedTo: return QStringLiteral("RelatedTo");
+    case QOpcUaContentFilterElement::BitwiseAnd: return QStringLiteral("BitwiseAnd");
+    case QOpcUaContentFilterElement::BitwiseOr: return QStringLiteral("BitwiseOr");
+    }
+    return QString::number(static_cast<quint32>(filterOperator));
+}
+
+///
+/// \brief Names a node attribute.
+/// \param attribute Attribute to name.
+/// \return Attribute name, or its numeric value when unrecognised.
+///
+QString nodeAttributeName(QOpcUa::NodeAttribute attribute)
+{
+    const char *key = QMetaEnum::fromType<QOpcUa::NodeAttribute>()
+                          .valueToKey(static_cast<int>(attribute));
+    return key ? QString::fromLatin1(key) : QString::number(static_cast<quint32>(attribute));
 }
 
 ///
@@ -187,6 +276,127 @@ std::optional<QString> builtinTypeText(const QVariant &value)
             dimensions.append(QString::number(dimension));
         return QStringLiteral("%1 [%2]")
             .arg(displayValue(array.valueArray()), dimensions.join(QLatin1Char('x')));
+    }
+
+    if (type == qMetaTypeId<QOpcUa::UaStatusCode>())
+        return statusDisplay(value.value<QOpcUa::UaStatusCode>());
+
+    if (type == qMetaTypeId<QOpcUaDataValue>()) {
+        const QOpcUaDataValue dataValue = value.value<QOpcUaDataValue>();
+        QStringList fields{field(QStringLiteral("Value"), dataValue.value()),
+                           QStringLiteral("StatusCode: %1").arg(statusDisplay(dataValue.statusCode()))};
+        if (dataValue.sourceTimestamp().isValid())
+            fields.append(field(QStringLiteral("SourceTimestamp"), dataValue.sourceTimestamp()));
+        if (dataValue.serverTimestamp().isValid())
+            fields.append(field(QStringLiteral("ServerTimestamp"), dataValue.serverTimestamp()));
+        return structText(QStringLiteral("DataValue"), fields);
+    }
+
+    if (type == qMetaTypeId<QOpcUaDiagnosticInfo>()) {
+        const QOpcUaDiagnosticInfo info = value.value<QOpcUaDiagnosticInfo>();
+        QStringList fields;
+        if (info.hasSymbolicId())
+            fields.append(field(QStringLiteral("SymbolicId"), info.symbolicId()));
+        if (info.hasNamespaceUri())
+            fields.append(field(QStringLiteral("NamespaceUri"), info.namespaceUri()));
+        if (info.hasLocale())
+            fields.append(field(QStringLiteral("Locale"), info.locale()));
+        if (info.hasLocalizedText())
+            fields.append(field(QStringLiteral("LocalizedText"), info.localizedText()));
+        if (info.hasAdditionalInfo())
+            fields.append(field(QStringLiteral("AdditionalInfo"), info.additionalInfo()));
+        if (info.hasInnerStatusCode())
+            fields.append(QStringLiteral("InnerStatusCode: %1").arg(statusDisplay(info.innerStatusCode())));
+        if (info.hasInnerDiagnosticInfo())
+            fields.append(field(QStringLiteral("InnerDiagnosticInfo"), info.innerDiagnosticInfo()));
+        return structText(QStringLiteral("DiagnosticInfo"), fields);
+    }
+
+    if (type == qMetaTypeId<QOpcUaEnumField>()) {
+        const QOpcUaEnumField enumField = value.value<QOpcUaEnumField>();
+        return structText(QStringLiteral("EnumField"),
+                          {field(QStringLiteral("Name"), enumField.name()),
+                           field(QStringLiteral("Value"), enumField.value()),
+                           field(QStringLiteral("DisplayName"), enumField.displayName()),
+                           field(QStringLiteral("Description"), enumField.description())});
+    }
+
+    if (type == qMetaTypeId<QOpcUaEnumDefinition>()) {
+        const QOpcUaEnumDefinition definition = value.value<QOpcUaEnumDefinition>();
+        return structText(QStringLiteral("EnumDefinition"),
+                          {field(QStringLiteral("Fields"), variantList(definition.fields()))});
+    }
+
+    if (type == qMetaTypeId<QOpcUaStructureField>()) {
+        const QOpcUaStructureField structField = value.value<QOpcUaStructureField>();
+        QVariantList dimensions;
+        dimensions.reserve(structField.arrayDimensions().size());
+        for (quint32 dimension : structField.arrayDimensions())
+            dimensions.append(dimension);
+        return structText(QStringLiteral("StructureField"),
+                          {field(QStringLiteral("Name"), structField.name()),
+                           QStringLiteral("DataType: %1").arg(dataTypeDisplay(structField.dataType())),
+                           QStringLiteral("ValueRank: %1").arg(valueRankDisplay(structField.valueRank())),
+                           field(QStringLiteral("ArrayDimensions"), dimensions),
+                           field(QStringLiteral("IsOptional"), structField.isOptional())});
+    }
+
+    if (type == qMetaTypeId<QOpcUaStructureDefinition>()) {
+        const QOpcUaStructureDefinition definition = value.value<QOpcUaStructureDefinition>();
+        return structText(
+            QStringLiteral("StructureDefinition"),
+            {QStringLiteral("StructureType: %1").arg(structureTypeName(definition.structureType())),
+             QStringLiteral("BaseDataType: %1").arg(dataTypeDisplay(definition.baseDataType())),
+             field(QStringLiteral("DefaultEncodingId"), definition.defaultEncodingId()),
+             field(QStringLiteral("Fields"), variantList(definition.fields()))});
+    }
+
+    if (type == qMetaTypeId<QOpcUaSimpleAttributeOperand>()) {
+        const QOpcUaSimpleAttributeOperand operand = value.value<QOpcUaSimpleAttributeOperand>();
+        return structText(
+            QStringLiteral("SimpleAttributeOperand"),
+            {QStringLiteral("TypeId: %1").arg(standardNodeDisplayName(operand.typeId())),
+             field(QStringLiteral("BrowsePath"), variantList(operand.browsePath())),
+             QStringLiteral("AttributeId: %1").arg(nodeAttributeName(operand.attributeId())),
+             field(QStringLiteral("IndexRange"), operand.indexRange())});
+    }
+
+    if (type == qMetaTypeId<QOpcUaLiteralOperand>()) {
+        const QOpcUaLiteralOperand operand = value.value<QOpcUaLiteralOperand>();
+        return structText(QStringLiteral("LiteralOperand"),
+                          {field(QStringLiteral("Value"), operand.value()),
+                           QStringLiteral("Type: %1").arg(valueTypeName(operand.type()))});
+    }
+
+    if (type == qMetaTypeId<QOpcUaElementOperand>()) {
+        return structText(QStringLiteral("ElementOperand"),
+                          {field(QStringLiteral("Index"),
+                                 value.value<QOpcUaElementOperand>().index())});
+    }
+
+    if (type == qMetaTypeId<QOpcUaRelativePathElement>()) {
+        const QOpcUaRelativePathElement element = value.value<QOpcUaRelativePathElement>();
+        return structText(
+            QStringLiteral("RelativePathElement"),
+            {QStringLiteral("ReferenceTypeId: %1").arg(standardNodeDisplayName(element.referenceTypeId())),
+             field(QStringLiteral("IsInverse"), element.isInverse()),
+             field(QStringLiteral("IncludeSubtypes"), element.includeSubtypes()),
+             field(QStringLiteral("TargetName"), element.targetName())});
+    }
+
+    if (type == qMetaTypeId<QOpcUaContentFilterElement>()) {
+        const QOpcUaContentFilterElement element = value.value<QOpcUaContentFilterElement>();
+        return structText(
+            QStringLiteral("ContentFilterElement"),
+            {QStringLiteral("FilterOperator: %1").arg(filterOperatorName(element.filterOperator())),
+             field(QStringLiteral("FilterOperands"), QVariant(element.filterOperands()))});
+    }
+
+    if (type == qMetaTypeId<QOpcUaMonitoringParameters::EventFilter>()) {
+        const auto filter = value.value<QOpcUaMonitoringParameters::EventFilter>();
+        return structText(QStringLiteral("EventFilter"),
+                          {field(QStringLiteral("SelectClauses"), variantList(filter.selectClauses())),
+                           field(QStringLiteral("WhereClause"), variantList(filter.whereClause()))});
     }
 
     // A Variant field only wraps the value it transports; the wrapper itself says nothing.

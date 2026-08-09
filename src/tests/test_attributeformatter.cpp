@@ -12,14 +12,30 @@
 #include <QUuid>
 #include <QVariant>
 
+#include <QOpcUaArgument>
+#include <QOpcUaAxisInformation>
 #include <QOpcUaComplexNumber>
+#include <QOpcUaContentFilterElement>
+#include <QOpcUaDataValue>
+#include <QOpcUaDiagnosticInfo>
+#include <QOpcUaDoubleComplexNumber>
 #include <QOpcUaEUInformation>
+#include <QOpcUaElementOperand>
+#include <QOpcUaEnumDefinition>
+#include <QOpcUaEnumField>
 #include <QOpcUaExpandedNodeId>
 #include <QOpcUaExtensionObject>
 #include <QOpcUaGenericStructValue>
+#include <QOpcUaLiteralOperand>
 #include <QOpcUaLocalizedText>
+#include <QOpcUaMonitoringParameters>
+#include <QOpcUaMultiDimensionalArray>
 #include <QOpcUaQualifiedName>
 #include <QOpcUaRange>
+#include <QOpcUaRelativePathElement>
+#include <QOpcUaSimpleAttributeOperand>
+#include <QOpcUaVariant>
+#include <QOpcUaXValue>
 #include <QOpcUaStructureDefinition>
 #include <QOpcUaStructureField>
 
@@ -61,6 +77,7 @@ private slots:
     void structValuesExpandIntoTheirDeclaredFields();
     void builtinTypesFormatWithRulesOfTheirOwn();
     void undecodedExtensionObjectsNameTheirEncoding();
+    void everyTransportedTypeRendersAsText();
     void formatAttributeDispatchesPerAttribute();
     void attributeAppliesToNodeClassMatrix();
     void valueTypeForDataTypeMapping();
@@ -433,6 +450,23 @@ void TestAttributeFormatter::builtinTypesFormatWithRulesOfTheirOwn()
     QCOMPARE(displayValue(QVariant::fromValue(complex)),
              QStringLiteral("ComplexNumberType {Real: 1.5, Imaginary: -2}"));
 
+    QCOMPARE(displayValue(QVariant::fromValue(QOpcUa::UaStatusCode::BadInternalError)),
+             QStringLiteral("BadInternalError (0x80020000)"));
+
+    QOpcUaEnumField enumField;
+    enumField.setName(QStringLiteral("Running"));
+    enumField.setValue(1);
+    QCOMPARE(displayValue(QVariant::fromValue(enumField)),
+             QStringLiteral("EnumField {Name: Running, Value: 1, "
+                            "DisplayName: \"\", \"\", Description: \"\", \"\"}"));
+
+    QOpcUaStructureField structField;
+    structField.setName(QStringLiteral("Low"));
+    structField.setDataType(QStringLiteral("ns=0;i=11"));
+    QCOMPARE(displayValue(QVariant::fromValue(structField)),
+             QStringLiteral("StructureField {Name: Low, DataType: Double, "
+                            "ValueRank: -1 (Scalar), ArrayDimensions: [], IsOptional: false}"));
+
     // An array of them is still an array, and its elements format one by one.
     QCOMPARE(displayValue(QVariant::fromValue(QList<QOpcUaQualifiedName>{qualified, qualified})),
              QStringLiteral("[2, \"Colour\", 2, \"Colour\"]"));
@@ -450,6 +484,60 @@ void TestAttributeFormatter::undecodedExtensionObjectsNameTheirEncoding()
     QOpcUaExtensionObject xml;
     xml.setXmlEncodedBody(QByteArray("<Value>1</Value>"), QStringLiteral("ns=2;i=3062"));
     QCOMPARE(displayValue(QVariant::fromValue(xml)), QStringLiteral("<Value>1</Value>"));
+}
+
+void TestAttributeFormatter::everyTransportedTypeRendersAsText()
+{
+    // Every type the open62541 plugin and the struct decoder can put into a value: none of
+    // them may fall through to QVariant::toString(), which is empty for all of the gadgets.
+    const QVector<QVariant> values{
+        QVariant(true),
+        QVariant::fromValue<qint8>(-1),
+        QVariant::fromValue<quint8>(1),
+        QVariant::fromValue<qint16>(-2),
+        QVariant::fromValue<quint16>(2),
+        QVariant(-3),
+        QVariant(3u),
+        QVariant::fromValue<qint64>(-4),
+        QVariant::fromValue<quint64>(4),
+        QVariant::fromValue<float>(1.5f),
+        QVariant(2.5),
+        QVariant(QStringLiteral("text")),
+        QVariant(QByteArray("\x01")),
+        QVariant(QDateTime::currentDateTimeUtc()),
+        QVariant::fromValue(QUuid::createUuid()),
+        QVariant::fromValue(QOpcUa::UaStatusCode::BadInternalError),
+        QVariant::fromValue(QOpcUaQualifiedName(1, QStringLiteral("Name"))),
+        QVariant::fromValue(QOpcUaLocalizedText(QStringLiteral("en"), QStringLiteral("Text"))),
+        QVariant::fromValue(QOpcUaExpandedNodeId(QStringLiteral("ns=1;i=2"))),
+        QVariant::fromValue(QOpcUaRange(0.0, 1.0)),
+        QVariant::fromValue(QOpcUaEUInformation()),
+        QVariant::fromValue(QOpcUaComplexNumber(1.0f, 2.0f)),
+        QVariant::fromValue(QOpcUaDoubleComplexNumber(1.0, 2.0)),
+        QVariant::fromValue(QOpcUaXValue(1.0, 2.0f)),
+        QVariant::fromValue(QOpcUaAxisInformation()),
+        QVariant::fromValue(QOpcUaArgument()),
+        QVariant::fromValue(QOpcUaMultiDimensionalArray(QVariantList{1, 2}, {2})),
+        QVariant::fromValue(QOpcUaExtensionObject()),
+        QVariant::fromValue(QOpcUaVariant(QOpcUaVariant::ValueType::Int32, 5)),
+        QVariant::fromValue(QOpcUaDataValue()),
+        QVariant::fromValue(QOpcUaDiagnosticInfo()),
+        QVariant::fromValue(QOpcUaEnumField()),
+        QVariant::fromValue(QOpcUaEnumDefinition()),
+        QVariant::fromValue(QOpcUaStructureField()),
+        QVariant::fromValue(QOpcUaStructureDefinition()),
+        QVariant::fromValue(QOpcUaSimpleAttributeOperand()),
+        QVariant::fromValue(QOpcUaLiteralOperand()),
+        QVariant::fromValue(QOpcUaElementOperand()),
+        QVariant::fromValue(QOpcUaRelativePathElement()),
+        QVariant::fromValue(QOpcUaContentFilterElement()),
+        QVariant::fromValue(QOpcUaMonitoringParameters::EventFilter()),
+    };
+
+    for (const QVariant &value : values) {
+        QVERIFY2(!displayValue(value).isEmpty(), value.typeName());
+        QVERIFY2(!displayValue(QVariant(QVariantList{value})).isEmpty(), value.typeName());
+    }
 }
 
 void TestAttributeFormatter::formatAttributeDispatchesPerAttribute()
