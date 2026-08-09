@@ -3999,6 +3999,10 @@ Möchten Sie sie speichern?</translation>
         <translation>JSON-Array</translation>
     </message>
     <message>
+        <source>Bytes are entered as hexadecimal pairs, for example &quot;8a 39 32&quot;.</source>
+        <translation>Bytes werden als Hexadezimalpaare eingegeben, zum Beispiel &quot;8a 39 32&quot;.</translation>
+    </message>
+    <message>
         <source>This value is read-only or its ExtensionObject schema is unknown.</source>
         <translation>Dieser Wert ist schreibgeschützt oder sein ExtensionObject-Schema ist unbekannt.</translation>
     </message>

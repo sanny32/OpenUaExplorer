@@ -3992,6 +3992,10 @@ Do you want to save them?</source>
         <translation>JSON 数组</translation>
     </message>
     <message>
+        <source>Bytes are entered as hexadecimal pairs, for example &quot;8a 39 32&quot;.</source>
+        <translation>字节以十六进制字节对输入，例如 &quot;8a 39 32&quot;。</translation>
+    </message>
+    <message>
         <source>This value is read-only or its ExtensionObject schema is unknown.</source>
         <translation>此值为只读，或其 ExtensionObject 架构未知。</translation>
     </message>

@@ -717,9 +717,21 @@ void TestAttributeFormatter::scalarFromTextConvertsSupportedTypes()
     QCOMPARE(scalarFromText(uuid.toString(), QOpcUa::Types::Guid, &ok).toUuid(), uuid);
     QVERIFY(ok);
 
-    QCOMPARE(scalarFromText(QStringLiteral("AQID"), QOpcUa::Types::ByteString, &ok).toByteArray(),
-             QByteArray::fromBase64("AQID"));
+    // Bytes go in as the hex displayValue() shows, spacing optional.
+    const QByteArray bytes("\x8a\x39\x32", 3);
+    QCOMPARE(scalarFromText(displayValue(bytes), QOpcUa::Types::ByteString, &ok).toByteArray(),
+             bytes);
     QVERIFY(ok);
+    QCOMPARE(scalarFromText(QStringLiteral("8A3932"), QOpcUa::Types::ByteString, &ok).toByteArray(),
+             bytes);
+    QVERIFY(ok);
+    QVERIFY(scalarFromText(QString(), QOpcUa::Types::ByteString, &ok).toByteArray().isEmpty());
+    QVERIFY(ok);
+
+    scalarFromText(QStringLiteral("AQID"), QOpcUa::Types::ByteString, &ok);
+    QVERIFY(!ok);
+    scalarFromText(QStringLiteral("8a3"), QOpcUa::Types::ByteString, &ok);
+    QVERIFY(!ok);
 
     QCOMPARE(scalarFromText(QStringLiteral("hello"), QOpcUa::Types::String, &ok).toString(),
              QStringLiteral("hello"));

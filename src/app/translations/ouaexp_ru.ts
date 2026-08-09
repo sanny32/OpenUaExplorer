@@ -4006,6 +4006,10 @@ Do you want to save them?</source>
         <translation>JSON-массив</translation>
     </message>
     <message>
+        <source>Bytes are entered as hexadecimal pairs, for example &quot;8a 39 32&quot;.</source>
+        <translation>Байты вводятся шестнадцатеричными парами, например &quot;8a 39 32&quot;.</translation>
+    </message>
+    <message>
         <source>This value is read-only or its ExtensionObject schema is unknown.</source>
         <translation>Это значение только для чтения или схема его ExtensionObject неизвестна.</translation>
     </message>

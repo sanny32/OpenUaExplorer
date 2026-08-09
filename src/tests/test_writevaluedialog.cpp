@@ -29,6 +29,7 @@ private slots:
     void byteValuesAreShownAsNumbers();
     void byteArraysAreShownAsNumbers();
     void shownByteIsWrittenBackUnchanged();
+    void shownByteStringIsWrittenBackUnchanged();
 };
 
 void TestWriteValueDialog::dataTypeLabelUsesDisplayName()
@@ -103,6 +104,29 @@ void TestWriteValueDialog::shownByteIsWrittenBackUnchanged()
     QCOMPARE(dialog.result(), int(QDialog::Accepted));
     QCOMPARE(dialog.valueType(), int(QOpcUa::Types::SByte));
     QCOMPARE(dialog.value().toInt(), 97);
+}
+
+///
+/// \brief A ByteString is seeded as the hex the value column shows and written back unchanged.
+///
+void TestWriteValueDialog::shownByteStringIsWrittenBackUnchanged()
+{
+    WriteValueDialog dialog;
+    auto *valueEdit = dialog.findChild<QPlainTextEdit *>(QStringLiteral("valueEdit"));
+    auto *messageLabel = dialog.findChild<QLabel *>(QStringLiteral("messageLabel"));
+    auto *buttonBox = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(valueEdit);
+    QVERIFY(messageLabel);
+    QVERIFY(buttonBox);
+
+    const QByteArray bytes("\x8a\x39\x32\xc9", 4);
+    dialog.setValue(bytes, int(QOpcUa::Types::ByteString), QStringLiteral("ns=0;i=15"), true);
+    QCOMPARE(valueEdit->toPlainText(), QStringLiteral("8a 39 32 c9"));
+    QVERIFY(!messageLabel->text().isEmpty());
+
+    buttonBox->button(DialogButtonBox::Ok)->click();
+    QCOMPARE(dialog.result(), int(QDialog::Accepted));
+    QCOMPARE(dialog.value().toByteArray(), bytes);
 }
 
 QTEST_MAIN(TestWriteValueDialog)

@@ -11,6 +11,7 @@
 #include <limits>
 
 #include <QDateTime>
+#include <QRegularExpression>
 #include <QUuid>
 
 namespace OpcUaFormat {
@@ -71,8 +72,15 @@ QVariant scalarFromText(const QString &text, QOpcUa::Types type, bool *ok)
         *ok = !uuid.isNull();
         return uuid;
     }
-    case QOpcUa::Types::ByteString:
-        return QByteArray::fromBase64(text.toLatin1());
+    case QOpcUa::Types::ByteString: {
+        // Bytes are shown as hex everywhere else, so that is what writing them back takes.
+        static const QRegularExpression pairs(QStringLiteral("\\A(?:[0-9A-Fa-f]{2})*\\z"));
+        const QString digits = text.simplified().remove(QLatin1Char(' '));
+        *ok = pairs.match(digits).hasMatch();
+        if (!*ok)
+            break;
+        return QByteArray::fromHex(digits.toLatin1());
+    }
     case QOpcUa::Types::String:
     case QOpcUa::Types::XmlElement:
     case QOpcUa::Types::NodeId:
