@@ -86,6 +86,21 @@ QString fieldTypeName(const QOpcUaGenericStructValue &structValue, const QString
     return typeName;
 }
 
+///
+/// \brief Turns one element of a composite value into an attribute row, children included.
+/// \param element Element to convert.
+/// \return Attribute row labelled with the element's index or field name.
+///
+OpcUaNodeAttribute elementAttribute(const ValueElement &element)
+{
+    OpcUaNodeAttribute attribute = childAttribute(element.label, element.text);
+    if (!element.hasChildren)
+        return attribute;
+    for (const ValueElement &child : valueElements(element.value))
+        attribute.children.append(elementAttribute(child));
+    return attribute;
+}
+
 QString zoneSuffix(int offsetSeconds)
 {
     if (offsetSeconds == 0)
@@ -128,6 +143,8 @@ QString displayValue(const QVariant &value)
         return QString::number(value.toInt());
     if (value.userType() == QMetaType::QDateTime)
         return value.toDateTime().toString(Qt::ISODateWithMs);
+    if (const std::optional<QString> text = builtinTypeText(value))
+        return *text;
     if (isStructValue(value)) {
         const QOpcUaGenericStructValue structValue = value.value<QOpcUaGenericStructValue>();
         const QHash<QString, QVariant> fields = structValue.fields();
@@ -327,7 +344,7 @@ QString valueTypeName(QOpcUa::Types type)
 }
 
 ///
-/// \brief Builds the Value attribute, expanding arrays into indexed child rows.
+/// \brief Builds the Value attribute, expanding arrays and structures into child rows.
 /// \param value Node value.
 /// \param type Declared value type, used to label arrays.
 /// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
@@ -337,17 +354,18 @@ OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type,
                                   const QString &dataTypeId)
 {
     OpcUaNodeAttribute result = childAttribute(QStringLiteral("Value"), displayValue(value));
-    if (!isValueArray(value))
+    if (isValueArray(value)) {
+        result.displayValue = QStringLiteral("%1 Array[%2]")
+                                  .arg(valueTypeDisplay(type, dataTypeId))
+                                  .arg(value.toList().size());
+    } else if (isStructValue(value)) {
+        result.displayValue = value.value<QOpcUaGenericStructValue>().typeName();
+    } else {
         return result;
-
-    const QVariantList values = value.toList();
-    result.displayValue = QStringLiteral("%1 Array[%2]")
-                              .arg(valueTypeDisplay(type, dataTypeId))
-                              .arg(values.size());
-    for (int index = 0; index < values.size(); ++index) {
-        result.children.append(
-            childAttribute(QStringLiteral("[%1]").arg(index), displayValue(values.at(index))));
     }
+
+    for (const ValueElement &element : valueElements(value))
+        result.children.append(elementAttribute(element));
     return result;
 }
 

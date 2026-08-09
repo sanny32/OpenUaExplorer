@@ -20,6 +20,9 @@
 
 #include <QtOpcUa/qopcuatype.h>
 
+#include <QOpcUaGenericStructValue>
+
+#include "formatters/attributeformatter.h"
 #include "opcua/connectionprofile.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/qtopcuabackend.h"
@@ -58,6 +61,7 @@ private slots:
     void initTestCase();
     void cleanupTestCase();
     void discoverConnectBrowseReadWrite();
+    void decodesStructuresOfAConfiguredServer();
     void connectsWithAClientDefinedSessionName();
     void findServersListsTheRunningServer();
 
@@ -66,6 +70,8 @@ private:
     QString _endpoint;
     QString _nodeId;
     QString _counterNodeId;
+    QString _qualifiedNameNodeId;
+    QString _rangeNodeId;
     QString _methodNodeId;
     QString _objectsNodeId;
 };
@@ -82,6 +88,8 @@ void TestOpcUaIntegration::initTestCase()
     _endpoint = _server.endpoint();
     _nodeId = _server.nodeId();
     _counterNodeId = _server.counterNodeId();
+    _qualifiedNameNodeId = _server.qualifiedNameNodeId();
+    _rangeNodeId = _server.rangeNodeId();
     _methodNodeId = _server.methodNodeId();
     _objectsNodeId = _server.objectsNodeId();
 }
@@ -197,6 +205,20 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     QCOMPARE(initial.size(), 1);
     QCOMPARE(initial.first().value.toDouble(), 42.0);
 
+    // 4b. Read the values Qt carries in classes of their own: they reach the UI as text
+    //     only because the formatter knows them; QVariant::toString() leaves them empty.
+    QVERIFY(!_qualifiedNameNodeId.isEmpty());
+    QVERIFY(!_rangeNodeId.isEmpty());
+    QSignalSpy typedReadSpy(&service, &OpcUaBackend::dataValuesReady);
+    service.readValues({_qualifiedNameNodeId, _rangeNodeId});
+    QVERIFY(typedReadSpy.wait(15000));
+    const auto typedValues = typedReadSpy.takeFirst().at(0).value<QVector<OpcUaDataValue>>();
+    QCOMPARE(typedValues.size(), 2);
+    QCOMPARE(OpcUaFormat::displayValue(typedValues.at(0).value),
+             QStringLiteral("2, \"Red\""));
+    QCOMPARE(OpcUaFormat::displayValue(typedValues.at(1).value),
+             QStringLiteral("Range {Low: 0, High: 100}"));
+
     // 5. Write a new value (99).
     QSignalSpy writeSpy(&service, &OpcUaBackend::writeFinished);
     service.writeValue(_nodeId, 99.0, static_cast<int>(QOpcUa::Types::Double));
@@ -270,6 +292,76 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     QVERIFY(historySpy.wait(15000));
 
     // 12. Disconnect.
+    service.disconnectFromEndpoint();
+    QVERIFY(waitForState(service, OpcUaConnectionState::Disconnected, 10000));
+}
+
+///
+/// \brief Decodes a custom structure of a server named through the environment.
+///
+/// The Python test server publishes no readable type definitions, so a server that does
+/// has to be pointed at by hand: OUAEXP_TEST_STRUCT_ENDPOINT and OUAEXP_TEST_STRUCT_NODE
+/// (verified against opc.tcp://opcua.demo-this.com:51210/UA/SampleServer, ns=2;i=10239).
+///
+void TestOpcUaIntegration::decodesStructuresOfAConfiguredServer()
+{
+    const QString endpointUrl = qEnvironmentVariable("OUAEXP_TEST_STRUCT_ENDPOINT");
+    const QString nodeId = qEnvironmentVariable("OUAEXP_TEST_STRUCT_NODE");
+    if (endpointUrl.isEmpty() || nodeId.isEmpty())
+        QSKIP("Set OUAEXP_TEST_STRUCT_ENDPOINT and OUAEXP_TEST_STRUCT_NODE to run this test.");
+
+    QtOpcUaBackend service;
+    if (!service.isAvailable())
+        QSKIP("No OPC UA backend is available.");
+
+    QSignalSpy discoverSpy(&service, &OpcUaBackend::endpointsDiscovered);
+    service.discoverEndpoints(endpointUrl, QStringLiteral("open62541"), 15000);
+    QVERIFY(discoverSpy.wait(20000));
+    const auto endpoints = discoverSpy.takeFirst().at(0).value<QList<EndpointInfo>>();
+    EndpointInfo chosen;
+    bool found = false;
+    for (const EndpointInfo &endpoint : endpoints) {
+        if (endpoint.securityPolicy.endsWith(QStringLiteral("#None"))
+            && endpoint.supportsAnonymous) {
+            chosen = endpoint;
+            found = true;
+            break;
+        }
+    }
+    QVERIFY2(found, "No unsecured anonymous endpoint was advertised.");
+
+    ConnectionProfile profile;
+    profile.endpointUrl = chosen.endpointUrl;
+    profile.securityPolicy = chosen.securityPolicy;
+    profile.securityMode = chosen.securityModeValue;
+    profile.authentication = ConnectionProfile::Authentication::Anonymous;
+    service.connectToEndpoint(profile, QString(), QString());
+    QVERIFY2(waitForState(service, OpcUaConnectionState::Connected, 20000),
+             qPrintable(service.lastError()));
+
+    // Reading the type definitions browses the whole DataType tree, so the first reads
+    // still answer with an opaque structure.
+    QVariant value;
+    QElapsedTimer timer;
+    timer.start();
+    while (timer.elapsed() < 60000
+           && value.userType() != qMetaTypeId<QOpcUaGenericStructValue>()) {
+        QSignalSpy readSpy(&service, &OpcUaBackend::dataValuesReady);
+        service.readValues({nodeId});
+        QVERIFY(readSpy.wait(20000));
+        const auto values = readSpy.takeFirst().at(0).value<QVector<OpcUaDataValue>>();
+        QCOMPARE(values.size(), 1);
+        value = values.first().value;
+        if (value.userType() != qMetaTypeId<QOpcUaGenericStructValue>())
+            QTest::qWait(2000);
+    }
+
+    QCOMPARE(value.userType(), qMetaTypeId<QOpcUaGenericStructValue>());
+    const auto decoded = value.value<QOpcUaGenericStructValue>();
+    QVERIFY(!decoded.typeName().isEmpty());
+    QVERIFY(!decoded.fields().isEmpty());
+    QVERIFY(OpcUaFormat::displayValue(value).startsWith(decoded.typeName()));
+
     service.disconnectFromEndpoint();
     QVERIFY(waitForState(service, OpcUaConnectionState::Disconnected, 10000));
 }

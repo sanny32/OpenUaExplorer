@@ -317,11 +317,12 @@ void TestAppSettings::loggingCategoriesAreGrouped()
     QCOMPARE(application.size(), 8);
     QCOMPARE(application.first().key, QStringLiteral("application.app"));
     QCOMPARE(application.first().categoryName, QStringLiteral("ouaexp.App"));
-    QCOMPARE(qtOpcUa.size(), 1);
+    QCOMPARE(qtOpcUa.size(), 2);
     QCOMPARE(qtOpcUa.first().key, QStringLiteral("plugin"));
     QCOMPARE(qtOpcUa.first().displayName, QStringLiteral("plugin"));
     QCOMPARE(qtOpcUa.first().categoryName,
              QStringLiteral("qt.opcua.plugins.open62541"));
+    QCOMPARE(qtOpcUa.at(1).categoryName, QStringLiteral("qt.opcuagenericstructhandler"));
     QVERIFY(!open62541.isEmpty());
     for (const AppSettings::LogCategory &category : open62541)
         QVERIFY(category.displayName.at(0).isLower());

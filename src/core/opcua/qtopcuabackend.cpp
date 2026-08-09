@@ -9,8 +9,10 @@
 #include <array>
 #include <functional>
 #include <memory>
+#include <utility>
 
 #include <QHash>
+#include <QSet>
 #include <QTimer>
 #include <QPointer>
 #include <QUrl>
@@ -68,8 +70,13 @@ public:
                          q, &QtOpcUaBackend::errorOccurred);
         QObject::connect(&connection, &QtOpcUaConnectionManager::authenticationRejected,
                          q, &QtOpcUaBackend::authenticationRejected);
+        QObject::connect(&connection, &QtOpcUaConnectionManager::structuresDecodable,
+                         q, [this]() { refreshOpaqueValues(); });
         QObject::connect(&connection, &QtOpcUaConnectionManager::clientInvalidated,
                           q, [this]() {
+            opaqueValueNodes.clear();
+            opaqueDetailsNode.clear();
+            reportedEncodingIds.clear();
             cancelRequests();
             if (namespaceCrawler)
                 namespaceCrawler->cancel();
@@ -104,10 +111,65 @@ public:
     void decodeStructures(QVector<OpcUaDataValue> &values)
     {
         const QOpcUaGenericStructHandler *handler = connection.structHandler();
-        if (!handler)
+        for (OpcUaDataValue &value : values) {
+            if (handler)
+                value.value = QtOpcUaTypeMapper::decodedValue(value.value, handler);
+            trackOpaqueValue(value.nodeId, value.value);
+        }
+    }
+
+    ///
+    /// \brief Remembers a node whose value stayed opaque, or forgets it once it decoded.
+    /// \param nodeId Node the value belongs to.
+    /// \param value Value as it is handed to the UI.
+    ///
+    /// A monitored item of a static value notifies once, so a value that arrived before the
+    /// server's type definitions did would stay undecoded until the node is read again.
+    ///
+    void trackOpaqueValue(const QString &nodeId, const QVariant &value)
+    {
+        if (nodeId.isEmpty())
             return;
-        for (OpcUaDataValue &value : values)
-            value.value = QtOpcUaTypeMapper::decodedValue(value.value, handler);
+        const QStringList encodingIds = QtOpcUaTypeMapper::opaqueEncodingIds(value);
+        if (encodingIds.isEmpty()) {
+            opaqueValueNodes.removeAll(nodeId);
+            return;
+        }
+        if (!opaqueValueNodes.contains(nodeId))
+            opaqueValueNodes.append(nodeId);
+        if (connection.structHandler())
+            reportUndecodableStructs(nodeId, encodingIds);
+    }
+
+    ///
+    /// \brief Reports structures the read type definitions do not describe, once per encoding.
+    /// \param nodeId Node the value belongs to.
+    /// \param encodingIds Encoding ids of the structures that stayed opaque.
+    ///
+    void reportUndecodableStructs(const QString &nodeId, const QStringList &encodingIds)
+    {
+        for (const QString &encodingId : encodingIds) {
+            if (reportedEncodingIds.contains(encodingId))
+                continue;
+            reportedEncodingIds.insert(encodingId);
+            qCWarning(lcClient).noquote()
+                << QtOpcUaBackend::tr("The structure of node '%1' stays undecoded: the server's "
+                                      "type definitions describe no type for encoding '%2'.")
+                       .arg(nodeId, encodingId);
+        }
+    }
+
+    ///
+    /// \brief Reads the nodes again whose structures could not be decoded before.
+    ///
+    void refreshOpaqueValues()
+    {
+        const QStringList nodeIds = std::exchange(opaqueValueNodes, {});
+        const QString detailsNode = std::exchange(opaqueDetailsNode, QString());
+        if (!nodeIds.isEmpty())
+            q->readValues(nodeIds);
+        if (!detailsNode.isEmpty())
+            q->readNode(detailsNode);
     }
 
     ///
@@ -295,6 +357,12 @@ public:
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeConnections{};
     QPointer<NamespaceCrawler> namespaceCrawler;
     QPointer<NodeSearchCrawler> nodeSearchCrawler;
+    /// \brief Nodes whose last value carried a structure the client could not decode yet.
+    QStringList opaqueValueNodes;
+    /// \brief Node of the last attribute read that carried an undecodable structure.
+    QString opaqueDetailsNode;
+    /// \brief Encodings already reported as undecodable, so one per connection is logged.
+    QSet<QString> reportedEncodingIds;
 };
 
 ///
@@ -703,10 +771,14 @@ void QtOpcUaBackend::readNode(const QString &nodeId)
     _d->runKeyedNodeRequest(node, QtOpcUaRequestCoordinator::Operation::NodeRead, nodeId,
         timeoutMs, &QOpcUaNode::attributeRead,
         [this, node, nodeId, attributes](QOpcUa::NodeAttributes) {
-            emit nodeDetailsReady(QtOpcUaTypeMapper::nodeDetails(
+            const OpcUaNodeDetails details = QtOpcUaTypeMapper::nodeDetails(
                 node, nodeId, attributes, [](const char *text) { return QString::fromUtf8(text); },
-                _d->connection.structHandler()),
-                QString());
+                _d->connection.structHandler());
+            // Only the latest read is worth repeating: the panel shows one node at a time.
+            _d->opaqueDetailsNode = QtOpcUaTypeMapper::containsOpaqueStruct(details.value)
+                ? nodeId
+                : QString();
+            emit nodeDetailsReady(details, QString());
         },
         [node, attributes]() { return node->readAttributes(attributes); },
         [this, failed]() { emit nodeDetailsReady(failed, tr("Node read timed out.")); },

@@ -13,6 +13,7 @@ add_library(ouaexp_core STATIC
     formatters/attributeformatter.cpp
     formatters/attributeformatter.h
     formatters/bitmaskformatter.cpp
+    formatters/builtintypeformatter.cpp
     formatters/datetimeformatter.cpp
     formatters/datetimeformatter.h
     formatters/durationformatter.cpp

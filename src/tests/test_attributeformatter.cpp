@@ -12,9 +12,14 @@
 #include <QUuid>
 #include <QVariant>
 
+#include <QOpcUaComplexNumber>
+#include <QOpcUaEUInformation>
+#include <QOpcUaExpandedNodeId>
+#include <QOpcUaExtensionObject>
 #include <QOpcUaGenericStructValue>
 #include <QOpcUaLocalizedText>
 #include <QOpcUaQualifiedName>
+#include <QOpcUaRange>
 #include <QOpcUaStructureDefinition>
 #include <QOpcUaStructureField>
 
@@ -54,6 +59,8 @@ private slots:
     void valueElementsSplitArraysAndHonourTheLimit();
     void valueSummaryNamesArraysAndPassesScalarsThrough();
     void structValuesExpandIntoTheirDeclaredFields();
+    void builtinTypesFormatWithRulesOfTheirOwn();
+    void undecodedExtensionObjectsNameTheirEncoding();
     void formatAttributeDispatchesPerAttribute();
     void attributeAppliesToNodeClassMatrix();
     void valueTypeForDataTypeMapping();
@@ -148,6 +155,12 @@ void TestAttributeFormatter::dataTypeDisplayNamesBuiltIns()
 {
     QCOMPARE(dataTypeDisplay(QStringLiteral("ns=0;i=11")), QStringLiteral("Double"));
     QCOMPARE(dataTypeDisplay(QStringLiteral("ns=3;i=5001")), QStringLiteral("ns=3;i=5001"));
+    // A DataType is named by its BrowseName, not by the variant type its values travel in.
+    QCOMPARE(dataTypeDisplay(QStringLiteral("ns=0;i=22")), QStringLiteral("Structure"));
+    QCOMPARE(valueTypeDisplay(QOpcUa::Types::ExtensionObject, QStringLiteral("ns=0;i=22")),
+             QStringLiteral("Structure"));
+    QCOMPARE(valueTypeDisplay(QOpcUa::Types::ExtensionObject, QString()),
+             QStringLiteral("ExtensionObject"));
 }
 
 void TestAttributeFormatter::dataTypeDisplayNamesStandardEnumsAndStructures()
@@ -359,6 +372,18 @@ void TestAttributeFormatter::structValuesExpandIntoTheirDeclaredFields()
     QCOMPARE(valueSummary(value, QOpcUa::Types::ExtensionObject), QStringLiteral("Range"));
     QCOMPARE(displayValue(value), QStringLiteral("Range {Low: 0, High: 100}"));
 
+    // The attribute tree lists the fields the way it lists array elements.
+    const OpcUaNodeAttribute attribute = valueAttribute(value, QOpcUa::Types::ExtensionObject);
+    QCOMPARE(attribute.displayValue, QStringLiteral("Range"));
+    QCOMPARE(attribute.children.size(), 2);
+    QCOMPARE(attribute.children.at(0).name, QStringLiteral("Low"));
+    QCOMPARE(attribute.children.at(1).displayValue, QStringLiteral("100"));
+
+    OpcUaNodeAttribute valueRow;
+    formatAttribute(&valueRow, QOpcUa::NodeAttribute::Value, value,
+                    QOpcUa::Types::ExtensionObject, QStringLiteral("ns=0;i=22"));
+    QCOMPARE(valueRow.displayValue, QStringLiteral("Range"));
+
     // The fields arrive in a hash, so the definition decides the order they are listed in.
     const QVector<ValueElement> fields = valueElements(value);
     QCOMPARE(fields.size(), 2);
@@ -367,6 +392,64 @@ void TestAttributeFormatter::structValuesExpandIntoTheirDeclaredFields()
     QCOMPARE(fields.at(0).typeName, QStringLiteral("Double"));
     QCOMPARE(fields.at(1).label, QStringLiteral("High"));
     QVERIFY(!fields.at(1).hasChildren);
+}
+
+void TestAttributeFormatter::builtinTypesFormatWithRulesOfTheirOwn()
+{
+    // QVariant::toString() is empty for all of these, so every one needs a rule of its own.
+    QOpcUaQualifiedName qualified;
+    qualified.setNamespaceIndex(2);
+    qualified.setName(QStringLiteral("Colour"));
+    QCOMPARE(displayValue(QVariant::fromValue(qualified)), QStringLiteral("2, \"Colour\""));
+
+    QOpcUaLocalizedText localized;
+    localized.setLocale(QStringLiteral("en"));
+    localized.setText(QStringLiteral("Sensor"));
+    QCOMPARE(displayValue(QVariant::fromValue(localized)), QStringLiteral("\"en\", \"Sensor\""));
+
+    QOpcUaExpandedNodeId expanded;
+    expanded.setNamespaceUri(QStringLiteral("urn:example"));
+    expanded.setNodeId(QStringLiteral("ns=2;i=5"));
+    QCOMPARE(displayValue(QVariant::fromValue(expanded)),
+             QStringLiteral("nsu=urn:example;ns=2;i=5"));
+
+    QOpcUaRange range;
+    range.setLow(0.0);
+    range.setHigh(100.0);
+    QCOMPARE(displayValue(QVariant::fromValue(range)),
+             QStringLiteral("Range {Low: 0, High: 100}"));
+
+    QOpcUaEUInformation unit;
+    unit.setNamespaceUri(QStringLiteral("urn:units"));
+    unit.setUnitId(4408652);
+    unit.setDisplayName(QOpcUaLocalizedText(QStringLiteral("en"), QStringLiteral("°C")));
+    QCOMPARE(displayValue(QVariant::fromValue(unit)),
+             QStringLiteral("EUInformation {NamespaceUri: urn:units, UnitId: 4408652, "
+                            "DisplayName: \"en\", \"°C\", Description: \"\", \"\"}"));
+
+    QOpcUaComplexNumber complex;
+    complex.setReal(1.5f);
+    complex.setImaginary(-2.0f);
+    QCOMPARE(displayValue(QVariant::fromValue(complex)),
+             QStringLiteral("ComplexNumberType {Real: 1.5, Imaginary: -2}"));
+
+    // An array of them is still an array, and its elements format one by one.
+    QCOMPARE(displayValue(QVariant::fromValue(QList<QOpcUaQualifiedName>{qualified, qualified})),
+             QStringLiteral("[2, \"Colour\", 2, \"Colour\"]"));
+}
+
+void TestAttributeFormatter::undecodedExtensionObjectsNameTheirEncoding()
+{
+    QOpcUaExtensionObject binary;
+    binary.setBinaryEncodedBody(QByteArray(4, '\0'), QStringLiteral("ns=2;i=3062"));
+    QCOMPARE(displayValue(QVariant::fromValue(binary)), QStringLiteral("ns=2;i=3062 [4 bytes]"));
+
+    QOpcUaExtensionObject empty;
+    QCOMPARE(displayValue(QVariant::fromValue(empty)), QStringLiteral("ExtensionObject"));
+
+    QOpcUaExtensionObject xml;
+    xml.setXmlEncodedBody(QByteArray("<Value>1</Value>"), QStringLiteral("ns=2;i=3062"));
+    QCOMPARE(displayValue(QVariant::fromValue(xml)), QStringLiteral("<Value>1</Value>"));
 }
 
 void TestAttributeFormatter::formatAttributeDispatchesPerAttribute()

@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include <QtOpcUa/qopcuatype.h>
 
 #include <QOpcUaEndpointDescription>
@@ -54,6 +56,17 @@ bool isValueArray(const QVariant &value);
 /// \return Human-readable representation.
 ///
 QString displayValue(const QVariant &value);
+
+///
+/// \brief Renders the OPC UA types Qt carries in classes of their own.
+/// \param value Variant to format.
+/// \return Display text, or nullopt when the value is not one of those types.
+///
+/// QVariant::toString() returns an empty string for QOpcUaQualifiedName and its siblings
+/// because Qt OPC UA registers no string converters for them, so every one of them needs
+/// a rule of its own.
+///
+std::optional<QString> builtinTypeText(const QVariant &value);
 
 ///
 /// \brief Returns the translated name of a message security mode.
@@ -105,7 +118,7 @@ QString valueTypeName(QOpcUa::Types type);
 ///
 /// \brief Resolves a DataType NodeId to its type name.
 /// \param nodeId DataType NodeId string.
-/// \return Built-in type name, standard BrowseName, or the original NodeId for custom types.
+/// \return Standard BrowseName, built-in type name, or the original NodeId for custom types.
 ///
 QString dataTypeDisplay(const QString &nodeId);
 
@@ -113,7 +126,7 @@ QString dataTypeDisplay(const QString &nodeId);
 /// \brief Names the type of a value, falling back to its declared DataType.
 /// \param type Value type resolved from the DataType, may be Undefined.
 /// \param dataTypeId DataType NodeId string backing the value.
-/// \return Value-type name, or the DataType's own name when it is not a built-in type.
+/// \return The DataType's own name, or the value-type name when no DataType is known.
 ///
 QString valueTypeDisplay(QOpcUa::Types type, const QString &dataTypeId);
 
@@ -196,7 +209,7 @@ void formatNodeIdAttribute(OpcUaNodeAttribute *attribute, const QString &nodeId)
 void formatDataTypeAttribute(OpcUaNodeAttribute *attribute, const QString &nodeId);
 
 ///
-/// \brief Builds the Value attribute, expanding arrays into indexed child rows.
+/// \brief Builds the Value attribute, expanding arrays and structures into child rows.
 /// \param value Node value.
 /// \param type Declared value type, used to label arrays.
 /// \param dataTypeId DataType NodeId string, used to name types that are not built-in.

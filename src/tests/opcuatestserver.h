@@ -127,6 +127,15 @@ public:
     /// \brief Returns the identifier of the periodically changing variable.
     QString counterNodeId() const { return _announcements.value(QStringLiteral("COUNTER")); }
 
+    /// \brief Returns the identifier of the QualifiedName variable.
+    QString qualifiedNameNodeId() const
+    {
+        return _announcements.value(QStringLiteral("QUALIFIED"));
+    }
+
+    /// \brief Returns the identifier of the Range structure variable.
+    QString rangeNodeId() const { return _announcements.value(QStringLiteral("RANGE")); }
+
     /// \brief Returns the identifier of the multiply method.
     QString methodNodeId() const { return _announcements.value(QStringLiteral("METHOD")); }
 

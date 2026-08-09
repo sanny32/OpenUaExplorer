@@ -92,8 +92,12 @@ signals:
     void authenticationRejected(QString message);
     void clientInvalidated();
 
+    /// \brief Emitted once the server's type definitions are read and structures decode.
+    void structuresDecodable();
+
 private slots:
     void handleClientState(QOpcUaClient::ClientState state);
+    void handleStructHandlerInitialized(bool initialized);
     void handleClientError(QOpcUaClient::ClientError error);
     void handleConnectError(QOpcUaErrorState *state);
     void handleConnectTimeout();

@@ -7,6 +7,7 @@
 
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaBinaryDataEncoding>
+#include <QOpcUaEnumDefinition>
 #include <QOpcUaExtensionObject>
 #include <QOpcUaGenericStructHandler>
 #include <QOpcUaGenericStructValue>
@@ -314,6 +315,46 @@ QVariant decodedValue(const QVariant &value, const QOpcUaGenericStructHandler *h
     }
 
     return value;
+}
+
+/// \brief Lists the encoding ids of the structures in a value that were not decoded.
+QStringList opaqueEncodingIds(const QVariant &value)
+{
+    if (value.userType() == qMetaTypeId<QOpcUaExtensionObject>())
+        return {value.value<QOpcUaExtensionObject>().encodingTypeId()};
+
+    QStringList ids;
+    if (value.canConvert<QList<QOpcUaExtensionObject>>()
+        && value.userType() != QMetaType::QVariantList) {
+        const QList<QOpcUaExtensionObject> objects = value.value<QList<QOpcUaExtensionObject>>();
+        for (const QOpcUaExtensionObject &object : objects)
+            ids.append(object.encodingTypeId());
+        return ids;
+    }
+
+    if (value.userType() == QMetaType::QVariantList) {
+        const QVariantList entries = value.toList();
+        for (const QVariant &entry : entries)
+            ids.append(opaqueEncodingIds(entry));
+    }
+    return ids;
+}
+
+/// \brief Reports whether a value still carries a structure that was not decoded.
+bool containsOpaqueStruct(const QVariant &value)
+{
+    return !opaqueEncodingIds(value).isEmpty();
+}
+
+/// \brief Lets structures with a field of the abstract Enumeration type decode.
+void allowAbstractEnumerationFields(QOpcUaGenericStructHandler *handler)
+{
+    if (!handler)
+        return;
+    handler->addCustomEnumDefinition(
+        QOpcUaEnumDefinition(),
+        QOpcUa::namespace0Id(QOpcUa::NodeIds::Namespace0::Enumeration),
+        QStringLiteral("Enumeration"), QOpcUa::IsAbstract::NotAbstract);
 }
 
 /// \brief Resolves this client's session name from SessionDiagnosticsArray.

@@ -29,6 +29,21 @@ using Translate = std::function<QString(const char *)>;
 /// returned unchanged: an undecoded structure is still shown, only not expanded.
 QVariant decodedValue(const QVariant &value, const QOpcUaGenericStructHandler *handler);
 
+/// \brief Reports whether a value still carries a structure that was not decoded.
+///
+/// Such a value is worth reading again once the server's type definitions are available.
+bool containsOpaqueStruct(const QVariant &value);
+
+/// \brief Lists the encoding ids of the structures in a value that were not decoded.
+QStringList opaqueEncodingIds(const QVariant &value);
+
+/// \brief Lets structures with a field of the abstract Enumeration type decode.
+///
+/// Qt's decoder refuses such a field because the type is abstract, although the binary
+/// encoding carries every enumeration as an Int32. Declaring Enumeration concrete makes
+/// the decoder read those four bytes and finish the structure.
+void allowAbstractEnumerationFields(QOpcUaGenericStructHandler *handler);
+
 /// \brief Maps discovered Qt endpoints to transport-neutral endpoint records.
 QList<EndpointInfo> endpointInfos(const QVector<QOpcUaEndpointDescription> &endpoints);
 

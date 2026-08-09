@@ -18,6 +18,7 @@
 #include "formatters/attributeformatter.h"
 #include "certificatetrustdecider.h"
 #include "loggingcategories.h"
+#include "qtopcuatypemapper.h"
 
 using namespace OpcUaFormat;
 
@@ -379,6 +380,8 @@ void QtOpcUaConnectionManager::handleClientState(QOpcUaClient::ClientState state
         // before it finishes stay opaque and decode from the next update on.
         if (!_structHandler) {
             _structHandler = new QOpcUaGenericStructHandler(_client, _client);
+            connect(_structHandler, &QOpcUaGenericStructHandler::initializedChanged,
+                    this, &QtOpcUaConnectionManager::handleStructHandlerInitialized);
             if (!_structHandler->initialize()) {
                 qCInfo(lcClient) << "Custom structures stay undecoded: the server publishes no "
                                     "readable type definitions.";
@@ -388,6 +391,25 @@ void QtOpcUaConnectionManager::handleClientState(QOpcUaClient::ClientState state
         break;
     case QOpcUaClient::Closing: setState(OpcUaConnectionState::Closing); break;
     }
+}
+
+///
+/// \brief Announces the server's type definitions once the struct decoder has read them.
+/// \param initialized Outcome reported by the decoder.
+///
+/// Reading them browses the server's whole DataType hierarchy, so values that arrived
+/// first stayed opaque and have to be read again.
+///
+void QtOpcUaConnectionManager::handleStructHandlerInitialized(bool initialized)
+{
+    if (!initialized) {
+        qCInfo(lcClient) << "Custom structures stay undecoded: reading the server's type "
+                            "definitions failed.";
+        return;
+    }
+    QtOpcUaTypeMapper::allowAbstractEnumerationFields(_structHandler);
+    qCInfo(lcClient) << "The server's type definitions are ready; custom structures decode now.";
+    emit structuresDecodable();
 }
 
 ///

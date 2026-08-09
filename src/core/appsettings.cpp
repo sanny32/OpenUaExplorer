@@ -167,7 +167,10 @@ QVector<AppSettings::LogCategory> AppSettings::availableQtOpcUaLogCategories()
     return {
         { QStringLiteral("plugin"),
           QStringLiteral("qt.opcua.plugins.open62541"),
-          QStringLiteral("plugin"), true }
+          QStringLiteral("plugin"), true },
+        { QStringLiteral("structures"),
+          QStringLiteral("qt.opcuagenericstructhandler"),
+          QStringLiteral("structures"), true }
     };
 }
 
@@ -300,6 +303,8 @@ QString AppSettings::logFilterRules() const
     if (!debugLoggingEnabled()) {
         rules << QStringLiteral("ouaexp.*.debug=false");
         rules << QStringLiteral("qt.opcua.*.debug=false");
+        for (const LogCategory &category : categories)
+            rules << category.categoryName + QStringLiteral(".debug=false");
     }
     return rules.join(QLatin1Char('\n'));
 }
