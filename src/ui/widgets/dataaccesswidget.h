@@ -301,6 +301,7 @@ private:
     void populateSubscribeMenu(QMenu *menu);
     void promptNewSubscription(const QString &nodeId);
     QStringList subscriptionNames() const;
+    QString restoredSubscriptionName(const QString &storedName) const;
     double intervalFor(const QString &name) const;
     SubscriptionItem defaultSubscription() const;
     QModelIndexList selectedDataRows() const;

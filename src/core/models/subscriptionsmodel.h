@@ -69,6 +69,14 @@ public:
                  int role = Qt::EditRole) override;
 
     ///
+    /// \brief Replaces the factory name of a built-in subscription after a language change.
+    /// \param row Row to rename.
+    /// \param name New factory name.
+    /// \return True when the row was renamed.
+    ///
+    bool setFactoryName(int row, const QString &name);
+
+    ///
     /// \brief Returns the Name/Publishing Interval column titles.
     /// \param section Column index.
     /// \param orientation Header orientation.

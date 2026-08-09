@@ -31,6 +31,7 @@
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
 #include "subscriptiondelegate.h"
+#include "subscriptionswidget.h"
 #include "tableviewconfig.h"
 #include "treetableview.h"
 #include "valuecelldelegate.h"
@@ -226,7 +227,7 @@ void DataAccessWidget::restoreMonitoredNodes(const QVector<SessionNode> &nodes)
         DataAccessItem item;
         item.nodeId = node.nodeId;
         item.displayName = node.nodeId;
-        item.subscriptionName = node.subscriptionName;
+        item.subscriptionName = restoredSubscriptionName(node.subscriptionName);
         item.highlight = node.highlight;
         item.pending = true;
         items.append(item);
@@ -932,6 +933,20 @@ QStringList DataAccessWidget::subscriptionNames() const
     for (const SubscriptionItem &item : _subscriptions)
         names.append(item.name);
     return names;
+}
+
+///
+/// \brief Resolves the subscription a restored row refers to.
+/// \param storedName Subscription name saved with the session.
+/// \return Existing subscription name, or the current name of the built-in it referred to.
+///
+QString DataAccessWidget::restoredSubscriptionName(const QString &storedName) const
+{
+    if (storedName.isEmpty() || _subscriptions.isEmpty())
+        return storedName;
+    if (subscriptionNames().contains(storedName))
+        return storedName;
+    return SubscriptionsWidget::canonicalName(storedName);
 }
 
 ///

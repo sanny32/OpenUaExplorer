@@ -40,6 +40,7 @@ constexpr auto subscriptionsBuiltinGroup = "subscriptions/builtin";
 constexpr auto subscriptionNameKey = "name";
 constexpr auto subscriptionIntervalKey = "interval";
 constexpr auto subscriptionIdKey = "id";
+constexpr auto subscriptionsSchemaKey = "subscriptions/builtinSchema";
 constexpr auto restoreLastSessionKey = "session/restoreLast";
 constexpr auto lastSavedSessionPathKey = "session/lastSavedPath";
 constexpr auto reconnectEnabledKey = "connection/reconnectEnabled";
@@ -620,6 +621,12 @@ void AppSettings::setCustomSubscriptions(const QVector<SubscriptionItem> &subscr
 ///
 /// \return Overrides keyed by built-in subscription id, or an empty vector when none are stored.
 ///
+int AppSettings::storedBuiltinSubscriptionSchema() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(subscriptionsSchemaKey), 1).toInt();
+}
+
 QVector<SubscriptionItem> AppSettings::builtinSubscriptionOverrides() const
 {
     SettingsStore settings;
@@ -648,6 +655,7 @@ QVector<SubscriptionItem> AppSettings::builtinSubscriptionOverrides() const
 void AppSettings::setBuiltinSubscriptionOverrides(const QVector<SubscriptionItem> &subscriptions)
 {
     SettingsStore settings;
+    settings.setValue(QLatin1String(subscriptionsSchemaKey), builtinSubscriptionSchema);
     settings.remove(QLatin1String(subscriptionsBuiltinGroup));
     settings.beginWriteArray(QLatin1String(subscriptionsBuiltinGroup));
     int index = 0;

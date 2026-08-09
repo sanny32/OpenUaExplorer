@@ -42,6 +42,9 @@ struct SubscriptionItem
     /// \brief Whether this subscription is built in and cannot be removed.
     bool builtin = false;
 
+    /// \brief Whether the user gave a built-in subscription a name of their own.
+    bool renamed = false;
+
     ///
     /// \brief Reports whether this is the built-in Default subscription.
     /// \return True for the built-in Default subscription.

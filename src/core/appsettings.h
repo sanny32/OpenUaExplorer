@@ -369,6 +369,15 @@ public:
     ///
     QVector<SubscriptionItem> builtinSubscriptionOverrides() const;
 
+    /// \brief Layout the stored built-in subscription overrides were written with.
+    static constexpr int builtinSubscriptionSchema = 2;
+
+    ///
+    /// \brief Returns the schema the stored built-in subscription overrides were written with.
+    /// \return Stored schema version; 1 for settings written before renames were marked.
+    ///
+    int storedBuiltinSubscriptionSchema() const;
+
     ///
     /// \brief Stores the edits applied to the built-in subscriptions.
     /// \param subscriptions Overrides to persist; leave the name empty to keep the factory name.

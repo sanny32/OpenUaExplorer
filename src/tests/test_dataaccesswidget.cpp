@@ -29,6 +29,7 @@
 #include <QSignalSpy>
 #include <QStyleOptionViewItem>
 #include <QStyleFactory>
+#include <QTranslator>
 #include <QTreeView>
 #include <QTest>
 #include <QTimer>
@@ -54,6 +55,7 @@ private slots:
     void addNodeWithExplicitSubscriptionRequestsMonitoring();
     void pendingNodesAreShownAndSettledOnClear();
     void restoredNodesKeepSavedOrderAndSubscriptions();
+    void restoredNodesFollowTheSubscriptionNamesOfTheCurrentLanguage();
     void draggedRowsReorderTheSavedNodes();
     void draggedRowsFollowTheFilteredRowsTheyLandOn();
     void rowDroppedOnTheDataViewLandsWhereTheIndicatorPointed();
@@ -474,6 +476,54 @@ void TestDataAccessWidget::restoredNodesKeepSavedOrderAndSubscriptions()
                      view->model()->index(row, DataAccessModel::ColNodeId)).toString(),
                  savedNodes.at(row).nodeId);
     }
+}
+
+///
+/// \brief A session saved under another language restores onto the current subscription names.
+///
+void TestDataAccessWidget::restoredNodesFollowTheSubscriptionNamesOfTheCurrentLanguage()
+{
+    class SuffixTranslator : public QTranslator
+    {
+    public:
+        QString translate(const char *context, const char *sourceText,
+                          const char *disambiguation = nullptr, int n = -1) const override
+        {
+            Q_UNUSED(disambiguation)
+            Q_UNUSED(n)
+            if (qstrcmp(context, "SubscriptionsWidget") != 0)
+                return QString();
+            return QString::fromUtf8(sourceText) + QStringLiteral("-xx");
+        }
+
+        bool isEmpty() const override { return false; }
+    };
+
+    SuffixTranslator translator;
+    QCoreApplication::installTranslator(&translator);
+
+    SubscriptionItem builtin;
+    builtin.id = DefaultSubscriptionId;
+    builtin.builtin = true;
+    builtin.name = QStringLiteral("Default-xx");
+    SubscriptionItem custom;
+    custom.id = 7;
+    custom.name = QStringLiteral("Fast");
+
+    DataAccessWidget widget;
+    widget.setSubscriptions({builtin, custom});
+    widget.restoreMonitoredNodes({
+        {QStringLiteral("ns=2;s=First"), QStringLiteral("Default"), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=Second"), QStringLiteral("Fast"), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=Third"), QStringLiteral("Telemetry"), HighlightMode::FollowDefault}
+    });
+
+    const QVector<SessionNode> restored = widget.monitoredNodes();
+    QCOMPARE(restored.at(0).subscriptionName, QStringLiteral("Default-xx"));
+    QCOMPARE(restored.at(1).subscriptionName, QStringLiteral("Fast"));
+    QCOMPARE(restored.at(2).subscriptionName, QStringLiteral("Telemetry"));
+
+    QCoreApplication::removeTranslator(&translator);
 }
 
 ///
