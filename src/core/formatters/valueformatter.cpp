@@ -11,6 +11,9 @@
 #include <QDateTime>
 #include <QMetaEnum>
 #include <QObject>
+#include <QOpcUaGenericStructValue>
+#include <QOpcUaStructureDefinition>
+#include <QOpcUaStructureField>
 
 namespace OpcUaFormat {
 
@@ -21,6 +24,68 @@ namespace {
 /// \param offsetSeconds Offset from UTC in seconds.
 /// \return Trailing zone indicator matching Qt::ISODate.
 ///
+///
+/// \brief Reports whether a value is a structure decoded from an ExtensionObject.
+/// \param value Variant to inspect.
+/// \return True when the value carries named fields.
+///
+bool isStructValue(const QVariant &value)
+{
+    return value.userType() == qMetaTypeId<QOpcUaGenericStructValue>();
+}
+
+///
+/// \brief Lists a structure's fields in the order its type defines them.
+/// \param value Decoded structure.
+/// \return Field names, definition order first and any undeclared field appended.
+///
+/// The decoded fields arrive in a hash, so the order has to come from the type definition;
+/// a field the definition does not mention would otherwise be dropped.
+///
+QStringList structFieldNames(const QOpcUaGenericStructValue &value)
+{
+    QStringList names;
+    const QHash<QString, QVariant> fields = value.fields();
+    const QList<QOpcUaStructureField> declared = value.structureDefinition().fields();
+    names.reserve(fields.size());
+    for (const QOpcUaStructureField &field : declared) {
+        if (fields.contains(field.name()))
+            names.append(field.name());
+    }
+    for (auto it = fields.cbegin(); it != fields.cend(); ++it) {
+        if (!names.contains(it.key()))
+            names.append(it.key());
+    }
+    return names;
+}
+
+///
+/// \brief Names the type of one structure field.
+/// \param structValue Structure owning the field.
+/// \param name Field name.
+/// \param field Field value, used to size arrays and to name undeclared fields.
+/// \return Type name, with the element count appended for an array field.
+///
+QString fieldTypeName(const QOpcUaGenericStructValue &structValue, const QString &name,
+                      const QVariant &field)
+{
+    QString typeName;
+    for (const QOpcUaStructureField &declared : structValue.structureDefinition().fields()) {
+        if (declared.name() == name) {
+            typeName = dataTypeDisplay(declared.dataType());
+            break;
+        }
+    }
+    if (typeName.isEmpty() && field.userType() == qMetaTypeId<QOpcUaGenericStructValue>())
+        typeName = field.value<QOpcUaGenericStructValue>().typeName();
+    if (typeName.isEmpty())
+        typeName = QString::fromLatin1(field.metaType().name());
+
+    if (isValueArray(field))
+        return QStringLiteral("%1[%2]").arg(typeName).arg(field.toList().size());
+    return typeName;
+}
+
 QString zoneSuffix(int offsetSeconds)
 {
     if (offsetSeconds == 0)
@@ -63,6 +128,17 @@ QString displayValue(const QVariant &value)
         return QString::number(value.toInt());
     if (value.userType() == QMetaType::QDateTime)
         return value.toDateTime().toString(Qt::ISODateWithMs);
+    if (isStructValue(value)) {
+        const QOpcUaGenericStructValue structValue = value.value<QOpcUaGenericStructValue>();
+        const QHash<QString, QVariant> fields = structValue.fields();
+        QStringList parts;
+        const QStringList names = structFieldNames(structValue);
+        parts.reserve(names.size());
+        for (const QString &name : names)
+            parts.append(QStringLiteral("%1: %2").arg(name, displayValue(fields.value(name))));
+        return QStringLiteral("%1 {%2}")
+            .arg(structValue.typeName(), parts.join(QStringLiteral(", ")));
+    }
     if (isValueArray(value)) {
         const QVariantList list = value.toList();
         QStringList parts;
@@ -72,6 +148,101 @@ QString displayValue(const QVariant &value)
         return QStringLiteral("[%1]").arg(parts.join(QStringLiteral(", ")));
     }
     return value.toString();
+}
+
+///
+/// \brief Reports whether a value expands into elements of its own.
+/// \param value Variant to inspect.
+/// \return True for arrays; strings and byte arrays stay scalar.
+///
+bool hasValueElements(const QVariant &value)
+{
+    if (isStructValue(value))
+        return !value.value<QOpcUaGenericStructValue>().fields().isEmpty();
+    return isValueArray(value) && !value.toList().isEmpty();
+}
+
+///
+/// \brief Splits a composite value into its elements.
+/// \param value Variant to split.
+/// \param limit Largest number of elements to return; negative returns all of them.
+/// \param totalCount Receives the untruncated element count when not null.
+/// \return Elements in their natural order, at most \a limit of them.
+///
+QVector<ValueElement> valueElements(const QVariant &value, int limit, int *totalCount)
+{
+    QVector<ValueElement> elements;
+
+    if (isStructValue(value)) {
+        const QOpcUaGenericStructValue structValue = value.value<QOpcUaGenericStructValue>();
+        const QHash<QString, QVariant> fields = structValue.fields();
+        const QStringList names = structFieldNames(structValue);
+        if (totalCount)
+            *totalCount = names.size();
+
+        const int count = limit < 0 ? names.size() : qMin(limit, names.size());
+        elements.reserve(count);
+        for (int index = 0; index < count; ++index) {
+            const QVariant &field = fields[names.at(index)];
+            ValueElement element;
+            element.label = names.at(index);
+            element.text = displayValue(field);
+            element.typeName = fieldTypeName(structValue, names.at(index), field);
+            element.value = field;
+            element.hasChildren = hasValueElements(field);
+            elements.append(element);
+        }
+        return elements;
+    }
+
+    if (!isValueArray(value)) {
+        if (totalCount)
+            *totalCount = 0;
+        return elements;
+    }
+
+    const QVariantList list = value.toList();
+    if (totalCount)
+        *totalCount = list.size();
+
+    const int count = limit < 0 ? list.size() : qMin(limit, list.size());
+    elements.reserve(count);
+    for (int index = 0; index < count; ++index) {
+        const QVariant &entry = list.at(index);
+        ValueElement element;
+        element.label = QStringLiteral("[%1]").arg(index);
+        element.text = displayValue(entry);
+        element.value = entry;
+        element.hasChildren = hasValueElements(entry);
+        if (isStructValue(entry))
+            element.typeName = entry.value<QOpcUaGenericStructValue>().typeName();
+        elements.append(element);
+    }
+    return elements;
+}
+
+///
+/// \brief Renders a composite value as a short summary naming its type and size.
+/// \param value Variant to describe.
+/// \param type Declared value type, used to name array elements.
+/// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
+/// \return Summary such as "Int16[3]", or the plain display value for scalars.
+///
+/// The elements carry the values themselves once the row is expanded, so the cell of a
+/// composite value is better spent on the facts a truncated element list would hide.
+///
+QString valueSummary(const QVariant &value, QOpcUa::Types type, const QString &dataTypeId)
+{
+    if (isStructValue(value))
+        return value.value<QOpcUaGenericStructValue>().typeName();
+    if (!isValueArray(value))
+        return displayValue(value);
+
+    const QVariantList list = value.toList();
+    const QString typeName = !list.isEmpty() && isStructValue(list.constFirst())
+        ? list.constFirst().value<QOpcUaGenericStructValue>().typeName()
+        : valueTypeDisplay(type, dataTypeId);
+    return QStringLiteral("%1[%2]").arg(typeName).arg(list.size());
 }
 
 ///

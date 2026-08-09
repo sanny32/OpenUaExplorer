@@ -8,6 +8,7 @@
 
 #include <QTabWidget>
 #include <QTableView>
+#include <QTreeView>
 #include <QSignalSpy>
 #include <QTest>
 
@@ -98,7 +99,7 @@ void TestDataView::pagesUseLegacyValues()
 void TestDataView::clearRuntimeDataResetsTabs()
 {
     DataView view;
-    auto *dataTable = view.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *dataTable = view.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(dataTable);
 
     view.addNode(makeNodeDetails());

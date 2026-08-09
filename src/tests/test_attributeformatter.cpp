@@ -12,8 +12,11 @@
 #include <QUuid>
 #include <QVariant>
 
+#include <QOpcUaGenericStructValue>
 #include <QOpcUaLocalizedText>
 #include <QOpcUaQualifiedName>
+#include <QOpcUaStructureDefinition>
+#include <QOpcUaStructureField>
 
 #include "formatters/attributeformatter.h"
 
@@ -48,6 +51,9 @@ private slots:
     void nodeIdAttributeParsesParts();
     void dataTypeAttributeUsesBuiltInName();
     void valueAttributeScalarAndArray();
+    void valueElementsSplitArraysAndHonourTheLimit();
+    void valueSummaryNamesArraysAndPassesScalarsThrough();
+    void structValuesExpandIntoTheirDeclaredFields();
     void formatAttributeDispatchesPerAttribute();
     void attributeAppliesToNodeClassMatrix();
     void valueTypeForDataTypeMapping();
@@ -295,6 +301,72 @@ void TestAttributeFormatter::valueAttributeScalarAndArray()
         valueAttribute(QVariant(QVariantList{1, 2}), QOpcUa::Types::Undefined,
                        QStringLiteral("ns=0;i=338"));
     QCOMPARE(structures.displayValue, QStringLiteral("BuildInfo Array[2]"));
+}
+
+void TestAttributeFormatter::valueElementsSplitArraysAndHonourTheLimit()
+{
+    QVERIFY(!hasValueElements(QVariant(7)));
+    QVERIFY(!hasValueElements(QVariant(QVariantList{})));
+    QVERIFY(hasValueElements(QVariant(QVariantList{1})));
+
+    int total = 0;
+    const QVector<ValueElement> elements =
+        valueElements(QVariant(QVariantList{10, 20, QVariantList{30}}), -1, &total);
+    QCOMPARE(total, 3);
+    QCOMPARE(elements.size(), 3);
+    QCOMPARE(elements.at(0).label, QStringLiteral("[0]"));
+    QCOMPARE(elements.at(1).text, QStringLiteral("20"));
+    QVERIFY(!elements.at(1).hasChildren);
+    QVERIFY(elements.at(2).hasChildren);
+    QCOMPARE(elements.at(2).value.toList().size(), 1);
+
+    // The limit truncates the elements but still reports how many there were.
+    const QVector<ValueElement> capped =
+        valueElements(QVariant(QVariantList{1, 2, 3}), 2, &total);
+    QCOMPARE(capped.size(), 2);
+    QCOMPARE(total, 3);
+}
+
+void TestAttributeFormatter::valueSummaryNamesArraysAndPassesScalarsThrough()
+{
+    QCOMPARE(valueSummary(QVariant(7), QOpcUa::Types::Int32), QStringLiteral("7"));
+    QCOMPARE(valueSummary(QVariant(QVariantList{1, 2}), QOpcUa::Types::Int32),
+             QStringLiteral("Int32[2]"));
+    QCOMPARE(valueSummary(QVariant(QVariantList{1}), QOpcUa::Types::Undefined,
+                          QStringLiteral("ns=0;i=338")),
+             QStringLiteral("BuildInfo[1]"));
+}
+
+void TestAttributeFormatter::structValuesExpandIntoTheirDeclaredFields()
+{
+    QOpcUaStructureField low;
+    low.setName(QStringLiteral("Low"));
+    low.setDataType(QStringLiteral("ns=0;i=11"));
+    QOpcUaStructureField high;
+    high.setName(QStringLiteral("High"));
+    high.setDataType(QStringLiteral("ns=0;i=11"));
+
+    QOpcUaStructureDefinition definition;
+    definition.setFields({low, high});
+
+    const QOpcUaGenericStructValue range(QStringLiteral("Range"), QStringLiteral("ns=0;i=884"),
+                                         definition,
+                                         {{QStringLiteral("High"), 100.0},
+                                          {QStringLiteral("Low"), 0.0}});
+    const QVariant value = QVariant::fromValue(range);
+
+    QVERIFY(hasValueElements(value));
+    QCOMPARE(valueSummary(value, QOpcUa::Types::ExtensionObject), QStringLiteral("Range"));
+    QCOMPARE(displayValue(value), QStringLiteral("Range {Low: 0, High: 100}"));
+
+    // The fields arrive in a hash, so the definition decides the order they are listed in.
+    const QVector<ValueElement> fields = valueElements(value);
+    QCOMPARE(fields.size(), 2);
+    QCOMPARE(fields.at(0).label, QStringLiteral("Low"));
+    QCOMPARE(fields.at(0).text, QStringLiteral("0"));
+    QCOMPARE(fields.at(0).typeName, QStringLiteral("Double"));
+    QCOMPARE(fields.at(1).label, QStringLiteral("High"));
+    QVERIFY(!fields.at(1).hasChildren);
 }
 
 void TestAttributeFormatter::formatAttributeDispatchesPerAttribute()

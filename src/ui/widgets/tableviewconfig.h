@@ -9,7 +9,9 @@
 #include <QList>
 #include <Qt>
 
+class HeaderView;
 class TableView;
+class TreeTableView;
 
 namespace TableViewConfig {
 
@@ -37,6 +39,13 @@ struct Column {
 /// resulting alignment without coupling this helper to concrete model classes.
 ///
 void apply(TableView *view,
+           const QList<Column> &columns,
+           const std::function<void(int, Qt::Alignment)> &setColumnAlignment);
+
+///
+/// \brief Applies the same column spec to a tree view carrying the shared header.
+///
+void apply(TreeTableView *view,
            const QList<Column> &columns,
            const std::function<void(int, Qt::Alignment)> &setColumnAlignment);
 

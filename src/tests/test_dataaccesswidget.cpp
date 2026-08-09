@@ -17,6 +17,8 @@
 #include <QDialog>
 #include <QFont>
 #include <QImage>
+#include <QItemSelection>
+#include <QItemSelectionModel>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMimeData>
@@ -27,7 +29,7 @@
 #include <QSignalSpy>
 #include <QStyleOptionViewItem>
 #include <QStyleFactory>
-#include <QTableView>
+#include <QTreeView>
 #include <QTest>
 #include <QTimer>
 
@@ -63,6 +65,8 @@ private slots:
     void filterKeepsOnlyMatchingRows();
     void filterMatchesNamesOnly();
     void actionsOnFilteredRowsUseTheirOwnNodes();
+    void arrayRowsExpandUnderTheirNode();
+    void selectedElementRowActsOnItsNode();
     void writeButtonNeedsOneWritableRow();
     void doubleClickTogglesWritableBooleanValue();
     void declinedDoubleClickWritesNothing();
@@ -142,7 +146,7 @@ OpcUaNodeInfo makeDroppedNode(int nodeClass)
 /// \param mimeData Drag MIME data.
 /// \return Whether the drag-enter event was accepted.
 ///
-bool dropOnDataView(QTableView *view, const QMimeData *mimeData)
+bool dropOnDataView(QTreeView *view, const QMimeData *mimeData)
 {
     QDragEnterEvent enterEvent(QPoint(4, 4), Qt::CopyAction, mimeData,
                                Qt::LeftButton, Qt::NoModifier);
@@ -152,6 +156,27 @@ bool dropOnDataView(QTableView *view, const QMimeData *mimeData)
                          Qt::LeftButton, Qt::NoModifier);
     QCoreApplication::sendEvent(view->viewport(), &dropEvent);
     return enterEvent.isAccepted();
+}
+
+///
+/// \brief Selects every monitored node of the data view.
+/// \param view Data view to select in.
+///
+/// QTreeView::selectAll() only reaches the rows it has laid out, which an unshown view has
+/// none of, so the selection is made through the selection model instead.
+///
+void selectAllRows(QTreeView *view)
+{
+    QAbstractItemModel *model = view->model();
+    if (model->rowCount() == 0) {
+        view->selectionModel()->clearSelection();
+        return;
+    }
+    const QItemSelection selection(model->index(0, 0),
+                                   model->index(model->rowCount() - 1,
+                                                model->columnCount() - 1));
+    view->selectionModel()->select(selection,
+                                   QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 }
 
 ///
@@ -200,7 +225,7 @@ OpcUaNodeDetails makeBooleanNodeDetails(bool value, bool writable)
 /// emits doubleClicked() when the double click lands on the cell it recorded on the
 /// preceding press, and the offscreen platform does not synthesise that pair.
 ///
-void doubleClickCell(QTableView *view, int row, int column)
+void doubleClickCell(QTreeView *view, int row, int column)
 {
     const QModelIndex index = view->model()->index(row, column);
     QVERIFY(index.isValid());
@@ -274,7 +299,7 @@ void watchForDialog(bool *seen)
 /// \param view View to render.
 /// \return Rendered viewport on a black background.
 ///
-QImage renderViewport(QTableView *view)
+QImage renderViewport(QTreeView *view)
 {
     QImage image(view->viewport()->size(), QImage::Format_ARGB32);
     image.fill(Qt::black);
@@ -290,7 +315,7 @@ QImage renderViewport(QTableView *view)
 void TestDataAccessWidget::addressSpaceVariableDropRequestsNode()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     const OpcUaNodeInfo node = makeDroppedNode(OpcUa::Variable);
@@ -308,7 +333,7 @@ void TestDataAccessWidget::addressSpaceVariableDropRequestsNode()
 void TestDataAccessWidget::addressSpaceFolderDropRequestsFolder()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     const OpcUaNodeInfo node = makeDroppedNode(OpcUa::Object);
@@ -328,7 +353,7 @@ void TestDataAccessWidget::addressSpaceFolderDropRequestsFolder()
 void TestDataAccessWidget::addressSpaceLeafObjectDropIsIgnored()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     OpcUaNodeInfo node = makeDroppedNode(OpcUa::Object);
@@ -348,7 +373,7 @@ void TestDataAccessWidget::addressSpaceLeafObjectDropIsIgnored()
 void TestDataAccessWidget::addNodeWithDefaultSubscriptionRequestsMonitoring()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     const OpcUaNodeDetails details = makeNodeDetails();
@@ -370,7 +395,7 @@ void TestDataAccessWidget::addNodeWithDefaultSubscriptionRequestsMonitoring()
 void TestDataAccessWidget::addNodeWithExplicitSubscriptionRequestsMonitoring()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     const OpcUaNodeDetails details = makeNodeDetails();
@@ -393,7 +418,7 @@ void TestDataAccessWidget::addNodeWithExplicitSubscriptionRequestsMonitoring()
 void TestDataAccessWidget::pendingNodesAreShownAndSettledOnClear()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     const OpcUaNodeInfo node = makeDroppedNode(OpcUa::Variable);
@@ -430,7 +455,7 @@ void TestDataAccessWidget::pendingNodesAreShownAndSettledOnClear()
 void TestDataAccessWidget::restoredNodesKeepSavedOrderAndSubscriptions()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     widget.addNode(makeNodeDetails());
@@ -457,7 +482,7 @@ void TestDataAccessWidget::restoredNodesKeepSavedOrderAndSubscriptions()
 void TestDataAccessWidget::draggedRowsReorderTheSavedNodes()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     const QVector<SessionNode> savedNodes{
@@ -490,7 +515,7 @@ void TestDataAccessWidget::draggedRowsReorderTheSavedNodes()
 void TestDataAccessWidget::draggedRowsFollowTheFilteredRowsTheyLandOn()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     auto *filterEdit = widget.findChild<QLineEdit *>(QStringLiteral("filterEdit"));
     QVERIFY(view);
     QVERIFY(filterEdit);
@@ -528,7 +553,7 @@ void TestDataAccessWidget::draggedRowsFollowTheFilteredRowsTheyLandOn()
 void TestDataAccessWidget::rowDroppedOnTheDataViewLandsWhereTheIndicatorPointed()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     const QVector<SessionNode> savedNodes{
@@ -579,11 +604,11 @@ void TestDataAccessWidget::rowDroppedOnTheDataViewLandsWhereTheIndicatorPointed(
 void TestDataAccessWidget::pendingRowsAreExcludedFromSelectionActions()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     widget.addPendingNodes({makeDroppedNode(OpcUa::Variable)});
-    view->selectAll();
+    selectAllRows(view);
 
     QSignalSpy readSpy(&widget, &DataAccessWidget::readRequested);
     QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
@@ -613,7 +638,7 @@ void TestDataAccessWidget::pendingRowsAreExcludedFromSelectionActions()
 void TestDataAccessWidget::confirmedClearRemovesEveryNode()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     widget.addNodeWithDefaultSubscription(makeNodeDetails());
@@ -636,7 +661,7 @@ void TestDataAccessWidget::confirmedClearRemovesEveryNode()
 void TestDataAccessWidget::declinedClearKeepsEveryNode()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     widget.addNodeWithDefaultSubscription(makeNodeDetails());
@@ -656,7 +681,7 @@ void TestDataAccessWidget::declinedClearKeepsEveryNode()
 void TestDataAccessWidget::clearOfEmptyTableAsksNothing()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     QCOMPARE(view->model()->rowCount(), 0);
 
@@ -674,7 +699,7 @@ void TestDataAccessWidget::clearOfEmptyTableAsksNothing()
 void TestDataAccessWidget::silentClearAsksNothing()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     widget.addNodeWithDefaultSubscription(makeNodeDetails());
@@ -695,7 +720,7 @@ void TestDataAccessWidget::silentClearAsksNothing()
 void TestDataAccessWidget::filterKeepsOnlyMatchingRows()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     auto *filterEdit = widget.findChild<QLineEdit *>(QStringLiteral("filterEdit"));
     QVERIFY(view);
     QVERIFY(filterEdit);
@@ -722,7 +747,7 @@ void TestDataAccessWidget::filterKeepsOnlyMatchingRows()
 void TestDataAccessWidget::filterMatchesNamesOnly()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     auto *filterEdit = widget.findChild<QLineEdit *>(QStringLiteral("filterEdit"));
     QVERIFY(view);
     QVERIFY(filterEdit);
@@ -752,7 +777,7 @@ void TestDataAccessWidget::filterMatchesNamesOnly()
 void TestDataAccessWidget::actionsOnFilteredRowsUseTheirOwnNodes()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     auto *filterEdit = widget.findChild<QLineEdit *>(QStringLiteral("filterEdit"));
     QVERIFY(view);
     QVERIFY(filterEdit);
@@ -765,7 +790,7 @@ void TestDataAccessWidget::actionsOnFilteredRowsUseTheirOwnNodes()
 
     filterEdit->setText(QStringLiteral("Pressure"));
     QCOMPARE(view->model()->rowCount(), 1);
-    view->selectAll();
+    selectAllRows(view);
 
     QSignalSpy readSpy(&widget, &DataAccessWidget::readRequested);
     auto *readButton = widget.findChild<QAbstractButton *>(QStringLiteral("readButton"));
@@ -777,12 +802,86 @@ void TestDataAccessWidget::actionsOnFilteredRowsUseTheirOwnNodes()
 }
 
 ///
+/// \brief An array node keeps its element rows while the filter and the numbering apply to nodes.
+///
+void TestDataAccessWidget::arrayRowsExpandUnderTheirNode()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
+    auto *filterEdit = widget.findChild<QLineEdit *>(QStringLiteral("filterEdit"));
+    QVERIFY(view);
+    QVERIFY(filterEdit);
+
+    OpcUaNodeDetails scalar = makeNodeDetails();
+    OpcUaNodeDetails array = makeNodeDetails();
+    array.nodeId = QStringLiteral("ns=2;s=Levels");
+    array.displayName = QStringLiteral("Levels");
+    array.dataTypeId = QStringLiteral("ns=0;i=4");
+    array.value = QVariantList{1, 2, 3};
+    widget.addNode(scalar);
+    widget.addNode(array);
+
+    QAbstractItemModel *model = view->model();
+    const QModelIndex arrayRow = model->index(1, 0);
+    QCOMPARE(model->rowCount(arrayRow), 3);
+    QCOMPARE(model->data(model->index(0, DataAccessModel::ColNodeId, arrayRow)).toString(),
+             QStringLiteral("[0]"));
+
+    // Filtering keeps the elements with the node that matched, and only nodes are numbered.
+    filterEdit->setText(QStringLiteral("Levels"));
+    QCOMPARE(model->rowCount(), 1);
+    const QModelIndex filteredRow = model->index(0, 0);
+    QCOMPARE(model->data(model->index(0, DataAccessModel::ColNumber)).toInt(), 1);
+    QCOMPARE(model->rowCount(filteredRow), 3);
+    QVERIFY(model->data(model->index(0, DataAccessModel::ColNumber, filteredRow))
+                .toString().isEmpty());
+}
+
+///
+/// \brief Acting on a selected array element acts on the node the element belongs to.
+///
+void TestDataAccessWidget::selectedElementRowActsOnItsNode()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+
+    OpcUaNodeDetails array = makeNodeDetails();
+    array.nodeId = QStringLiteral("ns=2;s=Levels");
+    array.dataTypeId = QStringLiteral("ns=0;i=4");
+    array.value = QVariantList{1, 2};
+    widget.addNode(array);
+
+    QAbstractItemModel *model = view->model();
+    const QModelIndex element = model->index(1, 0, model->index(0, 0));
+    QVERIFY(element.isValid());
+    view->selectionModel()->select(element,
+                                   QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+
+    QSignalSpy readSpy(&widget, &DataAccessWidget::readRequested);
+    auto *readButton = widget.findChild<QAbstractButton *>(QStringLiteral("readButton"));
+    QVERIFY(readButton);
+    QVERIFY(readButton->isEnabled());
+    readButton->click();
+
+    QCOMPARE(readSpy.size(), 1);
+    QCOMPARE(readSpy.first().first().toStringList(), QStringList{array.nodeId});
+
+    // A double click on an element writes nothing: only whole values are written.
+    QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
+    const QModelIndex elementValue =
+        model->index(1, DataAccessModel::ColValue, model->index(0, 0));
+    QVERIFY(QMetaObject::invokeMethod(view, "doubleClicked", Q_ARG(QModelIndex, elementValue)));
+    QCOMPARE(writeSpy.size(), 0);
+}
+
+///
 /// \brief Write stays disabled until exactly one writable row is selected.
 ///
 void TestDataAccessWidget::writeButtonNeedsOneWritableRow()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     auto *writeButton = widget.findChild<QAbstractButton *>(QStringLiteral("writeButton"));
     QVERIFY(view);
     QVERIFY(writeButton);
@@ -790,7 +889,7 @@ void TestDataAccessWidget::writeButtonNeedsOneWritableRow()
     OpcUaNodeDetails details = makeNodeDetails();
     details.userAccessLevel = OpcUa::CurrentRead;
     widget.addNode(details);
-    view->selectAll();
+    selectAllRows(view);
 
     QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
     QVERIFY(!writeButton->isEnabled());
@@ -807,7 +906,7 @@ void TestDataAccessWidget::writeButtonNeedsOneWritableRow()
     OpcUaNodeDetails second = details;
     second.nodeId = QStringLiteral("ns=2;s=Pressure");
     widget.addNode(second);
-    view->selectAll();
+    selectAllRows(view);
     QVERIFY(!writeButton->isEnabled());
 }
 
@@ -817,7 +916,7 @@ void TestDataAccessWidget::writeButtonNeedsOneWritableRow()
 void TestDataAccessWidget::doubleClickTogglesWritableBooleanValue()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     widget.addNode(makeBooleanNodeDetails(false, true));
     widget.resize(900, 200);
@@ -848,7 +947,7 @@ void TestDataAccessWidget::doubleClickTogglesWritableBooleanValue()
 void TestDataAccessWidget::declinedDoubleClickWritesNothing()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     widget.addNode(makeBooleanNodeDetails(false, true));
     widget.resize(900, 200);
@@ -868,7 +967,7 @@ void TestDataAccessWidget::declinedDoubleClickWritesNothing()
 void TestDataAccessWidget::doubleClickOnReadOnlyBooleanOpensReadOnlyDialog()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     widget.addNode(makeBooleanNodeDetails(false, false));
     widget.resize(900, 200);
@@ -890,7 +989,7 @@ void TestDataAccessWidget::doubleClickOnReadOnlyBooleanOpensReadOnlyDialog()
 void TestDataAccessWidget::doubleClickOnNonBooleanOpensWriteDialog()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     OpcUaNodeDetails details = makeNodeDetails();
     details.userAccessLevel = OpcUa::CurrentRead | OpcUa::CurrentWrite;
@@ -917,7 +1016,7 @@ void TestDataAccessWidget::doubleClickOnNonBooleanOpensWriteDialog()
 void TestDataAccessWidget::doubleClickOnReadOnlyValueOpensReadOnlyDialog()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     OpcUaNodeDetails details = makeNodeDetails();
     details.userAccessLevel = OpcUa::CurrentRead;
@@ -940,7 +1039,7 @@ void TestDataAccessWidget::doubleClickOnReadOnlyValueOpensReadOnlyDialog()
 void TestDataAccessWidget::doubleClickOnPendingRowWritesNothing()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     widget.addPendingNodes({makeDroppedNode(OpcUa::Variable)});
     widget.resize(900, 200);
@@ -959,7 +1058,7 @@ void TestDataAccessWidget::doubleClickOnPendingRowWritesNothing()
 void TestDataAccessWidget::doubleClickOutsideValueColumnWritesNothing()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     widget.addNode(makeBooleanNodeDetails(false, true));
     widget.resize(900, 200);
@@ -984,7 +1083,7 @@ void TestDataAccessWidget::doubleClickOutsideValueColumnWritesNothing()
 void TestDataAccessWidget::doubleClickWhileOfflineWritesNothing()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     widget.addNode(makeBooleanNodeDetails(false, true));
     widget.resize(900, 200);
@@ -1010,7 +1109,7 @@ void TestDataAccessWidget::doubleClickWhileOfflineWritesNothing()
 void TestDataAccessWidget::valueAndStatusColumnsShareTheStateDelegate()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
 
     QAbstractItemDelegate *valueDelegate =
@@ -1032,7 +1131,7 @@ void TestDataAccessWidget::selectedStatusUsesContrastText()
 {
     ItemPaletteStyle style;
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     widget.addNodeWithDefaultSubscription(makeNodeDetails());
 
@@ -1069,7 +1168,7 @@ void TestDataAccessWidget::selectedStatusUsesContrastText()
 void TestDataAccessWidget::subscriptionEditorHasOpaqueBackground()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>();
+    auto *view = widget.findChild<QTreeView *>();
     QVERIFY(view);
 
     QAbstractItemDelegate *delegate =
@@ -1090,7 +1189,7 @@ void TestDataAccessWidget::subscriptionEditorHasOpaqueBackground()
 void TestDataAccessWidget::contextMenuOverridesChangeHighlight()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     widget.addNode(makeNodeDetails());
     widget.addNode(makeBooleanNodeDetails(false, true));
@@ -1102,7 +1201,8 @@ void TestDataAccessWidget::contextMenuOverridesChangeHighlight()
     const QModelIndex second = view->model()->index(1, DataAccessModel::ColValue);
     QVERIFY(!first.data(DataAccessModel::HighlightChangesRole).toBool());
 
-    view->selectRow(0);
+    view->selectionModel()->select(view->model()->index(0, 0),
+        QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
     QTimer::singleShot(0, &widget, [&widget]() {
         QMenu *menu = widget.findChild<QMenu *>();
         QVERIFY(menu);
@@ -1134,14 +1234,15 @@ void TestDataAccessWidget::contextMenuOverridesChangeHighlight()
 void TestDataAccessWidget::selectedRowsStillShowTheChangeWash()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     widget.setHighlightValueChanges(true);
     widget.addNode(makeNodeDetails());
     widget.resize(900, 200);
     widget.show();
     QVERIFY(QTest::qWaitForWindowExposed(&widget));
-    view->selectRow(0);
+    view->selectionModel()->select(view->model()->index(0, 0),
+        QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 
     OpcUaDataValue value;
     value.nodeId = makeNodeDetails().nodeId;
@@ -1168,7 +1269,7 @@ void TestDataAccessWidget::selectedRowsStillShowTheChangeWash()
 void TestDataAccessWidget::fastSubscriptionsFadeWithinTheirInterval()
 {
     DataAccessWidget widget;
-    auto *view = widget.findChild<QTableView *>(QStringLiteral("dataView"));
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
     QVERIFY(view);
     widget.setHighlightValueChanges(true);
 

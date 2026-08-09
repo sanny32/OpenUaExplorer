@@ -8,7 +8,10 @@
 
 #pragma once
 
-#include <QAbstractTableModel>
+#include <memory>
+#include <vector>
+
+#include <QAbstractItemModel>
 #include <QStringList>
 #include <QVector>
 
@@ -20,9 +23,13 @@
 class QMimeData;
 
 ///
-/// \brief Table model for OPC UA data access monitored items.
+/// \brief Tree model for OPC UA data access monitored items.
 ///
-class DataAccessModel : public QAbstractTableModel
+/// Every monitored node is a top-level row. A row whose value is composite expands into one
+/// child row per array element or structure field, built the first time the row is expanded
+/// and refreshed in place while the value keeps arriving.
+///
+class DataAccessModel : public QAbstractItemModel
 {
     Q_OBJECT
 
@@ -135,16 +142,40 @@ public:
     bool isOffline() const;
 
     ///
-    /// \brief Returns the number of rows.
-    /// \param parent Parent index; non-root parents have no rows.
-    /// \return Item count, or 0 for non-root parents.
+    /// \brief Returns the index of a row, either a monitored node or an element of one.
+    /// \param row Row within the parent.
+    /// \param column Model column.
+    /// \param parent Parent index; an invalid parent addresses the monitored nodes.
+    /// \return Model index, or an invalid index when the row does not exist.
+    ///
+    QModelIndex index(int row, int column,
+                      const QModelIndex &parent = QModelIndex()) const override;
+
+    ///
+    /// \brief Returns the parent index of an element row.
+    /// \param child Child index.
+    /// \return Parent index, or an invalid index for monitored nodes.
+    ///
+    QModelIndex parent(const QModelIndex &child) const override;
+
+    ///
+    /// \brief Reports whether a row expands, without building its elements.
+    /// \param parent Row to query.
+    /// \return True when the row has child rows.
+    ///
+    bool hasChildren(const QModelIndex &parent = QModelIndex()) const override;
+
+    ///
+    /// \brief Returns the number of rows, building the elements of an expanded row on demand.
+    /// \param parent Parent index.
+    /// \return Item count for the root, or the element count of a composite value.
     ///
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
     ///
     /// \brief Returns the fixed column count.
-    /// \param parent Parent index; non-root parents have no columns.
-    /// \return Column count, or 0 for non-root parents.
+    /// \param parent Parent index.
+    /// \return Column count.
     ///
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
@@ -297,6 +328,15 @@ public:
     };
 
     ///
+    /// \brief Largest number of element rows a composite value expands into.
+    ///
+    /// Beyond this the elements outnumber what anyone reads, and a live subscription would
+    /// spend every notification laying out rows nobody looks at; the rest is summarised
+    /// by a single trailing row.
+    ///
+    static constexpr int MaxExpandedElements = 1000;
+
+    ///
     /// \brief Row facts the value delegate paints with; the model itself stays theme-agnostic.
     ///
     enum Role {
@@ -312,13 +352,56 @@ public:
 
 private:
     ///
+    /// \brief One element row of a composite value.
+    ///
+    struct ValueNode
+    {
+        /// \brief Row label: "[0]" for an array element, the field name for a structure.
+        QString label;
+        /// \brief Formatted element value.
+        QString text;
+        /// \brief Element type name.
+        QString typeName;
+        /// \brief Raw element value, kept to expand the element further.
+        QVariant value;
+        /// \brief Time of the last change of this element, in milliseconds since the epoch.
+        qint64 changedAt = 0;
+        /// \brief Row among its siblings.
+        int row = 0;
+        /// \brief Top-level row of the tree; tracked by the root only, so moves stay cheap.
+        int topRow = 0;
+        /// \brief Owning element, or null for the per-item root.
+        ValueNode *parent = nullptr;
+        /// \brief Element rows, filled once the row is expanded.
+        std::vector<std::unique_ptr<ValueNode>> children;
+        /// \brief True once the elements were built.
+        bool childrenBuilt = false;
+        /// \brief True when the element expands into elements of its own.
+        bool expandable = false;
+        /// \brief True for the trailing row standing in for the elements beyond the limit.
+        bool placeholder = false;
+    };
+
+    ///
     /// \brief Resolves a row's highlight preference against the application-wide default.
     /// \param item Row to resolve.
     /// \return True when changes of that row should be highlighted.
     ///
     bool resolveHighlight(const DataAccessItem &item) const;
 
+    ValueNode *nodeForIndex(const QModelIndex &index) const;
+    ValueNode *rootNode(int topRow) const;
+    static int topRowOf(const ValueNode *node);
+    DataAccessItem itemForNode(const ValueNode *node) const;
+    void buildChildren(ValueNode *node, const DataAccessItem &item) const;
+    void refreshChildren(int topRow, qint64 changedAt);
+    void updateNode(ValueNode *node, const QModelIndex &nodeIndex, const QVariant &value,
+                    const DataAccessItem &item, qint64 changedAt);
+    QVariant nodeData(const ValueNode *node, int column, int role) const;
+
     QVector<DataAccessItem> _items;
+    /// \brief Per-item element trees, indexed like _items; entries stay null until expanded.
+    mutable std::vector<std::unique_ptr<ValueNode>> _roots;
     ColumnAlignmentStore _columnAlignments;
     AppSettings::TimestampMode _timestampMode;
     bool _offline = false;

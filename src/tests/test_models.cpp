@@ -51,6 +51,10 @@ private slots:
     void dataAccessAddOrUpdateInsertsThenUpdates();
     void dataAccessUpdateValuesRefreshesValueColumns();
     void dataAccessFormatsTypedValues();
+    void dataAccessElementRowsFollowTheirArray();
+    void dataAccessFlashesOnlyTheElementsThatChanged();
+    void dataAccessCapsTheElementRowsOfHugeArrays();
+    void dataAccessElementRowsAreNotActedOn();
     void dataAccessRemoveRowsDropsSelected();
     void dataAccessMoveRowsKeepsTheDraggedBlockTogether();
     void dataAccessMoveRowsIgnoresPointlessMoves();
@@ -495,8 +499,164 @@ void TestModels::dataAccessFormatsTypedValues()
     update.value = QVariantList{QVariant::fromValue<quint8>(122),
                                 QVariant::fromValue<qint8>(-6)};
     model.updateValues({update});
-    QCOMPARE(model.data(model.index(2, DataAccessModel::ColValue)).toString(),
-             QStringLiteral("[122, -6]"));
+    // An array names itself in the cell and spells its elements out in its child rows.
+    const QModelIndex arrayIndex = model.index(2, DataAccessModel::ColValue);
+    QCOMPARE(model.data(arrayIndex).toString(), QStringLiteral("Boolean[2]"));
+    const QModelIndex arrayRow = model.index(2, 0);
+    QCOMPARE(model.rowCount(arrayRow), 2);
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColNodeId, arrayRow)).toString(),
+             QStringLiteral("[0]"));
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue, arrayRow)).toString(),
+             QStringLiteral("122"));
+    QCOMPARE(model.data(model.index(1, DataAccessModel::ColValue, arrayRow)).toString(),
+             QStringLiteral("-6"));
+}
+
+///
+/// \brief An array row expands into one labelled child row per element.
+///
+void TestModels::dataAccessElementRowsFollowTheirArray()
+{
+    DataAccessModel model;
+    new QAbstractItemModelTester(&model, &model);
+
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=Values");
+    details.dataTypeId = QStringLiteral("ns=0;i=4");
+    details.value = QVariantList{QVariant::fromValue<qint16>(1), QVariant::fromValue<qint16>(2),
+                                 QVariantList{QVariant::fromValue<qint16>(3)}};
+    model.addOrUpdate(details);
+
+    const QModelIndex row = model.index(0, 0);
+    QVERIFY(model.hasChildren(row));
+    QCOMPARE(model.rowCount(row), 3);
+    QCOMPARE(model.data(model.index(1, DataAccessModel::ColNodeId, row)).toString(),
+             QStringLiteral("[1]"));
+    QCOMPARE(model.data(model.index(1, DataAccessModel::ColValue, row)).toString(),
+             QStringLiteral("2"));
+    QCOMPARE(model.data(model.index(1, DataAccessModel::ColDataType, row)).toString(),
+             QStringLiteral("Int16"));
+
+    // A nested array keeps expanding, and its own cell names it.
+    const QModelIndex nested = model.index(2, 0, row);
+    QVERIFY(model.hasChildren(nested));
+    QCOMPARE(model.rowCount(nested), 1);
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue, nested)).toString(),
+             QStringLiteral("3"));
+    QCOMPARE(model.parent(nested), row);
+
+    // A scalar row stays a leaf.
+    details.nodeId = QStringLiteral("ns=2;s=Scalar");
+    details.value = 7;
+    model.addOrUpdate(details);
+    QVERIFY(!model.hasChildren(model.index(1, 0)));
+    QCOMPARE(model.rowCount(model.index(1, 0)), 0);
+}
+
+///
+/// \brief An update stamps the change time only on the elements whose value moved.
+///
+void TestModels::dataAccessFlashesOnlyTheElementsThatChanged()
+{
+    DataAccessModel model;
+    new QAbstractItemModelTester(&model, &model);
+
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=Values");
+    details.dataTypeId = QStringLiteral("ns=0;i=4");
+    details.value = QVariantList{1, 2};
+    model.addOrUpdate(details);
+
+    const QModelIndex row = model.index(0, 0);
+    QCOMPARE(model.rowCount(row), 2);
+    QCOMPARE(model.index(0, DataAccessModel::ColValue, row)
+                 .data(DataAccessModel::ValueChangedAtRole).toLongLong(), 0);
+
+    OpcUaDataValue update;
+    update.nodeId = details.nodeId;
+    update.value = QVariantList{1, 5};
+    model.updateValues({update});
+
+    QCOMPARE(model.rowCount(row), 2);
+    QCOMPARE(model.index(0, DataAccessModel::ColValue, row)
+                 .data(DataAccessModel::ValueChangedAtRole).toLongLong(), 0);
+    QVERIFY(model.index(1, DataAccessModel::ColValue, row)
+                .data(DataAccessModel::ValueChangedAtRole).toLongLong() > 0);
+    QCOMPARE(model.index(1, DataAccessModel::ColValue, row).data().toString(),
+             QStringLiteral("5"));
+
+    // A shorter array replaces its rows rather than leaving stale ones behind.
+    update.value = QVariantList{9};
+    model.updateValues({update});
+    QCOMPARE(model.rowCount(row), 1);
+    QCOMPARE(model.index(0, DataAccessModel::ColValue, row).data().toString(),
+             QStringLiteral("9"));
+}
+
+///
+/// \brief A huge array shows its first elements and sums up the rest in one row.
+///
+void TestModels::dataAccessCapsTheElementRowsOfHugeArrays()
+{
+    DataAccessModel model;
+    new QAbstractItemModelTester(&model, &model);
+
+    QVariantList values;
+    const int count = DataAccessModel::MaxExpandedElements + 5;
+    for (int index = 0; index < count; ++index)
+        values.append(index);
+
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=Big");
+    details.dataTypeId = QStringLiteral("ns=0;i=6");
+    details.value = values;
+    model.addOrUpdate(details);
+
+    const QModelIndex row = model.index(0, 0);
+    QCOMPARE(model.rowCount(row), DataAccessModel::MaxExpandedElements + 1);
+
+    const QModelIndex last =
+        model.index(DataAccessModel::MaxExpandedElements, DataAccessModel::ColNodeId, row);
+    QVERIFY(last.data().toString().contains(QStringLiteral("5")));
+    QVERIFY(model.data(model.index(last.row(), DataAccessModel::ColValue, row))
+                .toString().isEmpty());
+    QVERIFY(!model.hasChildren(last));
+}
+
+///
+/// \brief Element rows are read-only and never stand in for their node in row operations.
+///
+void TestModels::dataAccessElementRowsAreNotActedOn()
+{
+    DataAccessModel model;
+
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=Values");
+    details.dataTypeId = QStringLiteral("ns=0;i=4");
+    details.value = QVariantList{1, 2};
+    model.addOrUpdate(details);
+
+    const QModelIndex row = model.index(0, 0);
+    const QModelIndex element = model.index(0, DataAccessModel::ColSubscription, row);
+    QCOMPARE(model.flags(element), Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    QVERIFY(!model.setData(element, QStringLiteral("Default"), Qt::EditRole));
+    QVERIFY(model.itemAt(0).subscriptionName.isEmpty());
+
+    QVERIFY(model.nodeIds({element}).isEmpty());
+    QVERIFY(!model.mimeData({element}));
+
+    model.removeRows({element});
+    QCOMPARE(model.rowCount(), 1);
+
+    // The elements travel with their row when the order changes.
+    OpcUaNodeDetails other;
+    other.nodeId = QStringLiteral("ns=2;s=Other");
+    other.value = 1;
+    model.addOrUpdate(other);
+    QVERIFY(model.moveRows({model.index(1, 0)}, 0));
+    QCOMPARE(model.rowCount(model.index(1, 0)), 2);
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue, model.index(1, 0))).toString(),
+             QStringLiteral("1"));
 }
 
 ///

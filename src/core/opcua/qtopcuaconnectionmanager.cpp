@@ -11,6 +11,7 @@
 #include <QOpcUaAuthenticationInformation>
 #include <QOpcUaConnectionSettings>
 #include <QOpcUaErrorState>
+#include <QOpcUaGenericStructHandler>
 #include <QOpcUaPkiConfiguration>
 #include <QOpcUaUserTokenPolicy>
 
@@ -227,6 +228,15 @@ QOpcUaClient *QtOpcUaConnectionManager::client() const
 }
 
 ///
+/// \brief Returns the decoder for the server's custom structures, or null when unavailable.
+/// \return Struct handler of the live connection, or null while none is ready.
+///
+QOpcUaGenericStructHandler *QtOpcUaConnectionManager::structHandler() const
+{
+    return _structHandler && _structHandler->initialized() ? _structHandler : nullptr;
+}
+
+///
 /// \brief Returns the endpoints from the latest successful discovery.
 /// \return Cached endpoint descriptions.
 ///
@@ -356,12 +366,24 @@ void QtOpcUaConnectionManager::handleClientState(QOpcUaClient::ClientState state
     switch (state) {
     case QOpcUaClient::Disconnected:
         _watchdog.stop();
+        // The type definitions describe the session that just ended.
+        delete _structHandler;
+        _structHandler = nullptr;
         emit clientInvalidated();
         setState(OpcUaConnectionState::Disconnected);
         break;
     case QOpcUaClient::Connecting: setState(OpcUaConnectionState::Connecting); break;
     case QOpcUaClient::Connected:
         _watchdog.stop();
+        // Reading the server's type definitions takes a browse of its own; values that arrive
+        // before it finishes stay opaque and decode from the next update on.
+        if (!_structHandler) {
+            _structHandler = new QOpcUaGenericStructHandler(_client, _client);
+            if (!_structHandler->initialize()) {
+                qCInfo(lcClient) << "Custom structures stay undecoded: the server publishes no "
+                                    "readable type definitions.";
+            }
+        }
         setState(OpcUaConnectionState::Connected);
         break;
     case QOpcUaClient::Closing: setState(OpcUaConnectionState::Closing); break;
@@ -448,6 +470,7 @@ bool QtOpcUaConnectionManager::ensureClient(const QString &backend)
         emit clientInvalidated();
         delete _client;
         _client = nullptr;
+        _structHandler = nullptr;
         clearConnectionData();
         _endpoints.clear();
         _activeBackend.clear();

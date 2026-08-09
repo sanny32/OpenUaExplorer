@@ -219,6 +219,10 @@ add_library(ouaexp_ui STATIC
     widgets/tableview.h
     widgets/tableviewconfig.cpp
     widgets/tableviewconfig.h
+    widgets/treetableview.cpp
+    widgets/treetableview.h
+    widgets/viewtooltip.cpp
+    widgets/viewtooltip.h
     widgets/themedaction.cpp
     widgets/themedaction.h
     widgets/themediconlabel.cpp

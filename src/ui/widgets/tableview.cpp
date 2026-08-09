@@ -9,14 +9,12 @@
 #include <QAbstractItemModel>
 #include <QAbstractScrollArea>
 #include <QEvent>
-#include <QFontMetrics>
 #include <QHeaderView>
-#include <QHelpEvent>
 #include <QStyle>
-#include <QToolTip>
 
 #include "headerview.h"
 #include "tableview.h"
+#include "viewtooltip.h"
 
 ///
 /// \brief Constructs the table view with a wrapped header.
@@ -150,24 +148,7 @@ void TableView::applyFullTextHorizontalScroll()
 ///
 bool TableView::viewportEvent(QEvent *event)
 {
-    if (event->type() == QEvent::ToolTip) {
-        auto *helpEvent = static_cast<QHelpEvent *>(event);
-        const QModelIndex index = indexAt(helpEvent->pos());
-        if (index.isValid()) {
-            const QString text = model()->data(index, Qt::DisplayRole).toString();
-            if (!text.isEmpty()) {
-                const QRect cellRect = visualRect(index);
-                const int margin = style()->pixelMetric(QStyle::PM_FocusFrameHMargin, nullptr, this) + 1;
-                const int availWidth = cellRect.width() - margin * 2;
-                const QFontMetrics fm(font());
-                if (fm.horizontalAdvance(text) > availWidth) {
-                    QToolTip::showText(helpEvent->globalPos(), text, this, cellRect);
-                    return true;
-                }
-            }
-            QToolTip::hideText();
-            return true;
-        }
-    }
+    if (ViewToolTip::handleViewportEvent(this, event))
+        return true;
     return QTableView::viewportEvent(event);
 }

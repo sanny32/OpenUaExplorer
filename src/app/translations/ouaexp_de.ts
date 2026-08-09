@@ -1293,6 +1293,13 @@ Wählen Sie ihn erneut aus.</translation>
         <source>Actual Interval</source>
         <translation>Tatsächliches Intervall</translation>
     </message>
+    <message numerus="yes">
+        <source>… %n more</source>
+        <translation>
+            <numerusform>… %n weiteres</numerusform>
+            <numerusform>… %n weitere</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>DataAccessModule</name>

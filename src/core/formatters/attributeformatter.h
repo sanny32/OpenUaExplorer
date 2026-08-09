@@ -206,6 +206,50 @@ OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type,
                                   const QString &dataTypeId = QString());
 
 ///
+/// \brief One expandable part of a composite value: an array element or a structure field.
+///
+struct ValueElement
+{
+    /// \brief Row label, "[0]" for an array element or the field name of a structure.
+    QString label;
+    /// \brief Formatted element value.
+    QString text;
+    /// \brief Element type name; empty when only the containing value knows it.
+    QString typeName;
+    /// \brief Raw element value, used to expand the element further.
+    QVariant value;
+    /// \brief True when the element itself expands into elements.
+    bool hasChildren = false;
+};
+
+///
+/// \brief Reports whether a value expands into elements of its own.
+/// \param value Variant to inspect.
+/// \return True for arrays; strings and byte arrays stay scalar.
+///
+bool hasValueElements(const QVariant &value);
+
+///
+/// \brief Splits a composite value into its elements.
+/// \param value Variant to split.
+/// \param limit Largest number of elements to return; negative returns all of them.
+/// \param totalCount Receives the untruncated element count when not null.
+/// \return Elements in their natural order, at most \a limit of them.
+///
+QVector<ValueElement> valueElements(const QVariant &value, int limit = -1,
+                                    int *totalCount = nullptr);
+
+///
+/// \brief Renders a composite value as a short summary naming its type and size.
+/// \param value Variant to describe.
+/// \param type Declared value type, used to name array elements.
+/// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
+/// \return Summary such as "Int16[3]", or the plain display value for scalars.
+///
+QString valueSummary(const QVariant &value, QOpcUa::Types type,
+                     const QString &dataTypeId = QString());
+
+///
 /// \brief Fills an attribute's display value (and children) using the rules for its attribute id.
 /// \param attribute Attribute to populate.
 /// \param nodeAttribute Which OPC UA attribute is being formatted.

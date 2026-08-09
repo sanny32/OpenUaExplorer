@@ -1290,6 +1290,12 @@ Select it again.</source>
         <source>Actual Interval</source>
         <translation>实际间隔</translation>
     </message>
+    <message numerus="yes">
+        <source>… %n more</source>
+        <translation>
+            <numerusform>… 还有 %n 个</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>DataAccessModule</name>

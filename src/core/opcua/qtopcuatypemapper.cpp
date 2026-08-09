@@ -8,6 +8,8 @@
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaBinaryDataEncoding>
 #include <QOpcUaExtensionObject>
+#include <QOpcUaGenericStructHandler>
+#include <QOpcUaGenericStructValue>
 #include <QOpcUaLocalizedText>
 #include <QOpcUaQualifiedName>
 #include <QOpcUaUserTokenPolicy>
@@ -217,13 +219,14 @@ QOpcUa::NodeAttributes nodeDetailAttributes()
 
 /// \brief Builds formatted node details from attributes cached by a Qt node.
 OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
-                             QOpcUa::NodeAttributes attributes, const Translate &translate)
+                             QOpcUa::NodeAttributes attributes, const Translate &translate,
+                             const QOpcUaGenericStructHandler *structHandler)
 {
     OpcUaNodeDetails details;
     details.nodeId = nodeId;
     details.nodeClass = node->attribute(QOpcUa::NodeAttribute::NodeClass).toInt();
     const auto nodeClass = static_cast<QOpcUa::NodeClass>(details.nodeClass);
-    details.value = node->attribute(QOpcUa::NodeAttribute::Value);
+    details.value = decodedValue(node->attribute(QOpcUa::NodeAttribute::Value), structHandler);
     details.dataTypeId = node->attribute(QOpcUa::NodeAttribute::DataType).toString();
     details.valueType = static_cast<int>(valueTypeForDataType(details.dataTypeId));
     const auto valueType = static_cast<QOpcUa::Types>(details.valueType);
@@ -244,7 +247,9 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
             || node->attributeError(field.second) == QOpcUa::UaStatusCode::BadAttributeIdInvalid) {
             continue;
         }
-        const QVariant value = node->attribute(field.second);
+        const QVariant value = field.second == QOpcUa::NodeAttribute::Value
+            ? details.value
+            : node->attribute(field.second);
         OpcUaNodeAttribute attribute;
         attribute.name = field.first;
         attribute.value = value;
@@ -272,6 +277,43 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
     if (displayName.canConvert<QOpcUaLocalizedText>())
         details.displayName = displayName.value<QOpcUaLocalizedText>().text();
     return details;
+}
+
+/// \brief Replaces the opaque structures in a value by their decoded fields.
+QVariant decodedValue(const QVariant &value, const QOpcUaGenericStructHandler *handler)
+{
+    if (!handler)
+        return value;
+
+    if (value.userType() == qMetaTypeId<QOpcUaExtensionObject>()) {
+        const std::optional<QOpcUaGenericStructValue> decoded =
+            handler->decode(value.value<QOpcUaExtensionObject>());
+        return decoded ? QVariant::fromValue(*decoded) : value;
+    }
+
+    if (value.canConvert<QList<QOpcUaExtensionObject>>()
+        && value.userType() != QMetaType::QVariantList) {
+        QVariantList decoded;
+        const QList<QOpcUaExtensionObject> objects = value.value<QList<QOpcUaExtensionObject>>();
+        decoded.reserve(objects.size());
+        for (const QOpcUaExtensionObject &object : objects)
+            decoded.append(decodedValue(QVariant::fromValue(object), handler));
+        return decoded;
+    }
+
+    if (value.userType() == QMetaType::QVariantList) {
+        const QVariantList entries = value.toList();
+        QVariantList decoded;
+        decoded.reserve(entries.size());
+        bool changed = false;
+        for (const QVariant &entry : entries) {
+            decoded.append(decodedValue(entry, handler));
+            changed = changed || decoded.constLast().userType() != entry.userType();
+        }
+        return changed ? QVariant(decoded) : value;
+    }
+
+    return value;
 }
 
 /// \brief Resolves this client's session name from SessionDiagnosticsArray.

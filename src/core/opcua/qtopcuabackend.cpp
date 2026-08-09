@@ -83,7 +83,10 @@ public:
             monitoring.setClient(connection.client());
         });
         QObject::connect(&monitoring, &QtOpcUaMonitoringManager::dataValuesReady,
-                         q, &QtOpcUaBackend::dataValuesReady);
+                         q, [this](QVector<OpcUaDataValue> values, QString error) {
+            decodeStructures(values);
+            emit q->dataValuesReady(values, error);
+        });
         QObject::connect(&monitoring, &QtOpcUaMonitoringManager::monitoringFinished,
                          q, &QtOpcUaBackend::monitoringFinished);
         QObject::connect(&monitoring, &QtOpcUaMonitoringManager::monitoringIntervalRevised,
@@ -92,6 +95,19 @@ public:
                          q, &QtOpcUaBackend::eventsReady);
         QObject::connect(&monitoring, &QtOpcUaMonitoringManager::eventMonitoringFinished,
                          q, &QtOpcUaBackend::eventMonitoringFinished);
+    }
+
+    ///
+    /// \brief Expands the custom structures carried by read or notification values.
+    /// \param values Values to decode in place.
+    ///
+    void decodeStructures(QVector<OpcUaDataValue> &values)
+    {
+        const QOpcUaGenericStructHandler *handler = connection.structHandler();
+        if (!handler)
+            return;
+        for (OpcUaDataValue &value : values)
+            value.value = QtOpcUaTypeMapper::decodedValue(value.value, handler);
     }
 
     ///
@@ -688,7 +704,8 @@ void QtOpcUaBackend::readNode(const QString &nodeId)
         timeoutMs, &QOpcUaNode::attributeRead,
         [this, node, nodeId, attributes](QOpcUa::NodeAttributes) {
             emit nodeDetailsReady(QtOpcUaTypeMapper::nodeDetails(
-                node, nodeId, attributes, [](const char *text) { return QString::fromUtf8(text); }),
+                node, nodeId, attributes, [](const char *text) { return QString::fromUtf8(text); },
+                _d->connection.structHandler()),
                 QString());
         },
         [node, attributes]() { return node->readAttributes(attributes); },
@@ -728,7 +745,8 @@ void QtOpcUaBackend::readValues(const QStringList &nodeIds)
         _d->clearConnection(operation);
         if (!_d->requests.settle(token))
             return;
-        const QVector<OpcUaDataValue> values = QtOpcUaResultMapper::dataValues(results);
+        QVector<OpcUaDataValue> values = QtOpcUaResultMapper::dataValues(results);
+        _d->decodeStructures(values);
         const QString error = QOpcUa::isSuccessStatus(serviceResult)
             ? QString()
             : tr("Read service failed: %1").arg(statusName(serviceResult));

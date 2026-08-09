@@ -31,8 +31,8 @@
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
 #include "subscriptiondelegate.h"
-#include "tableview.h"
 #include "tableviewconfig.h"
+#include "treetableview.h"
 #include "valuecelldelegate.h"
 #include "ui_dataaccesswidget.h"
 
@@ -94,7 +94,7 @@ public:
     QVariant data(const QModelIndex &index, int role) const override
     {
         if (role == Qt::DisplayRole && index.isValid()
-            && index.column() == DataAccessModel::ColNumber) {
+            && index.column() == DataAccessModel::ColNumber && !index.parent().isValid()) {
             return index.row() + 1;
         }
         return QSortFilterProxyModel::data(index, role);
@@ -103,6 +103,9 @@ public:
 protected:
     bool filterAcceptsRow(int row, const QModelIndex &parent) const override
     {
+        // Element rows are part of the value of the row above them, never a match of their own.
+        if (parent.isValid())
+            return true;
         if (_filter.isEmpty())
             return true;
 
@@ -557,7 +560,13 @@ void DataAccessWidget::setupDataView()
     ui->dataView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
     connect(ui->dataView, &QAbstractItemView::doubleClicked,
             this, &DataAccessWidget::handleValueDoubleClick);
-    ui->dataView->verticalHeader()->hide();
+
+    // Composite values expand under their node: the expander sits in the NodeId column so the
+    // row numbers stay flush, and a double click keeps writing instead of toggling the row.
+    ui->dataView->setTreePosition(DataAccessModel::ColNodeId);
+    ui->dataView->setRootIsDecorated(true);
+    ui->dataView->setUniformRowHeights(true);
+    ui->dataView->setExpandsOnDoubleClick(false);
     ui->dataView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->dataView, &QWidget::customContextMenuRequested,
             this, &DataAccessWidget::showDataContextMenu);
@@ -748,7 +757,12 @@ void DataAccessWidget::handleValueDoubleClick(const QModelIndex &index)
     if (_offline || !index.isValid() || index.column() != DataAccessModel::ColValue)
         return;
 
-    const DataAccessItem item = _dataModel->itemAt(_filterProxy->mapToSource(index).row());
+    // Writing a single array element needs an IndexRange the write path does not carry.
+    const QModelIndex source = _filterProxy->mapToSource(index);
+    if (source.parent().isValid())
+        return;
+
+    const DataAccessItem item = _dataModel->itemAt(source.row());
     if (item.pending)
         return;
 
@@ -962,8 +976,15 @@ QModelIndexList DataAccessWidget::selectedDataRows() const
     QModelIndexList rows;
     const QModelIndexList selected = ui->dataView->selectionModel()->selectedRows();
     rows.reserve(selected.size());
-    for (const QModelIndex &idx : selected)
-        rows.append(_filterProxy->mapToSource(idx));
+    for (const QModelIndex &idx : selected) {
+        // An element row stands for its monitored node: reading, removing or subscribing
+        // from a picked array element means doing it to the node the element came from.
+        QModelIndex source = _filterProxy->mapToSource(idx);
+        while (source.parent().isValid())
+            source = source.parent();
+        if (source.isValid() && !rows.contains(source))
+            rows.append(source);
+    }
     return rows;
 }
 

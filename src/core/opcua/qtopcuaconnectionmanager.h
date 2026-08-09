@@ -15,6 +15,7 @@
 #include "pkimanager.h"
 
 class CertificateTrustDecider;
+class QOpcUaGenericStructHandler;
 
 ///
 /// \brief Owns the Qt OPC UA client and its connection-specific state.
@@ -44,6 +45,12 @@ public:
 
     /// \brief Returns the managed Qt OPC UA client.
     QOpcUaClient *client() const;
+
+    /// \brief Returns the decoder for the server's custom structures, or null when unavailable.
+    ///
+    /// The decoder reads the server's type definitions once per connection; until that
+    /// finished, and on servers that publish none, structures stay opaque.
+    QOpcUaGenericStructHandler *structHandler() const;
 
     /// \brief Returns the endpoints from the latest successful discovery.
     const QVector<QOpcUaEndpointDescription> &endpointDescriptions() const;
@@ -103,6 +110,7 @@ private:
     PkiManager _pki;
     QOpcUaProvider _provider;
     QOpcUaClient *_client = nullptr;
+    QOpcUaGenericStructHandler *_structHandler = nullptr;
     QString _activeBackend;
     QVector<QOpcUaEndpointDescription> _endpoints;
     QByteArray _activeCertificate;

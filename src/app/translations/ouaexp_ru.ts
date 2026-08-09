@@ -1296,6 +1296,14 @@ Select it again.</source>
         <source>Actual Interval</source>
         <translation>Фактический интервал</translation>
     </message>
+    <message numerus="yes">
+        <source>… %n more</source>
+        <translation>
+            <numerusform>… ещё %n</numerusform>
+            <numerusform>… ещё %n</numerusform>
+            <numerusform>… ещё %n</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>DataAccessModule</name>

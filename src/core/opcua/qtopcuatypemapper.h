@@ -17,9 +17,17 @@
 
 #include "opcuatypes.h"
 
+class QOpcUaGenericStructHandler;
+
 namespace QtOpcUaTypeMapper {
 
 using Translate = std::function<QString(const char *)>;
+
+/// \brief Replaces the opaque structures in a value by their decoded fields.
+///
+/// Values the handler cannot decode, and every value while no handler is ready, are
+/// returned unchanged: an undecoded structure is still shown, only not expanded.
+QVariant decodedValue(const QVariant &value, const QOpcUaGenericStructHandler *handler);
 
 /// \brief Maps discovered Qt endpoints to transport-neutral endpoint records.
 QList<EndpointInfo> endpointInfos(const QVector<QOpcUaEndpointDescription> &endpoints);
@@ -36,7 +44,8 @@ QOpcUa::NodeAttributes nodeDetailAttributes();
 /// \brief Builds formatted node details from attributes cached by a Qt node.
 OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
                              QOpcUa::NodeAttributes attributes,
-                             const Translate &translate);
+                             const Translate &translate,
+                             const QOpcUaGenericStructHandler *structHandler = nullptr);
                              
 /// \brief Resolves this client's session name from SessionDiagnosticsArray.
 QString ownSessionName(const QVariant &value, const QString &applicationUri);

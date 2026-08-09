@@ -12,7 +12,7 @@
 #include <QDialog>
 #include <QPushButton>
 #include <QSettings>
-#include <QTableView>
+#include <QTreeView>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QTimer>
@@ -186,7 +186,7 @@ QVector<OpcUaNodeInfo> makeFolderChildren(int variableCount)
 QAbstractItemModel *dataAccessModel(CoordinatorHarness &harness)
 {
     auto *view = harness.dataView.dataAccess()
-                     ->findChild<QTableView *>(QStringLiteral("dataView"));
+                     ->findChild<QTreeView *>(QStringLiteral("dataView"));
     return view ? view->model() : nullptr;
 }
 
