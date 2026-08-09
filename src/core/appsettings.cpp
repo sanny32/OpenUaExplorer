@@ -22,6 +22,7 @@ constexpr auto windowGeometryKey = "mainWindow/geometry";
 constexpr auto windowStateKey = "mainWindow/state";
 constexpr auto centralSplitterKey = "mainWindow/centralSplitter";
 constexpr auto dataAccessPageKey = "mainWindow/dataAccessPage";
+constexpr auto closedDataAccessPagesKey = "mainWindow/closedDataAccessPages";
 constexpr auto trendPanelVisibleKey = "mainWindow/trendPanelVisible";
 constexpr auto restoreLayoutKey = "mainWindow/restoreLayout";
 constexpr auto viewStateGroup = "viewState";
@@ -430,6 +431,40 @@ void AppSettings::setDataAccessPage(int page)
 }
 
 ///
+/// \brief Returns the data-access pages the user closed.
+/// \return Stored page values, or an empty list when none is stored.
+///
+QList<int> AppSettings::closedDataAccessPages() const
+{
+    SettingsStore settings;
+    const QStringList stored =
+        settings.value(QLatin1String(closedDataAccessPagesKey)).toStringList();
+
+    QList<int> pages;
+    for (const QString &entry : stored) {
+        bool ok = false;
+        const int page = entry.toInt(&ok);
+        if (ok)
+            pages.append(page);
+    }
+    return pages;
+}
+
+///
+/// \brief Stores the data-access pages the user closed.
+/// \param pages Page values to persist.
+///
+void AppSettings::setClosedDataAccessPages(const QList<int> &pages)
+{
+    QStringList stored;
+    for (const int page : pages)
+        stored.append(QString::number(page));
+
+    SettingsStore settings;
+    settings.setValue(QLatin1String(closedDataAccessPagesKey), stored);
+}
+
+///
 /// \brief Reports whether the trend panel should be shown.
 /// \return True when the panel is visible, defaulting to true.
 ///
@@ -709,6 +744,7 @@ void AppSettings::clearLayout()
     settings.remove(QLatin1String(windowStateKey));
     settings.remove(QLatin1String(centralSplitterKey));
     settings.remove(QLatin1String(dataAccessPageKey));
+    settings.remove(QLatin1String(closedDataAccessPagesKey));
     settings.remove(QLatin1String(trendPanelVisibleKey));
     settings.remove(QLatin1String(viewStateGroup));
 }

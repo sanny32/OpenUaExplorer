@@ -18,12 +18,12 @@
 #include "models/subscriptionitem.h"
 #include "opcua/opcuatypes.h"
 #include "session/sessiondata.h"
+#include "widgets/dataview.h"
 
 class AddressSpaceModule;
 class AppSettings;
 class AttributeModule;
 class DataAccessModule;
-class DataView;
 class EventsModule;
 class OpcUaBackend;
 class QAction;
@@ -154,24 +154,16 @@ public:
     void readEventsHistoryForSelected();
 
     ///
-    /// \brief Switches the data view to the Data Access page.
+    /// \brief Opens a data-view page and switches to it, or closes its tab.
+    /// \param page Page to open or close.
+    /// \param visible True to open the tab and make it current.
     ///
-    void showDataAccessPage();
+    void setPageVisible(DataView::Page page, bool visible);
 
     ///
-    /// \brief Switches the data view to the Events page.
+    /// \brief Reopens every data-view tab the user closed.
     ///
-    void showEventsPage();
-
-    ///
-    /// \brief Switches the data view to the Data History page when history is supported.
-    ///
-    void showDataHistoryPage();
-
-    ///
-    /// \brief Switches the data view to the Events History page when history is supported.
-    ///
-    void showEventsHistoryPage();
+    void showAllPages();
 
     ///
     /// \brief Shows the subscriptions management dialog.
@@ -185,13 +177,13 @@ public:
     void loadSubscriptions(AppSettings &settings);
 
     ///
-    /// \brief Persists the visible page and the view element state of the central area.
+    /// \brief Persists the open pages and the view element state of the central area.
     /// \param settings Settings store to write to.
     ///
     void saveState(AppSettings &settings) const;
 
     ///
-    /// \brief Restores the visible page and the view element state of the central area.
+    /// \brief Restores the open pages and the view element state of the central area.
     /// \param settings Settings store to read from.
     ///
     void restoreState(AppSettings &settings);

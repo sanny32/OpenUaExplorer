@@ -10,6 +10,7 @@
 
 #include <QByteArray>
 #include <QHash>
+#include <QList>
 #include <QString>
 #include <QVector>
 
@@ -266,6 +267,18 @@ public:
     /// \param page Page index to persist.
     ///
     void setDataAccessPage(int page);
+
+    ///
+    /// \brief Returns the data-access pages the user closed.
+    /// \return Stored page values, or an empty list when none is stored.
+    ///
+    QList<int> closedDataAccessPages() const;
+
+    ///
+    /// \brief Stores the data-access pages the user closed.
+    /// \param pages Page values to persist.
+    ///
+    void setClosedDataAccessPages(const QList<int> &pages);
 
     ///
     /// \brief Reports whether the trend panel should be shown.

@@ -352,21 +352,45 @@
    </property>
   </action>
   <action name="actionViewDataAccess">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Data Access</string>
    </property>
   </action>
   <action name="actionViewEvents">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Events</string>
    </property>
   </action>
   <action name="actionViewDataHistory">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Data History</string>
    </property>
   </action>
   <action name="actionViewEventsHistory">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Events History</string>
    </property>

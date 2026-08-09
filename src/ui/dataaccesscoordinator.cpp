@@ -217,39 +217,23 @@ void DataAccessCoordinator::readEventsHistoryForSelected()
 }
 
 ///
-/// \brief Switches the data view to the Data Access page.
+/// \brief Opens a data-view page and switches to it, or closes its tab.
+/// \param page Page to open or close.
+/// \param visible True to open the tab and make it current.
 ///
-void DataAccessCoordinator::showDataAccessPage()
+void DataAccessCoordinator::setPageVisible(DataView::Page page, bool visible)
 {
-    _dataView->setCurrentPage(DataView::DataAccessPage);
+    _dataView->setPageVisible(page, visible);
+    if (visible && _dataView->isPageVisible(page))
+        _dataView->setCurrentPage(page);
 }
 
 ///
-/// \brief Switches the data view to the Events page.
+/// \brief Reopens every data-view tab the user closed.
 ///
-void DataAccessCoordinator::showEventsPage()
+void DataAccessCoordinator::showAllPages()
 {
-    _dataView->setCurrentPage(DataView::EventsPage);
-}
-
-///
-/// \brief Switches the data view to the Data History page when history is supported.
-///
-void DataAccessCoordinator::showDataHistoryPage()
-{
-    if (!OpcUa::isHistoryReadSupported())
-        return;
-    _dataView->setCurrentPage(DataView::DataHistoryPage);
-}
-
-///
-/// \brief Switches the data view to the Events History page when history is supported.
-///
-void DataAccessCoordinator::showEventsHistoryPage()
-{
-    if (!OpcUa::isHistoryReadSupported())
-        return;
-    _dataView->setCurrentPage(DataView::EventsHistoryPage);
+    _dataView->setClosedPages({});
 }
 
 ///
@@ -270,24 +254,29 @@ void DataAccessCoordinator::loadSubscriptions(AppSettings &settings)
 }
 
 ///
-/// \brief Persists the visible page and the view element state of the central area.
+/// \brief Persists the open pages and the view element state of the central area.
 /// \param settings Settings store to write to.
 ///
 void DataAccessCoordinator::saveState(AppSettings &settings) const
 {
     settings.setDataAccessPage(_dataView->currentPage());
+    settings.setClosedDataAccessPages(_dataView->closedPages());
     _dataView->saveViewState(settings);
     _dataView->subscriptions()->saveSubscriptions(settings);
     _trendPanel->saveViewState(settings);
 }
 
 ///
-/// \brief Restores the visible page and the view element state of the central area.
+/// \brief Restores the open pages and the view element state of the central area.
 /// \param settings Settings store to read from.
 ///
 void DataAccessCoordinator::restoreState(AppSettings &settings)
 {
-    _dataView->setCurrentPage(static_cast<DataView::Page>(settings.dataAccessPage()));
+    _dataView->setClosedPages(settings.closedDataAccessPages());
+    // setCurrentPage() reopens a closed tab, so only activate a page that stayed open.
+    const auto page = static_cast<DataView::Page>(settings.dataAccessPage());
+    if (_dataView->isPageVisible(page))
+        _dataView->setCurrentPage(page);
     _dataView->restoreViewState(settings);
     _trendPanel->restoreViewState(settings);
 }

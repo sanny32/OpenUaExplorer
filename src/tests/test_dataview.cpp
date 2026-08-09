@@ -6,6 +6,8 @@
 /// \brief Tests the DataView tab container behaviour.
 ///
 
+#include <QAbstractButton>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QTableView>
 #include <QTreeView>
@@ -28,6 +30,9 @@ class TestDataView : public QObject
 private slots:
     void historyTabsFollowQtSupport();
     void pagesUseLegacyValues();
+    void closedTabReopensFromTheMenuPage();
+    void closedPagesSkipUnsupportedHistoryTabs();
+    void addingNodeReopensTheDataAccessTab();
     void clearRuntimeDataResetsTabs();
     void eventMonitoringRequestTargetsNodeAndSubscribes();
     void eventsHistoryRequestTargetsNodeAndReads();
@@ -49,6 +54,19 @@ OpcUaNodeDetails makeNodeDetails()
     details.dataTypeId = QStringLiteral("ns=0;i=11");
     details.status = QStringLiteral("Good");
     return details;
+}
+
+///
+/// \brief Returns the close button of a tab, whichever side the style puts it on.
+/// \param bar Tab bar to query.
+/// \param index Tab to query.
+/// \return Close button, or nullptr when the tab has none.
+///
+QAbstractButton *tabCloseButton(QTabBar *bar, int index)
+{
+    if (auto *right = qobject_cast<QAbstractButton *>(bar->tabButton(index, QTabBar::RightSide)))
+        return right;
+    return qobject_cast<QAbstractButton *>(bar->tabButton(index, QTabBar::LeftSide));
 }
 
 } // namespace
@@ -90,6 +108,70 @@ void TestDataView::pagesUseLegacyValues()
 
     view.setCurrentPage(static_cast<DataView::Page>(99));
     QCOMPARE(tabs->currentIndex(), 0);
+    QCOMPARE(view.currentPage(), int(DataView::DataAccessPage));
+}
+
+///
+/// \brief The close button hides a page until the View menu opens it again.
+///
+void TestDataView::closedTabReopensFromTheMenuPage()
+{
+    DataView view;
+    auto *tabs = view.findChild<QTabWidget *>(QStringLiteral("mainTabs"));
+    QVERIFY(tabs);
+    QVERIFY(tabs->tabsClosable());
+
+    QAbstractButton *closeButton = tabCloseButton(tabs->tabBar(), 1);
+    QVERIFY(closeButton);
+    closeButton->click();
+
+    QVERIFY(!view.isPageVisible(DataView::EventsPage));
+    QVERIFY(tabs->currentIndex() != 1);
+    const QList<int> closed{int(DataView::EventsPage)};
+    QCOMPARE(view.closedPages(), closed);
+
+    view.setCurrentPage(DataView::EventsPage);
+
+    QVERIFY(view.isPageVisible(DataView::EventsPage));
+    QCOMPARE(tabs->currentIndex(), 1);
+    QVERIFY(view.closedPages().isEmpty());
+}
+
+///
+/// \brief Pages the linked Qt OPC UA API cannot serve are never reported or reopened.
+///
+void TestDataView::closedPagesSkipUnsupportedHistoryTabs()
+{
+    DataView view;
+    view.setClosedPages({int(DataView::DataAccessPage)});
+
+    QVERIFY(!view.isPageVisible(DataView::DataAccessPage));
+    QVERIFY(view.isPageVisible(DataView::EventsPage));
+
+    view.setPageVisible(DataView::DataHistoryPage, true);
+    QCOMPARE(view.isPageVisible(DataView::DataHistoryPage), OpcUa::isHistoryReadSupported());
+
+    const QList<int> closed = view.closedPages();
+    QVERIFY(closed.contains(int(DataView::DataAccessPage)));
+    QCOMPARE(closed.contains(int(DataView::DataHistoryPage)), false);
+
+    view.setClosedPages({});
+    QVERIFY(view.isPageVisible(DataView::DataAccessPage));
+    QVERIFY(view.closedPages().isEmpty());
+}
+
+///
+/// \brief Adding a node brings the Data Access tab back when the user closed it.
+///
+void TestDataView::addingNodeReopensTheDataAccessTab()
+{
+    DataView view;
+    view.setClosedPages({int(DataView::DataAccessPage)});
+    QVERIFY(!view.isPageVisible(DataView::DataAccessPage));
+
+    view.addNode(makeNodeDetails());
+
+    QVERIFY(view.isPageVisible(DataView::DataAccessPage));
     QCOMPARE(view.currentPage(), int(DataView::DataAccessPage));
 }
 

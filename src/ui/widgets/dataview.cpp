@@ -60,6 +60,16 @@ DataView::Page pageForTabIndex(int tabIndex)
     }
 }
 
+///
+/// \brief Returns every page hosted by the tab widget, in tab order.
+/// \return Page values of all tabs.
+///
+QVector<DataView::Page> allPages()
+{
+    return {DataView::DataAccessPage, DataView::EventsPage,
+            DataView::DataHistoryPage, DataView::EventsHistoryPage};
+}
+
 } // namespace
 
 ///
@@ -73,10 +83,9 @@ DataView::DataView(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->mainTabs->setTabVisible(tabIndexForPage(DataHistoryPage),
-                                OpcUa::isHistoryReadSupported());
-    ui->mainTabs->setTabVisible(tabIndexForPage(EventsHistoryPage),
-                                OpcUa::isHistoryReadSupported());
+    setPageVisible(DataHistoryPage, OpcUa::isHistoryReadSupported());
+    setPageVisible(EventsHistoryPage, OpcUa::isHistoryReadSupported());
+    connect(ui->mainTabs, &QTabWidget::tabCloseRequested, this, &DataView::closeTab);
 
     SubscriptionsWidget *subscriptionsWidget = subscriptions();
     connect(subscriptionsWidget, &SubscriptionsWidget::subscriptionsChanged,
@@ -158,13 +167,14 @@ EventsHistoryWidget *DataView::eventsHistory() const
 }
 
 ///
-/// \brief Switches the visible tab.
+/// \brief Reopens the page when it was closed and switches to its tab.
 /// \param page Page to show.
 ///
 void DataView::setCurrentPage(Page page)
 {
-    if ((page == DataHistoryPage || page == EventsHistoryPage) && !OpcUa::isHistoryReadSupported())
+    if (!isPageSupported(page))
         page = DataAccessPage;
+    setPageVisible(page, true);
     ui->mainTabs->setCurrentIndex(tabIndexForPage(page));
 }
 
@@ -175,6 +185,90 @@ void DataView::setCurrentPage(Page page)
 int DataView::currentPage() const
 {
     return static_cast<int>(pageForTabIndex(ui->mainTabs->currentIndex()));
+}
+
+///
+/// \brief Opens or closes a page without touching the other tabs.
+/// \param page Page to open or close.
+/// \param visible True to open the tab, false to close it.
+///
+void DataView::setPageVisible(Page page, bool visible)
+{
+    if (visible && !isPageSupported(page))
+        return;
+    const int index = tabIndexForPage(page);
+    if (ui->mainTabs->isTabVisible(index) == visible)
+        return;
+    ui->mainTabs->setTabVisible(index, visible);
+    emit pageVisibilityChanged(page, visible);
+}
+
+///
+/// \brief Reports whether a page currently has a tab.
+/// \param page Page to query.
+/// \return True when the page is open.
+///
+bool DataView::isPageVisible(Page page) const
+{
+    return ui->mainTabs->isTabVisible(tabIndexForPage(page));
+}
+
+///
+/// \brief Reports whether any page still has a tab.
+/// \return True while at least one tab is open.
+///
+bool DataView::hasVisiblePages() const
+{
+    for (const Page page : allPages()) {
+        if (isPageVisible(page))
+            return true;
+    }
+    return false;
+}
+
+///
+/// \brief Returns the pages the user closed.
+/// \return Page values without a tab, excluding pages the backend cannot serve.
+///
+QList<int> DataView::closedPages() const
+{
+    QList<int> closed;
+    for (const Page page : allPages()) {
+        if (isPageSupported(page) && !isPageVisible(page))
+            closed.append(static_cast<int>(page));
+    }
+    return closed;
+}
+
+///
+/// \brief Opens every supported page except the listed ones.
+/// \param pages Page values to keep closed.
+///
+void DataView::setClosedPages(const QList<int> &pages)
+{
+    for (const Page page : allPages())
+        setPageVisible(page, !pages.contains(static_cast<int>(page)));
+}
+
+///
+/// \brief Closes the tab whose close button was pressed.
+/// \param index Tab index to close.
+///
+void DataView::closeTab(int index)
+{
+    setPageVisible(pageForTabIndex(index), false);
+}
+
+///
+/// \brief Reports whether the linked Qt OPC UA API can serve a page.
+/// \param page Page to query.
+/// \return True unless the page needs HistoryRead and the API lacks it.
+///
+bool DataView::isPageSupported(Page page)
+{
+    if (page == DataHistoryPage || page == EventsHistoryPage)
+        return OpcUa::isHistoryReadSupported();
+    return true;
 }
 
 ///

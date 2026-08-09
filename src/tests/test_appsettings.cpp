@@ -37,6 +37,7 @@ private slots:
     void lastSavedSessionPathRoundTrips();
     void builtinSubscriptionOverridesRoundTrip();
     void dataAccessPageRoundTrips();
+    void closedDataAccessPagesRoundTrip();
     void viewStateRoundTrips();
     void clearLayoutKeepsPreferences();
     void loggingCategoriesAreGrouped();
@@ -256,6 +257,21 @@ void TestAppSettings::dataAccessPageRoundTrips()
 }
 
 ///
+/// \brief The closed data-access pages round-trip and default to none.
+///
+void TestAppSettings::closedDataAccessPagesRoundTrip()
+{
+    QVERIFY(AppSettings().closedDataAccessPages().isEmpty());
+
+    const QList<int> closed{2, 4};
+    AppSettings().setClosedDataAccessPages(closed);
+    QCOMPARE(AppSettings().closedDataAccessPages(), closed);
+
+    AppSettings().setClosedDataAccessPages({});
+    QVERIFY(AppSettings().closedDataAccessPages().isEmpty());
+}
+
+///
 /// \brief Per-view element state is keyed independently and round-trips.
 ///
 void TestAppSettings::viewStateRoundTrips()
@@ -284,6 +300,7 @@ void TestAppSettings::clearLayoutKeepsPreferences()
     settings.setWindowState(QByteArrayLiteral("state"));
     settings.setCentralSplitterState(QByteArrayLiteral("splitter"));
     settings.setDataAccessPage(2);
+    settings.setClosedDataAccessPages({3, 4});
     settings.setTrendPanelVisible(false);
     settings.setViewState(QStringLiteral("dataView"), QByteArrayLiteral("view"));
 
@@ -293,6 +310,7 @@ void TestAppSettings::clearLayoutKeepsPreferences()
     QVERIFY(AppSettings().windowState().isEmpty());
     QVERIFY(AppSettings().centralSplitterState().isEmpty());
     QCOMPARE(AppSettings().dataAccessPage(), 0);
+    QVERIFY(AppSettings().closedDataAccessPages().isEmpty());
     QVERIFY(AppSettings().trendPanelVisible());
     QVERIFY(AppSettings().viewState(QStringLiteral("dataView")).isEmpty());
 

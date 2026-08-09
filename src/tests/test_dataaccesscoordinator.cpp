@@ -242,6 +242,7 @@ private slots:
     void clearRuntimeStateResetsMonitoring();
     void offlineKeepsTheCollectedRows();
     void pageStateSurvivesSaveRestoreRoundTrip();
+    void closedPagesSurviveSaveRestoreRoundTrip();
     void restoredNodesKeepSavedOrderWhenReadsFinishOutOfOrder();
     void failedRestoredNodeRemainsSavedAndSettles();
     void folderDropBrowsesDroppedFolder();
@@ -425,17 +426,41 @@ void TestDataAccessCoordinator::offlineKeepsTheCollectedRows()
 void TestDataAccessCoordinator::pageStateSurvivesSaveRestoreRoundTrip()
 {
     CoordinatorHarness harness;
-    harness.coordinator->showEventsPage();
+    harness.coordinator->setPageVisible(DataView::EventsPage, true);
     QCOMPARE(harness.dataView.currentPage(), static_cast<int>(DataView::EventsPage));
 
     AppSettings settings;
     harness.coordinator->saveState(settings);
 
-    harness.coordinator->showDataAccessPage();
+    harness.coordinator->setPageVisible(DataView::DataAccessPage, true);
     QCOMPARE(harness.dataView.currentPage(), static_cast<int>(DataView::DataAccessPage));
 
     harness.coordinator->restoreState(settings);
     QCOMPARE(harness.dataView.currentPage(), static_cast<int>(DataView::EventsPage));
+}
+
+///
+/// \brief Closed tabs stay closed after a restart, and showAllPages() brings them back.
+///
+void TestDataAccessCoordinator::closedPagesSurviveSaveRestoreRoundTrip()
+{
+    CoordinatorHarness harness;
+    harness.coordinator->setPageVisible(DataView::EventsPage, false);
+    harness.coordinator->setPageVisible(DataView::DataAccessPage, false);
+
+    AppSettings settings;
+    harness.coordinator->saveState(settings);
+
+    harness.coordinator->showAllPages();
+    QVERIFY(harness.dataView.isPageVisible(DataView::EventsPage));
+
+    harness.coordinator->restoreState(settings);
+    QVERIFY(!harness.dataView.isPageVisible(DataView::EventsPage));
+    QVERIFY(!harness.dataView.isPageVisible(DataView::DataAccessPage));
+
+    harness.coordinator->showAllPages();
+    QVERIFY(harness.dataView.isPageVisible(DataView::EventsPage));
+    QVERIFY(harness.dataView.isPageVisible(DataView::DataAccessPage));
 }
 
 ///
