@@ -224,7 +224,7 @@ void ConnectionController::connectSavedProfile(const ConnectionProfile &profile)
     _pendingSecretReads = static_cast<int>(needsPassword);
 
     if (needsPassword)
-        _secretStore->read(profile.id, SecretStore::Secret::Password);
+        _secretStore->read(profile.secretScope(), SecretStore::Secret::Password);
     else
         startPendingConnection();
 }
@@ -280,7 +280,7 @@ void ConnectionController::saveProfile(const ConnectionProfile &profile,
     const QList<ConnectionProfile> existing = _profileStore->profiles();
     for (const ConnectionProfile &other : existing) {
         if (other.id != profile.id && other.isSameEndpoint(profile))
-            forgetProfile(other.id);
+            forgetProfile(other);
     }
 
     if (!_profileStore->save(profile)) {
@@ -288,7 +288,7 @@ void ConnectionController::saveProfile(const ConnectionProfile &profile,
         return;
     }
     if (!password.isEmpty())
-        _secretStore->write(profile.id, SecretStore::Secret::Password, password);
+        _secretStore->write(profile.secretScope(), SecretStore::Secret::Password, password);
     emit profilesChanged();
 }
 
@@ -306,7 +306,7 @@ void ConnectionController::rememberPassword(const ConnectionProfile &profile,
 {
     if (profile.id.isEmpty() || password.isEmpty())
         return;
-    _secretStore->write(profile.id, SecretStore::Secret::Password, password);
+    _secretStore->write(profile.secretScope(), SecretStore::Secret::Password, password);
 }
 
 ///
@@ -316,12 +316,12 @@ void ConnectionController::rememberPassword(const ConnectionProfile &profile,
 void ConnectionController::removeFavorite(const QString &id)
 {
     const QList<ConnectionProfile> existing = _profileStore->profiles();
-    const bool present = std::any_of(
+    const auto match = std::find_if(
         existing.cbegin(), existing.cend(),
         [&id](const ConnectionProfile &profile) { return profile.id == id; });
-    if (!present)
+    if (match == existing.cend())
         return;
-    forgetProfile(id);
+    forgetProfile(*match);
     emit profilesChanged();
 }
 
@@ -339,13 +339,18 @@ void ConnectionController::reorderFavorites(const QStringList &orderedIds)
 
 ///
 /// \brief Deletes a stored profile and its secrets without emitting change notifications.
-/// \param id Profile identifier.
 ///
-void ConnectionController::forgetProfile(const QString &id)
+/// Takes the whole profile rather than its identifier because a secret is filed under the
+/// endpoint the profile points at, which the identifier alone does not describe.
+///
+/// \param profile Profile to remove.
+///
+void ConnectionController::forgetProfile(const ConnectionProfile &profile)
 {
-    _profileStore->remove(id);
-    _secretStore->remove(id, SecretStore::Secret::Password);
-    _secretStore->remove(id, SecretStore::Secret::PrivateKeyPassword);
+    const QString scope = profile.secretScope();
+    _profileStore->remove(profile.id);
+    _secretStore->remove(scope, SecretStore::Secret::Password);
+    _secretStore->remove(scope, SecretStore::Secret::PrivateKeyPassword);
 }
 
 ///
@@ -380,7 +385,7 @@ void ConnectionController::handleSecretRead(const QString &profileId,
                                             const QString &value,
                                             const QString &error)
 {
-    if (profileId != _pendingProfile.id || _pendingSecretReads == 0)
+    if (profileId != _pendingProfile.secretScope() || _pendingSecretReads == 0)
         return;
     if (!error.isEmpty())
         emit errorOccurred(error);
@@ -458,7 +463,8 @@ void ConnectionController::storePendingCredentials()
 {
     if (_pendingProfile.id.isEmpty() || _pendingPassword.isEmpty())
         return;
-    _secretStore->write(_pendingProfile.id, SecretStore::Secret::Password, _pendingPassword);
+    _secretStore->write(_pendingProfile.secretScope(), SecretStore::Secret::Password,
+                        _pendingPassword);
 }
 
 ///

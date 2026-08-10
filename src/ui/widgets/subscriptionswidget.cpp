@@ -11,12 +11,14 @@
 #include <QAction>
 #include <QBrush>
 #include <QColor>
+#include <QDirIterator>
 #include <QEvent>
 #include <QHeaderView>
 #include <QItemSelectionModel>
 #include <QMenu>
 #include <QPalette>
 #include <QPushButton>
+#include <QTranslator>
 
 #include "appicons.h"
 #include "appsettings.h"
@@ -71,6 +73,54 @@ double factoryInterval(int id)
     return 0.0;
 }
 
+///
+/// \brief Returns the untranslated factory name of a built-in subscription.
+/// \param id Built-in subscription identifier.
+/// \return Source string passed to tr(), or nullptr when the id is not built in.
+///
+const char *factorySourceName(int id)
+{
+    switch (id) {
+    case DefaultSubscriptionId: return "Default";
+    case FastSubscriptionId:    return "Fast";
+    case SlowSubscriptionId:    return "Slow";
+    default:                    return nullptr;
+    }
+}
+
+///
+/// \brief Reports whether a stored name is the factory name in any language the app ships.
+/// \param id Built-in subscription identifier.
+/// \param name Name read from the settings.
+/// \return True when the name is a translation of the factory name rather than a user's choice.
+///
+bool isFactoryNameInAnyLanguage(int id, const QString &name)
+{
+    const char *source = factorySourceName(id);
+    if (!source)
+        return false;
+    if (name == QString::fromUtf8(source))
+        return true;
+
+    static const QStringList catalogues = [] {
+        QStringList files;
+        QDirIterator iterator(QStringLiteral(":/translations"), {QStringLiteral("*.qm")},
+                              QDir::Files);
+        while (iterator.hasNext())
+            files.append(iterator.next());
+        return files;
+    }();
+
+    for (const QString &file : catalogues) {
+        QTranslator translator;
+        if (!translator.load(file))
+            continue;
+        if (name == translator.translate("SubscriptionsWidget", source))
+            return true;
+    }
+    return false;
+}
+
 } // namespace
 
 ///
@@ -86,6 +136,23 @@ QString SubscriptionsWidget::factoryName(int id)
     case SlowSubscriptionId:    return tr("Slow");
     default:                    return QString();
     }
+}
+
+///
+/// \brief Maps a stored subscription name onto the name of the current interface language.
+/// \param name Subscription name read from settings or a saved session.
+/// \return Current factory name when the stored one names a built-in subscription in any
+///         shipped language, otherwise the name unchanged.
+///
+QString SubscriptionsWidget::canonicalName(const QString &name)
+{
+    if (name.isEmpty())
+        return name;
+    for (const BuiltinDefault &entry : builtinDefaults) {
+        if (isFactoryNameInAnyLanguage(entry.id, name))
+            return factoryName(entry.id);
+    }
+    return name;
 }
 
 ///
@@ -197,13 +264,11 @@ void SubscriptionsWidget::saveSubscriptions(AppSettings &settings) const
     for (const SubscriptionItem &item : items) {
         if (!item.isBuiltin())
             continue;
-        const QString factory = factoryName(item.id);
-        const bool renamed = item.name != factory;
-        if (!renamed && qFuzzyCompare(item.publishingInterval, factoryInterval(item.id)))
+        if (!item.renamed && qFuzzyCompare(item.publishingInterval, factoryInterval(item.id)))
             continue;
 
         SubscriptionItem override = item;
-        if (!renamed)
+        if (!item.renamed)
             override.name.clear();
         overrides.append(override);
     }
@@ -217,12 +282,15 @@ void SubscriptionsWidget::saveSubscriptions(AppSettings &settings) const
 void SubscriptionsWidget::loadSubscriptions(AppSettings &settings)
 {
     const QVector<SubscriptionItem> overrides = settings.builtinSubscriptionOverrides();
+    const bool legacyNames =
+        settings.storedBuiltinSubscriptionSchema() < AppSettings::builtinSubscriptionSchema;
     for (const SubscriptionItem &override : overrides) {
         for (int row = 0; row < _subscriptionsModel->rowCount(); ++row) {
             const SubscriptionItem item = _subscriptionsModel->itemAt(row);
             if (!item.isBuiltin() || item.id != override.id)
                 continue;
-            if (!override.name.isEmpty()) {
+            if (!override.name.isEmpty()
+                && !(legacyNames && isFactoryNameInAnyLanguage(override.id, override.name))) {
                 _subscriptionsModel->setData(
                     _subscriptionsModel->index(row, SubscriptionsModel::ColName),
                     override.name, Qt::EditRole);
@@ -300,6 +368,20 @@ void SubscriptionsWidget::changeEvent(QEvent *event)
     else if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
         _subscriptionsModel->retranslate();
+        retranslateBuiltinNames();
+    }
+}
+
+///
+/// \brief Renames the built-in subscriptions the user never renamed into the new language.
+///
+void SubscriptionsWidget::retranslateBuiltinNames()
+{
+    for (int row = 0; row < _subscriptionsModel->rowCount(); ++row) {
+        const SubscriptionItem item = _subscriptionsModel->itemAt(row);
+        if (!item.isBuiltin() || item.renamed)
+            continue;
+        _subscriptionsModel->setFactoryName(row, factoryName(item.id));
     }
 }
 
@@ -395,9 +477,7 @@ void SubscriptionsWidget::restoreBuiltinDefaults()
         const SubscriptionItem subscription = _subscriptionsModel->itemAt(row);
         if (!subscription.isBuiltin())
             continue;
-        _subscriptionsModel->setData(
-            _subscriptionsModel->index(row, SubscriptionsModel::ColName),
-            factoryName(subscription.id), Qt::EditRole);
+        _subscriptionsModel->setFactoryName(row, factoryName(subscription.id));
         _subscriptionsModel->setData(
             _subscriptionsModel->index(row, SubscriptionsModel::ColPublishingInterval),
             factoryInterval(subscription.id), Qt::EditRole);

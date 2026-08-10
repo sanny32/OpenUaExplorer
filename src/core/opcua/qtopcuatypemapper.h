@@ -17,9 +17,32 @@
 
 #include "opcuatypes.h"
 
+class QOpcUaGenericStructHandler;
+
 namespace QtOpcUaTypeMapper {
 
 using Translate = std::function<QString(const char *)>;
+
+/// \brief Replaces the opaque structures in a value by their decoded fields.
+///
+/// Values the handler cannot decode, and every value while no handler is ready, are
+/// returned unchanged: an undecoded structure is still shown, only not expanded.
+QVariant decodedValue(const QVariant &value, const QOpcUaGenericStructHandler *handler);
+
+/// \brief Reports whether a value still carries a structure that was not decoded.
+///
+/// Such a value is worth reading again once the server's type definitions are available.
+bool containsOpaqueStruct(const QVariant &value);
+
+/// \brief Lists the encoding ids of the structures in a value that were not decoded.
+QStringList opaqueEncodingIds(const QVariant &value);
+
+/// \brief Lets structures with a field of the abstract Enumeration type decode.
+///
+/// Qt's decoder refuses such a field because the type is abstract, although the binary
+/// encoding carries every enumeration as an Int32. Declaring Enumeration concrete makes
+/// the decoder read those four bytes and finish the structure.
+void allowAbstractEnumerationFields(QOpcUaGenericStructHandler *handler);
 
 /// \brief Maps discovered Qt endpoints to transport-neutral endpoint records.
 QList<EndpointInfo> endpointInfos(const QVector<QOpcUaEndpointDescription> &endpoints);
@@ -36,7 +59,8 @@ QOpcUa::NodeAttributes nodeDetailAttributes();
 /// \brief Builds formatted node details from attributes cached by a Qt node.
 OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
                              QOpcUa::NodeAttributes attributes,
-                             const Translate &translate);
+                             const Translate &translate,
+                             const QOpcUaGenericStructHandler *structHandler = nullptr);
                              
 /// \brief Resolves this client's session name from SessionDiagnosticsArray.
 QString ownSessionName(const QVariant &value, const QString &applicationUri);

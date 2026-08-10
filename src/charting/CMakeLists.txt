@@ -8,6 +8,8 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Charts REQUIRED)
 
 add_library(ouaexp_charting STATIC
     charttypes.h
+    chartzoom.cpp
+    chartzoom.h
     ichartview.h
     chartviewfactory.cpp
     chartviewfactory.h
@@ -28,7 +30,7 @@ target_link_libraries(ouaexp_charting
         Qt${QT_VERSION_MAJOR}::Charts
 )
 
-ouaexp_apply_pch(ouaexp_charting)
+ouaexp_apply_widgets_pch(ouaexp_charting)
 
 if(MSVC)
     target_compile_options(ouaexp_charting PRIVATE /utf-8)

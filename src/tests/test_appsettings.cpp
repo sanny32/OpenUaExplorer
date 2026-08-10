@@ -33,9 +33,11 @@ private slots:
     void restoreLastSessionDefaultsToFalse();
     void reconnectDefaultsToEveryFiveSeconds();
     void reconnectIntervalIsClampedToTheSupportedRange();
+    void maxLogRowsRoundTripsAndIsClamped();
     void lastSavedSessionPathRoundTrips();
     void builtinSubscriptionOverridesRoundTrip();
     void dataAccessPageRoundTrips();
+    void closedDataAccessPagesRoundTrip();
     void viewStateRoundTrips();
     void clearLayoutKeepsPreferences();
     void loggingCategoriesAreGrouped();
@@ -176,6 +178,23 @@ void TestAppSettings::reconnectIntervalIsClampedToTheSupportedRange()
 }
 
 ///
+/// \brief The log depth defaults, round-trips, and never leaves the supported range.
+///
+void TestAppSettings::maxLogRowsRoundTripsAndIsClamped()
+{
+    QCOMPARE(AppSettings().maxLogRows(), AppSettings::defaultMaxLogRows);
+
+    AppSettings().setMaxLogRows(250);
+    QCOMPARE(AppSettings().maxLogRows(), 250);
+
+    AppSettings().setMaxLogRows(0);
+    QCOMPARE(AppSettings().maxLogRows(), AppSettings::minMaxLogRows);
+
+    AppSettings().setMaxLogRows(AppSettings::maxMaxLogRows * 10);
+    QCOMPARE(AppSettings().maxLogRows(), AppSettings::maxMaxLogRows);
+}
+
+///
 /// \brief The named startup session path can be stored and cleared.
 ///
 void TestAppSettings::lastSavedSessionPathRoundTrips()
@@ -238,6 +257,21 @@ void TestAppSettings::dataAccessPageRoundTrips()
 }
 
 ///
+/// \brief The closed data-access pages round-trip and default to none.
+///
+void TestAppSettings::closedDataAccessPagesRoundTrip()
+{
+    QVERIFY(AppSettings().closedDataAccessPages().isEmpty());
+
+    const QList<int> closed{2, 4};
+    AppSettings().setClosedDataAccessPages(closed);
+    QCOMPARE(AppSettings().closedDataAccessPages(), closed);
+
+    AppSettings().setClosedDataAccessPages({});
+    QVERIFY(AppSettings().closedDataAccessPages().isEmpty());
+}
+
+///
 /// \brief Per-view element state is keyed independently and round-trips.
 ///
 void TestAppSettings::viewStateRoundTrips()
@@ -266,6 +300,7 @@ void TestAppSettings::clearLayoutKeepsPreferences()
     settings.setWindowState(QByteArrayLiteral("state"));
     settings.setCentralSplitterState(QByteArrayLiteral("splitter"));
     settings.setDataAccessPage(2);
+    settings.setClosedDataAccessPages({3, 4});
     settings.setTrendPanelVisible(false);
     settings.setViewState(QStringLiteral("dataView"), QByteArrayLiteral("view"));
 
@@ -275,6 +310,7 @@ void TestAppSettings::clearLayoutKeepsPreferences()
     QVERIFY(AppSettings().windowState().isEmpty());
     QVERIFY(AppSettings().centralSplitterState().isEmpty());
     QCOMPARE(AppSettings().dataAccessPage(), 0);
+    QVERIFY(AppSettings().closedDataAccessPages().isEmpty());
     QVERIFY(AppSettings().trendPanelVisible());
     QVERIFY(AppSettings().viewState(QStringLiteral("dataView")).isEmpty());
 
@@ -299,11 +335,12 @@ void TestAppSettings::loggingCategoriesAreGrouped()
     QCOMPARE(application.size(), 8);
     QCOMPARE(application.first().key, QStringLiteral("application.app"));
     QCOMPARE(application.first().categoryName, QStringLiteral("ouaexp.App"));
-    QCOMPARE(qtOpcUa.size(), 1);
+    QCOMPARE(qtOpcUa.size(), 2);
     QCOMPARE(qtOpcUa.first().key, QStringLiteral("plugin"));
     QCOMPARE(qtOpcUa.first().displayName, QStringLiteral("plugin"));
     QCOMPARE(qtOpcUa.first().categoryName,
              QStringLiteral("qt.opcua.plugins.open62541"));
+    QCOMPARE(qtOpcUa.at(1).categoryName, QStringLiteral("qt.opcuagenericstructhandler"));
     QVERIFY(!open62541.isEmpty());
     for (const AppSettings::LogCategory &category : open62541)
         QVERIFY(category.displayName.at(0).isLower());

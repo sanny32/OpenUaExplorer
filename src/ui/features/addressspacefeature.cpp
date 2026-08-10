@@ -224,8 +224,8 @@ void AddressSpaceFeature::browseAddressSpace()
 
     OpcUaNodeInfo root;
     root.nodeId = QString::fromLatin1(StandardNodeId::ObjectsFolder);
-    root.browseName = QCoreApplication::translate("AddressSpaceFeature", "Root");
-    root.displayName = QCoreApplication::translate("AddressSpaceFeature", "Root");
+    root.browseName = QStringLiteral("Root");
+    root.displayName = QStringLiteral("Root");
     root.typeDefinitionId = QString::fromLatin1(StandardNodeId::FolderType);
     root.nodeClass = OpcUa::Object;
     root.hasChildren = true;

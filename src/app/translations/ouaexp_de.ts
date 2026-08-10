@@ -18,10 +18,6 @@
         <source>Node Details</source>
         <translation>Knotendetails</translation>
     </message>
-    <message>
-        <source>Root</source>
-        <translation>Wurzel</translation>
-    </message>
 </context>
 <context>
     <name>AddressSpaceModule</name>
@@ -59,6 +55,10 @@
     <message>
         <source>Search nodes...</source>
         <translation>Knoten suchen …</translation>
+    </message>
+    <message>
+        <source>Refresh</source>
+        <translation>Aktualisieren</translation>
     </message>
     <message>
         <source>Node Info</source>
@@ -205,6 +205,10 @@
 </context>
 <context>
     <name>AttributesWidget</name>
+    <message>
+        <source>Value</source>
+        <translation>Wert</translation>
+    </message>
     <message>
         <source>Write Value</source>
         <translation>Wert schreiben</translation>
@@ -912,10 +916,6 @@ Wählen Sie ihn erneut aus.</translation>
         <translation>Zertifikat:</translation>
     </message>
     <message>
-        <source>...</source>
-        <translation>…</translation>
-    </message>
-    <message>
         <source>Private Key:</source>
         <translation>Privater Schlüssel:</translation>
     </message>
@@ -1297,6 +1297,13 @@ Wählen Sie ihn erneut aus.</translation>
         <source>Actual Interval</source>
         <translation>Tatsächliches Intervall</translation>
     </message>
+    <message numerus="yes">
+        <source>… %n more</source>
+        <translation>
+            <numerusform>… %n weiteres</numerusform>
+            <numerusform>… %n weitere</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>DataAccessModule</name>
@@ -1413,6 +1420,10 @@ Wählen Sie ihn erneut aus.</translation>
             <numerusform>%n Knoten aus dem Datenzugriff entfernen?</numerusform>
             <numerusform>Alle %n Knoten aus dem Datenzugriff entfernen?</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Status</source>
+        <translation>Status</translation>
     </message>
 </context>
 <context>
@@ -2183,6 +2194,65 @@ Wählen Sie ihn erneut aus.</translation>
     </message>
 </context>
 <context>
+    <name>ImageViewDialog</name>
+    <message>
+        <source>View Image</source>
+        <translation>Bild anzeigen</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>Einpassen</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Kopieren</translation>
+    </message>
+    <message>
+        <source>Save As...</source>
+        <translation>Speichern unter...</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Schließen</translation>
+    </message>
+    <message>
+        <source>Save Image</source>
+        <translation>Bild speichern</translation>
+    </message>
+    <message>
+        <source>The image could not be written to %1.</source>
+        <translation>Das Bild konnte nicht nach %1 geschrieben werden.</translation>
+    </message>
+    <message>
+        <source>No image to show.</source>
+        <translation>Kein Bild vorhanden.</translation>
+    </message>
+    <message>
+        <source>The image could not be decoded.</source>
+        <translation>Das Bild konnte nicht dekodiert werden.</translation>
+    </message>
+    <message>
+        <source>Unknown format</source>
+        <translation>Unbekanntes Format</translation>
+    </message>
+    <message>
+        <source>All Files</source>
+        <translation>Alle Dateien</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1 %</translation>
+    </message>
+    <message>
+        <source>Zoom out</source>
+        <translation>Verkleinern</translation>
+    </message>
+    <message>
+        <source>Zoom in</source>
+        <translation>Vergrößern</translation>
+    </message>
+</context>
+<context>
     <name>LogFeature</name>
     <message>
         <source>Log</source>
@@ -2273,6 +2343,10 @@ Wählen Sie ihn erneut aus.</translation>
     <message>
         <source>Log files (*.log);;Text files (*.txt);;All files (*)</source>
         <translation>Protokolldateien (*.log);;Textdateien (*.txt);;Alle Dateien (*)</translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Debug</translation>
     </message>
 </context>
 <context>
@@ -2991,6 +3065,10 @@ Download-Seite öffnen?</translation>
         <source>Could not remove the client certificate.</source>
         <translation>Das Client-Zertifikat konnte nicht entfernt werden.</translation>
     </message>
+    <message>
+        <source>Image</source>
+        <translation>Bild</translation>
+    </message>
 </context>
 <context>
     <name>QtChartsView</name>
@@ -3141,6 +3219,124 @@ Download-Seite öffnen?</translation>
         <source>Event history read timed out.</source>
         <translation>Zeitüberschreitung beim Lesen des Ereignisverlaufs.</translation>
     </message>
+    <message>
+        <source>No error.</source>
+        <translation>Kein Fehler.</translation>
+    </message>
+    <message>
+        <source>Invalid server URL.</source>
+        <translation>Ungültige Server-URL.</translation>
+    </message>
+    <message>
+        <source>Access denied: authentication failed.</source>
+        <translation>Zugriff verweigert: Authentifizierung fehlgeschlagen.</translation>
+    </message>
+    <message>
+        <source>Connection error.</source>
+        <translation>Verbindungsfehler.</translation>
+    </message>
+    <message>
+        <source>Unknown client error.</source>
+        <translation>Unbekannter Client-Fehler.</translation>
+    </message>
+    <message>
+        <source>Unsupported authentication information.</source>
+        <translation>Nicht unterstützte Authentifizierungsdaten.</translation>
+    </message>
+    <message>
+        <source>Invalid authentication information.</source>
+        <translation>Ungültige Authentifizierungsdaten.</translation>
+    </message>
+    <message>
+        <source>Invalid endpoint description.</source>
+        <translation>Ungültige Endpunktbeschreibung.</translation>
+    </message>
+    <message>
+        <source>No matching user identity token found.</source>
+        <translation>Kein passendes Benutzeridentitätstoken gefunden.</translation>
+    </message>
+    <message>
+        <source>Unsupported security policy.</source>
+        <translation>Nicht unterstützte Sicherheitsrichtlinie.</translation>
+    </message>
+    <message>
+        <source>Invalid PKI configuration.</source>
+        <translation>Ungültige PKI-Konfiguration.</translation>
+    </message>
+    <message>
+        <source>Certificate is not trusted.</source>
+        <translation>Dem Zertifikat wird nicht vertraut.</translation>
+    </message>
+    <message>
+        <source>Unknown client error (%1).</source>
+        <translation>Unbekannter Client-Fehler (%1).</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Unbekannt</translation>
+    </message>
+    <message>
+        <source>Certificate validation</source>
+        <translation>Zertifikatprüfung</translation>
+    </message>
+    <message>
+        <source>Open secure channel</source>
+        <translation>Sicheren Kanal öffnen</translation>
+    </message>
+    <message>
+        <source>Create session</source>
+        <translation>Sitzung erstellen</translation>
+    </message>
+    <message>
+        <source>Activate session</source>
+        <translation>Sitzung aktivieren</translation>
+    </message>
+    <message>
+        <source>Step %1</source>
+        <translation>Schritt %1</translation>
+    </message>
+    <message>
+        <source>Encrypted private keys are not supported by Qt OPC UA.</source>
+        <translation>Verschlüsselte private Schlüssel werden von Qt OPC UA nicht unterstützt.</translation>
+    </message>
+    <message>
+        <source>The selected endpoint is no longer available. Run discovery again.</source>
+        <translation>Der ausgewählte Endpunkt ist nicht mehr verfügbar. Führen Sie die Ermittlung erneut aus.</translation>
+    </message>
+    <message>
+        <source>OPC UA client error: %1</source>
+        <translation>OPC-UA-Client-Fehler: %1</translation>
+    </message>
+    <message>
+        <source>Connection failed: %1</source>
+        <translation>Verbindung fehlgeschlagen: %1</translation>
+    </message>
+    <message>
+        <source>Connection step &apos;%1&apos; failed: %2</source>
+        <translation>Verbindungsschritt „%1“ fehlgeschlagen: %2</translation>
+    </message>
+    <message>
+        <source>
+The server rejected the client certificate. Add this certificate to the server trust list and retry: %1</source>
+        <translation>
+Der Server hat das Client-Zertifikat abgelehnt. Fügen Sie dieses Zertifikat der Vertrauensliste des Servers hinzu und versuchen Sie es erneut: %1</translation>
+    </message>
+    <message>
+        <source>The OPC UA connection timed out.</source>
+        <translation>Zeitüberschreitung bei der OPC-UA-Verbindung.</translation>
+    </message>
+    <message>
+        <source>The requested OPC UA backend &apos;%1&apos; is unavailable. Installed backends: %2</source>
+        <translation>Das angeforderte OPC-UA-Backend „%1“ ist nicht verfügbar. Installierte Backends: %2</translation>
+    </message>
+    <message>
+        <source>Could not create the OPC UA backend &apos;%1&apos;.</source>
+        <translation>Das OPC-UA-Backend „%1“ konnte nicht erstellt werden.</translation>
+    </message>
+    <message>
+        <source>The structure of node &apos;%1&apos; stays undecoded: the server&apos;s type definitions describe no type for encoding &apos;%2&apos;.</source>
+        <translation>Die Struktur des Knotens „%1“ bleibt undekodiert: Die Typdefinitionen des Servers beschreiben keinen Typ für die Kodierung „%2“.</translation>
+    </message>
 </context>
 <context>
     <name>QtOpcUaMonitoringManager</name>
@@ -3189,6 +3385,13 @@ Download-Seite öffnen?</translation>
     <message>
         <source>Target</source>
         <translation>Ziel</translation>
+    </message>
+</context>
+<context>
+    <name>SecretStore</name>
+    <message>
+        <source>The credential store did not respond.</source>
+        <translation>Der Anmeldedatenspeicher hat nicht geantwortet.</translation>
     </message>
 </context>
 <context>
@@ -3368,6 +3571,10 @@ Möchten Sie sie speichern?</translation>
         <source>The session file does not describe a connection.</source>
         <translation>Die Sitzungsdatei beschreibt keine Verbindung.</translation>
     </message>
+    <message>
+        <source>The session file was written by a newer version of the application.</source>
+        <translation>Die Sitzungsdatei wurde von einer neueren Version der Anwendung geschrieben.</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -3482,11 +3689,31 @@ Möchten Sie sie speichern?</translation>
     </message>
     <message>
         <source>Reconnect after a connection loss</source>
-        <translation>Nach Verbindungsverlust erneut verbinden</translation>
+        <translation>Automatisch neu verbinden</translation>
     </message>
     <message>
         <source>Interval (s):</source>
         <translation>Intervall (s):</translation>
+    </message>
+    <message>
+        <source>Debug messages are verbose and are meant for diagnosing a problem.</source>
+        <translation>Debug-Meldungen sind ausführlich und dienen der Diagnose eines Problems.</translation>
+    </message>
+    <message>
+        <source>Log debug messages of the enabled categories</source>
+        <translation>Debug-Meldungen der aktivierten Kategorien protokollieren</translation>
+    </message>
+    <message>
+        <source>Keep the last</source>
+        <translation>Die letzten</translation>
+    </message>
+    <message>
+        <source>Older entries are dropped once the log reaches this many.</source>
+        <translation>Ältere Einträge werden verworfen, sobald das Protokoll diese Anzahl erreicht.</translation>
+    </message>
+    <message>
+        <source>log entries</source>
+        <translation>Protokolleinträge behalten</translation>
     </message>
 </context>
 <context>
@@ -3845,6 +4072,10 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>JSON array</source>
         <translation>JSON-Array</translation>
+    </message>
+    <message>
+        <source>Bytes are entered as hexadecimal pairs, for example &quot;8a 39 32&quot;.</source>
+        <translation>Bytes werden als Hexadezimalpaare eingegeben, zum Beispiel &quot;8a 39 32&quot;.</translation>
     </message>
     <message>
         <source>This value is read-only or its ExtensionObject schema is unknown.</source>

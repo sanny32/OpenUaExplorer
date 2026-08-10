@@ -9,11 +9,12 @@
 #include <QBrush>
 #include <QColor>
 #include <QDateTime>
-#include <QApplication>
+#include <QGuiApplication>
 #include <QPalette>
 
 #include "attributesmodel.h"
 #include "formatters/attributeformatter.h"
+#include "valueroles.h"
 
 namespace {
 OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
@@ -33,6 +34,8 @@ struct AttributesModel::Item
     QString value;
     QDateTime sourceTimestamp;
     QDateTime serverTimestamp;
+    /// \brief Encoded picture of the row, empty unless the value is an image ByteString.
+    QByteArray imageData;
     Item *parent = nullptr;
     std::vector<std::unique_ptr<Item>> children;
 };
@@ -142,6 +145,9 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation orientation, i
 /// \param role Data role.
 /// \return Item data.
 ///
+/// The value column also serves ValueRoles::ImageDataRole, which hands the encoded picture
+/// of an image-typed value to the delegate and its viewer.
+///
 QVariant AttributesModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid())
@@ -152,6 +158,11 @@ QVariant AttributesModel::data(const QModelIndex &index, int role) const
 
     if (role == Qt::DisplayRole)
         return index.column() == ColAttribute ? item->attribute : item->value;
+
+    if (role == ValueRoles::ImageDataRole && index.column() == ColValue
+        && !item->imageData.isEmpty()) {
+        return item->imageData;
+    }
 
     if (role == Qt::TextAlignmentRole)
         return QVariant(_columnAlignments.alignment(index.column()));
@@ -232,15 +243,14 @@ void AttributesModel::appendAttribute(Item *parent, const OpcUaNodeAttribute &at
 {
     auto item = std::make_unique<Item>();
     item->attribute = attribute.name;
-    const bool isTimestamp = attribute.children.isEmpty()
-        && attribute.displayValue.isEmpty()
-        && (attribute.sourceTimestamp.isValid() || attribute.serverTimestamp.isValid());
-    if (isTimestamp) {
+    if (attribute.isTimestamp) {
         item->sourceTimestamp = attribute.sourceTimestamp;
         item->serverTimestamp = attribute.serverTimestamp;
         item->value = timestampValue(*item);
     } else {
         item->value = attribute.displayValue;
+        if (attribute.isImage)
+            item->imageData = attribute.value.toByteArray();
     }
     item->parent = parent;
     Item *itemPointer = item.get();

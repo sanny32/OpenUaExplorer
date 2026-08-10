@@ -154,6 +154,19 @@ void Application::setHighlightValueChanges(bool enabled)
 }
 
 ///
+/// \brief Persists the log depth preference and notifies listeners.
+/// \param rows Number of log entries to keep.
+///
+void Application::setMaxLogRows(int rows)
+{
+    AppSettings settings;
+    if (settings.maxLogRows() == rows)
+        return;
+    settings.setMaxLogRows(rows);
+    emit maxLogRowsChanged(settings.maxLogRows());
+}
+
+///
 /// \brief Persists the interface language preference and retranslates the running UI.
 /// \param language Language to apply.
 ///

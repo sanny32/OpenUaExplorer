@@ -22,6 +22,7 @@ constexpr auto windowGeometryKey = "mainWindow/geometry";
 constexpr auto windowStateKey = "mainWindow/state";
 constexpr auto centralSplitterKey = "mainWindow/centralSplitter";
 constexpr auto dataAccessPageKey = "mainWindow/dataAccessPage";
+constexpr auto closedDataAccessPagesKey = "mainWindow/closedDataAccessPages";
 constexpr auto trendPanelVisibleKey = "mainWindow/trendPanelVisible";
 constexpr auto restoreLayoutKey = "mainWindow/restoreLayout";
 constexpr auto viewStateGroup = "viewState";
@@ -33,11 +34,14 @@ constexpr auto requestTimeoutKey = "requestTimeoutMs";
 constexpr auto secureChannelLifetimeKey = "secureChannelLifetimeMs";
 constexpr auto maxMessageSizeKey = "maxMessageSizeBytes";
 constexpr auto loggingGroup = "logging";
+constexpr auto debugLoggingKey = "logging/debugMessages";
+constexpr auto maxLogRowsKey = "logging/maxRows";
 constexpr auto subscriptionsGroup = "subscriptions/custom";
 constexpr auto subscriptionsBuiltinGroup = "subscriptions/builtin";
 constexpr auto subscriptionNameKey = "name";
 constexpr auto subscriptionIntervalKey = "interval";
 constexpr auto subscriptionIdKey = "id";
+constexpr auto subscriptionsSchemaKey = "subscriptions/builtinSchema";
 constexpr auto restoreLastSessionKey = "session/restoreLast";
 constexpr auto lastSavedSessionPathKey = "session/lastSavedPath";
 constexpr auto reconnectEnabledKey = "connection/reconnectEnabled";
@@ -164,7 +168,10 @@ QVector<AppSettings::LogCategory> AppSettings::availableQtOpcUaLogCategories()
     return {
         { QStringLiteral("plugin"),
           QStringLiteral("qt.opcua.plugins.open62541"),
-          QStringLiteral("plugin"), true }
+          QStringLiteral("plugin"), true },
+        { QStringLiteral("structures"),
+          QStringLiteral("qt.opcuagenericstructhandler"),
+          QStringLiteral("structures"), true }
     };
 }
 
@@ -236,6 +243,48 @@ void AppSettings::setLogCategoryStates(const QHash<QString, bool> &states)
 }
 
 ///
+/// \brief Reports whether debug messages reach the log.
+/// \return True when the enabled categories also log at debug level.
+///
+bool AppSettings::debugLoggingEnabled() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(debugLoggingKey), false).toBool();
+}
+
+///
+/// \brief Stores whether debug messages reach the log.
+/// \param enabled True to let the enabled categories log at debug level.
+///
+void AppSettings::setDebugLoggingEnabled(bool enabled)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(debugLoggingKey), enabled);
+}
+
+///
+/// \brief Returns how many log entries the application keeps.
+/// \return Stored row cap, clamped to the supported range.
+///
+int AppSettings::maxLogRows() const
+{
+    SettingsStore settings;
+    const int rows = settings.value(QLatin1String(maxLogRowsKey), defaultMaxLogRows).toInt();
+    return std::clamp(rows, minMaxLogRows, maxMaxLogRows);
+}
+
+///
+/// \brief Stores how many log entries the application keeps.
+/// \param rows Row cap, clamped to the supported range.
+///
+void AppSettings::setMaxLogRows(int rows)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(maxLogRowsKey),
+                      std::clamp(rows, minMaxLogRows, maxMaxLogRows));
+}
+
+///
 /// \brief Builds the QLoggingCategory filter rules from the stored preferences.
 /// \return Newline-separated rule string suitable for QLoggingCategory::setFilterRules().
 ///
@@ -250,6 +299,13 @@ QString AppSettings::logFilterRules() const
         const bool enabled = states.value(category.key, category.defaultEnabled);
         rules << category.categoryName + QLatin1Char('=')
                      + (enabled ? QStringLiteral("true") : QStringLiteral("false"));
+    }
+    // Last, because a per-category rule above enables every message type of that category.
+    if (!debugLoggingEnabled()) {
+        rules << QStringLiteral("ouaexp.*.debug=false");
+        rules << QStringLiteral("qt.opcua.*.debug=false");
+        for (const LogCategory &category : categories)
+            rules << category.categoryName + QStringLiteral(".debug=false");
     }
     return rules.join(QLatin1Char('\n'));
 }
@@ -372,6 +428,40 @@ void AppSettings::setDataAccessPage(int page)
 {
     SettingsStore settings;
     settings.setValue(QLatin1String(dataAccessPageKey), page);
+}
+
+///
+/// \brief Returns the data-access pages the user closed.
+/// \return Stored page values, or an empty list when none is stored.
+///
+QList<int> AppSettings::closedDataAccessPages() const
+{
+    SettingsStore settings;
+    const QStringList stored =
+        settings.value(QLatin1String(closedDataAccessPagesKey)).toStringList();
+
+    QList<int> pages;
+    for (const QString &entry : stored) {
+        bool ok = false;
+        const int page = entry.toInt(&ok);
+        if (ok)
+            pages.append(page);
+    }
+    return pages;
+}
+
+///
+/// \brief Stores the data-access pages the user closed.
+/// \param pages Page values to persist.
+///
+void AppSettings::setClosedDataAccessPages(const QList<int> &pages)
+{
+    QStringList stored;
+    for (const int page : pages)
+        stored.append(QString::number(page));
+
+    SettingsStore settings;
+    settings.setValue(QLatin1String(closedDataAccessPagesKey), stored);
 }
 
 ///
@@ -571,6 +661,12 @@ void AppSettings::setCustomSubscriptions(const QVector<SubscriptionItem> &subscr
 ///
 /// \return Overrides keyed by built-in subscription id, or an empty vector when none are stored.
 ///
+int AppSettings::storedBuiltinSubscriptionSchema() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(subscriptionsSchemaKey), 1).toInt();
+}
+
 QVector<SubscriptionItem> AppSettings::builtinSubscriptionOverrides() const
 {
     SettingsStore settings;
@@ -599,6 +695,7 @@ QVector<SubscriptionItem> AppSettings::builtinSubscriptionOverrides() const
 void AppSettings::setBuiltinSubscriptionOverrides(const QVector<SubscriptionItem> &subscriptions)
 {
     SettingsStore settings;
+    settings.setValue(QLatin1String(subscriptionsSchemaKey), builtinSubscriptionSchema);
     settings.remove(QLatin1String(subscriptionsBuiltinGroup));
     settings.beginWriteArray(QLatin1String(subscriptionsBuiltinGroup));
     int index = 0;
@@ -647,6 +744,7 @@ void AppSettings::clearLayout()
     settings.remove(QLatin1String(windowStateKey));
     settings.remove(QLatin1String(centralSplitterKey));
     settings.remove(QLatin1String(dataAccessPageKey));
+    settings.remove(QLatin1String(closedDataAccessPagesKey));
     settings.remove(QLatin1String(trendPanelVisibleKey));
     settings.remove(QLatin1String(viewStateGroup));
 }

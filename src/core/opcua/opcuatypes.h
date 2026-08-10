@@ -212,10 +212,14 @@ struct OpcUaNodeAttribute
     QString displayValue;
     /// \brief Status display text.
     QString status;
-    /// \brief Source timestamp, when provided.
+    /// \brief Source timestamp, only set on timestamp rows.
     QDateTime sourceTimestamp;
-    /// \brief Server timestamp, when provided.
+    /// \brief Server timestamp, only set on timestamp rows.
     QDateTime serverTimestamp;
+    /// \brief True when the row shows one of the timestamps above instead of a value.
+    bool isTimestamp = false;
+    /// \brief True when value carries an encoded picture the row can offer to a viewer.
+    bool isImage = false;
     /// \brief Nested attribute details.
     QVector<OpcUaNodeAttribute> children;
 };

@@ -4,6 +4,7 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
+ouaexp_install_license_bundle("${PROJECT_NAME}.app/Contents/Resources/licenses")
 
 if(MACDEPLOYQT_EXECUTABLE)
     install(CODE "

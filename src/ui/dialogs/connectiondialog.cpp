@@ -136,7 +136,7 @@ void ConnectionDialog::restoreConnectionFor(const QString &endpointUrl)
         return;
 
     _restoredEndpointUrl = wanted;
-    _restoredProfileId.clear();
+    _restoredSecretScope.clear();
     ui->rememberCheckBox->setChecked(false);
     ui->passwordEdit->clear();
     if (wanted.isEmpty())
@@ -153,7 +153,7 @@ void ConnectionDialog::restoreConnectionFor(const QString &endpointUrl)
     // Connecting the same server again continues its profile instead of starting a new one,
     // so the stored password keeps being found and sessions keep a stable identity.
     _presetId = match->id;
-    _restoredProfileId = match->id;
+    _restoredSecretScope = match->secretScope();
 
     const int authValue = static_cast<int>(match->authentication);
     const int authIndex = ui->authenticationComboBox->findData(authValue);
@@ -172,8 +172,8 @@ void ConnectionDialog::restoreConnectionFor(const QString &endpointUrl)
     _pendingSecurityMode = match->securityMode;
 
     updateAuthenticationFields();
-    if (!_restoredProfileId.isEmpty())
-        _secretStore->read(_restoredProfileId, SecretStore::Secret::Password);
+    if (!_restoredSecretScope.isEmpty())
+        _secretStore->read(_restoredSecretScope, SecretStore::Secret::Password);
 }
 
 ///
@@ -182,7 +182,7 @@ void ConnectionDialog::restoreConnectionFor(const QString &endpointUrl)
 /// The read is asynchronous, so anything the user typed in the meantime wins, and a result
 /// for a server that is no longer shown is dropped.
 ///
-/// \param profileId Profile the secret belongs to.
+/// \param profileId Name the secret was filed under.
 /// \param secret Which secret was read.
 /// \param value Stored password, empty when nothing was kept.
 /// \param error Read error, if any.
@@ -190,7 +190,7 @@ void ConnectionDialog::restoreConnectionFor(const QString &endpointUrl)
 void ConnectionDialog::applyStoredPassword(const QString &profileId, SecretStore::Secret secret,
                                            const QString &value, const QString &error)
 {
-    if (secret != SecretStore::Secret::Password || profileId != _restoredProfileId)
+    if (secret != SecretStore::Secret::Password || profileId != _restoredSecretScope)
         return;
     if (!error.isEmpty() || value.isEmpty() || !ui->passwordEdit->text().isEmpty())
         return;
@@ -429,7 +429,7 @@ void ConnectionDialog::setProfile(const ConnectionProfile &profile)
     // still on its way must not write over it.
     _presetId = profile.id;
     _restoredEndpointUrl = profile.endpointUrl;
-    _restoredProfileId.clear();
+    _restoredSecretScope.clear();
     resetDiscovery();
     _lastEnteredEndpointUrl = profile.endpointUrl;
     {
@@ -698,12 +698,11 @@ void ConnectionDialog::updateAuthenticationFields()
     // the width its wrapped text can survive at.
     ui->anonymousNotice->setFixedWidth(labelColumnWidth + columnGap + fieldColumn);
 
-    // The client certificate stays available regardless of the security mode
-    // (it can still be imported, generated or inspected). Only the server
-    // certificate and trust settings depend on a secure channel.
-    const bool secureChannel = certificate || _selectedSecurityModeValue > 1;
-    ui->serverCertificateGroupBox->setEnabled(secureChannel);
-    _secureChannel = secureChannel;
+    // Both certificate cards stay available regardless of the security mode: the client one can
+    // still be imported, generated or inspected, and an endpoint without security still advertises
+    // a server certificate worth looking at. Only trusting it depends on a secure channel, as
+    // nothing validates the certificate without one.
+    _secureChannel = certificate || _selectedSecurityModeValue > 1;
     updateServerTrustState();
 }
 

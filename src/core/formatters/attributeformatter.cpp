@@ -8,6 +8,7 @@
 
 #include "attributeformatter.h"
 
+#include <QOpcUaGenericStructValue>
 #include <QOpcUaLocalizedText>
 #include <QOpcUaQualifiedName>
 
@@ -101,7 +102,10 @@ void formatAttribute(OpcUaNodeAttribute *attribute,
     }
 
     if (nodeAttribute == QOpcUa::NodeAttribute::Value) {
-        const QString typeName = valueTypeDisplay(valueType, dataTypeId);
+        // A decoded structure names itself; its DataType is only the abstract parent type.
+        const QString typeName = value.userType() == qMetaTypeId<QOpcUaGenericStructValue>()
+            ? value.value<QOpcUaGenericStructValue>().typeName()
+            : valueTypeDisplay(valueType, dataTypeId);
         attribute->displayValue = isValueArray(value)
             ? QStringLiteral("%1 Array[%2]").arg(typeName).arg(value.toList().size())
             : typeName;

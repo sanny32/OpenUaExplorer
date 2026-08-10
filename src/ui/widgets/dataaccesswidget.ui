@@ -98,7 +98,7 @@
     </layout>
    </item>
    <item>
-    <widget class="TableView" name="dataView">
+    <widget class="TreeTableView" name="dataView">
      <property name="minimumSize">
       <size>
        <width>0</width>
@@ -116,9 +116,9 @@
    <header>widgets/themedtoolbutton.h</header>
   </customwidget>
   <customwidget>
-   <class>TableView</class>
-   <extends>QTableView</extends>
-   <header>widgets/tableview.h</header>
+   <class>TreeTableView</class>
+   <extends>QTreeView</extends>
+   <header>widgets/treetableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

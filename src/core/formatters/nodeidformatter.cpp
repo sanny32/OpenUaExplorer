@@ -45,29 +45,31 @@ bool namespace0NumericId(const QString &nodeId, int *identifier)
 ///
 /// \brief Resolves a DataType NodeId to its type name.
 /// \param nodeId DataType NodeId string.
-/// \return Built-in type name, standard BrowseName, or the original NodeId for custom types.
+/// \return Standard BrowseName, built-in type name, or the original NodeId for custom types.
 ///
-/// Built-in types are named from the value-type mapping. The remaining standard types
-/// (enumerations such as ServerState and structures such as BuildInfo) have no value
-/// type, so they fall back to their namespace-0 BrowseName; only DataTypes defined by
-/// the server keep the raw NodeId, since their name lives on the server.
+/// A DataType attribute names a node, so its BrowseName is the name to show: the abstract
+/// parent of every structure is "Structure", not the "ExtensionObject" its values are
+/// carried in. Only DataTypes defined by the server keep the raw NodeId, since their name
+/// lives on the server.
 ///
 QString dataTypeDisplay(const QString &nodeId)
 {
+    const QString browseName = standardNodeDisplayName(nodeId);
+    if (browseName != nodeId)
+        return browseName;
     const QOpcUa::Types type = valueTypeForDataType(nodeId);
-    return type == QOpcUa::Types::Undefined ? standardNodeDisplayName(nodeId)
-                                            : valueTypeName(type);
+    return type == QOpcUa::Types::Undefined ? nodeId : valueTypeName(type);
 }
 
 ///
 /// \brief Names the type of a value, falling back to its declared DataType.
 /// \param type Value type resolved from the DataType, may be Undefined.
 /// \param dataTypeId DataType NodeId string backing the value.
-/// \return Value-type name, or the DataType's own name when it is not a built-in type.
+/// \return The DataType's own name, or the value-type name when no DataType is known.
 ///
 QString valueTypeDisplay(QOpcUa::Types type, const QString &dataTypeId)
 {
-    if (type != QOpcUa::Types::Undefined || dataTypeId.isEmpty())
+    if (dataTypeId.isEmpty())
         return valueTypeName(type);
     return dataTypeDisplay(dataTypeId);
 }

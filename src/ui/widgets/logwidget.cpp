@@ -20,6 +20,7 @@
 #include <QSignalBlocker>
 
 #include "appicons.h"
+#include "application.h"
 #include "appsettings.h"
 #include "fileexport.h"
 #include "headerview.h"
@@ -74,6 +75,7 @@ static void appMessageHandler(QtMsgType type, const QMessageLogContext &ctx, con
 
     LogItem::Level level;
     switch (type) {
+    case QtDebugMsg:    level = LogItem::Level::Debug;   break;
     case QtWarningMsg:  level = LogItem::Level::Warning; break;
     case QtCriticalMsg:
     case QtFatalMsg:    level = LogItem::Level::Error;   break;
@@ -161,9 +163,10 @@ LogWidget::LogWidget(QWidget *parent)
             this, [this](int index) {
         switch (index) {
         case 0: _model->clearFilterLevel();                        break;
-        case 1: _model->setFilterLevel(LogItem::Level::Info);     break;
-        case 2: _model->setFilterLevel(LogItem::Level::Warning);  break;
-        case 3: _model->setFilterLevel(LogItem::Level::Error);    break;
+        case 1: _model->setFilterLevel(LogItem::Level::Debug);    break;
+        case 2: _model->setFilterLevel(LogItem::Level::Info);     break;
+        case 3: _model->setFilterLevel(LogItem::Level::Warning);  break;
+        case 4: _model->setFilterLevel(LogItem::Level::Error);    break;
         }
     });
 
@@ -179,6 +182,9 @@ LogWidget::LogWidget(QWidget *parent)
         if (ui->autoScrollCheck->isChecked())
             scrollToBottom();
     });
+
+    _model->setMaxRows(AppSettings().maxLogRows());
+    connect(theApp(), &Application::maxLogRowsChanged, _model, &LogModel::setMaxRows);
 }
 
 ///

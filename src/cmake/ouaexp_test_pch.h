@@ -10,7 +10,7 @@
 // Only add headers that a large share of the tests include, and never a project
 // header: any edit to it would invalidate the PCH for every test at once.
 
-#include "ouaexp_pch.h"
+#include "ouaexp_widgets_pch.h"
 
 #include <QSignalSpy>
 #include <QTest>

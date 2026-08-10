@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <QList>
 #include <QWidget>
 
 #include "appsettings.h"
@@ -42,6 +43,7 @@ public:
         DataHistoryPage = 3,
         EventsHistoryPage = 4
     };
+    Q_ENUM(Page)
 
     ///
     /// \brief Builds the tabbed view and its hosted tab widgets.
@@ -85,7 +87,7 @@ public:
     EventsHistoryWidget *eventsHistory() const;
 
     ///
-    /// \brief Switches the visible tab.
+    /// \brief Reopens the page when it was closed and switches to its tab.
     /// \param page Page to show.
     ///
     void setCurrentPage(Page page);
@@ -95,6 +97,38 @@ public:
     /// \return Legacy page value of the active page.
     ///
     int currentPage() const;
+
+    ///
+    /// \brief Opens or closes a page without touching the other tabs.
+    /// \param page Page to open or close.
+    /// \param visible True to open the tab, false to close it.
+    ///
+    void setPageVisible(Page page, bool visible);
+
+    ///
+    /// \brief Reports whether a page currently has a tab.
+    /// \param page Page to query.
+    /// \return True when the page is open.
+    ///
+    bool isPageVisible(Page page) const;
+
+    ///
+    /// \brief Reports whether any page still has a tab.
+    /// \return True while at least one tab is open.
+    ///
+    bool hasVisiblePages() const;
+
+    ///
+    /// \brief Returns the pages the user closed.
+    /// \return Page values without a tab, excluding pages the backend cannot serve.
+    ///
+    QList<int> closedPages() const;
+
+    ///
+    /// \brief Opens every supported page except the listed ones.
+    /// \param pages Page values to keep closed.
+    ///
+    void setClosedPages(const QList<int> &pages);
 
     ///
     /// \brief Shows the subscriptions management dialog.
@@ -237,10 +271,23 @@ public slots:
     ///
     void setHighlightValueChanges(bool enabled);
 
+signals:
+    ///
+    /// \brief Emitted when a page gains or loses its tab.
+    /// \param page Affected page.
+    /// \param visible True when the page is now open.
+    ///
+    void pageVisibilityChanged(DataView::Page page, bool visible);
+
 protected:
     void changeEvent(QEvent *event) override;
 
+private slots:
+    void closeTab(int index);
+
 private:
+    static bool isPageSupported(Page page);
+
     Ui::DataView *ui;
     SubscriptionsDialog *_subscriptionsDialog;
 };

@@ -15,6 +15,7 @@ set(UI_FILES
     dialogs/editfavoritedialog.ui
     dialogs/endpointsettingsdialog.ui
     dialogs/findserversdialog.ui
+    dialogs/imageviewdialog.ui
     dialogs/namespaceinspectordialog.ui
     dialogs/nodemonitordialog.ui
     dialogs/settingsdialog.ui
@@ -126,6 +127,8 @@ add_library(ouaexp_ui STATIC
     dialogs/endpointsettingsdialog.h
     dialogs/findserversdialog.cpp
     dialogs/findserversdialog.h
+    dialogs/imageviewdialog.cpp
+    dialogs/imageviewdialog.h
     dialogs/messageboxdialog.cpp
     dialogs/messageboxdialog.h
     dialogs/namespaceinspectordialog.cpp
@@ -183,10 +186,16 @@ add_library(ouaexp_ui STATIC
     widgets/calendarwidget.h
     widgets/datetimeedit.cpp
     widgets/datetimeedit.h
+    widgets/elidedlabel.cpp
+    widgets/elidedlabel.h
     widgets/fixedgap.cpp
     widgets/fixedgap.h
+    widgets/formatbadge.cpp
+    widgets/formatbadge.h
     widgets/headerview.cpp
     widgets/headerview.h
+    widgets/imagecanvas.cpp
+    widgets/imagecanvas.h
     widgets/historycombobox.cpp
     widgets/historycombobox.h
     widgets/spinneraction.cpp
@@ -207,6 +216,8 @@ add_library(ouaexp_ui STATIC
     widgets/publishingintervaldelegate.h
     widgets/subscriptiondelegate.cpp
     widgets/subscriptiondelegate.h
+    widgets/elidedtextdelegate.cpp
+    widgets/elidedtextdelegate.h
     widgets/separatoritemdelegate.cpp
     widgets/separatoritemdelegate.h
     widgets/severitydelegate.cpp
@@ -215,6 +226,10 @@ add_library(ouaexp_ui STATIC
     widgets/tableview.h
     widgets/tableviewconfig.cpp
     widgets/tableviewconfig.h
+    widgets/treetableview.cpp
+    widgets/treetableview.h
+    widgets/viewtooltip.cpp
+    widgets/viewtooltip.h
     widgets/themedaction.cpp
     widgets/themedaction.h
     widgets/themediconlabel.cpp
@@ -265,9 +280,13 @@ target_include_directories(ouaexp_ui PUBLIC
 target_link_libraries(ouaexp_ui PUBLIC ouaexp_modules)
 target_link_libraries(ouaexp_ui PRIVATE ouaexp_charting)
 
+# Public, unlike the rest of the Qt modules: the widget classes this library
+# exports derive from QWidget, so its headers do not parse without Qt Widgets.
+target_link_libraries(ouaexp_ui PUBLIC Qt${QT_VERSION_MAJOR}::Widgets)
+
 ouaexp_configure_qt_target(ouaexp_ui)
 ouaexp_configure_qlementine_app_style(ouaexp_ui)
-ouaexp_apply_pch(ouaexp_ui)
+ouaexp_apply_widgets_pch(ouaexp_ui)
 
 if(MSVC)
     target_compile_options(ouaexp_ui PUBLIC /utf-8)

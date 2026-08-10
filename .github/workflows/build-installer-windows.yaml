@@ -73,6 +73,22 @@ jobs:
       - name: Stage install tree
         run: cmake --install build --config Release --prefix "${{ github.workspace }}\stage"
 
+      - name: Verify license bundle
+        shell: pwsh
+        run: |
+          $licenseRoot = "${{ github.workspace }}\stage\licenses"
+          @(
+            'LICENSE',
+            'THIRD_PARTY_NOTICES.md',
+            'third-party\GPL-3.0-only.txt',
+            'third-party\LGPL-3.0-only.txt',
+            'third-party\Apache-2.0.txt'
+          ) | ForEach-Object {
+            if (-not (Test-Path (Join-Path $licenseRoot $_) -PathType Leaf)) {
+              throw "Missing license file: $_"
+            }
+          }
+
       - name: Ensure NSIS is available
         shell: pwsh
         run: |

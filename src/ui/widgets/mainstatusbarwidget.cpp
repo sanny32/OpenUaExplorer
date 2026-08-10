@@ -21,6 +21,35 @@
 
 namespace {
 
+/// Lengths, in characters of the current font, that the variable-length fields may claim,
+/// so a long endpoint, user, or session name cannot push the window's minimum width past
+/// the screen.
+constexpr int endpointBudget = 38;
+constexpr int securityBudget = 32;
+constexpr int authenticationBudget = 22;
+
+/// Property holding the field category, used to build the tooltip of an elided value.
+constexpr char fieldTooltipProperty[] = "fieldTooltip";
+
+///
+/// \brief Shows a value in a field label, elided to its width budget.
+/// \param label Value label to fill.
+/// \param text Full value.
+/// \param budget Number of average-width characters the label may claim.
+///
+void setFieldText(QLabel *label, const QString &text, int budget)
+{
+    const QFontMetrics metrics = label->fontMetrics();
+    const QString elided = metrics.elidedText(text, Qt::ElideRight,
+                                              budget * metrics.averageCharWidth());
+    label->setText(elided);
+
+    const QString category = label->property(fieldTooltipProperty).toString();
+    label->setToolTip(elided == text
+                          ? category
+                          : QStringLiteral("%1\n%2").arg(category, text));
+}
+
 ///
 /// \brief Formats the UTC offset of a local time as a compact "UTC+H[:MM]" suffix.
 /// \param dateTime Local date-time whose offset should be described.
@@ -98,6 +127,7 @@ void MainStatusBarWidget::setupFieldDecorations()
     const auto setFieldTooltip = [](QWidget *icon, QWidget *value, const QString &tip) {
         icon->setToolTip(tip);
         value->setToolTip(tip);
+        value->setProperty(fieldTooltipProperty, tip);
     };
     setFieldTooltip(ui->statusIconLabel, ui->connectionLabel, tr("Connection"));
     setFieldTooltip(ui->securityIconLabel, ui->securityLabel, tr("Security policy / mode"));
@@ -338,10 +368,20 @@ void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
     }
     const QString security = securitySummary(securityPolicy, securityMode);
     ui->statusIconLabel->setIcon(icon, QSize(12, 12));
-    ui->connectionLabel->setText(text);
-    ui->securityLabel->setText(security.isEmpty() ? QStringLiteral("-") : security);
-    ui->authenticationLabel->setText(authentication.isEmpty() ? QStringLiteral("-") : authentication);
-    ui->sessionLabel->setText(sessionName.isEmpty() ? QStringLiteral("-") : sessionName);
+    setFieldText(ui->connectionLabel, text, endpointBudget);
+    setFieldText(ui->securityLabel, security.isEmpty() ? QStringLiteral("-") : security,
+                 securityBudget);
+    setFieldText(ui->authenticationLabel,
+                 authentication.isEmpty() ? QStringLiteral("-") : authentication,
+                 authenticationBudget);
+
+    // The session name has no width budget: the label elides itself to whatever the layout
+    // leaves it, so the window can be narrowed without cutting the name off for good.
+    const QString session = sessionName.isEmpty() ? QStringLiteral("-") : sessionName;
+    ui->sessionLabel->setText(session);
+    ui->sessionLabel->setToolTip(
+        QStringLiteral("%1\n%2")
+            .arg(ui->sessionLabel->property(fieldTooltipProperty).toString(), session));
     ui->serverTimeLabel->setText(tr("Server Time: -"));
 }
 

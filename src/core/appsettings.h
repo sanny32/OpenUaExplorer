@@ -10,6 +10,7 @@
 
 #include <QByteArray>
 #include <QHash>
+#include <QList>
 #include <QString>
 #include <QVector>
 
@@ -133,6 +134,39 @@ public:
     void setLogCategoryStates(const QHash<QString, bool> &states);
 
     ///
+    /// \brief Reports whether debug messages reach the log.
+    /// \return True when the enabled categories also log at debug level.
+    ///
+    bool debugLoggingEnabled() const;
+
+    ///
+    /// \brief Stores whether debug messages reach the log.
+    /// \param enabled True to let the enabled categories log at debug level.
+    ///
+    void setDebugLoggingEnabled(bool enabled);
+
+    /// \brief Number of log entries kept when the user has expressed no preference.
+    static constexpr int defaultMaxLogRows = 5000;
+
+    /// \brief Smallest log depth the application accepts.
+    static constexpr int minMaxLogRows = 100;
+
+    /// \brief Largest log depth the application accepts.
+    static constexpr int maxMaxLogRows = 1000000;
+
+    ///
+    /// \brief Returns how many log entries the application keeps.
+    /// \return Stored row cap, clamped to the supported range.
+    ///
+    int maxLogRows() const;
+
+    ///
+    /// \brief Stores how many log entries the application keeps.
+    /// \param rows Row cap, clamped to the supported range.
+    ///
+    void setMaxLogRows(int rows);
+
+    ///
     /// \brief Builds the QLoggingCategory filter rules from the stored preferences.
     /// \return Newline-separated rule string suitable for QLoggingCategory::setFilterRules().
     ///
@@ -235,6 +269,18 @@ public:
     void setDataAccessPage(int page);
 
     ///
+    /// \brief Returns the data-access pages the user closed.
+    /// \return Stored page values, or an empty list when none is stored.
+    ///
+    QList<int> closedDataAccessPages() const;
+
+    ///
+    /// \brief Stores the data-access pages the user closed.
+    /// \param pages Page values to persist.
+    ///
+    void setClosedDataAccessPages(const QList<int> &pages);
+
+    ///
     /// \brief Reports whether the trend panel should be shown.
     /// \return True when the panel is visible, defaulting to true.
     ///
@@ -335,6 +381,15 @@ public:
     /// \return Overrides keyed by built-in subscription id, or an empty vector when none exist.
     ///
     QVector<SubscriptionItem> builtinSubscriptionOverrides() const;
+
+    /// \brief Layout the stored built-in subscription overrides were written with.
+    static constexpr int builtinSubscriptionSchema = 2;
+
+    ///
+    /// \brief Returns the schema the stored built-in subscription overrides were written with.
+    /// \return Stored schema version; 1 for settings written before renames were marked.
+    ///
+    int storedBuiltinSubscriptionSchema() const;
 
     ///
     /// \brief Stores the edits applied to the built-in subscriptions.

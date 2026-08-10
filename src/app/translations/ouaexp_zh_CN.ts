@@ -18,10 +18,6 @@
         <source>Node Details</source>
         <translation>节点详情</translation>
     </message>
-    <message>
-        <source>Root</source>
-        <translation>根</translation>
-    </message>
 </context>
 <context>
     <name>AddressSpaceModule</name>
@@ -59,6 +55,10 @@
     <message>
         <source>Search nodes...</source>
         <translation>搜索节点…</translation>
+    </message>
+    <message>
+        <source>Refresh</source>
+        <translation>刷新</translation>
     </message>
     <message>
         <source>Node Info</source>
@@ -204,6 +204,10 @@
 </context>
 <context>
     <name>AttributesWidget</name>
+    <message>
+        <source>Value</source>
+        <translation>值</translation>
+    </message>
     <message>
         <source>Write Value</source>
         <translation>写入值</translation>
@@ -911,10 +915,6 @@ Select it again.</source>
         <translation>证书：</translation>
     </message>
     <message>
-        <source>...</source>
-        <translation>…</translation>
-    </message>
-    <message>
         <source>Private Key:</source>
         <translation>私钥：</translation>
     </message>
@@ -1294,6 +1294,12 @@ Select it again.</source>
         <source>Actual Interval</source>
         <translation>实际间隔</translation>
     </message>
+    <message numerus="yes">
+        <source>… %n more</source>
+        <translation>
+            <numerusform>… 还有 %n 个</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>DataAccessModule</name>
@@ -1409,6 +1415,10 @@ Select it again.</source>
         <translation>
             <numerusform>从数据访问中移除全部 %n 个节点？</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Status</source>
+        <translation>状态</translation>
     </message>
 </context>
 <context>
@@ -2178,6 +2188,65 @@ Select it again.</source>
     </message>
 </context>
 <context>
+    <name>ImageViewDialog</name>
+    <message>
+        <source>View Image</source>
+        <translation>查看图像</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>适应</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>复制</translation>
+    </message>
+    <message>
+        <source>Save As...</source>
+        <translation>另存为...</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>关闭</translation>
+    </message>
+    <message>
+        <source>Save Image</source>
+        <translation>保存图像</translation>
+    </message>
+    <message>
+        <source>The image could not be written to %1.</source>
+        <translation>无法将图像写入 %1。</translation>
+    </message>
+    <message>
+        <source>No image to show.</source>
+        <translation>没有可显示的图像。</translation>
+    </message>
+    <message>
+        <source>The image could not be decoded.</source>
+        <translation>无法解码该图像。</translation>
+    </message>
+    <message>
+        <source>Unknown format</source>
+        <translation>未知格式</translation>
+    </message>
+    <message>
+        <source>All Files</source>
+        <translation>所有文件</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <source>Zoom out</source>
+        <translation>缩小</translation>
+    </message>
+    <message>
+        <source>Zoom in</source>
+        <translation>放大</translation>
+    </message>
+</context>
+<context>
     <name>LogFeature</name>
     <message>
         <source>Log</source>
@@ -2268,6 +2337,10 @@ Select it again.</source>
     <message>
         <source>Log files (*.log);;Text files (*.txt);;All files (*)</source>
         <translation>日志文件 (*.log);;文本文件 (*.txt);;所有文件 (*)</translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>调试</translation>
     </message>
 </context>
 <context>
@@ -2986,6 +3059,10 @@ Open the download page?</source>
         <source>Could not remove the client certificate.</source>
         <translation>无法移除客户端证书。</translation>
     </message>
+    <message>
+        <source>Image</source>
+        <translation>图像</translation>
+    </message>
 </context>
 <context>
     <name>QtChartsView</name>
@@ -3136,6 +3213,124 @@ Open the download page?</source>
         <source>Event history read timed out.</source>
         <translation>事件历史读取超时。</translation>
     </message>
+    <message>
+        <source>No error.</source>
+        <translation>无错误。</translation>
+    </message>
+    <message>
+        <source>Invalid server URL.</source>
+        <translation>无效的服务器 URL。</translation>
+    </message>
+    <message>
+        <source>Access denied: authentication failed.</source>
+        <translation>访问被拒绝：身份验证失败。</translation>
+    </message>
+    <message>
+        <source>Connection error.</source>
+        <translation>连接错误。</translation>
+    </message>
+    <message>
+        <source>Unknown client error.</source>
+        <translation>未知的客户端错误。</translation>
+    </message>
+    <message>
+        <source>Unsupported authentication information.</source>
+        <translation>不支持的身份验证信息。</translation>
+    </message>
+    <message>
+        <source>Invalid authentication information.</source>
+        <translation>无效的身份验证信息。</translation>
+    </message>
+    <message>
+        <source>Invalid endpoint description.</source>
+        <translation>无效的端点描述。</translation>
+    </message>
+    <message>
+        <source>No matching user identity token found.</source>
+        <translation>未找到匹配的用户身份令牌。</translation>
+    </message>
+    <message>
+        <source>Unsupported security policy.</source>
+        <translation>不支持的安全策略。</translation>
+    </message>
+    <message>
+        <source>Invalid PKI configuration.</source>
+        <translation>无效的 PKI 配置。</translation>
+    </message>
+    <message>
+        <source>Certificate is not trusted.</source>
+        <translation>证书不受信任。</translation>
+    </message>
+    <message>
+        <source>Unknown client error (%1).</source>
+        <translation>未知的客户端错误 (%1)。</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>未知</translation>
+    </message>
+    <message>
+        <source>Certificate validation</source>
+        <translation>证书验证</translation>
+    </message>
+    <message>
+        <source>Open secure channel</source>
+        <translation>打开安全通道</translation>
+    </message>
+    <message>
+        <source>Create session</source>
+        <translation>创建会话</translation>
+    </message>
+    <message>
+        <source>Activate session</source>
+        <translation>激活会话</translation>
+    </message>
+    <message>
+        <source>Step %1</source>
+        <translation>步骤 %1</translation>
+    </message>
+    <message>
+        <source>Encrypted private keys are not supported by Qt OPC UA.</source>
+        <translation>Qt OPC UA 不支持加密的私钥。</translation>
+    </message>
+    <message>
+        <source>The selected endpoint is no longer available. Run discovery again.</source>
+        <translation>所选端点已不可用。请重新执行发现。</translation>
+    </message>
+    <message>
+        <source>OPC UA client error: %1</source>
+        <translation>OPC UA 客户端错误：%1</translation>
+    </message>
+    <message>
+        <source>Connection failed: %1</source>
+        <translation>连接失败：%1</translation>
+    </message>
+    <message>
+        <source>Connection step &apos;%1&apos; failed: %2</source>
+        <translation>连接步骤“%1”失败：%2</translation>
+    </message>
+    <message>
+        <source>
+The server rejected the client certificate. Add this certificate to the server trust list and retry: %1</source>
+        <translation>
+服务器拒绝了客户端证书。请将此证书添加到服务器的信任列表后重试：%1</translation>
+    </message>
+    <message>
+        <source>The OPC UA connection timed out.</source>
+        <translation>OPC UA 连接超时。</translation>
+    </message>
+    <message>
+        <source>The requested OPC UA backend &apos;%1&apos; is unavailable. Installed backends: %2</source>
+        <translation>请求的 OPC UA 后端“%1”不可用。已安装的后端：%2</translation>
+    </message>
+    <message>
+        <source>Could not create the OPC UA backend &apos;%1&apos;.</source>
+        <translation>无法创建 OPC UA 后端“%1”。</translation>
+    </message>
+    <message>
+        <source>The structure of node &apos;%1&apos; stays undecoded: the server&apos;s type definitions describe no type for encoding &apos;%2&apos;.</source>
+        <translation>节点“%1”的结构未被解码：服务器的类型定义中没有描述编码“%2”的类型。</translation>
+    </message>
 </context>
 <context>
     <name>QtOpcUaMonitoringManager</name>
@@ -3184,6 +3379,13 @@ Open the download page?</source>
     <message>
         <source>Target</source>
         <translation>目标</translation>
+    </message>
+</context>
+<context>
+    <name>SecretStore</name>
+    <message>
+        <source>The credential store did not respond.</source>
+        <translation>凭据存储未响应。</translation>
     </message>
 </context>
 <context>
@@ -3362,6 +3564,10 @@ Do you want to save them?</source>
         <source>The session file does not describe a connection.</source>
         <translation>会话文件未描述任何连接。</translation>
     </message>
+    <message>
+        <source>The session file was written by a newer version of the application.</source>
+        <translation>该会话文件由更新版本的应用程序写入。</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -3481,6 +3687,26 @@ Do you want to save them?</source>
     <message>
         <source>Interval (s):</source>
         <translation>间隔（秒）：</translation>
+    </message>
+    <message>
+        <source>Debug messages are verbose and are meant for diagnosing a problem.</source>
+        <translation>调试消息内容冗长，用于诊断问题。</translation>
+    </message>
+    <message>
+        <source>Log debug messages of the enabled categories</source>
+        <translation>记录已启用类别的调试消息</translation>
+    </message>
+    <message>
+        <source>Keep the last</source>
+        <translation>保留最近</translation>
+    </message>
+    <message>
+        <source>Older entries are dropped once the log reaches this many.</source>
+        <translation>当日志达到该数量时，较早的条目将被丢弃。</translation>
+    </message>
+    <message>
+        <source>log entries</source>
+        <translation>条日志记录</translation>
     </message>
 </context>
 <context>
@@ -3839,6 +4065,10 @@ Do you want to save them?</source>
     <message>
         <source>JSON array</source>
         <translation>JSON 数组</translation>
+    </message>
+    <message>
+        <source>Bytes are entered as hexadecimal pairs, for example &quot;8a 39 32&quot;.</source>
+        <translation>字节以十六进制字节对输入，例如 &quot;8a 39 32&quot;。</translation>
     </message>
     <message>
         <source>This value is read-only or its ExtensionObject schema is unknown.</source>

@@ -294,6 +294,7 @@ private:
     void writeSelectedNode();
     bool canWriteSelection() const;
     void requestWrite(const DataAccessItem &item);
+    void showValueCell(const QModelIndex &index);
     void handleValueDoubleClick(const QModelIndex &index);
     void toggleBooleanValue(const DataAccessItem &item);
     void toggleHighlightForSelection(bool enabled);
@@ -301,6 +302,7 @@ private:
     void populateSubscribeMenu(QMenu *menu);
     void promptNewSubscription(const QString &nodeId);
     QStringList subscriptionNames() const;
+    QString restoredSubscriptionName(const QString &storedName) const;
     double intervalFor(const QString &name) const;
     SubscriptionItem defaultSubscription() const;
     QModelIndexList selectedDataRows() const;

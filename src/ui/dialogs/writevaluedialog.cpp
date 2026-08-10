@@ -8,6 +8,7 @@
 
 #include <limits>
 
+#include <QComboBox>
 #include <QDateTime>
 #include <QDialogButtonBox>
 #include <QJsonArray>
@@ -87,6 +88,8 @@ WriteValueDialog::WriteValueDialog(QWidget *parent)
             this, &WriteValueDialog::validateAndAccept);
     connect(ui->buttonBox, &QDialogButtonBox::rejected,
             this, &QDialog::reject);
+    connect(ui->typeComboBox, &QComboBox::currentIndexChanged,
+            this, &WriteValueDialog::updateMessage);
 }
 
 ///
@@ -122,7 +125,7 @@ void WriteValueDialog::setValue(const QVariant &value, int valueType,
     } else if (value.userType() == QMetaType::QDateTime) {
         ui->valueEdit->setPlainText(value.toDateTime().toString(Qt::ISODateWithMs));
     } else if (value.userType() == QMetaType::QByteArray) {
-        ui->valueEdit->setPlainText(QString::fromLatin1(value.toByteArray().toBase64()));
+        ui->valueEdit->setPlainText(OpcUaFormat::displayValue(value));
     } else {
         ui->valueEdit->setPlainText(displayed.toString());
     }
@@ -131,13 +134,27 @@ void WriteValueDialog::setValue(const QVariant &value, int valueType,
         && value.userType() != QMetaType::QVariantMap;
     const bool editable = writable
         && (valueType != ExtensionObject || knownExtension);
+    _editable = editable;
     ui->valueEdit->setReadOnly(!editable);
     ui->typeComboBox->setEnabled(editable);
     ui->arrayCheckBox->setEnabled(editable);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(editable);
-    ui->messageLabel->setText(editable
-        ? QString()
-        : tr("This value is read-only or its ExtensionObject schema is unknown."));
+    updateMessage();
+}
+
+///
+/// \brief Explains why the editor is locked, or how the selected type is written.
+///
+void WriteValueDialog::updateMessage()
+{
+    if (!_editable) {
+        ui->messageLabel->setText(
+            tr("This value is read-only or its ExtensionObject schema is unknown."));
+        return;
+    }
+    ui->messageLabel->setText(valueType() == ByteString
+        ? tr("Bytes are entered as hexadecimal pairs, for example \"8a 39 32\".")
+        : QString());
 }
 
 ///

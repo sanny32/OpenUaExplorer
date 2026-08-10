@@ -7,17 +7,52 @@ Files: *
 Copyright: 2026 Alexandr Ananev
 License: MIT
 
-Files: usr/lib/ouaexp/lib/*
+Files: usr/lib/ouaexp/bin/ouaexp
+Copyright: 2026 Alexandr Ananev
+           Frank Osterfeld and other QtKeychain contributors
+           Lucide Icons and Contributors
+           2013-present Cole Bemis
+License: MIT and BSD-3-clause and ISC
+ The application contains the statically linked QtKeychain library and artwork
+ derived from Lucide. Their exact terms are installed in
+ /usr/share/licenses/ouaexp/third-party/BSD-3-Clause-QtKeychain.txt and
+ /usr/share/licenses/ouaexp/third-party/Lucide-ISC-MIT.txt.
+
+Files: usr/lib/ouaexp/lib/libQt6Charts.so*
+Copyright: The Qt Company Ltd. and other contributors
+License: GPL-3
+ On Debian systems the full text is in /usr/share/common-licenses/GPL-3 and in
+ /usr/share/licenses/ouaexp/third-party/GPL-3.0-only.txt.
+
+Files: usr/lib/ouaexp/lib/libQt6*.so*
        usr/lib/ouaexp/plugins/*
 Copyright: The Qt Company Ltd. and other contributors
 License: LGPL-3
- The bundled Qt libraries, the Qt OpcUa module and its open62541 backend are
- licensed under the GNU Lesser General Public License version 3. On Debian
- systems the full text is in /usr/share/common-licenses/LGPL-3.
+ The bundled Qt libraries and plugins, except Qt Charts and the open62541
+ backend described separately, are distributed under the GNU Lesser General
+ Public License version 3. The full text is in
+ /usr/share/common-licenses/LGPL-3 and in
+ /usr/share/licenses/ouaexp/third-party/LGPL-3.0-only.txt.
  .
- The Qt libraries are shipped unmodified, dynamically linked, and placed in a
- directory the user can replace, as LGPL-3 section 4 requires. The
- corresponding source is available from https://code.qt.io/.
+ The libraries are dynamically linked and installed in a private directory
+ whose files recipients can replace with interface-compatible builds. SPDX
+ SBOM documents supplied by Qt are installed under
+ /usr/share/licenses/ouaexp/sbom when available.
+
+Files: usr/lib/ouaexp/plugins/opcua/*open62541*
+Copyright: The Qt Company Ltd. and other contributors
+           2014-2021 the open62541 contributors listed in
+           /usr/share/licenses/ouaexp/third-party/open62541-AUTHORS.txt
+License: LGPL-3 and MPL-2.0 and CC0-1.0 and CC-BY-SA-4.0 and BSD-3-clause and Apache-2.0 and MIT
+ The exact license texts for the Qt OPC UA backend and its open62541
+ amalgamation are installed under /usr/share/licenses/ouaexp/third-party/.
+
+Files: usr/lib/ouaexp/lib/libcrypto.so*
+       usr/lib/ouaexp/lib/libssl.so*
+Copyright: The OpenSSL Project Authors
+License: Apache-2.0
+ The full license text is installed in
+ /usr/share/licenses/ouaexp/third-party/Apache-2.0.txt.
 
 License: MIT
  Permission is hereby granted, free of charge, to any person obtaining a copy

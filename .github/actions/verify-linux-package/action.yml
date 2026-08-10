@@ -75,6 +75,11 @@ runs:
             fi
 
             test -L /usr/bin/ouaexp
+            test -f /usr/share/licenses/ouaexp/LICENSE
+            test -f /usr/share/licenses/ouaexp/THIRD_PARTY_NOTICES.md
+            test -f /usr/share/licenses/ouaexp/third-party/GPL-3.0-only.txt
+            test -f /usr/share/licenses/ouaexp/third-party/LGPL-3.0-only.txt
+            test -f /usr/share/licenses/ouaexp/third-party/Apache-2.0.txt
             if ldd -r /usr/lib/ouaexp/bin/ouaexp | grep -E "not found|undefined symbol"; then
               echo "The installed binary has unresolved libraries or symbols"
               exit 1

@@ -13,6 +13,7 @@
 #include <QDesktopServices>
 #include <QEvent>
 #include <QFileDialog>
+#include <QMenu>
 #include <QTimer>
 #include <QUrl>
 
@@ -66,6 +67,25 @@ QList<int> defaultCentralSplitterSizes()
     return {360, 310};
 }
 
+///
+/// \brief Opts every menu entry out of the macOS text heuristic for menu roles.
+/// \param actions Actions of the menu being visited.
+///
+/// Without an explicit role macOS guesses one from the item text, and a translation may
+/// start with a word it looks for: the Chinese "Set Subscription" ("设置订阅") begins with
+/// the translation of "Setting", so the item is moved into the application menu. Moving a
+/// submenu that way destroys the native item its menu is still attached to, and the next
+/// menu bar update dereferences it. Roles the window wants are set afterwards.
+///
+void clearMenuRoles(const QList<QAction *> &actions)
+{
+    for (QAction *action : actions) {
+        action->setMenuRole(QAction::NoRole);
+        if (QMenu *menu = action->menu())
+            clearMenuRoles(menu->actions());
+    }
+}
+
 }
 
 ///
@@ -79,6 +99,8 @@ MainWindow::MainWindow(QWidget *parent)
     , _backend(_connectionController->backend())
 {
     ui->setupUi(this);
+
+    clearMenuRoles(ui->menubar->actions());
 
     ui->actionSettings->setMenuRole(QAction::PreferencesRole);
     ui->actionExit->setMenuRole(QAction::QuitRole);
@@ -540,14 +562,6 @@ void MainWindow::on_actionAbout_triggered()
 }
 
 ///
-/// \brief Switches the data-access widget to the Data Access page.
-///
-void MainWindow::on_actionViewDataAccess_triggered()
-{
-    _dataAccessCoordinator->showDataAccessPage();
-}
-
-///
 /// \brief Opens the subscriptions management dialog.
 ///
 void MainWindow::on_actionManageSubscriptions_triggered()
@@ -556,27 +570,103 @@ void MainWindow::on_actionManageSubscriptions_triggered()
 }
 
 ///
-/// \brief Switches the data-access widget to the Events page.
+/// \brief Opens or closes the Data Access tab from the View menu.
+/// \param checked True to open the tab and switch to it.
 ///
-void MainWindow::on_actionViewEvents_triggered()
+void MainWindow::on_actionViewDataAccess_toggled(bool checked)
 {
-    _dataAccessCoordinator->showEventsPage();
+    setDataViewPageVisible(DataView::DataAccessPage, checked);
 }
 
 ///
-/// \brief Switches the data-access widget to the Data History page.
+/// \brief Opens or closes the Events tab from the View menu.
+/// \param checked True to open the tab and switch to it.
 ///
-void MainWindow::on_actionViewDataHistory_triggered()
+void MainWindow::on_actionViewEvents_toggled(bool checked)
 {
-    _dataAccessCoordinator->showDataHistoryPage();
+    setDataViewPageVisible(DataView::EventsPage, checked);
 }
 
 ///
-/// \brief Switches the data-access widget to the Events History page.
+/// \brief Opens or closes the Data History tab from the View menu.
+/// \param checked True to open the tab and switch to it.
 ///
-void MainWindow::on_actionViewEventsHistory_triggered()
+void MainWindow::on_actionViewDataHistory_toggled(bool checked)
 {
-    _dataAccessCoordinator->showEventsHistoryPage();
+    setDataViewPageVisible(DataView::DataHistoryPage, checked);
+}
+
+///
+/// \brief Opens or closes the Events History tab from the View menu.
+/// \param checked True to open the tab and switch to it.
+///
+void MainWindow::on_actionViewEventsHistory_toggled(bool checked)
+{
+    setDataViewPageVisible(DataView::EventsHistoryPage, checked);
+}
+
+///
+/// \brief Applies a View menu toggle to the data view.
+/// \param page Page to open or close.
+/// \param visible True to open the tab and switch to it.
+///
+/// Auto-connected toggles can fire while the window is still being built, before
+/// the coordinator exists.
+///
+void MainWindow::setDataViewPageVisible(DataView::Page page, bool visible)
+{
+    if (_dataAccessCoordinator)
+        _dataAccessCoordinator->setPageVisible(page, visible);
+}
+
+///
+/// \brief Keeps the View menu entry in sync when a tab is closed or reopened elsewhere.
+/// \param page Affected page.
+/// \param visible True when the page is now open.
+///
+void MainWindow::onDataViewPageVisibilityChanged(DataView::Page page, bool visible)
+{
+    if (QAction *action = viewActionForPage(page)) {
+        // Blocked so the sync does not bounce back as another open/close request.
+        const QSignalBlocker blocker(action);
+        action->setChecked(visible);
+    }
+    updateDataViewSection();
+}
+
+///
+/// \brief Gives the central splitter section back to the trend panel while every tab is closed.
+///
+void MainWindow::updateDataViewSection()
+{
+    const bool anyPage = ui->dataView->hasVisiblePages();
+    const bool shown = !ui->dataView->isHidden();
+    if (shown == anyPage)
+        return;
+
+    ui->dataView->setVisible(anyPage);
+    if (anyPage)
+        applyCentralSplitterConstraints();
+}
+
+///
+/// \brief Returns the View menu entry that mirrors a data-view page.
+/// \param page Page to look up.
+/// \return Matching action, or nullptr for an unknown page.
+///
+QAction *MainWindow::viewActionForPage(DataView::Page page) const
+{
+    switch (page) {
+    case DataView::DataAccessPage:
+        return ui->actionViewDataAccess;
+    case DataView::EventsPage:
+        return ui->actionViewEvents;
+    case DataView::DataHistoryPage:
+        return ui->actionViewDataHistory;
+    case DataView::EventsHistoryPage:
+        return ui->actionViewEventsHistory;
+    }
+    return nullptr;
 }
 
 ///
@@ -650,6 +740,7 @@ void MainWindow::resetLayout()
 {
     _featureManager->resetDockLayout(*this);
     setTrendPanelVisible(true);
+    _dataAccessCoordinator->showAllPages();
     ui->centralSplitter->setSizes(defaultCentralSplitterSizes());
 }
 
@@ -867,6 +958,8 @@ void MainWindow::setupModules()
                                                        dataAccessActions,
                                                        this);
 
+    connect(ui->dataView, &DataView::pageVisibilityChanged,
+            this, &MainWindow::onDataViewPageVisibilityChanged);
     connect(_selectionContext, &SelectionContext::monitorNodeRequested,
             this, &MainWindow::openNodeMonitor);
     connect(_selectionContext, &SelectionContext::callMethodRequested,

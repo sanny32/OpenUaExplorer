@@ -135,6 +135,7 @@ bool SubscriptionsModel::setData(const QModelIndex &index, const QVariant &value
         if (newName == oldName)
             return true;
         item.name = newName;
+        item.renamed = true;
         emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
         emit subscriptionRenamed(oldName, newName);
         return true;
@@ -156,6 +157,29 @@ bool SubscriptionsModel::setData(const QModelIndex &index, const QVariant &value
     }
 
     return false;
+}
+
+///
+/// \brief Replaces the factory name of a built-in subscription after a language change.
+/// \param row Row to rename.
+/// \param name New factory name.
+/// \return True when the row was renamed.
+///
+bool SubscriptionsModel::setFactoryName(int row, const QString &name)
+{
+    if (row < 0 || row >= _items.size() || name.isEmpty())
+        return false;
+    SubscriptionItem &item = _items[row];
+    const QString oldName = item.name;
+    item.renamed = false;
+    if (name == oldName || containsName(name, row))
+        return false;
+
+    item.name = name;
+    const QModelIndex changed = index(row, ColName);
+    emit dataChanged(changed, changed, {Qt::DisplayRole, Qt::EditRole});
+    emit subscriptionRenamed(oldName, name);
+    return true;
 }
 
 ///

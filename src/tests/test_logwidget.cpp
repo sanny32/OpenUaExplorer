@@ -12,6 +12,8 @@
 #include <QTableView>
 #include <QTest>
 
+#include "application.h"
+#include "appsettings.h"
 #include "models/logmodel.h"
 #include "widgets/themedpushbutton.h"
 #include "widgets/logwidget.h"
@@ -31,6 +33,8 @@ class TestLogWidget : public QObject
 private slots:
     void open62541SdkSourcesKeepBackendPrefix();
     void clearButtonUsesTrashIcon();
+    void logDepthFollowsTheStoredPreference();
+    void changingTheDepthTrimsTheOpenLog();
 };
 
 ///
@@ -72,6 +76,53 @@ void TestLogWidget::clearButtonUsesTrashIcon()
     QCOMPARE(button->iconName(), QStringLiteral("trash"));
 }
 
-QTEST_MAIN(TestLogWidget)
+///
+/// \brief A widget opened after the preference was set starts out at that depth.
+///
+void TestLogWidget::logDepthFollowsTheStoredPreference()
+{
+    AppSettings().setMaxLogRows(120);
+
+    LogWidget widget;
+    auto *table = widget.findChild<QTableView *>(QStringLiteral("logTable"));
+    QVERIFY(table);
+
+    for (int index = 0; index < 130; ++index)
+        qCWarning(lcLogWidgetClient).noquote() << "entry" << index;
+
+    QTRY_COMPARE(table->model()->rowCount(), 120);
+
+    AppSettings().setMaxLogRows(AppSettings::defaultMaxLogRows);
+}
+
+///
+/// \brief Changing the preference retrims a log that is already open.
+///
+void TestLogWidget::changingTheDepthTrimsTheOpenLog()
+{
+    AppSettings().setMaxLogRows(AppSettings::defaultMaxLogRows);
+
+    LogWidget widget;
+    auto *table = widget.findChild<QTableView *>(QStringLiteral("logTable"));
+    QVERIFY(table);
+
+    for (int index = 0; index < 200; ++index)
+        qCWarning(lcLogWidgetClient).noquote() << "entry" << index;
+    QTRY_COMPARE(table->model()->rowCount(), 200);
+
+    theApp()->setMaxLogRows(150);
+    QCOMPARE(table->model()->rowCount(), 150);
+
+    AppSettings().setMaxLogRows(AppSettings::defaultMaxLogRows);
+}
+
+// The widget follows the log depth preference through Application, whose signal a plain
+// QApplication does not carry.
+int main(int argc, char *argv[])
+{
+    Application app(argc, argv);
+    TestLogWidget test;
+    return QTest::qExec(&test, argc, argv);
+}
 
 #include "test_logwidget.moc"

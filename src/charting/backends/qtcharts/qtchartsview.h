@@ -12,7 +12,7 @@
 #pragma once
 
 #include <QHash>
-#include <QObject>
+#include <QPointF>
 #include <QSet>
 
 #include "ichartview.h"
@@ -23,8 +23,9 @@ class QLineSeries;
 class QValueAxis;
 class QDateTimeAxis;
 class QGraphicsEllipseItem;
-class QPointF;
+class QTimer;
 class ChartCallout;
+class ChartHoverFilter;
 
 ///
 /// \brief Renders trend series with Qt Charts behind the IChartView API.
@@ -59,6 +60,11 @@ public:
     void extendSeriesTo(const ChartSeriesId &id, qreal xMsEpoch) override;
     void setPoints(const ChartSeriesId &id, const QVector<ChartPoint> &points) override;
     void setTimeWindow(qreal startMsEpoch, qreal endMsEpoch) override;
+    ChartRange timeWindow() const override;
+    ChartRange valueRange() const override;
+    void setValueRange(const ChartRange &range) override;
+    bool valueAt(const QPoint &globalPos, QPointF *value) const override;
+    bool valueDelta(const QPoint &pixels, QPointF *delta) const override;
     void autoScaleY() override;
     void fit() override;
     void setLegendVisible(bool visible) override;
@@ -73,8 +79,14 @@ public:
     QImage renderToImage(const QSize &size) override;
 
 private:
+    friend class ChartHoverFilter;
+
     QColor nextPaletteColor();
-    void showCallout(QLineSeries *series, const ChartSeriesId &id, const QPointF &point, bool state);
+    void updateHover(const QPoint &viewportPos);
+    void showCallout(QLineSeries *series, const ChartSeriesId &id, int statusIndex,
+                     const QPointF &value, const QPointF &itemPos);
+    void refreshCallout();
+    void scheduleHideCallout();
     void hideCallout();
     void styleLegendMarkers();
 
@@ -86,10 +98,13 @@ private:
     QHash<ChartSeriesId, QVector<QString>> _statuses;
     QSet<ChartSeriesId> _extendedSeries;
     ChartCallout *_callout = nullptr;
+    QTimer *_hideTimer = nullptr;
     QGraphicsEllipseItem *_marker = nullptr;
+    ChartSeriesId _hoveredSeries;
+    QPointF _hoveredValue;
+    int _hoveredStatusIndex = -1;
     ChartTheme _theme;
     int _paletteIndex = 0;
     bool _hoverValueVisible = true;
     bool _pointsVisible = false;
-    QObject _hoverContext;
 };

@@ -68,6 +68,20 @@ bool waitForConnectionResult(const OpcUaBackend &service, int timeoutMs)
 }
 
 ///
+/// \brief Returns true when a connection error says the server refused the user token.
+///
+/// The backend keeps the status code of the failed connection step when the plugin reports
+/// one, and falls back to the client-error description when it does not, so a refusal reads
+/// either as the status name or as the translated text.
+///
+bool refusedTheUserToken(const QString &error)
+{
+    return error.contains(QStringLiteral("Access denied"))
+        || error.contains(QStringLiteral("BadUserAccessDenied"))
+        || error.contains(QStringLiteral("BadIdentityToken"));
+}
+
+///
 /// \brief Trust decider that accepts every server certificate presented to it.
 ///
 class AcceptingTrustDecider : public CertificateTrustDecider
@@ -242,8 +256,7 @@ void TestOpcUaAuthIntegration::usernameAuthenticationRejectsWrongPassword()
     service.connectToEndpoint(profile, QStringLiteral("wrong-password"), QString());
     QVERIFY2(!waitForConnectionResult(service, 10000),
              "The server accepted a wrong password.");
-    QVERIFY2(service.lastError().contains(QStringLiteral("Access denied")),
-             qPrintable(service.lastError()));
+    QVERIFY2(refusedTheUserToken(service.lastError()), qPrintable(service.lastError()));
 }
 
 ///
@@ -343,8 +356,7 @@ void TestOpcUaAuthIntegration::certificateAuthenticationRejectsUntrustedCertific
 
     // The client trusts the server certificate through the decider above, so the
     // connection must fail on the user token rather than on channel validation.
-    QVERIFY2(service.lastError().contains(QStringLiteral("Access denied")),
-             qPrintable(service.lastError()));
+    QVERIFY2(refusedTheUserToken(service.lastError()), qPrintable(service.lastError()));
 }
 
 ///

@@ -51,6 +51,25 @@ QJsonObject profileToJson(const ConnectionProfile &profile)
 }
 
 ///
+/// \brief Maps a stored authentication value onto a valid enumerator.
+/// \param value Value read from the session file.
+/// \return The matching mode, or Anonymous for anything outside the enumeration.
+///
+/// Anonymous is the safe fallback: it is the one mode that resolves no stored secret, so a
+/// damaged or tampered file cannot make the client offer credentials it was never given.
+///
+ConnectionProfile::Authentication authenticationFromJson(int value)
+{
+    switch (static_cast<ConnectionProfile::Authentication>(value)) {
+    case ConnectionProfile::Authentication::Anonymous:
+    case ConnectionProfile::Authentication::Username:
+    case ConnectionProfile::Authentication::Certificate:
+        return static_cast<ConnectionProfile::Authentication>(value);
+    }
+    return ConnectionProfile::Authentication::Anonymous;
+}
+
+///
 /// \brief Reconstructs a connection profile from a JSON object.
 /// \param json JSON object produced by profileToJson().
 /// \return Parsed connection profile with default-backed missing fields.
@@ -64,9 +83,10 @@ ConnectionProfile profileFromJson(const QJsonObject &json)
     profile.backend = json[QStringLiteral("backend")].toString(QStringLiteral("open62541"));
     profile.endpointUrl = json[QStringLiteral("endpointUrl")].toString();
     profile.securityPolicy = json[QStringLiteral("securityPolicy")].toString();
-    profile.securityMode = json[QStringLiteral("securityMode")].toInt(1);
-    profile.authentication = static_cast<ConnectionProfile::Authentication>(
-        json[QStringLiteral("authentication")].toInt(0));
+    // MessageSecurityMode runs None(1) to SignAndEncrypt(3); Invalid(0) and anything beyond
+    // the range would never match a discovered endpoint.
+    profile.securityMode = qBound(1, json[QStringLiteral("securityMode")].toInt(1), 3);
+    profile.authentication = authenticationFromJson(json[QStringLiteral("authentication")].toInt(0));
     profile.username = json[QStringLiteral("username")].toString();
     profile.clientCertificateFile = json[QStringLiteral("clientCertificateFile")].toString();
     profile.privateKeyFile = json[QStringLiteral("privateKeyFile")].toString();
@@ -310,6 +330,16 @@ bool SessionStore::load(const QString &path, SessionData &data, QString *error)
     }
 
     const QJsonObject root = document.object();
+    // Older files are read on their own terms: every field defaults when absent. A newer one
+    // cannot be, since what its unknown fields mean is not knowable here.
+    const int version = root[QStringLiteral("schemaVersion")].toInt(schemaVersion);
+    if (version > schemaVersion) {
+        if (error) {
+            *error = tr("The session file was written by a newer version of the application.");
+        }
+        return false;
+    }
+
     const QJsonObject connection = root[QStringLiteral("connection")].toObject();
     if (connection.isEmpty() || connection[QStringLiteral("endpointUrl")].toString().isEmpty()) {
         if (error)

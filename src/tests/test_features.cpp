@@ -14,8 +14,12 @@
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTranslator>
+#include <QTreeView>
 
 #include "application.h"
+#include "features/featurecommands.h"
+#include "features/featuremanager.h"
 #include "features/selectioncontext.h"
 #include "mainwindow.h"
 #include "opcua/opcuatypes.h"
@@ -33,6 +37,7 @@ private slots:
     void cleanup();
 
     void builtinFeaturesContributeExpectedDocks();
+    void addressSpaceRootNameIsNotTranslated();
     void selectionContextPublishesOnlyCurrentDetails();
     void selectionContextRequestsHistoryOnlyForHistorizingNodes();
     void selectionContextRequestsEventMonitorOnlyForEventNotifiers();
@@ -41,6 +46,46 @@ private slots:
 private:
     QTemporaryDir _settingsDirectory;
 };
+
+namespace {
+
+///
+/// \brief Supplies a translation that exposes accidental localization of the root label.
+///
+class RootTranslator : public QTranslator
+{
+public:
+    ///
+    /// \brief Translates only the address-space root label.
+    /// \param context Translation context.
+    /// \param sourceText Source text.
+    /// \param disambiguation Optional disambiguation text.
+    /// \param n Numerus value.
+    /// \return Test translation for Root, or an empty string for other messages.
+    ///
+    QString translate(const char *context, const char *sourceText,
+                      const char *disambiguation = nullptr, int n = -1) const override;
+};
+
+///
+/// \brief Translates only the address-space root label.
+/// \param context Translation context.
+/// \param sourceText Source text.
+/// \param disambiguation Optional disambiguation text.
+/// \param n Numerus value.
+/// \return Test translation for Root, or an empty string for other messages.
+///
+QString RootTranslator::translate(const char *context, const char *sourceText,
+                                  const char *disambiguation, int n) const
+{
+    Q_UNUSED(disambiguation)
+    Q_UNUSED(n)
+    if (qstrcmp(context, "AddressSpaceFeature") == 0 && qstrcmp(sourceText, "Root") == 0)
+        return QStringLiteral("Localized Root");
+    return {};
+}
+
+} // namespace
 
 ///
 /// \brief Routes settings to a temporary directory and registers spy metatypes.
@@ -94,6 +139,27 @@ void TestFeatures::builtinFeaturesContributeExpectedDocks()
         window.findChild<QDockWidget *>(QStringLiteral("nodeDetailsDock"));
     QVERIFY(nodeDetailsDock->widget()->findChild<QTableView *>(QStringLiteral("nodeInfoTable")));
     QVERIFY(nodeDetailsDock->widget()->findChild<QTableView *>(QStringLiteral("referencesTable")));
+}
+
+///
+/// \brief The standard Root label remains protocol terminology in every UI language.
+///
+void TestFeatures::addressSpaceRootNameIsNotTranslated()
+{
+    RootTranslator translator;
+    QCoreApplication::installTranslator(&translator);
+
+    MainWindow window;
+    auto *features = window.findChild<FeatureManager *>();
+    auto *tree = window.findChild<QTreeView *>(QStringLiteral("addressTree"));
+    QVERIFY(features);
+    QVERIFY(tree);
+    QVERIFY(features->triggerCommand(FeatureCommandIds::addressSpaceBrowse()));
+
+    const QString rootName = tree->model()->data(tree->model()->index(0, 0)).toString();
+    QCoreApplication::removeTranslator(&translator);
+
+    QCOMPARE(rootName, QStringLiteral("Root"));
 }
 
 ///

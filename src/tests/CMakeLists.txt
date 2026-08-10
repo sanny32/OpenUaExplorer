@@ -4,6 +4,7 @@ function(ouaexp_configure_test_environment test_name)
         set(test_appdata "${CMAKE_BINARY_DIR}/.test-appdata")
         set(test_environment
             "QT_QPA_PLATFORM=offscreen"
+            "QT_FORCE_STDERR_LOGGING=1"
             "USERPROFILE=${test_home}"
             "HOME=${test_home}"
             "APPDATA=${test_home}/AppData/Roaming"
@@ -64,9 +65,16 @@ endfunction()
 # only reusable while the provider and the tests agree on all of it, so both go
 # through this one function rather than repeating the settings.
 function(ouaexp_apply_test_compile_settings target)
-    target_link_libraries(${target} PRIVATE Qt${QT_VERSION_MAJOR}::Test)
+    # Qt Widgets is linked by every test, not just the UI ones: it is what makes
+    # QTEST_MAIN instantiate a QApplication, and QT_WIDGETS_LIB has to be defined
+    # identically everywhere or the shared precompiled header stops being reusable.
+    target_link_libraries(${target} PRIVATE
+        Qt${QT_VERSION_MAJOR}::Test
+        Qt${QT_VERSION_MAJOR}::Widgets
+    )
     target_compile_definitions(${target} PRIVATE
-        OUAEXP_TEST_SERVER_SCRIPT="${PROJECT_SOURCE_DIR}/../tools/opcua_test_server.py")
+        OUAEXP_TEST_SERVER_SCRIPT="${PROJECT_SOURCE_DIR}/../tools/opcua_test_server.py"
+        OUAEXP_SOURCE_DIR="${PROJECT_SOURCE_DIR}/..")
     ouaexp_apply_coverage(${target})
 endfunction()
 
@@ -147,8 +155,12 @@ set_property(TEST
     ouaexp_tests_auth_integration
     ouaexp_tests_certificate_details_widget
     ouaexp_tests_certificates_dialog
-    ouaexp_tests_connection_dialog
+    ouaexp_tests_connection_dialog_history_auth
+    ouaexp_tests_connection_dialog_discovery
+    ouaexp_tests_connection_dialog_certificates
+    ouaexp_tests_connection_dialog_layout
     ouaexp_tests_endpoint_settings_dialog
+    ouaexp_tests_pkimanager
     APPEND PROPERTY RESOURCE_LOCK application_pki)
 
 include(ProcessorCount)

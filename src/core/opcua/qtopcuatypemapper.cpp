@@ -7,7 +7,10 @@
 
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaBinaryDataEncoding>
+#include <QOpcUaEnumDefinition>
 #include <QOpcUaExtensionObject>
+#include <QOpcUaGenericStructHandler>
+#include <QOpcUaGenericStructValue>
 #include <QOpcUaLocalizedText>
 #include <QOpcUaQualifiedName>
 #include <QOpcUaUserTokenPolicy>
@@ -217,13 +220,14 @@ QOpcUa::NodeAttributes nodeDetailAttributes()
 
 /// \brief Builds formatted node details from attributes cached by a Qt node.
 OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
-                             QOpcUa::NodeAttributes attributes, const Translate &translate)
+                             QOpcUa::NodeAttributes attributes, const Translate &translate,
+                             const QOpcUaGenericStructHandler *structHandler)
 {
     OpcUaNodeDetails details;
     details.nodeId = nodeId;
     details.nodeClass = node->attribute(QOpcUa::NodeAttribute::NodeClass).toInt();
     const auto nodeClass = static_cast<QOpcUa::NodeClass>(details.nodeClass);
-    details.value = node->attribute(QOpcUa::NodeAttribute::Value);
+    details.value = decodedValue(node->attribute(QOpcUa::NodeAttribute::Value), structHandler);
     details.dataTypeId = node->attribute(QOpcUa::NodeAttribute::DataType).toString();
     details.valueType = static_cast<int>(valueTypeForDataType(details.dataTypeId));
     const auto valueType = static_cast<QOpcUa::Types>(details.valueType);
@@ -244,23 +248,25 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
             || node->attributeError(field.second) == QOpcUa::UaStatusCode::BadAttributeIdInvalid) {
             continue;
         }
-        const QVariant value = node->attribute(field.second);
+        const QVariant value = field.second == QOpcUa::NodeAttribute::Value
+            ? details.value
+            : node->attribute(field.second);
         OpcUaNodeAttribute attribute;
         attribute.name = field.first;
         attribute.value = value;
         attribute.status = statusName(node->attributeError(field.second));
-        attribute.sourceTimestamp = node->sourceTimestamp(field.second);
-        attribute.serverTimestamp = node->serverTimestamp(field.second);
         formatAttribute(&attribute, field.second, value, valueType, details.dataTypeId);
         if (field.second == QOpcUa::NodeAttribute::Value) {
-            if (attribute.sourceTimestamp.isValid()) {
+            if (details.sourceTimestamp.isValid()) {
                 OpcUaNodeAttribute timestamp = childAttribute(translate("Source Timestamp"), QString());
-                timestamp.sourceTimestamp = attribute.sourceTimestamp;
+                timestamp.sourceTimestamp = details.sourceTimestamp;
+                timestamp.isTimestamp = true;
                 attribute.children.append(timestamp);
             }
-            if (attribute.serverTimestamp.isValid()) {
+            if (details.serverTimestamp.isValid()) {
                 OpcUaNodeAttribute timestamp = childAttribute(translate("Server Timestamp"), QString());
-                timestamp.serverTimestamp = attribute.serverTimestamp;
+                timestamp.serverTimestamp = details.serverTimestamp;
+                timestamp.isTimestamp = true;
                 attribute.children.append(timestamp);
             }
             attribute.children.append(childAttribute(translate("Status Code"), statusDisplay(node->attributeError(field.second))));
@@ -272,6 +278,83 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
     if (displayName.canConvert<QOpcUaLocalizedText>())
         details.displayName = displayName.value<QOpcUaLocalizedText>().text();
     return details;
+}
+
+/// \brief Replaces the opaque structures in a value by their decoded fields.
+QVariant decodedValue(const QVariant &value, const QOpcUaGenericStructHandler *handler)
+{
+    if (!handler)
+        return value;
+
+    if (value.userType() == qMetaTypeId<QOpcUaExtensionObject>()) {
+        const std::optional<QOpcUaGenericStructValue> decoded =
+            handler->decode(value.value<QOpcUaExtensionObject>());
+        return decoded ? QVariant::fromValue(*decoded) : value;
+    }
+
+    if (value.canConvert<QList<QOpcUaExtensionObject>>()
+        && value.userType() != QMetaType::QVariantList) {
+        QVariantList decoded;
+        const QList<QOpcUaExtensionObject> objects = value.value<QList<QOpcUaExtensionObject>>();
+        decoded.reserve(objects.size());
+        for (const QOpcUaExtensionObject &object : objects)
+            decoded.append(decodedValue(QVariant::fromValue(object), handler));
+        return decoded;
+    }
+
+    if (value.userType() == QMetaType::QVariantList) {
+        const QVariantList entries = value.toList();
+        QVariantList decoded;
+        decoded.reserve(entries.size());
+        bool changed = false;
+        for (const QVariant &entry : entries) {
+            decoded.append(decodedValue(entry, handler));
+            changed = changed || decoded.constLast().userType() != entry.userType();
+        }
+        return changed ? QVariant(decoded) : value;
+    }
+
+    return value;
+}
+
+/// \brief Lists the encoding ids of the structures in a value that were not decoded.
+QStringList opaqueEncodingIds(const QVariant &value)
+{
+    if (value.userType() == qMetaTypeId<QOpcUaExtensionObject>())
+        return {value.value<QOpcUaExtensionObject>().encodingTypeId()};
+
+    QStringList ids;
+    if (value.canConvert<QList<QOpcUaExtensionObject>>()
+        && value.userType() != QMetaType::QVariantList) {
+        const QList<QOpcUaExtensionObject> objects = value.value<QList<QOpcUaExtensionObject>>();
+        for (const QOpcUaExtensionObject &object : objects)
+            ids.append(object.encodingTypeId());
+        return ids;
+    }
+
+    if (value.userType() == QMetaType::QVariantList) {
+        const QVariantList entries = value.toList();
+        for (const QVariant &entry : entries)
+            ids.append(opaqueEncodingIds(entry));
+    }
+    return ids;
+}
+
+/// \brief Reports whether a value still carries a structure that was not decoded.
+bool containsOpaqueStruct(const QVariant &value)
+{
+    return !opaqueEncodingIds(value).isEmpty();
+}
+
+/// \brief Lets structures with a field of the abstract Enumeration type decode.
+void allowAbstractEnumerationFields(QOpcUaGenericStructHandler *handler)
+{
+    if (!handler)
+        return;
+    handler->addCustomEnumDefinition(
+        QOpcUaEnumDefinition(),
+        QOpcUa::namespace0Id(QOpcUa::NodeIds::Namespace0::Enumeration),
+        QStringLiteral("Enumeration"), QOpcUa::IsAbstract::NotAbstract);
 }
 
 /// \brief Resolves this client's session name from SessionDiagnosticsArray.

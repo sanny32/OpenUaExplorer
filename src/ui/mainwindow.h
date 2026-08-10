@@ -14,6 +14,7 @@
 
 #include "dialogs/namespaceinspectordialog.h"
 #include "opcua/opcuatypes.h"
+#include "widgets/dataview.h"
 
 namespace Ui {
 class MainWindow;
@@ -85,13 +86,14 @@ private slots:
     void on_actionOpcUaInfo_triggered();
     void on_actionCheckForUpdates_triggered();
     void on_actionAbout_triggered();
-    void on_actionViewDataAccess_triggered();
     void on_actionManageSubscriptions_triggered();
-    void on_actionViewEvents_triggered();
-    void on_actionViewDataHistory_triggered();
-    void on_actionViewEventsHistory_triggered();
+    void on_actionViewDataAccess_toggled(bool checked);
+    void on_actionViewEvents_toggled(bool checked);
+    void on_actionViewDataHistory_toggled(bool checked);
+    void on_actionViewEventsHistory_toggled(bool checked);
     void on_actionViewTrendPanel_toggled(bool checked);
     void on_actionResetLayout_triggered();
+    void onDataViewPageVisibilityChanged(DataView::Page page, bool visible);
 
 private:
     void openSettingsDialog();
@@ -103,6 +105,9 @@ private:
     void restoreSettings();
     void bindIcons();
     void configureHistoryUi();
+    void setDataViewPageVisible(DataView::Page page, bool visible);
+    void updateDataViewSection();
+    QAction *viewActionForPage(DataView::Page page) const;
     void setupOpcUaClient();
     void setupUpdateChecker();
     void setupModules();

@@ -8,6 +8,7 @@
 
 #include "qtchartsview.h"
 
+#include <algorithm>
 #include <limits>
 #include <utility>
 
@@ -30,7 +31,10 @@
 #include <QGuiApplication>
 #include <QImage>
 #include <QList>
+#include <QLineF>
 #include <QMargins>
+#include <QMouseEvent>
+#include <QObject>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPen>
@@ -38,11 +42,61 @@
 #include <QPointF>
 #include <QRectF>
 #include <QScreen>
+#include <QTimer>
 #include <QWidget>
 
 namespace {
 
 constexpr qreal kDefaultWindowMs = 60000.0;
+constexpr int kHoverHideDelayMs = 220;
+constexpr qreal kHoverBandPx = 10.0;
+
+///
+/// \brief Projects a point onto a line segment.
+/// \param point Point to project.
+/// \param from Segment start.
+/// \param to Segment end.
+/// \return Closest position on the segment, in the coordinates given.
+///
+QPointF closestPointOnSegment(const QPointF &point, const QPointF &from, const QPointF &to)
+{
+    const QPointF span = to - from;
+    const qreal lengthSquared = QPointF::dotProduct(span, span);
+    if (qFuzzyIsNull(lengthSquared))
+        return from;
+
+    const qreal projection =
+        qBound(0.0, QPointF::dotProduct(point - from, span) / lengthSquared, 1.0);
+    return from + projection * span;
+}
+
+///
+/// \brief Finds the sample closest in X to a position on the series.
+/// \param points Series points, ordered by X.
+/// \param x Position to match, in axis units.
+/// \return Index of the nearest sample; -1 when there are no points.
+///
+/// Series points are always fed in time order (streamed appends and history reads
+/// alike), so the nearest one is found by bisection instead of scanning a buffer that
+/// holds tens of thousands of samples on every mouse move.
+///
+int nearestSampleIndex(const QList<QPointF> &points, qreal x)
+{
+    if (points.isEmpty())
+        return -1;
+
+    const auto after = std::lower_bound(points.cbegin(), points.cend(), x,
+                                        [](const QPointF &point, qreal value) {
+                                            return point.x() < value;
+                                        });
+    if (after == points.cbegin())
+        return 0;
+    if (after == points.cend())
+        return int(points.size()) - 1;
+
+    const auto before = after - 1;
+    return int((x - before->x() <= after->x() - x ? before : after) - points.cbegin());
+}
 
 }
 
@@ -94,13 +148,21 @@ public:
     void setData(const QColor &swatch, const QString &name, const QString &time,
                  const QString &value, const QString &status)
     {
+        if (_swatch == swatch && _name == name && _time == time && _value == value
+            && _status == status) {
+            return;
+        }
+
         _swatch = swatch;
         _name = name;
         _time = time;
         _value = value;
         _status = status;
         relayout();
-        resize(int(_rect.width() + 2.0 * kMargin), int(_rect.height() + 2.0 * kMargin));
+
+        const QSize wanted(int(_rect.width() + 2.0 * kMargin), int(_rect.height() + 2.0 * kMargin));
+        if (size() != wanted)
+            resize(wanted);
         update();
     }
 
@@ -142,7 +204,8 @@ public:
     ///
     /// The card sits to the right of the point with its vertical centre aligned to
     /// it, flipping to the left and clamping to the current screen so it stays fully
-    /// visible even when the point is near an edge.
+    /// visible even when the point is near an edge. Moving and raising a native window
+    /// flickers, so both are skipped while the card already sits where it belongs.
     ///
     void showAt(const QPoint &anchorGlobal)
     {
@@ -165,9 +228,13 @@ public:
             cardY = qBound(screen.top(), cardY, qMax(screen.top(), screen.bottom() - cardH));
         }
 
-        move(cardX - int(kMargin), cardY - int(kMargin));
-        show();
-        raise();
+        const QPoint target(cardX - int(kMargin), cardY - int(kMargin));
+        if (pos() != target)
+            move(target);
+        if (!isVisible()) {
+            show();
+            raise();
+        }
     }
 
 protected:
@@ -364,6 +431,43 @@ private:
 };
 
 ///
+/// \brief Feeds viewport cursor motion to the chart that owns the viewport.
+///
+/// The plaque follows the cursor rather than Qt Charts' own hover signal, so the chart
+/// needs the motion itself. The filter never consumes an event: panning and dragging
+/// are handled by filters the host installs later, which therefore run first.
+///
+class ChartHoverFilter : public QObject
+{
+public:
+    ///
+    /// \brief Starts tracking the cursor over a chart viewport.
+    /// \param owner Chart notified of cursor motion.
+    /// \param viewport Viewport to watch; also takes ownership of the filter.
+    ///
+    ChartHoverFilter(QtChartsView *owner, QWidget *viewport)
+        : QObject(viewport)
+        , _owner(owner)
+    {
+        viewport->setMouseTracking(true);
+        viewport->installEventFilter(this);
+    }
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        if (event->type() == QEvent::MouseMove)
+            _owner->updateHover(static_cast<QMouseEvent *>(event)->position().toPoint());
+        else if (event->type() == QEvent::Leave)
+            _owner->scheduleHideCallout();
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    QtChartsView *_owner;
+};
+
+///
 /// \brief Builds the chart, its view widget, and the time/value axes.
 /// \param parent Parent for the view widget; may be nullptr.
 ///
@@ -396,6 +500,12 @@ QtChartsView::QtChartsView(QWidget *parent)
 
     _callout = new ChartCallout(_view);
 
+    _hideTimer = new QTimer(_callout);
+    _hideTimer->setSingleShot(true);
+    QObject::connect(_hideTimer, &QTimer::timeout, _callout, [this]() { hideCallout(); });
+
+    new ChartHoverFilter(this, _view->viewport());
+
     _marker = new QGraphicsEllipseItem(-5.0, -5.0, 10.0, 10.0, _chart);
     _marker->setZValue(11.0);
     _marker->hide();
@@ -425,50 +535,46 @@ QColor QtChartsView::nextPaletteColor()
 }
 
 ///
-/// \brief Shows or hides the value plaque for a hovered series point.
-/// \param series Series under the cursor.
-/// \param point Hovered value in series coordinates.
-/// \param state True when the cursor enters the line, false when it leaves.
+/// \brief Shows the value plaque at a position along a series line.
+/// \param series Series the position belongs to.
+/// \param id Identifier of that series.
+/// \param statusIndex Sample whose status governs the position; -1 when unknown.
+/// \param value Position in axis coordinates: X in milliseconds since the epoch, Y the value.
+/// \param itemPos The same position in chart coordinates.
 ///
-/// The hovered point a line series reports is interpolated along the segment
-/// under the cursor, not a stored sample, so the plaque snaps to the nearest
-/// actual sample by time. That keeps the value, timestamp and status consistent,
-/// all sourced from the same sample.
+/// Value and timestamp are read off the line itself rather than snapped to a stored
+/// sample, so the plaque tracks the cursor continuously along a segment. The status
+/// still comes from a sample: the one whose reading holds up to this position.
 ///
-void QtChartsView::showCallout(QLineSeries *series, const ChartSeriesId &id,
-                               const QPointF &point, bool state)
+void QtChartsView::showCallout(QLineSeries *series, const ChartSeriesId &id, int statusIndex,
+                               const QPointF &value, const QPointF &itemPos)
 {
-    const QList<QPointF> points = series->points();
-    if (!state || !_hoverValueVisible || points.isEmpty()) {
-        hideCallout();
+    if (!_chart->plotArea().contains(itemPos)) {
+        scheduleHideCallout();
         return;
     }
 
-    int index = 0;
-    qreal bestDistance = std::numeric_limits<qreal>::max();
-    for (int i = 0; i < points.size(); ++i) {
-        const qreal distance = qAbs(points.at(i).x() - point.x());
-        if (distance < bestDistance) {
-            bestDistance = distance;
-            index = i;
-        }
-    }
+    _hideTimer->stop();
 
-    const QPointF sample = points.at(index);
     const QVector<QString> &statuses = _statuses.value(id);
-    const QString status = index < statuses.size() ? statuses.at(index) : QString();
+    const QString status = statusIndex >= 0 && statusIndex < statuses.size()
+        ? statuses.at(statusIndex)
+        : QString();
+    const QDateTime time = QDateTime::fromMSecsSinceEpoch(qint64(value.x()));
 
-    const QDateTime time = QDateTime::fromMSecsSinceEpoch(qint64(sample.x()));
     _callout->setData(series->color(), series->name(),
                       time.toString(QStringLiteral("HH:mm:ss")),
-                      QString::number(sample.y(), 'g', 6), status);
+                      QString::number(value.y(), 'g', 6), status);
 
-    const QPointF itemPos = _chart->mapToPosition(sample, series);
     const QColor border = _theme.background.isValid() ? _theme.background : QColor(Qt::white);
     _marker->setBrush(series->color());
     _marker->setPen(QPen(border, 2.0));
     _marker->setPos(itemPos);
     _marker->show();
+
+    _hoveredSeries = id;
+    _hoveredValue = value;
+    _hoveredStatusIndex = statusIndex;
 
     const QPoint globalPos =
         _view->viewport()->mapToGlobal(_view->mapFromScene(_chart->mapToScene(itemPos)));
@@ -476,16 +582,109 @@ void QtChartsView::showCallout(QLineSeries *series, const ChartSeriesId &id,
 }
 
 ///
+/// \brief Shows the value plaque wherever the cursor rides on a series line.
+/// \param viewportPos Cursor position in the view's viewport coordinates.
+///
+/// The cursor is projected onto the segments around the sample nearest in time, so the
+/// whole length of a line reacts and not just its samples. Only a narrow band along the
+/// line counts as a hover, and when several series run close together the nearest one
+/// wins.
+///
+void QtChartsView::updateHover(const QPoint &viewportPos)
+{
+    if (!_hoverValueVisible)
+        return;
+
+    const QPointF chartPos = _chart->mapFromScene(_view->mapToScene(viewportPos));
+    if (!_chart->plotArea().contains(chartPos)) {
+        scheduleHideCallout();
+        return;
+    }
+
+    QLineSeries *closestSeries = nullptr;
+    ChartSeriesId closestId;
+    QPointF closestPos;
+    int closestStatusIndex = -1;
+    qreal closestDistance = kHoverBandPx;
+
+    for (auto it = _series.cbegin(); it != _series.cend(); ++it) {
+        QLineSeries *series = it.value();
+        const QList<QPointF> points = series->points();
+        if (!series->isVisible() || points.isEmpty())
+            continue;
+
+        const int index = nearestSampleIndex(points, _chart->mapToValue(chartPos, series).x());
+        for (int start = qMax(0, index - 1); start <= index; ++start) {
+            const QPointF from = _chart->mapToPosition(points.at(start), series);
+            const QPointF to = start + 1 < points.size()
+                ? _chart->mapToPosition(points.at(start + 1), series)
+                : from;
+            const QPointF projected = closestPointOnSegment(chartPos, from, to);
+            const qreal distance = QLineF(chartPos, projected).length();
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestSeries = series;
+                closestId = it.key();
+                closestPos = projected;
+                closestStatusIndex = start;
+            }
+        }
+    }
+
+    if (!closestSeries) {
+        scheduleHideCallout();
+        return;
+    }
+    showCallout(closestSeries, closestId, closestStatusIndex,
+                _chart->mapToValue(closestPos, closestSeries), closestPos);
+}
+
+///
+/// \brief Re-anchors a visible plaque to its sample after the axes moved.
+///
+/// A live window scrolls once per tick, and zooming or panning moves both axes. The
+/// hovered instant is still the right one, so the card and its marker follow it to the
+/// new position; dropping them instead would blink the plaque away under a cursor that
+/// never moved, and nothing would bring it back until the user jiggles the mouse.
+///
+void QtChartsView::refreshCallout()
+{
+    if (!_callout->isVisible())
+        return;
+
+    QLineSeries *series = _series.value(_hoveredSeries);
+    if (!series) {
+        hideCallout();
+        return;
+    }
+    showCallout(series, _hoveredSeries, _hoveredStatusIndex, _hoveredValue,
+                _chart->mapToPosition(_hoveredValue, series));
+}
+
+///
+/// \brief Hides the value plaque unless the cursor reaches a series again first.
+///
+void QtChartsView::scheduleHideCallout()
+{
+    if (_callout->isVisible() && !_hideTimer->isActive())
+        _hideTimer->start(kHoverHideDelayMs);
+}
+
+///
 /// \brief Hides the value plaque and its on-chart point marker together.
 ///
 void QtChartsView::hideCallout()
 {
+    _hideTimer->stop();
+    _hoveredSeries.clear();
+    _hoveredValue = QPointF();
+    _hoveredStatusIndex = -1;
     _callout->hide();
     _marker->hide();
 }
 
 ///
-/// \brief Adds a line series and wires its hover handler.
+/// \brief Adds a line series and attaches it to the axes.
 /// \param id Series identifier.
 /// \param name Legend name.
 /// \param color Line colour; an invalid colour picks the next palette entry.
@@ -506,11 +705,6 @@ void QtChartsView::addSeries(const ChartSeriesId &id, const QString &name, const
     _series.insert(id, series);
 
     series->setPointsVisible(_pointsVisible);
-    QObject::connect(series, &QLineSeries::hovered, &_hoverContext,
-                     [this, series, id](const QPointF &point, bool state) {
-                         showCallout(series, id, point, state);
-                     });
-
     styleLegendMarkers();
 }
 
@@ -644,6 +838,7 @@ void QtChartsView::setPoints(const ChartSeriesId &id, const QVector<ChartPoint> 
     series->replace(replacement);
     _statuses[id] = std::move(statuses);
     _extendedSeries.remove(id);
+    refreshCallout();
 }
 
 ///
@@ -653,9 +848,88 @@ void QtChartsView::setPoints(const ChartSeriesId &id, const QVector<ChartPoint> 
 ///
 void QtChartsView::setTimeWindow(qreal startMsEpoch, qreal endMsEpoch)
 {
-    hideCallout();
     _axisX->setRange(QDateTime::fromMSecsSinceEpoch(qint64(startMsEpoch)),
                      QDateTime::fromMSecsSinceEpoch(qint64(endMsEpoch)));
+    refreshCallout();
+}
+
+///
+/// \brief Returns the visible X (time) range.
+/// \return Window bounds in milliseconds since the epoch.
+///
+ChartRange QtChartsView::timeWindow() const
+{
+    return { static_cast<qreal>(_axisX->min().toMSecsSinceEpoch()),
+             static_cast<qreal>(_axisX->max().toMSecsSinceEpoch()) };
+}
+
+///
+/// \brief Returns the visible Y (value) range.
+/// \return Value axis bounds.
+///
+ChartRange QtChartsView::valueRange() const
+{
+    return { _axisY->min(), _axisY->max() };
+}
+
+///
+/// \brief Fixes the visible Y (value) range.
+/// \param range Value axis bounds; an empty or inverted range is ignored.
+///
+void QtChartsView::setValueRange(const ChartRange &range)
+{
+    if (range.span() <= 0.0)
+        return;
+    _axisY->setRange(range.min, range.max);
+    refreshCallout();
+}
+
+///
+/// \brief Maps a screen position over the plot area to chart values.
+/// \param globalPos Position in global screen coordinates.
+/// \param value Receives the X position in milliseconds since the epoch and the Y value.
+/// \return True when the position lies inside the plot area.
+///
+/// QChart::mapToValue() needs an attached series to map against, so the axis ranges
+/// are interpolated over the plot area directly and an empty chart still answers.
+///
+bool QtChartsView::valueAt(const QPoint &globalPos, QPointF *value) const
+{
+    if (!value)
+        return false;
+
+    const QPoint viewPos = _view->viewport()->mapFromGlobal(globalPos);
+    const QPointF chartPos = _chart->mapFromScene(_view->mapToScene(viewPos));
+    const QRectF plotArea = _chart->plotArea();
+    if (plotArea.isEmpty() || !plotArea.contains(chartPos))
+        return false;
+
+    const ChartRange time = timeWindow();
+    const ChartRange values = valueRange();
+    value->setX(time.min + (chartPos.x() - plotArea.left()) / plotArea.width() * time.span());
+    value->setY(values.max - (chartPos.y() - plotArea.top()) / plotArea.height() * values.span());
+    return true;
+}
+
+///
+/// \brief Converts a cursor displacement in view pixels to chart values.
+/// \param pixels Displacement in view pixels.
+/// \param delta Receives the matching X (milliseconds) and Y displacement, following
+///        the axes rather than the screen: moving the cursor up yields a positive Y.
+/// \return True when the plot area has a usable size.
+///
+bool QtChartsView::valueDelta(const QPoint &pixels, QPointF *delta) const
+{
+    if (!delta)
+        return false;
+
+    const QRectF plotArea = _chart->plotArea();
+    if (plotArea.isEmpty())
+        return false;
+
+    delta->setX(pixels.x() / plotArea.width() * timeWindow().span());
+    delta->setY(-pixels.y() / plotArea.height() * valueRange().span());
+    return true;
 }
 
 ///
@@ -684,6 +958,7 @@ void QtChartsView::autoScaleY()
     }
     const qreal margin = (maxY - minY) * 0.05;
     _axisY->setRange(minY - margin, maxY + margin);
+    refreshCallout();
 }
 
 ///

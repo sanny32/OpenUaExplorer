@@ -9,8 +9,11 @@
 #include <QOpcUaBinaryDataEncoding>
 #include <QOpcUaDataValue>
 #include <QOpcUaEndpointDescription>
+#include <QOpcUaEnumDefinition>
 #include <QOpcUaExpandedNodeId>
 #include <QOpcUaExtensionObject>
+#include <QOpcUaGenericStructHandler>
+#include <QOpcUaGenericStructValue>
 #include <QOpcUaHistoryData>
 #include <QOpcUaHistoryEvent>
 #include <QOpcUaLocalizedText>
@@ -18,6 +21,8 @@
 #include <QOpcUaQualifiedName>
 #include <QOpcUaReadResult>
 #include <QOpcUaReferenceDescription>
+#include <QOpcUaStructureDefinition>
+#include <QOpcUaStructureField>
 #include <QOpcUaUserTokenPolicy>
 
 #include "opcua/qtopcuaconnectionmanager.h"
@@ -69,6 +74,8 @@ private slots:
     void mapsEventFields();
     void resolvesSessionByApplicationAndRecency();
     void ignoresInvalidSessionDiagnostics();
+    void detectsValuesWaitingForTypeDefinitions();
+    void decodesStructuresWithAbstractEnumerationFields();
     void coordinatesIndependentAndSupersededRequests();
     void keepsKeyedRequestsIndependent();
     void invalidatesAllRequests();
@@ -300,6 +307,63 @@ void TestQtOpcUaInternals::ignoresInvalidSessionDiagnostics()
     QCOMPARE(QtOpcUaTypeMapper::ownSessionName(QVariant::fromValue(QList<QOpcUaExtensionObject>{invalid}),
                                                QStringLiteral("urn:ours")),
              QString());
+}
+
+/// \brief Recognises the values that are worth reading again once structures decode.
+void TestQtOpcUaInternals::detectsValuesWaitingForTypeDefinitions()
+{
+    QOpcUaExtensionObject object;
+    object.setBinaryEncodedBody(QByteArrayLiteral("body"), QStringLiteral("ns=2;i=3062"));
+
+    QVERIFY(QtOpcUaTypeMapper::containsOpaqueStruct(QVariant::fromValue(object)));
+    QVERIFY(QtOpcUaTypeMapper::containsOpaqueStruct(
+        QVariant::fromValue(QList<QOpcUaExtensionObject>{object})));
+    QVERIFY(QtOpcUaTypeMapper::containsOpaqueStruct(
+        QVariant(QVariantList{42, QVariant::fromValue(object)})));
+
+    QVERIFY(!QtOpcUaTypeMapper::containsOpaqueStruct(QVariant(42)));
+    QVERIFY(!QtOpcUaTypeMapper::containsOpaqueStruct(QVariant(QVariantList{1, 2})));
+    QVERIFY(!QtOpcUaTypeMapper::containsOpaqueStruct(
+        QVariant::fromValue(QList<QOpcUaExtensionObject>{})));
+}
+
+/// \brief Decodes a structure whose field is declared as the abstract Enumeration type.
+void TestQtOpcUaInternals::decodesStructuresWithAbstractEnumerationFields()
+{
+    QOpcUaStructureField mode;
+    mode.setName(QStringLiteral("Mode"));
+    mode.setDataType(QOpcUa::namespace0Id(QOpcUa::NodeIds::Namespace0::Enumeration));
+    QOpcUaStructureField count;
+    count.setName(QStringLiteral("Count"));
+    count.setDataType(QOpcUa::namespace0Id(QOpcUa::NodeIds::Namespace0::Int32));
+
+    QOpcUaStructureDefinition definition;
+    definition.setDefaultEncodingId(QStringLiteral("ns=1;i=5001"));
+    definition.setFields({mode, count});
+
+    QOpcUaGenericStructHandler handler(nullptr);
+    QVERIFY(handler.addCustomStructureDefinition(definition, QStringLiteral("ns=1;i=3001"),
+                                                 QStringLiteral("SampleStruct")));
+    // The server's type definitions declare Enumeration abstract, which is what stops Qt.
+    QVERIFY(handler.addCustomEnumDefinition(
+        QOpcUaEnumDefinition(),
+        QOpcUa::namespace0Id(QOpcUa::NodeIds::Namespace0::Enumeration),
+        QStringLiteral("Enumeration"), QOpcUa::IsAbstract::Abstract));
+
+    QByteArray body;
+    QOpcUaBinaryDataEncoding encoder(&body);
+    QVERIFY(encoder.encode<qint32>(2));
+    QVERIFY(encoder.encode<qint32>(7));
+    QOpcUaExtensionObject object;
+    object.setBinaryEncodedBody(body, definition.defaultEncodingId());
+
+    QVERIFY(!handler.decode(object).has_value());
+
+    QtOpcUaTypeMapper::allowAbstractEnumerationFields(&handler);
+    const std::optional<QOpcUaGenericStructValue> decoded = handler.decode(object);
+    QVERIFY(decoded.has_value());
+    QCOMPARE(decoded->fields().value(QStringLiteral("Mode")).toInt(), 2);
+    QCOMPARE(decoded->fields().value(QStringLiteral("Count")).toInt(), 7);
 }
 
 /// \brief Keeps operation categories independent and settles tokens once.

@@ -8,6 +8,8 @@ is listening:
     ENDPOINT opc.tcp://127.0.0.1:<port>/ouaexp/
     NODE     ns=<idx>;s=the.answer      (writable Double = 42, stable)
     COUNTER  ns=<idx>;s=counter         (Double, changes over time)
+    QUALIFIED ns=<idx>;s=qualified.name (QualifiedName, stable)
+    RANGE    ns=<idx>;s=range           (Range structure, stable)
     METHOD   ns=<idx>;s=multiply        (Double,Double -> Double)
     OBJECTS  ns=0;i=85                   (owner object for the method)
     SERVER_CERT <path>                   (only with --certificate-auth)
@@ -213,6 +215,20 @@ def main() -> int:
     )
     counter.set_writable()
 
+    # Values of the types the client renders with rules of their own: neither a
+    # QualifiedName nor a structure converts to a string on its own.
+    objects.add_variable(
+        ua.NodeId("qualified.name", idx),
+        ua.QualifiedName("QualifiedNameValue", idx),
+        ua.Variant(ua.QualifiedName("Red", idx), ua.VariantType.QualifiedName),
+    )
+
+    objects.add_variable(
+        ua.NodeId("range", idx),
+        ua.QualifiedName("RangeValue", idx),
+        ua.Variant(ua.Range(Low=0.0, High=100.0), ua.VariantType.ExtensionObject),
+    )
+
     @uamethod
     def multiply(parent, x, y):
         return x * y
@@ -230,6 +246,8 @@ def main() -> int:
         print(f"ENDPOINT {endpoint}", flush=True)
         print(f"NODE ns={idx};s=the.answer", flush=True)
         print(f"COUNTER ns={idx};s=counter", flush=True)
+        print(f"QUALIFIED ns={idx};s=qualified.name", flush=True)
+        print(f"RANGE ns={idx};s=range", flush=True)
         print(f"METHOD ns={idx};s=multiply", flush=True)
         print("OBJECTS ns=0;i=85", flush=True)
         if server_certificate is not None:

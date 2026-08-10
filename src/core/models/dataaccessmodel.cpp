@@ -10,13 +10,12 @@
 #include <functional>
 #include <utility>
 
-#include <QApplication>
 #include <QBrush>
 #include <QColor>
 #include <QDataStream>
 #include <QDateTime>
 #include <QFont>
-#include <QFontDatabase>
+#include <QGuiApplication>
 #include <QIODevice>
 #include <QMimeData>
 #include <QPalette>
@@ -25,6 +24,7 @@
 #include "dataaccessmodel.h"
 #include "csvexporter.h"
 #include "formatters/attributeformatter.h"
+#include "valueroles.h"
 
 namespace {
 OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
@@ -35,23 +35,17 @@ OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
 }
 
 ///
-/// \brief Returns the platform fixed-pitch font scaled to the interface font size.
-/// \return Monospace font at the application point size.
+/// \brief Returns the encoded picture a value carries, for ValueRoles::ImageDataRole.
+/// \param value Raw value of the cell.
+/// \param dataTypeId DataType NodeId string backing the value.
+/// \return Picture bytes, or an invalid variant when the value is not a picture.
 ///
-/// The system fixed font carries its own point size, which does not always match
-/// the interface font, so only the family and style are taken from it.
-///
-QFont monospaceFont()
+QVariant imageData(const QVariant &value, const QString &dataTypeId)
 {
-    QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    const QFont appFont = qApp->font();
-    if (appFont.pointSizeF() > 0.0)
-        font.setPointSizeF(appFont.pointSizeF());
-    else if (appFont.pixelSize() > 0)
-        font.setPixelSize(appFont.pixelSize());
-    return font;
+    const std::optional<OpcUaFormat::ImageValueInfo> image =
+        OpcUaFormat::imageValue(value, dataTypeId);
+    return image ? QVariant(image->data) : QVariant();
 }
-
 }
 
 ///
@@ -59,7 +53,7 @@ QFont monospaceFont()
 /// \param parent Owning QObject.
 ///
 DataAccessModel::DataAccessModel(QObject *parent)
-    : QAbstractTableModel(parent)
+    : QAbstractItemModel(parent)
     , _timestampMode(AppSettings().timestampMode())
     , _defaultHighlightChanges(AppSettings().highlightValueChanges())
 {
@@ -73,6 +67,8 @@ void DataAccessModel::setItems(const QVector<DataAccessItem> &items)
 {
     beginResetModel();
     _items = items;
+    _roots.clear();
+    _roots.resize(_items.size());
     endResetModel();
 }
 
@@ -99,6 +95,7 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
         item.sourceTimestamp = details.sourceTimestamp;
         item.serverTimestamp = details.serverTimestamp;
         item.userAccessLevel = details.userAccessLevel;
+        refreshChildren(row, item.valueChangedAt);
         emit dataChanged(index(row, 0), index(row, ColCount - 1));
         return;
     }
@@ -118,6 +115,7 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
     item.serverTimestamp = details.serverTimestamp;
     item.userAccessLevel = details.userAccessLevel;
     _items.append(item);
+    _roots.emplace_back();
     endInsertRows();
 }
 
@@ -142,6 +140,7 @@ void DataAccessModel::addPending(const OpcUaNodeInfo &node)
     item.displayName = node.displayName.isEmpty() ? node.browseName : node.displayName;
     item.pending = true;
     _items.append(item);
+    _roots.emplace_back();
     endInsertRows();
 }
 
@@ -195,7 +194,9 @@ void DataAccessModel::updateValues(const QVector<OpcUaDataValue> &values)
             item.status = value.status;
             item.sourceTimestamp = value.sourceTimestamp;
             item.serverTimestamp = value.serverTimestamp;
-            emit dataChanged(index(row, ColValue), index(row, ColStatus));
+            refreshChildren(row, item.valueChangedAt);
+            // The NodeId cell carries the expander, and a value can gain or lose its elements.
+            emit dataChanged(index(row, ColNodeId), index(row, ColStatus));
             break;
         }
     }
@@ -229,6 +230,8 @@ void DataAccessModel::removeRows(const QModelIndexList &rows)
 {
     QList<int> rowNumbers;
     for (const QModelIndex &index : rows) {
+        if (index.parent().isValid())
+            continue;
         if (!rowNumbers.contains(index.row()))
             rowNumbers.append(index.row());
     }
@@ -238,6 +241,7 @@ void DataAccessModel::removeRows(const QModelIndexList &rows)
             continue;
         beginRemoveRows({}, row, row);
         _items.removeAt(row);
+        _roots.erase(_roots.begin() + row);
         endRemoveRows();
     }
 }
@@ -255,7 +259,7 @@ bool DataAccessModel::moveRows(const QModelIndexList &rows, int destinationRow)
 {
     QSet<int> moving;
     for (const QModelIndex &index : rows) {
-        if (index.row() >= 0 && index.row() < _items.size())
+        if (!index.parent().isValid() && index.row() >= 0 && index.row() < _items.size())
             moving.insert(index.row());
     }
     if (moving.isEmpty())
@@ -291,8 +295,12 @@ bool DataAccessModel::moveRows(const QModelIndexList &rows, int destinationRow)
 
     QVector<DataAccessItem> items;
     items.reserve(order.size());
-    for (int sourceRow : std::as_const(order))
+    std::vector<std::unique_ptr<ValueNode>> roots;
+    roots.reserve(order.size());
+    for (int sourceRow : std::as_const(order)) {
         items.append(_items.at(sourceRow));
+        roots.push_back(std::move(_roots[sourceRow]));
+    }
 
     QList<int> newRowOf(order.size(), 0);
     for (int row = 0; row < order.size(); ++row)
@@ -301,6 +309,12 @@ bool DataAccessModel::moveRows(const QModelIndexList &rows, int destinationRow)
     // A layout change rather than row moves: the "#" column renumbers in one go.
     emit layoutAboutToBeChanged({}, QAbstractItemModel::VerticalSortHint);
     _items = items;
+    _roots = std::move(roots);
+    // The element rows travel with their item, but they address it by row number.
+    for (int row = 0; row < int(_roots.size()); ++row) {
+        if (_roots[row])
+            _roots[row]->topRow = row;
+    }
 
     const QModelIndexList before = persistentIndexList();
     QModelIndexList after;
@@ -355,6 +369,8 @@ QMimeData *DataAccessModel::mimeData(const QModelIndexList &indexes) const
     QStringList nodeIds;
     QSet<int> seen;
     for (const QModelIndex &index : indexes) {
+        if (index.parent().isValid())
+            continue;
         if (index.row() < 0 || index.row() >= _items.size() || seen.contains(index.row()))
             continue;
         seen.insert(index.row());
@@ -440,7 +456,7 @@ QStringList DataAccessModel::nodeIds(const QModelIndexList &rows) const
         return result;
     }
     for (const QModelIndex &index : rows) {
-        if (index.row() >= 0 && index.row() < _items.size()
+        if (!index.parent().isValid() && index.row() >= 0 && index.row() < _items.size()
             && !result.contains(_items.at(index.row()).nodeId)) {
             result.append(_items.at(index.row()).nodeId);
         }
@@ -488,6 +504,16 @@ void DataAccessModel::setOffline(bool offline)
         return;
     emit dataChanged(index(0, 0), index(_items.size() - 1, ColCount - 1),
                      {Qt::ForegroundRole});
+
+    for (int row = 0; row < int(_roots.size()); ++row) {
+        const ValueNode *root = _roots[row].get();
+        if (!root || root->children.empty())
+            continue;
+        const QModelIndex parentIndex = index(row, 0);
+        emit dataChanged(index(0, 0, parentIndex),
+                         index(int(root->children.size()) - 1, ColCount - 1, parentIndex),
+                         {Qt::ForegroundRole});
+    }
 }
 
 ///
@@ -500,24 +526,282 @@ bool DataAccessModel::isOffline() const
 }
 
 ///
-/// \brief Returns the number of rows.
-/// \param parent Parent index; non-root parents have no rows.
-/// \return Item count, or 0 for non-root parents.
+/// \brief Returns the element tree of a top-level row, creating an empty root on first use.
+/// \param topRow Top-level row.
+/// \return Root node of the row, or null for an out-of-range row.
+///
+DataAccessModel::ValueNode *DataAccessModel::rootNode(int topRow) const
+{
+    if (topRow < 0 || topRow >= int(_roots.size()))
+        return nullptr;
+    if (!_roots[topRow]) {
+        _roots[topRow] = std::make_unique<ValueNode>();
+        _roots[topRow]->topRow = topRow;
+    }
+    return _roots[topRow].get();
+}
+
+///
+/// \brief Returns the element node an index addresses.
+/// \param index Index to resolve.
+/// \return Element node, or null for a top-level row or an invalid index.
+///
+DataAccessModel::ValueNode *DataAccessModel::nodeForIndex(const QModelIndex &index) const
+{
+    return index.isValid() ? static_cast<ValueNode *>(index.internalPointer()) : nullptr;
+}
+
+///
+/// \brief Returns the top-level row an element node belongs to.
+/// \param node Element node.
+/// \return Row of the monitored node owning the element.
+///
+/// Only the root of a tree tracks its row, so moving an item leaves the elements below it
+/// untouched.
+///
+int DataAccessModel::topRowOf(const ValueNode *node)
+{
+    while (node->parent)
+        node = node->parent;
+    return node->topRow;
+}
+
+///
+/// \brief Returns the item an element node belongs to.
+/// \param node Element node.
+/// \return Owning item, or an empty item when the row is gone.
+///
+DataAccessItem DataAccessModel::itemForNode(const ValueNode *node) const
+{
+    return itemAt(topRowOf(node));
+}
+
+///
+/// \brief Fills a node with the elements of its value.
+/// \param node Node to expand; its own value is used, or the item's value for a root.
+/// \param item Row the node belongs to, used to name elements the value cannot name itself.
+///
+/// Only the first MaxExpandedElements elements become rows; the rest are summarised by a
+/// trailing placeholder so a huge array still opens instantly.
+///
+void DataAccessModel::buildChildren(ValueNode *node, const DataAccessItem &item) const
+{
+    node->children.clear();
+    node->childrenBuilt = true;
+
+    const QVariant value = node->parent ? node->value : item.typedValue;
+    int total = 0;
+    const QVector<OpcUaFormat::ValueElement> elements =
+        OpcUaFormat::valueElements(value, MaxExpandedElements, &total);
+
+    node->children.reserve(elements.size() + 1);
+    for (const OpcUaFormat::ValueElement &element : elements) {
+        auto child = std::make_unique<ValueNode>();
+        child->label = element.label;
+        child->text = element.text;
+        child->value = element.value;
+        child->expandable = element.hasChildren;
+        child->typeName = element.typeName.isEmpty()
+            ? (element.hasChildren
+                   ? QStringLiteral("%1[%2]").arg(item.dataType).arg(element.value.toList().size())
+                   : item.dataType)
+            : element.typeName;
+        child->row = int(node->children.size());
+        child->parent = node;
+        node->children.push_back(std::move(child));
+    }
+
+    if (total > elements.size()) {
+        auto more = std::make_unique<ValueNode>();
+        more->label = tr("… %n more", nullptr, total - elements.size());
+        more->placeholder = true;
+        more->row = int(node->children.size());
+        more->parent = node;
+        node->children.push_back(std::move(more));
+    }
+}
+
+///
+/// \brief Applies a new value to the elements of an expanded row.
+/// \param topRow Top-level row whose value changed.
+/// \param changedAt Time to stamp on the elements that changed.
+///
+/// Rows that were never expanded keep no elements to refresh: they are built from the current
+/// value the moment they are opened.
+///
+void DataAccessModel::refreshChildren(int topRow, qint64 changedAt)
+{
+    if (topRow < 0 || topRow >= int(_roots.size()) || !_roots[topRow])
+        return;
+    ValueNode *root = _roots[topRow].get();
+    if (!root->childrenBuilt)
+        return;
+
+    const DataAccessItem &item = _items.at(topRow);
+    updateNode(root, index(topRow, 0), item.typedValue, item, changedAt);
+}
+
+///
+/// \brief Refreshes one node's elements in place, stamping the ones whose text changed.
+/// \param node Node to refresh.
+/// \param nodeIndex Index of the node, used as the parent of its element rows.
+/// \param value New value of the node.
+/// \param item Row the node belongs to.
+/// \param changedAt Time to stamp on the elements that changed.
+///
+/// An array that keeps its length keeps its rows, so the view flashes the elements that
+/// really moved instead of rebuilding the whole block on every notification.
+///
+void DataAccessModel::updateNode(ValueNode *node, const QModelIndex &nodeIndex,
+                                 const QVariant &value, const DataAccessItem &item,
+                                 qint64 changedAt)
+{
+    node->value = value;
+    if (!node->childrenBuilt)
+        return;
+
+    int total = 0;
+    const QVector<OpcUaFormat::ValueElement> elements =
+        OpcUaFormat::valueElements(value, MaxExpandedElements, &total);
+    const int expected = elements.size() + (total > elements.size() ? 1 : 0);
+
+    if (expected != int(node->children.size())) {
+        // The elements stay "built" while empty: a row count of zero between the two signals
+        // is the truth, and rebuilding them early would contradict the insert about to follow.
+        if (!node->children.empty()) {
+            beginRemoveRows(nodeIndex, 0, int(node->children.size()) - 1);
+            node->children.clear();
+            endRemoveRows();
+        }
+        if (expected > 0) {
+            beginInsertRows(nodeIndex, 0, expected - 1);
+            buildChildren(node, item);
+            endInsertRows();
+        }
+        return;
+    }
+
+    for (int row = 0; row < elements.size(); ++row) {
+        ValueNode *child = node->children[row].get();
+        const OpcUaFormat::ValueElement &element = elements.at(row);
+        if (child->text != element.text)
+            child->changedAt = changedAt;
+        child->text = element.text;
+        child->expandable = element.hasChildren;
+        if (child->childrenBuilt)
+            updateNode(child, index(row, 0, nodeIndex), element.value, item, changedAt);
+        else
+            child->value = element.value;
+    }
+
+    if (!node->children.empty()) {
+        emit dataChanged(index(0, ColNodeId, nodeIndex),
+                         index(int(node->children.size()) - 1, ColDataType, nodeIndex));
+    }
+}
+
+///
+/// \brief Returns the index of a row, either a monitored node or an element of one.
+/// \param row Row within the parent.
+/// \param column Model column.
+/// \param parent Parent index; an invalid parent addresses the monitored nodes.
+/// \return Model index, or an invalid index when the row does not exist.
+///
+QModelIndex DataAccessModel::index(int row, int column, const QModelIndex &parent) const
+{
+    if (row < 0 || column < 0 || column >= ColCount)
+        return QModelIndex();
+
+    if (!parent.isValid()) {
+        return row < _items.size() ? createIndex(row, column, nullptr) : QModelIndex();
+    }
+
+    ValueNode *parentNode = nodeForIndex(parent);
+    if (!parentNode) {
+        if (parent.row() >= _items.size())
+            return QModelIndex();
+        parentNode = rootNode(parent.row());
+        if (!parentNode)
+            return QModelIndex();
+    }
+    if (!parentNode->childrenBuilt)
+        buildChildren(parentNode, itemForNode(parentNode));
+
+    if (row >= int(parentNode->children.size()))
+        return QModelIndex();
+    return createIndex(row, column, parentNode->children[row].get());
+}
+
+///
+/// \brief Returns the parent index of an element row.
+/// \param child Child index.
+/// \return Parent index, or an invalid index for monitored nodes.
+///
+QModelIndex DataAccessModel::parent(const QModelIndex &child) const
+{
+    ValueNode *node = nodeForIndex(child);
+    if (!node || !node->parent)
+        return QModelIndex();
+
+    ValueNode *parentNode = node->parent;
+    if (!parentNode->parent)
+        return createIndex(parentNode->topRow, 0, nullptr);
+    return createIndex(parentNode->row, 0, parentNode);
+}
+
+///
+/// \brief Reports whether a row expands, without building its elements.
+/// \param parent Row to query.
+/// \return True when the row has child rows.
+///
+bool DataAccessModel::hasChildren(const QModelIndex &parent) const
+{
+    if (!parent.isValid())
+        return !_items.isEmpty();
+    if (ValueNode *node = nodeForIndex(parent))
+        return node->expandable;
+    return parent.row() < _items.size()
+        && OpcUaFormat::hasValueElements(_items.at(parent.row()).typedValue);
+}
+
+///
+/// \brief Returns the number of rows, building the elements of an expanded row on demand.
+/// \param parent Parent index.
+/// \return Item count for the root, or the element count of a composite value.
 ///
 int DataAccessModel::rowCount(const QModelIndex &parent) const
 {
-    if (parent.isValid()) return 0;
-    return _items.size();
+    if (!parent.isValid())
+        return _items.size();
+    if (parent.column() > 0)
+        return 0;
+
+    ValueNode *node = nodeForIndex(parent);
+    if (!node) {
+        if (parent.row() >= _items.size()
+            || !OpcUaFormat::hasValueElements(_items.at(parent.row()).typedValue)) {
+            return 0;
+        }
+        node = rootNode(parent.row());
+        if (!node)
+            return 0;
+    } else if (!node->expandable) {
+        return 0;
+    }
+
+    if (!node->childrenBuilt)
+        buildChildren(node, itemForNode(node));
+    return int(node->children.size());
 }
 
 ///
 /// \brief Returns the fixed column count.
-/// \param parent Parent index; non-root parents have no columns.
-/// \return Column count, or 0 for non-root parents.
+/// \param parent Parent index.
+/// \return Column count.
 ///
 int DataAccessModel::columnCount(const QModelIndex &parent) const
 {
-    if (parent.isValid()) return 0;
+    Q_UNUSED(parent)
     return ColCount;
 }
 
@@ -531,7 +815,7 @@ int DataAccessModel::columnCount(const QModelIndex &parent) const
 QVariant DataAccessModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole)
-        return QAbstractTableModel::headerData(section, orientation, role);
+        return QAbstractItemModel::headerData(section, orientation, role);
 
     switch (section) {
     case ColNumber:       return QStringLiteral("#");
@@ -561,9 +845,13 @@ Qt::ItemFlags DataAccessModel::flags(const QModelIndex &index) const
 {
     // The root accepts drops so rows can be dragged past the last one.
     if (!index.isValid())
-        return QAbstractTableModel::flags(index) | Qt::ItemIsDropEnabled;
+        return QAbstractItemModel::flags(index) | Qt::ItemIsDropEnabled;
 
-    Qt::ItemFlags f = QAbstractTableModel::flags(index) | Qt::ItemIsDragEnabled;
+    // An element belongs to its row: it is read here, and acted on through its node.
+    if (nodeForIndex(index))
+        return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+
+    Qt::ItemFlags f = QAbstractItemModel::flags(index) | Qt::ItemIsDragEnabled;
     if (_offline)
         return f;
     if (index.row() >= 0 && index.row() < _items.size() && _items.at(index.row()).pending)
@@ -583,6 +871,7 @@ Qt::ItemFlags DataAccessModel::flags(const QModelIndex &index) const
 bool DataAccessModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (role != Qt::EditRole || !index.isValid() || _offline) return false;
+    if (index.parent().isValid()) return false;
     if (index.column() != ColSubscription) return false;
     if (index.row() < 0 || index.row() >= _items.size()) return false;
 
@@ -597,9 +886,14 @@ bool DataAccessModel::setData(const QModelIndex &index, const QVariant &value, i
 /// \param role Requested data role.
 /// \return Value for the role, or an invalid variant.
 ///
+/// Besides the model's own roles the value column serves ValueRoles::ImageDataRole, which
+/// hands the encoded picture of an image-typed node to the delegate and its viewer.
+///
 QVariant DataAccessModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid()) return QVariant();
+    if (const ValueNode *node = nodeForIndex(index))
+        return nodeData(node, index.column(), role);
     if (index.row() < 0 || index.row() >= _items.size()) return QVariant();
 
     const DataAccessItem &item = _items.at(index.row());
@@ -610,7 +904,15 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
         case ColNumber:       return index.row() + 1;
         case ColNodeId:       return item.nodeId;
         case ColDisplayName:  return item.displayName;
-        case ColValue:        return item.value;
+        // The elements carry the values once the row is open; the cell names the array
+        // instead. A scalar falls through the summary to its own display text unchanged.
+        // Rows seeded with formatted text alone keep it, having no value to summarise.
+        case ColValue:        return item.typedValue.isValid()
+                                     ? OpcUaFormat::valueSummary(
+                                           item.typedValue,
+                                           static_cast<QOpcUa::Types>(item.valueType),
+                                           item.dataTypeId)
+                                     : item.value;
         case ColDataType:     return item.dataType;
         case ColTimestamp:    return OpcUaFormat::isoTimestampWithZone(item.sourceTimestamp,
                                                                        toFormatMode(_timestampMode));
@@ -633,10 +935,9 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     if (role == Qt::EditRole && col == ColSubscription)
         return item.subscriptionName;
 
-    // Values line up across rows only in a fixed-pitch font; pending rows stay italic either way.
-    if (role == Qt::FontRole && (item.pending || col == ColValue)) {
-        QFont font = col == ColValue ? monospaceFont() : qApp->font();
-        font.setItalic(item.pending);
+    if (role == Qt::FontRole && item.pending) {
+        QFont font = qApp->font();
+        font.setItalic(true);
         return font;
     }
 
@@ -657,7 +958,58 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
                                       ? 0.0
                                       : item.revisedPublishingInterval;
     case HighlightChangesRole: return resolveHighlight(item);
+    case ValueRoles::ImageDataRole:
+        return col == ColValue ? imageData(item.typedValue, item.dataTypeId) : QVariant();
     default: break;
+    }
+
+    return QVariant();
+}
+
+///
+/// \brief Returns the cell data of an element row.
+/// \param node Element the row shows.
+/// \param column Model column.
+/// \param role Requested data role.
+/// \return Value for the role, or an invalid variant.
+///
+/// An element belongs to its monitored node: quality, publishing interval and highlight
+/// preference are the item's, while the change stamp is the element's own so only the
+/// elements that moved are flashed.
+///
+QVariant DataAccessModel::nodeData(const ValueNode *node, int column, int role) const
+{
+    const DataAccessItem item = itemForNode(node);
+
+    switch (role) {
+    case Qt::DisplayRole:
+        switch (column) {
+        case ColNodeId:   return node->label;
+        case ColValue:    return node->placeholder ? QString() : node->text;
+        case ColDataType: return node->placeholder ? QString() : node->typeName;
+        default:          return QVariant();
+        }
+    case Qt::TextAlignmentRole:
+        return QVariant(columnAlignment(column));
+    case Qt::ForegroundRole:
+        if (_offline || node->placeholder || item.subscriptionName.isEmpty())
+            return QBrush(qApp->palette().color(QPalette::Disabled, QPalette::Text));
+        break;
+    case ValueChangedAtRole:
+        return node->changedAt;
+    case StatusSeverityRole:
+        return int(OpcUaFormat::statusSeverity(item.status));
+    case ExpectedIntervalRole:
+        return item.subscriptionName.isEmpty() ? 0.0 : item.revisedPublishingInterval;
+    case HighlightChangesRole:
+        return !node->placeholder && resolveHighlight(item);
+    // An element of an array of pictures is a picture of the array's own DataType.
+    case ValueRoles::ImageDataRole:
+        return column == ColValue && !node->placeholder
+            ? imageData(node->value, item.dataTypeId)
+            : QVariant();
+    default:
+        break;
     }
 
     return QVariant();
@@ -692,7 +1044,7 @@ void DataAccessModel::setColumnAlignment(int column, Qt::Alignment alignment)
 void DataAccessModel::setHighlightMode(const QModelIndexList &rows, HighlightMode mode)
 {
     for (const QModelIndex &row : rows) {
-        if (row.row() < 0 || row.row() >= _items.size())
+        if (row.parent().isValid() || row.row() < 0 || row.row() >= _items.size())
             continue;
         DataAccessItem &item = _items[row.row()];
         if (item.highlight == mode)

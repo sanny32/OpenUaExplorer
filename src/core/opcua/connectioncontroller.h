@@ -208,7 +208,7 @@ private:
     void storePendingCredentials();
     void startPendingConnection();
     void discoverPendingProfile();
-    void forgetProfile(const QString &id);
+    void forgetProfile(const ConnectionProfile &profile);
     void touchFavorite(const ConnectionProfile &profile);
 
     OpcUaBackend *_backend;

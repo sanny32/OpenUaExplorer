@@ -54,6 +54,14 @@ public:
     static QString factoryName(int id);
 
     ///
+    /// \brief Maps a stored subscription name onto the name of the current interface language.
+    /// \param name Subscription name read from settings or a saved session.
+    /// \return Current factory name when the stored one names a built-in subscription in any
+    ///         shipped language, otherwise the name unchanged.
+    ///
+    static QString canonicalName(const QString &name);
+
+    ///
     /// \brief Returns the current subscriptions as a snapshot.
     /// \return Subscriptions in row order.
     ///
@@ -141,6 +149,7 @@ private:
     bool hasRemovableSubscriptions() const;
     int  nextSubscriptionId() const;
     void emitSubscriptionsChanged();
+    void retranslateBuiltinNames();
 
     Ui::SubscriptionsWidget *ui;
     SubscriptionsModel      *_subscriptionsModel;

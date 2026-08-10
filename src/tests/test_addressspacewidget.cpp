@@ -8,12 +8,15 @@
 
 #include <QAbstractItemModel>
 #include <QColor>
+#include <QCoreApplication>
+#include <QEvent>
 #include <QIcon>
 #include <QImage>
 #include <QLineEdit>
 #include <QSignalSpy>
 #include <QTableView>
 #include <QTest>
+#include <QTranslator>
 #include <QTreeView>
 
 #include "widgets/addressspacewidget.h"
@@ -38,6 +41,9 @@ private slots:
     void exhaustedSearchReportsNoMoreMatches();
     void offlineKeepsTheBrowsedTreeAndStopsRequests();
     void reconnectRestoresTheHeldExpansion();
+    void restoreBrowsesSiblingBranchesOneAtATime();
+    void restoreContinuesPastAFailedBranch();
+    void languageChangeRelabelsTheNodeInfoRows();
 };
 
 namespace {
@@ -97,6 +103,42 @@ bool isGreyscale(const QIcon &icon)
         }
     }
     return true;
+}
+
+///
+/// \brief Supplies a translation for the node-info label column.
+///
+class NodeInfoTranslator : public QTranslator
+{
+public:
+    ///
+    /// \brief Translates only the node-info NodeId label.
+    /// \param context Translation context.
+    /// \param sourceText Source text.
+    /// \param disambiguation Optional disambiguation text.
+    /// \param n Numerus value.
+    /// \return Test translation for Node Id, or an empty string for other messages.
+    ///
+    QString translate(const char *context, const char *sourceText,
+                      const char *disambiguation = nullptr, int n = -1) const override;
+};
+
+///
+/// \brief Translates only the node-info NodeId label.
+/// \param context Translation context.
+/// \param sourceText Source text.
+/// \param disambiguation Optional disambiguation text.
+/// \param n Numerus value.
+/// \return Test translation for Node Id, or an empty string for other messages.
+///
+QString NodeInfoTranslator::translate(const char *context, const char *sourceText,
+                                      const char *disambiguation, int n) const
+{
+    Q_UNUSED(disambiguation)
+    Q_UNUSED(n)
+    if (qstrcmp(context, "AddressSpaceWidget") == 0 && qstrcmp(sourceText, "Node Id") == 0)
+        return QStringLiteral("Localized Node Id");
+    return {};
 }
 
 } // namespace
@@ -480,6 +522,127 @@ void TestAddressSpaceWidget::reconnectRestoresTheHeldExpansion()
 
     QCOMPARE(widget.expandedNodeIds(), held);
     QCOMPARE(widget.selectedNode().nodeId, selected);
+}
+
+///
+/// \brief Restoring two expanded sibling branches browses them one after another.
+///
+/// Two browses in flight at once cancel each other, so the second branch may only be
+/// requested once the first one has reported back.
+///
+void TestAddressSpaceWidget::restoreBrowsesSiblingBranchesOneAtATime()
+{
+    AddressSpaceWidget widget;
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("addressTree"));
+    QVERIFY(tree);
+
+    const OpcUaNodeInfo root = makeNode(QStringLiteral("ns=0;i=84"),
+                                        QStringLiteral("Root"), QString(), true);
+    const OpcUaNodeInfo alpha = makeNode(QStringLiteral("ns=2;s=Alpha"),
+                                         QStringLiteral("Alpha"),
+                                         QStringLiteral("ns=0;i=35"), true);
+    const OpcUaNodeInfo beta = makeNode(QStringLiteral("ns=2;s=Beta"),
+                                        QStringLiteral("Beta"),
+                                        QStringLiteral("ns=0;i=35"), true);
+    const OpcUaNodeInfo alphaLeaf = makeNode(QStringLiteral("ns=2;s=AlphaLeaf"),
+                                             QStringLiteral("AlphaLeaf"),
+                                             QStringLiteral("ns=0;i=47"));
+    const OpcUaNodeInfo betaLeaf = makeNode(QStringLiteral("ns=2;s=BetaLeaf"),
+                                            QStringLiteral("BetaLeaf"),
+                                            QStringLiteral("ns=0;i=47"));
+
+    widget.setRootNode(root);
+    widget.setBrowseChildren(root.nodeId, {alpha, beta}, QString());
+    widget.setBrowseChildren(alpha.nodeId, {alphaLeaf}, QString());
+    widget.setBrowseChildren(beta.nodeId, {betaLeaf}, QString());
+    const QModelIndex rootIndex = tree->model()->index(0, 0);
+    tree->expand(tree->model()->index(0, 0, rootIndex));
+    tree->expand(tree->model()->index(1, 0, rootIndex));
+
+    const QStringList held = widget.expandedNodeIds();
+    QCOMPARE(held, QStringList({root.nodeId, alpha.nodeId, beta.nodeId}));
+
+    widget.setRootNode(root);
+    widget.restoreExpansion(held, QString());
+
+    QSignalSpy browseSpy(&widget, &AddressSpaceWidget::browseRequested);
+    widget.setBrowseChildren(root.nodeId, {alpha, beta}, QString());
+    QCOMPARE(browseSpy.size(), 1);
+    QCOMPARE(browseSpy.takeFirst().at(0).toString(), alpha.nodeId);
+
+    widget.setBrowseChildren(alpha.nodeId, {alphaLeaf}, QString());
+    QCOMPARE(browseSpy.size(), 1);
+    QCOMPARE(browseSpy.takeFirst().at(0).toString(), beta.nodeId);
+
+    widget.setBrowseChildren(beta.nodeId, {betaLeaf}, QString());
+    QCOMPARE(widget.expandedNodeIds(), held);
+}
+
+///
+/// \brief A branch whose browse fails still lets the remaining branches be restored.
+///
+void TestAddressSpaceWidget::restoreContinuesPastAFailedBranch()
+{
+    AddressSpaceWidget widget;
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("addressTree"));
+    QVERIFY(tree);
+
+    const OpcUaNodeInfo root = makeNode(QStringLiteral("ns=0;i=84"),
+                                        QStringLiteral("Root"), QString(), true);
+    const OpcUaNodeInfo alpha = makeNode(QStringLiteral("ns=2;s=Alpha"),
+                                         QStringLiteral("Alpha"),
+                                         QStringLiteral("ns=0;i=35"), true);
+    const OpcUaNodeInfo beta = makeNode(QStringLiteral("ns=2;s=Beta"),
+                                        QStringLiteral("Beta"),
+                                        QStringLiteral("ns=0;i=35"), true);
+    const OpcUaNodeInfo betaLeaf = makeNode(QStringLiteral("ns=2;s=BetaLeaf"),
+                                            QStringLiteral("BetaLeaf"),
+                                            QStringLiteral("ns=0;i=47"));
+
+    widget.setRootNode(root);
+    widget.restoreExpansion({root.nodeId, alpha.nodeId, beta.nodeId}, QString());
+
+    QSignalSpy browseSpy(&widget, &AddressSpaceWidget::browseRequested);
+    widget.setBrowseChildren(root.nodeId, {alpha, beta}, QString());
+    QCOMPARE(browseSpy.size(), 1);
+    QCOMPARE(browseSpy.takeFirst().at(0).toString(), alpha.nodeId);
+
+    widget.setBrowseChildren(alpha.nodeId, {}, QStringLiteral("Browse failed."));
+    QCOMPARE(browseSpy.size(), 1);
+    QCOMPARE(browseSpy.takeFirst().at(0).toString(), beta.nodeId);
+
+    widget.setBrowseChildren(beta.nodeId, {betaLeaf}, QString());
+    QVERIFY(widget.expandedNodeIds().contains(beta.nodeId));
+}
+
+///
+/// \brief Switching the language relabels the already shown node-info rows.
+///
+void TestAddressSpaceWidget::languageChangeRelabelsTheNodeInfoRows()
+{
+    AddressSpaceWidget widget;
+    auto *nodeInfo = widget.findChild<QTableView *>(QStringLiteral("nodeInfoTable"));
+    QVERIFY(nodeInfo);
+
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=3;i=1004");
+    details.displayName = QStringLiteral("Sinusoid");
+    widget.setNodeDetails(details);
+
+    QAbstractItemModel *model = nodeInfo->model();
+    QCOMPARE(model->data(model->index(0, 0)).toString(), QStringLiteral("Node Id"));
+    QCOMPARE(model->data(model->index(0, 1)).toString(), details.nodeId);
+
+    NodeInfoTranslator translator;
+    QCoreApplication::installTranslator(&translator);
+    QEvent languageChange(QEvent::LanguageChange);
+    QCoreApplication::sendEvent(&widget, &languageChange);
+    const QString label = model->data(model->index(0, 0)).toString();
+    const QString value = model->data(model->index(0, 1)).toString();
+    QCoreApplication::removeTranslator(&translator);
+
+    QCOMPARE(label, QStringLiteral("Localized Node Id"));
+    QCOMPARE(value, details.nodeId);
 }
 
 QTEST_MAIN(TestAddressSpaceWidget)

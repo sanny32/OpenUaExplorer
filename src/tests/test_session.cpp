@@ -23,7 +23,30 @@ private slots:
     void roundTripPreservesWorkspace();
     void fileOmitsSecrets();
     void loadRejectsMissingConnection();
+    void loadFallsBackToAnonymousForUnknownAuthentication();
+    void loadClampsOutOfRangeSecurityMode();
+    void loadRejectsNewerSchemaVersion();
+
+private:
+    static QString writeSessionFile(const QTemporaryDir &directory, const QByteArray &json);
 };
+
+///
+/// \brief Writes a handcrafted session document so malformed input can be exercised.
+/// \param directory Directory holding the file.
+/// \param json Document contents.
+/// \return Path of the written file, or an empty string on failure.
+///
+QString TestSession::writeSessionFile(const QTemporaryDir &directory, const QByteArray &json)
+{
+    const QString path = directory.filePath(QStringLiteral("crafted.ouas"));
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return {};
+    file.write(json);
+    file.close();
+    return path;
+}
 
 ///
 /// \brief Builds a representative session for the tests.
@@ -160,6 +183,74 @@ void TestSession::loadRejectsMissingConnection()
     QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Text));
     file.write("{\"schemaVersion\":1}");
     file.close();
+
+    SessionData loaded;
+    QString error;
+    QVERIFY(!SessionStore::load(path, loaded, &error));
+    QVERIFY(!error.isEmpty());
+}
+
+///
+/// \brief An authentication value outside the enumeration loads as anonymous.
+///
+void TestSession::loadFallsBackToAnonymousForUnknownAuthentication()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = writeSessionFile(dir,
+        "{\"schemaVersion\":3,\"connection\":{"
+        "\"id\":\"profile-1\","
+        "\"endpointUrl\":\"opc.tcp://demo:4840\","
+        "\"authentication\":42}}");
+    QVERIFY(!path.isEmpty());
+
+    SessionData loaded;
+    QString error;
+    QVERIFY2(SessionStore::load(path, loaded, &error), qPrintable(error));
+    QCOMPARE(loaded.profile.authentication, ConnectionProfile::Authentication::Anonymous);
+}
+
+///
+/// \brief A security mode outside MessageSecurityMode is clamped into the valid range.
+///
+void TestSession::loadClampsOutOfRangeSecurityMode()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = writeSessionFile(dir,
+        "{\"schemaVersion\":3,\"connection\":{"
+        "\"id\":\"profile-1\","
+        "\"endpointUrl\":\"opc.tcp://demo:4840\","
+        "\"securityMode\":99}}");
+    QVERIFY(!path.isEmpty());
+
+    SessionData loaded;
+    QString error;
+    QVERIFY2(SessionStore::load(path, loaded, &error), qPrintable(error));
+    QCOMPARE(loaded.profile.securityMode, 3);
+
+    const QString lowPath = writeSessionFile(dir,
+        "{\"schemaVersion\":3,\"connection\":{"
+        "\"id\":\"profile-1\","
+        "\"endpointUrl\":\"opc.tcp://demo:4840\","
+        "\"securityMode\":0}}");
+    QVERIFY(!lowPath.isEmpty());
+    QVERIFY2(SessionStore::load(lowPath, loaded, &error), qPrintable(error));
+    QCOMPARE(loaded.profile.securityMode, 1);
+}
+
+///
+/// \brief A file written by a newer schema is refused rather than half-understood.
+///
+void TestSession::loadRejectsNewerSchemaVersion()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = writeSessionFile(dir,
+        "{\"schemaVersion\":999,\"connection\":{"
+        "\"id\":\"profile-1\","
+        "\"endpointUrl\":\"opc.tcp://demo:4840\"}}");
+    QVERIFY(!path.isEmpty());
 
     SessionData loaded;
     QString error;

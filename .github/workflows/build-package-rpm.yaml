@@ -125,6 +125,8 @@ jobs:
             "$PWD/build/_deps/qtopcua-install" \
             "$OPENSSL_ROOT_DIR"
 
+          DESTDIR="$PWD/pkgroot" cmake --install build --prefix /usr --component licenses
+
           cp -r .github/linux/usr/. pkgroot/usr/
 
           metainfo=pkgroot/usr/share/metainfo/io.github.sanny32.OpenUaExplorer.metainfo.xml
@@ -134,8 +136,6 @@ jobs:
               .github/linux/metainfo/io.github.sanny32.OpenUaExplorer.metainfo.xml.in \
               > "$metainfo"
           chmod 0644 "$metainfo"
-
-          install -D -m 0644 LICENSE pkgroot/usr/share/licenses/ouaexp/LICENSE
 
           find pkgroot -type d -exec chmod 0755 {} +
 
@@ -206,6 +206,13 @@ jobs:
         run: |
           rpm -qpi "${{ steps.package.outputs.name }}"
           rpm -qpl "${{ steps.package.outputs.name }}"
+          for file in LICENSE THIRD_PARTY_NOTICES.md \
+                      third-party/GPL-3.0-only.txt \
+                      third-party/LGPL-3.0-only.txt \
+                      third-party/Apache-2.0.txt; do
+            rpm -qpl "${{ steps.package.outputs.name }}" \
+              | grep -Fx "/usr/share/licenses/ouaexp/$file"
+          done
           echo '--- provides ---'
           rpm -qp --provides "${{ steps.package.outputs.name }}"
           echo '--- requires ---'

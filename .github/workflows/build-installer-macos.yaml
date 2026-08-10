@@ -79,6 +79,13 @@ jobs:
             echo "::error::The install did not produce $app"
             exit 1
           fi
+          for file in LICENSE THIRD_PARTY_NOTICES.md \
+                      third-party/GPL-3.0-only.txt \
+                      third-party/LGPL-3.0-only.txt \
+                      third-party/Apache-2.0.txt \
+                      third-party/MIT-Qlementine.txt; do
+            test -f "$app/Contents/Resources/licenses/$file"
+          done
           codesign --verify --deep --strict --verbose=2 "$app"
 
       # create-dmg trips on stray .DS_Store files and left-over volumes.

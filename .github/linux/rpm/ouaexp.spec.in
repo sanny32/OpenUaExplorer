@@ -23,7 +23,7 @@ Version:        @VERSION@
 Release:        @RELEASE@
 Summary:        OPC UA client for exploring and monitoring OPC UA servers
 
-License:        MIT
+License:        MIT AND ISC AND BSD-3-Clause AND Apache-2.0 AND LGPL-3.0-only AND GPL-3.0-only AND MPL-2.0 AND CC0-1.0 AND CC-BY-SA-4.0
 URL:            https://github.com/sanny32/OpenUaExplorer
 
 # The workflow builds an x86_64 bundle.
@@ -72,8 +72,7 @@ cp -a %{_stagedir}/. %{buildroot}/
 # and appstream, so this package needs no scriptlets of its own.
 
 %files
-%dir %{_datadir}/licenses/%{name}
-%license %{_datadir}/licenses/%{name}/LICENSE
+%license %{_datadir}/licenses/%{name}/
 %{_bindir}/%{appname}
 %{appdir}/
 %{_datadir}/applications/io.github.sanny32.OpenUaExplorer.desktop

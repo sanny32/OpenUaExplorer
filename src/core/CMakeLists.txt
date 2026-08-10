@@ -13,10 +13,12 @@ add_library(ouaexp_core STATIC
     formatters/attributeformatter.cpp
     formatters/attributeformatter.h
     formatters/bitmaskformatter.cpp
+    formatters/builtintypeformatter.cpp
     formatters/datetimeformatter.cpp
     formatters/datetimeformatter.h
     formatters/durationformatter.cpp
     formatters/durationformatter.h
+    formatters/imageformatter.cpp
     formatters/nodeidformatter.cpp
     formatters/scalarformatter.cpp
     formatters/valueformatter.cpp
@@ -98,6 +100,7 @@ add_library(ouaexp_core STATIC
     models/subscriptionsmodel.h
     models/trendseries.cpp
     models/trendseries.h
+    models/valueroles.h
 
     session/recentsessionstore.cpp
     session/recentsessionstore.h
@@ -113,7 +116,6 @@ target_include_directories(ouaexp_core PUBLIC
 target_link_libraries(ouaexp_core PUBLIC
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Gui
-    Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::OpcUa
 )

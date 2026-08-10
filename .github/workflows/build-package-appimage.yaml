@@ -132,6 +132,12 @@ jobs:
           for size in 16 24 32 48 64 128 256; do
             test -f "AppDir/usr/share/icons/hicolor/${size}x${size}/mimetypes/application-x-ouaexp-session.png"
           done
+          for file in LICENSE THIRD_PARTY_NOTICES.md \
+                      third-party/GPL-3.0-only.txt \
+                      third-party/LGPL-3.0-only.txt \
+                      third-party/Apache-2.0.txt; do
+            test -f "AppDir/usr/share/licenses/ouaexp/$file"
+          done
 
       - name: Set up linuxdeployqt
         uses: ./.github/actions/setup-linuxdeployqt
@@ -162,6 +168,7 @@ jobs:
         run: |
           ls -l "${{ steps.package.outputs.name }}"
           ./"${{ steps.package.outputs.name }}" --appimage-extract > /dev/null
+          test -f squashfs-root/usr/share/licenses/ouaexp/THIRD_PARTY_NOTICES.md
 
           if find squashfs-root/usr/lib -maxdepth 1 -name 'libsystemd.so*' \
               -print -quit | grep -q .; then

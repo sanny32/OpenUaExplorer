@@ -1,11 +1,21 @@
 option(OUAEXP_ENABLE_PCH "Use a shared precompiled header for the ouaexp libraries" ON)
 
 set(OUAEXP_PCH_HEADER "${CMAKE_CURRENT_LIST_DIR}/ouaexp_pch.h")
+set(OUAEXP_WIDGETS_PCH_HEADER "${CMAKE_CURRENT_LIST_DIR}/ouaexp_widgets_pch.h")
 set(OUAEXP_TEST_PCH_HEADER "${CMAKE_CURRENT_LIST_DIR}/ouaexp_test_pch.h")
 
 function(ouaexp_apply_pch target)
     if(OUAEXP_ENABLE_PCH)
         target_precompile_headers(${target} PRIVATE "${OUAEXP_PCH_HEADER}")
+    endif()
+endfunction()
+
+# For targets that link Qt Widgets. ouaexp_apply_pch() is the one to use
+# elsewhere: its header stays free of widget includes so that a Gui-only target
+# such as ouaexp_core is not forced to compile against Qt Widgets.
+function(ouaexp_apply_widgets_pch target)
+    if(OUAEXP_ENABLE_PCH)
+        target_precompile_headers(${target} PRIVATE "${OUAEXP_WIDGETS_PCH_HEADER}")
     endif()
 endfunction()
 

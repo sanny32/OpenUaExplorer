@@ -11,6 +11,8 @@
 #include <memory>
 
 #include <QHash>
+#include <QList>
+#include <QPoint>
 #include <QString>
 #include <QVector>
 #include <QWidget>
@@ -29,6 +31,7 @@ class TrendGraphWidget;
 }
 
 class IChartView;
+struct ChartRange;
 class QTimer;
 class QMimeData;
 class QContextMenuEvent;
@@ -267,6 +270,15 @@ protected:
 private:
     bool acceptsNodeDrag(const QMimeData *mimeData) const;
     bool dropNode(const QMimeData *mimeData);
+    bool zoomChart(const QPoint &globalPos, int angleDelta, bool valueAxis);
+    void zoomTimeWindow(const QPoint &globalPos, qreal factor);
+    void zoomValueRange(const QPoint &globalPos, qreal factor);
+    bool startPan(const QPoint &globalPos);
+    void panChart(const QPoint &globalPos);
+    void endPan();
+    QList<QWidget *> chartCursorTargets() const;
+    void applyCustomWindow(const ChartRange &window);
+    void refreshZoomedHistory();
     void showSeriesContextMenu(const QPoint &globalPos);
     void openSettings();
     void applyDisplaySettings();
@@ -296,6 +308,7 @@ private:
     void applyTheme();
     void refeedSeries(const TrendSeries &series);
     qreal toChartX(qreal epochMs) const;
+    qreal fromChartX(qreal chartX) const;
     QColor paletteColor(int index) const;
 
     Ui::TrendGraphWidget *ui;
@@ -304,8 +317,12 @@ private:
     AppSettings::TimestampMode _timestampMode = AppSettings::TimestampMode::LocalTime;
 
     QTimer *_liveTimer = nullptr;
+    QTimer *_zoomHistoryTimer = nullptr;
     Mode _mode = Mode::Live;
+    QPoint _panOrigin;
+    bool _panning = false;
     bool _livePaused = false;
+    bool _valueZoomed = false;
     bool _customInterval = false;
     bool _absoluteInterval = false;
     qint64 _windowMs = 60000;

@@ -18,10 +18,6 @@
         <source>Node Details</source>
         <translation>Сведения об узле</translation>
     </message>
-    <message>
-        <source>Root</source>
-        <translation>Корень</translation>
-    </message>
 </context>
 <context>
     <name>AddressSpaceModule</name>
@@ -59,6 +55,10 @@
     <message>
         <source>Search nodes...</source>
         <translation>Поиск узлов...</translation>
+    </message>
+    <message>
+        <source>Refresh</source>
+        <translation>Обновить</translation>
     </message>
     <message>
         <source>Node Info</source>
@@ -206,6 +206,10 @@
 </context>
 <context>
     <name>AttributesWidget</name>
+    <message>
+        <source>Value</source>
+        <translation>Значение</translation>
+    </message>
     <message>
         <source>Write Value</source>
         <translation>Запись значения</translation>
@@ -913,10 +917,6 @@ Select it again.</source>
         <translation>Сертификат:</translation>
     </message>
     <message>
-        <source>...</source>
-        <translation>...</translation>
-    </message>
-    <message>
         <source>Private Key:</source>
         <translation>Закрытый ключ:</translation>
     </message>
@@ -1300,6 +1300,14 @@ Select it again.</source>
         <source>Actual Interval</source>
         <translation>Фактический интервал</translation>
     </message>
+    <message numerus="yes">
+        <source>… %n more</source>
+        <translation>
+            <numerusform>… ещё %n</numerusform>
+            <numerusform>… ещё %n</numerusform>
+            <numerusform>… ещё %n</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>DataAccessModule</name>
@@ -1417,6 +1425,10 @@ Select it again.</source>
             <numerusform>Удалить все %n узла со вкладки «Данные»?</numerusform>
             <numerusform>Удалить все %n узлов со вкладки «Данные»?</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Status</source>
+        <translation>Состояние</translation>
     </message>
 </context>
 <context>
@@ -2188,6 +2200,65 @@ Select it again.</source>
     </message>
 </context>
 <context>
+    <name>ImageViewDialog</name>
+    <message>
+        <source>View Image</source>
+        <translation>Просмотр изображения</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>Уместить</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Копировать</translation>
+    </message>
+    <message>
+        <source>Save As...</source>
+        <translation>Сохранить как...</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
+        <source>Save Image</source>
+        <translation>Сохранение изображения</translation>
+    </message>
+    <message>
+        <source>The image could not be written to %1.</source>
+        <translation>Не удалось записать изображение в %1.</translation>
+    </message>
+    <message>
+        <source>No image to show.</source>
+        <translation>Нет изображения для показа.</translation>
+    </message>
+    <message>
+        <source>The image could not be decoded.</source>
+        <translation>Не удалось декодировать изображение.</translation>
+    </message>
+    <message>
+        <source>Unknown format</source>
+        <translation>Неизвестный формат</translation>
+    </message>
+    <message>
+        <source>All Files</source>
+        <translation>Все файлы</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1 %</translation>
+    </message>
+    <message>
+        <source>Zoom out</source>
+        <translation>Уменьшить</translation>
+    </message>
+    <message>
+        <source>Zoom in</source>
+        <translation>Увеличить</translation>
+    </message>
+</context>
+<context>
     <name>LogFeature</name>
     <message>
         <source>Log</source>
@@ -2278,6 +2349,10 @@ Select it again.</source>
     <message>
         <source>Log files (*.log);;Text files (*.txt);;All files (*)</source>
         <translation>Файлы журнала (*.log);;Текстовые файлы (*.txt);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Debug</source>
+        <translation>Отладка</translation>
     </message>
 </context>
 <context>
@@ -2996,6 +3071,10 @@ Open the download page?</source>
         <source>Unavailable</source>
         <translation>Недоступно</translation>
     </message>
+    <message>
+        <source>Image</source>
+        <translation>Изображение</translation>
+    </message>
 </context>
 <context>
     <name>QtChartsView</name>
@@ -3146,6 +3225,124 @@ Open the download page?</source>
         <source>Event history read timed out.</source>
         <translation>Истекло время чтения истории событий.</translation>
     </message>
+    <message>
+        <source>No error.</source>
+        <translation>Нет ошибки.</translation>
+    </message>
+    <message>
+        <source>Invalid server URL.</source>
+        <translation>Недопустимый URL сервера.</translation>
+    </message>
+    <message>
+        <source>Access denied: authentication failed.</source>
+        <translation>Доступ запрещён: не удалось пройти аутентификацию.</translation>
+    </message>
+    <message>
+        <source>Connection error.</source>
+        <translation>Ошибка подключения.</translation>
+    </message>
+    <message>
+        <source>Unknown client error.</source>
+        <translation>Неизвестная ошибка клиента.</translation>
+    </message>
+    <message>
+        <source>Unsupported authentication information.</source>
+        <translation>Неподдерживаемые данные аутентификации.</translation>
+    </message>
+    <message>
+        <source>Invalid authentication information.</source>
+        <translation>Недопустимые данные аутентификации.</translation>
+    </message>
+    <message>
+        <source>Invalid endpoint description.</source>
+        <translation>Недопустимое описание точки подключения.</translation>
+    </message>
+    <message>
+        <source>No matching user identity token found.</source>
+        <translation>Не найден подходящий токен удостоверения пользователя.</translation>
+    </message>
+    <message>
+        <source>Unsupported security policy.</source>
+        <translation>Неподдерживаемая политика безопасности.</translation>
+    </message>
+    <message>
+        <source>Invalid PKI configuration.</source>
+        <translation>Недопустимая конфигурация PKI.</translation>
+    </message>
+    <message>
+        <source>Certificate is not trusted.</source>
+        <translation>Сертификат не является доверенным.</translation>
+    </message>
+    <message>
+        <source>Unknown client error (%1).</source>
+        <translation>Неизвестная ошибка клиента (%1).</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Неизвестно</translation>
+    </message>
+    <message>
+        <source>Certificate validation</source>
+        <translation>Проверка сертификата</translation>
+    </message>
+    <message>
+        <source>Open secure channel</source>
+        <translation>Открытие защищённого канала</translation>
+    </message>
+    <message>
+        <source>Create session</source>
+        <translation>Создание сессии</translation>
+    </message>
+    <message>
+        <source>Activate session</source>
+        <translation>Активация сессии</translation>
+    </message>
+    <message>
+        <source>Step %1</source>
+        <translation>Шаг %1</translation>
+    </message>
+    <message>
+        <source>Encrypted private keys are not supported by Qt OPC UA.</source>
+        <translation>Qt OPC UA не поддерживает зашифрованные закрытые ключи.</translation>
+    </message>
+    <message>
+        <source>The selected endpoint is no longer available. Run discovery again.</source>
+        <translation>Выбранная точка подключения больше недоступна. Выполните обнаружение заново.</translation>
+    </message>
+    <message>
+        <source>OPC UA client error: %1</source>
+        <translation>Ошибка клиента OPC UA: %1</translation>
+    </message>
+    <message>
+        <source>Connection failed: %1</source>
+        <translation>Не удалось подключиться: %1</translation>
+    </message>
+    <message>
+        <source>Connection step &apos;%1&apos; failed: %2</source>
+        <translation>Шаг подключения «%1» не выполнен: %2</translation>
+    </message>
+    <message>
+        <source>
+The server rejected the client certificate. Add this certificate to the server trust list and retry: %1</source>
+        <translation>
+Сервер отклонил клиентский сертификат. Добавьте этот сертификат в список доверия сервера и повторите попытку: %1</translation>
+    </message>
+    <message>
+        <source>The OPC UA connection timed out.</source>
+        <translation>Истекло время подключения OPC UA.</translation>
+    </message>
+    <message>
+        <source>The requested OPC UA backend &apos;%1&apos; is unavailable. Installed backends: %2</source>
+        <translation>Запрошенный бэкенд OPC UA «%1» недоступен. Установленные бэкенды: %2</translation>
+    </message>
+    <message>
+        <source>Could not create the OPC UA backend &apos;%1&apos;.</source>
+        <translation>Не удалось создать бэкенд OPC UA «%1».</translation>
+    </message>
+    <message>
+        <source>The structure of node &apos;%1&apos; stays undecoded: the server&apos;s type definitions describe no type for encoding &apos;%2&apos;.</source>
+        <translation>Структура узла «%1» осталась нераскодированной: определения типов сервера не описывают тип для кодировки «%2».</translation>
+    </message>
 </context>
 <context>
     <name>QtOpcUaMonitoringManager</name>
@@ -3194,6 +3391,13 @@ Open the download page?</source>
     <message>
         <source>Target</source>
         <translation>Цель</translation>
+    </message>
+</context>
+<context>
+    <name>SecretStore</name>
+    <message>
+        <source>The credential store did not respond.</source>
+        <translation>Хранилище учётных данных не ответило.</translation>
     </message>
 </context>
 <context>
@@ -3374,6 +3578,10 @@ Do you want to save them?</source>
         <source>The session file does not describe a connection.</source>
         <translation>Файл сессии не описывает подключение.</translation>
     </message>
+    <message>
+        <source>The session file was written by a newer version of the application.</source>
+        <translation>Файл сессии создан более новой версией приложения.</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>
@@ -3488,11 +3696,31 @@ Do you want to save them?</source>
     </message>
     <message>
         <source>Reconnect after a connection loss</source>
-        <translation>Переподключаться при потере соединения</translation>
+        <translation>Автоподключение при обрыве связи</translation>
     </message>
     <message>
         <source>Interval (s):</source>
         <translation>Интервал (с):</translation>
+    </message>
+    <message>
+        <source>Debug messages are verbose and are meant for diagnosing a problem.</source>
+        <translation>Отладочные сообщения многословны и предназначены для диагностики проблемы.</translation>
+    </message>
+    <message>
+        <source>Log debug messages of the enabled categories</source>
+        <translation>Записывать отладочные сообщения включённых категорий</translation>
+    </message>
+    <message>
+        <source>Keep the last</source>
+        <translation>Хранить последние</translation>
+    </message>
+    <message>
+        <source>Older entries are dropped once the log reaches this many.</source>
+        <translation>Более старые записи удаляются, когда журнал достигает этого объёма.</translation>
+    </message>
+    <message>
+        <source>log entries</source>
+        <translation>записей журнала</translation>
     </message>
 </context>
 <context>
@@ -3851,6 +4079,10 @@ Do you want to save them?</source>
     <message>
         <source>JSON array</source>
         <translation>JSON-массив</translation>
+    </message>
+    <message>
+        <source>Bytes are entered as hexadecimal pairs, for example &quot;8a 39 32&quot;.</source>
+        <translation>Байты вводятся шестнадцатеричными парами, например &quot;8a 39 32&quot;.</translation>
     </message>
     <message>
         <source>This value is read-only or its ExtensionObject schema is unknown.</source>

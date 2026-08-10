@@ -10,9 +10,11 @@
 #include <QDialogButtonBox>
 #include <QPushButton>
 #include <QSettings>
+#include <QSignalSpy>
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTranslator>
 
 #include "application.h"
 #include "appsettings.h"
@@ -35,6 +37,10 @@ private slots:
     void referenceControlsArePresent();
     void addRemoveAndClose();
     void builtinEditsSurviveSaveAndLoad();
+    void builtinNamesFollowTheInterfaceLanguage();
+    void factoryNamesAreNeverStoredAsRenames();
+    void aNameSavedInAnotherLanguageIsDroppedOnLoad();
+    void restoreDefaultsClearsANameSavedInAnotherLanguage();
     void restoreDefaultsKeepsCustomSubscriptions();
     void customIdsNeverCollideWithBuiltinIds();
 
@@ -147,6 +153,168 @@ void TestSubscriptionsDialog::builtinEditsSurviveSaveAndLoad()
     QCOMPARE(items.at(1).publishingInterval, 250.0);
     QCOMPARE(items.at(2).name, QStringLiteral("Slow"));
     QCOMPARE(items.at(2).publishingInterval, 9000.0);
+}
+
+namespace {
+
+///
+/// \brief Translator that suffixes every SubscriptionsWidget string, standing in for a language.
+///
+class SuffixTranslator : public QTranslator
+{
+public:
+    QString translate(const char *context, const char *sourceText,
+                      const char *disambiguation = nullptr, int n = -1) const override
+    {
+        Q_UNUSED(disambiguation)
+        Q_UNUSED(n)
+        if (qstrcmp(context, "SubscriptionsWidget") != 0)
+            return QString();
+        return QString::fromUtf8(sourceText) + QStringLiteral("-xx");
+    }
+
+    bool isEmpty() const override { return false; }
+};
+
+///
+/// \brief Installs or removes a translator and delivers the language change.
+/// \param translator Translator to switch on or off.
+/// \param install True to install, false to remove.
+///
+void switchLanguage(QTranslator *translator, bool install)
+{
+    if (install)
+        QCoreApplication::installTranslator(translator);
+    else
+        QCoreApplication::removeTranslator(translator);
+    QCoreApplication::sendPostedEvents();
+    QCoreApplication::processEvents();
+}
+
+} // namespace
+
+///
+/// \brief A language change renames the untouched built-ins and spares the ones the user named.
+///
+void TestSubscriptionsDialog::builtinNamesFollowTheInterfaceLanguage()
+{
+    SubscriptionsDialog dialog;
+    SubscriptionsWidget *widget = dialog.subscriptions();
+    auto *table = dialog.findChild<QTableView *>(QStringLiteral("subscriptionsTable"));
+    QVERIFY(widget);
+    QVERIFY(table);
+
+    QVERIFY(table->model()->setData(table->model()->index(0, 0),
+                                    QStringLiteral("Telemetry"), Qt::EditRole));
+
+    QSignalSpy renameSpy(widget, &SubscriptionsWidget::subscriptionRenamed);
+    SuffixTranslator translator;
+    switchLanguage(&translator, true);
+
+    QVector<SubscriptionItem> items = widget->subscriptions();
+    QCOMPARE(items.at(0).name, QStringLiteral("Telemetry"));
+    QCOMPARE(items.at(1).name, QStringLiteral("Fast-xx"));
+    QCOMPARE(items.at(2).name, QStringLiteral("Slow-xx"));
+
+    QCOMPARE(renameSpy.size(), 2);
+    QCOMPARE(renameSpy.first().first().toString(), QStringLiteral("Fast"));
+    QCOMPARE(renameSpy.first().at(1).toString(), QStringLiteral("Fast-xx"));
+
+    switchLanguage(&translator, false);
+    items = widget->subscriptions();
+    QCOMPARE(items.at(0).name, QStringLiteral("Telemetry"));
+    QCOMPARE(items.at(1).name, QStringLiteral("Fast"));
+    QCOMPARE(items.at(2).name, QStringLiteral("Slow"));
+}
+
+///
+/// \brief A factory name is never persisted, whatever language it was shown in.
+///
+void TestSubscriptionsDialog::factoryNamesAreNeverStoredAsRenames()
+{
+    SuffixTranslator translator;
+    {
+        SubscriptionsDialog dialog;
+        switchLanguage(&translator, true);
+        QCOMPARE(dialog.subscriptions()->subscriptions().at(0).name,
+                 QStringLiteral("Default-xx"));
+
+        AppSettings settings;
+        dialog.subscriptions()->saveSubscriptions(settings);
+    }
+    QVERIFY(AppSettings().builtinSubscriptionOverrides().isEmpty());
+
+    switchLanguage(&translator, false);
+    SubscriptionsDialog restored;
+    AppSettings settings;
+    restored.subscriptions()->loadSubscriptions(settings);
+    QCOMPARE(restored.subscriptions()->subscriptions().at(0).name, QStringLiteral("Default"));
+}
+
+///
+/// \brief A built-in name frozen by an older run in another language is dropped when loaded.
+///
+void TestSubscriptionsDialog::aNameSavedInAnotherLanguageIsDroppedOnLoad()
+{
+    SubscriptionItem stale;
+    stale.id = SlowSubscriptionId;
+    stale.builtin = true;
+    stale.name = QStringLiteral("Slow");
+    stale.publishingInterval = 9000.0;
+
+    SubscriptionItem renamed;
+    renamed.id = FastSubscriptionId;
+    renamed.builtin = true;
+    renamed.name = QStringLiteral("Telemetry");
+    renamed.publishingInterval = 250.0;
+
+    AppSettings().setBuiltinSubscriptionOverrides({stale, renamed});
+
+    SubscriptionsDialog dialog;
+    AppSettings settings;
+    dialog.subscriptions()->loadSubscriptions(settings);
+
+    const QVector<SubscriptionItem> items = dialog.subscriptions()->subscriptions();
+    QCOMPARE(items.at(2).name, QStringLiteral("Slow"));
+    QCOMPARE(items.at(2).publishingInterval, 9000.0);
+    QCOMPARE(items.at(1).name, QStringLiteral("Telemetry"));
+
+    dialog.subscriptions()->saveSubscriptions(settings);
+    const QVector<SubscriptionItem> stored = AppSettings().builtinSubscriptionOverrides();
+    QCOMPARE(stored.size(), 2);
+    for (const SubscriptionItem &item : stored) {
+        if (item.id == SlowSubscriptionId)
+            QVERIFY(item.name.isEmpty());
+        else
+            QCOMPARE(item.name, QStringLiteral("Telemetry"));
+    }
+}
+
+///
+/// \brief Restore Defaults clears a built-in name stored by an older run in another language.
+///
+void TestSubscriptionsDialog::restoreDefaultsClearsANameSavedInAnotherLanguage()
+{
+    SubscriptionItem stale;
+    stale.id = DefaultSubscriptionId;
+    stale.builtin = true;
+    stale.name = QString::fromUtf8("默认");
+    stale.publishingInterval = 1000.0;
+    AppSettings().setBuiltinSubscriptionOverrides({stale});
+
+    SubscriptionsDialog dialog;
+    AppSettings settings;
+    dialog.subscriptions()->loadSubscriptions(settings);
+    QCOMPARE(dialog.subscriptions()->subscriptions().at(0).name, QString::fromUtf8("默认"));
+
+    auto *restoreButton = dialog.findChild<QAbstractButton *>(QStringLiteral("restoreDefaultsButton"));
+    QVERIFY(restoreButton);
+    restoreButton->click();
+
+    QCOMPARE(dialog.subscriptions()->subscriptions().at(0).name, QStringLiteral("Default"));
+
+    dialog.subscriptions()->saveSubscriptions(settings);
+    QVERIFY(AppSettings().builtinSubscriptionOverrides().isEmpty());
 }
 
 ///

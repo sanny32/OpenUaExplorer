@@ -58,6 +58,7 @@ public:
 
 private slots:
     void validateAndAccept();
+    void updateMessage();
 
 private:
     QVariant convertScalar(const QString &text, int type, bool *ok) const;
@@ -65,4 +66,5 @@ private:
 
     Ui::WriteValueDialog *ui;
     QVariant _value;
+    bool _editable = true;
 };

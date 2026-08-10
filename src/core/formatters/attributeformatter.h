@@ -8,6 +8,10 @@
 
 #pragma once
 
+#include <optional>
+
+#include <QSize>
+
 #include <QtOpcUa/qopcuatype.h>
 
 #include <QOpcUaEndpointDescription>
@@ -54,6 +58,17 @@ bool isValueArray(const QVariant &value);
 /// \return Human-readable representation.
 ///
 QString displayValue(const QVariant &value);
+
+///
+/// \brief Renders the OPC UA types Qt carries in classes of their own.
+/// \param value Variant to format.
+/// \return Display text, or nullopt when the value is not one of those types.
+///
+/// QVariant::toString() returns an empty string for QOpcUaQualifiedName and its siblings
+/// because Qt OPC UA registers no string converters for them, so every one of them needs
+/// a rule of its own.
+///
+std::optional<QString> builtinTypeText(const QVariant &value);
 
 ///
 /// \brief Returns the translated name of a message security mode.
@@ -105,7 +120,7 @@ QString valueTypeName(QOpcUa::Types type);
 ///
 /// \brief Resolves a DataType NodeId to its type name.
 /// \param nodeId DataType NodeId string.
-/// \return Built-in type name, standard BrowseName, or the original NodeId for custom types.
+/// \return Standard BrowseName, built-in type name, or the original NodeId for custom types.
 ///
 QString dataTypeDisplay(const QString &nodeId);
 
@@ -113,7 +128,7 @@ QString dataTypeDisplay(const QString &nodeId);
 /// \brief Names the type of a value, falling back to its declared DataType.
 /// \param type Value type resolved from the DataType, may be Undefined.
 /// \param dataTypeId DataType NodeId string backing the value.
-/// \return Value-type name, or the DataType's own name when it is not a built-in type.
+/// \return The DataType's own name, or the value-type name when no DataType is known.
 ///
 QString valueTypeDisplay(QOpcUa::Types type, const QString &dataTypeId);
 
@@ -196,7 +211,7 @@ void formatNodeIdAttribute(OpcUaNodeAttribute *attribute, const QString &nodeId)
 void formatDataTypeAttribute(OpcUaNodeAttribute *attribute, const QString &nodeId);
 
 ///
-/// \brief Builds the Value attribute, expanding arrays into indexed child rows.
+/// \brief Builds the Value attribute, expanding arrays and structures into child rows.
 /// \param value Node value.
 /// \param type Declared value type, used to label arrays.
 /// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
@@ -204,6 +219,100 @@ void formatDataTypeAttribute(OpcUaNodeAttribute *attribute, const QString &nodeI
 ///
 OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type,
                                   const QString &dataTypeId = QString());
+
+///
+/// \brief One expandable part of a composite value: an array element or a structure field.
+///
+struct ValueElement
+{
+    /// \brief Row label, "[0]" for an array element or the field name of a structure.
+    QString label;
+    /// \brief Formatted element value.
+    QString text;
+    /// \brief Element type name; empty when only the containing value knows it.
+    QString typeName;
+    /// \brief Raw element value, used to expand the element further.
+    QVariant value;
+    /// \brief True when the element itself expands into elements.
+    bool hasChildren = false;
+};
+
+///
+/// \brief Reports whether a value expands into elements of its own.
+/// \param value Variant to inspect.
+/// \return True for arrays; strings and byte arrays stay scalar.
+///
+bool hasValueElements(const QVariant &value);
+
+///
+/// \brief Splits a composite value into its elements.
+/// \param value Variant to split.
+/// \param limit Largest number of elements to return; negative returns all of them.
+/// \param totalCount Receives the untruncated element count when not null.
+/// \return Elements in their natural order, at most \a limit of them.
+///
+QVector<ValueElement> valueElements(const QVariant &value, int limit = -1,
+                                    int *totalCount = nullptr);
+
+///
+/// \brief Renders a composite value as a short summary naming its type and size.
+/// \param value Variant to describe.
+/// \param type Declared value type, used to name array elements.
+/// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
+/// \return Summary such as "Int16[3]", or the plain display value for scalars.
+///
+QString valueSummary(const QVariant &value, QOpcUa::Types type,
+                     const QString &dataTypeId = QString());
+
+///
+/// \brief Picture encoding an OPC UA image DataType stands for.
+///
+enum class ImageEncoding {
+    None,
+    Any,
+    Bmp,
+    Gif,
+    Jpeg,
+    Png
+};
+
+///
+/// \brief Classifies a DataType NodeId as one of the standard image types.
+/// \param dataTypeId DataType NodeId string.
+/// \return Encoding the DataType prescribes; Any for the abstract Image type, None otherwise.
+///
+ImageEncoding imageEncodingForDataType(const QString &dataTypeId);
+
+///
+/// \brief A ByteString value whose DataType declares it to be a picture.
+///
+struct ImageValueInfo
+{
+    /// \brief Encoded picture exactly as the server sent it.
+    QByteArray data;
+    /// \brief Format name, "PNG", "JPEG", "GIF", or "BMP".
+    QString formatName;
+    /// \brief Pixel dimensions; empty when the header cannot be read.
+    QSize size;
+};
+
+///
+/// \brief Recognises a value as a picture from its declared DataType.
+/// \param value Variant to inspect.
+/// \param dataTypeId DataType NodeId string backing the value.
+/// \return Picture data with its format and dimensions, or nullopt when the value is none.
+///
+/// Only the DataType decides: an arbitrary ByteString is never sniffed for image magic,
+/// so a value that merely happens to start with a known header keeps its hex rendering.
+///
+std::optional<ImageValueInfo> imageValue(const QVariant &value, const QString &dataTypeId);
+
+///
+/// \brief Renders a picture as a one-line summary with a short hex prefix.
+/// \param info Picture to describe.
+/// \return Summary such as "PNG 640x480, 12.1 KB - 89 50 4e 47 0d 0a 1a 0a...".
+///
+QString imageSummary(const ImageValueInfo &info);
 
 ///
 /// \brief Fills an attribute's display value (and children) using the rules for its attribute id.

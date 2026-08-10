@@ -125,7 +125,7 @@ private:
     EndpointHistoryStore _endpointHistoryStore;
     QString _presetId;
     QString _restoredEndpointUrl;
-    QString _restoredProfileId;
+    QString _restoredSecretScope;
     bool _connectAfterDiscovery = false;
     QString _lastEnteredEndpointUrl;
     QString _pendingSecurityPolicy;

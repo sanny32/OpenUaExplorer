@@ -18,11 +18,15 @@
 
 #include "appsettings.h"
 #include "attributeswidget.h"
+#include "dialogs/imageviewdialog.h"
 #include "dialogs/messageboxdialog.h"
+#include "dialogs/textviewdialog.h"
+#include "elidedtextdelegate.h"
 #include "formatters/attributeformatter.h"
 #include "headerview.h"
 #include "themedaction.h"
 #include "models/attributesmodel.h"
+#include "models/valueroles.h"
 #include "ui_attributeswidget.h"
 
 namespace {
@@ -225,6 +229,7 @@ void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
     ui->attributesTree->expandToDepth(0);
 
     _nodeId = details.nodeId;
+    _nodeName = details.displayName;
     const bool variable = OpcUa::isVariable(details.nodeClass);
     const bool writable = variable && OpcUa::isWritable(details.userAccessLevel);
     ui->writeValueGroup->setEnabled(writable);
@@ -306,6 +311,11 @@ void AttributesWidget::setupAttributesView()
 
     ui->attributesTree->setColumnWidth(AttributesModel::ColAttribute, 165);
 
+    _valueDelegate = new ElidedTextDelegate(ui->attributesTree);
+    ui->attributesTree->setItemDelegateForColumn(AttributesModel::ColValue, _valueDelegate);
+    connect(_valueDelegate, &ElidedTextDelegate::viewRequested,
+            this, &AttributesWidget::showAttributeValue);
+
     _copyCellAction = new ThemedAction(QStringLiteral("copy"), tr("Copy"), this);
     _copyCellAction->setObjectName(QStringLiteral("actionCopyAttributeCell"));
     _copyCellAction->setShortcut(QKeySequence::Copy);
@@ -368,6 +378,28 @@ void AttributesWidget::showAttributesContextMenu(const QPoint &pos)
     menu.addAction(_copyCellAction);
     menu.addAction(_copyTreeAction);
     menu.exec(ui->attributesTree->viewport()->mapToGlobal(pos));
+}
+
+///
+/// \brief Opens an attribute value in the viewer its type calls for.
+/// \param index Value cell to show.
+///
+void AttributesWidget::showAttributeValue(const QModelIndex &index)
+{
+    if (!index.isValid())
+        return;
+    const QString name = index.sibling(index.row(), AttributesModel::ColAttribute)
+                             .data().toString();
+    const QString title = name.isEmpty() ? tr("Value") : name;
+
+    const QByteArray image = index.data(ValueRoles::ImageDataRole).toByteArray();
+    if (!image.isEmpty()) {
+        // A picture belongs to the node, not to the attribute row it was reached through.
+        ImageViewDialog::showImage(this, _nodeId.isEmpty() ? title : _nodeId,
+                                   _nodeName.isEmpty() ? _nodeId : _nodeName, image);
+        return;
+    }
+    TextViewDialog::showText(this, title, index.data().toString());
 }
 
 ///
