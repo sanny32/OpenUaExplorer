@@ -161,7 +161,7 @@ void TestDialogAbout::listsComponents()
 }
 
 ///
-/// \brief Verifies the license tab presents structured MIT license details.
+/// \brief Verifies the license tab presents project and third-party license details.
 ///
 void TestDialogAbout::formatsLicenseInformation()
 {
@@ -181,6 +181,10 @@ void TestDialogAbout::formatsLicenseInformation()
     QVERIFY(licenseText.contains(QStringLiteral("Permission is hereby granted, free of charge")));
     QVERIFY(licenseText.contains(QStringLiteral("copyright notice and this permission notice")));
     QVERIFY(licenseText.contains(QStringLiteral("THE SOFTWARE IS PROVIDED \"AS IS\"")));
+    QVERIFY(licenseText.contains(QStringLiteral("Third-party software")));
+    QVERIFY(licenseText.contains(QStringLiteral("The Qt Company Ltd.")));
+    QVERIFY(licenseText.contains(QStringLiteral("GPL, LGPL")));
+    QVERIFY(licenseText.contains(QStringLiteral("THIRD_PARTY_NOTICES.md")));
 }
 
 ///

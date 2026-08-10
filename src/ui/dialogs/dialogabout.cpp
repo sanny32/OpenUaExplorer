@@ -535,7 +535,7 @@ QString DialogAbout::iconButtonStyleSheet() const
 }
 
 ///
-/// \brief Builds the formatted MIT license page.
+/// \brief Builds the formatted project license and third-party notice page.
 /// \return Rich text for the license tab.
 ///
 QString DialogAbout::licenseHtml() const
@@ -556,7 +556,14 @@ QString DialogAbout::licenseHtml() const
         "FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR "
         "COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER "
         "IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN "
-        "CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>")
+        "CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>"
+        "<h3>Third-party software</h3>"
+        "<p>This application uses Qt and other third-party components. "
+        "Qt is Copyright (C) The Qt Company Ltd. and other contributors.</p>"
+        "<p>The complete third-party notices and the GPL, LGPL, and other license "
+        "texts are included in the application's <b>licenses</b> directory and "
+        "are available in the project repository as "
+        "<b>THIRD_PARTY_NOTICES.md</b>.</p>")
         .arg(QStringLiteral(BUILD_YEAR));
 }
 

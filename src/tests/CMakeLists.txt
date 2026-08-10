@@ -73,7 +73,8 @@ function(ouaexp_apply_test_compile_settings target)
         Qt${QT_VERSION_MAJOR}::Widgets
     )
     target_compile_definitions(${target} PRIVATE
-        OUAEXP_TEST_SERVER_SCRIPT="${PROJECT_SOURCE_DIR}/../tools/opcua_test_server.py")
+        OUAEXP_TEST_SERVER_SCRIPT="${PROJECT_SOURCE_DIR}/../tools/opcua_test_server.py"
+        OUAEXP_SOURCE_DIR="${PROJECT_SOURCE_DIR}/..")
     ouaexp_apply_coverage(${target})
 endfunction()
 

@@ -215,6 +215,13 @@ Found a bug or missing a feature? Open an issue in the
 [issue tracker](https://github.com/sanny32/OpenUaExplorer/issues).
 Pull requests are welcome.
 
+## Third-party software
+
+OpenUaExplorer source code is licensed under MIT. Release packages also contain
+components with their own license terms. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the accompanying
+[`licenses`](licenses/) directory for the component list and license texts.
+
 ## MIT License
 
 Copyright 2026 Alexandr Ananev [mail@ananev.org]

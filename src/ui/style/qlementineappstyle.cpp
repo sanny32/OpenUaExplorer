@@ -11,13 +11,13 @@
 #include "qlementineappstyle.h"
 #include "qlementinethemefactory.h"
 #include "application.h"
-#include <oclero/qlementine/icons/QlementineIcons.hpp>
 
 #include <QComboBox>
 #include <QDockWidget>
 #include <QPushButton>
 #include <QBrush>
 #include <QHash>
+#include <QIcon>
 #include <QLineEdit>
 #include <QLabel>
 #include <QListView>
@@ -246,16 +246,13 @@ QMargins tabShapePadding(const QStyleOptionTab& option, int spacing)
 } // namespace
 
 ///
-/// \brief Builds the style, initialises the icon theme, and tracks app color-scheme changes.
+/// \brief Builds the style and tracks application color-scheme changes.
 /// \param parent Owning QObject.
 ///
 QlementineAppStyle::QlementineAppStyle(QObject* parent)
     : QlementineStyle(parent)
 {
     setAutoIconColor(oclero::qlementine::AutoIconColor::ForegroundColor);
-
-    oclero::qlementine::icons::initializeIconTheme();
-    QIcon::setThemeName(QStringLiteral("qlementine"));
 
     const Theme baseTheme = theme();
     _lightTheme = QlementineThemeFactory::make(baseTheme, false);

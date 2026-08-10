@@ -1,6 +1,8 @@
 set(APP_EXECUTABLE_NAME "${PROJECT_NAME}")
 set(OUAEXP_LINUX_DATA_DIR "${PROJECT_SOURCE_DIR}/../.github/linux/usr/share")
 
+ouaexp_install_license_bundle("${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME}")
+
 install(FILES
     "${OUAEXP_LINUX_DATA_DIR}/applications/io.github.sanny32.OpenUaExplorer.desktop"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")

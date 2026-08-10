@@ -4,6 +4,7 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION .)
+ouaexp_install_license_bundle("licenses")
 
 if(TARGET OpenSSL::Crypto)
     install(FILES ${OPENSSL_RUNTIME_FILES} DESTINATION .)
