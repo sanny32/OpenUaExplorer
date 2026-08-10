@@ -101,7 +101,7 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
     ui->addressTree->expandAll();
 
     ui->refreshButton->setIcon(QStringLiteral("refresh"));
-    ui->refreshButton->setToolTip(QStringLiteral("Refresh"));
+    ui->refreshButton->setToolTip(tr("Refresh"));
     ui->refreshButton->setText(QString());
     ui->splitter->setSizes({455, 255});
 }
@@ -122,6 +122,9 @@ void AddressSpaceWidget::setRootNode(const OpcUaNodeInfo &root)
 
 ///
 /// \brief Applies browse results to the tree.
+///
+/// A pending restore continues from here whatever the outcome was: it browses one node at
+/// a time, so a branch the server refused must not hold back the branches behind it.
 /// \param parentNodeId Parent NodeId.
 /// \param children Browse result.
 /// \param error Browse error.
@@ -130,11 +133,10 @@ void AddressSpaceWidget::setBrowseChildren(const QString &parentNodeId,
                                            const QVector<OpcUaNodeInfo> &children,
                                            const QString &error)
 {
-    if (!error.isEmpty()) {
+    if (!error.isEmpty())
         _treeModel->setBrowseFailed(parentNodeId);
-        return;
-    }
-    _treeModel->setChildren(parentNodeId, children);
+    else
+        _treeModel->setChildren(parentNodeId, children);
     if (!_pendingExpand.isEmpty() || !_pendingSelect.isEmpty())
         applyPendingExpansion();
 }
@@ -166,13 +168,31 @@ void AddressSpaceWidget::setBrowseReferences(const QString &sourceNodeId,
 ///
 void AddressSpaceWidget::setNodeDetails(const OpcUaNodeDetails &details)
 {
+    _nodeDetails = details;
+    _hasNodeDetails = true;
+    updateNodeInfo();
+}
+
+///
+/// \brief Rebuilds the node-info rows from the last received details.
+///
+/// The row labels are translated when the rows are built, so they have to be rebuilt
+/// after a language change instead of staying in the previous language.
+///
+void AddressSpaceWidget::updateNodeInfo()
+{
+    if (!_hasNodeDetails) {
+        _nodeInfoModel->clear();
+        return;
+    }
+
     QVector<NodeInfoItem> items;
-    items.append({tr("Node Id"), details.nodeId});
-    items.append({tr("Display Name"), details.displayName});
-    items.append({tr("Node Class"), QString::number(details.nodeClass)});
-    items.append({tr("Data Type"), details.dataTypeId});
-    items.append({tr("Value Rank"), QString::number(details.valueRank)});
-    items.append({tr("Status"), details.status});
+    items.append({tr("Node Id"), _nodeDetails.nodeId});
+    items.append({tr("Display Name"), _nodeDetails.displayName});
+    items.append({tr("Node Class"), QString::number(_nodeDetails.nodeClass)});
+    items.append({tr("Data Type"), _nodeDetails.dataTypeId});
+    items.append({tr("Value Rank"), QString::number(_nodeDetails.valueRank)});
+    items.append({tr("Status"), _nodeDetails.status});
     _nodeInfoModel->setItems(items);
 }
 
@@ -185,6 +205,8 @@ void AddressSpaceWidget::clear()
     _searchPattern.clear();
     _searchMatched = false;
     _selectedNodeId.clear();
+    _nodeDetails = OpcUaNodeDetails();
+    _hasNodeDetails = false;
     _subscribedNodeIds.clear();
     _referencesByNodeId.clear();
     _pendingExpand.clear();
@@ -286,16 +308,26 @@ void AddressSpaceWidget::restoreExpansion(const QStringList &expandedNodeIds,
 /// Expanding a node triggers a lazy browse of its children; as those results arrive
 /// through setBrowseChildren() this runs again to expand the next level down.
 ///
+/// Only one browse may be in flight at a time — a second one supersedes the first, which
+/// then never reports back — so this stops at the first node that has to be browsed and
+/// leaves the rest pending. Sibling branches are therefore restored one after another
+/// instead of all at once, which would silently lose all but the last of them.
+///
 void AddressSpaceWidget::applyPendingExpansion()
 {
-    for (int i = _pendingExpand.size() - 1; i >= 0; --i) {
+    for (int i = 0; i < _pendingExpand.size();) {
         const QModelIndex index = _treeModel->findByNodeId(_pendingExpand.at(i));
-        if (!index.isValid())
+        if (!index.isValid()) {
+            ++i;
             continue;
+        }
+        const bool browsing = _treeModel->canFetchMore(index);
         ui->addressTree->expand(index);
         if (_treeModel->canFetchMore(index))
             _treeModel->fetchMore(index);
         _pendingExpand.removeAt(i);
+        if (browsing)
+            break;
     }
 
     if (!_pendingSelect.isEmpty()) {
@@ -363,7 +395,9 @@ void AddressSpaceWidget::changeEvent(QEvent *event)
     QWidget::changeEvent(event);
     if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
+        ui->refreshButton->setToolTip(tr("Refresh"));
         _referencesModel->retranslate();
+        updateNodeInfo();
     }
 }
 

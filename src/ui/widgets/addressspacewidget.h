@@ -115,8 +115,9 @@ public:
     ///
     /// \brief Re-expands saved tree nodes and reselects a node as they load.
     ///
-    /// Expansion is applied incrementally: nodes already loaded are expanded now,
-    /// and deeper nodes are expanded as their parents' browse results arrive.
+    /// Expansion is applied incrementally, one browse at a time: nodes already loaded are
+    /// expanded now, and every node that still has to be browsed waits for the previous
+    /// browse result to arrive.
     /// \param expandedNodeIds Node ids to expand, parents before children.
     /// \param selectedNodeId Node id to select once it is loaded, or empty.
     ///
@@ -258,6 +259,7 @@ private:
     void showTreeContextMenu(const QPoint &pos);
     void onCurrentNodeChanged(const QModelIndex &current);
     void updateReferencesForNode(const QString &nodeId);
+    void updateNodeInfo();
     QVector<ReferenceItem> referencesFromChildren(const QVector<OpcUaNodeInfo> &children) const;
     QString referenceTypeDisplayName(const QString &referenceTypeId) const;
 
@@ -266,6 +268,8 @@ private:
     NodeInfoModel          *_nodeInfoModel;
     ReferencesModel        *_referencesModel;
     QString                 _selectedNodeId;
+    OpcUaNodeDetails        _nodeDetails;
+    bool                    _hasNodeDetails = false;
     QSet<QString>           _subscribedNodeIds;
     QHash<QString, QVector<ReferenceItem>> _referencesByNodeId;
     QStringList             _pendingExpand;
