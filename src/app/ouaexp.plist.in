@@ -76,7 +76,7 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright @CURRENT_YEAR@ @ORGANIZATION_NAME@. All rights reserved.</string>
+    <string>Copyright @CURRENT_YEAR@ @ORGANIZATION_NAME@.</string>
     <key>LSMinimumSystemVersion</key>
     <string>11.0</string>
 </dict>

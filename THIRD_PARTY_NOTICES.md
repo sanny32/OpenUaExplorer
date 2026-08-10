@@ -40,7 +40,9 @@ the repository patches under `src/cmake/patches/`. Its Qt-authored code is
 available under commercial terms or LGPL-3.0-only, GPL-2.0-only, or
 GPL-3.0-only.
 
-The open62541 amalgamation is licensed under:
+The open62541 project is primarily licensed under MPL-2.0. The amalgamated
+`open62541.c` and `open62541.h` files bundled by Qt also incorporate third-party
+material under:
 
 - MPL-2.0
 - CC0-1.0
@@ -49,6 +51,8 @@ The open62541 amalgamation is licensed under:
 - Apache-2.0
 - MIT
 
+Qt 6.9.3 records the combined license expression for that amalgamation as
+`MPL-2.0 AND CC0-1.0 AND CC-BY-SA-4.0 AND BSD-3-Clause AND Apache-2.0 AND MIT`.
 The corresponding texts and author list are provided under `third-party/`.
 Source: https://github.com/open62541/open62541/tree/v1.4.9
 
@@ -84,6 +88,12 @@ Copyright (c) 2022 Olivier Cléro.
 
 License: MIT. The license text is provided in
 `third-party/MIT-Qlementine.txt`.
+
+Qlementine 1.4.2 statically embeds Inter/Inter Display 4.001 under the SIL Open
+Font License 1.1 and Roboto Mono 3.000 under Apache-2.0. Their copyright,
+license, reserved-name, and trademark notices are provided in
+`third-party/Qlementine-FONTS.md`; the OFL text is provided in
+`third-party/OFL-1.1.txt`.
 
 Source: https://github.com/oclero/qlementine/tree/v1.4.2
 

@@ -39,8 +39,10 @@ void TestLicenseBundle::containsRequiredFiles()
         QStringLiteral("licenses/MIT-open62541.txt"),
         QStringLiteral("licenses/MIT-Qlementine.txt"),
         QStringLiteral("licenses/MPL-2.0.txt"),
+        QStringLiteral("licenses/OFL-1.1.txt"),
         QStringLiteral("licenses/open62541-AUTHORS.txt"),
         QStringLiteral("licenses/OpenSSL-ACKNOWLEDGEMENTS.md"),
+        QStringLiteral("licenses/Qlementine-FONTS.md"),
     };
 
     for (const QString &file : files) {
@@ -69,6 +71,11 @@ void TestLicenseBundle::noticeIdentifiesBundledComponents()
                                         QByteArray("Qlementine")}) {
         QVERIFY2(notice.contains(component), component.constData());
     }
+    QVERIFY(notice.contains("primarily licensed under MPL-2.0"));
+    QVERIFY(notice.contains(
+        "MPL-2.0 AND CC0-1.0 AND CC-BY-SA-4.0 AND BSD-3-Clause AND Apache-2.0 AND MIT"));
+    QVERIFY(notice.contains("Inter/Inter Display 4.001"));
+    QVERIFY(notice.contains("Roboto Mono 3.000"));
     QVERIFY(!notice.contains("Qlementine Icons"));
 }
 

@@ -44,8 +44,10 @@ Copyright: The Qt Company Ltd. and other contributors
            2014-2021 the open62541 contributors listed in
            /usr/share/licenses/ouaexp/third-party/open62541-AUTHORS.txt
 License: LGPL-3 and MPL-2.0 and CC0-1.0 and CC-BY-SA-4.0 and BSD-3-clause and Apache-2.0 and MIT
- The exact license texts for the Qt OPC UA backend and its open62541
- amalgamation are installed under /usr/share/licenses/ouaexp/third-party/.
+ The open62541 project is primarily MPL-2.0. Qt's bundled amalgamation also
+ incorporates third-party material under the other licenses in this paragraph.
+ The exact license texts are installed under
+ /usr/share/licenses/ouaexp/third-party/.
 
 Files: usr/lib/ouaexp/lib/libcrypto.so*
        usr/lib/ouaexp/lib/libssl.so*
