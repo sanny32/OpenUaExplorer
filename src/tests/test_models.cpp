@@ -65,6 +65,7 @@ private slots:
     void dataAccessResolvesHighlightPreference();
     void dataAccessExposesQualityAndValueFont();
     void attributesModelTimestampModeReformats();
+    void attributesModelKeepsEmptyValueEmpty();
     void attributesModelOfflineGreysValues();
 
     // LogModel.
@@ -810,6 +811,7 @@ void TestModels::attributesModelTimestampModeReformats()
     OpcUaNodeAttribute timestamp;
     timestamp.name = QStringLiteral("Source Timestamp");
     timestamp.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), QTimeZone::UTC);
+    timestamp.isTimestamp = true;
     value.children.append(timestamp);
 
     AttributesModel model;
@@ -832,6 +834,22 @@ void TestModels::attributesModelTimestampModeReformats()
                       .replace(QLatin1Char('T'), QLatin1Char(' ')));
     QVERIFY(utc.endsWith(QLatin1Char('Z')));
     QVERIFY(!utc.contains(QLatin1Char('T')));
+}
+
+///
+/// \brief An attribute with no value stays empty instead of borrowing a read timestamp.
+///
+void TestModels::attributesModelKeepsEmptyValueEmpty()
+{
+    OpcUaNodeAttribute description;
+    description.name = QStringLiteral("Description");
+    description.sourceTimestamp = QDateTime(QDate(2024, 1, 2), QTime(3, 4, 5, 678), QTimeZone::UTC);
+    description.serverTimestamp = description.sourceTimestamp;
+
+    AttributesModel model;
+    model.setAttributes({description});
+
+    QCOMPARE(model.data(model.index(0, AttributesModel::ColValue)).toString(), QString());
 }
 
 ///

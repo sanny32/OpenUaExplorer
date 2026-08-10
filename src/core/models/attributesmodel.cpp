@@ -232,10 +232,7 @@ void AttributesModel::appendAttribute(Item *parent, const OpcUaNodeAttribute &at
 {
     auto item = std::make_unique<Item>();
     item->attribute = attribute.name;
-    const bool isTimestamp = attribute.children.isEmpty()
-        && attribute.displayValue.isEmpty()
-        && (attribute.sourceTimestamp.isValid() || attribute.serverTimestamp.isValid());
-    if (isTimestamp) {
+    if (attribute.isTimestamp) {
         item->sourceTimestamp = attribute.sourceTimestamp;
         item->serverTimestamp = attribute.serverTimestamp;
         item->value = timestampValue(*item);
