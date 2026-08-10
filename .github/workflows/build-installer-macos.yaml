@@ -79,14 +79,12 @@ jobs:
             echo "::error::The install did not produce $app"
             exit 1
           fi
-          for file in LICENSE THIRD_PARTY_NOTICES.md \
-                      third-party/GPL-3.0-only.txt \
-                      third-party/LGPL-3.0-only.txt \
-                      third-party/Apache-2.0.txt \
-                      third-party/MIT-Qlementine.txt \
-                      third-party/OFL-1.1.txt \
-                      third-party/Qlementine-FONTS.md; do
+          # Every notice in licenses/ has to reach the bundle, not just a sample.
+          for file in LICENSE THIRD_PARTY_NOTICES.md; do
             test -f "$app/Contents/Resources/licenses/$file"
+          done
+          for file in "$GITHUB_WORKSPACE"/licenses/*; do
+            test -f "$app/Contents/Resources/licenses/third-party/$(basename "$file")"
           done
           codesign --verify --deep --strict --verbose=2 "$app"
 

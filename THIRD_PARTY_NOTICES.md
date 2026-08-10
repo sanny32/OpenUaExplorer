@@ -10,9 +10,9 @@ beside this file. In the source repository, the same files are under
 
 ## Qt 6
 
-Components: Qt Core, Qt GUI, Qt Widgets, Qt Network, Qt SVG, Qt Charts, Qt OPC UA,
-platform and image-format plugins, and Qt translations as selected by the target
-platform.
+Components: Qt Core, Qt GUI, Qt Widgets, Qt Network, Qt D-Bus, Qt SVG, Qt Charts,
+Qt OPC UA, platform and image-format plugins, and Qt translations as selected by
+the target platform.
 
 Copyright (C) The Qt Company Ltd. and other contributors.
 

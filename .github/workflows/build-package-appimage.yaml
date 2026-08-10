@@ -132,11 +132,12 @@ jobs:
           for size in 16 24 32 48 64 128 256; do
             test -f "AppDir/usr/share/icons/hicolor/${size}x${size}/mimetypes/application-x-ouaexp-session.png"
           done
-          for file in LICENSE THIRD_PARTY_NOTICES.md \
-                      third-party/GPL-3.0-only.txt \
-                      third-party/LGPL-3.0-only.txt \
-                      third-party/Apache-2.0.txt; do
+          # Every notice in licenses/ has to reach the AppDir, not just a sample.
+          for file in LICENSE THIRD_PARTY_NOTICES.md; do
             test -f "AppDir/usr/share/licenses/ouaexp/$file"
+          done
+          for file in licenses/*; do
+            test -f "AppDir/usr/share/licenses/ouaexp/third-party/$(basename "$file")"
           done
 
       - name: Set up linuxdeployqt

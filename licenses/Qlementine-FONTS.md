@@ -11,7 +11,7 @@ Copyright 2016 The Inter Project Authors.
 License: SIL Open Font License 1.1. The license text is provided in
 `OFL-1.1.txt`.
 
-Inter UI and Inter are trademarks of rsms. Inter is a Reserved Font Name.
+Inter UI and Inter are trademarks of rsms.
 
 Source: https://github.com/rsms/inter
 
