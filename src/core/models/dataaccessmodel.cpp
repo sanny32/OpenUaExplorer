@@ -15,7 +15,6 @@
 #include <QDataStream>
 #include <QDateTime>
 #include <QFont>
-#include <QFontDatabase>
 #include <QGuiApplication>
 #include <QIODevice>
 #include <QMimeData>
@@ -33,25 +32,6 @@ OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
         ? OpcUaFormat::TimestampMode::Utc
         : OpcUaFormat::TimestampMode::LocalTime;
 }
-
-///
-/// \brief Returns the platform fixed-pitch font scaled to the interface font size.
-/// \return Monospace font at the application point size.
-///
-/// The system fixed font carries its own point size, which does not always match
-/// the interface font, so only the family and style are taken from it.
-///
-QFont monospaceFont()
-{
-    QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    const QFont appFont = qApp->font();
-    if (appFont.pointSizeF() > 0.0)
-        font.setPointSizeF(appFont.pointSizeF());
-    else if (appFont.pixelSize() > 0)
-        font.setPixelSize(appFont.pixelSize());
-    return font;
-}
-
 }
 
 ///
@@ -936,10 +916,9 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
     if (role == Qt::EditRole && col == ColSubscription)
         return item.subscriptionName;
 
-    // Values line up across rows only in a fixed-pitch font; pending rows stay italic either way.
-    if (role == Qt::FontRole && (item.pending || col == ColValue)) {
-        QFont font = col == ColValue ? monospaceFont() : qApp->font();
-        font.setItalic(item.pending);
+    if (role == Qt::FontRole && item.pending) {
+        QFont font = qApp->font();
+        font.setItalic(true);
         return font;
     }
 
@@ -991,10 +970,6 @@ QVariant DataAccessModel::nodeData(const ValueNode *node, int column, int role) 
         }
     case Qt::TextAlignmentRole:
         return QVariant(columnAlignment(column));
-    case Qt::FontRole:
-        if (column == ColValue)
-            return monospaceFont();
-        break;
     case Qt::ForegroundRole:
         if (_offline || node->placeholder || item.subscriptionName.isEmpty())
             return QBrush(qApp->palette().color(QPalette::Disabled, QPalette::Text));

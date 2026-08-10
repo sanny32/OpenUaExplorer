@@ -12,7 +12,6 @@
 #include <QColor>
 #include <QDateTime>
 #include <QFont>
-#include <QFontDatabase>
 #include <QMimeData>
 #include <QPalette>
 #include <QScopedPointer>
@@ -452,12 +451,8 @@ void TestModels::dataAccessExposesQualityAndValueFont()
     QCOMPARE(monitored.data(DataAccessModel::StatusSeverityRole).toInt(),
              int(OpcUaFormat::StatusSeverity::Bad));
 
-    // Values need a fixed pitch to line up; pending rows keep their italic marker.
-    const QFont valueFont = monitored.data(Qt::FontRole).value<QFont>();
-    QCOMPARE(valueFont.family(),
-             QFontDatabase::systemFont(QFontDatabase::FixedFont).family());
-    QCOMPARE(valueFont.pointSizeF(), qApp->font().pointSizeF());
-    QVERIFY(!valueFont.italic());
+    // Values use the interface font; only pending rows carry a font override.
+    QVERIFY(!monitored.data(Qt::FontRole).isValid());
     QVERIFY(!model.index(0, DataAccessModel::ColDisplayName).data(Qt::FontRole).isValid());
 
     OpcUaNodeInfo pending;
