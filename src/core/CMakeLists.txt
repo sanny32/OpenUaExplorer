@@ -18,6 +18,7 @@ add_library(ouaexp_core STATIC
     formatters/datetimeformatter.h
     formatters/durationformatter.cpp
     formatters/durationformatter.h
+    formatters/imageformatter.cpp
     formatters/nodeidformatter.cpp
     formatters/scalarformatter.cpp
     formatters/valueformatter.cpp
@@ -99,6 +100,7 @@ add_library(ouaexp_core STATIC
     models/subscriptionsmodel.h
     models/trendseries.cpp
     models/trendseries.h
+    models/valueroles.h
 
     session/recentsessionstore.cpp
     session/recentsessionstore.h

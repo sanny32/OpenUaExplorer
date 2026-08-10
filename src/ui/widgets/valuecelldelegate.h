@@ -8,8 +8,9 @@
 
 #pragma once
 
-#include <QStyledItemDelegate>
 #include <QTimer>
+
+#include "elidedtextdelegate.h"
 
 class QAbstractItemView;
 
@@ -22,7 +23,11 @@ class QAbstractItemView;
 /// live here rather than in DataAccessModel because the model sits in the core library,
 /// which cannot reach the theme-aware AppColors palette.
 ///
-class ValueCellDelegate : public QStyledItemDelegate
+/// The quality colour is applied in initStyleOption() so that the base class, which owns
+/// the viewer button and the elided text, keeps drawing the cell; only the wash is painted
+/// on top afterwards.
+///
+class ValueCellDelegate : public ElidedTextDelegate
 {
     Q_OBJECT
 
@@ -34,13 +39,22 @@ public:
     explicit ValueCellDelegate(QAbstractItemView *view);
 
     ///
-    /// \brief Paints the cell background wash and its state-coloured text.
+    /// \brief Paints the cell and washes it over while its value is still fresh.
     /// \param painter Painter to draw with.
     /// \param option Style options for the cell.
     /// \param index Model index being painted.
     ///
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
                const QModelIndex &index) const override;
+
+protected:
+    ///
+    /// \brief Fills the style option and recolours its text to the cell's quality.
+    /// \param option Style option to fill.
+    /// \param index Model index being painted.
+    ///
+    void initStyleOption(QStyleOptionViewItem *option,
+                         const QModelIndex &index) const override;
 
 private:
     ///

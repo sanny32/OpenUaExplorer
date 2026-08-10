@@ -1422,6 +1422,10 @@ Select it again.</source>
             <numerusform>Удалить все %n узлов со вкладки «Данные»?</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Status</source>
+        <translation>Состояние</translation>
+    </message>
 </context>
 <context>
     <name>DataHistoryWidget</name>
@@ -2189,6 +2193,65 @@ Select it again.</source>
     <message>
         <source>Status</source>
         <translation>Состояние</translation>
+    </message>
+</context>
+<context>
+    <name>ImageViewDialog</name>
+    <message>
+        <source>View Image</source>
+        <translation>Просмотр изображения</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>Уместить</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Копировать</translation>
+    </message>
+    <message>
+        <source>Save As...</source>
+        <translation>Сохранить как...</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
+        <source>Save Image</source>
+        <translation>Сохранение изображения</translation>
+    </message>
+    <message>
+        <source>The image could not be written to %1.</source>
+        <translation>Не удалось записать изображение в %1.</translation>
+    </message>
+    <message>
+        <source>No image to show.</source>
+        <translation>Нет изображения для показа.</translation>
+    </message>
+    <message>
+        <source>The image could not be decoded.</source>
+        <translation>Не удалось декодировать изображение.</translation>
+    </message>
+    <message>
+        <source>Unknown format</source>
+        <translation>Неизвестный формат</translation>
+    </message>
+    <message>
+        <source>All Files</source>
+        <translation>Все файлы</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1 %</translation>
+    </message>
+    <message>
+        <source>Zoom out</source>
+        <translation>Уменьшить</translation>
+    </message>
+    <message>
+        <source>Zoom in</source>
+        <translation>Увеличить</translation>
     </message>
 </context>
 <context>
@@ -3004,6 +3067,10 @@ Open the download page?</source>
         <source>Unavailable</source>
         <translation>Недоступно</translation>
     </message>
+    <message>
+        <source>Image</source>
+        <translation>Изображение</translation>
+    </message>
 </context>
 <context>
     <name>QtChartsView</name>
@@ -3267,6 +3334,10 @@ The server rejected the client certificate. Add this certificate to the server t
     <message>
         <source>Could not create the OPC UA backend &apos;%1&apos;.</source>
         <translation>Не удалось создать бэкенд OPC UA «%1».</translation>
+    </message>
+    <message>
+        <source>The structure of node &apos;%1&apos; stays undecoded: the server&apos;s type definitions describe no type for encoding &apos;%2&apos;.</source>
+        <translation>Структура узла «%1» осталась нераскодированной: определения типов сервера не описывают тип для кодировки «%2».</translation>
     </message>
 </context>
 <context>

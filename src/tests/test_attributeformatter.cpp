@@ -40,8 +40,10 @@
 #include <QOpcUaStructureField>
 
 #include "formatters/attributeformatter.h"
+#include "testimages.h"
 
 using namespace OpcUaFormat;
+using TestImages::encodedPng;
 
 ///
 /// \brief Unit tests for OpcUaFormat, which needs no live connection.
@@ -74,6 +76,9 @@ private slots:
     void valueAttributeScalarAndArray();
     void valueElementsSplitArraysAndHonourTheLimit();
     void valueSummaryNamesArraysAndPassesScalarsThrough();
+    void imageDataTypesAreRecognisedFromTheirNodeId();
+    void imageValuesSummariseInsteadOfDumpingHex();
+    void imageValueAttributeCarriesItsBytes();
     void structValuesExpandIntoTheirDeclaredFields();
     void builtinTypesFormatWithRulesOfTheirOwn();
     void undecodedExtensionObjectsNameTheirEncoding();
@@ -382,6 +387,76 @@ void TestAttributeFormatter::valueSummaryNamesArraysAndPassesScalarsThrough()
     QCOMPARE(valueSummary(QVariant(QVariantList{1}), QOpcUa::Types::Undefined,
                           QStringLiteral("ns=0;i=338")),
              QStringLiteral("[1]"));
+}
+
+void TestAttributeFormatter::imageDataTypesAreRecognisedFromTheirNodeId()
+{
+    QCOMPARE(imageEncodingForDataType(QStringLiteral("ns=0;i=30")), ImageEncoding::Any);
+    QCOMPARE(imageEncodingForDataType(QStringLiteral("ns=0;i=2000")), ImageEncoding::Bmp);
+    QCOMPARE(imageEncodingForDataType(QStringLiteral("ns=0;i=2001")), ImageEncoding::Gif);
+    QCOMPARE(imageEncodingForDataType(QStringLiteral("ns=0;i=2002")), ImageEncoding::Jpeg);
+    QCOMPARE(imageEncodingForDataType(QStringLiteral("ns=0;i=2003")), ImageEncoding::Png);
+
+    // Plain ByteString, a server-defined type reusing the identifier, and no type at all.
+    QCOMPARE(imageEncodingForDataType(QStringLiteral("ns=0;i=15")), ImageEncoding::None);
+    QCOMPARE(imageEncodingForDataType(QStringLiteral("ns=3;i=2003")), ImageEncoding::None);
+    QCOMPARE(imageEncodingForDataType(QString()), ImageEncoding::None);
+}
+
+void TestAttributeFormatter::imageValuesSummariseInsteadOfDumpingHex()
+{
+    const QByteArray png = encodedPng(QSize(2, 3));
+    QVERIFY(!png.isEmpty());
+
+    const std::optional<ImageValueInfo> info =
+        imageValue(QVariant(png), QStringLiteral("ns=0;i=2003"));
+    QVERIFY(info.has_value());
+    QCOMPARE(info->formatName, QStringLiteral("PNG"));
+    QCOMPARE(info->size, QSize(2, 3));
+    QCOMPARE(info->data, png);
+
+    const QString summary = valueSummary(QVariant(png), QOpcUa::Types::ByteString,
+                                         QStringLiteral("ns=0;i=2003"));
+    QVERIFY2(summary.startsWith(QStringLiteral("PNG 2×3, ")), qPrintable(summary));
+    QVERIFY2(summary.endsWith(QStringLiteral("· 89 50 4e 47 0d 0a 1a 0a…")), qPrintable(summary));
+
+    // The DataType names the format, so a picture stays labelled without its image plugin.
+    const QByteArray gif = QByteArrayLiteral("GIF89a\x04\x00\x02\x00\xf0\x00\x00");
+    const std::optional<ImageValueInfo> gifInfo =
+        imageValue(QVariant(gif), QStringLiteral("ns=0;i=2001"));
+    QVERIFY(gifInfo.has_value());
+    QCOMPARE(gifInfo->formatName, QStringLiteral("GIF"));
+
+    // Every other ByteString keeps its hex dump, so writing one back still parses.
+    QVERIFY(!imageValue(QVariant(png), QStringLiteral("ns=0;i=15")).has_value());
+    QCOMPARE(valueSummary(QVariant(QByteArrayLiteral("\x01\x02")), QOpcUa::Types::ByteString,
+                          QStringLiteral("ns=0;i=15")),
+             QStringLiteral("01 02"));
+    QCOMPARE(displayValue(QVariant(png)), QString::fromLatin1(png.toHex(' ')));
+
+    // An empty ByteString is nothing to show.
+    QVERIFY(!imageValue(QVariant(QByteArray()), QStringLiteral("ns=0;i=2003")).has_value());
+}
+
+void TestAttributeFormatter::imageValueAttributeCarriesItsBytes()
+{
+    const QByteArray png = encodedPng(QSize(4, 4));
+    QVERIFY(!png.isEmpty());
+
+    const OpcUaNodeAttribute attribute =
+        valueAttribute(QVariant(png), QOpcUa::Types::ByteString, QStringLiteral("ns=0;i=2003"));
+    QVERIFY(attribute.isImage);
+    QCOMPARE(attribute.value.toByteArray(), png);
+    QVERIFY2(attribute.displayValue.startsWith(QStringLiteral("PNG 4×4, ")),
+             qPrintable(attribute.displayValue));
+    QVERIFY(attribute.children.isEmpty());
+
+    // A ByteString of any other DataType is left exactly as it was.
+    const OpcUaNodeAttribute plain =
+        valueAttribute(QVariant(png), QOpcUa::Types::ByteString, QStringLiteral("ns=0;i=15"));
+    QVERIFY(!plain.isImage);
+    QVERIFY(plain.value.isNull());
+    QCOMPARE(plain.displayValue, QString::fromLatin1(png.toHex(' ')));
 }
 
 void TestAttributeFormatter::structValuesExpandIntoTheirDeclaredFields()

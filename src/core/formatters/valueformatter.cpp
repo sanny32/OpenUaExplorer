@@ -264,10 +264,13 @@ QVector<ValueElement> valueElements(const QVariant &value, int limit, int *total
 ///
 /// The elements carry the values themselves once the row is expanded, so the cell of a
 /// composite value is better spent on the facts a truncated element list would hide. A short
-/// array of scalars fits as it is, and reading it needs no expanding at all.
+/// array of scalars fits as it is, and reading it needs no expanding at all. A picture is a
+/// scalar whose hex dump says nothing, so it names its format and size instead.
 ///
 QString valueSummary(const QVariant &value, QOpcUa::Types type, const QString &dataTypeId)
 {
+    if (const std::optional<ImageValueInfo> image = imageValue(value, dataTypeId))
+        return imageSummary(*image);
     if (isStructValue(value))
         return value.value<QOpcUaGenericStructValue>().typeName();
     if (!isValueArray(value))
@@ -371,10 +374,19 @@ QString valueTypeName(QOpcUa::Types type)
 /// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
 /// \return The constructed Value attribute.
 ///
+/// A picture keeps its bytes on the row so a viewer can show it; every other value is
+/// described in full by its text and needs nothing beyond it.
+///
 OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type,
                                   const QString &dataTypeId)
 {
     OpcUaNodeAttribute result = childAttribute(QStringLiteral("Value"), displayValue(value));
+    if (const std::optional<ImageValueInfo> image = imageValue(value, dataTypeId)) {
+        result.displayValue = imageSummary(*image);
+        result.value = value;
+        result.isImage = true;
+        return result;
+    }
     if (isValueArray(value)) {
         result.displayValue = QStringLiteral("%1 Array[%2]")
                                   .arg(valueTypeDisplay(type, dataTypeId))

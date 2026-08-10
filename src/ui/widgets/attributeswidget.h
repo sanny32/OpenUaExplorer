@@ -108,5 +108,6 @@ private:
     ThemedAction         *_copyTreeAction = nullptr;
     ElidedTextDelegate   *_valueDelegate = nullptr;
     QString               _nodeId;
+    QString               _nodeName;
     bool                  _offline = false;
 };

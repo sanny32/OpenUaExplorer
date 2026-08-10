@@ -22,6 +22,7 @@
 
 #include "appsettings.h"
 #include "testdata.h"
+#include "testimages.h"
 #include "formatters/attributeformatter.h"
 #include "opcua/opcuatypes.h"
 #include "models/attributesmodel.h"
@@ -33,6 +34,9 @@
 #include "models/nodeinfomodel.h"
 #include "models/referencesmodel.h"
 #include "models/subscriptionsmodel.h"
+#include "models/valueroles.h"
+
+using TestImages::encodedPng;
 
 ///
 /// \brief Unit tests for the OPC UA UI models.
@@ -64,6 +68,8 @@ private slots:
     void dataAccessTracksValueChanges();
     void dataAccessResolvesHighlightPreference();
     void dataAccessExposesQualityAndValueFont();
+    void dataAccessSummarisesImagesAndOffersTheirBytes();
+    void attributesModelOffersImageBytes();
     void attributesModelTimestampModeReformats();
     void attributesModelKeepsEmptyValueEmpty();
     void attributesModelOfflineGreysValues();
@@ -798,6 +804,68 @@ void TestModels::dataAccessTimestampModeReformats()
                       .replace(QLatin1Char('T'), QLatin1Char(' ')));
     QVERIFY(utc.endsWith(QLatin1Char('Z')));
     QVERIFY(!utc.contains(QLatin1Char('T')));
+}
+
+///
+/// \brief An image-typed node names its picture instead of dumping hex, and hands out the bytes.
+///
+void TestModels::dataAccessSummarisesImagesAndOffersTheirBytes()
+{
+    const QByteArray png = encodedPng(QSize(6, 4));
+    QVERIFY(!png.isEmpty());
+
+    DataAccessModel model;
+
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=5;s=ImagePNG");
+    details.dataTypeId = QStringLiteral("ns=0;i=2003");
+    details.value = png;
+    model.addOrUpdate(details);
+
+    const QModelIndex value = model.index(0, DataAccessModel::ColValue);
+    QVERIFY2(model.data(value).toString().startsWith(QStringLiteral("PNG 6×4, ")),
+             qPrintable(model.data(value).toString()));
+    QCOMPARE(model.data(value, ValueRoles::ImageDataRole).toByteArray(), png);
+
+    // Only the value column carries the picture; a viewer button has no business elsewhere.
+    QVERIFY(model.data(model.index(0, DataAccessModel::ColNodeId),
+                       ValueRoles::ImageDataRole).isNull());
+
+    // The same bytes under a plain ByteString DataType stay a hex dump with nothing to view.
+    details.nodeId = QStringLiteral("ns=5;s=Bytes");
+    details.dataTypeId = QStringLiteral("ns=0;i=15");
+    model.addOrUpdate(details);
+    const QModelIndex bytes = model.index(1, DataAccessModel::ColValue);
+    QCOMPARE(model.data(bytes).toString(), QString::fromLatin1(png.toHex(' ')));
+    QVERIFY(model.data(bytes, ValueRoles::ImageDataRole).isNull());
+}
+
+///
+/// \brief An image value row in the attributes tree hands its bytes to the viewer.
+///
+void TestModels::attributesModelOffersImageBytes()
+{
+    const QByteArray png = encodedPng(QSize(3, 2));
+    QVERIFY(!png.isEmpty());
+
+    AttributesModel model;
+    OpcUaNodeAttribute parent;
+    parent.name = QStringLiteral("Value");
+    parent.displayValue = QStringLiteral("ImagePNG");
+    parent.children.append(OpcUaFormat::valueAttribute(QVariant(png), QOpcUa::Types::ByteString,
+                                                       QStringLiteral("ns=0;i=2003")));
+    model.setAttributes({parent});
+
+    const QModelIndex row = model.index(0, 0);
+    QCOMPARE(model.rowCount(row), 1);
+    const QModelIndex value = model.index(0, AttributesModel::ColValue, row);
+    QVERIFY2(model.data(value).toString().startsWith(QStringLiteral("PNG 3×2, ")),
+             qPrintable(model.data(value).toString()));
+    QCOMPARE(model.data(value, ValueRoles::ImageDataRole).toByteArray(), png);
+
+    // The attribute-name column is not where the picture lives.
+    QVERIFY(model.data(model.index(0, AttributesModel::ColAttribute, row),
+                       ValueRoles::ImageDataRole).isNull());
 }
 
 ///

@@ -14,6 +14,7 @@
 
 #include "appicons.h"
 #include "elidedtextdelegate.h"
+#include "models/valueroles.h"
 
 namespace {
 
@@ -71,7 +72,7 @@ ElidedTextDelegate::ElidedTextDelegate(QAbstractItemView *view)
 }
 
 ///
-/// \brief Paints the cell and, for truncated text, its viewer button.
+/// \brief Paints the cell and, when it cannot show its value in full, the viewer button.
 /// \param painter Painter to draw with.
 /// \param option Style options for the cell.
 /// \param index Model index being painted.
@@ -80,7 +81,7 @@ void ElidedTextDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
                                const QModelIndex &index) const
 {
     const QStyleOptionViewItem opt = cellOption(option, index);
-    if (!isTruncated(opt)) {
+    if (!needsButton(opt, index)) {
         QStyledItemDelegate::paint(painter, option, index);
         return;
     }
@@ -126,7 +127,8 @@ void ElidedTextDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
                                                                       : QIcon::Disabled;
     const QRect iconRect(button.center().x() - IconSize / 2 + 1,
                          button.center().y() - IconSize / 2 + 1, IconSize, IconSize);
-    AppIcons::themed(QStringLiteral("expand")).paint(painter, iconRect, Qt::AlignCenter, mode);
+    const QString icon = hasViewer(index) ? QStringLiteral("image") : QStringLiteral("expand");
+    AppIcons::themed(icon).paint(painter, iconRect, Qt::AlignCenter, mode);
 }
 
 ///
@@ -144,7 +146,7 @@ bool ElidedTextDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
     if (type == QEvent::MouseButtonPress || type == QEvent::MouseButtonRelease) {
         const auto *mouse = static_cast<QMouseEvent *>(event);
         const QStyleOptionViewItem opt = cellOption(option, index);
-        const bool onButton = mouse->button() == Qt::LeftButton && isTruncated(opt)
+        const bool onButton = mouse->button() == Qt::LeftButton && needsButton(opt, index)
                               && buttonRect(opt.rect).contains(mouse->position().toPoint());
 
         // The press is left to the view so the row still selects; only its visual
@@ -221,7 +223,7 @@ int ElidedTextDelegate::scrollBarOverlap() const
 ///
 /// \brief Reports whether a cell's text is too wide to be shown in full.
 /// \param option Style options with the text already filled in.
-/// \return True when the cell needs a viewer button.
+/// \return True when the text does not fit the cell.
 ///
 bool ElidedTextDelegate::isTruncated(const QStyleOptionViewItem &option) const
 {
@@ -231,6 +233,31 @@ bool ElidedTextDelegate::isTruncated(const QStyleOptionViewItem &option) const
     const QRect textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &option,
                                                  option.widget);
     return option.fontMetrics.horizontalAdvance(option.text) > textRect.width();
+}
+
+///
+/// \brief Reports whether a cell carries a value a viewer can show better than the cell.
+/// \param index Model index being inspected.
+/// \return True when the cell holds an encoded picture.
+///
+bool ElidedTextDelegate::hasViewer(const QModelIndex &index) const
+{
+    return !index.data(ValueRoles::ImageDataRole).toByteArray().isEmpty();
+}
+
+///
+/// \brief Reports whether a cell should carry the viewer button.
+/// \param option Style options with the text already filled in.
+/// \param index Model index being inspected.
+/// \return True when the cell needs a viewer button.
+///
+/// A picture earns the button whatever the column width, because no width would make the
+/// cell show it; text only earns it once the column has to cut it short.
+///
+bool ElidedTextDelegate::needsButton(const QStyleOptionViewItem &option,
+                                     const QModelIndex &index) const
+{
+    return hasViewer(index) || isTruncated(option);
 }
 
 ///

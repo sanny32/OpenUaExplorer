@@ -294,6 +294,7 @@ private:
     void writeSelectedNode();
     bool canWriteSelection() const;
     void requestWrite(const DataAccessItem &item);
+    void showValueCell(const QModelIndex &index);
     void handleValueDoubleClick(const QModelIndex &index);
     void toggleBooleanValue(const DataAccessItem &item);
     void toggleHighlightForSelection(bool enabled);

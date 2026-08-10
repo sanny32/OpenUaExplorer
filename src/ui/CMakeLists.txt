@@ -15,6 +15,7 @@ set(UI_FILES
     dialogs/editfavoritedialog.ui
     dialogs/endpointsettingsdialog.ui
     dialogs/findserversdialog.ui
+    dialogs/imageviewdialog.ui
     dialogs/namespaceinspectordialog.ui
     dialogs/nodemonitordialog.ui
     dialogs/settingsdialog.ui
@@ -126,6 +127,8 @@ add_library(ouaexp_ui STATIC
     dialogs/endpointsettingsdialog.h
     dialogs/findserversdialog.cpp
     dialogs/findserversdialog.h
+    dialogs/imageviewdialog.cpp
+    dialogs/imageviewdialog.h
     dialogs/messageboxdialog.cpp
     dialogs/messageboxdialog.h
     dialogs/namespaceinspectordialog.cpp
@@ -187,8 +190,12 @@ add_library(ouaexp_ui STATIC
     widgets/elidedlabel.h
     widgets/fixedgap.cpp
     widgets/fixedgap.h
+    widgets/formatbadge.cpp
+    widgets/formatbadge.h
     widgets/headerview.cpp
     widgets/headerview.h
+    widgets/imagecanvas.cpp
+    widgets/imagecanvas.h
     widgets/historycombobox.cpp
     widgets/historycombobox.h
     widgets/spinneraction.cpp

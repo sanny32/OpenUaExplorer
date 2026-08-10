@@ -7,9 +7,9 @@
 ///
 
 #include <QAbstractItemView>
-#include <QApplication>
 #include <QDateTime>
 #include <QPainter>
+#include <QStyle>
 
 #include "appcolors.h"
 #include "formatters/attributeformatter.h"
@@ -74,7 +74,7 @@ QColor stateColor(const QModelIndex &index, int column)
 /// \param view View whose viewport is repainted while a cell animates.
 ///
 ValueCellDelegate::ValueCellDelegate(QAbstractItemView *view)
-    : QStyledItemDelegate(view)
+    : ElidedTextDelegate(view)
     , _view(view)
 {
     _flashTimer.setInterval(FlashFrameMs);
@@ -82,7 +82,37 @@ ValueCellDelegate::ValueCellDelegate(QAbstractItemView *view)
 }
 
 ///
-/// \brief Paints the cell background wash and its state-coloured text.
+/// \brief Fills the style option and recolours its text to the cell's quality.
+/// \param option Style option to fill.
+/// \param index Model index being painted.
+///
+/// The model greys whole rows that are offline, pending, or unmonitored; that foreground
+/// outranks the per-cell state colour. Which role the style reads is its own business, so
+/// both carry the colour rather than the delegate guessing.
+///
+void ValueCellDelegate::initStyleOption(QStyleOptionViewItem *option,
+                                        const QModelIndex &index) const
+{
+    ElidedTextDelegate::initStyleOption(option, index);
+
+    if (index.data(Qt::ForegroundRole).isValid())
+        return;
+
+    QColor color = stateColor(index, index.column());
+    if (!color.isValid())
+        return;
+
+    if (option->state.testFlag(QStyle::State_Selected)) {
+        color = AppColors::mostLegible(
+            option->palette.color(QPalette::Highlight), color,
+            option->palette.color(QPalette::HighlightedText));
+    }
+    option->palette.setColor(QPalette::Text, color);
+    option->palette.setColor(QPalette::HighlightedText, color);
+}
+
+///
+/// \brief Paints the cell and washes it over while its value is still fresh.
 /// \param painter Painter to draw with.
 /// \param option Style options for the cell.
 /// \param index Model index being painted.
@@ -90,27 +120,7 @@ ValueCellDelegate::ValueCellDelegate(QAbstractItemView *view)
 void ValueCellDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
                               const QModelIndex &index) const
 {
-    QStyleOptionViewItem opt(option);
-    initStyleOption(&opt, index);
-
-    // The model greys whole rows that are offline, pending, or unmonitored; that
-    // foreground outranks the per-cell state colour. Which role the style reads is
-    // its own business, so both carry the colour rather than the delegate guessing.
-    if (!index.data(Qt::ForegroundRole).isValid()) {
-        QColor color = stateColor(index, index.column());
-        if (color.isValid()) {
-            if (opt.state.testFlag(QStyle::State_Selected)) {
-                color = AppColors::mostLegible(
-                    opt.palette.color(QPalette::Highlight), color,
-                    opt.palette.color(QPalette::HighlightedText));
-            }
-            opt.palette.setColor(QPalette::Text, color);
-            opt.palette.setColor(QPalette::HighlightedText, color);
-        }
-    }
-
-    QStyle *style = opt.widget ? opt.widget->style() : QApplication::style();
-    style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, opt.widget);
+    ElidedTextDelegate::paint(painter, option, index);
 
     if (index.column() != DataAccessModel::ColValue
         || !index.data(DataAccessModel::HighlightChangesRole).toBool()) {
@@ -127,9 +137,9 @@ void ValueCellDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
     // opacity the tint reads on the background without dulling the glyphs.
     const qreal remaining = 1.0 - static_cast<qreal>(elapsed) / duration;
     QColor wash = AppColors::signalChangeWash(
-        opt.palette, opt.state.testFlag(QStyle::State_Selected));
+        option.palette, option.state.testFlag(QStyle::State_Selected));
     wash.setAlpha(qRound(FlashMaxAlpha * remaining));
-    painter->fillRect(opt.rect, wash);
+    painter->fillRect(option.rect, wash);
 
     _flashSeen = true;
     if (!_flashTimer.isActive())

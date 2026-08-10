@@ -10,6 +10,8 @@
 
 #include <optional>
 
+#include <QSize>
+
 #include <QtOpcUa/qopcuatype.h>
 
 #include <QOpcUaEndpointDescription>
@@ -261,6 +263,56 @@ QVector<ValueElement> valueElements(const QVariant &value, int limit = -1,
 ///
 QString valueSummary(const QVariant &value, QOpcUa::Types type,
                      const QString &dataTypeId = QString());
+
+///
+/// \brief Picture encoding an OPC UA image DataType stands for.
+///
+enum class ImageEncoding {
+    None,
+    Any,
+    Bmp,
+    Gif,
+    Jpeg,
+    Png
+};
+
+///
+/// \brief Classifies a DataType NodeId as one of the standard image types.
+/// \param dataTypeId DataType NodeId string.
+/// \return Encoding the DataType prescribes; Any for the abstract Image type, None otherwise.
+///
+ImageEncoding imageEncodingForDataType(const QString &dataTypeId);
+
+///
+/// \brief A ByteString value whose DataType declares it to be a picture.
+///
+struct ImageValueInfo
+{
+    /// \brief Encoded picture exactly as the server sent it.
+    QByteArray data;
+    /// \brief Format name, "PNG", "JPEG", "GIF", or "BMP".
+    QString formatName;
+    /// \brief Pixel dimensions; empty when the header cannot be read.
+    QSize size;
+};
+
+///
+/// \brief Recognises a value as a picture from its declared DataType.
+/// \param value Variant to inspect.
+/// \param dataTypeId DataType NodeId string backing the value.
+/// \return Picture data with its format and dimensions, or nullopt when the value is none.
+///
+/// Only the DataType decides: an arbitrary ByteString is never sniffed for image magic,
+/// so a value that merely happens to start with a known header keeps its hex rendering.
+///
+std::optional<ImageValueInfo> imageValue(const QVariant &value, const QString &dataTypeId);
+
+///
+/// \brief Renders a picture as a one-line summary with a short hex prefix.
+/// \param info Picture to describe.
+/// \return Summary such as "PNG 640x480, 12.1 KB - 89 50 4e 47 0d 0a 1a 0a...".
+///
+QString imageSummary(const ImageValueInfo &info);
 
 ///
 /// \brief Fills an attribute's display value (and children) using the rules for its attribute id.

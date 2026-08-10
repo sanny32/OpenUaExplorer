@@ -24,6 +24,7 @@
 #include "dataaccessmodel.h"
 #include "csvexporter.h"
 #include "formatters/attributeformatter.h"
+#include "valueroles.h"
 
 namespace {
 OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
@@ -31,6 +32,19 @@ OpcUaFormat::TimestampMode toFormatMode(AppSettings::TimestampMode mode)
     return mode == AppSettings::TimestampMode::Utc
         ? OpcUaFormat::TimestampMode::Utc
         : OpcUaFormat::TimestampMode::LocalTime;
+}
+
+///
+/// \brief Returns the encoded picture a value carries, for ValueRoles::ImageDataRole.
+/// \param value Raw value of the cell.
+/// \param dataTypeId DataType NodeId string backing the value.
+/// \return Picture bytes, or an invalid variant when the value is not a picture.
+///
+QVariant imageData(const QVariant &value, const QString &dataTypeId)
+{
+    const std::optional<OpcUaFormat::ImageValueInfo> image =
+        OpcUaFormat::imageValue(value, dataTypeId);
+    return image ? QVariant(image->data) : QVariant();
 }
 }
 
@@ -872,6 +886,9 @@ bool DataAccessModel::setData(const QModelIndex &index, const QVariant &value, i
 /// \param role Requested data role.
 /// \return Value for the role, or an invalid variant.
 ///
+/// Besides the model's own roles the value column serves ValueRoles::ImageDataRole, which
+/// hands the encoded picture of an image-typed node to the delegate and its viewer.
+///
 QVariant DataAccessModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid()) return QVariant();
@@ -887,8 +904,10 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
         case ColNumber:       return index.row() + 1;
         case ColNodeId:       return item.nodeId;
         case ColDisplayName:  return item.displayName;
-        // The elements carry the values once the row is open; the cell names the array instead.
-        case ColValue:        return OpcUaFormat::hasValueElements(item.typedValue)
+        // The elements carry the values once the row is open; the cell names the array
+        // instead. A scalar falls through the summary to its own display text unchanged.
+        // Rows seeded with formatted text alone keep it, having no value to summarise.
+        case ColValue:        return item.typedValue.isValid()
                                      ? OpcUaFormat::valueSummary(
                                            item.typedValue,
                                            static_cast<QOpcUa::Types>(item.valueType),
@@ -939,6 +958,8 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
                                       ? 0.0
                                       : item.revisedPublishingInterval;
     case HighlightChangesRole: return resolveHighlight(item);
+    case ValueRoles::ImageDataRole:
+        return col == ColValue ? imageData(item.typedValue, item.dataTypeId) : QVariant();
     default: break;
     }
 
@@ -982,6 +1003,11 @@ QVariant DataAccessModel::nodeData(const ValueNode *node, int column, int role) 
         return item.subscriptionName.isEmpty() ? 0.0 : item.revisedPublishingInterval;
     case HighlightChangesRole:
         return !node->placeholder && resolveHighlight(item);
+    // An element of an array of pictures is a picture of the array's own DataType.
+    case ValueRoles::ImageDataRole:
+        return column == ColValue && !node->placeholder
+            ? imageData(node->value, item.dataTypeId)
+            : QVariant();
     default:
         break;
     }

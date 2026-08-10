@@ -1417,6 +1417,10 @@ Wählen Sie ihn erneut aus.</translation>
             <numerusform>Alle %n Knoten aus dem Datenzugriff entfernen?</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Status</source>
+        <translation>Status</translation>
+    </message>
 </context>
 <context>
     <name>DataHistoryWidget</name>
@@ -2183,6 +2187,65 @@ Wählen Sie ihn erneut aus.</translation>
     <message>
         <source>Status</source>
         <translation>Status</translation>
+    </message>
+</context>
+<context>
+    <name>ImageViewDialog</name>
+    <message>
+        <source>View Image</source>
+        <translation>Bild anzeigen</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>Einpassen</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Kopieren</translation>
+    </message>
+    <message>
+        <source>Save As...</source>
+        <translation>Speichern unter...</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Schließen</translation>
+    </message>
+    <message>
+        <source>Save Image</source>
+        <translation>Bild speichern</translation>
+    </message>
+    <message>
+        <source>The image could not be written to %1.</source>
+        <translation>Das Bild konnte nicht nach %1 geschrieben werden.</translation>
+    </message>
+    <message>
+        <source>No image to show.</source>
+        <translation>Kein Bild vorhanden.</translation>
+    </message>
+    <message>
+        <source>The image could not be decoded.</source>
+        <translation>Das Bild konnte nicht dekodiert werden.</translation>
+    </message>
+    <message>
+        <source>Unknown format</source>
+        <translation>Unbekanntes Format</translation>
+    </message>
+    <message>
+        <source>All Files</source>
+        <translation>Alle Dateien</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1 %</translation>
+    </message>
+    <message>
+        <source>Zoom out</source>
+        <translation>Verkleinern</translation>
+    </message>
+    <message>
+        <source>Zoom in</source>
+        <translation>Vergrößern</translation>
     </message>
 </context>
 <context>
@@ -2998,6 +3061,10 @@ Download-Seite öffnen?</translation>
         <source>Could not remove the client certificate.</source>
         <translation>Das Client-Zertifikat konnte nicht entfernt werden.</translation>
     </message>
+    <message>
+        <source>Image</source>
+        <translation>Bild</translation>
+    </message>
 </context>
 <context>
     <name>QtChartsView</name>
@@ -3261,6 +3328,10 @@ Der Server hat das Client-Zertifikat abgelehnt. Fügen Sie dieses Zertifikat der
     <message>
         <source>Could not create the OPC UA backend &apos;%1&apos;.</source>
         <translation>Das OPC-UA-Backend „%1“ konnte nicht erstellt werden.</translation>
+    </message>
+    <message>
+        <source>The structure of node &apos;%1&apos; stays undecoded: the server&apos;s type definitions describe no type for encoding &apos;%2&apos;.</source>
+        <translation>Die Struktur des Knotens „%1“ bleibt undekodiert: Die Typdefinitionen des Servers beschreiben keinen Typ für die Kodierung „%2“.</translation>
     </message>
 </context>
 <context>

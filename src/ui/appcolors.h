@@ -273,6 +273,42 @@ inline QColor intervalBadgeText()
 }
 
 ///
+/// \brief Background fill for the badge naming a value's encoding.
+/// \return Theme-matching format badge background.
+///
+inline QColor formatBadgeBackground()
+{
+    return AppIcons::isDarkTheme() ? QColor(0x7c74ff) : QColor(0x6c63ff);
+}
+
+///
+/// \brief Text colour of the badge naming a value's encoding.
+/// \return Foreground legible on formatBadgeBackground().
+///
+inline QColor formatBadgeText()
+{
+    return QColor(0xffffff);
+}
+
+///
+/// \brief Lighter square of the chequerboard drawn behind a transparent picture.
+/// \return Theme-matching chequerboard highlight.
+///
+inline QColor transparencyCheckerLight()
+{
+    return AppIcons::isDarkTheme() ? QColor(0x2b3138) : QColor(0xfafafa);
+}
+
+///
+/// \brief Darker square of the chequerboard drawn behind a transparent picture.
+/// \return Theme-matching chequerboard shade.
+///
+inline QColor transparencyCheckerDark()
+{
+    return AppIcons::isDarkTheme() ? QColor(0x24292f) : QColor(0xeeeeee);
+}
+
+///
 /// \brief Formats a colour as a Qt Style Sheet rgba() string, preserving alpha.
 /// \param color Colour to format.
 /// \return CSS rgba() literal.

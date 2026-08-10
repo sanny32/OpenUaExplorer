@@ -1412,6 +1412,10 @@ Select it again.</source>
             <numerusform>从数据访问中移除全部 %n 个节点？</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Status</source>
+        <translation>状态</translation>
+    </message>
 </context>
 <context>
     <name>DataHistoryWidget</name>
@@ -2177,6 +2181,65 @@ Select it again.</source>
     <message>
         <source>Status</source>
         <translation>状态</translation>
+    </message>
+</context>
+<context>
+    <name>ImageViewDialog</name>
+    <message>
+        <source>View Image</source>
+        <translation>查看图像</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>适应</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>复制</translation>
+    </message>
+    <message>
+        <source>Save As...</source>
+        <translation>另存为...</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>关闭</translation>
+    </message>
+    <message>
+        <source>Save Image</source>
+        <translation>保存图像</translation>
+    </message>
+    <message>
+        <source>The image could not be written to %1.</source>
+        <translation>无法将图像写入 %1。</translation>
+    </message>
+    <message>
+        <source>No image to show.</source>
+        <translation>没有可显示的图像。</translation>
+    </message>
+    <message>
+        <source>The image could not be decoded.</source>
+        <translation>无法解码该图像。</translation>
+    </message>
+    <message>
+        <source>Unknown format</source>
+        <translation>未知格式</translation>
+    </message>
+    <message>
+        <source>All Files</source>
+        <translation>所有文件</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <source>Zoom out</source>
+        <translation>缩小</translation>
+    </message>
+    <message>
+        <source>Zoom in</source>
+        <translation>放大</translation>
     </message>
 </context>
 <context>
@@ -2992,6 +3055,10 @@ Open the download page?</source>
         <source>Could not remove the client certificate.</source>
         <translation>无法移除客户端证书。</translation>
     </message>
+    <message>
+        <source>Image</source>
+        <translation>图像</translation>
+    </message>
 </context>
 <context>
     <name>QtChartsView</name>
@@ -3255,6 +3322,10 @@ The server rejected the client certificate. Add this certificate to the server t
     <message>
         <source>Could not create the OPC UA backend &apos;%1&apos;.</source>
         <translation>无法创建 OPC UA 后端“%1”。</translation>
+    </message>
+    <message>
+        <source>The structure of node &apos;%1&apos; stays undecoded: the server&apos;s type definitions describe no type for encoding &apos;%2&apos;.</source>
+        <translation>节点“%1”的结构未被解码：服务器的类型定义中没有描述编码“%2”的类型。</translation>
     </message>
 </context>
 <context>

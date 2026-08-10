@@ -14,12 +14,12 @@
 class QAbstractItemView;
 
 ///
-/// \brief Paints a viewer button in cells whose text does not fit the column.
+/// \brief Paints a viewer button in cells the column cannot show in full.
 ///
 /// Long OPC UA values such as ByteStrings or XmlElements are wider than any sensible
-/// column, so the cell can only ever show a prefix. The button appears exactly when
-/// the text is truncated and reports the click through viewRequested(), leaving the
-/// choice of viewer to the widget that owns the view.
+/// column, so the cell can only ever show a prefix. A picture is not text at all and no
+/// column width would help it. The button appears in both cases and reports the click
+/// through viewRequested(), leaving the choice of viewer to the widget that owns the view.
 ///
 class ElidedTextDelegate : public QStyledItemDelegate
 {
@@ -88,9 +88,24 @@ private:
     ///
     /// \brief Reports whether a cell's text is too wide to be shown in full.
     /// \param option Style options with the text already filled in.
-    /// \return True when the cell needs a viewer button.
+    /// \return True when the text does not fit the cell.
     ///
     bool isTruncated(const QStyleOptionViewItem &option) const;
+
+    ///
+    /// \brief Reports whether a cell carries a value a viewer can show better than the cell.
+    /// \param index Model index being inspected.
+    /// \return True when the cell holds an encoded picture.
+    ///
+    bool hasViewer(const QModelIndex &index) const;
+
+    ///
+    /// \brief Reports whether a cell should carry the viewer button.
+    /// \param option Style options with the text already filled in.
+    /// \param index Model index being inspected.
+    /// \return True when the cell needs a viewer button.
+    ///
+    bool needsButton(const QStyleOptionViewItem &option, const QModelIndex &index) const;
 
     ///
     /// \brief Builds a fully initialized style option for a cell.

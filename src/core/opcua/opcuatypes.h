@@ -218,6 +218,8 @@ struct OpcUaNodeAttribute
     QDateTime serverTimestamp;
     /// \brief True when the row shows one of the timestamps above instead of a value.
     bool isTimestamp = false;
+    /// \brief True when value carries an encoded picture the row can offer to a viewer.
+    bool isImage = false;
     /// \brief Nested attribute details.
     QVector<OpcUaNodeAttribute> children;
 };

@@ -18,6 +18,7 @@
 
 #include "appsettings.h"
 #include "attributeswidget.h"
+#include "dialogs/imageviewdialog.h"
 #include "dialogs/messageboxdialog.h"
 #include "dialogs/textviewdialog.h"
 #include "elidedtextdelegate.h"
@@ -25,6 +26,7 @@
 #include "headerview.h"
 #include "themedaction.h"
 #include "models/attributesmodel.h"
+#include "models/valueroles.h"
 #include "ui_attributeswidget.h"
 
 namespace {
@@ -227,6 +229,7 @@ void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
     ui->attributesTree->expandToDepth(0);
 
     _nodeId = details.nodeId;
+    _nodeName = details.displayName;
     const bool variable = OpcUa::isVariable(details.nodeClass);
     const bool writable = variable && OpcUa::isWritable(details.userAccessLevel);
     ui->writeValueGroup->setEnabled(writable);
@@ -378,7 +381,7 @@ void AttributesWidget::showAttributesContextMenu(const QPoint &pos)
 }
 
 ///
-/// \brief Opens the full text of an attribute value in a read-only viewer.
+/// \brief Opens an attribute value in the viewer its type calls for.
 /// \param index Value cell to show.
 ///
 void AttributesWidget::showAttributeValue(const QModelIndex &index)
@@ -387,8 +390,16 @@ void AttributesWidget::showAttributeValue(const QModelIndex &index)
         return;
     const QString name = index.sibling(index.row(), AttributesModel::ColAttribute)
                              .data().toString();
-    TextViewDialog::showText(this, name.isEmpty() ? tr("Value") : name,
-                             index.data().toString());
+    const QString title = name.isEmpty() ? tr("Value") : name;
+
+    const QByteArray image = index.data(ValueRoles::ImageDataRole).toByteArray();
+    if (!image.isEmpty()) {
+        // A picture belongs to the node, not to the attribute row it was reached through.
+        ImageViewDialog::showImage(this, _nodeId.isEmpty() ? title : _nodeId,
+                                   _nodeName.isEmpty() ? _nodeId : _nodeName, image);
+        return;
+    }
+    TextViewDialog::showText(this, title, index.data().toString());
 }
 
 ///

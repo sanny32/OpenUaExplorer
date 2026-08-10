@@ -24,12 +24,15 @@
 #include "appicons.h"
 #include "appsettings.h"
 #include "dataaccesswidget.h"
+#include "dialogs/imageviewdialog.h"
 #include "dialogs/messageboxdialog.h"
 #include "dialogs/newsubscriptiondialog.h"
+#include "dialogs/textviewdialog.h"
 #include "fileexport.h"
 #include "headerview.h"
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
+#include "models/valueroles.h"
 #include "subscriptiondelegate.h"
 #include "subscriptionswidget.h"
 #include "tableviewconfig.h"
@@ -532,6 +535,8 @@ void DataAccessWidget::setupDataView()
     _valueDelegate = new ValueCellDelegate(ui->dataView);
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColValue, _valueDelegate);
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColStatus, _valueDelegate);
+    connect(_valueDelegate, &ElidedTextDelegate::viewRequested,
+            this, &DataAccessWidget::showValueCell);
     connect(_subscriptionDelegate, &SubscriptionDelegate::subscriptionChanged, this,
             [this](const QModelIndex &index, const QString &subscriptionName) {
                 const QString nodeId = _dataModel->itemAt(_filterProxy->mapToSource(index).row()).nodeId;
@@ -744,6 +749,29 @@ void DataAccessWidget::requestWrite(const DataAccessItem &item)
 {
     emit writeRequested(item.nodeId, item.typedValue, item.valueType,
                         item.dataTypeId, OpcUa::isWritable(item.userAccessLevel));
+}
+
+///
+/// \brief Opens a cell the column cannot show in full in the viewer its type calls for.
+/// \param index Cell to show, in the filter proxy.
+///
+void DataAccessWidget::showValueCell(const QModelIndex &index)
+{
+    if (!index.isValid())
+        return;
+
+    const QString nodeId = index.sibling(index.row(), DataAccessModel::ColNodeId)
+                               .data().toString();
+    const QString title = index.column() == DataAccessModel::ColStatus ? tr("Status") : nodeId;
+
+    const QByteArray image = index.data(ValueRoles::ImageDataRole).toByteArray();
+    if (!image.isEmpty()) {
+        const QString name = index.sibling(index.row(), DataAccessModel::ColDisplayName)
+                                 .data().toString();
+        ImageViewDialog::showImage(this, title, name.isEmpty() ? nodeId : name, image);
+        return;
+    }
+    TextViewDialog::showText(this, title, index.data().toString());
 }
 
 ///
