@@ -28,7 +28,7 @@ target_link_libraries(ouaexp_charting
         Qt${QT_VERSION_MAJOR}::Charts
 )
 
-ouaexp_apply_pch(ouaexp_charting)
+ouaexp_apply_widgets_pch(ouaexp_charting)
 
 if(MSVC)
     target_compile_options(ouaexp_charting PRIVATE /utf-8)

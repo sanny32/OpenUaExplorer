@@ -10,13 +10,13 @@
 #include <functional>
 #include <utility>
 
-#include <QApplication>
 #include <QBrush>
 #include <QColor>
 #include <QDataStream>
 #include <QDateTime>
 #include <QFont>
 #include <QFontDatabase>
+#include <QGuiApplication>
 #include <QIODevice>
 #include <QMimeData>
 #include <QPalette>

@@ -273,9 +273,13 @@ target_include_directories(ouaexp_ui PUBLIC
 target_link_libraries(ouaexp_ui PUBLIC ouaexp_modules)
 target_link_libraries(ouaexp_ui PRIVATE ouaexp_charting)
 
+# Public, unlike the rest of the Qt modules: the widget classes this library
+# exports derive from QWidget, so its headers do not parse without Qt Widgets.
+target_link_libraries(ouaexp_ui PUBLIC Qt${QT_VERSION_MAJOR}::Widgets)
+
 ouaexp_configure_qt_target(ouaexp_ui)
 ouaexp_configure_qlementine_app_style(ouaexp_ui)
-ouaexp_apply_pch(ouaexp_ui)
+ouaexp_apply_widgets_pch(ouaexp_ui)
 
 if(MSVC)
     target_compile_options(ouaexp_ui PUBLIC /utf-8)

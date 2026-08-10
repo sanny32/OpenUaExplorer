@@ -8,8 +8,8 @@
 
 #include "addressspacemodel.h"
 
-#include <QApplication>
 #include <QBrush>
+#include <QGuiApplication>
 #include <QMimeData>
 #include <QPalette>
 #include <QSet>

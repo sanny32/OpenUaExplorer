@@ -65,7 +65,13 @@ endfunction()
 # only reusable while the provider and the tests agree on all of it, so both go
 # through this one function rather than repeating the settings.
 function(ouaexp_apply_test_compile_settings target)
-    target_link_libraries(${target} PRIVATE Qt${QT_VERSION_MAJOR}::Test)
+    # Qt Widgets is linked by every test, not just the UI ones: it is what makes
+    # QTEST_MAIN instantiate a QApplication, and QT_WIDGETS_LIB has to be defined
+    # identically everywhere or the shared precompiled header stops being reusable.
+    target_link_libraries(${target} PRIVATE
+        Qt${QT_VERSION_MAJOR}::Test
+        Qt${QT_VERSION_MAJOR}::Widgets
+    )
     target_compile_definitions(${target} PRIVATE
         OUAEXP_TEST_SERVER_SCRIPT="${PROJECT_SOURCE_DIR}/../tools/opcua_test_server.py")
     ouaexp_apply_coverage(${target})

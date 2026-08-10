@@ -9,7 +9,7 @@
 #include <QBrush>
 #include <QColor>
 #include <QDateTime>
-#include <QApplication>
+#include <QGuiApplication>
 #include <QPalette>
 
 #include "attributesmodel.h"
