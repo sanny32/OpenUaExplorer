@@ -77,13 +77,11 @@ jobs:
         shell: pwsh
         run: |
           $licenseRoot = "${{ github.workspace }}\stage\licenses"
-          @(
-            'LICENSE',
-            'THIRD_PARTY_NOTICES.md',
-            'third-party\GPL-3.0-only.txt',
-            'third-party\LGPL-3.0-only.txt',
-            'third-party\Apache-2.0.txt'
-          ) | ForEach-Object {
+          # Every notice in licenses/ has to reach the stage, not just a sample.
+          $expected = @('LICENSE', 'THIRD_PARTY_NOTICES.md')
+          $expected += Get-ChildItem "${{ github.workspace }}\licenses" -File |
+            ForEach-Object { "third-party\$($_.Name)" }
+          $expected | ForEach-Object {
             if (-not (Test-Path (Join-Path $licenseRoot $_) -PathType Leaf)) {
               throw "Missing license file: $_"
             }

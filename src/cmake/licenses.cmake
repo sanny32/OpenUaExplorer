@@ -13,8 +13,10 @@ set(OUAEXP_REQUIRED_LICENSE_FILES
     MIT-open62541.txt
     MIT-Qlementine.txt
     MPL-2.0.txt
+    OFL-1.1.txt
     open62541-AUTHORS.txt
     OpenSSL-ACKNOWLEDGEMENTS.md
+    Qlementine-FONTS.md
 )
 
 foreach(license_file IN LISTS OUAEXP_REQUIRED_LICENSE_FILES)

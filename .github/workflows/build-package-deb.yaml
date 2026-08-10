@@ -208,11 +208,12 @@ jobs:
           dpkg-deb --info "${{ steps.package.outputs.name }}"
           dpkg-deb --contents "${{ steps.package.outputs.name }}"
 
-          for file in LICENSE THIRD_PARTY_NOTICES.md \
-                      third-party/GPL-3.0-only.txt \
-                      third-party/LGPL-3.0-only.txt \
-                      third-party/Apache-2.0.txt; do
+          # Every notice in licenses/ has to reach the package, not just a sample.
+          for file in LICENSE THIRD_PARTY_NOTICES.md; do
             test -f "pkgroot/usr/share/licenses/ouaexp/$file"
+          done
+          for file in licenses/*; do
+            test -f "pkgroot/usr/share/licenses/ouaexp/third-party/$(basename "$file")"
           done
 
           # A libssl dependency means the bundled OpenSSL is not being resolved.
