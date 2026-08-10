@@ -9,6 +9,7 @@
 #include <QAbstractButton>
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QGraphicsEllipseItem>
 #include <QSignalSpy>
 #include <QTest>
 #include <QMouseEvent>
@@ -46,6 +47,27 @@ void sendWheel(QChartView *view, int notches, Qt::KeyboardModifiers modifiers = 
 /// \brief Builds two history samples far outside the default value axis.
 /// \return Samples a value auto-scale would visibly react to.
 ///
+///
+/// \brief Builds history samples that all carry the same value.
+/// \param count Number of samples spread over the last minute.
+/// \return Samples drawing a horizontal line across the window.
+///
+QVector<OpcUaHistoryValue> flatHistorySamples(int count)
+{
+    const QDateTime now = QDateTime::currentDateTime();
+    QVector<OpcUaHistoryValue> values;
+    values.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        OpcUaHistoryValue value;
+        value.nodeId = QString::fromLatin1(kNodeId);
+        value.value = 42.0;
+        value.status = QStringLiteral("Good");
+        value.sourceTimestamp = now.addSecs(i * 10 - 50);
+        values.append(value);
+    }
+    return values;
+}
+
 QVector<OpcUaHistoryValue> historySamples()
 {
     const QDateTime now = QDateTime::currentDateTime();
@@ -59,6 +81,52 @@ QVector<OpcUaHistoryValue> historySamples()
         values.append(value);
     }
     return values;
+}
+
+///
+/// \brief Maps a sample to a position in the chart view's viewport.
+/// \param view Chart view holding the series.
+/// \param series Series the sample belongs to.
+/// \param sample Sample in axis coordinates.
+/// \return Sample position in viewport pixels.
+///
+QPoint viewportPos(QChartView *view, QLineSeries *series, const QPointF &sample)
+{
+    const QPointF itemPos = view->chart()->mapToPosition(sample, series);
+    return view->mapFromScene(view->chart()->mapToScene(itemPos));
+}
+
+///
+/// \brief Finds the floating value plaque owned by a chart view.
+/// \param view Chart view to search.
+/// \return The plaque window, or nullptr when the chart has none.
+///
+/// The plaque is a private backend widget with no exported type; it is the chart
+/// view's only tool-tip window, which identifies it well enough for a test.
+///
+QWidget *valuePlaque(QChartView *view)
+{
+    const QList<QWidget *> children = view->findChildren<QWidget *>();
+    for (QWidget *child : children) {
+        if (child->windowFlags().testFlag(Qt::ToolTip))
+            return child;
+    }
+    return nullptr;
+}
+
+///
+/// \brief Finds the dot the chart draws at the hovered position.
+/// \param view Chart view to search.
+/// \return The marker item, or nullptr when the chart has none.
+///
+QGraphicsEllipseItem *hoverMarker(QChartView *view)
+{
+    const QList<QGraphicsItem *> items = view->chart()->childItems();
+    for (QGraphicsItem *item : items) {
+        if (auto *ellipse = qgraphicsitem_cast<QGraphicsEllipseItem *>(item))
+            return ellipse;
+    }
+    return nullptr;
 }
 
 ///
@@ -88,6 +156,36 @@ void sendMouse(QWidget *viewport, QEvent::Type type, const QPoint &pos,
     QMouseEvent event(type, QPointF(pos), QPointF(viewport->mapToGlobal(pos)),
                       button, buttons, Qt::NoModifier);
     QCoreApplication::sendEvent(viewport, &event);
+}
+
+///
+/// \brief Shows a panel charting one flat history series, ready for hover tests.
+/// \param panel Panel to set up; shown and sized by this call.
+/// \param view Receives the panel's chart view.
+/// \param series Receives the charted series.
+/// \return True once the chart is laid out and holds the samples.
+///
+bool showFlatSeries(TrendPanelWidget *panel, QChartView **view, QLineSeries **series)
+{
+    panel->resize(800, 600);
+    panel->show();
+    if (!QTest::qWaitForWindowExposed(panel))
+        return false;
+
+    panel->addNode(QString::fromLatin1(kNodeId), QStringLiteral("Demo"));
+    auto *oneMinute = panel->findChild<QAbstractButton *>(QStringLiteral("oneMinuteButton"));
+    if (!oneMinute)
+        return false;
+    oneMinute->click();
+    if (!panel->consumeHistory(QString::fromLatin1(kNodeId), QString(), flatHistorySamples(6)))
+        return false;
+
+    *view = panel->findChild<QChartView *>();
+    if (!*view || !waitForPlotArea(*view) || (*view)->chart()->series().isEmpty())
+        return false;
+
+    *series = qobject_cast<QLineSeries *>((*view)->chart()->series().constFirst());
+    return *series && (*series)->count() > 1;
 }
 
 ///
@@ -152,6 +250,10 @@ private slots:
     void draggingShowsClosedHandCursor();
     void liveChartKeepsIdleCursor();
     void draggingLiveChartKeepsWindow();
+    void hoverShowsPlaqueAlongLine();
+    void hoverTracksPositionBetweenSamples();
+    void hoverAlongHorizontalLineKeepsPlaque();
+    void livePlaqueSurvivesWindowScrolling();
 };
 
 ///
@@ -519,6 +621,129 @@ void TestTrendPanelWidget::draggingLiveChartKeepsWindow()
 
     QCOMPARE(timeSpanMs(chartView), qint64(60000));
     QCOMPARE(timeAxis(chartView)->max(), endBefore);
+}
+
+///
+/// \brief The plaque appears in the band along a line and hides away from it.
+///
+void TestTrendPanelWidget::hoverShowsPlaqueAlongLine()
+{
+    TrendPanelWidget panel;
+    QChartView *chartView = nullptr;
+    QLineSeries *series = nullptr;
+    QVERIFY(showFlatSeries(&panel, &chartView, &series));
+
+    QWidget *plaque = valuePlaque(chartView);
+    QVERIFY(plaque);
+    QVERIFY(!plaque->isVisible());
+
+    const QPoint onLine = viewportPos(chartView, series, series->at(0));
+    sendMouse(chartView->viewport(), QEvent::MouseMove, onLine + QPoint(0, 4), Qt::NoButton,
+              Qt::NoButton);
+    QVERIFY(plaque->isVisible());
+
+    sendMouse(chartView->viewport(), QEvent::MouseMove, onLine + QPoint(0, 120), Qt::NoButton,
+              Qt::NoButton);
+    QTRY_VERIFY_WITH_TIMEOUT(!plaque->isVisible(), 2000);
+}
+
+///
+/// \brief The marker rides the line under the cursor instead of jumping between samples.
+///
+void TestTrendPanelWidget::hoverTracksPositionBetweenSamples()
+{
+    TrendPanelWidget panel;
+    QChartView *chartView = nullptr;
+    QLineSeries *series = nullptr;
+    QVERIFY(showFlatSeries(&panel, &chartView, &series));
+
+    QGraphicsEllipseItem *marker = hoverMarker(chartView);
+    QVERIFY(marker);
+
+    const QPoint first = viewportPos(chartView, series, series->at(0));
+    const QPoint second = viewportPos(chartView, series, series->at(1));
+    QVERIFY(second.x() - first.x() > 20);
+
+    for (const int offset : { 4, 10, 16 }) {
+        const QPoint cursor(first.x() + offset, first.y());
+        sendMouse(chartView->viewport(), QEvent::MouseMove, cursor, Qt::NoButton, Qt::NoButton);
+
+        const QPoint markerPos =
+            chartView->mapFromScene(chartView->chart()->mapToScene(marker->pos()));
+        QVERIFY2(qAbs(markerPos.x() - cursor.x()) <= 1,
+                 qPrintable(QStringLiteral("marker at %1 for cursor at %2")
+                                .arg(markerPos.x())
+                                .arg(cursor.x())));
+    }
+}
+
+///
+/// \brief Travelling along a horizontal line never blinks the plaque away.
+///
+/// A line's own hover area is a couple of pixels wide, so following it used to emit
+/// leave and enter in bursts; the plaque must stay up across the whole sweep.
+///
+void TestTrendPanelWidget::hoverAlongHorizontalLineKeepsPlaque()
+{
+    TrendPanelWidget panel;
+    QChartView *chartView = nullptr;
+    QLineSeries *series = nullptr;
+    QVERIFY(showFlatSeries(&panel, &chartView, &series));
+
+    QWidget *plaque = valuePlaque(chartView);
+    QVERIFY(plaque);
+
+    const QPoint first = viewportPos(chartView, series, series->at(0));
+    const QPoint last = viewportPos(chartView, series, series->at(series->count() - 1));
+    QVERIFY(last.x() - first.x() > 20);
+
+    for (int x = first.x(); x <= last.x(); x += 3) {
+        const int jitter = (x / 3) % 2 == 0 ? -3 : 3;
+        sendMouse(chartView->viewport(), QEvent::MouseMove, QPoint(x, first.y() + jitter),
+                  Qt::NoButton, Qt::NoButton);
+        QVERIFY2(plaque->isVisible(),
+                 qPrintable(QStringLiteral("plaque hidden at x=%1").arg(x)));
+    }
+}
+
+///
+/// \brief A live chart scrolling under the cursor keeps the plaque on its sample.
+///
+/// The rolling window is re-applied on every live tick, which must re-anchor the
+/// plaque instead of dropping it: the cursor does not move, so nothing would bring
+/// it back until the user jiggles the mouse.
+///
+void TestTrendPanelWidget::livePlaqueSurvivesWindowScrolling()
+{
+    TrendPanelWidget panel;
+    panel.resize(800, 600);
+    panel.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&panel));
+    panel.addNode(QString::fromLatin1(kNodeId), QStringLiteral("Demo"));
+
+    OpcUaDataValue value;
+    value.nodeId = QString::fromLatin1(kNodeId);
+    value.value = 0.5;
+    value.sourceTimestamp = QDateTime::currentDateTime().addSecs(-20);
+    value.status = QStringLiteral("Good");
+    panel.applyLiveValues({value});
+
+    auto *chartView = panel.findChild<QChartView *>();
+    QVERIFY(chartView);
+    QVERIFY(waitForPlotArea(chartView));
+    auto *series = qobject_cast<QLineSeries *>(chartView->chart()->series().constFirst());
+    QVERIFY(series);
+    QVERIFY(series->count() > 0);
+
+    QWidget *plaque = valuePlaque(chartView);
+    QVERIFY(plaque);
+
+    sendMouse(chartView->viewport(), QEvent::MouseMove,
+              viewportPos(chartView, series, series->at(0)), Qt::NoButton, Qt::NoButton);
+    QVERIFY(plaque->isVisible());
+
+    QTest::qWait(1500);
+    QVERIFY(plaque->isVisible());
 }
 
 QTEST_MAIN(TestTrendPanelWidget)
