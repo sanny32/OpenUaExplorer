@@ -8,6 +8,8 @@
 
 #include "attributeformatter.h"
 
+#include <algorithm>
+
 #include <QDateTime>
 #include <QMetaEnum>
 #include <QObject>
@@ -99,6 +101,20 @@ OpcUaNodeAttribute elementAttribute(const ValueElement &element)
     for (const ValueElement &child : valueElements(element.value))
         attribute.children.append(elementAttribute(child));
     return attribute;
+}
+
+///
+/// \brief Reports whether an array is short and flat enough to spell out in a single cell.
+/// \param list Array elements.
+/// \return True when the array fits inline.
+///
+bool fitsInlineSummary(const QVariantList &list)
+{
+    static constexpr int inlineElementLimit = 10;
+    if (list.size() > inlineElementLimit)
+        return false;
+    return std::none_of(list.cbegin(), list.cend(),
+                        [](const QVariant &entry) { return hasValueElements(entry); });
 }
 
 QString zoneSuffix(int offsetSeconds)
@@ -243,10 +259,12 @@ QVector<ValueElement> valueElements(const QVariant &value, int limit, int *total
 /// \param value Variant to describe.
 /// \param type Declared value type, used to name array elements.
 /// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
-/// \return Summary such as "Int16[3]", or the plain display value for scalars.
+/// \return Summary such as "Int16[3]", the bracketed elements of a short flat array, or the
+///         plain display value for scalars.
 ///
 /// The elements carry the values themselves once the row is expanded, so the cell of a
-/// composite value is better spent on the facts a truncated element list would hide.
+/// composite value is better spent on the facts a truncated element list would hide. A short
+/// array of scalars fits as it is, and reading it needs no expanding at all.
 ///
 QString valueSummary(const QVariant &value, QOpcUa::Types type, const QString &dataTypeId)
 {
@@ -256,6 +274,9 @@ QString valueSummary(const QVariant &value, QOpcUa::Types type, const QString &d
         return displayValue(value);
 
     const QVariantList list = value.toList();
+    if (fitsInlineSummary(list))
+        return displayValue(value);
+
     const QString typeName = !list.isEmpty() && isStructValue(list.constFirst())
         ? list.constFirst().value<QOpcUaGenericStructValue>().typeName()
         : valueTypeDisplay(type, dataTypeId);

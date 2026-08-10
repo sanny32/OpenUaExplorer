@@ -360,11 +360,28 @@ void TestAttributeFormatter::valueElementsSplitArraysAndHonourTheLimit()
 void TestAttributeFormatter::valueSummaryNamesArraysAndPassesScalarsThrough()
 {
     QCOMPARE(valueSummary(QVariant(7), QOpcUa::Types::Int32), QStringLiteral("7"));
+
+    // A short array of scalars is spelled out; a longer one is named by type and size.
     QCOMPARE(valueSummary(QVariant(QVariantList{1, 2}), QOpcUa::Types::Int32),
-             QStringLiteral("Int32[2]"));
+             QStringLiteral("[1, 2]"));
+    QVariantList ten;
+    QVariantList eleven;
+    for (int index = 0; index < 11; ++index) {
+        if (index < 10)
+            ten.append(index);
+        eleven.append(index);
+    }
+    QCOMPARE(valueSummary(QVariant(ten), QOpcUa::Types::Int32),
+             QStringLiteral("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]"));
+    QCOMPARE(valueSummary(QVariant(eleven), QOpcUa::Types::Int32), QStringLiteral("Int32[11]"));
+
+    // An array whose elements expand on their own keeps the short summary.
+    QCOMPARE(valueSummary(QVariant(QVariantList{QVariant(QVariantList{1, 2})}),
+                          QOpcUa::Types::Int32),
+             QStringLiteral("Int32[1]"));
     QCOMPARE(valueSummary(QVariant(QVariantList{1}), QOpcUa::Types::Undefined,
                           QStringLiteral("ns=0;i=338")),
-             QStringLiteral("BuildInfo[1]"));
+             QStringLiteral("[1]"));
 }
 
 void TestAttributeFormatter::structValuesExpandIntoTheirDeclaredFields()

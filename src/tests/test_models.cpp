@@ -494,9 +494,9 @@ void TestModels::dataAccessFormatsTypedValues()
     update.value = QVariantList{QVariant::fromValue<quint8>(122),
                                 QVariant::fromValue<qint8>(-6)};
     model.updateValues({update});
-    // An array names itself in the cell and spells its elements out in its child rows.
+    // A short array still fits in the cell, and spells its elements out in its child rows too.
     const QModelIndex arrayIndex = model.index(2, DataAccessModel::ColValue);
-    QCOMPARE(model.data(arrayIndex).toString(), QStringLiteral("Boolean[2]"));
+    QCOMPARE(model.data(arrayIndex).toString(), QStringLiteral("[122, -6]"));
     const QModelIndex arrayRow = model.index(2, 0);
     QCOMPARE(model.rowCount(arrayRow), 2);
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColNodeId, arrayRow)).toString(),
