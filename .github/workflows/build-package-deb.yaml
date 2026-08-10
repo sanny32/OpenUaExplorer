@@ -144,6 +144,11 @@ jobs:
 
           find pkgroot -type d -exec chmod 0755 {} +
 
+      - name: Check the glibc floor
+        uses: ./.github/actions/check-glibc-floor
+        with:
+          path: pkgroot/usr/lib/ouaexp
+
       - name: Validate desktop entry and AppStream metadata
         run: |
           desktop-file-validate pkgroot/usr/share/applications/*.desktop

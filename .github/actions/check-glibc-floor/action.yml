@@ -1,0 +1,49 @@
+name: Check glibc floor
+description: Fail when a staged tree needs a newer glibc than the oldest target has.
+
+inputs:
+  path:
+    description: Directory holding the staged binaries and libraries.
+    required: true
+  floor:
+    description: Newest glibc symbol version the oldest supported target provides.
+    required: false
+    default: GLIBC_2.28
+
+runs:
+  using: composite
+  steps:
+    - name: Check glibc symbol versions
+      shell: bash
+      env:
+        ROOT: ${{ inputs.path }}
+        FLOOR: ${{ inputs.floor }}
+      run: |
+        # Built in a container whose glibc is newer than the oldest target's, the
+        # bundle can pick up a symbol version that target never had. The offending
+        # symbols are listed because the fix depends on which of them it is.
+
+        # A file that names no versioned symbol at all, such as a pure data
+        # library, leaves grep with nothing to match: that is not a failure here.
+        versions() {
+          objdump -T "$1" 2> /dev/null | grep -o 'GLIBC_[0-9][0-9.]*' || true
+        }
+
+        status=0
+        while read -r elf; do
+          need="$(versions "$elf" | sort -Vu | tail -n 1)"
+          [ -n "$need" ] || continue
+          if [ "$(printf '%s\n%s\n' "$need" "$FLOOR" | sort -V | tail -n 1)" = "$FLOOR" ]; then
+            continue
+          fi
+
+          echo "$elf needs $need:"
+          objdump -T "$elf" | grep -F "$need" | awk '{ print "  " $NF }' | sort -u
+          status=1
+        done < <(find "$ROOT" -type f \( -name ouaexp -o -name '*.so*' \))
+
+        if [ "$status" -ne 0 ]; then
+          echo "::error::The bundle needs a glibc newer than $FLOOR"
+          exit 1
+        fi
+        echo "Every file fits $FLOOR"
