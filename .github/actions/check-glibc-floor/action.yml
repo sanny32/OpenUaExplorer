@@ -22,9 +22,16 @@ runs:
         # Built in a container whose glibc is newer than the oldest target's, the
         # bundle can pick up a symbol version that target never had. The offending
         # symbols are listed because the fix depends on which of them it is.
+
+        # A file that names no versioned symbol at all, such as a pure data
+        # library, leaves grep with nothing to match: that is not a failure here.
+        versions() {
+          objdump -T "$1" 2> /dev/null | grep -o 'GLIBC_[0-9][0-9.]*' || true
+        }
+
         status=0
         while read -r elf; do
-          need="$(objdump -T "$elf" | grep -o 'GLIBC_[0-9][0-9.]*' | sort -Vu | tail -n 1)"
+          need="$(versions "$elf" | sort -Vu | tail -n 1)"
           [ -n "$need" ] || continue
           if [ "$(printf '%s\n%s\n' "$need" "$FLOOR" | sort -V | tail -n 1)" = "$FLOOR" ]; then
             continue
