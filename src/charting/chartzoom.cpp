@@ -28,7 +28,10 @@ qreal factorFromWheel(int angleDelta)
 {
     if (angleDelta == 0)
         return 1.0;
-    return std::pow(kNotchFactor, -angleDelta / kNotchDegrees);
+    // powl, not pow: glibc 2.29 revisioned the double entry point, so pow() would
+    // raise the glibc the Linux packages need above what the oldest target has.
+    const long double exponent = -angleDelta / kNotchDegrees;
+    return static_cast<qreal>(std::pow(static_cast<long double>(kNotchFactor), exponent));
 }
 
 ///

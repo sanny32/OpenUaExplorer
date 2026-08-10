@@ -22,7 +22,6 @@ set(ORGANIZATION_NAME "Ananev Alexandr")
 
 option(OUAEXP_BUILD_TESTS "Build OpenUaExplorer tests" OFF)
 
-include("${PROJECT_SOURCE_DIR}/cmake/glibc_compat.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/qt.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/dependencies.cmake")
 include("${PROJECT_SOURCE_DIR}/cmake/qtopcua.cmake")
