@@ -214,6 +214,20 @@ jobs:
             grep -Fx "/usr/share/licenses/ouaexp/third-party/$(basename "$file")" \
               rpm-contents.txt
           done
+
+          # Check the bundle against the minimum glibc version supported: built on a
+          # newer one, it can pick up a symbol version the oldest target lacks.
+          floor=GLIBC_2.28
+          need="$(find pkgroot/usr/lib/ouaexp -type f \
+            \( -name ouaexp -o -name '*.so*' \) -print0 \
+            | xargs -0 objdump -T | grep -o 'GLIBC_[0-9][0-9.]*' | sort -Vu | tail -n 1)"
+          echo "Highest glibc symbol version required: ${need:-none}"
+          if [ -z "$need" ] \
+             || [ "$(printf '%s\n%s\n' "$need" "$floor" | sort -V | tail -n 1)" != "$floor" ]; then
+            echo "::error::The package needs ${need:-an unreadable glibc version}, above $floor"
+            exit 1
+          fi
+
           echo '--- provides ---'
           rpm -qp --provides "${{ steps.package.outputs.name }}"
           echo '--- requires ---'

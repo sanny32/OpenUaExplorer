@@ -177,6 +177,19 @@ jobs:
             exit 1
           fi
 
+          # Check the bundle against the minimum glibc version supported: built on a
+          # newer one, it can pick up a symbol version the oldest target lacks.
+          floor=GLIBC_2.28
+          need="$(find squashfs-root/usr -type f \
+            \( -name ouaexp -o -name '*.so*' \) -print0 \
+            | xargs -0 objdump -T | grep -o 'GLIBC_[0-9][0-9.]*' | sort -Vu | tail -n 1)"
+          echo "Highest glibc symbol version required: ${need:-none}"
+          if [ -z "$need" ] \
+             || [ "$(printf '%s\n%s\n' "$need" "$floor" | sort -V | tail -n 1)" != "$floor" ]; then
+            echo "::error::The AppImage needs ${need:-an unreadable glibc version}, above $floor"
+            exit 1
+          fi
+
           # OpenSSL must resolve inside the AppImage, or the host needs its own.
           if ldd squashfs-root/usr/plugins/opcua/*.so | grep -E 'libssl|libcrypto' \
               | grep -qv squashfs-root/; then
