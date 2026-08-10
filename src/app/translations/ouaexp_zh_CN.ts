@@ -57,6 +57,10 @@
         <translation>搜索节点…</translation>
     </message>
     <message>
+        <source>Refresh</source>
+        <translation>刷新</translation>
+    </message>
+    <message>
         <source>Node Info</source>
         <translation>节点信息</translation>
     </message>

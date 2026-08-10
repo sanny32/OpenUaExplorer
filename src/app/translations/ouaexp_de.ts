@@ -57,6 +57,10 @@
         <translation>Knoten suchen …</translation>
     </message>
     <message>
+        <source>Refresh</source>
+        <translation>Aktualisieren</translation>
+    </message>
+    <message>
         <source>Node Info</source>
         <translation>Knoteninfo</translation>
     </message>

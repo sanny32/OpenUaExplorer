@@ -57,6 +57,10 @@
         <translation>Поиск узлов...</translation>
     </message>
     <message>
+        <source>Refresh</source>
+        <translation>Обновить</translation>
+    </message>
+    <message>
         <source>Node Info</source>
         <translation>Сведения об узле</translation>
     </message>
