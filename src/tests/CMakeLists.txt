@@ -155,7 +155,10 @@ set_property(TEST
     ouaexp_tests_auth_integration
     ouaexp_tests_certificate_details_widget
     ouaexp_tests_certificates_dialog
-    ouaexp_tests_connection_dialog
+    ouaexp_tests_connection_dialog_history_auth
+    ouaexp_tests_connection_dialog_discovery
+    ouaexp_tests_connection_dialog_certificates
+    ouaexp_tests_connection_dialog_layout
     ouaexp_tests_endpoint_settings_dialog
     ouaexp_tests_pkimanager
     APPEND PROPERTY RESOURCE_LOCK application_pki)
