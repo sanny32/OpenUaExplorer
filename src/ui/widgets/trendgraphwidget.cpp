@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <utility>
 
+#include <QAction>
 #include <QContextMenuEvent>
 #include <QDateTime>
 #include <QDragEnterEvent>
@@ -22,14 +23,18 @@
 #include <QImage>
 #include <QMenu>
 #include <QMimeData>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPixmap>
+#include <QPointF>
 #include <QTimer>
+#include <QWheelEvent>
 
 #include "appcolors.h"
 #include "appicons.h"
 #include "charttypes.h"
 #include "chartviewfactory.h"
+#include "chartzoom.h"
 #include "dialogs/customintervaldialog.h"
 #include "dialogs/messageboxdialog.h"
 #include "dialogs/trendsettingsdialog.h"
@@ -42,6 +47,7 @@ namespace {
 
 constexpr qint64 kLiveWindowMs = 60000;
 constexpr int kLiveTickMs = 1000;
+constexpr int kZoomHistoryDelayMs = 400;
 
 ///
 /// \brief Reports whether a history window matches a toolbar preset range.
@@ -104,6 +110,11 @@ TrendGraphWidget::TrendGraphWidget(QWidget *parent)
     _liveTimer = new QTimer(this);
     _liveTimer->setInterval(kLiveTickMs);
     connect(_liveTimer, &QTimer::timeout, this, &TrendGraphWidget::refreshLiveView);
+
+    _zoomHistoryTimer = new QTimer(this);
+    _zoomHistoryTimer->setSingleShot(true);
+    _zoomHistoryTimer->setInterval(kZoomHistoryDelayMs);
+    connect(_zoomHistoryTimer, &QTimer::timeout, this, &TrendGraphWidget::refreshZoomedHistory);
 
     applyTheme();
     applyDisplaySettings();
@@ -286,6 +297,7 @@ void TrendGraphWidget::setTimeWindow(qreal startMsEpoch, qreal endMsEpoch)
 ///
 void TrendGraphWidget::autoScale()
 {
+    _valueZoomed = false;
     _chart->autoScaleY();
 }
 
@@ -294,6 +306,7 @@ void TrendGraphWidget::autoScale()
 ///
 void TrendGraphWidget::fit()
 {
+    _valueZoomed = false;
     _chart->fit();
 }
 
@@ -321,7 +334,8 @@ bool TrendGraphWidget::consumeHistory(const QString &nodeId, const QString &erro
         return false;
     if (error.isEmpty() && hasNode(nodeId)) {
         applyHistory(nodeId, values);
-        autoScale();
+        if (!_valueZoomed)
+            autoScale();
     }
     return true;
 }
@@ -493,6 +507,7 @@ void TrendGraphWidget::enterLiveMode()
 {
     _mode = Mode::Live;
     _livePaused = false;
+    _valueZoomed = false;
     _customInterval = false;
     _absoluteInterval = false;
     _windowMs = kLiveWindowMs;
@@ -500,6 +515,7 @@ void TrendGraphWidget::enterLiveMode()
     ui->toolbar->setInterval(QString(), QString());
     ui->toolbar->selectLive();
     ui->toolbar->setRefreshEnabled(false);
+    ui->toolbar->setFitEnabled(false);
     const QStringList ids = chartedNodeIds();
     for (const QString &nodeId : ids)
         subscribeNode(nodeId);
@@ -538,6 +554,7 @@ void TrendGraphWidget::setLivePaused(bool paused)
 void TrendGraphWidget::enterHistoryMode(qint64 windowMs)
 {
     _mode = Mode::History;
+    _valueZoomed = false;
     _customInterval = !isPresetWindow(windowMs);
     _absoluteInterval = false;
     _windowMs = windowMs;
@@ -546,6 +563,7 @@ void TrendGraphWidget::enterHistoryMode(qint64 windowMs)
         ui->toolbar->setInterval(QString(), QString());
     ui->toolbar->selectHistoryWindow(windowMs);
     ui->toolbar->setRefreshEnabled(true);
+    ui->toolbar->setFitEnabled(true);
     _liveTimer->stop();
     const QSet<QString> subscribed = _state.subscribedNodes();
     for (const QString &nodeId : subscribed)
@@ -599,12 +617,14 @@ void TrendGraphWidget::enterCustomInterval(const QDateTime &start, const QDateTi
                                            bool relative)
 {
     _mode = Mode::History;
+    _valueZoomed = false;
     _customInterval = true;
     _absoluteInterval = !relative;
     _windowMs = start.msecsTo(end);
     _windowEndMs = end.toMSecsSinceEpoch();
     ui->toolbar->selectCustom();
     ui->toolbar->setRefreshEnabled(true);
+    ui->toolbar->setFitEnabled(true);
     _liveTimer->stop();
     const QSet<QString> subscribed = _state.subscribedNodes();
     for (const QString &nodeId : subscribed)
@@ -828,6 +848,19 @@ qreal TrendGraphWidget::toChartX(qreal epochMs) const
 }
 
 ///
+/// \brief Maps an X position read back from the chart to an epoch timestamp.
+/// \param chartX X position on the chart's local-time axis.
+/// \return Timestamp in milliseconds since the epoch (UTC).
+///
+qreal TrendGraphWidget::fromChartX(qreal chartX) const
+{
+    if (_timestampMode != AppSettings::TimestampMode::Utc)
+        return chartX;
+    const qint64 offsetMs = qint64(QDateTime::currentDateTime().offsetFromUtc()) * 1000;
+    return chartX + static_cast<qreal>(offsetMs);
+}
+
+///
 /// \brief Pushes a series' buffered points into the chart, honouring the line type.
 ///
 /// OPC UA monitored items report on value change, so the value is constant between
@@ -905,10 +938,188 @@ bool TrendGraphWidget::dropNode(const QMimeData *mimeData)
 }
 
 ///
+/// \brief Zooms the chart under the cursor from a wheel rotation.
+/// \param globalPos Wheel position in global screen coordinates.
+/// \param angleDelta Wheel rotation in eighths of a degree.
+/// \param valueAxis True to zoom the value axis instead of the time axis.
+/// \return True when the rotation was taken as a zoom.
+///
+/// Live mode owns its viewport: the window follows "now" and the value axis tracks
+/// the incoming samples, so a zoom there would be undone by the next tick.
+///
+bool TrendGraphWidget::zoomChart(const QPoint &globalPos, int angleDelta, bool valueAxis)
+{
+    if (_mode != Mode::History)
+        return false;
+
+    const qreal factor = ChartZoom::factorFromWheel(angleDelta);
+    if (qFuzzyCompare(factor, 1.0))
+        return false;
+    if (valueAxis)
+        zoomValueRange(globalPos, factor);
+    else
+        zoomTimeWindow(globalPos, factor);
+    return true;
+}
+
+///
+/// \brief Scales the visible time window around the cursor.
+/// \param globalPos Wheel position in global screen coordinates.
+/// \param factor Window length multiplier.
+///
+/// Zooming out reveals time that was never read, hence the deferred re-read once the
+/// wheel settles.
+///
+void TrendGraphWidget::zoomTimeWindow(const QPoint &globalPos, qreal factor)
+{
+    ChartRange window = _chart->timeWindow();
+    window.min = fromChartX(window.min);
+    window.max = fromChartX(window.max);
+
+    QPointF cursor;
+    const qreal anchor = _chart->valueAt(globalPos, &cursor)
+        ? fromChartX(cursor.x())
+        : window.max;
+
+    if (!ChartZoom::scaleRange(&window, anchor, factor,
+                               ChartZoom::kMinTimeSpanMs, ChartZoom::kMaxTimeSpanMs)) {
+        return;
+    }
+
+    applyCustomWindow(window);
+}
+
+///
+/// \brief Starts panning the chart when history is shown.
+/// \param globalPos Press position in global screen coordinates.
+/// \return True when the press was taken as the start of a pan.
+///
+bool TrendGraphWidget::startPan(const QPoint &globalPos)
+{
+    if (_mode != Mode::History)
+        return false;
+    _panning = true;
+    _panOrigin = globalPos;
+    for (QWidget *target : chartCursorTargets())
+        target->setCursor(Qt::ClosedHandCursor);
+    return true;
+}
+
+///
+/// \brief Drags the visible interval and value range along with the cursor.
+/// \param globalPos Current cursor position in global screen coordinates.
+///
+/// The shift is applied per move event rather than against the press position, so the
+/// data under the cursor keeps following it even though the axis ranges change while
+/// dragging. A vertical drag takes the value axis over from auto-scaling, as a manual
+/// value zoom does.
+///
+void TrendGraphWidget::panChart(const QPoint &globalPos)
+{
+    QPointF delta;
+    if (!_chart->valueDelta(globalPos - _panOrigin, &delta))
+        return;
+    _panOrigin = globalPos;
+
+    if (!qFuzzyIsNull(delta.y())) {
+        ChartRange values = _chart->valueRange();
+        values.min -= delta.y();
+        values.max -= delta.y();
+        _valueZoomed = true;
+        _chart->setValueRange(values);
+    }
+
+    if (qFuzzyIsNull(delta.x()))
+        return;
+
+    ChartRange window = _chart->timeWindow();
+    window.min = fromChartX(window.min) - delta.x();
+    window.max = fromChartX(window.max) - delta.x();
+    applyCustomWindow(window);
+}
+
+///
+/// \brief Ends a pan and restores the cursor.
+///
+void TrendGraphWidget::endPan()
+{
+    _panning = false;
+    for (QWidget *target : chartCursorTargets())
+        target->unsetCursor();
+}
+
+///
+/// \brief Lists the widgets whose cursor covers the plot.
+/// \return The chart view and the viewport that draws the plot.
+///
+/// The pointer sits over the view's viewport, and a scroll area may give that
+/// viewport a cursor of its own, which would mask one set on the view alone.
+///
+QList<QWidget *> TrendGraphWidget::chartCursorTargets() const
+{
+    QWidget *chartWidget = _chart->widget();
+    QList<QWidget *> targets = chartWidget->findChildren<QWidget *>();
+    targets.append(chartWidget);
+    return targets;
+}
+
+///
+/// \brief Shows an explicit interval and schedules the history read that fills it.
+/// \param window Visible interval in milliseconds since the epoch.
+///
+void TrendGraphWidget::applyCustomWindow(const ChartRange &window)
+{
+    _windowMs = qRound64(window.span());
+    _windowEndMs = qRound64(window.max);
+    setTimeWindow(window.min, window.max);
+    _customInterval = true;
+    _absoluteInterval = true;
+    ui->toolbar->selectCustom();
+    updateIntervalBar(qRound64(window.min), _windowEndMs);
+    _zoomHistoryTimer->start();
+}
+
+///
+/// \brief Scales the value axis around the cursor and takes over from auto-scaling.
+/// \param globalPos Wheel position in global screen coordinates.
+/// \param factor Value span multiplier.
+///
+/// Arriving history rescales the value axis to the data, which would undo the zoom,
+/// so a manual value range holds until an explicit Auto Scale or Fit.
+///
+void TrendGraphWidget::zoomValueRange(const QPoint &globalPos, qreal factor)
+{
+    ChartRange range = _chart->valueRange();
+    QPointF cursor;
+    const qreal anchor = _chart->valueAt(globalPos, &cursor)
+        ? cursor.y()
+        : (range.min + range.max) / 2.0;
+
+    if (!ChartZoom::scaleRange(&range, anchor, factor, ChartZoom::kMinValueSpan, 0.0))
+        return;
+
+    _valueZoomed = true;
+    _chart->setValueRange(range);
+}
+
+///
+/// \brief Re-reads history over the zoomed window once the wheel has settled.
+///
+void TrendGraphWidget::refreshZoomedHistory()
+{
+    if (_mode != Mode::History)
+        return;
+    const QStringList ids = chartedNodeIds();
+    for (const QString &nodeId : ids)
+        requestHistory(nodeId);
+}
+
+///
 /// \brief Shows the chart context menu: view actions plus node removal.
 ///
-/// Auto Scale, Fit, and Settings are always offered; per-node Remove entries
-/// and Clear appear only while the chart has series.
+/// Auto Scale and Settings are always offered, Fit only outside Live mode where the
+/// window follows "now"; per-node Remove entries and Clear appear only while the
+/// chart has series.
 ///
 /// \param globalPos Menu position in global screen coordinates.
 ///
@@ -925,8 +1136,9 @@ void TrendGraphWidget::showSeriesContextMenu(const QPoint &globalPos)
     }
 
     menu.addAction(tr("Auto Scale"), this, [this]() { autoScale(); });
-    menu.addAction(AppIcons::themed(QStringLiteral("fit")), tr("Fit"), this,
-                   [this]() { fit(); });
+    QAction *fitAction = menu.addAction(AppIcons::themed(QStringLiteral("fit")), tr("Fit"), this,
+                                        [this]() { fit(); });
+    fitAction->setEnabled(_mode == Mode::History);
     menu.addAction(AppIcons::themed(QStringLiteral("settings")), tr("Settings"),
                    this, [this]() { openSettings(); });
 
@@ -974,10 +1186,10 @@ void TrendGraphWidget::changeEvent(QEvent *event)
 }
 
 ///
-/// \brief Routes drags over the chart view (and its viewport) to this widget.
+/// \brief Routes drags, wheel zooming, panning and context menus over the chart view here.
 ///
-/// The chart view is a scroll area that accepts drops itself, so drags landing on
-/// it never reach the widget's own drag handlers; this filter intercepts them.
+/// The chart view is a scroll area that handles these itself, so events landing on
+/// it never reach the widget's own handlers; this filter intercepts them.
 ///
 bool TrendGraphWidget::eventFilter(QObject *watched, QEvent *event)
 {
@@ -1001,6 +1213,40 @@ bool TrendGraphWidget::eventFilter(QObject *watched, QEvent *event)
             return true;
         }
         dropEvent->ignore();
+        return true;
+    }
+    case QEvent::Wheel: {
+        auto *wheelEvent = static_cast<QWheelEvent *>(event);
+        if (!zoomChart(wheelEvent->globalPosition().toPoint(), wheelEvent->angleDelta().y(),
+                       wheelEvent->modifiers().testFlag(Qt::ControlModifier))) {
+            break;
+        }
+        wheelEvent->accept();
+        return true;
+    }
+    case QEvent::MouseButtonPress: {
+        auto *mouseEvent = static_cast<QMouseEvent *>(event);
+        if (mouseEvent->button() != Qt::LeftButton
+            || !startPan(mouseEvent->globalPosition().toPoint())) {
+            break;
+        }
+        mouseEvent->accept();
+        return true;
+    }
+    case QEvent::MouseMove: {
+        auto *mouseEvent = static_cast<QMouseEvent *>(event);
+        if (!_panning)
+            break;
+        panChart(mouseEvent->globalPosition().toPoint());
+        mouseEvent->accept();
+        return true;
+    }
+    case QEvent::MouseButtonRelease: {
+        auto *mouseEvent = static_cast<QMouseEvent *>(event);
+        if (!_panning || mouseEvent->button() != Qt::LeftButton)
+            break;
+        endPan();
+        mouseEvent->accept();
         return true;
     }
     case QEvent::ContextMenu: {

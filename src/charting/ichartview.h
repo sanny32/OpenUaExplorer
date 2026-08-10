@@ -20,6 +20,8 @@
 
 class QWidget;
 class QImage;
+class QPoint;
+class QPointF;
 
 ///
 /// \brief Time-series chart abstraction with multiple line series.
@@ -97,6 +99,41 @@ public:
     /// \param endMsEpoch Range end in milliseconds since the epoch.
     ///
     virtual void setTimeWindow(qreal startMsEpoch, qreal endMsEpoch) = 0;
+
+    ///
+    /// \brief Returns the visible X (time) range.
+    /// \return Window bounds in milliseconds since the epoch.
+    ///
+    virtual ChartRange timeWindow() const = 0;
+
+    ///
+    /// \brief Returns the visible Y (value) range.
+    /// \return Value axis bounds.
+    ///
+    virtual ChartRange valueRange() const = 0;
+
+    ///
+    /// \brief Fixes the visible Y (value) range.
+    /// \param range Value axis bounds; an empty or inverted range is ignored.
+    ///
+    virtual void setValueRange(const ChartRange &range) = 0;
+
+    ///
+    /// \brief Maps a screen position over the plot area to chart values.
+    /// \param globalPos Position in global screen coordinates.
+    /// \param value Receives the X position in milliseconds since the epoch and the Y value.
+    /// \return True when the position lies inside the plot area.
+    ///
+    virtual bool valueAt(const QPoint &globalPos, QPointF *value) const = 0;
+
+    ///
+    /// \brief Converts a cursor displacement in view pixels to chart values.
+    /// \param pixels Displacement in view pixels.
+    /// \param delta Receives the matching X (milliseconds) and Y displacement, following
+    ///        the axes rather than the screen: moving the cursor up yields a positive Y.
+    /// \return True when the plot area has a usable size.
+    ///
+    virtual bool valueDelta(const QPoint &pixels, QPointF *delta) const = 0;
 
     ///
     /// \brief Scales the Y axis to the data range with a small margin.

@@ -59,6 +59,11 @@ public:
     void extendSeriesTo(const ChartSeriesId &id, qreal xMsEpoch) override;
     void setPoints(const ChartSeriesId &id, const QVector<ChartPoint> &points) override;
     void setTimeWindow(qreal startMsEpoch, qreal endMsEpoch) override;
+    ChartRange timeWindow() const override;
+    ChartRange valueRange() const override;
+    void setValueRange(const ChartRange &range) override;
+    bool valueAt(const QPoint &globalPos, QPointF *value) const override;
+    bool valueDelta(const QPoint &pixels, QPointF *delta) const override;
     void autoScaleY() override;
     void fit() override;
     void setLegendVisible(bool visible) override;

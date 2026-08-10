@@ -35,6 +35,26 @@ struct ChartPoint
 };
 
 ///
+/// \brief A closed interval on one chart axis.
+///
+/// On the time axis the bounds are milliseconds since the Unix epoch; on the value
+/// axis they are plain Y values.
+///
+struct ChartRange
+{
+    /// \brief Lower bound.
+    qreal min = 0.0;
+    /// \brief Upper bound.
+    qreal max = 0.0;
+
+    ///
+    /// \brief Returns the interval length.
+    /// \return Distance between the bounds; negative when the range is inverted.
+    ///
+    qreal span() const { return max - min; }
+};
+
+///
 /// \brief Backend-neutral colour set applied to a chart, sourced from AppColors.
 ///
 struct ChartTheme

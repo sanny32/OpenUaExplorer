@@ -169,6 +169,15 @@ void TrendGraphToolbar::setRefreshEnabled(bool enabled)
 }
 
 ///
+/// \brief Enables the fit-to-data command.
+/// \param enabled Whether fit can be clicked.
+///
+void TrendGraphToolbar::setFitEnabled(bool enabled)
+{
+    ui->fitButton->setEnabled(enabled);
+}
+
+///
 /// \brief Syncs the live play/pause control without emitting a request.
 /// \param paused True to show the paused (resume) state.
 ///

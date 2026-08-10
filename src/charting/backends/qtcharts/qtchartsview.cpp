@@ -659,6 +659,85 @@ void QtChartsView::setTimeWindow(qreal startMsEpoch, qreal endMsEpoch)
 }
 
 ///
+/// \brief Returns the visible X (time) range.
+/// \return Window bounds in milliseconds since the epoch.
+///
+ChartRange QtChartsView::timeWindow() const
+{
+    return { static_cast<qreal>(_axisX->min().toMSecsSinceEpoch()),
+             static_cast<qreal>(_axisX->max().toMSecsSinceEpoch()) };
+}
+
+///
+/// \brief Returns the visible Y (value) range.
+/// \return Value axis bounds.
+///
+ChartRange QtChartsView::valueRange() const
+{
+    return { _axisY->min(), _axisY->max() };
+}
+
+///
+/// \brief Fixes the visible Y (value) range.
+/// \param range Value axis bounds; an empty or inverted range is ignored.
+///
+void QtChartsView::setValueRange(const ChartRange &range)
+{
+    if (range.span() <= 0.0)
+        return;
+    hideCallout();
+    _axisY->setRange(range.min, range.max);
+}
+
+///
+/// \brief Maps a screen position over the plot area to chart values.
+/// \param globalPos Position in global screen coordinates.
+/// \param value Receives the X position in milliseconds since the epoch and the Y value.
+/// \return True when the position lies inside the plot area.
+///
+/// QChart::mapToValue() needs an attached series to map against, so the axis ranges
+/// are interpolated over the plot area directly and an empty chart still answers.
+///
+bool QtChartsView::valueAt(const QPoint &globalPos, QPointF *value) const
+{
+    if (!value)
+        return false;
+
+    const QPoint viewPos = _view->viewport()->mapFromGlobal(globalPos);
+    const QPointF chartPos = _chart->mapFromScene(_view->mapToScene(viewPos));
+    const QRectF plotArea = _chart->plotArea();
+    if (plotArea.isEmpty() || !plotArea.contains(chartPos))
+        return false;
+
+    const ChartRange time = timeWindow();
+    const ChartRange values = valueRange();
+    value->setX(time.min + (chartPos.x() - plotArea.left()) / plotArea.width() * time.span());
+    value->setY(values.max - (chartPos.y() - plotArea.top()) / plotArea.height() * values.span());
+    return true;
+}
+
+///
+/// \brief Converts a cursor displacement in view pixels to chart values.
+/// \param pixels Displacement in view pixels.
+/// \param delta Receives the matching X (milliseconds) and Y displacement, following
+///        the axes rather than the screen: moving the cursor up yields a positive Y.
+/// \return True when the plot area has a usable size.
+///
+bool QtChartsView::valueDelta(const QPoint &pixels, QPointF *delta) const
+{
+    if (!delta)
+        return false;
+
+    const QRectF plotArea = _chart->plotArea();
+    if (plotArea.isEmpty())
+        return false;
+
+    delta->setX(pixels.x() / plotArea.width() * timeWindow().span());
+    delta->setY(-pixels.y() / plotArea.height() * valueRange().span());
+    return true;
+}
+
+///
 /// \brief Scales the Y axis to the visible data with a small margin.
 ///
 void QtChartsView::autoScaleY()

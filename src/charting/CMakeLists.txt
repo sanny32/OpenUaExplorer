@@ -8,6 +8,8 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Charts REQUIRED)
 
 add_library(ouaexp_charting STATIC
     charttypes.h
+    chartzoom.cpp
+    chartzoom.h
     ichartview.h
     chartviewfactory.cpp
     chartviewfactory.h
