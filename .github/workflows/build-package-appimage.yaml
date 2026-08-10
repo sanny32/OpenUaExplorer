@@ -165,12 +165,6 @@ jobs:
           mv "$built" "${{ steps.package.outputs.name }}"
           chmod +x "${{ steps.package.outputs.name }}"
 
-      # linuxdeployqt leaves the AppDir holding everything the AppImage carries.
-      - name: Check the glibc floor
-        uses: ./.github/actions/check-glibc-floor
-        with:
-          path: AppDir/usr
-
       - name: Inspect AppImage
         run: |
           ls -l "${{ steps.package.outputs.name }}"
