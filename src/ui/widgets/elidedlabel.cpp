@@ -21,12 +21,28 @@ ElidedLabel::ElidedLabel(QWidget *parent)
 }
 
 ///
-/// \brief Reports a minimum width of zero so the text never widens the window.
+/// \brief Tells whether the text last painted did not fit the width the layout granted.
+/// \return True when the painted text was cut short.
+///
+bool ElidedLabel::isElided() const
+{
+    return _elided;
+}
+
+///
+/// \brief Reports room for the elide mark alone, so the text never widens the window.
 /// \return Minimum size with the label's natural height.
+///
+/// Keeping the mark's width means a field squeezed by its neighbours still shows that it has
+/// a value to reveal, instead of collapsing to nothing.
 ///
 QSize ElidedLabel::minimumSizeHint() const
 {
-    return QSize(0, QLabel::minimumSizeHint().height());
+    const QSize hint = QLabel::minimumSizeHint();
+    const int mark = text().isEmpty()
+        ? 0
+        : fontMetrics().horizontalAdvance(QStringLiteral("…"));
+    return QSize(qMin(mark, hint.width()), hint.height());
 }
 
 ///
@@ -43,4 +59,9 @@ void ElidedLabel::paintEvent(QPaintEvent *event)
         fontMetrics().elidedText(text(), Qt::ElideRight, content.width());
     style()->drawItemText(&painter, content, alignment() | Qt::TextSingleLine, palette(),
                           isEnabled(), elided, foregroundRole());
+
+    if (_elided != (elided != text())) {
+        _elided = elided != text();
+        emit elisionChanged(_elided);
+    }
 }

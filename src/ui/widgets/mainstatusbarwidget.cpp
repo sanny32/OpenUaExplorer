@@ -18,36 +18,34 @@
 #include "opcua/opcuabackend.h"
 #include "opcua/standardnodeid.h"
 #include "ui_mainstatusbarwidget.h"
+#include "widgets/elidedlabel.h"
 
 namespace {
-
-/// Lengths, in characters of the current font, that the variable-length fields may claim,
-/// so a long endpoint, user, or session name cannot push the window's minimum width past
-/// the screen.
-constexpr int endpointBudget = 38;
-constexpr int securityBudget = 32;
-constexpr int authenticationBudget = 22;
 
 /// Property holding the field category, used to build the tooltip of an elided value.
 constexpr char fieldTooltipProperty[] = "fieldTooltip";
 
 ///
-/// \brief Shows a value in a field label, elided to its width budget.
+/// \brief Names the field, adding the full value whenever the layout had to cut it short.
+/// \param label Value label whose tooltip should be rebuilt.
+///
+void updateFieldTooltip(ElidedLabel *label)
+{
+    const QString category = label->property(fieldTooltipProperty).toString();
+    label->setToolTip(label->isElided()
+                          ? QStringLiteral("%1\n%2").arg(category, label->text())
+                          : category);
+}
+
+///
+/// \brief Shows the full value in a field label, leaving the eliding to the layout.
 /// \param label Value label to fill.
 /// \param text Full value.
-/// \param budget Number of average-width characters the label may claim.
 ///
-void setFieldText(QLabel *label, const QString &text, int budget)
+void setFieldText(ElidedLabel *label, const QString &text)
 {
-    const QFontMetrics metrics = label->fontMetrics();
-    const QString elided = metrics.elidedText(text, Qt::ElideRight,
-                                              budget * metrics.averageCharWidth());
-    label->setText(elided);
-
-    const QString category = label->property(fieldTooltipProperty).toString();
-    label->setToolTip(elided == text
-                          ? category
-                          : QStringLiteral("%1\n%2").arg(category, text));
+    label->setText(text);
+    updateFieldTooltip(label);
 }
 
 ///
@@ -124,10 +122,12 @@ void MainStatusBarWidget::setupFieldDecorations()
     ui->authenticationIconLabel->setIcon(QStringLiteral("user"), QSize(12, 12));
     ui->sessionIconLabel->setIcon(QStringLiteral("keyhole"), QSize(12, 12));
 
-    const auto setFieldTooltip = [](QWidget *icon, QWidget *value, const QString &tip) {
+    const auto setFieldTooltip = [](QWidget *icon, ElidedLabel *value, const QString &tip) {
         icon->setToolTip(tip);
-        value->setToolTip(tip);
         value->setProperty(fieldTooltipProperty, tip);
+        updateFieldTooltip(value);
+        QObject::connect(value, &ElidedLabel::elisionChanged, value,
+                         [value] { updateFieldTooltip(value); });
     };
     setFieldTooltip(ui->statusIconLabel, ui->connectionLabel, tr("Connection"));
     setFieldTooltip(ui->securityIconLabel, ui->securityLabel, tr("Security policy / mode"));
@@ -334,6 +334,10 @@ void MainStatusBarWidget::changeEvent(QEvent *event)
 /// \param sessionName Active session name.
 /// \param authentication Authentication-method description.
 ///
+/// No field has a width budget: every label carries its full value and elides itself to
+/// whatever the layout leaves it, so a wide bar shows the values in full while a narrow one
+/// can still be narrowed without cutting anything off for good.
+///
 void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
                                              const QString &endpoint,
                                              const QString &securityPolicy,
@@ -368,20 +372,11 @@ void MainStatusBarWidget::setConnectionState(OpcUaConnectionState state,
     }
     const QString security = securitySummary(securityPolicy, securityMode);
     ui->statusIconLabel->setIcon(icon, QSize(12, 12));
-    setFieldText(ui->connectionLabel, text, endpointBudget);
-    setFieldText(ui->securityLabel, security.isEmpty() ? QStringLiteral("-") : security,
-                 securityBudget);
+    setFieldText(ui->connectionLabel, text);
+    setFieldText(ui->securityLabel, security.isEmpty() ? QStringLiteral("-") : security);
     setFieldText(ui->authenticationLabel,
-                 authentication.isEmpty() ? QStringLiteral("-") : authentication,
-                 authenticationBudget);
-
-    // The session name has no width budget: the label elides itself to whatever the layout
-    // leaves it, so the window can be narrowed without cutting the name off for good.
-    const QString session = sessionName.isEmpty() ? QStringLiteral("-") : sessionName;
-    ui->sessionLabel->setText(session);
-    ui->sessionLabel->setToolTip(
-        QStringLiteral("%1\n%2")
-            .arg(ui->sessionLabel->property(fieldTooltipProperty).toString(), session));
+                 authentication.isEmpty() ? QStringLiteral("-") : authentication);
+    setFieldText(ui->sessionLabel, sessionName.isEmpty() ? QStringLiteral("-") : sessionName);
     ui->serverTimeLabel->setText(tr("Server Time: -"));
 }
 

@@ -12,6 +12,7 @@
 #include <QTest>
 
 #include "mainstatusbarwidget.h"
+#include "widgets/elidedlabel.h"
 #include "opcua/connectioncontroller.h"
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuabackend.h"
@@ -66,6 +67,7 @@ private slots:
     void clockLabelsReserveStableWidths();
     void clockWidthsFollowFontChanges();
     void lostConnectionKeepsTheSessionParameters();
+    void fieldsElideOnlyWhenTheBarRunsOut();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -187,6 +189,53 @@ void TestMainStatusBarWidget::lostConnectionKeepsTheSessionParameters()
     widget.setConnectionLost(false);
     QCOMPARE(sessionLabel->text(), QStringLiteral("-"));
     QVERIFY(connectionLabel->text() != profile.endpointUrl);
+}
+
+///
+/// \brief Fields keep their full value and give it up only when the bar is too narrow.
+///
+void TestMainStatusBarWidget::fieldsElideOnlyWhenTheBarRunsOut()
+{
+    StatusBarFakeBackend backend;
+    SecretStore secrets;
+    ConnectionProfileStore profiles;
+    RecentConnectionStore recents;
+    ConnectionController controller(&backend, &secrets, &profiles, &recents);
+
+    MainStatusBarWidget widget;
+    widget.setConnectionController(&controller);
+    auto *connectionLabel = widget.findChild<ElidedLabel *>(QStringLiteral("connectionLabel"));
+    QVERIFY(connectionLabel);
+
+    ConnectionProfile profile;
+    profile.id = QStringLiteral("wide");
+    profile.endpointUrl =
+        QStringLiteral("opc.tcp://a-long-host-name.invalid:53530/OPCUA/SimulationServer");
+    profile.securityPolicy =
+        QStringLiteral("http://opcfoundation.org/UA/SecurityPolicy#Aes256_Sha256_RsaPss");
+    profile.securityMode = 2;
+    profile.sessionName = QStringLiteral("OpenUaExplorer@a-long-host-name");
+    controller.connectNewProfile(profile, QString(), QString());
+    backend.setState(OpcUaConnectionState::Connected);
+
+    const QString category = connectionLabel->property("fieldTooltip").toString();
+    QVERIFY(!category.isEmpty());
+
+    widget.resize(4000, widget.sizeHint().height());
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+    widget.grab();
+    QCOMPARE(connectionLabel->size().width(), connectionLabel->sizeHint().width());
+    QCOMPARE(connectionLabel->text(), profile.endpointUrl);
+    QVERIFY(!connectionLabel->isElided());
+    QCOMPARE(connectionLabel->toolTip(), category);
+
+    widget.resize(360, widget.height());
+    QTest::qWait(100);
+    widget.grab();
+    QVERIFY(connectionLabel->isElided());
+    QCOMPARE(connectionLabel->text(), profile.endpointUrl);
+    QVERIFY(connectionLabel->toolTip().contains(profile.endpointUrl));
 }
 
 QTEST_MAIN(TestMainStatusBarWidget)
