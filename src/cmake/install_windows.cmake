@@ -59,7 +59,7 @@ if(WINDEPLOYQT_EXECUTABLE)
         list(APPEND _windeploy_args
             --no-system-dxc-compiler
             --skip-plugin-types generic,networkinformation,qmltooling
-            --exclude-plugins qgif,qjpeg,qpdf,qsqlibase,qsqlmimer,qsqloci,qsqlodbc,qsqlpsql)
+            --exclude-plugins qpdf,qsqlibase,qsqlmimer,qsqloci,qsqlodbc,qsqlpsql)
 
         list(APPEND _windeploy_args \"\${_installed_exe}\")
 
