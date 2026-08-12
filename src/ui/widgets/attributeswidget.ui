@@ -27,7 +27,7 @@
     <number>8</number>
    </property>
    <item>
-    <widget class="QTreeView" name="attributesTree">
+    <widget class="TreeTableView" name="attributesTree">
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>
@@ -150,6 +150,11 @@
    <class>ValueLineEdit</class>
    <extends>QLineEdit</extends>
    <header>widgets/valuelineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>TreeTableView</class>
+   <extends>QTreeView</extends>
+   <header>widgets/treetableview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

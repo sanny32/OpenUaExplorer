@@ -25,6 +25,7 @@
 #include "formatters/attributeformatter.h"
 #include "headerview.h"
 #include "themedaction.h"
+#include "treetableview.h"
 #include "models/attributesmodel.h"
 #include "models/valueroles.h"
 #include "ui_attributeswidget.h"
@@ -278,8 +279,7 @@ void AttributesWidget::setTimestampMode(AppSettings::TimestampMode mode)
 ///
 void AttributesWidget::saveViewState(AppSettings &settings) const
 {
-    auto *header = qobject_cast<HeaderView *>(ui->attributesTree->header());
-    if (header)
+    if (HeaderView *header = ui->attributesTree->headerView())
         settings.setViewState(ui->attributesTree->objectName(), header->saveLayout());
 }
 
@@ -290,8 +290,7 @@ void AttributesWidget::saveViewState(AppSettings &settings) const
 void AttributesWidget::restoreViewState(AppSettings &settings)
 {
     const QByteArray state = settings.viewState(ui->attributesTree->objectName());
-    auto *header = qobject_cast<HeaderView *>(ui->attributesTree->header());
-    if (header) {
+    if (HeaderView *header = ui->attributesTree->headerView()) {
         header->restoreLayout(state);
         header->setStretchLastSection(true);
     }
@@ -302,7 +301,6 @@ void AttributesWidget::restoreViewState(AppSettings &settings)
 ///
 void AttributesWidget::setupAttributesView()
 {
-    ui->attributesTree->setHeader(new HeaderView(Qt::Horizontal, ui->attributesTree));
     ui->attributesTree->setModel(_model);
     auto *header = ui->attributesTree->header();
     header->setStretchLastSection(true);

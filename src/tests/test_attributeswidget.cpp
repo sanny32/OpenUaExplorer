@@ -11,6 +11,7 @@
 #include <QClipboard>
 #include <QComboBox>
 #include <QGroupBox>
+#include <QHelpEvent>
 #include <QLayout>
 #include <QLineEdit>
 #include <QMenu>
@@ -19,6 +20,7 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QToolTip>
 #include <QTreeView>
 #include <QTest>
 
@@ -45,6 +47,8 @@ private slots:
     void copiesCurrentCell();
     void copiesFullTree();
     void contextMenuOnlyUsesValueColumn();
+    void toolTipOnlyShowsForElidedCells();
+    void viewerButtonCarriesNoToolTip();
     void booleanNodeOffersValueList();
     void booleanListStartsAtTheCurrentValue();
     void booleanWriteSendsTypedBoolean();
@@ -119,6 +123,39 @@ OpcUaNodeDetails makeWritableDetails(int valueType, const QString &dataTypeId,
 OpcUaNodeDetails makeBooleanDetails(bool value)
 {
     return makeWritableDetails(0, QStringLiteral("ns=0;i=1"), value);
+}
+
+///
+/// \brief Builds details whose first attribute is far too long for any column.
+/// \return Node details for tooltip tests.
+///
+OpcUaNodeDetails makeLongValueDetails()
+{
+    OpcUaNodeDetails details;
+    details.attributes = {
+        attributeItem(QStringLiteral("Write Mask"),
+                      QStringLiteral("AccessLevel | ArrayDimensions | BrowseName | "
+                                     "ContainsNoLoops | DataType | Description | "
+                                     "DisplayName | EventNotifier | Executable")),
+        attributeItem(QStringLiteral("Historizing"), QStringLiteral("false"))
+    };
+    return details;
+}
+
+///
+/// \brief Distance from the trailing cell edge to the centre of the viewer button.
+///
+constexpr int viewerButtonCenterOffset = 12;
+
+///
+/// \brief Sends a tooltip request to a point in a view's viewport.
+/// \param view View to ask.
+/// \param pos Point in the viewport's coordinates.
+///
+void sendToolTip(QAbstractItemView *view, const QPoint &pos)
+{
+    QHelpEvent event(QEvent::ToolTip, pos, view->viewport()->mapToGlobal(pos));
+    QCoreApplication::sendEvent(view->viewport(), &event);
 }
 
 } // namespace
@@ -285,6 +322,47 @@ void TestAttributesWidget::contextMenuOnlyUsesValueColumn()
     QVERIFY(QMetaObject::invokeMethod(tree, "customContextMenuRequested",
                                       Q_ARG(QPoint, valuePos)));
     QCOMPARE(tree->currentIndex(), value);
+}
+
+///
+/// \brief A value the column cuts short is repeated in a tooltip; a short one is not.
+///
+void TestAttributesWidget::toolTipOnlyShowsForElidedCells()
+{
+    AttributesWidget widget;
+    widget.setNodeDetails(makeLongValueDetails());
+    widget.resize(420, 260);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("attributesTree"));
+    QVERIFY(tree);
+
+    sendToolTip(tree, tree->visualRect(tree->model()->index(1, 1)).center());
+    QVERIFY(!QToolTip::isVisible());
+
+    sendToolTip(tree, tree->visualRect(tree->model()->index(0, 1)).center());
+    QVERIFY(QToolTip::isVisible());
+    QToolTip::hideText();
+}
+
+///
+/// \brief The viewer button of a cut-off value shows no tooltip of the value.
+///
+void TestAttributesWidget::viewerButtonCarriesNoToolTip()
+{
+    AttributesWidget widget;
+    widget.setNodeDetails(makeLongValueDetails());
+    widget.resize(420, 260);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("attributesTree"));
+    QVERIFY(tree);
+
+    const QRect cell = tree->visualRect(tree->model()->index(0, 1));
+    sendToolTip(tree, QPoint(cell.right() - viewerButtonCenterOffset, cell.center().y()));
+    QVERIFY(!QToolTip::isVisible());
 }
 
 ///

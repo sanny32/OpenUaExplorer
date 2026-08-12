@@ -132,6 +132,19 @@ void ElidedTextDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
 }
 
 ///
+/// \brief Reports whether a viewport point lands on the viewer button of a cell.
+/// \param pos Point in the viewport's coordinates.
+/// \param index Model index being inspected.
+/// \return True when the point is over the button this delegate draws for the cell.
+///
+bool ElidedTextDelegate::coversButton(const QPoint &pos, const QModelIndex &index) const
+{
+    if (!_view || !index.isValid() || _view->itemDelegateForIndex(index) != this)
+        return false;
+    return buttonRect(_view->visualRect(index)).contains(pos);
+}
+
+///
 /// \brief Routes clicks that land on the viewer button to viewRequested().
 /// \param event Event delivered to the cell.
 /// \param model Model behind the view.
@@ -177,10 +190,7 @@ bool ElidedTextDelegate::eventFilter(QObject *watched, QEvent *event)
         if (event->type() == QEvent::MouseMove) {
             const QPoint pos = static_cast<QMouseEvent *>(event)->position().toPoint();
             const QModelIndex index = _view->indexAt(pos);
-            const bool onButton = index.isValid()
-                                  && _view->itemDelegateForIndex(index) == this
-                                  && buttonRect(_view->visualRect(index)).contains(pos);
-            setHoveredIndex(onButton ? index : QModelIndex());
+            setHoveredIndex(coversButton(pos, index) ? index : QModelIndex());
         } else if (event->type() == QEvent::Leave) {
             setHoveredIndex(QModelIndex());
         }

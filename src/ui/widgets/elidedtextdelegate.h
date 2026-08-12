@@ -41,6 +41,14 @@ public:
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
                const QModelIndex &index) const override;
 
+    ///
+    /// \brief Reports whether a viewport point lands on the viewer button of a cell.
+    /// \param pos Point in the viewport's coordinates.
+    /// \param index Model index being inspected.
+    /// \return True when the point is over the button this delegate draws for the cell.
+    ///
+    bool coversButton(const QPoint &pos, const QModelIndex &index) const;
+
 signals:
     ///
     /// \brief Emitted when the viewer button of a cell is clicked.
