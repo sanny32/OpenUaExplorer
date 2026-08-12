@@ -51,6 +51,7 @@ private slots:
     void dataAccessUpdateValuesRefreshesValueColumns();
     void dataAccessElementRowsAreNotActedOn();
     void dataAccessRemoveRowsDropsSelected();
+    void dataAccessRemoveRowsKeepsElementRowsAttached();
     void dataAccessMoveRowsKeepsTheDraggedBlockTogether();
     void dataAccessMoveRowsIgnoresPointlessMoves();
     void dataAccessRowDropReordersByNodeId();
@@ -168,10 +169,17 @@ void TestModelsDataAccessCore::dataAccessElementRowsAreNotActedOn()
     other.nodeId = QStringLiteral("ns=2;s=Other");
     other.value = 1;
     model.addOrUpdate(other);
+    const QPersistentModelIndex followedElement(
+        model.index(1, DataAccessModel::ColValue, model.index(0, 0)));
     QVERIFY(model.moveRows({model.index(1, 0)}, 0));
     QCOMPARE(model.rowCount(model.index(1, 0)), 2);
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue, model.index(1, 0))).toString(),
              QStringLiteral("1"));
+
+    QVERIFY(followedElement.isValid());
+    QCOMPARE(followedElement.parent(), model.index(1, 0));
+    QCOMPARE(followedElement.row(), 1);
+    QCOMPARE(model.data(followedElement).toString(), QStringLiteral("2"));
 }
 
 ///
@@ -190,6 +198,51 @@ void TestModelsDataAccessCore::dataAccessRemoveRowsDropsSelected()
 
     QCOMPARE(model.rowCount(), items.size() - 1);
     QVERIFY(!model.nodeIds().contains(items.last().nodeId));
+}
+
+///
+/// \brief Removing a row keeps the element rows of the rows below it attached to their node.
+///
+/// The model tester is left out on purpose: it reads the "#" column around the removal, and
+/// that column renumbers with the rows.
+///
+void TestModelsDataAccessCore::dataAccessRemoveRowsKeepsElementRowsAttached()
+{
+    DataAccessModel model;
+
+    OpcUaNodeDetails first;
+    first.nodeId = QStringLiteral("ns=2;s=First");
+    first.value = QVariantList{1, 2};
+    model.addOrUpdate(first);
+
+    OpcUaNodeDetails second;
+    second.nodeId = QStringLiteral("ns=2;s=Second");
+    second.displayName = QStringLiteral("Second");
+    second.value = QVariantList{10, 20, 30};
+    model.addOrUpdate(second);
+
+    QCOMPARE(model.rowCount(model.index(0, 0)), 2);
+    QCOMPARE(model.rowCount(model.index(1, 0)), 3);
+
+    const QPersistentModelIndex removedElement(model.index(0, 0, model.index(0, 0)));
+    const QPersistentModelIndex keptElement(model.index(2, 0, model.index(1, 0)));
+
+    model.removeRows({model.index(0, 0)});
+
+    QCOMPARE(model.rowCount(), 1);
+    QVERIFY(!removedElement.isValid());
+    QVERIFY(keptElement.isValid());
+    QCOMPARE(keptElement.parent(), model.index(0, 0));
+    QCOMPARE(model.data(keptElement.sibling(keptElement.row(), DataAccessModel::ColNodeId))
+                 .toString(),
+             QStringLiteral("[2]"));
+    QCOMPARE(model.data(keptElement.sibling(keptElement.row(), DataAccessModel::ColValue))
+                 .toString(),
+             QStringLiteral("30"));
+
+    model.removeRows({model.index(0, 0)});
+    QCOMPARE(model.rowCount(), 0);
+    QVERIFY(!keptElement.isValid());
 }
 
 ///

@@ -257,11 +257,15 @@ void DataAccessModel::removeRows(const QModelIndexList &rows)
     }
     std::sort(rowNumbers.begin(), rowNumbers.end(), std::greater<int>());
     for (int row : rowNumbers) {
-        if (row < 0 || row >= _items.size())
+        if (row < 0 || row >= _items.size() || row >= int(_roots.size()))
             continue;
         beginRemoveRows({}, row, row);
         _items.removeAt(row);
         _roots.erase(_roots.begin() + row);
+        for (int below = row; below < int(_roots.size()); ++below) {
+            if (_roots[below])
+                _roots[below]->topRow = below;
+        }
         endRemoveRows();
     }
 }
@@ -340,7 +344,7 @@ bool DataAccessModel::moveRows(const QModelIndexList &rows, int destinationRow)
     QModelIndexList after;
     after.reserve(before.size());
     for (const QModelIndex &stale : before) {
-        after.append(stale.isValid()
+        after.append(stale.isValid() && !nodeForIndex(stale)
                          ? index(newRowOf.value(stale.row(), stale.row()), stale.column())
                          : stale);
     }
