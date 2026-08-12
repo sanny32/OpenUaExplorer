@@ -24,6 +24,8 @@ private slots:
     void selectedStatusUsesContrastText();
     void subscriptionEditorHasOpaqueBackground();
     void contextMenuOverridesChangeHighlight();
+    void contextMenuOffersAddOnlyWithoutSelection();
+    void contextMenuRequestsAddressSpaceReveal();
     void selectedRowsStillShowTheChangeWash();
     void fastSubscriptionsFadeWithinTheirInterval();
 };
@@ -173,6 +175,78 @@ void TestDataAccessWidgetPresentation::contextMenuOverridesChangeHighlight()
     QCOMPARE(nodes.size(), 2);
     QCOMPARE(nodes.at(0).highlight, HighlightMode::Enabled);
     QCOMPARE(nodes.at(1).highlight, HighlightMode::FollowDefault);
+}
+
+///
+/// \brief With no Data Access selection the context menu offers adding the address-space node.
+///
+void TestDataAccessWidgetPresentation::contextMenuOffersAddOnlyWithoutSelection()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addNode(makeNodeDetails());
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+    view->selectionModel()->clearSelection();
+
+    QSignalSpy addSpy(&widget, &DataAccessWidget::addSelectedNodeRequested);
+    QVERIFY(addSpy.isValid());
+    QTimer::singleShot(0, &widget, [&widget]() {
+        QAction *action = widget.findChild<QAction *>(QStringLiteral("actionAddSelectedNode"));
+        QVERIFY(action);
+        QMenu *menu = qobject_cast<QMenu *>(action->parent());
+        QVERIFY(menu);
+        QVERIFY(!widget.findChild<QAction *>(QStringLiteral("actionShowInAddressSpace")));
+        QCOMPARE(menu->actions().first(), action);
+        QVERIFY(menu->actions().size() > 1);
+        QVERIFY(!menu->actions().at(1)->isSeparator());
+        action->trigger();
+        menu->close();
+    });
+    QVERIFY(QMetaObject::invokeMethod(view, "customContextMenuRequested",
+                                      Q_ARG(QPoint, QPoint(2, view->viewport()->height() - 2))));
+
+    QCOMPARE(addSpy.count(), 1);
+}
+
+///
+/// \brief The address-space context action requests the selected node by its exact NodeId.
+///
+void TestDataAccessWidgetPresentation::contextMenuRequestsAddressSpaceReveal()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    const OpcUaNodeDetails details = makeNodeDetails();
+    widget.addNode(details);
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    const QModelIndex row = view->model()->index(0, 0);
+    view->selectionModel()->select(row,
+        QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+    QSignalSpy revealSpy(&widget, &DataAccessWidget::showInAddressSpaceRequested);
+    QVERIFY(revealSpy.isValid());
+
+    QTimer::singleShot(0, &widget, [&widget]() {
+        QAction *action = widget.findChild<QAction *>(QStringLiteral("actionShowInAddressSpace"));
+        QVERIFY(action);
+        QMenu *menu = qobject_cast<QMenu *>(action->parent());
+        QVERIFY(menu);
+        for (QAction *menuAction : menu->actions())
+            QVERIFY(menuAction->text() != QStringLiteral("Add Node"));
+        QVERIFY(action->isEnabled());
+        action->trigger();
+        menu->close();
+    });
+    QVERIFY(QMetaObject::invokeMethod(view, "customContextMenuRequested",
+                                      Q_ARG(QPoint, view->visualRect(row).center())));
+
+    QCOMPARE(revealSpy.count(), 1);
+    QCOMPARE(revealSpy.takeFirst().at(0).toString(), details.nodeId);
 }
 
 ///

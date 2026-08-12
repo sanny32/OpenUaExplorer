@@ -36,10 +36,10 @@ namespace {
 ///
 /// \brief Builds a fingerprint of saveable workspace content.
 ///
-/// Cosmetic navigation state and the connection profile are excluded so browsing the tree
-/// or reconnecting to the same server does not mark the session dirty. Content the user
-/// cannot order is sorted first; the data-access rows are not, because their order is
-/// arranged by hand and saved with the session.
+/// Expanded tree branches and the connection profile are excluded so browsing the tree or
+/// reconnecting to the same server does not mark the session dirty. The selected address-space
+/// node is included because it is restored with the session. Content the user cannot order is
+/// sorted first; the data-access rows are not, because their order is arranged by hand and saved.
 ///
 QByteArray sessionFingerprint(const SessionData &data)
 {
@@ -92,7 +92,7 @@ QByteArray sessionFingerprint(const SessionData &data)
     const QString blob = subscriptions.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
         + nodes.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
         + trends.join(QLatin1Char('\n')) + QLatin1Char('\x1e')
-        + monitors.join(QLatin1Char('\n'));
+        + monitors.join(QLatin1Char('\n')) + QLatin1Char('\x1e') + data.selectedNode;
     return blob.toUtf8();
 }
 
@@ -404,17 +404,17 @@ SessionData SessionCoordinator::sessionWorkspace() const
     data.dataAccessNodes = _context.dataAccessCoordinator->monitoredNodes();
     data.trendTabs = _context.dataAccessCoordinator->trendTabs();
     data.nodeMonitors = _context.captureNodeMonitors();
+    _context.featureManager->saveSession(data);
     return data;
 }
 
 ///
-/// \brief Extends the saveable workspace with connection and feature navigation state.
+/// \brief Extends the dirty-tracked workspace with the active connection profile.
 ///
 SessionData SessionCoordinator::collectSessionData() const
 {
     SessionData data = sessionWorkspace();
     data.profile = _context.connectionController->activeProfile();
-    _context.featureManager->saveSession(data);
     return data;
 }
 

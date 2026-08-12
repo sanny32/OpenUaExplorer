@@ -57,6 +57,12 @@ public slots:
     void cancelSearch();
 
     ///
+    /// \brief Locates an exact NodeId below the Objects folder.
+    /// \param nodeId NodeId to locate.
+    ///
+    void locate(const QString &nodeId);
+
+    ///
     /// \brief Collects every Variable node below a node, however deep it sits.
     /// \param rootNodeId Node whose subtree is collected.
     ///
@@ -84,6 +90,14 @@ signals:
     /// \param error Search error, empty on success.
     ///
     void searchFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
+
+    ///
+    /// \brief Emitted when an exact NodeId lookup finishes.
+    /// \param ancestorNodeIds Node ids from the Objects folder down to the match's parent.
+    /// \param nodeId Matched NodeId, empty when not found.
+    /// \param error Lookup error, empty on success.
+    ///
+    void locationFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
 
     ///
     /// \brief Emitted when a subtree variable crawl finishes or fails.

@@ -8,6 +8,7 @@
 
 #include <QTest>
 
+#include "features/featuremodule.h"
 #include "test_sessioncoordinator_support.h"
 
 ///
@@ -26,12 +27,27 @@ private slots:
     void restoringASessionWithTypedCredentialsMarksItModified();
     void idleBetweenTypingAndConnectingKeepsTheSessionModified();
     void sessionWithoutAProfileIdIsStillMarkedModified();
+    void changingAddressSpaceSelectionMarksSessionModified();
     void failedSaveReportsTheError();
 
 private:
     static void openConnectedSession(WorkspaceHarness &harness, const QString &path);
     QTemporaryDir _settingsDirectory;
 };
+
+namespace {
+
+class SessionNavigationFeature : public FeatureModule
+{
+public:
+    QString name() const override { return QStringLiteral("Session Navigation"); }
+    void initialize(FeatureHost &) override {}
+    void saveSession(SessionData &session) const override { session.selectedNode = selectedNode; }
+
+    QString selectedNode;
+};
+
+} // namespace
 
 ///
 /// \brief Puts the harness into "session file open and connected" state.
@@ -222,6 +238,30 @@ void TestSessionCoordinatorPersistence::sessionWithoutAProfileIdIsStillMarkedMod
     harness.backend.completeDiscovery();
     harness.backend.setState(OpcUaConnectionState::Connected);
     harness.coordinator->applyPendingSession();
+
+    QVERIFY(harness.window.isWindowModified());
+}
+
+///
+/// \brief Changing the address-space selection changes the saveable session workspace.
+///
+void TestSessionCoordinatorPersistence::changingAddressSpaceSelectionMarksSessionModified()
+{
+    QTemporaryDir sessionsDirectory;
+    QVERIFY(sessionsDirectory.isValid());
+    const QString path = sessionsDirectory.filePath(QStringLiteral("selection.ouas"));
+
+    WorkspaceHarness harness;
+    auto *navigation = new SessionNavigationFeature;
+    harness.features.registerFeature(navigation);
+    openConnectedSession(harness, path);
+
+    dismissNextDialog();
+    QVERIFY(harness.coordinator->saveCurrentSession());
+    QVERIFY(!harness.window.isWindowModified());
+
+    navigation->selectedNode = QStringLiteral("ns=2;s=Temperature");
+    harness.coordinator->updateModifiedState();
 
     QVERIFY(harness.window.isWindowModified());
 }

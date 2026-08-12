@@ -360,6 +360,7 @@ public:
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeConnections{};
     QPointer<NamespaceCrawler> namespaceCrawler;
     QPointer<NodeSearchCrawler> nodeSearchCrawler;
+    QPointer<NodeSearchCrawler> nodeLocator;
     QPointer<SubtreeVariableCrawler> subtreeVariableCrawler;
     /// \brief Nodes whose last value carried a structure the client could not decode yet.
     QStringList opaqueValueNodes;
@@ -1072,6 +1073,39 @@ void QtOpcUaBackend::cancelNodeSearch()
 {
     if (_d->nodeSearchCrawler)
         _d->nodeSearchCrawler->cancel();
+}
+
+///
+/// \brief Locates an exact NodeId in a subtree, emitting nodeLocationFinished() with its path.
+/// \param startNodeId Node whose subtree is searched.
+/// \param targetNodeId Exact NodeId to locate.
+///
+void QtOpcUaBackend::locateNode(const QString &startNodeId, const QString &targetNodeId)
+{
+    const int timeoutMs = requestTimeout();
+    QOpcUaClient *client = _d->connection.client();
+    if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit nodeLocationFinished({}, {}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    if (_d->nodeLocator) {
+        _d->nodeLocator->disconnect(this);
+        _d->nodeLocator->cancel();
+        _d->nodeLocator->deleteLater();
+    }
+    _d->nodeLocator = new NodeSearchCrawler(
+        client, startNodeId, targetNodeId, timeoutMs, this, NodeSearchCrawler::MatchField::NodeId);
+    connect(_d->nodeLocator, &NodeSearchCrawler::finished, this,
+            [this](const QStringList &ancestorNodeIds, const QString &nodeId,
+                   const QString &error) {
+        emit nodeLocationFinished(ancestorNodeIds, nodeId, error);
+        if (!_d->nodeLocator)
+            return;
+        _d->nodeLocator->disconnect(this);
+        _d->nodeLocator->cancel();
+        _d->nodeLocator->deleteLater();
+    });
+    _d->nodeLocator->start();
 }
 
 ///

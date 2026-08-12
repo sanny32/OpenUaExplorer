@@ -668,6 +668,36 @@ void AddressSpaceWidget::setSearchResult(const QStringList &ancestorNodeIds, con
 }
 
 ///
+/// \brief Selects and scrolls to a node when it is already loaded in the tree.
+/// \param nodeId Node to reveal.
+/// \return True when the node was found in the loaded tree.
+///
+bool AddressSpaceWidget::revealNode(const QString &nodeId)
+{
+    const QModelIndex index = _treeModel->findByNodeId(nodeId);
+    if (!index.isValid())
+        return false;
+    QModelIndex parent = index.parent();
+    while (parent.isValid()) {
+        ui->addressTree->expand(parent);
+        parent = parent.parent();
+    }
+    ui->addressTree->setCurrentIndex(index);
+    ui->addressTree->scrollTo(index);
+    return true;
+}
+
+///
+/// \brief Expands a located path and selects its target as browse results arrive.
+/// \param ancestorNodeIds Node ids from the root down to the target's parent.
+/// \param nodeId Target NodeId.
+///
+void AddressSpaceWidget::revealNode(const QStringList &ancestorNodeIds, const QString &nodeId)
+{
+    restoreExpansion(ancestorNodeIds, nodeId);
+}
+
+///
 /// \brief Applies the newly selected tree node to the detail views.
 /// \param current Selected tree index.
 ///

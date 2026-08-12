@@ -179,6 +179,16 @@ void SelectionContext::requestUnsubscribe(const OpcUaNodeInfo &node)
 }
 
 ///
+/// \brief Requests revealing a node in the address space.
+/// \param nodeId Node to reveal.
+///
+void SelectionContext::requestShowInAddressSpace(const QString &nodeId)
+{
+    if (!nodeId.isEmpty())
+        emit showInAddressSpaceRequested(nodeId);
+}
+
+///
 /// \brief Requests calling a method node selected from a feature.
 /// \param object Object node that owns the method.
 /// \param method Method node to call.

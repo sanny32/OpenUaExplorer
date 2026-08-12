@@ -1367,6 +1367,10 @@ Wählen Sie ihn erneut aus.</translation>
         <translation>Knoten hinzufügen</translation>
     </message>
     <message>
+        <source>Show in Address Space</source>
+        <translation>Im Adressraum anzeigen</translation>
+    </message>
+    <message>
         <source>Remove</source>
         <translation>Entfernen</translation>
     </message>
@@ -2997,6 +3001,10 @@ Download-Seite öffnen?</translation>
     <message>
         <source>Searching the address space is not supported.</source>
         <translation>Das Durchsuchen des Adressraums wird nicht unterstützt.</translation>
+    </message>
+    <message>
+        <source>Locating a node in the address space is not supported.</source>
+        <translation>Das Auffinden eines Knotens im Adressraum wird nicht unterstützt.</translation>
     </message>
     <message>
         <source>Crawling the address space is not supported.</source>

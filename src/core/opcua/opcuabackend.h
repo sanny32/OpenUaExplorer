@@ -313,6 +313,18 @@ public:
     virtual void cancelNodeSearch() {}
 
     ///
+    /// \brief Locates a NodeId in a subtree, emitting nodeLocationFinished() with its path.
+    /// \param startNodeId Node whose subtree is searched.
+    /// \param targetNodeId Exact NodeId to locate.
+    ///
+    virtual void locateNode(const QString &startNodeId, const QString &targetNodeId)
+    {
+        Q_UNUSED(startNodeId)
+        Q_UNUSED(targetNodeId)
+        emit nodeLocationFinished({}, {}, tr("Locating a node in the address space is not supported."));
+    }
+
+    ///
     /// \brief Collects a subtree's Variable nodes, emitting subtreeVariablesReady() with them.
     ///
     /// Backends that cannot crawl the address space may leave this default,
@@ -511,6 +523,14 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void nodeSearchFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
+
+    ///
+    /// \brief Emitted when an exact NodeId lookup finishes.
+    /// \param ancestorNodeIds Node ids from the start node down to the match's parent.
+    /// \param nodeId Matched NodeId, empty when not found.
+    /// \param error Error description, empty on success.
+    ///
+    void nodeLocationFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
 
     ///
     /// \brief Emitted when a subtree variable crawl finishes or fails.

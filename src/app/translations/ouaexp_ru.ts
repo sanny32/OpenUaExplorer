@@ -1371,6 +1371,10 @@ Select it again.</source>
         <translation>Добавить узел</translation>
     </message>
     <message>
+        <source>Show in Address Space</source>
+        <translation>Показать в адресном пространстве</translation>
+    </message>
+    <message>
         <source>Remove</source>
         <translation>Удалить</translation>
     </message>
@@ -3003,6 +3007,10 @@ Open the download page?</source>
     <message>
         <source>Searching the address space is not supported.</source>
         <translation>Поиск в адресном пространстве не поддерживается.</translation>
+    </message>
+    <message>
+        <source>Locating a node in the address space is not supported.</source>
+        <translation>Поиск узла в адресном пространстве не поддерживается.</translation>
     </message>
     <message>
         <source>Crawling the address space is not supported.</source>

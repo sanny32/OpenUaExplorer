@@ -1363,6 +1363,10 @@ Select it again.</source>
         <translation>添加节点</translation>
     </message>
     <message>
+        <source>Show in Address Space</source>
+        <translation>在地址空间中显示</translation>
+    </message>
+    <message>
         <source>Remove</source>
         <translation>移除</translation>
     </message>
@@ -2991,6 +2995,10 @@ Open the download page?</source>
     <message>
         <source>Searching the address space is not supported.</source>
         <translation>不支持搜索地址空间。</translation>
+    </message>
+    <message>
+        <source>Locating a node in the address space is not supported.</source>
+        <translation>不支持在地址空间中定位节点。</translation>
     </message>
     <message>
         <source>Crawling the address space is not supported.</source>

@@ -1031,6 +1031,8 @@ void DataAccessCoordinator::wireDataView()
             this, &DataAccessCoordinator::onNodeCountChanged);
     connect(_dataView->dataAccess(), &DataAccessWidget::selectionChanged,
             this, &DataAccessCoordinator::updateSelectionActions);
+    connect(_dataView->dataAccess(), &DataAccessWidget::showInAddressSpaceRequested,
+            _selection, &SelectionContext::requestShowInAddressSpace);
     connect(_dataView->events(), &EventsWidget::eventSubscribeRequested,
             _events, &EventsModule::subscribeEvents);
     connect(_dataView->events(), &EventsWidget::eventUnsubscribeRequested,

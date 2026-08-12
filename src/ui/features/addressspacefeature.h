@@ -8,9 +8,12 @@
 
 #pragma once
 
+#include <QStringList>
+
 #include "featuremodule.h"
 
 class AddressSpaceWidget;
+class AddressSpaceModule;
 class FeatureHost;
 class QDockWidget;
 
@@ -71,8 +74,12 @@ private:
     void contributeLayout(FeatureHost &host);
     void registerCommands(FeatureHost &host);
     void browseAddressSpace();
+    void showInAddressSpace(const QString &nodeId);
+    void revealLocatedNode(const QStringList &ancestorNodeIds, const QString &nodeId,
+                           const QString &error);
 
     QDockWidget *_addressDock = nullptr;
     QDockWidget *_nodeDetailsDock = nullptr;
     AddressSpaceWidget *_widget = nullptr;
+    AddressSpaceModule *_addressSpaceModule = nullptr;
 };

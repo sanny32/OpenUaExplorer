@@ -288,6 +288,12 @@ signals:
     ///
     void selectionChanged();
 
+    ///
+    /// \brief Emitted when the user asks to reveal a data-access node in the address space.
+    /// \param nodeId Node to reveal.
+    ///
+    void showInAddressSpaceRequested(QString nodeId);
+
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void changeEvent(QEvent *event) override;
@@ -297,6 +303,7 @@ private:
     void updateNumberColumnWidth();
     void configureToolbar();
     void showDataContextMenu(const QPoint &pos);
+    void showSelectedNodeInAddressSpace();
     void updateSelectionActions();
     void readSelectedNodes();
     void writeSelectedNode();

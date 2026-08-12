@@ -52,6 +52,8 @@ void AddressSpaceModule::initialize(ServiceContext &context)
             this, &AddressSpaceModule::searchProgress);
     connect(_backend, &OpcUaBackend::nodeSearchFinished,
             this, &AddressSpaceModule::handleSearchFinished);
+    connect(_backend, &OpcUaBackend::nodeLocationFinished,
+            this, &AddressSpaceModule::locationFinished);
     connect(_backend, &OpcUaBackend::subtreeVariablesReady,
             this, &AddressSpaceModule::handleSubtreeVariablesReady);
 }
@@ -93,6 +95,15 @@ void AddressSpaceModule::search(const QString &startNodeId, const QString &patte
 void AddressSpaceModule::cancelSearch()
 {
     _backend->cancelNodeSearch();
+}
+
+///
+/// \brief Locates an exact NodeId below the Objects folder.
+/// \param nodeId NodeId to locate.
+///
+void AddressSpaceModule::locate(const QString &nodeId)
+{
+    _backend->locateNode(QString::fromLatin1(StandardNodeId::ObjectsFolder), nodeId);
 }
 
 ///

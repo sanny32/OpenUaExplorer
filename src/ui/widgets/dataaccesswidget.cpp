@@ -692,7 +692,7 @@ void DataAccessWidget::configureToolbar()
 }
 
 ///
-/// \brief Shows the data-access context menu mirroring the toolbar actions.
+/// \brief Shows actions applicable to rows already listed in Data Access.
 /// \param pos Cursor position in the data view's viewport coordinates.
 ///
 void DataAccessWidget::showDataContextMenu(const QPoint &pos)
@@ -704,8 +704,17 @@ void DataAccessWidget::showDataContextMenu(const QPoint &pos)
     const bool hasSelection = selectedCount > 0;
 
     QMenu menu(this);
-    menu.addAction(AppIcons::themed(QStringLiteral("add")), tr("Add Node"),
-                   this, &DataAccessWidget::addSelectedNodeRequested);
+    if (!hasSelection) {
+        QAction *addAction = menu.addAction(AppIcons::themed(QStringLiteral("add")), tr("Add Node"),
+                                            this, &DataAccessWidget::addSelectedNodeRequested);
+        addAction->setObjectName(QStringLiteral("actionAddSelectedNode"));
+    } else {
+        QAction *showInAddressSpaceAction = menu.addAction(
+            tr("Show in Address Space"), this, &DataAccessWidget::showSelectedNodeInAddressSpace);
+        showInAddressSpaceAction->setObjectName(QStringLiteral("actionShowInAddressSpace"));
+        showInAddressSpaceAction->setEnabled(selectedDataRows().size() == 1);
+        menu.addSeparator();
+    }
 
     QAction *removeAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove"),
                                            this, &DataAccessWidget::removeSelectedNodes);
@@ -741,6 +750,16 @@ void DataAccessWidget::showDataContextMenu(const QPoint &pos)
             &DataAccessWidget::toggleHighlightForSelection);
 
     menu.exec(ui->dataView->viewport()->mapToGlobal(pos));
+}
+
+///
+/// \brief Requests revealing the single selected node in the address space.
+///
+void DataAccessWidget::showSelectedNodeInAddressSpace()
+{
+    const QModelIndexList rows = selectedDataRows();
+    if (rows.size() == 1)
+        emit showInAddressSpaceRequested(_dataModel->itemAt(rows.first().row()).nodeId);
 }
 
 ///
