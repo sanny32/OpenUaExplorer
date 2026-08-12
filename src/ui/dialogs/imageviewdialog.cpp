@@ -18,6 +18,7 @@
 #include <QEvent>
 #include <QPalette>
 #include <QScopedValueRollback>
+#include <QShowEvent>
 #include <QSignalBlocker>
 #include <QSlider>
 #include <QToolButton>
@@ -34,6 +35,12 @@ constexpr int ViewportPadding = 4;
 
 /// \brief Slider units per unit of zoom, the slider counting in percent.
 constexpr qreal ZoomPerCent = 100.0;
+
+/// \brief Pixels each further viewer is moved down and to the right of the previous one.
+constexpr int CascadeStep = 28;
+
+/// \brief Viewers the cascade takes before it starts again at the centre.
+constexpr int CascadeLength = 8;
 
 } // namespace
 
@@ -127,20 +134,27 @@ QImage ImageViewDialog::image() const
 }
 
 ///
-/// \brief Shows an encoded picture modally in an image viewer.
-/// \param parent Parent widget owning the dialog.
+/// \brief Opens an encoded picture in a viewer window of its own.
+/// \param parent Parent widget the viewer stays above.
 /// \param title Window title for the viewer.
 /// \param name Name shown in the dialog header.
 /// \param data Encoded picture bytes.
 ///
+/// Pictures are worth comparing, so the viewer does not block the window it came from and
+/// every call opens another one. The dialog keeps its parent, which is what holds it above
+/// the main window and takes it down when that window goes, and deletes itself on close.
+///
 void ImageViewDialog::showImage(QWidget *parent, const QString &title, const QString &name,
                                 const QByteArray &data)
 {
-    ImageViewDialog dialog(parent);
-    dialog.setWindowTitle(title);
-    dialog.setImageName(name);
-    dialog.setImageData(data);
-    dialog.exec();
+    auto *dialog = new ImageViewDialog(parent);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setWindowTitle(title);
+    dialog->setImageName(name);
+    dialog->setImageData(data);
+    dialog->show();
+    dialog->raise();
+    dialog->activateWindow();
 }
 
 ///
@@ -169,6 +183,27 @@ void ImageViewDialog::changeEvent(QEvent *event)
         || event->type() == QEvent::ApplicationPaletteChange) {
         applyHeaderColors();
     }
+}
+
+///
+/// \brief Steps the window aside from the viewers already open.
+/// \param event Show event.
+///
+/// The dialog is centred on its parent as it becomes visible, so the offset is applied on
+/// top of the position it has been given by then, and only the first time: reshowing a
+/// viewer should leave it where the user put it.
+///
+void ImageViewDialog::showEvent(QShowEvent *event)
+{
+    AppBaseDialog::showEvent(event);
+
+    if (_cascaded)
+        return;
+    _cascaded = true;
+
+    const QPoint offset = cascadeOffset();
+    if (!offset.isNull())
+        move(pos() + offset);
 }
 
 ///
@@ -387,4 +422,29 @@ QString ImageViewDialog::saveFilter(QString *suffix) const
     *suffix = format;
     return QStringLiteral("%1 (*.%2);;%3 (*)")
         .arg(format.toUpper(), format, tr("All Files"));
+}
+
+///
+/// \brief Returns how far this window steps away from the viewers already open.
+/// \return Offset to add to the position the dialog was centred at.
+///
+/// The step counts the viewers that are open under the same main window, so closing one
+/// gives its place back rather than sending the next picture ever further off screen. The
+/// cascade restarts after a few windows for the same reason.
+///
+QPoint ImageViewDialog::cascadeOffset() const
+{
+    const QWidget *root = parentWidget() ? parentWidget()->window() : nullptr;
+    if (!root)
+        return {};
+
+    int open = 0;
+    const auto viewers = root->findChildren<ImageViewDialog *>();
+    for (const ImageViewDialog *viewer : viewers) {
+        if (viewer != this && viewer->isVisible())
+            ++open;
+    }
+
+    const int step = (open % CascadeLength) * CascadeStep;
+    return { step, step };
 }
