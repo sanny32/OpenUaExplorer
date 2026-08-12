@@ -77,6 +77,7 @@ private slots:
     void ignoresInvalidSessionDiagnostics();
     void detectsValuesWaitingForTypeDefinitions();
     void decodesStructuresWithAbstractEnumerationFields();
+    void decodesStandardDiagnosticStructuresWithScalarAliases();
     void readsEnumerationDefinitionsFromTheTypeTree();
     void coordinatesIndependentAndSupersededRequests();
     void keepsKeyedRequestsIndependent();
@@ -366,6 +367,84 @@ void TestQtOpcUaInternals::decodesStructuresWithAbstractEnumerationFields()
     QVERIFY(decoded.has_value());
     QCOMPARE(decoded->fields().value(QStringLiteral("Mode")).toInt(), 2);
     QCOMPARE(decoded->fields().value(QStringLiteral("Count")).toInt(), 7);
+}
+
+/// \brief Decodes standard diagnostics whose fields use scalar DataType aliases.
+void TestQtOpcUaInternals::decodesStandardDiagnosticStructuresWithScalarAliases()
+{
+    using NodeId = QOpcUa::NodeIds::Namespace0;
+    const QString buildInfoType = QOpcUa::namespace0Id(NodeId::BuildInfo);
+    const QString serverStatusType = QOpcUa::namespace0Id(NodeId::ServerStatusDataType);
+    const QString subscriptionType =
+        QOpcUa::namespace0Id(NodeId::SubscriptionDiagnosticsDataType);
+
+    QOpcUaStructureField buildDate;
+    buildDate.setName(QStringLiteral("BuildDate"));
+    buildDate.setDataType(QOpcUa::namespace0Id(NodeId::UtcTime));
+    QOpcUaStructureDefinition buildInfoDefinition;
+    buildInfoDefinition.setDefaultEncodingId(QStringLiteral("ns=0;i=340"));
+    buildInfoDefinition.setFields({buildDate});
+
+    QOpcUaStructureField startTime;
+    startTime.setName(QStringLiteral("StartTime"));
+    startTime.setDataType(QOpcUa::namespace0Id(NodeId::UtcTime));
+    QOpcUaStructureField buildInfo;
+    buildInfo.setName(QStringLiteral("BuildInfo"));
+    buildInfo.setDataType(buildInfoType);
+    QOpcUaStructureDefinition serverStatusDefinition;
+    serverStatusDefinition.setDefaultEncodingId(QStringLiteral("ns=0;i=864"));
+    serverStatusDefinition.setFields({startTime, buildInfo});
+
+    QOpcUaStructureField publishingInterval;
+    publishingInterval.setName(QStringLiteral("PublishingInterval"));
+    publishingInterval.setDataType(QOpcUa::namespace0Id(NodeId::Duration));
+    QOpcUaStructureDefinition subscriptionDefinition;
+    subscriptionDefinition.setDefaultEncodingId(QStringLiteral("ns=0;i=876"));
+    subscriptionDefinition.setFields({publishingInterval});
+
+    QOpcUaGenericStructHandler handler(nullptr);
+    QVERIFY(handler.addCustomStructureDefinition(
+        buildInfoDefinition, buildInfoType, QStringLiteral("BuildInfo")));
+    QVERIFY(handler.addCustomStructureDefinition(
+        serverStatusDefinition, serverStatusType, QStringLiteral("ServerStatusDataType")));
+    QVERIFY(handler.addCustomStructureDefinition(
+        subscriptionDefinition, subscriptionType,
+        QStringLiteral("SubscriptionDiagnosticsDataType")));
+
+    const QDateTime start = QDateTime::fromMSecsSinceEpoch(1000, kUtc);
+    const QDateTime build = QDateTime::fromMSecsSinceEpoch(2000, kUtc);
+    QByteArray serverStatusBody;
+    QOpcUaBinaryDataEncoding serverStatusEncoder(&serverStatusBody);
+    QVERIFY(serverStatusEncoder.encode<QDateTime>(start));
+    QVERIFY(serverStatusEncoder.encode<QDateTime>(build));
+    QOpcUaExtensionObject serverStatus;
+    serverStatus.setBinaryEncodedBody(serverStatusBody,
+                                      serverStatusDefinition.defaultEncodingId());
+
+    QByteArray subscriptionBody;
+    QOpcUaBinaryDataEncoding subscriptionEncoder(&subscriptionBody);
+    QVERIFY(subscriptionEncoder.encode<double>(1250.0));
+    QOpcUaExtensionObject subscription;
+    subscription.setBinaryEncodedBody(subscriptionBody,
+                                      subscriptionDefinition.defaultEncodingId());
+
+    QVERIFY(!handler.decode(serverStatus).has_value());
+    QVERIFY(!handler.decode(subscription).has_value());
+
+    QtOpcUaTypeMapper::allowStandardDiagnosticScalarAliases(&handler);
+
+    const std::optional<QOpcUaGenericStructValue> decodedStatus = handler.decode(serverStatus);
+    QVERIFY(decodedStatus.has_value());
+    QCOMPARE(decodedStatus->fields().value(QStringLiteral("StartTime")).toDateTime(), start);
+    const QOpcUaGenericStructValue decodedBuild = decodedStatus->fields()
+        .value(QStringLiteral("BuildInfo")).value<QOpcUaGenericStructValue>();
+    QCOMPARE(decodedBuild.fields().value(QStringLiteral("BuildDate")).toDateTime(), build);
+
+    const std::optional<QOpcUaGenericStructValue> decodedSubscription =
+        handler.decode(subscription);
+    QVERIFY(decodedSubscription.has_value());
+    QCOMPARE(decodedSubscription->fields()
+                 .value(QStringLiteral("PublishingInterval")).toDouble(), 1250.0);
 }
 
 /// \brief Reads the named values of an enumeration DataType from the server's type definitions.

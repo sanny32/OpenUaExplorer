@@ -52,6 +52,12 @@ OpcUaEnumEntries enumEntries(const QString &dataTypeId,
 /// the decoder read those four bytes and finish the structure.
 void allowAbstractEnumerationFields(QOpcUaGenericStructHandler *handler);
 
+///
+/// \brief Rewrites scalar aliases in standard Server diagnostic structures to built-in types.
+/// \param handler Initialized structure handler to update.
+///
+void allowStandardDiagnosticScalarAliases(QOpcUaGenericStructHandler *handler);
+
 /// \brief Maps discovered Qt endpoints to transport-neutral endpoint records.
 QList<EndpointInfo> endpointInfos(const QVector<QOpcUaEndpointDescription> &endpoints);
 

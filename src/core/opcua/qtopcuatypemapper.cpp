@@ -4,6 +4,7 @@
 #include "qtopcuatypemapper.h"
 
 #include <algorithm>
+#include <array>
 
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaBinaryDataEncoding>
@@ -14,6 +15,8 @@
 #include <QOpcUaGenericStructValue>
 #include <QOpcUaLocalizedText>
 #include <QOpcUaQualifiedName>
+#include <QOpcUaStructureDefinition>
+#include <QOpcUaStructureField>
 #include <QOpcUaUserTokenPolicy>
 
 #include "formatters/attributeformatter.h"
@@ -111,6 +114,48 @@ void mergeEndpointCapabilities(EndpointInfo *target, const EndpointInfo &source)
     target->supportsCertificate |= source.supportsCertificate;
     if (target->serverCertificate.isEmpty())
         target->serverCertificate = source.serverCertificate;
+}
+
+/// \brief Returns the built-in base type of a standard scalar alias.
+QString scalarAliasBaseType(const QString &typeId)
+{
+    using NodeId = QOpcUa::NodeIds::Namespace0;
+    if (typeId == QOpcUa::namespace0Id(NodeId::IntegerId)
+        || typeId == QOpcUa::namespace0Id(NodeId::Counter)) {
+        return QOpcUa::namespace0Id(NodeId::UInt32);
+    }
+    if (typeId == QOpcUa::namespace0Id(NodeId::Duration))
+        return QOpcUa::namespace0Id(NodeId::Double);
+    if (typeId == QOpcUa::namespace0Id(NodeId::NumericRange)
+        || typeId == QOpcUa::namespace0Id(NodeId::LocaleId)) {
+        return QOpcUa::namespace0Id(NodeId::String);
+    }
+    if (typeId == QOpcUa::namespace0Id(NodeId::UtcTime))
+        return QOpcUa::namespace0Id(NodeId::DateTime);
+    return {};
+}
+
+/// \brief Rewrites scalar aliases in one structure definition and registers the result.
+void normalizeScalarAliases(QOpcUaGenericStructHandler *handler, const QString &typeId)
+{
+    QOpcUaStructureDefinition definition = handler->structureDefinitionForTypeId(typeId);
+    QList<QOpcUaStructureField> fields = definition.fields();
+    bool changed = false;
+    for (QOpcUaStructureField &field : fields) {
+        const QString baseType = scalarAliasBaseType(field.dataType());
+        if (baseType.isEmpty())
+            continue;
+        field.setDataType(baseType);
+        changed = true;
+    }
+    if (!changed)
+        return;
+
+    definition.setFields(fields);
+    const QOpcUa::IsAbstract isAbstract = handler->isAbstractTypeId(typeId)
+        ? QOpcUa::IsAbstract::Abstract : QOpcUa::IsAbstract::NotAbstract;
+    handler->addCustomStructureDefinition(
+        definition, typeId, handler->typeNameForTypeId(typeId), isAbstract);
 }
 
 /// \brief Maps a Qt application type to its transport-neutral counterpart.
@@ -386,6 +431,24 @@ void allowAbstractEnumerationFields(QOpcUaGenericStructHandler *handler)
         QOpcUaEnumDefinition(),
         QOpcUa::namespace0Id(QOpcUa::NodeIds::Namespace0::Enumeration),
         QStringLiteral("Enumeration"), QOpcUa::IsAbstract::NotAbstract);
+}
+
+///
+/// \brief Rewrites scalar aliases in standard Server diagnostic structures to built-in types.
+/// \param handler Initialized structure handler to update.
+///
+void allowStandardDiagnosticScalarAliases(QOpcUaGenericStructHandler *handler)
+{
+    if (!handler)
+        return;
+    using NodeId = QOpcUa::NodeIds::Namespace0;
+    constexpr std::array structures = {
+        NodeId::BuildInfo,
+        NodeId::ServerStatusDataType,
+        NodeId::SubscriptionDiagnosticsDataType
+    };
+    for (const NodeId type : structures)
+        normalizeScalarAliases(handler, QOpcUa::namespace0Id(type));
 }
 
 /// \brief Resolves this client's session name from SessionDiagnosticsArray.
