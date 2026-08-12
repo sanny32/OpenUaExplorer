@@ -413,6 +413,7 @@ QIcon AddressSpaceWidget::nodeIcon(AddressSpaceItem::NodeType type) const
     case AddressSpaceItem::NodeType::Folder:   icon = AppIcons::themed("folder"); break;
     case AddressSpaceItem::NodeType::Node:     icon = AppIcons::themed("node"); break;
     case AddressSpaceItem::NodeType::Variable: icon = AppIcons::themed("variable"); break;
+    case AddressSpaceItem::NodeType::Property: icon = AppIcons::themed("property"); break;
     case AddressSpaceItem::NodeType::Method:   icon = AppIcons::themed("method"); break;
     }
     if (!_offline)

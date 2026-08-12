@@ -20,7 +20,7 @@ struct AddressSpaceItem
     ///
     /// \brief Node category used by the sample address space tree.
     ///
-    enum class NodeType { Folder, Node, Variable, Method };
+    enum class NodeType { Folder, Node, Variable, Property, Method };
 
     /// \brief Display name shown in the tree.
     QString  displayName;

@@ -625,6 +625,10 @@ void AddressSpaceModel::appendTestItems(AddressSpaceNode *parent,
         case AddressSpaceItem::NodeType::Folder: info.nodeClass = 1; break;
         case AddressSpaceItem::NodeType::Node: info.nodeClass = 1; break;
         case AddressSpaceItem::NodeType::Variable: info.nodeClass = 2; break;
+        case AddressSpaceItem::NodeType::Property:
+            info.nodeClass = 2;
+            info.typeDefinitionId = StandardNodeId::propertyType();
+            break;
         case AddressSpaceItem::NodeType::Method: info.nodeClass = 4; break;
         }
         info.hasChildren = !item.children.isEmpty();
@@ -644,8 +648,11 @@ void AddressSpaceModel::appendTestItems(AddressSpaceNode *parent,
 ///
 AddressSpaceItem::NodeType AddressSpaceModel::iconType(const OpcUaNodeInfo &node) const
 {
-    if (node.nodeClass & OpcUa::Variable)
+    if (node.nodeClass & OpcUa::Variable) {
+        if (node.typeDefinitionId == StandardNodeId::propertyType())
+            return AddressSpaceItem::NodeType::Property;
         return AddressSpaceItem::NodeType::Variable;
+    }
     if (node.nodeClass & OpcUa::Method)
         return AddressSpaceItem::NodeType::Method;
     if ((node.nodeClass & OpcUa::Object)
