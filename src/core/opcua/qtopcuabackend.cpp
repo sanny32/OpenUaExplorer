@@ -76,7 +76,7 @@ public:
         QObject::connect(&connection, &QtOpcUaConnectionManager::clientInvalidated,
                           q, [this]() {
             opaqueValueNodes.clear();
-            opaqueDetailsNode.clear();
+            staleDetailsNodes.clear();
             reportedEncodingIds.clear();
             cancelRequests();
             if (namespaceCrawler)
@@ -163,16 +163,16 @@ public:
     }
 
     ///
-    /// \brief Reads the nodes again whose structures could not be decoded before.
+    /// \brief Reads the nodes again that the type definitions have something to add to.
     ///
     void refreshOpaqueValues()
     {
         const QStringList nodeIds = std::exchange(opaqueValueNodes, {});
-        const QString detailsNode = std::exchange(opaqueDetailsNode, QString());
+        const QStringList detailsNodes = std::exchange(staleDetailsNodes, {});
         if (!nodeIds.isEmpty())
             q->readValues(nodeIds);
-        if (!detailsNode.isEmpty())
-            q->readNode(detailsNode);
+        for (const QString &nodeId : detailsNodes)
+            q->readNode(nodeId);
     }
 
     ///
@@ -363,8 +363,8 @@ public:
     QPointer<SubtreeVariableCrawler> subtreeVariableCrawler;
     /// \brief Nodes whose last value carried a structure the client could not decode yet.
     QStringList opaqueValueNodes;
-    /// \brief Node of the last attribute read that carried an undecodable structure.
-    QString opaqueDetailsNode;
+    /// \brief Nodes whose attributes were read before the server's type definitions arrived.
+    QStringList staleDetailsNodes;
     /// \brief Encodings already reported as undecodable, so one per connection is logged.
     QSet<QString> reportedEncodingIds;
 };
@@ -778,13 +778,11 @@ void QtOpcUaBackend::readNode(const QString &nodeId)
             const OpcUaNodeDetails details = QtOpcUaTypeMapper::nodeDetails(
                 node, nodeId, attributes, [](const char *text) { return QString::fromUtf8(text); },
                 _d->connection.structHandler());
-            // Only the latest read is worth repeating: the panel shows one node at a time.
-            // Structures and the names of enumeration values both come from the type
-            // definitions, so a node read before they arrived is read again once they do.
-            _d->opaqueDetailsNode = !_d->connection.structHandler()
-                    || QtOpcUaTypeMapper::containsOpaqueStruct(details.value)
-                ? nodeId
-                : QString();
+            const bool stale = !_d->connection.structHandler()
+                || QtOpcUaTypeMapper::containsOpaqueStruct(details.value);
+            _d->staleDetailsNodes.removeAll(nodeId);
+            if (stale)
+                _d->staleDetailsNodes.append(nodeId);
             emit nodeDetailsReady(details, QString());
         },
         [node, attributes]() { return node->readAttributes(attributes); },

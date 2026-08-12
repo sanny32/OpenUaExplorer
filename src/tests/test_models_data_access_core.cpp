@@ -48,6 +48,7 @@ class TestModelsDataAccessCore : public QObject
 private slots:
     void dataAccessSetItemsExposesColumns();
     void dataAccessAddOrUpdateInsertsThenUpdates();
+    void dataAccessRefreshItemUpdatesOnlyListedNodes();
     void dataAccessUpdateValuesRefreshesValueColumns();
     void dataAccessElementRowsAreNotActedOn();
     void dataAccessRemoveRowsDropsSelected();
@@ -116,6 +117,41 @@ void TestModelsDataAccessCore::dataAccessAddOrUpdateInsertsThenUpdates()
              QStringLiteral("99.9"));
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColDataType)).toString(),
              QStringLiteral("Boolean"));
+}
+
+///
+/// \brief refreshItem updates a listed row and ignores an unlisted node.
+///
+void TestModelsDataAccessCore::dataAccessRefreshItemUpdatesOnlyListedNodes()
+{
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=State");
+    details.displayName = QStringLiteral("State");
+    details.nodeClass = OpcUa::Variable;
+    details.value = 1;
+    details.valueType = int(QOpcUa::Types::Int32);
+    details.dataTypeId = QStringLiteral("ns=1;s=SensorState");
+
+    DataAccessModel model;
+    new QAbstractItemModelTester(&model, &model);
+    model.addOrUpdate(details);
+
+    details.displayName = QStringLiteral("Current state");
+    details.enumEntries = {{0, QStringLiteral("Disabled")},
+                           {1, QStringLiteral("Enabled")}};
+    QSignalSpy changeSpy(&model, &QAbstractItemModel::dataChanged);
+    QVERIFY(model.refreshItem(details));
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(changeSpy.size(), 1);
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColDisplayName)).toString(),
+             QStringLiteral("Current state"));
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("1 (Enabled)"));
+
+    details.nodeId = QStringLiteral("ns=2;s=Unlisted");
+    QVERIFY(!model.refreshItem(details));
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(changeSpy.size(), 1);
 }
 
 ///

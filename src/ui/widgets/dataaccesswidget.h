@@ -55,6 +55,12 @@ public:
     void addNode(const OpcUaNodeDetails &details);
 
     ///
+    /// \brief Applies a fresh attribute read to a listed row, adding no row of its own.
+    /// \param details Variable node details.
+    ///
+    void refreshNode(const OpcUaNodeDetails &details);
+
+    ///
     /// \brief Adds or updates a node row and assigns it to the Default subscription.
     /// \param details Variable node details.
     /// \param subscription Subscription to assign.

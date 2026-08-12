@@ -475,6 +475,8 @@ void DataAccessCoordinator::onAttributeDetailsReady(const OpcUaNodeDetails &deta
     if (!pending || !OpcUa::isVariable(details.nodeClass)) {
         if (pending)
             finishFolderNode(details.nodeId, false);
+        else if (OpcUa::isVariable(details.nodeClass))
+            _dataView->dataAccess()->refreshNode(details);
         return;
     }
 

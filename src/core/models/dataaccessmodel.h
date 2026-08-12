@@ -57,6 +57,13 @@ public:
     void addOrUpdate(const OpcUaNodeDetails &details);
 
     ///
+    /// \brief Applies a fresh attribute read to a listed row, leaving unlisted nodes out.
+    /// \param details Node details to apply.
+    /// \return True when a row for the node was found and updated.
+    ///
+    bool refreshItem(const OpcUaNodeDetails &details);
+
+    ///
     /// \brief Appends a placeholder row for a node whose attributes are still being read.
     /// \param node Browsed node to show.
     ///

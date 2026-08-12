@@ -94,6 +94,36 @@ void DataAccessModel::setItems(const QVector<DataAccessItem> &items)
 ///
 void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
 {
+    if (refreshItem(details))
+        return;
+
+    const int row = _items.size();
+    beginInsertRows({}, row, row);
+    DataAccessItem item;
+    item.nodeId = details.nodeId;
+    item.displayName = details.displayName;
+    item.typedValue = details.value;
+    item.value = OpcUaFormat::enumDisplayValue(details.value, details.enumEntries);
+    item.valueType = details.valueType;
+    item.dataTypeId = details.dataTypeId;
+    item.enumEntries = details.enumEntries;
+    item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
+    item.status = details.status;
+    item.sourceTimestamp = details.sourceTimestamp;
+    item.serverTimestamp = details.serverTimestamp;
+    item.userAccessLevel = details.userAccessLevel;
+    _items.append(item);
+    _roots.emplace_back();
+    endInsertRows();
+}
+
+///
+/// \brief Applies a fresh attribute read to a listed row, leaving unlisted nodes out.
+/// \param details Node details to apply.
+/// \return True when a row for the node was found and updated.
+///
+bool DataAccessModel::refreshItem(const OpcUaNodeDetails &details)
+{
     for (int row = 0; row < _items.size(); ++row) {
         if (_items.at(row).nodeId != details.nodeId)
             continue;
@@ -115,27 +145,9 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
         item.userAccessLevel = details.userAccessLevel;
         refreshChildren(row, item.valueChangedAt);
         emit dataChanged(index(row, 0), index(row, ColCount - 1));
-        return;
+        return true;
     }
-
-    const int row = _items.size();
-    beginInsertRows({}, row, row);
-    DataAccessItem item;
-    item.nodeId = details.nodeId;
-    item.displayName = details.displayName;
-    item.typedValue = details.value;
-    item.value = OpcUaFormat::enumDisplayValue(details.value, details.enumEntries);
-    item.valueType = details.valueType;
-    item.dataTypeId = details.dataTypeId;
-    item.enumEntries = details.enumEntries;
-    item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
-    item.status = details.status;
-    item.sourceTimestamp = details.sourceTimestamp;
-    item.serverTimestamp = details.serverTimestamp;
-    item.userAccessLevel = details.userAccessLevel;
-    _items.append(item);
-    _roots.emplace_back();
-    endInsertRows();
+    return false;
 }
 
 ///
