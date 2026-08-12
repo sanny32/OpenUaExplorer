@@ -7,6 +7,7 @@
 ///
 
 #include <QTest>
+#include <QGuiApplication>
 
 #include "test_dataaccesscoordinator_support.h"
 
@@ -22,6 +23,8 @@ private slots:
     void cleanup();
     void folderDropCrawlsDroppedFolder();
     void folderDropBrowsesDroppedFolder();
+    void folderDropUsesWaitCursorWhileCounting();
+    void folderDropWaitCursorCoversConcurrentCounts();
     void folderDropAddsSubtreeVariables();
     void folderDropAddsDirectVariablesWithoutPrompt();
     void folderDropIgnoresBrowseResultsOfOtherNodes();
@@ -86,6 +89,48 @@ void TestDataAccessCoordinatorFolderDrop::folderDropBrowsesDroppedFolder()
 
     QCOMPARE(harness.backend.browsedNodeIds, QStringList{kFolderNodeId});
     QVERIFY(harness.backend.crawledNodeIds.isEmpty());
+}
+
+///
+/// \brief A dropped folder keeps the wait cursor until its subtree count completes.
+///
+void TestDataAccessCoordinatorFolderDrop::folderDropUsesWaitCursorWhileCounting()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+    AppSettings().setRecursiveFolderDrop(true);
+
+    QVERIFY(!QGuiApplication::overrideCursor());
+    emit harness.dataView.dataAccess()->folderDropRequested(kFolderNodeId);
+
+    QVERIFY(QGuiApplication::overrideCursor());
+    QCOMPARE(QGuiApplication::overrideCursor()->shape(), Qt::WaitCursor);
+
+    emit harness.backend.subtreeVariablesReady(kFolderNodeId, makeSubtreeVariables(1), QString());
+
+    QVERIFY(!QGuiApplication::overrideCursor());
+}
+
+///
+/// \brief The wait cursor remains until all simultaneous dropped-folder counts complete.
+///
+void TestDataAccessCoordinatorFolderDrop::folderDropWaitCursorCoversConcurrentCounts()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+    AppSettings().setRecursiveFolderDrop(true);
+    const QString otherFolderNodeId = QStringLiteral("ns=2;s=OtherDevice");
+
+    emit harness.dataView.dataAccess()->folderDropRequested(kFolderNodeId);
+    emit harness.dataView.dataAccess()->folderDropRequested(otherFolderNodeId);
+    emit harness.backend.subtreeVariablesReady(kFolderNodeId, makeSubtreeVariables(1), QString());
+
+    QVERIFY(QGuiApplication::overrideCursor());
+    QCOMPARE(QGuiApplication::overrideCursor()->shape(), Qt::WaitCursor);
+
+    emit harness.backend.subtreeVariablesReady(otherFolderNodeId, makeSubtreeVariables(1), QString());
+
+    QVERIFY(!QGuiApplication::overrideCursor());
 }
 
 ///

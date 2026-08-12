@@ -89,6 +89,11 @@ public:
                           QWidget *dialogParent);
 
     ///
+    /// \brief Removes any application cursor override owned by the coordinator.
+    ///
+    ~DataAccessCoordinator() override;
+
+    ///
     /// \brief Reads the currently selected node.
     ///
     void readSelected();
@@ -280,6 +285,7 @@ private:
     void onUnsubscribeRequested(const OpcUaNodeInfo &node);
     void addNodeById(const QString &nodeId);
     void addFolderById(const QString &nodeId);
+    void endFolderDropWait();
     void onFolderChildrenReady(const QString &parentNodeId,
                                const QVector<OpcUaNodeInfo> &children,
                                const QString &error);
@@ -316,4 +322,5 @@ private:
     QSet<QString> _pendingFolderDropNodeIds;
     QSet<QString> _folderAddNodeIds;
     int _folderAddFailureCount = 0;
+    bool _folderDropCursorActive = false;
 };

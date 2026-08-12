@@ -7,6 +7,7 @@
 ///
 
 #include <QAction>
+#include <QGuiApplication>
 
 #include "addressspacemodule.h"
 #include "application.h"
@@ -82,6 +83,15 @@ DataAccessCoordinator::DataAccessCoordinator(DataView *dataView,
     wireModules();
     connect(_backend, &OpcUaBackend::stateChanged,
             this, &DataAccessCoordinator::onClientStateChanged);
+}
+
+///
+/// \brief Removes any application cursor override owned by the coordinator.
+///
+DataAccessCoordinator::~DataAccessCoordinator()
+{
+    _pendingFolderDropNodeIds.clear();
+    endFolderDropWait();
 }
 
 ///
@@ -293,6 +303,7 @@ void DataAccessCoordinator::clearRuntimeState()
     _pendingDataAccessNodeIds.clear();
     _pendingRestoreSubscriptions.clear();
     _pendingFolderDropNodeIds.clear();
+    endFolderDropWait();
     _folderAddNodeIds.clear();
     _folderAddFailureCount = 0;
     updateMonitoringActions();
@@ -315,6 +326,7 @@ void DataAccessCoordinator::setOffline(bool offline)
     _pendingDataAccessNodeIds.clear();
     _pendingRestoreSubscriptions.clear();
     _pendingFolderDropNodeIds.clear();
+    endFolderDropWait();
     _folderAddNodeIds.clear();
     _folderAddFailureCount = 0;
     updateMonitoringActions();
@@ -768,11 +780,28 @@ void DataAccessCoordinator::addFolderById(const QString &nodeId)
 {
     if (nodeId.isEmpty() || !_addressSpace)
         return;
+    if (_pendingFolderDropNodeIds.contains(nodeId))
+        return;
+    if (_pendingFolderDropNodeIds.isEmpty()) {
+        QGuiApplication::setOverrideCursor(Qt::WaitCursor);
+        _folderDropCursorActive = true;
+    }
     _pendingFolderDropNodeIds.insert(nodeId);
     if (AppSettings().recursiveFolderDrop())
         _addressSpace->collectSubtreeVariables(nodeId);
     else
         _addressSpace->browse(nodeId);
+}
+
+///
+/// \brief Restores the cursor after every pending folder browse or crawl has finished.
+///
+void DataAccessCoordinator::endFolderDropWait()
+{
+    if (!_folderDropCursorActive || !_pendingFolderDropNodeIds.isEmpty())
+        return;
+    QGuiApplication::restoreOverrideCursor();
+    _folderDropCursorActive = false;
 }
 
 ///
@@ -790,6 +819,7 @@ void DataAccessCoordinator::onFolderChildrenReady(const QString &parentNodeId,
 {
     if (!_pendingFolderDropNodeIds.remove(parentNodeId))
         return;
+    endFolderDropWait();
     offerFolderVariables(children, error);
 }
 
@@ -805,6 +835,7 @@ void DataAccessCoordinator::onFolderSubtreeVariablesReady(const QString &rootNod
 {
     if (!_pendingFolderDropNodeIds.remove(rootNodeId))
         return;
+    endFolderDropWait();
     offerFolderVariables(variables, error);
 }
 
