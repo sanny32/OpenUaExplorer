@@ -20,6 +20,7 @@
 #include <QPushButton>
 #include <QSet>
 #include <QSortFilterProxyModel>
+#include <QStyle>
 
 #include "appicons.h"
 #include "appsettings.h"
@@ -375,6 +376,7 @@ void DataAccessWidget::saveViewState(AppSettings &settings) const
 void DataAccessWidget::restoreViewState(AppSettings &settings)
 {
     ui->dataView->headerView()->restoreLayout(settings.viewState(ui->dataView->objectName()));
+    updateNumberColumnWidth();
 }
 
 ///
@@ -595,11 +597,35 @@ void DataAccessWidget::setupDataView()
             _dataModel->setColumnAlignment(logicalIndex, alignment);
         });
 
+    connect(_filterProxy, &QAbstractItemModel::rowsInserted,
+            this, &DataAccessWidget::updateNumberColumnWidth);
+    connect(_filterProxy, &QAbstractItemModel::modelReset,
+            this, &DataAccessWidget::updateNumberColumnWidth);
+
     connect(ui->dataView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, [this] {
         updateSelectionActions();
         emit selectionChanged();
     });
+}
+
+///
+/// \brief Widens the row-number column enough for the largest visible number.
+///
+void DataAccessWidget::updateNumberColumnWidth()
+{
+    const int rowCount = _filterProxy->rowCount();
+    if (rowCount == 0)
+        return;
+
+    const QString number = QString::number(rowCount);
+    const int textMargin = ui->dataView->style()->pixelMetric(
+        QStyle::PM_FocusFrameHMargin, nullptr, ui->dataView) + 1;
+    const int requiredWidth = ui->dataView->fontMetrics().horizontalAdvance(number)
+        + textMargin * 2 + 16;
+    QHeaderView *header = ui->dataView->header();
+    if (header->sectionSize(DataAccessModel::ColNumber) < requiredWidth)
+        header->resizeSection(DataAccessModel::ColNumber, requiredWidth);
 }
 
 ///

@@ -6,6 +6,7 @@
 /// \brief Tests DataAccessWidget delegates, palettes, and change highlighting.
 ///
 
+#include <QHeaderView>
 #include <QTest>
 
 #include "test_dataaccesswidget_support.h"
@@ -18,6 +19,7 @@ class TestDataAccessWidgetPresentation : public QObject
     Q_OBJECT
 
 private slots:
+    void numberColumnExpandsToFitItsContents();
     void valueAndStatusColumnsShareTheStateDelegate();
     void selectedStatusUsesContrastText();
     void subscriptionEditorHasOpaqueBackground();
@@ -25,6 +27,28 @@ private slots:
     void selectedRowsStillShowTheChangeWash();
     void fastSubscriptionsFadeWithinTheirInterval();
 };
+
+///
+/// \brief The row-number column grows when its contents need more than the initial width.
+///
+void TestDataAccessWidgetPresentation::numberColumnExpandsToFitItsContents()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+
+    QVector<OpcUaNodeInfo> nodes;
+    nodes.reserve(99);
+    for (int number = 1; number <= 99; ++number)
+        nodes.append(makeVariable(number));
+    widget.addPendingNodes(nodes);
+    const int twoDigitWidth = view->header()->sectionSize(DataAccessModel::ColNumber);
+
+    widget.addPendingNodes({makeVariable(100)});
+
+    QTRY_VERIFY(view->header()->sectionSize(DataAccessModel::ColNumber) > twoDigitWidth);
+    QCOMPARE(view->model()->index(99, DataAccessModel::ColNumber).data().toInt(), 100);
+}
 
 ///
 /// \brief Value and status cells are painted by one state delegate, and values align right.

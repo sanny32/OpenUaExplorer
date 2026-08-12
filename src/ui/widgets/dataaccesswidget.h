@@ -288,6 +288,7 @@ protected:
 
 private:
     void setupDataView();
+    void updateNumberColumnWidth();
     void configureToolbar();
     void showDataContextMenu(const QPoint &pos);
     void updateSelectionActions();
