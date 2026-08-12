@@ -537,6 +537,8 @@ void DataAccessWidget::setupDataView()
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColStatus, _valueDelegate);
     connect(_valueDelegate, &ElidedTextDelegate::viewRequested,
             this, &DataAccessWidget::showValueCell);
+    connect(_valueDelegate, &ValueCellDelegate::enumValuePicked,
+            this, &DataAccessWidget::writeEnumValue);
     connect(_subscriptionDelegate, &SubscriptionDelegate::subscriptionChanged, this,
             [this](const QModelIndex &index, const QString &subscriptionName) {
                 const QString nodeId = _dataModel->itemAt(_filterProxy->mapToSource(index).row()).nodeId;
@@ -748,7 +750,8 @@ void DataAccessWidget::writeSelectedNode()
 void DataAccessWidget::requestWrite(const DataAccessItem &item)
 {
     emit writeRequested(item.nodeId, item.typedValue, item.valueType,
-                        item.dataTypeId, OpcUa::isWritable(item.userAccessLevel));
+                        item.dataTypeId, OpcUa::isWritable(item.userAccessLevel),
+                        item.enumEntries);
 }
 
 ///
@@ -786,6 +789,11 @@ void DataAccessWidget::handleValueDoubleClick(const QModelIndex &index)
     if (_offline || !index.isValid() || index.column() != DataAccessModel::ColValue)
         return;
 
+    // An enumeration cell opens its list of names on the same double click; the dialog
+    // would only cover the editor the view has just opened.
+    if (index.flags().testFlag(Qt::ItemIsEditable))
+        return;
+
     // Writing a single array element needs an IndexRange the write path does not carry.
     const QModelIndex source = _filterProxy->mapToSource(index);
     if (source.parent().isValid())
@@ -804,6 +812,25 @@ void DataAccessWidget::handleValueDoubleClick(const QModelIndex &index)
     }
 
     requestWrite(item);
+}
+
+///
+/// \brief Writes the enumeration value picked in a Value cell.
+/// \param index Edited cell, in the filter proxy.
+/// \param value Picked enumeration value.
+///
+/// Picking a name is the whole gesture, so it is not confirmed again: the list only ever
+/// opens on a deliberate edit, and the value it offers is the one the DataType defines.
+///
+void DataAccessWidget::writeEnumValue(const QModelIndex &index, int value)
+{
+    if (_offline || !index.isValid())
+        return;
+    const DataAccessItem item =
+        _dataModel->itemAt(_filterProxy->mapToSource(index).row());
+    if (item.nodeId.isEmpty() || item.typedValue.toInt() == value)
+        return;
+    emit valueWriteRequested(item.nodeId, value, item.valueType);
 }
 
 ///

@@ -60,6 +60,26 @@ bool isValueArray(const QVariant &value);
 QString displayValue(const QVariant &value);
 
 ///
+/// \brief Renders a value of an enumeration DataType as its number and field name.
+/// \param value Variant to format; arrays are rendered element by element.
+/// \param entries Named values of the DataType.
+/// \return Text such as "0 (Disabled)", or the plain display value when the number is not named.
+///
+/// The number stays in front of the name because it is what the server carries and what a
+/// write has to produce; the name only explains it. Values outside the definition are shown
+/// as they are: a server is free to send one, and hiding it would lose the fact.
+///
+QString enumDisplayValue(const QVariant &value, const OpcUaEnumEntries &entries);
+
+///
+/// \brief Returns the field name an enumeration DataType gives a number.
+/// \param value Numeric enumeration value.
+/// \param entries Named values of the DataType.
+/// \return Field name, or an empty string when the definition does not name the value.
+///
+QString enumEntryName(qint64 value, const OpcUaEnumEntries &entries);
+
+///
 /// \brief Renders the OPC UA types Qt carries in classes of their own.
 /// \param value Variant to format.
 /// \return Display text, or nullopt when the value is not one of those types.
@@ -215,10 +235,12 @@ void formatDataTypeAttribute(OpcUaNodeAttribute *attribute, const QString &nodeI
 /// \param value Node value.
 /// \param type Declared value type, used to label arrays.
 /// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
+/// \param enumEntries Named values of the DataType; empty unless it is an enumeration.
 /// \return The constructed Value attribute.
 ///
 OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type,
-                                  const QString &dataTypeId = QString());
+                                  const QString &dataTypeId = QString(),
+                                  const OpcUaEnumEntries &enumEntries = {});
 
 ///
 /// \brief One expandable part of a composite value: an array element or a structure field.
@@ -259,10 +281,12 @@ QVector<ValueElement> valueElements(const QVariant &value, int limit = -1,
 /// \param value Variant to describe.
 /// \param type Declared value type, used to name array elements.
 /// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
+/// \param enumEntries Named values of the DataType; empty unless it is an enumeration.
 /// \return Summary such as "Int16[3]", or the plain display value for scalars.
 ///
 QString valueSummary(const QVariant &value, QOpcUa::Types type,
-                     const QString &dataTypeId = QString());
+                     const QString &dataTypeId = QString(),
+                     const OpcUaEnumEntries &enumEntries = {});
 
 ///
 /// \brief Picture encoding an OPC UA image DataType stands for.

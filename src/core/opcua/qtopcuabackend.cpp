@@ -775,7 +775,10 @@ void QtOpcUaBackend::readNode(const QString &nodeId)
                 node, nodeId, attributes, [](const char *text) { return QString::fromUtf8(text); },
                 _d->connection.structHandler());
             // Only the latest read is worth repeating: the panel shows one node at a time.
-            _d->opaqueDetailsNode = QtOpcUaTypeMapper::containsOpaqueStruct(details.value)
+            // Structures and the names of enumeration values both come from the type
+            // definitions, so a node read before they arrived is read again once they do.
+            _d->opaqueDetailsNode = !_d->connection.structHandler()
+                    || QtOpcUaTypeMapper::containsOpaqueStruct(details.value)
                 ? nodeId
                 : QString();
             emit nodeDetailsReady(details, QString());

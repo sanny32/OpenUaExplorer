@@ -4070,6 +4070,10 @@ Möchten Sie sie speichern?</translation>
         <translation>Array:</translation>
     </message>
     <message>
+        <source>Value:</source>
+        <translation>Wert:</translation>
+    </message>
+    <message>
         <source>JSON array</source>
         <translation>JSON-Array</translation>
     </message>

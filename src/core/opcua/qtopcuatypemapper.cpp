@@ -8,6 +8,7 @@
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaBinaryDataEncoding>
 #include <QOpcUaEnumDefinition>
+#include <QOpcUaEnumField>
 #include <QOpcUaExtensionObject>
 #include <QOpcUaGenericStructHandler>
 #include <QOpcUaGenericStructValue>
@@ -229,7 +230,12 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
     const auto nodeClass = static_cast<QOpcUa::NodeClass>(details.nodeClass);
     details.value = decodedValue(node->attribute(QOpcUa::NodeAttribute::Value), structHandler);
     details.dataTypeId = node->attribute(QOpcUa::NodeAttribute::DataType).toString();
-    details.valueType = static_cast<int>(valueTypeForDataType(details.dataTypeId));
+    details.enumEntries = enumEntries(details.dataTypeId, structHandler);
+    // An enumeration lives in a namespace of its own, so its DataType resolves to no built-in
+    // type; the wire always carries it as an Int32 and a write has to say so (OPC UA Part 3).
+    details.valueType = details.enumEntries.isEmpty()
+        ? static_cast<int>(valueTypeForDataType(details.dataTypeId))
+        : static_cast<int>(QOpcUa::Types::Int32);
     const auto valueType = static_cast<QOpcUa::Types>(details.valueType);
     details.valueRank = node->attribute(QOpcUa::NodeAttribute::ValueRank).toInt();
     for (const QVariant &dimension : node->attribute(QOpcUa::NodeAttribute::ArrayDimensions).toList())
@@ -270,7 +276,8 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
                 attribute.children.append(timestamp);
             }
             attribute.children.append(childAttribute(translate("Status Code"), statusDisplay(node->attributeError(field.second))));
-            attribute.children.append(valueAttribute(value, valueType, details.dataTypeId));
+            attribute.children.append(valueAttribute(value, valueType, details.dataTypeId,
+                                                     details.enumEntries));
         }
         details.attributes.append(attribute);
     }
@@ -344,6 +351,30 @@ QStringList opaqueEncodingIds(const QVariant &value)
 bool containsOpaqueStruct(const QVariant &value)
 {
     return !opaqueEncodingIds(value).isEmpty();
+}
+
+/// \brief Lists the named values of an enumeration DataType.
+OpcUaEnumEntries enumEntries(const QString &dataTypeId,
+                             const QOpcUaGenericStructHandler *handler)
+{
+    if (!handler || dataTypeId.isEmpty())
+        return {};
+    if (handler->dataTypeKindForTypeId(dataTypeId)
+        != QOpcUaGenericStructHandler::DataTypeKind::Enum) {
+        return {};
+    }
+
+    OpcUaEnumEntries entries;
+    const QList<QOpcUaEnumField> fields = handler->enumDefinitionForTypeId(dataTypeId).fields();
+    entries.reserve(fields.size());
+    for (const QOpcUaEnumField &field : fields) {
+        OpcUaEnumEntry entry;
+        entry.value = field.value();
+        // EnumValues carries the readable text in DisplayName, EnumStrings only in Name.
+        entry.name = field.name().isEmpty() ? field.displayName().text() : field.name();
+        entries.append(entry);
+    }
+    return entries;
 }
 
 /// \brief Lets structures with a field of the abstract Enumeration type decode.

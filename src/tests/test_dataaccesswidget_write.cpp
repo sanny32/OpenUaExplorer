@@ -24,6 +24,8 @@ private slots:
     void doubleClickOnReadOnlyBooleanOpensReadOnlyDialog();
     void doubleClickOnNonBooleanOpensWriteDialog();
     void doubleClickOnReadOnlyValueOpensReadOnlyDialog();
+    void doubleClickOnEnumerationOpensItsNames();
+    void readOnlyEnumerationOpensTheWriteDialog();
     void doubleClickOnPendingRowWritesNothing();
     void doubleClickOutsideValueColumnWritesNothing();
     void doubleClickWhileOfflineWritesNothing();
@@ -185,6 +187,67 @@ void TestDataAccessWidgetWrite::doubleClickOnReadOnlyValueOpensReadOnlyDialog()
     QCOMPARE(writeSpy.size(), 1);
     QCOMPARE(writeSpy.first().at(0).toString(), details.nodeId);
     QCOMPARE(writeSpy.first().at(4).toBool(), false);
+}
+
+///
+/// \brief A writable enumeration is picked from its named values, right in the cell.
+///
+void TestDataAccessWidgetWrite::doubleClickOnEnumerationOpensItsNames()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    const OpcUaNodeDetails details = makeEnumNodeDetails(0, true);
+    widget.addNode(details);
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    const QModelIndex value = view->model()->index(0, DataAccessModel::ColValue);
+    QCOMPARE(value.data().toString(), QStringLiteral("0 (Disabled)"));
+
+    QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
+    QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
+    doubleClickCell(view, 0, DataAccessModel::ColValue);
+
+    // The list replaces the dialog, and picking an entry writes the number behind it.
+    QCOMPARE(writeSpy.size(), 0);
+    auto *combo = view->viewport()->findChild<QComboBox *>();
+    QVERIFY(combo);
+    QCOMPARE(combo->count(), 3);
+    QCOMPARE(combo->itemText(2), QStringLiteral("2 (Error)"));
+    QCOMPARE(combo->currentIndex(), 0);
+
+    combo->setCurrentIndex(2);
+    emit combo->activated(2);
+
+    QCOMPARE(spy.size(), 1);
+    QCOMPARE(spy.first().at(0).toString(), details.nodeId);
+    QCOMPARE(spy.first().at(1).toInt(), 2);
+    QCOMPARE(spy.first().at(2).toInt(), int(QOpcUa::Types::Int32));
+}
+
+///
+/// \brief An enumeration the user may not write keeps the read-only dialog.
+///
+void TestDataAccessWidgetWrite::readOnlyEnumerationOpensTheWriteDialog()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addNode(makeEnumNodeDetails(1, false));
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    QSignalSpy writeSpy(&widget, &DataAccessWidget::writeRequested);
+    doubleClickCell(view, 0, DataAccessModel::ColValue);
+
+    QVERIFY(!view->viewport()->findChild<QComboBox *>());
+    QCOMPARE(writeSpy.size(), 1);
+    QCOMPARE(writeSpy.first().at(4).toBool(), false);
+    // The dialog is handed the names so it can offer them too.
+    QCOMPARE(writeSpy.first().at(5).value<OpcUaEnumEntries>().size(), 3);
 }
 
 ///

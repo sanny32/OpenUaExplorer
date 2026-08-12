@@ -181,6 +181,25 @@ struct OpcUaNodeInfo
 };
 
 ///
+/// \brief One named value of an OPC UA enumeration DataType.
+///
+struct OpcUaEnumEntry
+{
+    /// \brief Numeric value carried on the wire.
+    qint64 value = 0;
+    /// \brief Field name shown next to the value.
+    QString name;
+};
+
+///
+/// \brief The complete set of named values of an enumeration DataType.
+///
+/// An empty list means the DataType is not an enumeration, or that the server's type
+/// definitions were not readable, in which case values keep their plain numeric rendering.
+///
+using OpcUaEnumEntries = QList<OpcUaEnumEntry>;
+
+///
 /// \brief One input or output argument of an OPC UA method.
 ///
 struct OpcUaMethodArgument
@@ -241,6 +260,8 @@ struct OpcUaNodeDetails
     int valueType = 0;
     /// \brief DataType NodeId string.
     QString dataTypeId;
+    /// \brief Named values of the DataType; empty unless it is an enumeration.
+    OpcUaEnumEntries enumEntries;
     /// \brief OPC UA ValueRank.
     int valueRank = -2;
     /// \brief ArrayDimensions attribute values.
@@ -405,6 +426,8 @@ struct OpcUaHistoryValue
 ///
 using OpcUaNamespaceNodeCounts = QHash<int, int>;
 
+Q_DECLARE_METATYPE(OpcUaEnumEntry)
+Q_DECLARE_METATYPE(OpcUaEnumEntries)
 Q_DECLARE_METATYPE(EndpointInfo)
 Q_DECLARE_METATYPE(ServerInfo)
 Q_DECLARE_METATYPE(OpcUaNamespaceNodeCounts)

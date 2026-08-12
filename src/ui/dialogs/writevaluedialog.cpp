@@ -101,6 +101,30 @@ WriteValueDialog::~WriteValueDialog()
 }
 
 ///
+/// \brief Offers the named values of an enumeration DataType instead of a text editor.
+/// \param entries Named values of the DataType; an empty list keeps the text editor.
+///
+void WriteValueDialog::setEnumEntries(const OpcUaEnumEntries &entries)
+{
+    _enumEntries = entries;
+    ui->enumComboBox->clear();
+    for (const OpcUaEnumEntry &entry : entries) {
+        ui->enumComboBox->addItem(
+            OpcUaFormat::enumDisplayValue(QVariant::fromValue(entry.value), entries),
+            QVariant::fromValue(entry.value));
+    }
+
+    // The text editor and the enumeration list describe the same value; showing both would
+    // leave it open which of the two a write takes.
+    const bool enumeration = !entries.isEmpty();
+    ui->enumLabel->setVisible(enumeration);
+    ui->enumComboBox->setVisible(enumeration);
+    ui->valueEdit->setVisible(!enumeration);
+    ui->arrayLabel->setVisible(!enumeration);
+    ui->arrayCheckBox->setVisible(!enumeration);
+}
+
+///
 /// \brief Seeds the editor from the current value and locks it when not writable.
 /// \param value Current value.
 /// \param valueType QOpcUa::Types numeric value.
@@ -130,12 +154,25 @@ void WriteValueDialog::setValue(const QVariant &value, int valueType,
         ui->valueEdit->setPlainText(displayed.toString());
     }
 
+    if (!_enumEntries.isEmpty()) {
+        const QVariant current = QVariant::fromValue(value.toLongLong());
+        int entry = ui->enumComboBox->findData(current);
+        if (entry < 0) {
+            // A value the definition does not name is still the node's value; listing it
+            // keeps a confirmed dialog from writing one of the named values by accident.
+            ui->enumComboBox->insertItem(0, QString::number(value.toLongLong()), current);
+            entry = 0;
+        }
+        ui->enumComboBox->setCurrentIndex(entry);
+    }
+
     const bool knownExtension = value.userType() != QMetaType::QByteArray
         && value.userType() != QMetaType::QVariantMap;
     const bool editable = writable
         && (valueType != ExtensionObject || knownExtension);
     _editable = editable;
     ui->valueEdit->setReadOnly(!editable);
+    ui->enumComboBox->setEnabled(editable);
     ui->typeComboBox->setEnabled(editable);
     ui->arrayCheckBox->setEnabled(editable);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(editable);
@@ -180,6 +217,12 @@ int WriteValueDialog::valueType() const
 ///
 void WriteValueDialog::validateAndAccept()
 {
+    if (!_enumEntries.isEmpty()) {
+        _value = ui->enumComboBox->currentData().toInt();
+        accept();
+        return;
+    }
+
     const QString text = ui->valueEdit->toPlainText();
     bool ok = false;
     if (ui->arrayCheckBox->isChecked()) {

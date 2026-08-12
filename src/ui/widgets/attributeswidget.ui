@@ -107,6 +107,28 @@
        </widget>
       </item>
       <item>
+       <widget class="QComboBox" name="enumCombo">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>60</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="sizeAdjustPolicy">
+         <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+        </property>
+        <property name="minimumContentsLength">
+         <number>5</number>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QComboBox" name="typeCombo">
         <property name="minimumSize">
          <size>

@@ -286,7 +286,8 @@ private:
     void addFolderVariables(const QVector<OpcUaNodeInfo> &variables);
     void finishFolderNode(const QString &nodeId, bool success);
     void showWriteDialog(const QString &nodeId, const QVariant &value, int valueType,
-                         const QString &dataTypeId, bool writable);
+                         const QString &dataTypeId, bool writable,
+                         const OpcUaEnumEntries &enumEntries);
     void updateMonitoringActions();
     void updateSelectionActions();
     SubscriptionItem builtinSubscription(bool fast) const;

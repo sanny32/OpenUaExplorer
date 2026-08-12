@@ -24,6 +24,8 @@
 #include <QTreeView>
 #include <QTest>
 
+#include <QtOpcUa/qopcuatype.h>
+
 #include "application.h"
 #include "settingsstore.h"
 #include "widgets/headerview.h"
@@ -53,6 +55,7 @@ private slots:
     void booleanListStartsAtTheCurrentValue();
     void booleanWriteSendsTypedBoolean();
     void nonBooleanNodeKeepsTextField();
+    void enumerationNodeWritesAPickedName();
     void valueEditorStretchesWithPanel();
 
 private:
@@ -437,6 +440,51 @@ void TestAttributesWidget::nonBooleanNodeKeepsTextField()
     QVERIFY(valueEdit);
     QVERIFY(valueEdit->isVisibleTo(&widget));
     QVERIFY(!valueCombo->isVisibleTo(&widget));
+}
+
+///
+/// \brief An enumeration node is written by picking one of its named values.
+///
+void TestAttributesWidget::enumerationNodeWritesAPickedName()
+{
+    OpcUaNodeDetails details = makeWritableDetails(int(QOpcUa::Types::Int32),
+                                                   QStringLiteral("ns=1;s=SensorState"), 1);
+    details.enumEntries = {{0, QStringLiteral("Disabled")},
+                           {1, QStringLiteral("Enabled")},
+                           {2, QStringLiteral("Error")}};
+
+    AttributesWidget widget;
+    widget.setNodeDetails(details);
+
+    auto *enumCombo = widget.findChild<QComboBox *>(QStringLiteral("enumCombo"));
+    auto *valueCombo = widget.findChild<QComboBox *>(QStringLiteral("valueCombo"));
+    auto *valueEdit = widget.findChild<QLineEdit *>(QStringLiteral("valueEdit"));
+    auto *writeButton = widget.findChild<QPushButton *>(QStringLiteral("writeButton"));
+    QVERIFY(enumCombo);
+    QVERIFY(valueCombo);
+    QVERIFY(valueEdit);
+    QVERIFY(writeButton);
+
+    QVERIFY(enumCombo->isVisibleTo(&widget));
+    QVERIFY(!valueEdit->isVisibleTo(&widget));
+    QVERIFY(!valueCombo->isVisibleTo(&widget));
+    QCOMPARE(enumCombo->count(), 3);
+    QCOMPARE(enumCombo->itemText(0), QStringLiteral("0 (Disabled)"));
+    QCOMPARE(enumCombo->currentIndex(), 1);
+
+    QSignalSpy spy(&widget, &AttributesWidget::writeRequested);
+    enumCombo->setCurrentIndex(2);
+    writeButton->click();
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.first().at(1).toInt(), 2);
+    QCOMPARE(spy.first().at(2).toInt(), int(QOpcUa::Types::Int32));
+
+    // Selecting a node of any other type puts the text field back.
+    widget.setNodeDetails(makeWritableDetails(6, QStringLiteral("ns=0;i=21"),
+                                              QStringLiteral("Level")));
+    QVERIFY(!enumCombo->isVisibleTo(&widget));
+    QVERIFY(valueEdit->isVisibleTo(&widget));
 }
 
 ///

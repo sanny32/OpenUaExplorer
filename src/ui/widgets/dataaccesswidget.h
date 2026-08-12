@@ -238,9 +238,10 @@ signals:
     /// \param valueType OPC UA value type.
     /// \param dataTypeId DataType NodeId.
     /// \param writable Whether the user may write.
+    /// \param enumEntries Named values of the DataType; empty unless it is an enumeration.
     ///
     void writeRequested(QString nodeId, QVariant currentValue, int valueType,
-                        QString dataTypeId, bool writable);
+                        QString dataTypeId, bool writable, OpcUaEnumEntries enumEntries);
 
     ///
     /// \brief Emitted when a value should be written without asking the user first.
@@ -297,6 +298,7 @@ private:
     void showValueCell(const QModelIndex &index);
     void handleValueDoubleClick(const QModelIndex &index);
     void toggleBooleanValue(const DataAccessItem &item);
+    void writeEnumValue(const QModelIndex &index, int value);
     void toggleHighlightForSelection(bool enabled);
     void rebuildSubscribeMenu();
     void populateSubscribeMenu(QMenu *menu);

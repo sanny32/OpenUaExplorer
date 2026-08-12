@@ -4063,6 +4063,10 @@ Do you want to save them?</source>
         <translation>数组：</translation>
     </message>
     <message>
+        <source>Value:</source>
+        <translation>值：</translation>
+    </message>
+    <message>
         <source>JSON array</source>
         <translation>JSON 数组</translation>
     </message>

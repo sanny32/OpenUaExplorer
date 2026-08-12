@@ -37,6 +37,14 @@ bool containsOpaqueStruct(const QVariant &value);
 /// \brief Lists the encoding ids of the structures in a value that were not decoded.
 QStringList opaqueEncodingIds(const QVariant &value);
 
+/// \brief Lists the named values of an enumeration DataType.
+///
+/// The names come from the type definitions the handler read when the session opened, so
+/// resolving them costs no extra request. A DataType that is not an enumeration, and every
+/// DataType while no handler is ready, resolve to an empty list.
+OpcUaEnumEntries enumEntries(const QString &dataTypeId,
+                             const QOpcUaGenericStructHandler *handler);
+
 /// \brief Lets structures with a field of the abstract Enumeration type decode.
 ///
 /// Qt's decoder refuses such a field because the type is abstract, although the binary

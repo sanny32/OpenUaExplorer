@@ -235,7 +235,7 @@ void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
     const bool writable = variable && OpcUa::isWritable(details.userAccessLevel);
     ui->writeValueGroup->setEnabled(writable);
     if (variable)
-        setupWriteEditor(details.valueType, details.dataTypeId, details.value);
+        setupWriteEditor(details.valueType, details.dataTypeId, details.value, details.enumEntries);
     else
         clearWriteEditor();
 }
@@ -405,14 +405,24 @@ void AttributesWidget::showAttributeValue(const QModelIndex &index)
 /// \param valueType QOpcUa::Types numeric value of the selected node.
 /// \param dataTypeId DataType NodeId, used to detect abstract DataTypes.
 /// \param value Current value of the node.
+/// \param enumEntries Named values of the DataType; empty unless it is an enumeration.
 ///
 /// For a concrete DataType the combo is locked to the node's own type, since the
 /// server accepts no other. For an abstract DataType the combo lists the concrete
 /// subtypes the user may choose between.
 ///
 void AttributesWidget::setupWriteEditor(int valueType, const QString &dataTypeId,
-                                        const QVariant &value)
+                                        const QVariant &value,
+                                        const OpcUaEnumEntries &enumEntries)
 {
+    _enumEntries = enumEntries;
+    ui->enumCombo->clear();
+    for (const OpcUaEnumEntry &entry : enumEntries) {
+        ui->enumCombo->addItem(OpcUaFormat::enumDisplayValue(QVariant::fromValue(entry.value),
+                                                             enumEntries),
+                               QVariant::fromValue(entry.value));
+    }
+
     ui->typeCombo->clear();
     const QVector<int> family = abstractFamily(dataTypeId);
     if (family.isEmpty()) {
@@ -428,25 +438,32 @@ void AttributesWidget::setupWriteEditor(int valueType, const QString &dataTypeId
     }
 
     updateValueEditor();
-    if (ui->typeCombo->currentData().toInt() == Boolean)
+    if (!enumEntries.isEmpty()) {
+        const int entry = ui->enumCombo->findData(QVariant::fromValue(value.toLongLong()));
+        ui->enumCombo->setCurrentIndex(qMax(entry, 0));
+    } else if (ui->typeCombo->currentData().toInt() == Boolean) {
         ui->valueCombo->setCurrentIndex(value.toBool() ? booleanTrueIndex : 0);
+    }
 }
 
 ///
 /// \brief Shows the editor matching the selected write type.
 ///
-/// Boolean values are picked from a True/False list so they never have to be typed,
-/// while every other type keeps the free-text field with its reset-to-default action.
+/// Boolean values are picked from a True/False list and enumerations from their named
+/// values, so neither has to be typed, while every other type keeps the free-text field
+/// with its reset-to-default action.
 ///
 void AttributesWidget::updateValueEditor()
 {
     const QVariant type = ui->typeCombo->currentData();
-    const bool boolean = type.isValid() && type.toInt() == Boolean;
-    ui->valueEdit->setVisible(!boolean);
+    const bool enumeration = !_enumEntries.isEmpty();
+    const bool boolean = !enumeration && type.isValid() && type.toInt() == Boolean;
+    ui->valueEdit->setVisible(!boolean && !enumeration);
     ui->valueCombo->setVisible(boolean);
+    ui->enumCombo->setVisible(enumeration);
     if (boolean)
         ui->valueCombo->setCurrentIndex(0);
-    else
+    else if (!enumeration)
         ui->valueEdit->setDefaultValue(defaultValueText(type.toInt()));
 }
 
@@ -456,9 +473,12 @@ void AttributesWidget::updateValueEditor()
 void AttributesWidget::clearWriteEditor()
 {
     _nodeId.clear();
+    _enumEntries.clear();
     ui->typeCombo->clear();
     ui->valueCombo->setCurrentIndex(0);
     ui->valueCombo->hide();
+    ui->enumCombo->clear();
+    ui->enumCombo->hide();
     ui->valueEdit->show();
     ui->valueEdit->setDefaultValue(QString());
 }
@@ -466,8 +486,8 @@ void AttributesWidget::clearWriteEditor()
 ///
 /// \brief Converts the entered text to the selected type and requests the write.
 ///
-/// Boolean values come from the True/False list and are written as they are, so
-/// they skip the text conversion entirely.
+/// Boolean values come from the True/False list and enumeration values from their named
+/// values, so both are written as they are and skip the text conversion entirely.
 ///
 void AttributesWidget::writeCurrentValue()
 {
@@ -475,6 +495,10 @@ void AttributesWidget::writeCurrentValue()
         return;
 
     const int valueType = ui->typeCombo->currentData().toInt();
+    if (!_enumEntries.isEmpty()) {
+        emit writeRequested(_nodeId, ui->enumCombo->currentData().toInt(), valueType);
+        return;
+    }
     if (valueType == Boolean) {
         emit writeRequested(_nodeId, ui->valueCombo->currentIndex() == booleanTrueIndex, valueType);
         return;

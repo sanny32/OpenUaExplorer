@@ -4077,6 +4077,10 @@ Do you want to save them?</source>
         <translation>Массив:</translation>
     </message>
     <message>
+        <source>Value:</source>
+        <translation>Значение:</translation>
+    </message>
+    <message>
         <source>JSON array</source>
         <translation>JSON-массив</translation>
     </message>

@@ -22,6 +22,10 @@
 
 class QMimeData;
 
+namespace OpcUaFormat {
+struct ValueElement;
+}
+
 ///
 /// \brief Tree model for OPC UA data access monitored items.
 ///
@@ -347,7 +351,12 @@ public:
         /// \brief Publishing interval in milliseconds, or 0 when the row is not monitored.
         ExpectedIntervalRole,
         /// \brief Resolved change-highlight preference of the row, as a bool.
-        HighlightChangesRole
+        HighlightChangesRole,
+        /// \brief Named values a writable enumeration cell offers, as OpcUaEnumEntries.
+        ///
+        /// Empty for every cell whose value is not one the user may pick a name for, which
+        /// is what tells the delegate to leave the cell to the write dialog.
+        EnumEntriesRole
     };
 
 private:
@@ -393,6 +402,8 @@ private:
     ValueNode *rootNode(int topRow) const;
     static int topRowOf(const ValueNode *node);
     DataAccessItem itemForNode(const ValueNode *node) const;
+    static QString elementText(const OpcUaFormat::ValueElement &element,
+                               const ValueNode *parent, const DataAccessItem &item);
     void buildChildren(ValueNode *node, const DataAccessItem &item) const;
     void refreshChildren(int topRow, qint64 changedAt);
     void updateNode(ValueNode *node, const QModelIndex &nodeIndex, const QVariant &value,

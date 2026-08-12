@@ -55,6 +55,7 @@ private slots:
     void dataAccessMoveRowsIgnoresPointlessMoves();
     void dataAccessRowDropReordersByNodeId();
     void dataAccessSubscriptionColumnIsEditable();
+    void dataAccessEnumerationValuesAreNamedAndPickable();
     void dataAccessModelExportsCsv();
     void dataAccessActualIntervalColumnTracksServerValue();
     void dataAccessHeaderRolesAndHelpers();
@@ -287,6 +288,59 @@ void TestModelsDataAccessCore::dataAccessSubscriptionColumnIsEditable()
     QCOMPARE(model.data(subscriptionIndex).toString(), QStringLiteral("Fast"));
     // Editing a non-editable column is rejected.
     QVERIFY(!model.setData(nodeIdIndex, QStringLiteral("x"), Qt::EditRole));
+}
+
+///
+/// \brief An enumeration row shows its names and offers them, unless it is read-only.
+///
+void TestModelsDataAccessCore::dataAccessEnumerationValuesAreNamedAndPickable()
+{
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=State");
+    details.nodeClass = OpcUa::Variable;
+    details.value = 1;
+    details.valueType = int(QOpcUa::Types::Int32);
+    details.dataTypeId = QStringLiteral("ns=1;s=SensorState");
+    details.enumEntries = {{0, QStringLiteral("Disabled")}, {1, QStringLiteral("Enabled")}};
+    details.userAccessLevel = OpcUa::CurrentRead | OpcUa::CurrentWrite;
+
+    DataAccessModel model;
+    new QAbstractItemModelTester(&model, &model);
+    model.addOrUpdate(details);
+
+    const QModelIndex value = model.index(0, DataAccessModel::ColValue);
+    QCOMPARE(model.data(value).toString(), QStringLiteral("1 (Enabled)"));
+    QVERIFY(model.flags(value) & Qt::ItemIsEditable);
+    // The editor is seeded with the number, and offered the names to pick from.
+    QCOMPARE(model.data(value, Qt::EditRole).toInt(), 1);
+    QCOMPARE(model.data(value, DataAccessModel::EnumEntriesRole)
+                 .value<OpcUaEnumEntries>().size(), 2);
+
+    // A notification keeps naming the value it delivers.
+    OpcUaDataValue update;
+    update.nodeId = details.nodeId;
+    update.value = 0;
+    update.status = QStringLiteral("Good");
+    model.updateValues({update});
+    QCOMPARE(model.data(value).toString(), QStringLiteral("0 (Disabled)"));
+
+    // Read-only rows keep the write dialog: nothing to pick, and nothing to pick with.
+    details.userAccessLevel = OpcUa::CurrentRead;
+    model.addOrUpdate(details);
+    QVERIFY(!(model.flags(value) & Qt::ItemIsEditable));
+    QVERIFY(model.data(value, DataAccessModel::EnumEntriesRole)
+                .value<OpcUaEnumEntries>().isEmpty());
+
+    // An array is written as a whole, so its cell stays with the dialog while its
+    // elements still spell out the names.
+    details.value = QVariantList{0, 1};
+    details.userAccessLevel = OpcUa::CurrentRead | OpcUa::CurrentWrite;
+    model.addOrUpdate(details);
+    QVERIFY(!(model.flags(value) & Qt::ItemIsEditable));
+    const QModelIndex row = model.index(0, 0);
+    QCOMPARE(model.rowCount(row), 2);
+    QCOMPARE(model.data(model.index(1, DataAccessModel::ColValue, row)).toString(),
+             QStringLiteral("1 (Enabled)"));
 }
 
 ///

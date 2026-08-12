@@ -103,7 +103,8 @@ void DataAccessCoordinator::writeSelected()
         return;
     showWriteDialog(_selectedNodeDetails.nodeId, _selectedNodeDetails.value,
                     _selectedNodeDetails.valueType, _selectedNodeDetails.dataTypeId,
-                    OpcUa::isWritable(_selectedNodeDetails.userAccessLevel));
+                    OpcUa::isWritable(_selectedNodeDetails.userAccessLevel),
+                    _selectedNodeDetails.enumEntries);
 }
 
 ///
@@ -873,12 +874,15 @@ void DataAccessCoordinator::finishFolderNode(const QString &nodeId, bool success
 /// \param valueType OPC UA value type.
 /// \param dataTypeId DataType NodeId.
 /// \param writable Whether the user may write.
+/// \param enumEntries Named values of the DataType; empty unless it is an enumeration.
 ///
 void DataAccessCoordinator::showWriteDialog(const QString &nodeId, const QVariant &value,
                                             int valueType, const QString &dataTypeId,
-                                            bool writable)
+                                            bool writable,
+                                            const OpcUaEnumEntries &enumEntries)
 {
     WriteValueDialog dialog(_dialogParent);
+    dialog.setEnumEntries(enumEntries);
     dialog.setValue(value, valueType, dataTypeId, writable);
     if (dialog.exec() == QDialog::Accepted)
         _attributes->write(nodeId, dialog.value(), dialog.valueType());

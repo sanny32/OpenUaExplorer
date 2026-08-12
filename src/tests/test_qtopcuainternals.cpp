@@ -10,6 +10,7 @@
 #include <QOpcUaDataValue>
 #include <QOpcUaEndpointDescription>
 #include <QOpcUaEnumDefinition>
+#include <QOpcUaEnumField>
 #include <QOpcUaExpandedNodeId>
 #include <QOpcUaExtensionObject>
 #include <QOpcUaGenericStructHandler>
@@ -76,6 +77,7 @@ private slots:
     void ignoresInvalidSessionDiagnostics();
     void detectsValuesWaitingForTypeDefinitions();
     void decodesStructuresWithAbstractEnumerationFields();
+    void readsEnumerationDefinitionsFromTheTypeTree();
     void coordinatesIndependentAndSupersededRequests();
     void keepsKeyedRequestsIndependent();
     void invalidatesAllRequests();
@@ -364,6 +366,37 @@ void TestQtOpcUaInternals::decodesStructuresWithAbstractEnumerationFields()
     QVERIFY(decoded.has_value());
     QCOMPARE(decoded->fields().value(QStringLiteral("Mode")).toInt(), 2);
     QCOMPARE(decoded->fields().value(QStringLiteral("Count")).toInt(), 7);
+}
+
+/// \brief Reads the named values of an enumeration DataType from the server's type definitions.
+void TestQtOpcUaInternals::readsEnumerationDefinitionsFromTheTypeTree()
+{
+    QOpcUaEnumField disabled;
+    disabled.setName(QStringLiteral("Disabled"));
+    disabled.setValue(0);
+    QOpcUaEnumField enabled;
+    enabled.setName(QStringLiteral("Enabled"));
+    enabled.setValue(1);
+
+    QOpcUaEnumDefinition definition;
+    definition.setFields({disabled, enabled});
+
+    QOpcUaGenericStructHandler handler(nullptr);
+    QVERIFY(handler.addCustomEnumDefinition(definition, QStringLiteral("ns=1;s=SensorState"),
+                                            QStringLiteral("SensorState")));
+
+    const OpcUaEnumEntries entries =
+        QtOpcUaTypeMapper::enumEntries(QStringLiteral("ns=1;s=SensorState"), &handler);
+    QCOMPARE(entries.size(), 2);
+    QCOMPARE(entries.at(0).value, 0);
+    QCOMPARE(entries.at(0).name, QStringLiteral("Disabled"));
+    QCOMPARE(entries.at(1).value, 1);
+    QCOMPARE(entries.at(1).name, QStringLiteral("Enabled"));
+
+    // A structure, an unknown type, and a session without type definitions name nothing.
+    QCOMPARE(QtOpcUaTypeMapper::enumEntries(QStringLiteral("ns=0;i=6"), &handler).size(), 0);
+    QCOMPARE(QtOpcUaTypeMapper::enumEntries(QStringLiteral("ns=1;s=SensorState"), nullptr).size(), 0);
+    QCOMPARE(QtOpcUaTypeMapper::enumEntries(QString(), &handler).size(), 0);
 }
 
 /// \brief Keeps operation categories independent and settles tokens once.

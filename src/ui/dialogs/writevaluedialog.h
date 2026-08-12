@@ -11,6 +11,8 @@
 #include <QDialog>
 #include <QVariant>
 
+#include "opcua/opcuatypes.h"
+
 namespace Ui {
 class WriteValueDialog;
 }
@@ -45,6 +47,14 @@ public:
                   const QString &dataTypeId, bool writable);
 
     ///
+    /// \brief Offers the named values of an enumeration DataType instead of a text editor.
+    /// \param entries Named values of the DataType; an empty list keeps the text editor.
+    ///
+    /// Must be called before setValue(), which selects the entry the node currently holds.
+    ///
+    void setEnumEntries(const OpcUaEnumEntries &entries);
+
+    ///
     /// \brief Returns the value entered by the user.
     /// \return Converted value.
     ///
@@ -66,5 +76,7 @@ private:
 
     Ui::WriteValueDialog *ui;
     QVariant _value;
+    /// \brief Named values of the DataType; empty unless it is an enumeration.
+    OpcUaEnumEntries _enumEntries;
     bool _editable = true;
 };

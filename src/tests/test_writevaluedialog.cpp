@@ -7,6 +7,7 @@
 ///
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -30,6 +31,7 @@ private slots:
     void byteArraysAreShownAsNumbers();
     void shownByteIsWrittenBackUnchanged();
     void shownByteStringIsWrittenBackUnchanged();
+    void enumerationValuesArePickedByName();
 };
 
 void TestWriteValueDialog::dataTypeLabelUsesDisplayName()
@@ -127,6 +129,41 @@ void TestWriteValueDialog::shownByteStringIsWrittenBackUnchanged()
     buttonBox->button(DialogButtonBox::Ok)->click();
     QCOMPARE(dialog.result(), int(QDialog::Accepted));
     QCOMPARE(dialog.value().toByteArray(), bytes);
+}
+
+///
+/// \brief An enumeration is offered as its named values instead of as free text.
+///
+void TestWriteValueDialog::enumerationValuesArePickedByName()
+{
+    WriteValueDialog dialog;
+    auto *enumComboBox = dialog.findChild<QComboBox *>(QStringLiteral("enumComboBox"));
+    auto *valueEdit = dialog.findChild<QPlainTextEdit *>(QStringLiteral("valueEdit"));
+    auto *arrayCheckBox = dialog.findChild<QCheckBox *>(QStringLiteral("arrayCheckBox"));
+    auto *buttonBox = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(enumComboBox);
+    QVERIFY(valueEdit);
+    QVERIFY(arrayCheckBox);
+    QVERIFY(buttonBox);
+
+    dialog.setEnumEntries({{0, QStringLiteral("Disabled")},
+                           {1, QStringLiteral("Enabled")},
+                           {2, QStringLiteral("Error")}});
+    dialog.setValue(1, int(QOpcUa::Types::Int32), QStringLiteral("ns=1;s=SensorState"), true);
+
+    QVERIFY(enumComboBox->isVisibleTo(&dialog));
+    QVERIFY(!valueEdit->isVisibleTo(&dialog));
+    QVERIFY(!arrayCheckBox->isVisibleTo(&dialog));
+    QCOMPARE(enumComboBox->count(), 3);
+    QCOMPARE(enumComboBox->itemText(1), QStringLiteral("1 (Enabled)"));
+    QCOMPARE(enumComboBox->currentIndex(), 1);
+
+    enumComboBox->setCurrentIndex(2);
+    buttonBox->button(DialogButtonBox::Ok)->click();
+
+    QCOMPARE(dialog.result(), int(QDialog::Accepted));
+    QCOMPARE(dialog.value().toInt(), 2);
+    QCOMPARE(dialog.valueType(), int(QOpcUa::Types::Int32));
 }
 
 QTEST_MAIN(TestWriteValueDialog)
