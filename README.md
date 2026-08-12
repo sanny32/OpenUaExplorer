@@ -33,7 +33,8 @@ Prebuilt packages are published on the
   certificate store.
 - Browse the OPC UA address space, inspect node attributes and references,
   write attribute values, and call methods from the node context menu.
-- Watch live values in the Data Access panel — just drag nodes onto it.
+- Watch live values in the Data Access panel — just drag nodes onto it; drop an
+  object or a folder to add its variables, optionally those of the whole subtree.
 - Create subscriptions with configurable publishing intervals and monitor
   data changes and events.
 - Read data and event history for nodes that provide it.

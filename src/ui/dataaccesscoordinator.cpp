@@ -758,15 +758,21 @@ void DataAccessCoordinator::addNodeById(const QString &nodeId)
 }
 
 ///
-/// \brief Browses a folder so its direct variable children can be added.
+/// \brief Asks for the variables a dropped folder contributes.
 /// \param nodeId Container node dropped onto or selected for Data Access.
+///
+/// A single browse lists the folder's direct variable children, unless
+/// AppSettings::recursiveFolderDrop() asks for the whole subtree to be crawled.
 ///
 void DataAccessCoordinator::addFolderById(const QString &nodeId)
 {
     if (nodeId.isEmpty() || !_addressSpace)
         return;
     _pendingFolderDropNodeIds.insert(nodeId);
-    _addressSpace->browse(nodeId);
+    if (AppSettings().recursiveFolderDrop())
+        _addressSpace->collectSubtreeVariables(nodeId);
+    else
+        _addressSpace->browse(nodeId);
 }
 
 ///
@@ -784,7 +790,32 @@ void DataAccessCoordinator::onFolderChildrenReady(const QString &parentNodeId,
 {
     if (!_pendingFolderDropNodeIds.remove(parentNodeId))
         return;
+    offerFolderVariables(children, error);
+}
 
+///
+/// \brief Adds the variables a subtree crawl found, within the add limits.
+/// \param rootNodeId Node the crawl started from.
+/// \param variables Variable nodes found, in breadth-first order.
+/// \param error Crawl error, empty on success.
+///
+void DataAccessCoordinator::onFolderSubtreeVariablesReady(const QString &rootNodeId,
+                                                          const QVector<OpcUaNodeInfo> &variables,
+                                                          const QString &error)
+{
+    if (!_pendingFolderDropNodeIds.remove(rootNodeId))
+        return;
+    offerFolderVariables(variables, error);
+}
+
+///
+/// \brief Confirms and adds the variables a dropped folder contributed.
+/// \param nodes Nodes the browse or the crawl reported.
+/// \param error Browse or crawl error, empty on success.
+///
+void DataAccessCoordinator::offerFolderVariables(const QVector<OpcUaNodeInfo> &nodes,
+                                                 const QString &error)
+{
     if (!error.isEmpty()) {
         MessageBoxDialog::warning(_dialogParent, tr("Add Folder"), error, DialogButtonBox::Ok);
         return;
@@ -792,7 +823,7 @@ void DataAccessCoordinator::onFolderChildrenReady(const QString &parentNodeId,
 
     QVector<OpcUaNodeInfo> variables;
     QSet<QString> seenNodeIds;
-    for (const OpcUaNodeInfo &child : children) {
+    for (const OpcUaNodeInfo &child : nodes) {
         if (!OpcUa::isVariable(child.nodeClass) || child.nodeId.isEmpty())
             continue;
         if (seenNodeIds.contains(child.nodeId))
@@ -1048,6 +1079,8 @@ void DataAccessCoordinator::wireModules()
     if (_addressSpace) {
         connect(_addressSpace, &AddressSpaceModule::childrenReady,
                 this, &DataAccessCoordinator::onFolderChildrenReady);
+        connect(_addressSpace, &AddressSpaceModule::subtreeVariablesReady,
+                this, &DataAccessCoordinator::onFolderSubtreeVariablesReady);
     }
     if (OpcUa::isHistoryReadSupported()) {
         connect(_dataAccess, &DataAccessModule::historyReady,

@@ -341,6 +341,18 @@ public:
     void setHighlightValueChanges(bool enabled);
 
     ///
+    /// \brief Reports whether a node dropped on Data Access contributes its whole subtree.
+    /// \return True when the subtree is crawled, defaulting to false.
+    ///
+    bool recursiveFolderDrop() const;
+
+    ///
+    /// \brief Stores whether a node dropped on Data Access contributes its whole subtree.
+    /// \param enabled True to crawl the subtree, false to list the direct variables only.
+    ///
+    void setRecursiveFolderDrop(bool enabled);
+
+    ///
     /// \brief Returns the delay between two reconnect attempts.
     /// \return Interval in seconds, clamped to the supported range.
     ///

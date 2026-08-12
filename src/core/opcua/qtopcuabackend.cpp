@@ -38,6 +38,7 @@
 #include "loggingcategories.h"
 #include "namespacecrawler.h"
 #include "nodesearchcrawler.h"
+#include "subtreevariablecrawler.h"
 #include "pkimanager.h"
 #include "qtopcuabackend.h"
 #include "qtopcuaconnectionmanager.h"
@@ -82,6 +83,8 @@ public:
                 namespaceCrawler->cancel();
             if (nodeSearchCrawler)
                 nodeSearchCrawler->cancel();
+            if (subtreeVariableCrawler)
+                subtreeVariableCrawler->cancel();
             monitoring.clear();
             monitoring.setClient(nullptr);
         });
@@ -357,6 +360,7 @@ public:
                static_cast<std::size_t>(QtOpcUaRequestCoordinator::Operation::Count)> activeConnections{};
     QPointer<NamespaceCrawler> namespaceCrawler;
     QPointer<NodeSearchCrawler> nodeSearchCrawler;
+    QPointer<SubtreeVariableCrawler> subtreeVariableCrawler;
     /// \brief Nodes whose last value carried a structure the client could not decode yet.
     QStringList opaqueValueNodes;
     /// \brief Node of the last attribute read that carried an undecodable structure.
@@ -1070,6 +1074,46 @@ void QtOpcUaBackend::cancelNodeSearch()
 {
     if (_d->nodeSearchCrawler)
         _d->nodeSearchCrawler->cancel();
+}
+
+///
+/// \brief Collects a subtree's Variable nodes, emitting subtreeVariablesReady() with them.
+///
+/// The crawl runs on nodes of its own, so it neither supersedes nor is superseded by the
+/// browse the address-space tree uses. A new request replaces the crawl in flight.
+/// \param rootNodeId Node whose subtree is collected.
+///
+void QtOpcUaBackend::collectSubtreeVariables(const QString &rootNodeId)
+{
+    const int timeoutMs = requestTimeout();
+    QOpcUaClient *client = _d->connection.client();
+    if (!client || _d->connection.state() != OpcUaConnectionState::Connected) {
+        emit subtreeVariablesReady(rootNodeId, {}, tr("The OPC UA client is not connected."));
+        return;
+    }
+    if (_d->subtreeVariableCrawler) {
+        _d->subtreeVariableCrawler->disconnect(this);
+        _d->subtreeVariableCrawler->cancel();
+        _d->subtreeVariableCrawler->deleteLater();
+    }
+    _d->subtreeVariableCrawler = new SubtreeVariableCrawler(client, rootNodeId, timeoutMs, this);
+    connect(_d->subtreeVariableCrawler, &SubtreeVariableCrawler::finished, this,
+            [this](const QString &nodeId, const QVector<OpcUaNodeInfo> &variables,
+                   const QString &error) {
+        emit subtreeVariablesReady(nodeId, variables, error);
+        if (_d->subtreeVariableCrawler)
+            _d->subtreeVariableCrawler->deleteLater();
+    });
+    _d->subtreeVariableCrawler->start();
+}
+
+///
+/// \brief Cancels an in-progress subtree variable crawl, if any.
+///
+void QtOpcUaBackend::cancelSubtreeVariables()
+{
+    if (_d->subtreeVariableCrawler)
+        _d->subtreeVariableCrawler->cancel();
 }
 
 ///

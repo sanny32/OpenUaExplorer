@@ -48,6 +48,7 @@ private slots:
     void restoreLastSessionCheckPersists();
     void reconnectSettingsPersistAndGateTheInterval();
     void highlightChangesCheckPersists();
+    void recursiveFolderDropCheckPersists();
     void layoutResetWaitsForAcceptance();
 
 private:
@@ -325,6 +326,27 @@ void TestSettingsDialog::highlightChangesCheckPersists()
 
     QVERIFY(SettingsDialog().findChild<QCheckBox *>(
         QStringLiteral("highlightChangesCheck"))->isChecked());
+}
+
+///
+/// \brief The subtree-drop checkbox starts off and persists being turned on.
+///
+void TestSettingsDialog::recursiveFolderDropCheckPersists()
+{
+    SettingsDialog dialog;
+    auto *check = dialog.findChild<QCheckBox *>(QStringLiteral("recursiveFolderDropCheck"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(check);
+    QVERIFY(buttons);
+    QVERIFY(!check->isChecked());
+
+    check->setChecked(true);
+    QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+
+    QVERIFY(AppSettings().recursiveFolderDrop());
+    QVERIFY(SettingsDialog().findChild<QCheckBox *>(
+        QStringLiteral("recursiveFolderDropCheck"))->isChecked());
 }
 
 ///

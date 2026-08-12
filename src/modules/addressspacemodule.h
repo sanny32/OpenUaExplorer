@@ -56,6 +56,12 @@ public slots:
     ///
     void cancelSearch();
 
+    ///
+    /// \brief Collects every Variable node below a node, however deep it sits.
+    /// \param rootNodeId Node whose subtree is collected.
+    ///
+    void collectSubtreeVariables(const QString &rootNodeId);
+
 signals:
     ///
     /// \brief Emitted when a node's children have been browsed.
@@ -79,12 +85,23 @@ signals:
     ///
     void searchFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
 
+    ///
+    /// \brief Emitted when a subtree variable crawl finishes or fails.
+    /// \param rootNodeId Node the crawl started from.
+    /// \param variables Variable nodes found, in breadth-first order.
+    /// \param error Crawl error, empty on success.
+    ///
+    void subtreeVariablesReady(QString rootNodeId, QVector<OpcUaNodeInfo> variables, QString error);
+
 private:
     void handleBrowseFinished(const QString &parentNodeId,
                               const QVector<OpcUaNodeInfo> &children,
                               const QString &error);
     void handleSearchFinished(const QStringList &ancestorNodeIds, const QString &nodeId,
                               const QString &error);
+    void handleSubtreeVariablesReady(const QString &rootNodeId,
+                                     const QVector<OpcUaNodeInfo> &variables,
+                                     const QString &error);
 
     OpcUaBackend *_backend = nullptr;
 };

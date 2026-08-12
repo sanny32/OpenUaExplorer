@@ -83,6 +83,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
             this, &SettingsDialog::markDirty);
     connect(ui->highlightChangesCheck, &QAbstractButton::toggled,
             this, &SettingsDialog::markDirty);
+    connect(ui->recursiveFolderDropCheck, &QAbstractButton::toggled,
+            this, &SettingsDialog::markDirty);
     connect(ui->debugLoggingCheck, &QAbstractButton::toggled,
             this, &SettingsDialog::markDirty);
     connect(ui->maxLogRowsSpin, &QSpinBox::valueChanged,
@@ -186,6 +188,7 @@ void SettingsDialog::loadSettings()
     ui->reconnectIntervalLabel->setEnabled(ui->reconnectCheck->isChecked());
     ui->reconnectIntervalSpin->setEnabled(ui->reconnectCheck->isChecked());
     ui->highlightChangesCheck->setChecked(settings.highlightValueChanges());
+    ui->recursiveFolderDropCheck->setChecked(settings.recursiveFolderDrop());
 
     ui->debugLoggingCheck->setChecked(settings.debugLoggingEnabled());
     ui->maxLogRowsSpin->setRange(AppSettings::minMaxLogRows, AppSettings::maxMaxLogRows);
@@ -213,6 +216,7 @@ void SettingsDialog::applyChanges()
     settings.setRestoreLastSessionOnStartup(ui->restoreLastSessionCheck->isChecked());
     settings.setReconnectEnabled(ui->reconnectCheck->isChecked());
     settings.setReconnectIntervalSeconds(ui->reconnectIntervalSpin->value());
+    settings.setRecursiveFolderDrop(ui->recursiveFolderDropCheck->isChecked());
 
     if (_layoutResetRequested)
         settings.clearLayout();

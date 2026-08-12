@@ -283,6 +283,10 @@ private:
     void onFolderChildrenReady(const QString &parentNodeId,
                                const QVector<OpcUaNodeInfo> &children,
                                const QString &error);
+    void onFolderSubtreeVariablesReady(const QString &rootNodeId,
+                                       const QVector<OpcUaNodeInfo> &variables,
+                                       const QString &error);
+    void offerFolderVariables(const QVector<OpcUaNodeInfo> &nodes, const QString &error);
     void addFolderVariables(const QVector<OpcUaNodeInfo> &variables);
     void finishFolderNode(const QString &nodeId, bool success);
     void showWriteDialog(const QString &nodeId, const QVariant &value, int valueType,

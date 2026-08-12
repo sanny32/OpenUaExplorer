@@ -218,6 +218,17 @@ public:
     ///
     void cancelNodeSearch() override;
 
+    ///
+    /// \brief Collects a subtree's Variable nodes, emitting subtreeVariablesReady() with them.
+    /// \param rootNodeId Node whose subtree is collected.
+    ///
+    void collectSubtreeVariables(const QString &rootNodeId) override;
+
+    ///
+    /// \brief Cancels an in-progress subtree variable crawl, if any.
+    ///
+    void cancelSubtreeVariables() override;
+
 private:
     ///
     /// \brief Reads EventNotifier/Historizing/DataType/ValueRank of browsed children, then

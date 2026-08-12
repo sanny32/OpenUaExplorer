@@ -49,6 +49,18 @@
         <source>Browse on node &apos;%1&apos; failed: %2</source>
         <translation>Не удалось выполнить обзор узла «%1»: %2</translation>
     </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos;.</source>
+        <translation>Сбор переменных под узлом «%1».</translation>
+    </message>
+    <message>
+        <source>Found %1 variable(s) below node &apos;%2&apos;.</source>
+        <translation>Под узлом «%2» найдено переменных: %1.</translation>
+    </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos; failed: %2</source>
+        <translation>Не удалось собрать переменные под узлом «%1»: %2</translation>
+    </message>
 </context>
 <context>
     <name>AddressSpaceWidget</name>
@@ -2992,6 +3004,10 @@ Open the download page?</source>
         <source>Searching the address space is not supported.</source>
         <translation>Поиск в адресном пространстве не поддерживается.</translation>
     </message>
+    <message>
+        <source>Crawling the address space is not supported.</source>
+        <translation>Обход адресного пространства не поддерживается.</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
@@ -3722,6 +3738,14 @@ Do you want to save them?</source>
         <source>log entries</source>
         <translation>записей журнала</translation>
     </message>
+    <message>
+        <source>A node dropped on Data Access contributes every variable below it, however deep. When off, only the variables directly under the dropped node are added.</source>
+        <translation>Узел, перетащенный в «Данные», добавляет все переменные под ним на любой глубине. Если выключено, добавляются только переменные непосредственно под перетащенным узлом.</translation>
+    </message>
+    <message>
+        <source>Add variables of the whole subtree on drop</source>
+        <translation>Добавлять переменные всего поддерева при перетаскивании</translation>
+    </message>
 </context>
 <context>
     <name>SubscriptionComboBox</name>
@@ -3788,6 +3812,13 @@ Do you want to save them?</source>
     <message>
         <source>Restore Defaults</source>
         <translation>Сбросить к умолчаниям</translation>
+    </message>
+</context>
+<context>
+    <name>SubtreeVariableCrawler</name>
+    <message>
+        <source>The OPC UA client is not connected.</source>
+        <translation>Клиент OPC UA не подключён.</translation>
     </message>
 </context>
 <context>

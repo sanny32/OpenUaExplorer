@@ -47,6 +47,7 @@ constexpr auto lastSavedSessionPathKey = "session/lastSavedPath";
 constexpr auto reconnectEnabledKey = "connection/reconnectEnabled";
 constexpr auto reconnectIntervalKey = "connection/reconnectIntervalSeconds";
 constexpr auto highlightValueChangesKey = "dataAccess/highlightValueChanges";
+constexpr auto recursiveFolderDropKey = "dataAccess/recursiveFolderDrop";
 constexpr int defaultReconnectIntervalSeconds = 5;
 constexpr int minReconnectIntervalSeconds = 1;
 constexpr int maxReconnectIntervalSeconds = 3600;
@@ -562,6 +563,26 @@ void AppSettings::setHighlightValueChanges(bool enabled)
 {
     SettingsStore settings;
     settings.setValue(QLatin1String(highlightValueChangesKey), enabled);
+}
+
+///
+/// \brief Reports whether a node dropped on Data Access contributes its whole subtree.
+/// \return True when the subtree is crawled, defaulting to false.
+///
+bool AppSettings::recursiveFolderDrop() const
+{
+    SettingsStore settings;
+    return settings.value(QLatin1String(recursiveFolderDropKey), false).toBool();
+}
+
+///
+/// \brief Stores whether a node dropped on Data Access contributes its whole subtree.
+/// \param enabled True to crawl the subtree, false to list the direct variables only.
+///
+void AppSettings::setRecursiveFolderDrop(bool enabled)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(recursiveFolderDropKey), enabled);
 }
 
 ///

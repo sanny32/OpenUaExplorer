@@ -49,6 +49,18 @@
         <source>Browse on node &apos;%1&apos; failed: %2</source>
         <translation>Durchsuchen von Knoten „%1“ fehlgeschlagen: %2</translation>
     </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos;.</source>
+        <translation>Variablen unterhalb von Knoten „%1“ werden gesammelt.</translation>
+    </message>
+    <message>
+        <source>Found %1 variable(s) below node &apos;%2&apos;.</source>
+        <translation>%1 Variable(n) unterhalb von Knoten „%2“ gefunden.</translation>
+    </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos; failed: %2</source>
+        <translation>Sammeln der Variablen unterhalb von Knoten „%1“ fehlgeschlagen: %2</translation>
+    </message>
 </context>
 <context>
     <name>AddressSpaceWidget</name>
@@ -2986,6 +2998,10 @@ Download-Seite öffnen?</translation>
         <source>Searching the address space is not supported.</source>
         <translation>Das Durchsuchen des Adressraums wird nicht unterstützt.</translation>
     </message>
+    <message>
+        <source>Crawling the address space is not supported.</source>
+        <translation>Das Durchlaufen des Adressraums wird nicht unterstützt.</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
@@ -3715,6 +3731,14 @@ Möchten Sie sie speichern?</translation>
         <source>log entries</source>
         <translation>Protokolleinträge behalten</translation>
     </message>
+    <message>
+        <source>A node dropped on Data Access contributes every variable below it, however deep. When off, only the variables directly under the dropped node are added.</source>
+        <translation>Ein auf Datenzugriff gezogener Knoten steuert jede Variable unterhalb bei, unabhängig von der Tiefe. Ist die Option aus, werden nur die Variablen direkt unter dem gezogenen Knoten hinzugefügt.</translation>
+    </message>
+    <message>
+        <source>Add variables of the whole subtree on drop</source>
+        <translation>Beim Ziehen Variablen des gesamten Unterbaums hinzufügen</translation>
+    </message>
 </context>
 <context>
     <name>SubscriptionComboBox</name>
@@ -3781,6 +3805,13 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>Restore Defaults</source>
         <translation>Standardwerte wiederherstellen</translation>
+    </message>
+</context>
+<context>
+    <name>SubtreeVariableCrawler</name>
+    <message>
+        <source>The OPC UA client is not connected.</source>
+        <translation>Der OPC-UA-Client ist nicht verbunden.</translation>
     </message>
 </context>
 <context>

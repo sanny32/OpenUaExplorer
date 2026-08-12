@@ -49,6 +49,18 @@
         <source>Browse on node &apos;%1&apos; failed: %2</source>
         <translation>浏览节点“%1”失败：%2</translation>
     </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos;.</source>
+        <translation>正在收集节点“%1”下的变量。</translation>
+    </message>
+    <message>
+        <source>Found %1 variable(s) below node &apos;%2&apos;.</source>
+        <translation>在节点“%2”下找到 %1 个变量。</translation>
+    </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos; failed: %2</source>
+        <translation>收集节点“%1”下的变量失败：%2</translation>
+    </message>
 </context>
 <context>
     <name>AddressSpaceWidget</name>
@@ -2980,6 +2992,10 @@ Open the download page?</source>
         <source>Searching the address space is not supported.</source>
         <translation>不支持搜索地址空间。</translation>
     </message>
+    <message>
+        <source>Crawling the address space is not supported.</source>
+        <translation>不支持遍历地址空间。</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
@@ -3708,6 +3724,14 @@ Do you want to save them?</source>
         <source>log entries</source>
         <translation>条日志记录</translation>
     </message>
+    <message>
+        <source>A node dropped on Data Access contributes every variable below it, however deep. When off, only the variables directly under the dropped node are added.</source>
+        <translation>拖放到“数据访问”的节点会添加其下的所有变量，无论层级多深。关闭时，仅添加直接位于该节点下的变量。</translation>
+    </message>
+    <message>
+        <source>Add variables of the whole subtree on drop</source>
+        <translation>拖放时添加整个子树的变量</translation>
+    </message>
 </context>
 <context>
     <name>SubscriptionComboBox</name>
@@ -3774,6 +3798,13 @@ Do you want to save them?</source>
     <message>
         <source>Restore Defaults</source>
         <translation>恢复默认值</translation>
+    </message>
+</context>
+<context>
+    <name>SubtreeVariableCrawler</name>
+    <message>
+        <source>The OPC UA client is not connected.</source>
+        <translation>OPC UA 客户端未连接。</translation>
     </message>
 </context>
 <context>

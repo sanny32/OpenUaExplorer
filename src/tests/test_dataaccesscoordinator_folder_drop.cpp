@@ -20,7 +20,9 @@ class TestDataAccessCoordinatorFolderDrop : public QObject
 private slots:
     void initTestCase();
     void cleanup();
+    void folderDropCrawlsDroppedFolder();
     void folderDropBrowsesDroppedFolder();
+    void folderDropAddsSubtreeVariables();
     void folderDropAddsDirectVariablesWithoutPrompt();
     void folderDropIgnoresBrowseResultsOfOtherNodes();
     void folderDropAsksBeforeAddingManyVariables();
@@ -58,7 +60,22 @@ void TestDataAccessCoordinatorFolderDrop::cleanup()
 }
 
 ///
-/// \brief A folder dropped onto Data Access is browsed for its children.
+/// \brief With the subtree crawl on, a dropped folder has its whole subtree crawled.
+///
+void TestDataAccessCoordinatorFolderDrop::folderDropCrawlsDroppedFolder()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    AppSettings().setRecursiveFolderDrop(true);
+    emit harness.dataView.dataAccess()->folderDropRequested(kFolderNodeId);
+
+    QCOMPARE(harness.backend.crawledNodeIds, QStringList{kFolderNodeId});
+    QVERIFY(harness.backend.browsedNodeIds.isEmpty());
+}
+
+///
+/// \brief A folder dropped onto Data Access is browsed for its children by default.
 ///
 void TestDataAccessCoordinatorFolderDrop::folderDropBrowsesDroppedFolder()
 {
@@ -68,6 +85,25 @@ void TestDataAccessCoordinatorFolderDrop::folderDropBrowsesDroppedFolder()
     emit harness.dataView.dataAccess()->folderDropRequested(kFolderNodeId);
 
     QCOMPARE(harness.backend.browsedNodeIds, QStringList{kFolderNodeId});
+    QVERIFY(harness.backend.crawledNodeIds.isEmpty());
+}
+
+///
+/// \brief The variables a subtree crawl found are added, however deep they sat.
+///
+void TestDataAccessCoordinatorFolderDrop::folderDropAddsSubtreeVariables()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+
+    dropFolderSubtree(harness, makeSubtreeVariables(4));
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QCOMPARE(model->rowCount(), 4);
+    QCOMPARE(harness.backend.readNodeIds.size(), 4);
+    QCOMPARE(model->data(model->index(0, DataAccessModel::ColDisplayName)).toString(),
+             QStringLiteral("Var0"));
 }
 
 ///
@@ -221,12 +257,13 @@ void TestDataAccessCoordinatorFolderDrop::folderDropRowSettlesAfterFailedRead()
 }
 
 ///
-/// \brief Subscribing a folder from the tree adds its direct variables, like a drop does.
+/// \brief Subscribing a folder from the tree adds the same variables a drop would.
 ///
 void TestDataAccessCoordinatorFolderDrop::subscribeRequestOnFolderAddsItsVariables()
 {
     CoordinatorHarness harness;
     harness.backend.setState(OpcUaConnectionState::Connected);
+    AppSettings().setRecursiveFolderDrop(false);
 
     OpcUaNodeInfo folder;
     folder.nodeId = kFolderNodeId;
