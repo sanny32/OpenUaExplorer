@@ -28,6 +28,7 @@
 #include "style/macappstyle.h"
 #include "style/qlementineappstyle.h"
 #include "widgets/themedtoolbutton.h"
+#include "widgets/treeview.h"
 
 ///
 /// \brief Tests for QlementineAppStyle's item painting.
@@ -43,6 +44,7 @@ private slots:
     void unstripedViewsUseTheSystemSelectionColor();
     void nativeUnstripedViewsIgnoreTheSystemSelectionColor();
     void hoverUsesTheNativeFillOverModelBackground();
+    void hoverFillsTheBranchStripLikeTheRestOfTheRow();
     void itemViewFocusFrameIsHidden();
     void focusedSelectionHasNoCellFrame();
 };
@@ -196,6 +198,59 @@ bool firstRowUsesColor(const QImage &image, const QColor &color)
     const int y = qMin(7, image.height() - 1);
     return image.pixelColor(1, y) == color
         && image.pixelColor(image.width() - 2, y) == color;
+}
+
+///
+/// \brief Colour samples taken from a tree while one of its rows is hovered.
+///
+struct HoveredRowSamples
+{
+    QColor branch; ///< Indentation strip that carries the disclosure chevron.
+    QColor cell;   ///< Empty part of the hovered row, past its label.
+    QColor quiet;  ///< Same part of the row that is not hovered.
+};
+
+///
+/// \brief Renders a tree holding an expandable row and samples that row while it is hovered.
+/// \param samples Receives the branch, cell, and unhovered colours.
+/// \return True when the view was exposed and the samples were taken.
+///
+bool renderHoveredBranchRow(HoveredRowSamples *samples)
+{
+    QStandardItemModel model;
+    auto *expandable = new QStandardItem(QStringLiteral("Parent"));
+    expandable->appendRow(new QStandardItem(QStringLiteral("Child")));
+    model.appendRow(expandable);
+    model.appendRow(new QStandardItem(QStringLiteral("Plain")));
+
+    AppStyle style(QStringLiteral("windows11"));
+    TreeView view;
+    view.setStyle(&style);
+    view.setModel(&model);
+    view.setHeaderHidden(true);
+    view.setIndentation(40);
+    view.resize(300, 80);
+    view.show();
+    if (!QTest::qWaitForWindowExposed(&view))
+        return false;
+
+    const QRect hoveredRow = view.visualRect(model.index(0, 0));
+    const QRect quietRow = view.visualRect(model.index(1, 0));
+    QTest::mouseMove(view.viewport(),
+                     QPoint(view.viewport()->width() - 10, hoveredRow.center().y()));
+    QCoreApplication::processEvents();
+
+    const QImage rendered = view.viewport()->grab().toImage();
+    view.hide();
+    // The style outlives the view only if the view stops using it first.
+    view.setStyle(nullptr);
+    if (rendered.isNull())
+        return false;
+
+    samples->branch = rendered.pixelColor(2, hoveredRow.center().y());
+    samples->cell = rendered.pixelColor(rendered.width() - 5, hoveredRow.center().y());
+    samples->quiet = rendered.pixelColor(rendered.width() - 5, quietRow.center().y());
+    return true;
 }
 
 ///
@@ -437,6 +492,25 @@ void TestAppStyle::hoverUsesTheNativeFillOverModelBackground()
     QVERIFY(!modelColoured.isNull());
     QCOMPARE(modelColoured, plain);
     QVERIFY(!containsColor(modelColoured, loudHighlight));
+}
+
+///
+/// \brief The hover fill covers a tree row evenly, chevron indentation included.
+///
+/// The tree paints the row background under every cell and then lets the delegate paint the
+/// cell on top, so a translucent hover fill applied in both places lands twice everywhere
+/// except in the branch strip, leaving a lighter box around the disclosure chevron.
+///
+void TestAppStyle::hoverFillsTheBranchStripLikeTheRestOfTheRow()
+{
+    if (!QStyleFactory::keys().contains(QStringLiteral("windows11"), Qt::CaseInsensitive))
+        QSKIP("Only the native Windows 11 style supplies this hover fill.");
+
+    HoveredRowSamples samples;
+    QVERIFY(renderHoveredBranchRow(&samples));
+    QVERIFY(samples.branch.isValid());
+    QVERIFY(samples.cell != samples.quiet);
+    QCOMPARE(samples.branch, samples.cell);
 }
 
 ///
