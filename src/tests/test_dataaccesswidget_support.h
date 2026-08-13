@@ -242,19 +242,22 @@ OpcUaNodeInfo makeVariable(int index)
 ///
 /// \brief Answers the next modal dialog, waiting for it to appear.
 /// \param answer Standard button to click once the dialog is up.
+/// \param seen Set to true once a dialog was answered; may be null.
 ///
-void answerNextDialog(DialogButtonBox::StandardButton answer)
+void answerNextDialog(DialogButtonBox::StandardButton answer, bool *seen = nullptr)
 {
-    QTimer::singleShot(0, qApp, [answer]() {
+    QTimer::singleShot(0, qApp, [answer, seen]() {
         auto *modal = qobject_cast<QDialog *>(QApplication::activeModalWidget());
         if (!modal) {
-            answerNextDialog(answer);
+            answerNextDialog(answer, seen);
             return;
         }
         auto *buttons = modal->findChild<DialogButtonBox *>();
         QVERIFY(buttons);
         QPushButton *button = buttons->button(answer);
         QVERIFY(button);
+        if (seen)
+            *seen = true;
         QTest::mouseClick(button, Qt::LeftButton);
     });
 }

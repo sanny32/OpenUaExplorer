@@ -30,6 +30,7 @@
 #include "dialogs/newsubscriptiondialog.h"
 #include "dialogs/textviewdialog.h"
 #include "fileexport.h"
+#include "formatters/attributeformatter.h"
 #include "headerview.h"
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
@@ -869,12 +870,12 @@ void DataAccessWidget::handleValueDoubleClick(const QModelIndex &index)
 }
 
 ///
-/// \brief Writes the enumeration value picked in a Value cell.
+/// \brief Confirms and writes the enumeration value picked in a Value cell.
 /// \param index Edited cell, in the filter proxy.
 /// \param value Picked enumeration value.
 ///
-/// Picking a name is the whole gesture, so it is not confirmed again: the list only ever
-/// opens on a deliberate edit, and the value it offers is the one the DataType defines.
+/// The prompt waits for the editor to close: the delegate is still committing while this
+/// runs, and a notification arriving during a modal loop may take the editor with it.
 ///
 void DataAccessWidget::writeEnumValue(const QModelIndex &index, int value)
 {
@@ -884,6 +885,34 @@ void DataAccessWidget::writeEnumValue(const QModelIndex &index, int value)
         _dataModel->itemAt(_filterProxy->mapToSource(index).row());
     if (item.nodeId.isEmpty() || item.typedValue.toInt() == value)
         return;
+
+    QMetaObject::invokeMethod(this, [this, item, value] {
+        confirmEnumWrite(item, value);
+    }, Qt::QueuedConnection);
+}
+
+///
+/// \brief Confirms, then writes a picked enumeration value.
+/// \param item Row holding the enumeration.
+/// \param value Picked enumeration value.
+///
+/// Picking an entry writes as directly as a double click toggles a Boolean, so it is
+/// confirmed the same way; the prompt names the value the way the cell shows it.
+///
+void DataAccessWidget::confirmEnumWrite(const DataAccessItem &item, int value)
+{
+    if (_offline)
+        return;
+
+    const DialogButtonBox::StandardButton answer = MessageBoxDialog::question(
+        this, tr("Write Value"),
+        tr("Write %1 to %2?")
+            .arg(OpcUaFormat::enumDisplayValue(value, item.enumEntries),
+                 item.displayName.isEmpty() ? item.nodeId : item.displayName),
+        DialogButtonBox::Yes | DialogButtonBox::No, DialogButtonBox::Yes);
+    if (answer != DialogButtonBox::Yes)
+        return;
+
     emit valueWriteRequested(item.nodeId, value, item.valueType);
 }
 

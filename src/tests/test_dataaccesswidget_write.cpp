@@ -25,6 +25,7 @@ private slots:
     void doubleClickOnNonBooleanOpensWriteDialog();
     void doubleClickOnReadOnlyValueOpensReadOnlyDialog();
     void doubleClickOnEnumerationOpensItsNames();
+    void declinedEnumerationPickWritesNothing();
     void readOnlyEnumerationOpensTheWriteDialog();
     void doubleClickOnPendingRowWritesNothing();
     void doubleClickOutsideValueColumnWritesNothing();
@@ -218,13 +219,43 @@ void TestDataAccessWidgetWrite::doubleClickOnEnumerationOpensItsNames()
     QCOMPARE(combo->itemText(2), QStringLiteral("2 (Error)"));
     QCOMPARE(combo->currentIndex(), 0);
 
+    answerNextDialog(DialogButtonBox::Yes);
     combo->setCurrentIndex(2);
     emit combo->activated(2);
 
-    QCOMPARE(spy.size(), 1);
+    QTRY_COMPARE(spy.size(), 1);
     QCOMPARE(spy.first().at(0).toString(), details.nodeId);
     QCOMPARE(spy.first().at(1).toInt(), 2);
     QCOMPARE(spy.first().at(2).toInt(), int(QOpcUa::Types::Int32));
+}
+
+///
+/// \brief A declined enumeration prompt leaves the value alone.
+///
+void TestDataAccessWidgetWrite::declinedEnumerationPickWritesNothing()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addNode(makeEnumNodeDetails(0, true));
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    QSignalSpy spy(&widget, &DataAccessWidget::valueWriteRequested);
+    doubleClickCell(view, 0, DataAccessModel::ColValue);
+    auto *combo = view->viewport()->findChild<QComboBox *>();
+    QVERIFY(combo);
+
+    bool dialogSeen = false;
+    answerNextDialog(DialogButtonBox::No, &dialogSeen);
+    combo->setCurrentIndex(2);
+    emit combo->activated(2);
+
+    QTRY_VERIFY(dialogSeen);
+    QCOMPARE(spy.size(), 0);
+    QCOMPARE(view->model()->index(0, DataAccessModel::ColValue).data().toString(),
+             QStringLiteral("0 (Disabled)"));
 }
 
 ///

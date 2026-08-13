@@ -313,6 +313,7 @@ private:
     void handleValueDoubleClick(const QModelIndex &index);
     void toggleBooleanValue(const DataAccessItem &item);
     void writeEnumValue(const QModelIndex &index, int value);
+    void confirmEnumWrite(const DataAccessItem &item, int value);
     void toggleHighlightForSelection(bool enabled);
     void rebuildSubscribeMenu();
     void populateSubscribeMenu(QMenu *menu);
