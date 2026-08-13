@@ -515,7 +515,7 @@ void TrendGraphWidget::enterLiveMode()
     ui->toolbar->setInterval(QString(), QString());
     ui->toolbar->selectLive();
     ui->toolbar->setRefreshEnabled(false);
-    ui->toolbar->setFitEnabled(false);
+    ui->toolbar->setFitVisible(false);
     const QStringList ids = chartedNodeIds();
     for (const QString &nodeId : ids)
         subscribeNode(nodeId);
@@ -563,7 +563,7 @@ void TrendGraphWidget::enterHistoryMode(qint64 windowMs)
         ui->toolbar->setInterval(QString(), QString());
     ui->toolbar->selectHistoryWindow(windowMs);
     ui->toolbar->setRefreshEnabled(true);
-    ui->toolbar->setFitEnabled(true);
+    ui->toolbar->setFitVisible(true);
     _liveTimer->stop();
     const QSet<QString> subscribed = _state.subscribedNodes();
     for (const QString &nodeId : subscribed)
@@ -624,7 +624,7 @@ void TrendGraphWidget::enterCustomInterval(const QDateTime &start, const QDateTi
     _windowEndMs = end.toMSecsSinceEpoch();
     ui->toolbar->selectCustom();
     ui->toolbar->setRefreshEnabled(true);
-    ui->toolbar->setFitEnabled(true);
+    ui->toolbar->setFitVisible(true);
     _liveTimer->stop();
     const QSet<QString> subscribed = _state.subscribedNodes();
     for (const QString &nodeId : subscribed)
@@ -1136,9 +1136,10 @@ void TrendGraphWidget::showSeriesContextMenu(const QPoint &globalPos)
     }
 
     menu.addAction(tr("Auto Scale"), this, [this]() { autoScale(); });
-    QAction *fitAction = menu.addAction(AppIcons::themed(QStringLiteral("fit")), tr("Fit"), this,
-                                        [this]() { fit(); });
-    fitAction->setEnabled(_mode == Mode::History);
+    if (_mode == Mode::History) {
+        menu.addAction(AppIcons::themed(QStringLiteral("fit")), tr("Fit"), this,
+                       [this]() { fit(); });
+    }
     menu.addAction(AppIcons::themed(QStringLiteral("settings")), tr("Settings"),
                    this, [this]() { openSettings(); });
 

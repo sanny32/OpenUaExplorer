@@ -242,7 +242,7 @@ private slots:
     void consumeHistoryMatchesPendingNode();
     void unchangedLiveValueExtendsToNow();
     void wheelLeavesLiveChartUntouched();
-    void fitIsDisabledWhileLive();
+    void fitIsHiddenWhileLive();
     void wheelZoomsHistoryTimeWindow();
     void controlWheelZoomsValueAxis();
     void wheelInHistoryModeRereadsZoomedRange();
@@ -395,26 +395,26 @@ void TestTrendPanelWidget::wheelLeavesLiveChartUntouched()
 }
 
 ///
-/// \brief Fit is offered for a historical range only, never while streaming.
+/// \brief Fit is shown for a historical range only, never while streaming.
 ///
-void TestTrendPanelWidget::fitIsDisabledWhileLive()
+void TestTrendPanelWidget::fitIsHiddenWhileLive()
 {
     TrendPanelWidget panel;
     panel.addNode(QString::fromLatin1(kNodeId), QStringLiteral("Demo"));
 
     auto *fit = panel.findChild<QAbstractButton *>(QStringLiteral("fitButton"));
     QVERIFY(fit);
-    QVERIFY(!fit->isEnabled());
+    QVERIFY(fit->isHidden());
 
     auto *oneMinute = panel.findChild<QAbstractButton *>(QStringLiteral("oneMinuteButton"));
     QVERIFY(oneMinute);
     oneMinute->click();
-    QVERIFY(fit->isEnabled());
+    QVERIFY(!fit->isHidden());
 
     auto *live = panel.findChild<QAbstractButton *>(QStringLiteral("liveButton"));
     QVERIFY(live);
     live->click();
-    QVERIFY(!fit->isEnabled());
+    QVERIFY(fit->isHidden());
 }
 
 ///
