@@ -276,17 +276,22 @@ bool hasValueElements(const QVariant &value);
 QVector<ValueElement> valueElements(const QVariant &value, int limit = -1,
                                     int *totalCount = nullptr);
 
+/// \brief Array elements a value summary spells out before it names the array instead.
+inline constexpr int defaultInlineElementLimit = 10;
+
 ///
 /// \brief Renders a composite value as a short summary naming its type and size.
 /// \param value Variant to describe.
 /// \param type Declared value type, used to name array elements.
 /// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
 /// \param enumEntries Named values of the DataType; empty unless it is an enumeration.
+/// \param inlineElementLimit Longest array still spelled out element by element.
 /// \return Summary such as "Int16[3]", or the plain display value for scalars.
 ///
 QString valueSummary(const QVariant &value, QOpcUa::Types type,
                      const QString &dataTypeId = QString(),
-                     const OpcUaEnumEntries &enumEntries = {});
+                     const OpcUaEnumEntries &enumEntries = {},
+                     int inlineElementLimit = defaultInlineElementLimit);
 
 ///
 /// \brief Picture encoding an OPC UA image DataType stands for.

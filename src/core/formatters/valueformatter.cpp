@@ -106,12 +106,12 @@ OpcUaNodeAttribute elementAttribute(const ValueElement &element)
 ///
 /// \brief Reports whether an array is short and flat enough to spell out in a single cell.
 /// \param list Array elements.
+/// \param elementLimit Longest array still spelled out element by element.
 /// \return True when the array fits inline.
 ///
-bool fitsInlineSummary(const QVariantList &list)
+bool fitsInlineSummary(const QVariantList &list, int elementLimit)
 {
-    static constexpr int inlineElementLimit = 10;
-    if (list.size() > inlineElementLimit)
+    if (list.size() > elementLimit)
         return false;
     return std::none_of(list.cbegin(), list.cend(),
                         [](const QVariant &entry) { return hasValueElements(entry); });
@@ -304,6 +304,7 @@ QVector<ValueElement> valueElements(const QVariant &value, int limit, int *total
 /// \param type Declared value type, used to name array elements.
 /// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
 /// \param enumEntries Named values of the DataType; empty unless it is an enumeration.
+/// \param inlineElementLimit Longest array still spelled out element by element.
 /// \return Summary such as "Int16[3]", the bracketed elements of a short flat array, or the
 ///         plain display value for scalars.
 ///
@@ -313,7 +314,7 @@ QVector<ValueElement> valueElements(const QVariant &value, int limit, int *total
 /// scalar whose hex dump says nothing, so it names its format and size instead.
 ///
 QString valueSummary(const QVariant &value, QOpcUa::Types type, const QString &dataTypeId,
-                     const OpcUaEnumEntries &enumEntries)
+                     const OpcUaEnumEntries &enumEntries, int inlineElementLimit)
 {
     if (const std::optional<ImageValueInfo> image = imageValue(value, dataTypeId))
         return imageSummary(*image);
@@ -323,7 +324,7 @@ QString valueSummary(const QVariant &value, QOpcUa::Types type, const QString &d
         return enumDisplayValue(value, enumEntries);
 
     const QVariantList list = value.toList();
-    if (fitsInlineSummary(list))
+    if (fitsInlineSummary(list, inlineElementLimit))
         return enumDisplayValue(value, enumEntries);
 
     const QString typeName = !list.isEmpty() && isStructValue(list.constFirst())

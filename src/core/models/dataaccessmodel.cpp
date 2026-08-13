@@ -71,6 +71,7 @@ bool isEnumEditable(const DataAccessItem &item)
 DataAccessModel::DataAccessModel(QObject *parent)
     : QAbstractItemModel(parent)
     , _timestampMode(AppSettings().timestampMode())
+    , _inlineArrayElements(AppSettings().inlineArrayElements())
     , _defaultHighlightChanges(AppSettings().highlightValueChanges())
 {
 }
@@ -970,7 +971,8 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
                                      ? OpcUaFormat::valueSummary(
                                            item.typedValue,
                                            static_cast<QOpcUa::Types>(item.valueType),
-                                           item.dataTypeId, item.enumEntries)
+                                           item.dataTypeId, item.enumEntries,
+                                           _inlineArrayElements)
                                      : item.value;
         case ColDataType:     return item.dataType;
         case ColTimestamp:    return OpcUaFormat::isoTimestampWithZone(item.sourceTimestamp,
@@ -1186,6 +1188,20 @@ void DataAccessModel::setDefaultHighlightChanges(bool enabled)
     if (rowCount() > 0)
         emit dataChanged(index(0, ColValue), index(rowCount() - 1, ColValue),
                          {HighlightChangesRole});
+}
+
+///
+/// \brief Sets how many array elements a value cell spells out and repaints the column.
+/// \param elements Longest array still spelled out element by element.
+///
+void DataAccessModel::setInlineArrayElements(int elements)
+{
+    if (_inlineArrayElements == elements)
+        return;
+    _inlineArrayElements = elements;
+    if (rowCount() > 0)
+        emit dataChanged(index(0, ColValue), index(rowCount() - 1, ColValue),
+                         {Qt::DisplayRole});
 }
 
 ///

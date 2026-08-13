@@ -53,6 +53,12 @@ public:
     void setHighlightValueChanges(bool enabled);
 
     ///
+    /// \brief Persists the inline array-element preference and notifies listeners.
+    /// \param elements Longest array a value cell still spells out element by element.
+    ///
+    void setInlineArrayElements(int elements);
+
+    ///
     /// \brief Persists the log depth preference and notifies listeners.
     /// \param rows Number of log entries to keep.
     ///
@@ -97,6 +103,12 @@ signals:
     /// \param enabled The newly applied preference.
     ///
     void highlightValueChangesChanged(bool enabled);
+
+    ///
+    /// \brief Emitted when the inline array-element preference changes.
+    /// \param elements The newly applied number of array elements a value cell spells out.
+    ///
+    void inlineArrayElementsChanged(int elements);
 
     ///
     /// \brief Emitted when the log depth preference changes.

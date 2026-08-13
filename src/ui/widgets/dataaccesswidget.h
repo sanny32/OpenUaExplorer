@@ -188,6 +188,12 @@ public slots:
     void setHighlightValueChanges(bool enabled);
 
     ///
+    /// \brief Sets how many array elements a value cell spells out before naming the array.
+    /// \param elements Longest array still spelled out element by element.
+    ///
+    void setInlineArrayElements(int elements);
+
+    ///
     /// \brief Replaces the known subscriptions and rebuilds the subscribe menu.
     /// \param subscriptions Current subscriptions.
     ///

@@ -53,6 +53,7 @@ private slots:
     void dataAccessElementRowsFollowTheirArray();
     void dataAccessFlashesOnlyTheElementsThatChanged();
     void dataAccessCapsTheElementRowsOfHugeArrays();
+    void dataAccessValueCellFollowsTheInlineArrayPreference();
     void dataAccessTimestampModeReformats();
     void dataAccessSummarisesImagesAndOffersTheirBytes();
     void dataAccessOfflineGreysRowsAndLocksEditing();
@@ -343,6 +344,36 @@ void TestModelsDataAccessPresentation::dataAccessCapsTheElementRowsOfHugeArrays(
     QVERIFY(model.data(model.index(last.row(), DataAccessModel::ColValue, row))
                 .toString().isEmpty());
     QVERIFY(!model.hasChildren(last));
+}
+
+///
+/// \brief The value cell spells out as many array elements as the preference allows.
+///
+void TestModelsDataAccessPresentation::dataAccessValueCellFollowsTheInlineArrayPreference()
+{
+    DataAccessModel model;
+
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=Values");
+    details.dataTypeId = QStringLiteral("ns=0;i=4");
+    details.value = QVariantList{QVariant::fromValue<qint16>(1), QVariant::fromValue<qint16>(2),
+                                 QVariant::fromValue<qint16>(3)};
+    model.addOrUpdate(details);
+
+    const QModelIndex value = model.index(0, DataAccessModel::ColValue);
+    QCOMPARE(value.data().toString(), QStringLiteral("[1, 2, 3]"));
+
+    QSignalSpy changeSpy(&model, &QAbstractItemModel::dataChanged);
+    model.setInlineArrayElements(2);
+    QCOMPARE(changeSpy.size(), 1);
+    QCOMPARE(value.data().toString(), QStringLiteral("Int16[3]"));
+
+    // Re-applying the same preference changes nothing and stays silent.
+    model.setInlineArrayElements(2);
+    QCOMPARE(changeSpy.size(), 1);
+
+    model.setInlineArrayElements(3);
+    QCOMPARE(value.data().toString(), QStringLiteral("[1, 2, 3]"));
 }
 
 ///

@@ -31,6 +31,7 @@ private slots:
     void folderDropAsksBeforeAddingManyVariables();
     void folderDropDeclinedLeavesTableEmpty();
     void folderDropCapsVariablesAtHardLimit();
+    void folderDropCapFollowsTheConfiguredLimit();
     void folderDropRowSettlesAfterSubscription();
     void folderDropRowSettlesAfterFailedRead();
     void subscribeRequestOnFolderAddsItsVariables();
@@ -224,22 +225,47 @@ void TestDataAccessCoordinatorFolderDrop::folderDropDeclinedLeavesTableEmpty()
 }
 
 ///
-/// \brief Beyond the hard limit only the first 100 variables are added.
+/// \brief Beyond the default cap only the first variables are added.
 ///
 void TestDataAccessCoordinatorFolderDrop::folderDropCapsVariablesAtHardLimit()
 {
     CoordinatorHarness harness;
     harness.backend.setState(OpcUaConnectionState::Connected);
 
+    const int cap = AppSettings::defaultFolderDropMaxNodes;
     answerNextDialog(DialogButtonBox::Ok);
-    dropFolder(harness, makeFolderChildren(150));
+    dropFolder(harness, makeFolderChildren(cap + 50));
 
     QAbstractItemModel *model = dataAccessModel(harness);
     QVERIFY(model);
-    QCOMPARE(model->rowCount(), 100);
-    QCOMPARE(harness.backend.readNodeIds.size(), 100);
-    QCOMPARE(model->data(model->index(99, DataAccessModel::ColDisplayName)).toString(),
-             QStringLiteral("Var99"));
+    QCOMPARE(model->rowCount(), cap);
+    QCOMPARE(harness.backend.readNodeIds.size(), cap);
+    QCOMPARE(model->data(model->index(cap - 1, DataAccessModel::ColDisplayName)).toString(),
+             QStringLiteral("Var%1").arg(cap - 1));
+}
+
+///
+/// \brief The cap the user configured decides how many variables a drop contributes.
+///
+void TestDataAccessCoordinatorFolderDrop::folderDropCapFollowsTheConfiguredLimit()
+{
+    CoordinatorHarness harness;
+    harness.backend.setState(OpcUaConnectionState::Connected);
+    AppSettings().setFolderDropMaxNodes(5);
+
+    answerNextDialog(DialogButtonBox::Ok);
+    dropFolder(harness, makeFolderChildren(8));
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QCOMPARE(model->rowCount(), 5);
+    QCOMPARE(harness.backend.readNodeIds.size(), 5);
+
+    // Declining the warning at the raised cap leaves the table as it was.
+    AppSettings().setFolderDropMaxNodes(6);
+    answerNextDialog(DialogButtonBox::Cancel);
+    dropFolder(harness, makeFolderChildren(8));
+    QCOMPARE(model->rowCount(), 5);
 }
 
 ///

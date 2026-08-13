@@ -408,6 +408,15 @@ void DataAccessWidget::setHighlightValueChanges(bool enabled)
 }
 
 ///
+/// \brief Sets how many array elements a value cell spells out before naming the array.
+/// \param elements Longest array still spelled out element by element.
+///
+void DataAccessWidget::setInlineArrayElements(int elements)
+{
+    _dataModel->setInlineArrayElements(elements);
+}
+
+///
 /// \brief Overrides the change-highlight preference of the selected rows.
 /// \param enabled True to highlight changes of those rows.
 ///

@@ -320,6 +320,12 @@ public slots:
     ///
     void setDefaultHighlightChanges(bool enabled);
 
+    ///
+    /// \brief Sets how many array elements a value cell spells out and repaints the column.
+    /// \param elements Longest array still spelled out element by element.
+    ///
+    void setInlineArrayElements(int elements);
+
 public:
 
     ///
@@ -422,6 +428,7 @@ private:
     mutable std::vector<std::unique_ptr<ValueNode>> _roots;
     ColumnAlignmentStore _columnAlignments;
     AppSettings::TimestampMode _timestampMode;
+    int _inlineArrayElements;
     bool _offline = false;
     bool _defaultHighlightChanges = false;
 };

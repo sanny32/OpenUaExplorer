@@ -36,11 +36,6 @@ namespace {
 ///
 constexpr int kFolderDropSilentLimit = 10;
 
-///
-/// \brief Hard cap on the variables one dropped folder may add.
-///
-constexpr int kFolderDropMaxNodes = 100;
-
 } // namespace
 
 ///
@@ -871,16 +866,17 @@ void DataAccessCoordinator::offerFolderVariables(const QVector<OpcUaNodeInfo> &n
         return;
     }
 
-    if (variables.size() > kFolderDropMaxNodes) {
+    const int maxNodes = AppSettings().folderDropMaxNodes();
+    if (variables.size() > maxNodes) {
         const DialogButtonBox::StandardButton answer = MessageBoxDialog::warning(
             _dialogParent, tr("Add Folder"),
             tr("This folder contains %1 variables, more than the limit of %2. "
                "Only the first %2 will be added.")
-                .arg(variables.size()).arg(kFolderDropMaxNodes),
+                .arg(variables.size()).arg(maxNodes),
             DialogButtonBox::Ok | DialogButtonBox::Cancel, DialogButtonBox::Ok);
         if (answer != DialogButtonBox::Ok)
             return;
-        variables.resize(kFolderDropMaxNodes);
+        variables.resize(maxNodes);
     } else if (variables.size() > kFolderDropSilentLimit) {
         const DialogButtonBox::StandardButton answer = MessageBoxDialog::question(
             _dialogParent, tr("Add Folder"),
@@ -1065,6 +1061,8 @@ void DataAccessCoordinator::wireDataView()
             _trendPanel, &TrendPanelWidget::setTimestampMode);
     connect(theApp(), &Application::highlightValueChangesChanged,
             _dataView, &DataView::setHighlightValueChanges);
+    connect(theApp(), &Application::inlineArrayElementsChanged,
+            _dataView, &DataView::setInlineArrayElements);
 }
 
 ///

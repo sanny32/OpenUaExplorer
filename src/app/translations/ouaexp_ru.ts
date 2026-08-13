@@ -3715,6 +3715,10 @@ Do you want to save them?</source>
         <translation>Общие</translation>
     </message>
     <message>
+        <source>Data</source>
+        <translation>Данные</translation>
+    </message>
+    <message>
         <source>Connection</source>
         <translation>Подключение</translation>
     </message>
@@ -3725,6 +3729,30 @@ Do you want to save them?</source>
     <message>
         <source>Interval (s):</source>
         <translation>Интервал (с):</translation>
+    </message>
+    <message>
+        <source>Add at most</source>
+        <translation>Добавлять не более</translation>
+    </message>
+    <message>
+        <source>A dropped node that holds more variables than this adds only the first of them.</source>
+        <translation>Если перетащенный узел содержит больше переменных, будут добавлены только первые из них.</translation>
+    </message>
+    <message>
+        <source>variables per dropped node</source>
+        <translation>переменных за одно перетаскивание</translation>
+    </message>
+    <message>
+        <source>Spell out arrays of up to</source>
+        <translation>Показывать поэлементно массивы до</translation>
+    </message>
+    <message>
+        <source>A longer array is named by its type and length instead; its elements stay readable by expanding the row.</source>
+        <translation>Более длинный массив обозначается типом и размером; его элементы можно посмотреть, раскрыв строку.</translation>
+    </message>
+    <message>
+        <source>elements in the value column</source>
+        <translation>элементов в столбце значения</translation>
     </message>
     <message>
         <source>Debug messages are verbose and are meant for diagnosing a problem.</source>

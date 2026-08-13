@@ -49,6 +49,8 @@ private slots:
     void reconnectSettingsPersistAndGateTheInterval();
     void highlightChangesCheckPersists();
     void recursiveFolderDropCheckPersists();
+    void folderDropLimitSpinPersists();
+    void inlineArrayElementsSpinPersists();
     void layoutResetWaitsForAcceptance();
 
 private:
@@ -228,10 +230,11 @@ void TestSettingsDialog::categoryListSelectsPages()
 
     // One row per page, General first.
     QCOMPARE(list->count(), pages->count());
-    QCOMPARE(list->count(), 3);
+    QCOMPARE(list->count(), 4);
     QCOMPARE(list->item(0)->text(), QStringLiteral("General"));
-    QCOMPARE(list->item(1)->text(), QStringLiteral("Appearance"));
-    QCOMPARE(list->item(2)->text(), QStringLiteral("Logging"));
+    QCOMPARE(list->item(1)->text(), QStringLiteral("Data"));
+    QCOMPARE(list->item(2)->text(), QStringLiteral("Appearance"));
+    QCOMPARE(list->item(3)->text(), QStringLiteral("Logging"));
     QCOMPARE(list->currentRow(), 0);
     QCOMPARE(pages->currentWidget()->objectName(), QStringLiteral("generalPage"));
 
@@ -239,12 +242,20 @@ void TestSettingsDialog::categoryListSelectsPages()
     for (int row = 0; row < list->count(); ++row)
         QVERIFY(!list->item(row)->icon().isNull());
 
+    // What a value looks like belongs to Data, not to the theme-and-language page.
     list->setCurrentRow(1);
+    QCOMPARE(pages->currentWidget()->objectName(), QStringLiteral("dataPage"));
+    QVERIFY(dialog.findChild<QGroupBox *>(QStringLiteral("timestampGroup"))->parentWidget()
+            == pages->currentWidget());
+    QVERIFY(dialog.findChild<QGroupBox *>(QStringLiteral("dataViewGroup"))->parentWidget()
+            == pages->currentWidget());
+
+    list->setCurrentRow(2);
     QCOMPARE(pages->currentWidget()->objectName(), QStringLiteral("appearancePage"));
     QVERIFY(dialog.findChild<QGroupBox *>(QStringLiteral("themeGroup"))->parentWidget()
             == pages->currentWidget());
 
-    list->setCurrentRow(2);
+    list->setCurrentRow(3);
     QCOMPARE(pages->currentWidget()->objectName(), QStringLiteral("loggingPage"));
 
     // Switching pages is navigation, not a preference change.
@@ -347,6 +358,56 @@ void TestSettingsDialog::recursiveFolderDropCheckPersists()
     QVERIFY(AppSettings().recursiveFolderDrop());
     QVERIFY(SettingsDialog().findChild<QCheckBox *>(
         QStringLiteral("recursiveFolderDropCheck"))->isChecked());
+}
+
+///
+/// \brief The folder-drop limit offers the supported range and persists a new cap.
+///
+void TestSettingsDialog::folderDropLimitSpinPersists()
+{
+    SettingsDialog dialog;
+    auto *spin = dialog.findChild<QSpinBox *>(QStringLiteral("folderDropMaxNodesSpin"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(spin);
+    QVERIFY(buttons);
+    QCOMPARE(spin->value(), AppSettings::defaultFolderDropMaxNodes);
+    QCOMPARE(spin->minimum(), AppSettings::minFolderDropMaxNodes);
+    QCOMPARE(spin->maximum(), AppSettings::maxFolderDropMaxNodes);
+
+    spin->setValue(AppSettings::maxFolderDropMaxNodes);
+    QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+
+    QCOMPARE(AppSettings().folderDropMaxNodes(), AppSettings::maxFolderDropMaxNodes);
+    QCOMPARE(SettingsDialog().findChild<QSpinBox *>(
+                 QStringLiteral("folderDropMaxNodesSpin"))->value(),
+             AppSettings::maxFolderDropMaxNodes);
+}
+
+///
+/// \brief The inline array length persists and announces itself to the running UI.
+///
+void TestSettingsDialog::inlineArrayElementsSpinPersists()
+{
+    SettingsDialog dialog;
+    auto *spin = dialog.findChild<QSpinBox *>(QStringLiteral("inlineArrayElementsSpin"));
+    auto *buttons = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(spin);
+    QVERIFY(buttons);
+    QCOMPARE(spin->minimum(), AppSettings::minInlineArrayElements);
+    QCOMPARE(spin->maximum(), AppSettings::maxInlineArrayElements);
+
+    QSignalSpy spy(theApp(), &Application::inlineArrayElementsChanged);
+    spin->setValue(25);
+    QVERIFY(buttons->button(QDialogButtonBox::Apply)->isEnabled());
+    buttons->button(QDialogButtonBox::Apply)->click();
+
+    QCOMPARE(AppSettings().inlineArrayElements(), 25);
+    QCOMPARE(spy.size(), 1);
+    QCOMPARE(spy.first().first().toInt(), 25);
+
+    QCOMPARE(SettingsDialog().findChild<QSpinBox *>(
+                 QStringLiteral("inlineArrayElementsSpin"))->value(), 25);
 }
 
 ///

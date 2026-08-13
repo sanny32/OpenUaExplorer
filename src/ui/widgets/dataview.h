@@ -271,6 +271,12 @@ public slots:
     ///
     void setHighlightValueChanges(bool enabled);
 
+    ///
+    /// \brief Applies the inline array-element preference to the data-access tab.
+    /// \param elements Longest array a value cell still spells out element by element.
+    ///
+    void setInlineArrayElements(int elements);
+
 signals:
     ///
     /// \brief Emitted when a page gains or loses its tab.

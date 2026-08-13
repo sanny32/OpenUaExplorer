@@ -3701,6 +3701,10 @@ Do you want to save them?</source>
         <translation>常规</translation>
     </message>
     <message>
+        <source>Data</source>
+        <translation>数据</translation>
+    </message>
+    <message>
         <source>Connection</source>
         <translation>连接</translation>
     </message>
@@ -3711,6 +3715,30 @@ Do you want to save them?</source>
     <message>
         <source>Interval (s):</source>
         <translation>间隔（秒）：</translation>
+    </message>
+    <message>
+        <source>Add at most</source>
+        <translation>每个拖入的节点最多添加</translation>
+    </message>
+    <message>
+        <source>A dropped node that holds more variables than this adds only the first of them.</source>
+        <translation>若拖入的节点包含的变量多于此数量，则只添加其中最前面的部分。</translation>
+    </message>
+    <message>
+        <source>variables per dropped node</source>
+        <translation>个变量</translation>
+    </message>
+    <message>
+        <source>Spell out arrays of up to</source>
+        <translation>在值列中逐个显示不超过</translation>
+    </message>
+    <message>
+        <source>A longer array is named by its type and length instead; its elements stay readable by expanding the row.</source>
+        <translation>更长的数组改为以类型和长度标示；展开该行仍可查看其元素。</translation>
+    </message>
+    <message>
+        <source>elements in the value column</source>
+        <translation>个元素的数组</translation>
     </message>
     <message>
         <source>Debug messages are verbose and are meant for diagnosing a problem.</source>

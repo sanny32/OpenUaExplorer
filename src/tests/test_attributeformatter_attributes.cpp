@@ -59,6 +59,7 @@ private slots:
     void valueAttributeScalarAndArray();
     void valueElementsSplitArraysAndHonourTheLimit();
     void valueSummaryNamesArraysAndPassesScalarsThrough();
+    void valueSummaryHonoursTheInlineElementLimit();
     void imageDataTypesAreRecognisedFromTheirNodeId();
     void imageValuesSummariseInsteadOfDumpingHex();
     void imageValueAttributeCarriesItsBytes();
@@ -174,6 +175,27 @@ void TestAttributeFormatterAttributes::valueSummaryNamesArraysAndPassesScalarsTh
     QCOMPARE(valueSummary(QVariant(QVariantList{1}), QOpcUa::Types::Undefined,
                           QStringLiteral("ns=0;i=338")),
              QStringLiteral("[1]"));
+}
+
+void TestAttributeFormatterAttributes::valueSummaryHonoursTheInlineElementLimit()
+{
+    const QVariant array(QVariantList{1, 2, 3});
+
+    QCOMPARE(valueSummary(array, QOpcUa::Types::Int32, QString(), {}, 3),
+             QStringLiteral("[1, 2, 3]"));
+    QCOMPARE(valueSummary(array, QOpcUa::Types::Int32, QString(), {}, 2),
+             QStringLiteral("Int32[3]"));
+
+    // A limit of zero names every array, but an empty one has nothing left to name.
+    QCOMPARE(valueSummary(array, QOpcUa::Types::Int32, QString(), {}, 0),
+             QStringLiteral("Int32[3]"));
+    QCOMPARE(valueSummary(QVariant(QVariantList{}), QOpcUa::Types::Int32, QString(), {}, 0),
+             QStringLiteral("[]"));
+
+    // The limit never spells out elements that expand on their own.
+    QCOMPARE(valueSummary(QVariant(QVariantList{QVariant(QVariantList{1, 2})}),
+                          QOpcUa::Types::Int32, QString(), {}, 10),
+             QStringLiteral("Int32[1]"));
 }
 
 void TestAttributeFormatterAttributes::imageDataTypesAreRecognisedFromTheirNodeId()

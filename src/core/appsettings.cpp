@@ -12,6 +12,7 @@
 #include <QStringList>
 
 #include "appsettings.h"
+#include "formatters/attributeformatter.h"
 #include "settingsstore.h"
 
 namespace {
@@ -48,6 +49,8 @@ constexpr auto reconnectEnabledKey = "connection/reconnectEnabled";
 constexpr auto reconnectIntervalKey = "connection/reconnectIntervalSeconds";
 constexpr auto highlightValueChangesKey = "dataAccess/highlightValueChanges";
 constexpr auto recursiveFolderDropKey = "dataAccess/recursiveFolderDrop";
+constexpr auto folderDropMaxNodesKey = "dataAccess/folderDropMaxNodes";
+constexpr auto inlineArrayElementsKey = "dataAccess/inlineArrayElements";
 constexpr int defaultReconnectIntervalSeconds = 5;
 constexpr int minReconnectIntervalSeconds = 1;
 constexpr int maxReconnectIntervalSeconds = 3600;
@@ -583,6 +586,52 @@ void AppSettings::setRecursiveFolderDrop(bool enabled)
 {
     SettingsStore settings;
     settings.setValue(QLatin1String(recursiveFolderDropKey), enabled);
+}
+
+///
+/// \brief Returns how many variables one dropped node may add to Data Access.
+/// \return Stored cap, clamped to the supported range.
+///
+int AppSettings::folderDropMaxNodes() const
+{
+    SettingsStore settings;
+    const int nodes = settings.value(QLatin1String(folderDropMaxNodesKey),
+                                     defaultFolderDropMaxNodes).toInt();
+    return std::clamp(nodes, minFolderDropMaxNodes, maxFolderDropMaxNodes);
+}
+
+///
+/// \brief Stores how many variables one dropped node may add to Data Access.
+/// \param nodes Cap, clamped to the supported range.
+///
+void AppSettings::setFolderDropMaxNodes(int nodes)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(folderDropMaxNodesKey),
+                      std::clamp(nodes, minFolderDropMaxNodes, maxFolderDropMaxNodes));
+}
+
+///
+/// \brief Returns how many array elements a value cell spells out before naming the array.
+/// \return Stored element count, clamped to the supported range.
+///
+int AppSettings::inlineArrayElements() const
+{
+    SettingsStore settings;
+    const int elements = settings.value(QLatin1String(inlineArrayElementsKey),
+                                        OpcUaFormat::defaultInlineElementLimit).toInt();
+    return std::clamp(elements, minInlineArrayElements, maxInlineArrayElements);
+}
+
+///
+/// \brief Stores how many array elements a value cell spells out before naming the array.
+/// \param elements Element count, clamped to the supported range.
+///
+void AppSettings::setInlineArrayElements(int elements)
+{
+    SettingsStore settings;
+    settings.setValue(QLatin1String(inlineArrayElementsKey),
+                      std::clamp(elements, minInlineArrayElements, maxInlineArrayElements));
 }
 
 ///

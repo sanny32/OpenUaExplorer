@@ -352,6 +352,45 @@ public:
     ///
     void setRecursiveFolderDrop(bool enabled);
 
+    /// \brief Variables one dropped node contributes when the user has expressed no preference.
+    static constexpr int defaultFolderDropMaxNodes = 100;
+
+    /// \brief Smallest number of variables one dropped node may contribute.
+    static constexpr int minFolderDropMaxNodes = 1;
+
+    /// \brief Largest number of variables one dropped node may contribute.
+    static constexpr int maxFolderDropMaxNodes = 1000;
+
+    ///
+    /// \brief Returns how many variables one dropped node may add to Data Access.
+    /// \return Stored cap, clamped to the supported range.
+    ///
+    int folderDropMaxNodes() const;
+
+    ///
+    /// \brief Stores how many variables one dropped node may add to Data Access.
+    /// \param nodes Cap, clamped to the supported range.
+    ///
+    void setFolderDropMaxNodes(int nodes);
+
+    /// \brief Smallest number of array elements a value cell may spell out.
+    static constexpr int minInlineArrayElements = 0;
+
+    /// \brief Largest number of array elements a value cell may spell out.
+    static constexpr int maxInlineArrayElements = 50;
+
+    ///
+    /// \brief Returns how many array elements a value cell spells out before naming the array.
+    /// \return Stored element count, clamped to the supported range.
+    ///
+    int inlineArrayElements() const;
+
+    ///
+    /// \brief Stores how many array elements a value cell spells out before naming the array.
+    /// \param elements Element count, clamped to the supported range.
+    ///
+    void setInlineArrayElements(int elements);
+
     ///
     /// \brief Returns the delay between two reconnect attempts.
     /// \return Interval in seconds, clamped to the supported range.

@@ -3708,6 +3708,10 @@ Möchten Sie sie speichern?</translation>
         <translation>Allgemein</translation>
     </message>
     <message>
+        <source>Data</source>
+        <translation>Daten</translation>
+    </message>
+    <message>
         <source>Connection</source>
         <translation>Verbindung</translation>
     </message>
@@ -3718,6 +3722,30 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>Interval (s):</source>
         <translation>Intervall (s):</translation>
+    </message>
+    <message>
+        <source>Add at most</source>
+        <translation>Höchstens</translation>
+    </message>
+    <message>
+        <source>A dropped node that holds more variables than this adds only the first of them.</source>
+        <translation>Enthält ein abgelegter Knoten mehr Variablen, werden nur die ersten davon hinzugefügt.</translation>
+    </message>
+    <message>
+        <source>variables per dropped node</source>
+        <translation>Variablen je abgelegtem Knoten hinzufügen</translation>
+    </message>
+    <message>
+        <source>Spell out arrays of up to</source>
+        <translation>Arrays mit bis zu</translation>
+    </message>
+    <message>
+        <source>A longer array is named by its type and length instead; its elements stay readable by expanding the row.</source>
+        <translation>Ein längeres Array wird stattdessen mit Typ und Länge benannt; seine Elemente bleiben durch Aufklappen der Zeile lesbar.</translation>
+    </message>
+    <message>
+        <source>elements in the value column</source>
+        <translation>Elementen in der Wertespalte ausschreiben</translation>
     </message>
     <message>
         <source>Debug messages are verbose and are meant for diagnosing a problem.</source>
