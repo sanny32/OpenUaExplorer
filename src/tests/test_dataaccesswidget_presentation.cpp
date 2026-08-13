@@ -26,6 +26,7 @@ private slots:
     void contextMenuOverridesChangeHighlight();
     void contextMenuOffersAddOnlyWithoutSelection();
     void contextMenuRequestsAddressSpaceReveal();
+    void contextMenuDisablesAddressSpaceRevealForSeveralRows();
     void selectedRowsStillShowTheChangeWash();
     void fastSubscriptionsFadeWithinTheirInterval();
 };
@@ -247,6 +248,47 @@ void TestDataAccessWidgetPresentation::contextMenuRequestsAddressSpaceReveal()
 
     QCOMPARE(revealSpy.count(), 1);
     QCOMPARE(revealSpy.takeFirst().at(0).toString(), details.nodeId);
+}
+
+///
+/// \brief Several selected rows leave the reveal entry shown but inactive, and Remove usable.
+///
+void TestDataAccessWidgetPresentation::contextMenuDisablesAddressSpaceRevealForSeveralRows()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    widget.addNode(makeNodeDetails());
+    widget.addNode(makeBooleanNodeDetails(false, true));
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    selectAllRows(view);
+    QSignalSpy revealSpy(&widget, &DataAccessWidget::showInAddressSpaceRequested);
+    QVERIFY(revealSpy.isValid());
+
+    QTimer::singleShot(0, &widget, [&widget]() {
+        QAction *action = widget.findChild<QAction *>(QStringLiteral("actionShowInAddressSpace"));
+        QVERIFY(action);
+        QVERIFY(!action->isEnabled());
+        action->trigger();
+
+        QAction *removeAction =
+            widget.findChild<QAction *>(QStringLiteral("actionRemoveSelectedNodes"));
+        QVERIFY(removeAction);
+        QVERIFY(removeAction->isEnabled());
+        QCOMPARE(removeAction->shortcut(), QKeySequence(QKeySequence::Delete));
+        QMenu *menu = qobject_cast<QMenu *>(action->parent());
+        QVERIFY(menu);
+        QVERIFY(menu->actions().contains(removeAction));
+        menu->close();
+    });
+    QVERIFY(QMetaObject::invokeMethod(view, "customContextMenuRequested",
+                                      Q_ARG(QPoint, view->visualRect(view->model()->index(0, 0)).center())));
+
+    // The handler guards the count itself, so even a forced trigger reveals nothing.
+    QCOMPARE(revealSpy.count(), 0);
 }
 
 ///

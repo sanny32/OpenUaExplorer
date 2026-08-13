@@ -14,6 +14,7 @@
 #include <QDropEvent>
 #include <QHeaderView>
 #include <QItemSelectionModel>
+#include <QKeySequence>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMimeData>
@@ -38,6 +39,7 @@
 #include "subscriptiondelegate.h"
 #include "subscriptionswidget.h"
 #include "tableviewconfig.h"
+#include "themedaction.h"
 #include "treetableview.h"
 #include "valuecelldelegate.h"
 #include "ui_dataaccesswidget.h"
@@ -168,6 +170,10 @@ void DataAccessWidget::changeEvent(QEvent *event)
     if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
         _dataModel->retranslate();
+        // The Remove action outlives the context menu it is shown in, so the generated
+        // retranslation does not reach it.
+        if (_removeAction)
+            _removeAction->setText(tr("Remove"));
     }
 }
 
@@ -586,9 +592,22 @@ void DataAccessWidget::setupDataView()
     ui->dataView->installEventFilter(this);
     ui->dataView->viewport()->installEventFilter(this);
     ui->dataView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    // Removing, reading and subscribing all act on whole rows, so several may be picked at once.
+    ui->dataView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     ui->dataView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
     connect(ui->dataView, &QAbstractItemView::doubleClicked,
             this, &DataAccessWidget::handleValueDoubleClick);
+
+    // The same action serves the Del key and the context menu, so both stay in step with
+    // the selection. The shortcut is the view's own: an open cell editor holds the focus
+    // and swallows Del as text editing, which is what the user means while typing.
+    _removeAction = new ThemedAction(QStringLiteral("remove"), tr("Remove"), this);
+    _removeAction->setObjectName(QStringLiteral("actionRemoveSelectedNodes"));
+    _removeAction->setShortcut(QKeySequence::Delete);
+    _removeAction->setShortcutContext(Qt::WidgetShortcut);
+    _removeAction->setEnabled(false);
+    connect(_removeAction, &QAction::triggered, this, &DataAccessWidget::removeSelectedNodes);
+    ui->dataView->addAction(_removeAction);
 
     // Composite values expand under their node: the expander sits in the NodeId column so the
     // row numbers stay flush, and a double click keeps writing instead of toggling the row.
@@ -656,6 +675,8 @@ void DataAccessWidget::updateSelectionActions()
     const bool hasSelection = selectedCount > 0 && !_offline;
     ui->addNodeButton->setEnabled(!_offline);
     ui->removeButton->setEnabled(hasSelection);
+    if (_removeAction)
+        _removeAction->setEnabled(hasSelection);
     ui->readButton->setEnabled(hasSelection);
     ui->writeButton->setEnabled(canWriteSelection() && !_offline);
     ui->subscribeButton->setEnabled(hasSelection);
@@ -719,6 +740,8 @@ void DataAccessWidget::showDataContextMenu(const QPoint &pos)
                                             this, &DataAccessWidget::addSelectedNodeRequested);
         addAction->setObjectName(QStringLiteral("actionAddSelectedNode"));
     } else {
+        // Only one node can be revealed at a time, so a multi-row selection leaves the
+        // entry visible but inactive rather than silently picking one of the rows.
         QAction *showInAddressSpaceAction = menu.addAction(
             tr("Show in Address Space"), this, &DataAccessWidget::showSelectedNodeInAddressSpace);
         showInAddressSpaceAction->setObjectName(QStringLiteral("actionShowInAddressSpace"));
@@ -726,9 +749,7 @@ void DataAccessWidget::showDataContextMenu(const QPoint &pos)
         menu.addSeparator();
     }
 
-    QAction *removeAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove"),
-                                           this, &DataAccessWidget::removeSelectedNodes);
-    removeAction->setEnabled(hasSelection);
+    menu.addAction(_removeAction);
 
     QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Clear"),
                                               this, &DataAccessWidget::removeAllNodes);
@@ -773,7 +794,10 @@ void DataAccessWidget::showSelectedNodeInAddressSpace()
 }
 
 ///
-/// \brief Removes the selected data-access nodes, cancelling monitoring for subscribed ones.
+/// \brief Removes every selected data-access node, cancelling monitoring for subscribed ones.
+///
+/// Several rows may be picked at once; each row selected through one of its array elements
+/// counts as the node it belongs to, so removing one twice is not possible.
 ///
 void DataAccessWidget::removeSelectedNodes()
 {

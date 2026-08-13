@@ -26,6 +26,7 @@ class DataAccessWidget;
 class DataAccessFilterProxyModel;
 class DataAccessModel;
 class SubscriptionDelegate;
+class ThemedAction;
 class ValueCellDelegate;
 struct DataAccessItem;
 
@@ -125,7 +126,7 @@ public:
     bool hasSelection() const;
 
     ///
-    /// \brief Removes the selected data-access nodes, cancelling monitoring for subscribed ones.
+    /// \brief Removes every selected data-access node, cancelling monitoring for subscribed ones.
     ///
     void removeSelectedNodes();
 
@@ -336,6 +337,7 @@ private:
     DataAccessFilterProxyModel *_filterProxy;
     SubscriptionDelegate      *_subscriptionDelegate = nullptr;
     ValueCellDelegate         *_valueDelegate = nullptr;
+    ThemedAction              *_removeAction = nullptr;
     QVector<SubscriptionItem>  _subscriptions;
     bool                       _offline = false;
 };
