@@ -32,9 +32,15 @@ constexpr qreal separatorOpacity = 0.28;
 void SeparatorItemDelegate::attachTo(QComboBox *comboBox)
 {
     QAbstractItemView *view = comboBox->view();
-    if (view->findChild<SeparatorItemDelegate *>(QString(), Qt::FindDirectChildrenOnly))
-        return;
-    view->setItemDelegate(new SeparatorItemDelegate(view));
+    auto *delegate = view->findChild<SeparatorItemDelegate *>(QString(),
+                                                              Qt::FindDirectChildrenOnly);
+    if (!delegate)
+        delegate = new SeparatorItemDelegate(view);
+
+    // A style that installs its own popup delegate only detaches this one, leaving it a
+    // child of the view, so the attachment is checked rather than the delegate's existence.
+    if (view->itemDelegate() != delegate)
+        view->setItemDelegate(delegate);
 }
 
 ///
