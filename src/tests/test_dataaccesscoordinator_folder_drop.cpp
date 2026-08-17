@@ -261,11 +261,22 @@ void TestDataAccessCoordinatorFolderDrop::folderDropCapFollowsTheConfiguredLimit
     QCOMPARE(model->rowCount(), 5);
     QCOMPARE(harness.backend.readNodeIds.size(), 5);
 
-    // Declining the warning at the raised cap leaves the table as it was.
+    // Exactly the raised cap is accepted without a warning and contributes the sixth row.
     AppSettings().setFolderDropMaxNodes(6);
-    answerNextDialog(DialogButtonBox::Cancel);
-    dropFolder(harness, makeFolderChildren(8));
-    QCOMPARE(model->rowCount(), 5);
+    bool dialogShown = false;
+    QTimer::singleShot(0, qApp, [&dialogShown]() {
+        auto *modal = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+        if (!modal)
+            return;
+        dialogShown = true;
+        modal->reject();
+    });
+    dropFolder(harness, makeFolderChildren(6));
+    QCoreApplication::processEvents();
+
+    QVERIFY(!dialogShown);
+    QCOMPARE(model->rowCount(), 6);
+    QCOMPARE(harness.backend.readNodeIds.size(), 11);
 }
 
 ///

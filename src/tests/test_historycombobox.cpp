@@ -8,15 +8,18 @@
 
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QComboBox>
 #include <QImage>
 #include <QItemSelectionModel>
 #include <QScopedPointer>
 #include <QSignalSpy>
 #include <QStyle>
 #include <QStyleFactory>
+#include <QStyledItemDelegate>
 #include <QTest>
 
 #include "widgets/historycombobox.h"
+#include "widgets/separatoritemdelegate.h"
 
 ///
 /// \brief Verifies that popup entries can be removed without disturbing the selection.
@@ -34,6 +37,8 @@ private slots:
     void actionEntryFollowsASeparatorAndSurvivesHistoryRefills();
     void actionEntryIsNeitherRemovableNorSelectable();
     void clickingTheActionEntryTriggersItWithoutChangingTheText();
+    void popupRestoresItsDelegateAfterAStyleReplacesIt();
+    void separatorDelegateReattachesAfterAStyleReplacesIt();
     void separatorIsDrawnAsAThinRuleWithoutARemoveButton();
     void separatorStaysVisibleOnADarkPopup();
 
@@ -265,6 +270,41 @@ void TestHistoryComboBox::clickingTheActionEntryTriggersItWithoutChangingTheText
     QCOMPARE(activatedSpy.size(), 0);
     QCOMPARE(comboBox.currentIndex(), 1);
     QCOMPARE(comboBox.currentText(), before);
+}
+
+///
+/// \brief Opening the popup restores the history delegate replaced during style polishing.
+///
+void TestHistoryComboBox::popupRestoresItsDelegateAfterAStyleReplacesIt()
+{
+    HistoryComboBox comboBox;
+    QAbstractItemView *view = comboBox.view();
+    QAbstractItemDelegate *historyDelegate = view->itemDelegate();
+    view->setItemDelegate(new QStyledItemDelegate(view));
+    QVERIFY(view->itemDelegate() != historyDelegate);
+
+    view = openPopup(comboBox);
+    if (!view)
+        QSKIP("The combo box popup is unavailable on this platform.");
+
+    QCOMPARE(view->itemDelegate(), historyDelegate);
+}
+
+///
+/// \brief Reattaching a separator delegate replaces a delegate installed by the style.
+///
+void TestHistoryComboBox::separatorDelegateReattachesAfterAStyleReplacesIt()
+{
+    QComboBox comboBox;
+    SeparatorItemDelegate::attachTo(&comboBox);
+    QAbstractItemView *view = comboBox.view();
+    QAbstractItemDelegate *separatorDelegate = view->itemDelegate();
+
+    view->setItemDelegate(new QStyledItemDelegate(view));
+    QVERIFY(view->itemDelegate() != separatorDelegate);
+
+    SeparatorItemDelegate::attachTo(&comboBox);
+    QCOMPARE(view->itemDelegate(), separatorDelegate);
 }
 
 ///

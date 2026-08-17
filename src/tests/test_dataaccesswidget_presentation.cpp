@@ -272,6 +272,7 @@ void TestDataAccessWidgetPresentation::contextMenuDisablesAddressSpaceRevealForS
         QAction *action = widget.findChild<QAction *>(QStringLiteral("actionShowInAddressSpace"));
         QVERIFY(action);
         QVERIFY(!action->isEnabled());
+        action->setEnabled(true);
         action->trigger();
 
         QAction *removeAction =
@@ -287,7 +288,7 @@ void TestDataAccessWidgetPresentation::contextMenuDisablesAddressSpaceRevealForS
     QVERIFY(QMetaObject::invokeMethod(view, "customContextMenuRequested",
                                       Q_ARG(QPoint, view->visualRect(view->model()->index(0, 0)).center())));
 
-    // The handler guards the count itself, so even a forced trigger reveals nothing.
+    // Bypassing the disabled menu state must still be rejected by the handler.
     QCOMPARE(revealSpy.count(), 0);
 }
 
