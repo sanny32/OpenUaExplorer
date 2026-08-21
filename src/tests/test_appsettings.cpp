@@ -11,6 +11,7 @@
 #include <QTest>
 
 #include "appsettings.h"
+#include "formatters/attributeformatter.h"
 #include "settingsstore.h"
 
 ///
@@ -34,6 +35,8 @@ private slots:
     void reconnectDefaultsToEveryFiveSeconds();
     void reconnectIntervalIsClampedToTheSupportedRange();
     void maxLogRowsRoundTripsAndIsClamped();
+    void folderDropMaxNodesRoundTripsAndIsClamped();
+    void inlineArrayElementsRoundTripsAndIsClamped();
     void lastSavedSessionPathRoundTrips();
     void builtinSubscriptionOverridesRoundTrip();
     void dataAccessPageRoundTrips();
@@ -192,6 +195,40 @@ void TestAppSettings::maxLogRowsRoundTripsAndIsClamped()
 
     AppSettings().setMaxLogRows(AppSettings::maxMaxLogRows * 10);
     QCOMPARE(AppSettings().maxLogRows(), AppSettings::maxMaxLogRows);
+}
+
+///
+/// \brief The folder-drop cap defaults, round-trips, and never leaves the supported range.
+///
+void TestAppSettings::folderDropMaxNodesRoundTripsAndIsClamped()
+{
+    QCOMPARE(AppSettings().folderDropMaxNodes(), AppSettings::defaultFolderDropMaxNodes);
+
+    AppSettings().setFolderDropMaxNodes(250);
+    QCOMPARE(AppSettings().folderDropMaxNodes(), 250);
+
+    AppSettings().setFolderDropMaxNodes(0);
+    QCOMPARE(AppSettings().folderDropMaxNodes(), AppSettings::minFolderDropMaxNodes);
+
+    AppSettings().setFolderDropMaxNodes(AppSettings::maxFolderDropMaxNodes * 10);
+    QCOMPARE(AppSettings().folderDropMaxNodes(), AppSettings::maxFolderDropMaxNodes);
+}
+
+///
+/// \brief The inline array length defaults, round-trips, and never leaves the supported range.
+///
+void TestAppSettings::inlineArrayElementsRoundTripsAndIsClamped()
+{
+    QCOMPARE(AppSettings().inlineArrayElements(), OpcUaFormat::defaultInlineElementLimit);
+
+    AppSettings().setInlineArrayElements(32);
+    QCOMPARE(AppSettings().inlineArrayElements(), 32);
+
+    AppSettings().setInlineArrayElements(-5);
+    QCOMPARE(AppSettings().inlineArrayElements(), AppSettings::minInlineArrayElements);
+
+    AppSettings().setInlineArrayElements(AppSettings::maxInlineArrayElements * 10);
+    QCOMPARE(AppSettings().inlineArrayElements(), AppSettings::maxInlineArrayElements);
 }
 
 ///

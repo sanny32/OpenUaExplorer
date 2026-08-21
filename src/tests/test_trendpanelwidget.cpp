@@ -7,12 +7,16 @@
 ///
 
 #include <QAbstractButton>
+#include <QApplication>
+#include <QContextMenuEvent>
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QGraphicsEllipseItem>
+#include <QMenu>
 #include <QSignalSpy>
 #include <QTest>
 #include <QMouseEvent>
+#include <QTimer>
 #include <QWheelEvent>
 #include <QtCharts/QAbstractAxis>
 #include <QtCharts/QChart>
@@ -22,6 +26,7 @@
 #include <QtCharts/QValueAxis>
 
 #include "opcua/opcuatypes.h"
+#include "widgets/trendgraphwidget.h"
 #include "widgets/trendpanelwidget.h"
 
 namespace {
@@ -140,6 +145,31 @@ bool waitForPlotArea(QChartView *view)
 }
 
 ///
+/// \brief Opens a widget's context menu and returns its non-separator action texts.
+/// \param widget Widget receiving the context-menu event.
+/// \return Visible action texts in menu order.
+///
+QStringList contextMenuTexts(QWidget *widget)
+{
+    QStringList texts;
+    QTimer::singleShot(0, qApp, [&texts]() {
+        auto *menu = qobject_cast<QMenu *>(QApplication::activePopupWidget());
+        if (!menu)
+            return;
+        for (QAction *action : menu->actions()) {
+            if (!action->isSeparator())
+                texts.append(action->text());
+        }
+        menu->close();
+    });
+
+    const QPoint pos = widget->rect().center();
+    QContextMenuEvent event(QContextMenuEvent::Mouse, pos, widget->mapToGlobal(pos));
+    QCoreApplication::sendEvent(widget, &event);
+    return texts;
+}
+
+///
 /// \brief Posts one mouse event to a widget.
 /// \param viewport Widget receiving the event.
 /// \param type Mouse event type.
@@ -242,7 +272,8 @@ private slots:
     void consumeHistoryMatchesPendingNode();
     void unchangedLiveValueExtendsToNow();
     void wheelLeavesLiveChartUntouched();
-    void fitIsDisabledWhileLive();
+    void fitIsHiddenWhileLive();
+    void fitContextActionFollowsMode();
     void wheelZoomsHistoryTimeWindow();
     void controlWheelZoomsValueAxis();
     void wheelInHistoryModeRereadsZoomedRange();
@@ -395,26 +426,45 @@ void TestTrendPanelWidget::wheelLeavesLiveChartUntouched()
 }
 
 ///
-/// \brief Fit is offered for a historical range only, never while streaming.
+/// \brief Fit is shown for a historical range only, never while streaming.
 ///
-void TestTrendPanelWidget::fitIsDisabledWhileLive()
+void TestTrendPanelWidget::fitIsHiddenWhileLive()
 {
     TrendPanelWidget panel;
     panel.addNode(QString::fromLatin1(kNodeId), QStringLiteral("Demo"));
 
     auto *fit = panel.findChild<QAbstractButton *>(QStringLiteral("fitButton"));
     QVERIFY(fit);
-    QVERIFY(!fit->isEnabled());
+    QVERIFY(fit->isHidden());
 
     auto *oneMinute = panel.findChild<QAbstractButton *>(QStringLiteral("oneMinuteButton"));
     QVERIFY(oneMinute);
     oneMinute->click();
-    QVERIFY(fit->isEnabled());
+    QVERIFY(!fit->isHidden());
 
     auto *live = panel.findChild<QAbstractButton *>(QStringLiteral("liveButton"));
     QVERIFY(live);
     live->click();
-    QVERIFY(!fit->isEnabled());
+    QVERIFY(fit->isHidden());
+}
+
+///
+/// \brief Fit is absent from the live context menu and offered for history.
+///
+void TestTrendPanelWidget::fitContextActionFollowsMode()
+{
+    TrendPanelWidget panel;
+    panel.addNode(QString::fromLatin1(kNodeId), QStringLiteral("Demo"));
+    auto *graph = panel.findChild<TrendGraphWidget *>();
+    QVERIFY(graph);
+
+    const QString fitText = QStringLiteral("Fit");
+    QVERIFY(!contextMenuTexts(graph).contains(fitText));
+
+    auto *oneMinute = panel.findChild<QAbstractButton *>(QStringLiteral("oneMinuteButton"));
+    QVERIFY(oneMinute);
+    oneMinute->click();
+    QVERIFY(contextMenuTexts(graph).contains(fitText));
 }
 
 ///

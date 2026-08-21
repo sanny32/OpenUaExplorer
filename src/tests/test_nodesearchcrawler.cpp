@@ -30,6 +30,7 @@ private slots:
     void resumeWalksSiblingsBeforeDescending();
     void resumeSearchesInsideAMatchedNode();
     void reportsNoMatchWhenSubtreeExhausted();
+    void locatesExactNodeIdAndReportsPath();
 };
 
 namespace {
@@ -67,8 +68,9 @@ public:
     /// \param startNodeId Node whose subtree is searched.
     /// \param pattern Case-insensitive substring matched against display names.
     ///
-    FakeCrawler(FakeTree tree, const QString &startNodeId, const QString &pattern)
-        : NodeSearchCrawler(nullptr, startNodeId, pattern, 1000)
+    FakeCrawler(FakeTree tree, const QString &startNodeId, const QString &pattern,
+                MatchField matchField = MatchField::DisplayName)
+        : NodeSearchCrawler(nullptr, startNodeId, pattern, 1000, nullptr, matchField)
         , _tree(std::move(tree))
     {
     }
@@ -211,6 +213,24 @@ void TestNodeSearchCrawler::reportsNoMatchWhenSubtreeExhausted()
     QVERIFY(result.at(1).toString().isEmpty());
     QVERIFY(result.at(2).toString().isEmpty());
     QVERIFY(!crawler.isPaused());
+}
+
+///
+/// \brief Exact NodeId matching ignores display names and returns the ancestor chain.
+///
+void TestNodeSearchCrawler::locatesExactNodeIdAndReportsPath()
+{
+    FakeCrawler crawler(levelTree(), QStringLiteral("root"), QStringLiteral("b1"),
+                        NodeSearchCrawler::MatchField::NodeId);
+    QSignalSpy spy(&crawler, &NodeSearchCrawler::finished);
+
+    crawler.start();
+
+    const QList<QVariant> result = nextResult(spy);
+    QVERIFY(!result.isEmpty());
+    QCOMPARE(result.at(1).toString(), QStringLiteral("b1"));
+    QCOMPARE(result.at(0).toStringList(),
+             QStringList({QStringLiteral("root"), QStringLiteral("b")}));
 }
 
 QTEST_MAIN(TestNodeSearchCrawler)

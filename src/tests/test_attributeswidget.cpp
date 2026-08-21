@@ -11,6 +11,7 @@
 #include <QClipboard>
 #include <QComboBox>
 #include <QGroupBox>
+#include <QHelpEvent>
 #include <QLayout>
 #include <QLineEdit>
 #include <QMenu>
@@ -19,8 +20,11 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QToolTip>
 #include <QTreeView>
 #include <QTest>
+
+#include <QtOpcUa/qopcuatype.h>
 
 #include "application.h"
 #include "settingsstore.h"
@@ -45,10 +49,13 @@ private slots:
     void copiesCurrentCell();
     void copiesFullTree();
     void contextMenuOnlyUsesValueColumn();
+    void toolTipOnlyShowsForElidedCells();
+    void viewerButtonCarriesNoToolTip();
     void booleanNodeOffersValueList();
     void booleanListStartsAtTheCurrentValue();
     void booleanWriteSendsTypedBoolean();
     void nonBooleanNodeKeepsTextField();
+    void enumerationNodeWritesAPickedName();
     void valueEditorStretchesWithPanel();
 
 private:
@@ -119,6 +126,39 @@ OpcUaNodeDetails makeWritableDetails(int valueType, const QString &dataTypeId,
 OpcUaNodeDetails makeBooleanDetails(bool value)
 {
     return makeWritableDetails(0, QStringLiteral("ns=0;i=1"), value);
+}
+
+///
+/// \brief Builds details whose first attribute is far too long for any column.
+/// \return Node details for tooltip tests.
+///
+OpcUaNodeDetails makeLongValueDetails()
+{
+    OpcUaNodeDetails details;
+    details.attributes = {
+        attributeItem(QStringLiteral("Write Mask"),
+                      QStringLiteral("AccessLevel | ArrayDimensions | BrowseName | "
+                                     "ContainsNoLoops | DataType | Description | "
+                                     "DisplayName | EventNotifier | Executable")),
+        attributeItem(QStringLiteral("Historizing"), QStringLiteral("false"))
+    };
+    return details;
+}
+
+///
+/// \brief Distance from the trailing cell edge to the centre of the viewer button.
+///
+constexpr int viewerButtonCenterOffset = 12;
+
+///
+/// \brief Sends a tooltip request to a point in a view's viewport.
+/// \param view View to ask.
+/// \param pos Point in the viewport's coordinates.
+///
+void sendToolTip(QAbstractItemView *view, const QPoint &pos)
+{
+    QHelpEvent event(QEvent::ToolTip, pos, view->viewport()->mapToGlobal(pos));
+    QCoreApplication::sendEvent(view->viewport(), &event);
 }
 
 } // namespace
@@ -288,6 +328,47 @@ void TestAttributesWidget::contextMenuOnlyUsesValueColumn()
 }
 
 ///
+/// \brief A value the column cuts short is repeated in a tooltip; a short one is not.
+///
+void TestAttributesWidget::toolTipOnlyShowsForElidedCells()
+{
+    AttributesWidget widget;
+    widget.setNodeDetails(makeLongValueDetails());
+    widget.resize(420, 260);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("attributesTree"));
+    QVERIFY(tree);
+
+    sendToolTip(tree, tree->visualRect(tree->model()->index(1, 1)).center());
+    QVERIFY(!QToolTip::isVisible());
+
+    sendToolTip(tree, tree->visualRect(tree->model()->index(0, 1)).center());
+    QVERIFY(QToolTip::isVisible());
+    QToolTip::hideText();
+}
+
+///
+/// \brief The viewer button of a cut-off value shows no tooltip of the value.
+///
+void TestAttributesWidget::viewerButtonCarriesNoToolTip()
+{
+    AttributesWidget widget;
+    widget.setNodeDetails(makeLongValueDetails());
+    widget.resize(420, 260);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("attributesTree"));
+    QVERIFY(tree);
+
+    const QRect cell = tree->visualRect(tree->model()->index(0, 1));
+    sendToolTip(tree, QPoint(cell.right() - viewerButtonCenterOffset, cell.center().y()));
+    QVERIFY(!QToolTip::isVisible());
+}
+
+///
 /// \brief A Boolean variable replaces the text field with the True/False list.
 ///
 void TestAttributesWidget::booleanNodeOffersValueList()
@@ -359,6 +440,51 @@ void TestAttributesWidget::nonBooleanNodeKeepsTextField()
     QVERIFY(valueEdit);
     QVERIFY(valueEdit->isVisibleTo(&widget));
     QVERIFY(!valueCombo->isVisibleTo(&widget));
+}
+
+///
+/// \brief An enumeration node is written by picking one of its named values.
+///
+void TestAttributesWidget::enumerationNodeWritesAPickedName()
+{
+    OpcUaNodeDetails details = makeWritableDetails(int(QOpcUa::Types::Int32),
+                                                   QStringLiteral("ns=1;s=SensorState"), 1);
+    details.enumEntries = {{0, QStringLiteral("Disabled")},
+                           {1, QStringLiteral("Enabled")},
+                           {2, QStringLiteral("Error")}};
+
+    AttributesWidget widget;
+    widget.setNodeDetails(details);
+
+    auto *enumCombo = widget.findChild<QComboBox *>(QStringLiteral("enumCombo"));
+    auto *valueCombo = widget.findChild<QComboBox *>(QStringLiteral("valueCombo"));
+    auto *valueEdit = widget.findChild<QLineEdit *>(QStringLiteral("valueEdit"));
+    auto *writeButton = widget.findChild<QPushButton *>(QStringLiteral("writeButton"));
+    QVERIFY(enumCombo);
+    QVERIFY(valueCombo);
+    QVERIFY(valueEdit);
+    QVERIFY(writeButton);
+
+    QVERIFY(enumCombo->isVisibleTo(&widget));
+    QVERIFY(!valueEdit->isVisibleTo(&widget));
+    QVERIFY(!valueCombo->isVisibleTo(&widget));
+    QCOMPARE(enumCombo->count(), 3);
+    QCOMPARE(enumCombo->itemText(0), QStringLiteral("0 (Disabled)"));
+    QCOMPARE(enumCombo->currentIndex(), 1);
+
+    QSignalSpy spy(&widget, &AttributesWidget::writeRequested);
+    enumCombo->setCurrentIndex(2);
+    writeButton->click();
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.first().at(1).toInt(), 2);
+    QCOMPARE(spy.first().at(2).toInt(), int(QOpcUa::Types::Int32));
+
+    // Selecting a node of any other type puts the text field back.
+    widget.setNodeDetails(makeWritableDetails(6, QStringLiteral("ns=0;i=21"),
+                                              QStringLiteral("Level")));
+    QVERIFY(!enumCombo->isVisibleTo(&widget));
+    QVERIFY(valueEdit->isVisibleTo(&widget));
 }
 
 ///

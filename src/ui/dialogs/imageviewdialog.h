@@ -13,6 +13,7 @@
 #include <QByteArray>
 #include <QImage>
 #include <QPixmap>
+#include <QPoint>
 #include <QString>
 
 namespace Ui {
@@ -60,11 +61,15 @@ public:
     QImage image() const;
 
     ///
-    /// \brief Shows an encoded picture modally in an image viewer.
-    /// \param parent Parent widget owning the dialog.
+    /// \brief Opens an encoded picture in a viewer window of its own.
+    /// \param parent Parent widget the viewer stays above.
     /// \param title Window title for the viewer.
     /// \param name Name shown in the dialog header.
     /// \param data Encoded picture bytes.
+    ///
+    /// The viewer is modeless, so several pictures can be compared side by side while the
+    /// rest of the application keeps working. Each window owns itself and is destroyed when
+    /// it is closed.
     ///
     static void showImage(QWidget *parent, const QString &title, const QString &name,
                           const QByteArray &data);
@@ -87,6 +92,15 @@ protected:
     /// \param event Change event.
     ///
     void changeEvent(QEvent *event) override;
+
+    ///
+    /// \brief Steps the window aside from the viewers already open.
+    /// \param event Show event.
+    ///
+    /// Modeless viewers are centred on the same parent, so without this a second picture
+    /// would land exactly on the first one and look like the window that was already there.
+    ///
+    void showEvent(QShowEvent *event) override;
 
 private slots:
     void copyImage();
@@ -138,6 +152,12 @@ private:
     ///
     QString saveFilter(QString *suffix) const;
 
+    ///
+    /// \brief Returns how far this window steps away from the viewers already open.
+    /// \return Offset to add to the position the dialog was centred at.
+    ///
+    QPoint cascadeOffset() const;
+
     Ui::ImageViewDialog *ui;
     QByteArray _data;
     QImage _image;
@@ -146,4 +166,6 @@ private:
     QString _format;
     /// \brief Guards against a refit that the refit's own relayout asked for.
     bool _scaling = false;
+    /// \brief Keeps a reshow from stepping the window aside a second time.
+    bool _cascaded = false;
 };

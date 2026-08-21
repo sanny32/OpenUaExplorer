@@ -14,6 +14,7 @@
 #include <QStyle>
 #include <QToolTip>
 
+#include "elidedtextdelegate.h"
 #include "viewtooltip.h"
 
 namespace ViewToolTip {
@@ -24,6 +25,9 @@ namespace ViewToolTip {
 /// \param event Viewport event to handle.
 /// \return True when the event was consumed and needs no further handling.
 ///
+/// The viewer button of a truncated cell is a control of its own, so the pointer resting
+/// on it is asking about the button and not about the text it sits next to.
+///
 bool handleViewportEvent(QAbstractItemView *view, QEvent *event)
 {
     if (event->type() != QEvent::ToolTip)
@@ -33,6 +37,12 @@ bool handleViewportEvent(QAbstractItemView *view, QEvent *event)
     const QModelIndex index = view->indexAt(helpEvent->pos());
     if (!index.isValid())
         return false;
+
+    auto *delegate = qobject_cast<ElidedTextDelegate *>(view->itemDelegateForIndex(index));
+    if (delegate && delegate->coversButton(helpEvent->pos(), index)) {
+        QToolTip::hideText();
+        return true;
+    }
 
     const QString text = view->model()->data(index, Qt::DisplayRole).toString();
     if (!text.isEmpty()) {

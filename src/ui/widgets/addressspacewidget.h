@@ -156,6 +156,20 @@ public:
     void setSearchResult(const QStringList &ancestorNodeIds, const QString &nodeId,
                          const QString &error);
 
+    ///
+    /// \brief Selects and scrolls to a node when it is already loaded in the tree.
+    /// \param nodeId Node to reveal.
+    /// \return True when the node was found in the loaded tree.
+    ///
+    bool revealNode(const QString &nodeId);
+
+    ///
+    /// \brief Expands a located path and selects its target as browse results arrive.
+    /// \param ancestorNodeIds Node ids from the root down to the target's parent.
+    /// \param nodeId Target NodeId.
+    ///
+    void revealNode(const QStringList &ancestorNodeIds, const QString &nodeId);
+
 signals:
     ///
     /// \brief Emitted when the user starts a server-side search of the address space.

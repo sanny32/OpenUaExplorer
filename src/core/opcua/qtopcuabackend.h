@@ -218,6 +218,24 @@ public:
     ///
     void cancelNodeSearch() override;
 
+    ///
+    /// \brief Locates an exact NodeId in a subtree, emitting nodeLocationFinished() with its path.
+    /// \param startNodeId Node whose subtree is searched.
+    /// \param targetNodeId Exact NodeId to locate.
+    ///
+    void locateNode(const QString &startNodeId, const QString &targetNodeId) override;
+
+    ///
+    /// \brief Collects a subtree's Variable nodes, emitting subtreeVariablesReady() with them.
+    /// \param rootNodeId Node whose subtree is collected.
+    ///
+    void collectSubtreeVariables(const QString &rootNodeId) override;
+
+    ///
+    /// \brief Cancels an in-progress subtree variable crawl, if any.
+    ///
+    void cancelSubtreeVariables() override;
+
 private:
     ///
     /// \brief Reads EventNotifier/Historizing/DataType/ValueRank of browsed children, then

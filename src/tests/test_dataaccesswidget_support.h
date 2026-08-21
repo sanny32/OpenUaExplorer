@@ -36,6 +36,8 @@
 #include <QTest>
 #include <QTimer>
 
+#include <QtOpcUa/qopcuatype.h>
+
 #include "appcolors.h"
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
@@ -174,6 +176,29 @@ OpcUaNodeDetails makeBooleanNodeDetails(bool value, bool writable)
 }
 
 ///
+/// \brief Builds enumeration node details for the named-value editor tests.
+/// \param value Current value of the node.
+/// \param writable Whether the UserAccessLevel grants CurrentWrite.
+/// \return Node details item.
+///
+OpcUaNodeDetails makeEnumNodeDetails(int value, bool writable)
+{
+    OpcUaNodeDetails details = makeNodeDetails();
+    details.nodeId = QStringLiteral("ns=2;s=State");
+    details.displayName = QStringLiteral("State");
+    details.value = value;
+    details.valueType = int(QOpcUa::Types::Int32);
+    details.dataTypeId = QStringLiteral("ns=1;s=SensorState");
+    details.enumEntries = {{0, QStringLiteral("Disabled")},
+                           {1, QStringLiteral("Enabled")},
+                           {2, QStringLiteral("Error")}};
+    details.userAccessLevel = writable
+        ? (OpcUa::CurrentRead | OpcUa::CurrentWrite)
+        : OpcUa::CurrentRead;
+    return details;
+}
+
+///
 /// \brief Double-clicks the centre of a cell in the data table.
 /// \param view Data table view.
 /// \param row Row to click.
@@ -217,19 +242,22 @@ OpcUaNodeInfo makeVariable(int index)
 ///
 /// \brief Answers the next modal dialog, waiting for it to appear.
 /// \param answer Standard button to click once the dialog is up.
+/// \param seen Set to true once a dialog was answered; may be null.
 ///
-void answerNextDialog(DialogButtonBox::StandardButton answer)
+void answerNextDialog(DialogButtonBox::StandardButton answer, bool *seen = nullptr)
 {
-    QTimer::singleShot(0, qApp, [answer]() {
+    QTimer::singleShot(0, qApp, [answer, seen]() {
         auto *modal = qobject_cast<QDialog *>(QApplication::activeModalWidget());
         if (!modal) {
-            answerNextDialog(answer);
+            answerNextDialog(answer, seen);
             return;
         }
         auto *buttons = modal->findChild<DialogButtonBox *>();
         QVERIFY(buttons);
         QPushButton *button = buttons->button(answer);
         QVERIFY(button);
+        if (seen)
+            *seen = true;
         QTest::mouseClick(button, Qt::LeftButton);
     });
 }

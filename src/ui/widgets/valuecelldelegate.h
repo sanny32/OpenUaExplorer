@@ -47,6 +47,43 @@ public:
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
                const QModelIndex &index) const override;
 
+    ///
+    /// \brief Creates a combo box listing the named values of an enumeration cell.
+    /// \param parent Parent for the editor widget.
+    /// \param option Style options for the cell.
+    /// \param index Model index being edited.
+    /// \return Combo-box editor, or the base editor for every other cell.
+    ///
+    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+                          const QModelIndex &index) const override;
+
+    ///
+    /// \brief Selects the combo entry matching the cell's current value.
+    /// \param editor Editor widget.
+    /// \param index Model index being edited.
+    ///
+    void setEditorData(QWidget *editor, const QModelIndex &index) const override;
+
+    ///
+    /// \brief Reports the picked value instead of storing it in the model.
+    /// \param editor Editor widget.
+    /// \param model Model behind the view.
+    /// \param index Model index being edited.
+    ///
+    /// The cell keeps showing what the server last sent: the picked value becomes the
+    /// row's value only once the write succeeded and the value came back.
+    ///
+    void setModelData(QWidget *editor, QAbstractItemModel *model,
+                      const QModelIndex &index) const override;
+
+signals:
+    ///
+    /// \brief Emitted when the user picks a named value for an enumeration cell.
+    /// \param index Cell that was edited.
+    /// \param value Picked enumeration value, as an Int32.
+    ///
+    void enumValuePicked(const QModelIndex &index, int value) const;
+
 protected:
     ///
     /// \brief Fills the style option and recolours its text to the cell's quality.
@@ -61,6 +98,11 @@ private:
     /// \brief Repaints the viewport, stopping the flash timer once nothing animates.
     ///
     void onFlashTick();
+
+    ///
+    /// \brief Commits and closes the combo box as soon as the user picks an entry.
+    ///
+    void commitAndCloseEditor();
 
     QAbstractItemView *_view = nullptr;
     /// \brief Frame timer, driven from the const paint() and therefore mutable.

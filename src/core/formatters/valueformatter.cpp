@@ -106,12 +106,12 @@ OpcUaNodeAttribute elementAttribute(const ValueElement &element)
 ///
 /// \brief Reports whether an array is short and flat enough to spell out in a single cell.
 /// \param list Array elements.
+/// \param elementLimit Longest array still spelled out element by element.
 /// \return True when the array fits inline.
 ///
-bool fitsInlineSummary(const QVariantList &list)
+bool fitsInlineSummary(const QVariantList &list, int elementLimit)
 {
-    static constexpr int inlineElementLimit = 10;
-    if (list.size() > inlineElementLimit)
+    if (list.size() > elementLimit)
         return false;
     return std::none_of(list.cbegin(), list.cend(),
                         [](const QVariant &entry) { return hasValueElements(entry); });
@@ -181,6 +181,50 @@ QString displayValue(const QVariant &value)
         return QStringLiteral("[%1]").arg(parts.join(QStringLiteral(", ")));
     }
     return value.toString();
+}
+
+///
+/// \brief Returns the field name an enumeration DataType gives a number.
+/// \param value Numeric enumeration value.
+/// \param entries Named values of the DataType.
+/// \return Field name, or an empty string when the definition does not name the value.
+///
+QString enumEntryName(qint64 value, const OpcUaEnumEntries &entries)
+{
+    for (const OpcUaEnumEntry &entry : entries) {
+        if (entry.value == value)
+            return entry.name;
+    }
+    return QString();
+}
+
+///
+/// \brief Renders a value of an enumeration DataType as its number and field name.
+/// \param value Variant to format; arrays are rendered element by element.
+/// \param entries Named values of the DataType.
+/// \return Text such as "0 (Disabled)", or the plain display value when the number is not named.
+///
+QString enumDisplayValue(const QVariant &value, const OpcUaEnumEntries &entries)
+{
+    if (entries.isEmpty())
+        return displayValue(value);
+
+    if (isValueArray(value)) {
+        const QVariantList list = value.toList();
+        QStringList parts;
+        parts.reserve(list.size());
+        for (const QVariant &entry : list)
+            parts.append(enumDisplayValue(entry, entries));
+        return QStringLiteral("[%1]").arg(parts.join(QStringLiteral(", ")));
+    }
+
+    bool ok = false;
+    const qint64 number = value.toLongLong(&ok);
+    if (!ok)
+        return displayValue(value);
+    const QString name = enumEntryName(number, entries);
+    return name.isEmpty() ? QString::number(number)
+                          : QStringLiteral("%1 (%2)").arg(number).arg(name);
 }
 
 ///
@@ -259,6 +303,8 @@ QVector<ValueElement> valueElements(const QVariant &value, int limit, int *total
 /// \param value Variant to describe.
 /// \param type Declared value type, used to name array elements.
 /// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
+/// \param enumEntries Named values of the DataType; empty unless it is an enumeration.
+/// \param inlineElementLimit Longest array still spelled out element by element.
 /// \return Summary such as "Int16[3]", the bracketed elements of a short flat array, or the
 ///         plain display value for scalars.
 ///
@@ -267,18 +313,19 @@ QVector<ValueElement> valueElements(const QVariant &value, int limit, int *total
 /// array of scalars fits as it is, and reading it needs no expanding at all. A picture is a
 /// scalar whose hex dump says nothing, so it names its format and size instead.
 ///
-QString valueSummary(const QVariant &value, QOpcUa::Types type, const QString &dataTypeId)
+QString valueSummary(const QVariant &value, QOpcUa::Types type, const QString &dataTypeId,
+                     const OpcUaEnumEntries &enumEntries, int inlineElementLimit)
 {
     if (const std::optional<ImageValueInfo> image = imageValue(value, dataTypeId))
         return imageSummary(*image);
     if (isStructValue(value))
         return value.value<QOpcUaGenericStructValue>().typeName();
     if (!isValueArray(value))
-        return displayValue(value);
+        return enumDisplayValue(value, enumEntries);
 
     const QVariantList list = value.toList();
-    if (fitsInlineSummary(list))
-        return displayValue(value);
+    if (fitsInlineSummary(list, inlineElementLimit))
+        return enumDisplayValue(value, enumEntries);
 
     const QString typeName = !list.isEmpty() && isStructValue(list.constFirst())
         ? list.constFirst().value<QOpcUaGenericStructValue>().typeName()
@@ -372,15 +419,18 @@ QString valueTypeName(QOpcUa::Types type)
 /// \param value Node value.
 /// \param type Declared value type, used to label arrays.
 /// \param dataTypeId DataType NodeId string, used to name types that are not built-in.
+/// \param enumEntries Named values of the DataType; empty unless it is an enumeration.
 /// \return The constructed Value attribute.
 ///
 /// A picture keeps its bytes on the row so a viewer can show it; every other value is
 /// described in full by its text and needs nothing beyond it.
 ///
 OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type,
-                                  const QString &dataTypeId)
+                                  const QString &dataTypeId,
+                                  const OpcUaEnumEntries &enumEntries)
 {
-    OpcUaNodeAttribute result = childAttribute(QStringLiteral("Value"), displayValue(value));
+    OpcUaNodeAttribute result = childAttribute(QStringLiteral("Value"),
+                                               enumDisplayValue(value, enumEntries));
     if (const std::optional<ImageValueInfo> image = imageValue(value, dataTypeId)) {
         result.displayValue = imageSummary(*image);
         result.value = value;
@@ -397,8 +447,14 @@ OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type,
         return result;
     }
 
-    for (const ValueElement &element : valueElements(value))
-        result.children.append(elementAttribute(element));
+    for (const ValueElement &element : valueElements(value)) {
+        OpcUaNodeAttribute child = elementAttribute(element);
+        // Only the elements of the array itself carry the node's DataType; a field nested
+        // inside a structure has a DataType of its own that these entries do not describe.
+        if (!enumEntries.isEmpty() && !element.hasChildren)
+            child.displayValue = enumDisplayValue(element.value, enumEntries);
+        result.children.append(child);
+    }
     return result;
 }
 

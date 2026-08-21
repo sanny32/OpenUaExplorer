@@ -23,6 +23,7 @@ private slots:
     void pageStateSurvivesSaveRestoreRoundTrip();
     void closedPagesSurviveSaveRestoreRoundTrip();
     void restoredNodesKeepSavedOrderWhenReadsFinishOutOfOrder();
+    void refreshedDetailsCompleteEveryRestoredRowWithoutAddingNodes();
     void failedRestoredNodeRemainsSavedAndSettles();
 
 private:
@@ -128,6 +129,63 @@ void TestDataAccessCoordinatorState::restoredNodesKeepSavedOrderWhenReadsFinishO
         QCOMPARE(model->data(model->index(row, DataAccessModel::ColNodeId)).toString(),
                  savedNodes.at(row).nodeId);
     }
+}
+
+///
+/// \brief Later attribute reads complete every restored row without inserting unrelated rows.
+///
+void TestDataAccessCoordinatorState::refreshedDetailsCompleteEveryRestoredRowWithoutAddingNodes()
+{
+    CoordinatorHarness harness;
+    const QVector<SessionNode> savedNodes{
+        {QStringLiteral("ns=2;s=FirstState"), QStringLiteral("Default"),
+         HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=SecondState"), QStringLiteral("Fast"),
+         HighlightMode::Enabled}
+    };
+    harness.coordinator->restoreMonitoredNodes(savedNodes);
+
+    for (int index = 0; index < savedNodes.size(); ++index) {
+        OpcUaNodeDetails details;
+        details.nodeId = savedNodes.at(index).nodeId;
+        details.displayName = QStringLiteral("State %1").arg(index + 1);
+        details.nodeClass = OpcUa::Variable;
+        details.value = index;
+        details.dataTypeId = QStringLiteral("ns=1;s=SensorState");
+        emit harness.backend.nodeDetailsReady(details, QString());
+    }
+
+    const OpcUaEnumEntries entries{{0, QStringLiteral("Disabled")},
+                                   {1, QStringLiteral("Enabled")}};
+    for (int index = 0; index < savedNodes.size(); ++index) {
+        OpcUaNodeDetails details;
+        details.nodeId = savedNodes.at(index).nodeId;
+        details.displayName = QStringLiteral("Named state %1").arg(index + 1);
+        details.nodeClass = OpcUa::Variable;
+        details.value = index;
+        details.dataTypeId = QStringLiteral("ns=1;s=SensorState");
+        details.enumEntries = entries;
+        emit harness.backend.nodeDetailsReady(details, QString());
+    }
+
+    OpcUaNodeDetails unlisted;
+    unlisted.nodeId = QStringLiteral("ns=2;s=Unlisted");
+    unlisted.nodeClass = OpcUa::Variable;
+    unlisted.value = 1;
+    unlisted.enumEntries = entries;
+    emit harness.backend.nodeDetailsReady(unlisted, QString());
+
+    QAbstractItemModel *model = dataAccessModel(harness);
+    QVERIFY(model);
+    QCOMPARE(model->rowCount(), savedNodes.size());
+    QCOMPARE(model->data(model->index(0, DataAccessModel::ColDisplayName)).toString(),
+             QStringLiteral("Named state 1"));
+    QCOMPARE(model->data(model->index(0, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("0 (Disabled)"));
+    QCOMPARE(model->data(model->index(1, DataAccessModel::ColDisplayName)).toString(),
+             QStringLiteral("Named state 2"));
+    QCOMPARE(model->data(model->index(1, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("1 (Enabled)"));
 }
 
 ///

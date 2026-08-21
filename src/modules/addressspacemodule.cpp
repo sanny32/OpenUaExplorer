@@ -52,6 +52,10 @@ void AddressSpaceModule::initialize(ServiceContext &context)
             this, &AddressSpaceModule::searchProgress);
     connect(_backend, &OpcUaBackend::nodeSearchFinished,
             this, &AddressSpaceModule::handleSearchFinished);
+    connect(_backend, &OpcUaBackend::nodeLocationFinished,
+            this, &AddressSpaceModule::locationFinished);
+    connect(_backend, &OpcUaBackend::subtreeVariablesReady,
+            this, &AddressSpaceModule::handleSubtreeVariablesReady);
 }
 
 ///
@@ -91,6 +95,46 @@ void AddressSpaceModule::search(const QString &startNodeId, const QString &patte
 void AddressSpaceModule::cancelSearch()
 {
     _backend->cancelNodeSearch();
+}
+
+///
+/// \brief Locates an exact NodeId below the Objects folder.
+/// \param nodeId NodeId to locate.
+///
+void AddressSpaceModule::locate(const QString &nodeId)
+{
+    _backend->locateNode(QString::fromLatin1(StandardNodeId::ObjectsFolder), nodeId);
+}
+
+///
+/// \brief Collects every Variable node below a node, however deep it sits.
+/// \param rootNodeId Node whose subtree is collected.
+///
+void AddressSpaceModule::collectSubtreeVariables(const QString &rootNodeId)
+{
+    qCInfo(lcAddressSpace).noquote()
+        << tr("Collecting the variables below node '%1'.").arg(rootNodeId);
+    _backend->collectSubtreeVariables(rootNodeId);
+}
+
+///
+/// \brief Logs and republishes the outcome of a subtree variable crawl.
+/// \param rootNodeId Node the crawl started from.
+/// \param variables Variable nodes found, in breadth-first order.
+/// \param error Crawl error, empty on success.
+///
+void AddressSpaceModule::handleSubtreeVariablesReady(const QString &rootNodeId,
+                                                     const QVector<OpcUaNodeInfo> &variables,
+                                                     const QString &error)
+{
+    if (error.isEmpty())
+        qCInfo(lcAddressSpace).noquote()
+            << tr("Found %1 variable(s) below node '%2'.")
+                   .arg(variables.size()).arg(rootNodeId);
+    else
+        qCWarning(lcAddressSpace).noquote()
+            << tr("Collecting the variables below node '%1' failed: %2").arg(rootNodeId, error);
+    emit subtreeVariablesReady(rootNodeId, variables, error);
 }
 
 ///

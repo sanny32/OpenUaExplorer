@@ -49,6 +49,18 @@
         <source>Browse on node &apos;%1&apos; failed: %2</source>
         <translation>Не удалось выполнить обзор узла «%1»: %2</translation>
     </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos;.</source>
+        <translation>Сбор переменных под узлом «%1».</translation>
+    </message>
+    <message>
+        <source>Found %1 variable(s) below node &apos;%2&apos;.</source>
+        <translation>Под узлом «%2» найдено переменных: %1.</translation>
+    </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos; failed: %2</source>
+        <translation>Не удалось собрать переменные под узлом «%1»: %2</translation>
+    </message>
 </context>
 <context>
     <name>AddressSpaceWidget</name>
@@ -1357,6 +1369,10 @@ Select it again.</source>
     <message>
         <source>Add Node</source>
         <translation>Добавить узел</translation>
+    </message>
+    <message>
+        <source>Show in Address Space</source>
+        <translation>Показать в адресном пространстве</translation>
     </message>
     <message>
         <source>Remove</source>
@@ -2992,6 +3008,14 @@ Open the download page?</source>
         <source>Searching the address space is not supported.</source>
         <translation>Поиск в адресном пространстве не поддерживается.</translation>
     </message>
+    <message>
+        <source>Locating a node in the address space is not supported.</source>
+        <translation>Поиск узла в адресном пространстве не поддерживается.</translation>
+    </message>
+    <message>
+        <source>Crawling the address space is not supported.</source>
+        <translation>Обход адресного пространства не поддерживается.</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
@@ -3691,6 +3715,10 @@ Do you want to save them?</source>
         <translation>Общие</translation>
     </message>
     <message>
+        <source>Data</source>
+        <translation>Данные</translation>
+    </message>
+    <message>
         <source>Connection</source>
         <translation>Подключение</translation>
     </message>
@@ -3701,6 +3729,30 @@ Do you want to save them?</source>
     <message>
         <source>Interval (s):</source>
         <translation>Интервал (с):</translation>
+    </message>
+    <message>
+        <source>Add at most</source>
+        <translation>Добавлять не более</translation>
+    </message>
+    <message>
+        <source>A dropped node that holds more variables than this adds only the first of them.</source>
+        <translation>Если перетащенный узел содержит больше переменных, будут добавлены только первые из них.</translation>
+    </message>
+    <message>
+        <source>variables per dropped node</source>
+        <translation>переменных за одно перетаскивание</translation>
+    </message>
+    <message>
+        <source>Spell out arrays of up to</source>
+        <translation>Показывать поэлементно массивы до</translation>
+    </message>
+    <message>
+        <source>A longer array is named by its type and length instead; its elements stay readable by expanding the row.</source>
+        <translation>Более длинный массив обозначается типом и размером; его элементы можно посмотреть, раскрыв строку.</translation>
+    </message>
+    <message>
+        <source>elements in the value column</source>
+        <translation>элементов в столбце значения</translation>
     </message>
     <message>
         <source>Debug messages are verbose and are meant for diagnosing a problem.</source>
@@ -3721,6 +3773,14 @@ Do you want to save them?</source>
     <message>
         <source>log entries</source>
         <translation>записей журнала</translation>
+    </message>
+    <message>
+        <source>A node dropped on Data Access contributes every variable below it, however deep. When off, only the variables directly under the dropped node are added.</source>
+        <translation>Узел, перетащенный в «Данные», добавляет все переменные под ним на любой глубине. Если выключено, добавляются только переменные непосредственно под перетащенным узлом.</translation>
+    </message>
+    <message>
+        <source>Add variables of the whole subtree on drop</source>
+        <translation>Добавлять переменные всего поддерева при перетаскивании</translation>
     </message>
 </context>
 <context>
@@ -3788,6 +3848,13 @@ Do you want to save them?</source>
     <message>
         <source>Restore Defaults</source>
         <translation>Сбросить к умолчаниям</translation>
+    </message>
+</context>
+<context>
+    <name>SubtreeVariableCrawler</name>
+    <message>
+        <source>The OPC UA client is not connected.</source>
+        <translation>Клиент OPC UA не подключён.</translation>
     </message>
 </context>
 <context>
@@ -4075,6 +4142,10 @@ Do you want to save them?</source>
     <message>
         <source>Array:</source>
         <translation>Массив:</translation>
+    </message>
+    <message>
+        <source>Value:</source>
+        <translation>Значение:</translation>
     </message>
     <message>
         <source>JSON array</source>

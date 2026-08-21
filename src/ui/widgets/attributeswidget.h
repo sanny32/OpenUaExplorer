@@ -97,7 +97,8 @@ private:
     void copyAttributeTree();
     void showAttributesContextMenu(const QPoint &pos);
     void showAttributeValue(const QModelIndex &index);
-    void setupWriteEditor(int valueType, const QString &dataTypeId, const QVariant &value);
+    void setupWriteEditor(int valueType, const QString &dataTypeId, const QVariant &value,
+                          const OpcUaEnumEntries &enumEntries);
     void updateValueEditor();
     void clearWriteEditor();
     void writeCurrentValue();
@@ -109,5 +110,7 @@ private:
     ElidedTextDelegate   *_valueDelegate = nullptr;
     QString               _nodeId;
     QString               _nodeName;
+    /// \brief Named values of the selected node's DataType; empty unless it is an enumeration.
+    OpcUaEnumEntries      _enumEntries;
     bool                  _offline = false;
 };

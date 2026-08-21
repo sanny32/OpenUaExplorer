@@ -3,6 +3,7 @@
 
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QBrush>
 #include <QCoreApplication>
 #include <QDebug>
 #include <QPainter>
@@ -98,6 +99,21 @@ bool systemHoverOption(const QStyleOption *option, QStyleOptionViewItem *hovered
     hovered->backgroundBrush = neutralHoverColor(item->palette);
     hovered->state.setFlag(QStyle::State_MouseOver, false);
     return true;
+}
+
+///
+/// \brief Reports whether a row primitive covers the branch strip of a tree row.
+/// \param option Row option being painted.
+/// \return True when the row primitive paints the indentation holding the disclosure chevron.
+///
+/// A tree paints the row background under every cell and then lets the delegate paint the cell
+/// on top of it, so a translucent hover fill applied in both places lands twice. The branch
+/// strip is the one part of the row no delegate covers, so it is the only place where the row
+/// primitive still has to lay the hover fill down itself.
+///
+bool paintsBranchStrip(const QStyleOptionViewItem &option)
+{
+    return option.features.testFlag(QStyleOptionViewItem::IsDecorationForRootColumn);
 }
 
 ///
@@ -216,7 +232,7 @@ void AppStyle::drawControl(ControlElement element, const QStyleOption *option,
 }
 
 ///
-/// \brief Draws item-view rows with system fills and without cell focus frames.
+/// \brief Draws item-view rows with system fills, one hover coat, and no cell focus frames.
 /// \param element Primitive element to render.
 /// \param option Style option carrying the element state.
 /// \param painter Painter to draw with.
@@ -237,7 +253,15 @@ void AppStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *optio
             return;
         }
         if (systemHoverOption(option, &adjusted)) {
-            painter->fillRect(adjusted.rect, adjusted.backgroundBrush);
+            if (element == PE_PanelItemViewItem) {
+                painter->fillRect(adjusted.rect, adjusted.backgroundBrush);
+                return;
+            }
+            const QBrush hover = adjusted.backgroundBrush;
+            adjusted.backgroundBrush = QBrush();
+            QProxyStyle::drawPrimitive(element, &adjusted, painter, widget);
+            if (paintsBranchStrip(adjusted))
+                painter->fillRect(adjusted.rect, hover);
             return;
         }
     }

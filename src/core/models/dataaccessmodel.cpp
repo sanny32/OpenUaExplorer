@@ -46,6 +46,22 @@ QVariant imageData(const QVariant &value, const QString &dataTypeId)
         OpcUaFormat::imageValue(value, dataTypeId);
     return image ? QVariant(image->data) : QVariant();
 }
+
+///
+/// \brief Reports whether a row's value can be picked from its enumeration's named values.
+/// \param item Row to inspect.
+/// \return True when the cell should offer the list of names instead of the write dialog.
+///
+/// An array is left to the dialog: one cell holds every element, and a single name says
+/// nothing about which of them it would replace.
+///
+bool isEnumEditable(const DataAccessItem &item)
+{
+    return !item.enumEntries.isEmpty()
+        && !item.pending
+        && OpcUa::isWritable(item.userAccessLevel)
+        && !OpcUaFormat::isValueArray(item.typedValue);
+}
 }
 
 ///
@@ -55,6 +71,7 @@ QVariant imageData(const QVariant &value, const QString &dataTypeId)
 DataAccessModel::DataAccessModel(QObject *parent)
     : QAbstractItemModel(parent)
     , _timestampMode(AppSettings().timestampMode())
+    , _inlineArrayElements(AppSettings().inlineArrayElements())
     , _defaultHighlightChanges(AppSettings().highlightValueChanges())
 {
 }
@@ -78,27 +95,8 @@ void DataAccessModel::setItems(const QVector<DataAccessItem> &items)
 ///
 void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
 {
-    for (int row = 0; row < _items.size(); ++row) {
-        if (_items.at(row).nodeId != details.nodeId)
-            continue;
-        const QString formatted = OpcUaFormat::displayValue(details.value);
-        DataAccessItem &item = _items[row];
-        item.displayName = details.displayName;
-        item.typedValue = details.value;
-        if (item.value != formatted)
-            item.valueChangedAt = QDateTime::currentMSecsSinceEpoch();
-        item.value = formatted;
-        item.valueType = details.valueType;
-        item.dataTypeId = details.dataTypeId;
-        item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
-        item.status = details.status;
-        item.sourceTimestamp = details.sourceTimestamp;
-        item.serverTimestamp = details.serverTimestamp;
-        item.userAccessLevel = details.userAccessLevel;
-        refreshChildren(row, item.valueChangedAt);
-        emit dataChanged(index(row, 0), index(row, ColCount - 1));
+    if (refreshItem(details))
         return;
-    }
 
     const int row = _items.size();
     beginInsertRows({}, row, row);
@@ -106,9 +104,10 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
     item.nodeId = details.nodeId;
     item.displayName = details.displayName;
     item.typedValue = details.value;
-    item.value = OpcUaFormat::displayValue(details.value);
+    item.value = OpcUaFormat::enumDisplayValue(details.value, details.enumEntries);
     item.valueType = details.valueType;
     item.dataTypeId = details.dataTypeId;
+    item.enumEntries = details.enumEntries;
     item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
     item.status = details.status;
     item.sourceTimestamp = details.sourceTimestamp;
@@ -117,6 +116,39 @@ void DataAccessModel::addOrUpdate(const OpcUaNodeDetails &details)
     _items.append(item);
     _roots.emplace_back();
     endInsertRows();
+}
+
+///
+/// \brief Applies a fresh attribute read to a listed row, leaving unlisted nodes out.
+/// \param details Node details to apply.
+/// \return True when a row for the node was found and updated.
+///
+bool DataAccessModel::refreshItem(const OpcUaNodeDetails &details)
+{
+    for (int row = 0; row < _items.size(); ++row) {
+        if (_items.at(row).nodeId != details.nodeId)
+            continue;
+        const QString formatted =
+            OpcUaFormat::enumDisplayValue(details.value, details.enumEntries);
+        DataAccessItem &item = _items[row];
+        item.displayName = details.displayName;
+        item.typedValue = details.value;
+        if (item.value != formatted)
+            item.valueChangedAt = QDateTime::currentMSecsSinceEpoch();
+        item.value = formatted;
+        item.valueType = details.valueType;
+        item.dataTypeId = details.dataTypeId;
+        item.enumEntries = details.enumEntries;
+        item.dataType = OpcUaFormat::dataTypeDisplay(details.dataTypeId);
+        item.status = details.status;
+        item.sourceTimestamp = details.sourceTimestamp;
+        item.serverTimestamp = details.serverTimestamp;
+        item.userAccessLevel = details.userAccessLevel;
+        refreshChildren(row, item.valueChangedAt);
+        emit dataChanged(index(row, 0), index(row, ColCount - 1));
+        return true;
+    }
+    return false;
 }
 
 ///
@@ -185,7 +217,8 @@ void DataAccessModel::updateValues(const QVector<OpcUaDataValue> &values)
             DataAccessItem &item = _items[row];
             if (item.nodeId != value.nodeId)
                 continue;
-            const QString formatted = OpcUaFormat::displayValue(value.value);
+            const QString formatted =
+                OpcUaFormat::enumDisplayValue(value.value, item.enumEntries);
             item.typedValue = value.value;
             // A notification repeating the previous value is not a change, and must not re-flash.
             if (item.value != formatted)
@@ -237,11 +270,15 @@ void DataAccessModel::removeRows(const QModelIndexList &rows)
     }
     std::sort(rowNumbers.begin(), rowNumbers.end(), std::greater<int>());
     for (int row : rowNumbers) {
-        if (row < 0 || row >= _items.size())
+        if (row < 0 || row >= _items.size() || row >= int(_roots.size()))
             continue;
         beginRemoveRows({}, row, row);
         _items.removeAt(row);
         _roots.erase(_roots.begin() + row);
+        for (int below = row; below < int(_roots.size()); ++below) {
+            if (_roots[below])
+                _roots[below]->topRow = below;
+        }
         endRemoveRows();
     }
 }
@@ -320,7 +357,7 @@ bool DataAccessModel::moveRows(const QModelIndexList &rows, int destinationRow)
     QModelIndexList after;
     after.reserve(before.size());
     for (const QModelIndex &stale : before) {
-        after.append(stale.isValid()
+        after.append(stale.isValid() && !nodeForIndex(stale)
                          ? index(newRowOf.value(stale.row(), stale.row()), stale.column())
                          : stale);
     }
@@ -577,6 +614,24 @@ DataAccessItem DataAccessModel::itemForNode(const ValueNode *node) const
 }
 
 ///
+/// \brief Returns the text of an element row, naming the elements of an enumeration array.
+/// \param element Element built from the value of \a parent.
+/// \param parent Node the element hangs under.
+/// \param item Row the element belongs to.
+/// \return Element text.
+///
+/// Only the elements of the row's own value carry the node's DataType: anything deeper is a
+/// field of a structure, whose own DataType these entries say nothing about.
+///
+QString DataAccessModel::elementText(const OpcUaFormat::ValueElement &element,
+                                     const ValueNode *parent, const DataAccessItem &item)
+{
+    if (parent->parent || element.hasChildren || item.enumEntries.isEmpty())
+        return element.text;
+    return OpcUaFormat::enumDisplayValue(element.value, item.enumEntries);
+}
+
+///
 /// \brief Fills a node with the elements of its value.
 /// \param node Node to expand; its own value is used, or the item's value for a root.
 /// \param item Row the node belongs to, used to name elements the value cannot name itself.
@@ -598,7 +653,7 @@ void DataAccessModel::buildChildren(ValueNode *node, const DataAccessItem &item)
     for (const OpcUaFormat::ValueElement &element : elements) {
         auto child = std::make_unique<ValueNode>();
         child->label = element.label;
-        child->text = element.text;
+        child->text = elementText(element, node, item);
         child->value = element.value;
         child->expandable = element.hasChildren;
         child->typeName = element.typeName.isEmpty()
@@ -684,9 +739,10 @@ void DataAccessModel::updateNode(ValueNode *node, const QModelIndex &nodeIndex,
     for (int row = 0; row < elements.size(); ++row) {
         ValueNode *child = node->children[row].get();
         const OpcUaFormat::ValueElement &element = elements.at(row);
-        if (child->text != element.text)
+        const QString text = elementText(element, node, item);
+        if (child->text != text)
             child->changedAt = changedAt;
-        child->text = element.text;
+        child->text = text;
         child->expandable = element.hasChildren;
         if (child->childrenBuilt)
             updateNode(child, index(row, 0, nodeIndex), element.value, item, changedAt);
@@ -858,6 +914,10 @@ Qt::ItemFlags DataAccessModel::flags(const QModelIndex &index) const
         return f;
     if (index.column() == ColSubscription)
         f |= Qt::ItemIsEditable;
+    if (index.column() == ColValue && index.row() >= 0 && index.row() < _items.size()
+        && isEnumEditable(_items.at(index.row()))) {
+        f |= Qt::ItemIsEditable;
+    }
     return f;
 }
 
@@ -911,7 +971,8 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
                                      ? OpcUaFormat::valueSummary(
                                            item.typedValue,
                                            static_cast<QOpcUa::Types>(item.valueType),
-                                           item.dataTypeId)
+                                           item.dataTypeId, item.enumEntries,
+                                           _inlineArrayElements)
                                      : item.value;
         case ColDataType:     return item.dataType;
         case ColTimestamp:    return OpcUaFormat::isoTimestampWithZone(item.sourceTimestamp,
@@ -934,6 +995,11 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
 
     if (role == Qt::EditRole && col == ColSubscription)
         return item.subscriptionName;
+
+    // An enumeration cell is edited by the number the server carries, not by the text
+    // the column shows, which spells out the name as well.
+    if (role == Qt::EditRole && col == ColValue && isEnumEditable(item))
+        return item.typedValue;
 
     if (role == Qt::FontRole && item.pending) {
         QFont font = qApp->font();
@@ -958,6 +1024,10 @@ QVariant DataAccessModel::data(const QModelIndex &index, int role) const
                                       ? 0.0
                                       : item.revisedPublishingInterval;
     case HighlightChangesRole: return resolveHighlight(item);
+    case EnumEntriesRole:
+        return col == ColValue && isEnumEditable(item)
+            ? QVariant::fromValue(item.enumEntries)
+            : QVariant();
     case ValueRoles::ImageDataRole:
         return col == ColValue ? imageData(item.typedValue, item.dataTypeId) : QVariant();
     default: break;
@@ -1118,6 +1188,20 @@ void DataAccessModel::setDefaultHighlightChanges(bool enabled)
     if (rowCount() > 0)
         emit dataChanged(index(0, ColValue), index(rowCount() - 1, ColValue),
                          {HighlightChangesRole});
+}
+
+///
+/// \brief Sets how many array elements a value cell spells out and repaints the column.
+/// \param elements Longest array still spelled out element by element.
+///
+void DataAccessModel::setInlineArrayElements(int elements)
+{
+    if (_inlineArrayElements == elements)
+        return;
+    _inlineArrayElements = elements;
+    if (rowCount() > 0)
+        emit dataChanged(index(0, ColValue), index(rowCount() - 1, ColValue),
+                         {Qt::DisplayRole});
 }
 
 ///

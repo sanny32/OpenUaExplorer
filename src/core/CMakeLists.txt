@@ -41,6 +41,8 @@ add_library(ouaexp_core STATIC
     opcua/namespacecrawler.h
     opcua/nodesearchcrawler.cpp
     opcua/nodesearchcrawler.h
+    opcua/subtreevariablecrawler.cpp
+    opcua/subtreevariablecrawler.h
     opcua/opcuabackend.h
     opcua/opcuatypes.h
     opcua/pkimanager.cpp

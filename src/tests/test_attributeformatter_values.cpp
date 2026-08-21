@@ -57,6 +57,7 @@ private slots:
     void undecodedExtensionObjectsNameTheirEncoding();
     void everyTransportedTypeRendersAsText();
     void formatAttributeDispatchesPerAttribute();
+    void enumerationValuesShowTheirNames();
 };
 
 void TestAttributeFormatterValues::builtinTypesFormatWithRulesOfTheirOwn()
@@ -263,6 +264,42 @@ void TestAttributeFormatterValues::formatAttributeDispatchesPerAttribute()
     formatAttribute(&enumValue, QOpcUa::NodeAttribute::Value, QVariant(0),
                     QOpcUa::Types::Undefined, QStringLiteral("ns=0;i=852"));
     QCOMPARE(enumValue.displayValue, QStringLiteral("ServerState"));
+}
+
+void TestAttributeFormatterValues::enumerationValuesShowTheirNames()
+{
+    const OpcUaEnumEntries states{{0, QStringLiteral("Disabled")},
+                                  {1, QStringLiteral("Enabled")},
+                                  {2, QStringLiteral("Error")}};
+
+    QCOMPARE(enumDisplayValue(QVariant(0), states), QStringLiteral("0 (Disabled)"));
+    QCOMPARE(enumDisplayValue(QVariant(2), states), QStringLiteral("2 (Error)"));
+    QCOMPARE(enumEntryName(1, states), QStringLiteral("Enabled"));
+
+    // A value the definition does not name keeps its number, and so does every value
+    // of a DataType that is no enumeration at all.
+    QCOMPARE(enumDisplayValue(QVariant(7), states), QStringLiteral("7"));
+    QCOMPARE(enumEntryName(7, states), QString());
+    QCOMPARE(enumDisplayValue(QVariant(7), {}), QStringLiteral("7"));
+    QCOMPARE(enumDisplayValue(QVariant(QStringLiteral("text")), {}), QStringLiteral("text"));
+
+    QCOMPARE(enumDisplayValue(QVariant(QVariantList{0, 2}), states),
+             QStringLiteral("[0 (Disabled), 2 (Error)]"));
+
+    // The cell of a monitored row and the Value attribute row both spell the name out.
+    QCOMPARE(valueSummary(QVariant(1), QOpcUa::Types::Int32,
+                          QStringLiteral("ns=1;s=SensorState"), states),
+             QStringLiteral("1 (Enabled)"));
+    QCOMPARE(valueAttribute(QVariant(1), QOpcUa::Types::Int32,
+                            QStringLiteral("ns=1;s=SensorState"), states).displayValue,
+             QStringLiteral("1 (Enabled)"));
+
+    const OpcUaNodeAttribute array = valueAttribute(QVariant(QVariantList{0, 1}),
+                                                    QOpcUa::Types::Int32,
+                                                    QStringLiteral("ns=1;s=SensorState"), states);
+    QCOMPARE(array.children.size(), 2);
+    QCOMPARE(array.children.at(0).displayValue, QStringLiteral("0 (Disabled)"));
+    QCOMPARE(array.children.at(1).displayValue, QStringLiteral("1 (Enabled)"));
 }
 
 QTEST_GUILESS_MAIN(TestAttributeFormatterValues)

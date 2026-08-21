@@ -61,6 +61,10 @@ public:
     void writeValue(const QString &, const QVariant &, int) override {}
     void subscribe(const QString &nodeId, double) override { subscribedNodeIds.append(nodeId); }
     void unsubscribe(const QString &nodeId) override { unsubscribedNodeIds.append(nodeId); }
+    void collectSubtreeVariables(const QString &rootNodeId) override
+    {
+        crawledNodeIds.append(rootNodeId);
+    }
 
     void setState(OpcUaConnectionState state)
     {
@@ -70,6 +74,7 @@ public:
 
     OpcUaConnectionState currentState = OpcUaConnectionState::Disconnected;
     QStringList browsedNodeIds;
+    QStringList crawledNodeIds;
     QStringList readNodeIds;
     QStringList subscribedNodeIds;
     QStringList unsubscribedNodeIds;
@@ -191,14 +196,46 @@ QAbstractItemModel *dataAccessModel(CoordinatorHarness &harness)
 }
 
 ///
-/// \brief Drops a folder onto Data Access and delivers its browse result.
+/// \brief Builds the variables a subtree crawl reports, already filtered and flattened.
+/// \param variableCount Number of variables found anywhere below the dropped node.
+/// \return Crawl result.
+///
+QVector<OpcUaNodeInfo> makeSubtreeVariables(int variableCount)
+{
+    QVector<OpcUaNodeInfo> variables;
+    for (int i = 0; i < variableCount; ++i) {
+        OpcUaNodeInfo variable;
+        variable.nodeId = QStringLiteral("ns=2;s=Var%1").arg(i);
+        variable.displayName = QStringLiteral("Var%1").arg(i);
+        variable.nodeClass = OpcUa::Variable;
+        variable.hasChildren = false;
+        variables.append(variable);
+    }
+    return variables;
+}
+
+///
+/// \brief Drops a folder onto Data Access with the subtree crawl off, delivering a browse result.
 /// \param harness Coordinator harness to drive.
 /// \param children Browse result to deliver.
 ///
 void dropFolder(CoordinatorHarness &harness, const QVector<OpcUaNodeInfo> &children)
 {
+    AppSettings().setRecursiveFolderDrop(false);
     emit harness.dataView.dataAccess()->folderDropRequested(kFolderNodeId);
     emit harness.backend.browseFinished(kFolderNodeId, children, QString());
+}
+
+///
+/// \brief Drops a folder onto Data Access and delivers the variables a subtree crawl found.
+/// \param harness Coordinator harness to drive.
+/// \param variables Crawl result to deliver.
+///
+void dropFolderSubtree(CoordinatorHarness &harness, const QVector<OpcUaNodeInfo> &variables)
+{
+    AppSettings().setRecursiveFolderDrop(true);
+    emit harness.dataView.dataAccess()->folderDropRequested(kFolderNodeId);
+    emit harness.backend.subtreeVariablesReady(kFolderNodeId, variables, QString());
 }
 
 ///

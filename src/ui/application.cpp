@@ -154,6 +154,19 @@ void Application::setHighlightValueChanges(bool enabled)
 }
 
 ///
+/// \brief Persists the inline array-element preference and notifies listeners.
+/// \param elements Longest array a value cell still spells out element by element.
+///
+void Application::setInlineArrayElements(int elements)
+{
+    AppSettings settings;
+    if (settings.inlineArrayElements() == elements)
+        return;
+    settings.setInlineArrayElements(elements);
+    emit inlineArrayElementsChanged(settings.inlineArrayElements());
+}
+
+///
 /// \brief Persists the log depth preference and notifies listeners.
 /// \param rows Number of log entries to keep.
 ///

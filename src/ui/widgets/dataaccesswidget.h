@@ -26,6 +26,7 @@ class DataAccessWidget;
 class DataAccessFilterProxyModel;
 class DataAccessModel;
 class SubscriptionDelegate;
+class ThemedAction;
 class ValueCellDelegate;
 struct DataAccessItem;
 
@@ -53,6 +54,12 @@ public:
     /// \param details Variable node details.
     ///
     void addNode(const OpcUaNodeDetails &details);
+
+    ///
+    /// \brief Applies a fresh attribute read to a listed row, adding no row of its own.
+    /// \param details Variable node details.
+    ///
+    void refreshNode(const OpcUaNodeDetails &details);
 
     ///
     /// \brief Adds or updates a node row and assigns it to the Default subscription.
@@ -119,7 +126,7 @@ public:
     bool hasSelection() const;
 
     ///
-    /// \brief Removes the selected data-access nodes, cancelling monitoring for subscribed ones.
+    /// \brief Removes every selected data-access node, cancelling monitoring for subscribed ones.
     ///
     void removeSelectedNodes();
 
@@ -182,6 +189,12 @@ public slots:
     void setHighlightValueChanges(bool enabled);
 
     ///
+    /// \brief Sets how many array elements a value cell spells out before naming the array.
+    /// \param elements Longest array still spelled out element by element.
+    ///
+    void setInlineArrayElements(int elements);
+
+    ///
     /// \brief Replaces the known subscriptions and rebuilds the subscribe menu.
     /// \param subscriptions Current subscriptions.
     ///
@@ -238,9 +251,10 @@ signals:
     /// \param valueType OPC UA value type.
     /// \param dataTypeId DataType NodeId.
     /// \param writable Whether the user may write.
+    /// \param enumEntries Named values of the DataType; empty unless it is an enumeration.
     ///
     void writeRequested(QString nodeId, QVariant currentValue, int valueType,
-                        QString dataTypeId, bool writable);
+                        QString dataTypeId, bool writable, OpcUaEnumEntries enumEntries);
 
     ///
     /// \brief Emitted when a value should be written without asking the user first.
@@ -281,14 +295,22 @@ signals:
     ///
     void selectionChanged();
 
+    ///
+    /// \brief Emitted when the user asks to reveal a data-access node in the address space.
+    /// \param nodeId Node to reveal.
+    ///
+    void showInAddressSpaceRequested(QString nodeId);
+
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void changeEvent(QEvent *event) override;
 
 private:
     void setupDataView();
+    void updateNumberColumnWidth();
     void configureToolbar();
     void showDataContextMenu(const QPoint &pos);
+    void showSelectedNodeInAddressSpace();
     void updateSelectionActions();
     void readSelectedNodes();
     void writeSelectedNode();
@@ -297,6 +319,8 @@ private:
     void showValueCell(const QModelIndex &index);
     void handleValueDoubleClick(const QModelIndex &index);
     void toggleBooleanValue(const DataAccessItem &item);
+    void writeEnumValue(const QModelIndex &index, int value);
+    void confirmEnumWrite(const DataAccessItem &item, int value);
     void toggleHighlightForSelection(bool enabled);
     void rebuildSubscribeMenu();
     void populateSubscribeMenu(QMenu *menu);
@@ -313,6 +337,7 @@ private:
     DataAccessFilterProxyModel *_filterProxy;
     SubscriptionDelegate      *_subscriptionDelegate = nullptr;
     ValueCellDelegate         *_valueDelegate = nullptr;
+    ThemedAction              *_removeAction = nullptr;
     QVector<SubscriptionItem>  _subscriptions;
     bool                       _offline = false;
 };

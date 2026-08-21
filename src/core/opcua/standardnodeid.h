@@ -19,6 +19,9 @@ public:
     /// \brief Standard FolderType object type.
     static constexpr char FolderType[] = "ns=0;i=61";
 
+    /// \brief Standard PropertyType variable type.
+    static constexpr char PropertyType[] = "ns=0;i=68";
+
     /// \brief Standard Objects folder, used as the browse root.
     static constexpr char ObjectsFolder[] = "ns=0;i=84";
 
@@ -39,6 +42,12 @@ public:
     /// \return FolderType NodeId.
     ///
     static QLatin1String folderType() { return QLatin1String(FolderType); }
+
+    ///
+    /// \brief Returns the standard PropertyType NodeId.
+    /// \return PropertyType NodeId.
+    ///
+    static QLatin1String propertyType() { return QLatin1String(PropertyType); }
 
     ///
     /// \brief Returns the server CurrentTime NodeId as a QLatin1String.

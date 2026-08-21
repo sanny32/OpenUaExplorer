@@ -37,6 +37,14 @@
        <property name="text"><string>JSON array</string></property>
       </widget>
      </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="enumLabel">
+       <property name="text"><string>Value:</string></property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QComboBox" name="enumComboBox"/>
+     </item>
     </layout>
    </item>
    <item>

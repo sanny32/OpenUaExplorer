@@ -48,13 +48,16 @@ class TestModelsDataAccessCore : public QObject
 private slots:
     void dataAccessSetItemsExposesColumns();
     void dataAccessAddOrUpdateInsertsThenUpdates();
+    void dataAccessRefreshItemUpdatesOnlyListedNodes();
     void dataAccessUpdateValuesRefreshesValueColumns();
     void dataAccessElementRowsAreNotActedOn();
     void dataAccessRemoveRowsDropsSelected();
+    void dataAccessRemoveRowsKeepsElementRowsAttached();
     void dataAccessMoveRowsKeepsTheDraggedBlockTogether();
     void dataAccessMoveRowsIgnoresPointlessMoves();
     void dataAccessRowDropReordersByNodeId();
     void dataAccessSubscriptionColumnIsEditable();
+    void dataAccessEnumerationValuesAreNamedAndPickable();
     void dataAccessModelExportsCsv();
     void dataAccessActualIntervalColumnTracksServerValue();
     void dataAccessHeaderRolesAndHelpers();
@@ -117,6 +120,41 @@ void TestModelsDataAccessCore::dataAccessAddOrUpdateInsertsThenUpdates()
 }
 
 ///
+/// \brief refreshItem updates a listed row and ignores an unlisted node.
+///
+void TestModelsDataAccessCore::dataAccessRefreshItemUpdatesOnlyListedNodes()
+{
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=State");
+    details.displayName = QStringLiteral("State");
+    details.nodeClass = OpcUa::Variable;
+    details.value = 1;
+    details.valueType = int(QOpcUa::Types::Int32);
+    details.dataTypeId = QStringLiteral("ns=1;s=SensorState");
+
+    DataAccessModel model;
+    new QAbstractItemModelTester(&model, &model);
+    model.addOrUpdate(details);
+
+    details.displayName = QStringLiteral("Current state");
+    details.enumEntries = {{0, QStringLiteral("Disabled")},
+                           {1, QStringLiteral("Enabled")}};
+    QSignalSpy changeSpy(&model, &QAbstractItemModel::dataChanged);
+    QVERIFY(model.refreshItem(details));
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(changeSpy.size(), 1);
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColDisplayName)).toString(),
+             QStringLiteral("Current state"));
+    QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue)).toString(),
+             QStringLiteral("1 (Enabled)"));
+
+    details.nodeId = QStringLiteral("ns=2;s=Unlisted");
+    QVERIFY(!model.refreshItem(details));
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(changeSpy.size(), 1);
+}
+
+///
 /// \brief updateValues refreshes value/status of the matching node only.
 ///
 void TestModelsDataAccessCore::dataAccessUpdateValuesRefreshesValueColumns()
@@ -167,10 +205,17 @@ void TestModelsDataAccessCore::dataAccessElementRowsAreNotActedOn()
     other.nodeId = QStringLiteral("ns=2;s=Other");
     other.value = 1;
     model.addOrUpdate(other);
+    const QPersistentModelIndex followedElement(
+        model.index(1, DataAccessModel::ColValue, model.index(0, 0)));
     QVERIFY(model.moveRows({model.index(1, 0)}, 0));
     QCOMPARE(model.rowCount(model.index(1, 0)), 2);
     QCOMPARE(model.data(model.index(0, DataAccessModel::ColValue, model.index(1, 0))).toString(),
              QStringLiteral("1"));
+
+    QVERIFY(followedElement.isValid());
+    QCOMPARE(followedElement.parent(), model.index(1, 0));
+    QCOMPARE(followedElement.row(), 1);
+    QCOMPARE(model.data(followedElement).toString(), QStringLiteral("2"));
 }
 
 ///
@@ -189,6 +234,51 @@ void TestModelsDataAccessCore::dataAccessRemoveRowsDropsSelected()
 
     QCOMPARE(model.rowCount(), items.size() - 1);
     QVERIFY(!model.nodeIds().contains(items.last().nodeId));
+}
+
+///
+/// \brief Removing a row keeps the element rows of the rows below it attached to their node.
+///
+/// The model tester is left out on purpose: it reads the "#" column around the removal, and
+/// that column renumbers with the rows.
+///
+void TestModelsDataAccessCore::dataAccessRemoveRowsKeepsElementRowsAttached()
+{
+    DataAccessModel model;
+
+    OpcUaNodeDetails first;
+    first.nodeId = QStringLiteral("ns=2;s=First");
+    first.value = QVariantList{1, 2};
+    model.addOrUpdate(first);
+
+    OpcUaNodeDetails second;
+    second.nodeId = QStringLiteral("ns=2;s=Second");
+    second.displayName = QStringLiteral("Second");
+    second.value = QVariantList{10, 20, 30};
+    model.addOrUpdate(second);
+
+    QCOMPARE(model.rowCount(model.index(0, 0)), 2);
+    QCOMPARE(model.rowCount(model.index(1, 0)), 3);
+
+    const QPersistentModelIndex removedElement(model.index(0, 0, model.index(0, 0)));
+    const QPersistentModelIndex keptElement(model.index(2, 0, model.index(1, 0)));
+
+    model.removeRows({model.index(0, 0)});
+
+    QCOMPARE(model.rowCount(), 1);
+    QVERIFY(!removedElement.isValid());
+    QVERIFY(keptElement.isValid());
+    QCOMPARE(keptElement.parent(), model.index(0, 0));
+    QCOMPARE(model.data(keptElement.sibling(keptElement.row(), DataAccessModel::ColNodeId))
+                 .toString(),
+             QStringLiteral("[2]"));
+    QCOMPARE(model.data(keptElement.sibling(keptElement.row(), DataAccessModel::ColValue))
+                 .toString(),
+             QStringLiteral("30"));
+
+    model.removeRows({model.index(0, 0)});
+    QCOMPARE(model.rowCount(), 0);
+    QVERIFY(!keptElement.isValid());
 }
 
 ///
@@ -287,6 +377,59 @@ void TestModelsDataAccessCore::dataAccessSubscriptionColumnIsEditable()
     QCOMPARE(model.data(subscriptionIndex).toString(), QStringLiteral("Fast"));
     // Editing a non-editable column is rejected.
     QVERIFY(!model.setData(nodeIdIndex, QStringLiteral("x"), Qt::EditRole));
+}
+
+///
+/// \brief An enumeration row shows its names and offers them, unless it is read-only.
+///
+void TestModelsDataAccessCore::dataAccessEnumerationValuesAreNamedAndPickable()
+{
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=2;s=State");
+    details.nodeClass = OpcUa::Variable;
+    details.value = 1;
+    details.valueType = int(QOpcUa::Types::Int32);
+    details.dataTypeId = QStringLiteral("ns=1;s=SensorState");
+    details.enumEntries = {{0, QStringLiteral("Disabled")}, {1, QStringLiteral("Enabled")}};
+    details.userAccessLevel = OpcUa::CurrentRead | OpcUa::CurrentWrite;
+
+    DataAccessModel model;
+    new QAbstractItemModelTester(&model, &model);
+    model.addOrUpdate(details);
+
+    const QModelIndex value = model.index(0, DataAccessModel::ColValue);
+    QCOMPARE(model.data(value).toString(), QStringLiteral("1 (Enabled)"));
+    QVERIFY(model.flags(value) & Qt::ItemIsEditable);
+    // The editor is seeded with the number, and offered the names to pick from.
+    QCOMPARE(model.data(value, Qt::EditRole).toInt(), 1);
+    QCOMPARE(model.data(value, DataAccessModel::EnumEntriesRole)
+                 .value<OpcUaEnumEntries>().size(), 2);
+
+    // A notification keeps naming the value it delivers.
+    OpcUaDataValue update;
+    update.nodeId = details.nodeId;
+    update.value = 0;
+    update.status = QStringLiteral("Good");
+    model.updateValues({update});
+    QCOMPARE(model.data(value).toString(), QStringLiteral("0 (Disabled)"));
+
+    // Read-only rows keep the write dialog: nothing to pick, and nothing to pick with.
+    details.userAccessLevel = OpcUa::CurrentRead;
+    model.addOrUpdate(details);
+    QVERIFY(!(model.flags(value) & Qt::ItemIsEditable));
+    QVERIFY(model.data(value, DataAccessModel::EnumEntriesRole)
+                .value<OpcUaEnumEntries>().isEmpty());
+
+    // An array is written as a whole, so its cell stays with the dialog while its
+    // elements still spell out the names.
+    details.value = QVariantList{0, 1};
+    details.userAccessLevel = OpcUa::CurrentRead | OpcUa::CurrentWrite;
+    model.addOrUpdate(details);
+    QVERIFY(!(model.flags(value) & Qt::ItemIsEditable));
+    const QModelIndex row = model.index(0, 0);
+    QCOMPARE(model.rowCount(row), 2);
+    QCOMPARE(model.data(model.index(1, DataAccessModel::ColValue, row)).toString(),
+             QStringLiteral("1 (Enabled)"));
 }
 
 ///

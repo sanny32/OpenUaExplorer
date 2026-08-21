@@ -54,7 +54,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="connectionLabel">
+      <widget class="ElidedLabel" name="connectionLabel">
        <property name="text">
         <string notr="true">Connected: opc.tcp://localhost:4840</string>
        </property>
@@ -97,7 +97,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="securityLabel">
+      <widget class="ElidedLabel" name="securityLabel">
        <property name="text">
         <string>None</string>
        </property>
@@ -140,7 +140,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="authenticationLabel">
+      <widget class="ElidedLabel" name="authenticationLabel">
        <property name="text">
         <string>Anonymous</string>
        </property>
@@ -198,7 +198,7 @@
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>40</width>
+       <width>0</width>
        <height>20</height>
       </size>
      </property>

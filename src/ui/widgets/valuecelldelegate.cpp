@@ -7,6 +7,7 @@
 ///
 
 #include <QAbstractItemView>
+#include <QComboBox>
 #include <QDateTime>
 #include <QPainter>
 #include <QStyle>
@@ -50,6 +51,16 @@ qint64 flashDuration(const QModelIndex &index)
 /// \param column Column being painted.
 /// \return Colour to draw the text in, or an invalid colour to keep the palette's.
 ///
+///
+/// \brief Returns the named values a cell offers, empty when it is not an editable enumeration.
+/// \param index Cell to inspect.
+/// \return Named values of the cell's DataType.
+///
+OpcUaEnumEntries enumEntries(const QModelIndex &index)
+{
+    return index.data(DataAccessModel::EnumEntriesRole).value<OpcUaEnumEntries>();
+}
+
 QColor stateColor(const QModelIndex &index, int column)
 {
     const auto severity = static_cast<OpcUaFormat::StatusSeverity>(
@@ -144,6 +155,88 @@ void ValueCellDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opt
     _flashSeen = true;
     if (!_flashTimer.isActive())
         _flashTimer.start();
+}
+
+///
+/// \brief Creates a combo box listing the named values of an enumeration cell.
+/// \param parent Parent for the editor widget.
+/// \param option Style options for the cell.
+/// \param index Model index being edited.
+/// \return Combo-box editor, or the base editor for every other cell.
+///
+/// The entries repeat the rendering of the cell, number first, so the list reads as the
+/// same values the column shows rather than as names of their own.
+///
+QWidget *ValueCellDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option,
+                                         const QModelIndex &index) const
+{
+    const OpcUaEnumEntries entries = enumEntries(index);
+    if (entries.isEmpty())
+        return ElidedTextDelegate::createEditor(parent, option, index);
+
+    auto *combo = new QComboBox(parent);
+    combo->setAutoFillBackground(true);
+    combo->setBackgroundRole(QPalette::Base);
+    for (const OpcUaEnumEntry &entry : entries) {
+        combo->addItem(OpcUaFormat::enumDisplayValue(QVariant::fromValue(entry.value), entries),
+                       QVariant::fromValue(entry.value));
+    }
+    connect(combo, &QComboBox::activated, this, &ValueCellDelegate::commitAndCloseEditor);
+    return combo;
+}
+
+///
+/// \brief Selects the combo entry matching the cell's current value.
+/// \param editor Editor widget.
+/// \param index Model index being edited.
+///
+void ValueCellDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
+{
+    auto *combo = qobject_cast<QComboBox *>(editor);
+    if (!combo || enumEntries(index).isEmpty()) {
+        ElidedTextDelegate::setEditorData(editor, index);
+        return;
+    }
+    const qint64 current = index.data(Qt::EditRole).toLongLong();
+    for (int entry = 0; entry < combo->count(); ++entry) {
+        if (combo->itemData(entry).toLongLong() == current) {
+            combo->setCurrentIndex(entry);
+            return;
+        }
+    }
+    // A value the definition does not name is still the node's value: listing it keeps
+    // closing the combo unchanged from writing one of the named values by accident.
+    combo->insertItem(0, QString::number(current), QVariant::fromValue(current));
+    combo->setCurrentIndex(0);
+}
+
+///
+/// \brief Reports the picked value instead of storing it in the model.
+/// \param editor Editor widget.
+/// \param model Model behind the view.
+/// \param index Model index being edited.
+///
+void ValueCellDelegate::setModelData(QWidget *editor, QAbstractItemModel *model,
+                                     const QModelIndex &index) const
+{
+    auto *combo = qobject_cast<QComboBox *>(editor);
+    if (!combo || enumEntries(index).isEmpty()) {
+        ElidedTextDelegate::setModelData(editor, model, index);
+        return;
+    }
+    emit enumValuePicked(index, combo->currentData().toInt());
+}
+
+///
+/// \brief Commits and closes the combo box as soon as the user picks an entry.
+///
+void ValueCellDelegate::commitAndCloseEditor()
+{
+    auto *combo = qobject_cast<QComboBox *>(sender());
+    if (!combo)
+        return;
+    emit commitData(combo);
+    emit closeEditor(combo);
 }
 
 ///

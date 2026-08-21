@@ -49,6 +49,18 @@
         <source>Browse on node &apos;%1&apos; failed: %2</source>
         <translation>浏览节点“%1”失败：%2</translation>
     </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos;.</source>
+        <translation>正在收集节点“%1”下的变量。</translation>
+    </message>
+    <message>
+        <source>Found %1 variable(s) below node &apos;%2&apos;.</source>
+        <translation>在节点“%2”下找到 %1 个变量。</translation>
+    </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos; failed: %2</source>
+        <translation>收集节点“%1”下的变量失败：%2</translation>
+    </message>
 </context>
 <context>
     <name>AddressSpaceWidget</name>
@@ -1349,6 +1361,10 @@ Select it again.</source>
     <message>
         <source>Add Node</source>
         <translation>添加节点</translation>
+    </message>
+    <message>
+        <source>Show in Address Space</source>
+        <translation>在地址空间中显示</translation>
     </message>
     <message>
         <source>Remove</source>
@@ -2980,6 +2996,14 @@ Open the download page?</source>
         <source>Searching the address space is not supported.</source>
         <translation>不支持搜索地址空间。</translation>
     </message>
+    <message>
+        <source>Locating a node in the address space is not supported.</source>
+        <translation>不支持在地址空间中定位节点。</translation>
+    </message>
+    <message>
+        <source>Crawling the address space is not supported.</source>
+        <translation>不支持遍历地址空间。</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
@@ -3677,6 +3701,10 @@ Do you want to save them?</source>
         <translation>常规</translation>
     </message>
     <message>
+        <source>Data</source>
+        <translation>数据</translation>
+    </message>
+    <message>
         <source>Connection</source>
         <translation>连接</translation>
     </message>
@@ -3687,6 +3715,30 @@ Do you want to save them?</source>
     <message>
         <source>Interval (s):</source>
         <translation>间隔（秒）：</translation>
+    </message>
+    <message>
+        <source>Add at most</source>
+        <translation>每个拖入的节点最多添加</translation>
+    </message>
+    <message>
+        <source>A dropped node that holds more variables than this adds only the first of them.</source>
+        <translation>若拖入的节点包含的变量多于此数量，则只添加其中最前面的部分。</translation>
+    </message>
+    <message>
+        <source>variables per dropped node</source>
+        <translation>个变量</translation>
+    </message>
+    <message>
+        <source>Spell out arrays of up to</source>
+        <translation>在值列中逐个显示不超过</translation>
+    </message>
+    <message>
+        <source>A longer array is named by its type and length instead; its elements stay readable by expanding the row.</source>
+        <translation>更长的数组改为以类型和长度标示；展开该行仍可查看其元素。</translation>
+    </message>
+    <message>
+        <source>elements in the value column</source>
+        <translation>个元素的数组</translation>
     </message>
     <message>
         <source>Debug messages are verbose and are meant for diagnosing a problem.</source>
@@ -3707,6 +3759,14 @@ Do you want to save them?</source>
     <message>
         <source>log entries</source>
         <translation>条日志记录</translation>
+    </message>
+    <message>
+        <source>A node dropped on Data Access contributes every variable below it, however deep. When off, only the variables directly under the dropped node are added.</source>
+        <translation>拖放到“数据访问”的节点会添加其下的所有变量，无论层级多深。关闭时，仅添加直接位于该节点下的变量。</translation>
+    </message>
+    <message>
+        <source>Add variables of the whole subtree on drop</source>
+        <translation>拖放时添加整个子树的变量</translation>
     </message>
 </context>
 <context>
@@ -3774,6 +3834,13 @@ Do you want to save them?</source>
     <message>
         <source>Restore Defaults</source>
         <translation>恢复默认值</translation>
+    </message>
+</context>
+<context>
+    <name>SubtreeVariableCrawler</name>
+    <message>
+        <source>The OPC UA client is not connected.</source>
+        <translation>OPC UA 客户端未连接。</translation>
     </message>
 </context>
 <context>
@@ -4061,6 +4128,10 @@ Do you want to save them?</source>
     <message>
         <source>Array:</source>
         <translation>数组：</translation>
+    </message>
+    <message>
+        <source>Value:</source>
+        <translation>值：</translation>
     </message>
     <message>
         <source>JSON array</source>

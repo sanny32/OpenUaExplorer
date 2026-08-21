@@ -4,15 +4,19 @@
 #include "qtopcuatypemapper.h"
 
 #include <algorithm>
+#include <array>
 
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaBinaryDataEncoding>
 #include <QOpcUaEnumDefinition>
+#include <QOpcUaEnumField>
 #include <QOpcUaExtensionObject>
 #include <QOpcUaGenericStructHandler>
 #include <QOpcUaGenericStructValue>
 #include <QOpcUaLocalizedText>
 #include <QOpcUaQualifiedName>
+#include <QOpcUaStructureDefinition>
+#include <QOpcUaStructureField>
 #include <QOpcUaUserTokenPolicy>
 
 #include "formatters/attributeformatter.h"
@@ -110,6 +114,48 @@ void mergeEndpointCapabilities(EndpointInfo *target, const EndpointInfo &source)
     target->supportsCertificate |= source.supportsCertificate;
     if (target->serverCertificate.isEmpty())
         target->serverCertificate = source.serverCertificate;
+}
+
+/// \brief Returns the built-in base type of a standard scalar alias.
+QString scalarAliasBaseType(const QString &typeId)
+{
+    using NodeId = QOpcUa::NodeIds::Namespace0;
+    if (typeId == QOpcUa::namespace0Id(NodeId::IntegerId)
+        || typeId == QOpcUa::namespace0Id(NodeId::Counter)) {
+        return QOpcUa::namespace0Id(NodeId::UInt32);
+    }
+    if (typeId == QOpcUa::namespace0Id(NodeId::Duration))
+        return QOpcUa::namespace0Id(NodeId::Double);
+    if (typeId == QOpcUa::namespace0Id(NodeId::NumericRange)
+        || typeId == QOpcUa::namespace0Id(NodeId::LocaleId)) {
+        return QOpcUa::namespace0Id(NodeId::String);
+    }
+    if (typeId == QOpcUa::namespace0Id(NodeId::UtcTime))
+        return QOpcUa::namespace0Id(NodeId::DateTime);
+    return {};
+}
+
+/// \brief Rewrites scalar aliases in one structure definition and registers the result.
+void normalizeScalarAliases(QOpcUaGenericStructHandler *handler, const QString &typeId)
+{
+    QOpcUaStructureDefinition definition = handler->structureDefinitionForTypeId(typeId);
+    QList<QOpcUaStructureField> fields = definition.fields();
+    bool changed = false;
+    for (QOpcUaStructureField &field : fields) {
+        const QString baseType = scalarAliasBaseType(field.dataType());
+        if (baseType.isEmpty())
+            continue;
+        field.setDataType(baseType);
+        changed = true;
+    }
+    if (!changed)
+        return;
+
+    definition.setFields(fields);
+    const QOpcUa::IsAbstract isAbstract = handler->isAbstractTypeId(typeId)
+        ? QOpcUa::IsAbstract::Abstract : QOpcUa::IsAbstract::NotAbstract;
+    handler->addCustomStructureDefinition(
+        definition, typeId, handler->typeNameForTypeId(typeId), isAbstract);
 }
 
 /// \brief Maps a Qt application type to its transport-neutral counterpart.
@@ -229,7 +275,12 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
     const auto nodeClass = static_cast<QOpcUa::NodeClass>(details.nodeClass);
     details.value = decodedValue(node->attribute(QOpcUa::NodeAttribute::Value), structHandler);
     details.dataTypeId = node->attribute(QOpcUa::NodeAttribute::DataType).toString();
-    details.valueType = static_cast<int>(valueTypeForDataType(details.dataTypeId));
+    details.enumEntries = enumEntries(details.dataTypeId, structHandler);
+    // An enumeration lives in a namespace of its own, so its DataType resolves to no built-in
+    // type; the wire always carries it as an Int32 and a write has to say so (OPC UA Part 3).
+    details.valueType = details.enumEntries.isEmpty()
+        ? static_cast<int>(valueTypeForDataType(details.dataTypeId))
+        : static_cast<int>(QOpcUa::Types::Int32);
     const auto valueType = static_cast<QOpcUa::Types>(details.valueType);
     details.valueRank = node->attribute(QOpcUa::NodeAttribute::ValueRank).toInt();
     for (const QVariant &dimension : node->attribute(QOpcUa::NodeAttribute::ArrayDimensions).toList())
@@ -270,7 +321,8 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
                 attribute.children.append(timestamp);
             }
             attribute.children.append(childAttribute(translate("Status Code"), statusDisplay(node->attributeError(field.second))));
-            attribute.children.append(valueAttribute(value, valueType, details.dataTypeId));
+            attribute.children.append(valueAttribute(value, valueType, details.dataTypeId,
+                                                     details.enumEntries));
         }
         details.attributes.append(attribute);
     }
@@ -346,6 +398,30 @@ bool containsOpaqueStruct(const QVariant &value)
     return !opaqueEncodingIds(value).isEmpty();
 }
 
+/// \brief Lists the named values of an enumeration DataType.
+OpcUaEnumEntries enumEntries(const QString &dataTypeId,
+                             const QOpcUaGenericStructHandler *handler)
+{
+    if (!handler || dataTypeId.isEmpty())
+        return {};
+    if (handler->dataTypeKindForTypeId(dataTypeId)
+        != QOpcUaGenericStructHandler::DataTypeKind::Enum) {
+        return {};
+    }
+
+    OpcUaEnumEntries entries;
+    const QList<QOpcUaEnumField> fields = handler->enumDefinitionForTypeId(dataTypeId).fields();
+    entries.reserve(fields.size());
+    for (const QOpcUaEnumField &field : fields) {
+        OpcUaEnumEntry entry;
+        entry.value = field.value();
+        // EnumValues carries the readable text in DisplayName, EnumStrings only in Name.
+        entry.name = field.name().isEmpty() ? field.displayName().text() : field.name();
+        entries.append(entry);
+    }
+    return entries;
+}
+
 /// \brief Lets structures with a field of the abstract Enumeration type decode.
 void allowAbstractEnumerationFields(QOpcUaGenericStructHandler *handler)
 {
@@ -355,6 +431,24 @@ void allowAbstractEnumerationFields(QOpcUaGenericStructHandler *handler)
         QOpcUaEnumDefinition(),
         QOpcUa::namespace0Id(QOpcUa::NodeIds::Namespace0::Enumeration),
         QStringLiteral("Enumeration"), QOpcUa::IsAbstract::NotAbstract);
+}
+
+///
+/// \brief Rewrites scalar aliases in standard Server diagnostic structures to built-in types.
+/// \param handler Initialized structure handler to update.
+///
+void allowStandardDiagnosticScalarAliases(QOpcUaGenericStructHandler *handler)
+{
+    if (!handler)
+        return;
+    using NodeId = QOpcUa::NodeIds::Namespace0;
+    constexpr std::array structures = {
+        NodeId::BuildInfo,
+        NodeId::ServerStatusDataType,
+        NodeId::SubscriptionDiagnosticsDataType
+    };
+    for (const NodeId type : structures)
+        normalizeScalarAliases(handler, QOpcUa::namespace0Id(type));
 }
 
 /// \brief Resolves this client's session name from SessionDiagnosticsArray.

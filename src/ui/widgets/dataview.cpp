@@ -503,3 +503,12 @@ void DataView::setHighlightValueChanges(bool enabled)
 {
     ui->dataAccessWidget->setHighlightValueChanges(enabled);
 }
+
+///
+/// \brief Applies the inline array-element preference to the data-access tab.
+/// \param elements Longest array a value cell still spells out element by element.
+///
+void DataView::setInlineArrayElements(int elements)
+{
+    ui->dataAccessWidget->setInlineArrayElements(elements);
+}

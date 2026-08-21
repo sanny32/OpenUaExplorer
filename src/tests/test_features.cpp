@@ -23,7 +23,9 @@
 #include "features/selectioncontext.h"
 #include "mainwindow.h"
 #include "opcua/opcuatypes.h"
+#include "opcua/standardnodeid.h"
 #include "settingsstore.h"
+#include "widgets/addressspacewidget.h"
 
 ///
 /// \brief Tests feature-hosted UI contributions.
@@ -38,6 +40,7 @@ private slots:
 
     void builtinFeaturesContributeExpectedDocks();
     void addressSpaceRootNameIsNotTranslated();
+    void signalTreeRequestRevealsLoadedNodeAndDock();
     void selectionContextPublishesOnlyCurrentDetails();
     void selectionContextRequestsHistoryOnlyForHistorizingNodes();
     void selectionContextRequestsEventMonitorOnlyForEventNotifiers();
@@ -160,6 +163,51 @@ void TestFeatures::addressSpaceRootNameIsNotTranslated()
     QCoreApplication::removeTranslator(&translator);
 
     QCOMPARE(rootName, QStringLiteral("Root"));
+}
+
+///
+/// \brief A signal-tree request opens its dock and selects an already browsed node.
+///
+void TestFeatures::signalTreeRequestRevealsLoadedNodeAndDock()
+{
+    MainWindow window;
+    auto *features = window.findChild<FeatureManager *>();
+    auto *selection = window.findChild<SelectionContext *>();
+    auto *addressSpace = window.findChild<AddressSpaceWidget *>();
+    auto *tree = window.findChild<QTreeView *>(QStringLiteral("addressTree"));
+    auto *dock = window.findChild<QDockWidget *>(QStringLiteral("addressSpaceDock"));
+    QVERIFY(features);
+    QVERIFY(selection);
+    QVERIFY(addressSpace);
+    QVERIFY(tree);
+    QVERIFY(dock);
+    QVERIFY(features->triggerCommand(FeatureCommandIds::addressSpaceBrowse()));
+
+    OpcUaNodeInfo folder;
+    folder.nodeId = QStringLiteral("ns=2;s=Machine");
+    folder.displayName = QStringLiteral("Machine");
+    folder.nodeClass = OpcUa::Object;
+    folder.hasChildren = true;
+    addressSpace->setBrowseChildren(QString::fromLatin1(StandardNodeId::ObjectsFolder),
+                                    {folder}, QString());
+
+    OpcUaNodeInfo node;
+    node.nodeId = QStringLiteral("ns=2;s=Temperature");
+    node.displayName = QStringLiteral("Temperature");
+    node.nodeClass = OpcUa::Variable;
+    node.hasChildren = false;
+    addressSpace->setBrowseChildren(folder.nodeId, {node}, QString());
+    const QModelIndex rootIndex = tree->model()->index(0, 0);
+    const QModelIndex folderIndex = tree->model()->index(0, 0, rootIndex);
+    tree->collapse(folderIndex);
+    dock->hide();
+    QVERIFY(dock->isHidden());
+
+    selection->requestShowInAddressSpace(node.nodeId);
+
+    QCOMPARE(addressSpace->selectedNode().nodeId, node.nodeId);
+    QVERIFY(tree->isExpanded(folderIndex));
+    QVERIFY(!dock->isHidden());
 }
 
 ///

@@ -7,6 +7,7 @@
 ///
 
 #include <QAction>
+#include <QGuiApplication>
 
 #include "addressspacemodule.h"
 #include "application.h"
@@ -34,11 +35,6 @@ namespace {
 /// \brief Number of variables a dropped folder may add without asking.
 ///
 constexpr int kFolderDropSilentLimit = 10;
-
-///
-/// \brief Hard cap on the variables one dropped folder may add.
-///
-constexpr int kFolderDropMaxNodes = 100;
 
 } // namespace
 
@@ -85,6 +81,15 @@ DataAccessCoordinator::DataAccessCoordinator(DataView *dataView,
 }
 
 ///
+/// \brief Removes any application cursor override owned by the coordinator.
+///
+DataAccessCoordinator::~DataAccessCoordinator()
+{
+    _pendingFolderDropNodeIds.clear();
+    endFolderDropWait();
+}
+
+///
 /// \brief Reads the currently selected node.
 ///
 void DataAccessCoordinator::readSelected()
@@ -103,7 +108,8 @@ void DataAccessCoordinator::writeSelected()
         return;
     showWriteDialog(_selectedNodeDetails.nodeId, _selectedNodeDetails.value,
                     _selectedNodeDetails.valueType, _selectedNodeDetails.dataTypeId,
-                    OpcUa::isWritable(_selectedNodeDetails.userAccessLevel));
+                    OpcUa::isWritable(_selectedNodeDetails.userAccessLevel),
+                    _selectedNodeDetails.enumEntries);
 }
 
 ///
@@ -292,6 +298,7 @@ void DataAccessCoordinator::clearRuntimeState()
     _pendingDataAccessNodeIds.clear();
     _pendingRestoreSubscriptions.clear();
     _pendingFolderDropNodeIds.clear();
+    endFolderDropWait();
     _folderAddNodeIds.clear();
     _folderAddFailureCount = 0;
     updateMonitoringActions();
@@ -314,6 +321,7 @@ void DataAccessCoordinator::setOffline(bool offline)
     _pendingDataAccessNodeIds.clear();
     _pendingRestoreSubscriptions.clear();
     _pendingFolderDropNodeIds.clear();
+    endFolderDropWait();
     _folderAddNodeIds.clear();
     _folderAddFailureCount = 0;
     updateMonitoringActions();
@@ -462,6 +470,8 @@ void DataAccessCoordinator::onAttributeDetailsReady(const OpcUaNodeDetails &deta
     if (!pending || !OpcUa::isVariable(details.nodeClass)) {
         if (pending)
             finishFolderNode(details.nodeId, false);
+        else if (OpcUa::isVariable(details.nodeClass))
+            _dataView->dataAccess()->refreshNode(details);
         return;
     }
 
@@ -757,15 +767,38 @@ void DataAccessCoordinator::addNodeById(const QString &nodeId)
 }
 
 ///
-/// \brief Browses a folder so its direct variable children can be added.
+/// \brief Asks for the variables a dropped folder contributes.
 /// \param nodeId Container node dropped onto or selected for Data Access.
+///
+/// A single browse lists the folder's direct variable children, unless
+/// AppSettings::recursiveFolderDrop() asks for the whole subtree to be crawled.
 ///
 void DataAccessCoordinator::addFolderById(const QString &nodeId)
 {
     if (nodeId.isEmpty() || !_addressSpace)
         return;
+    if (_pendingFolderDropNodeIds.contains(nodeId))
+        return;
+    if (_pendingFolderDropNodeIds.isEmpty()) {
+        QGuiApplication::setOverrideCursor(Qt::WaitCursor);
+        _folderDropCursorActive = true;
+    }
     _pendingFolderDropNodeIds.insert(nodeId);
-    _addressSpace->browse(nodeId);
+    if (AppSettings().recursiveFolderDrop())
+        _addressSpace->collectSubtreeVariables(nodeId);
+    else
+        _addressSpace->browse(nodeId);
+}
+
+///
+/// \brief Restores the cursor after every pending folder browse or crawl has finished.
+///
+void DataAccessCoordinator::endFolderDropWait()
+{
+    if (!_folderDropCursorActive || !_pendingFolderDropNodeIds.isEmpty())
+        return;
+    QGuiApplication::restoreOverrideCursor();
+    _folderDropCursorActive = false;
 }
 
 ///
@@ -783,7 +816,34 @@ void DataAccessCoordinator::onFolderChildrenReady(const QString &parentNodeId,
 {
     if (!_pendingFolderDropNodeIds.remove(parentNodeId))
         return;
+    endFolderDropWait();
+    offerFolderVariables(children, error);
+}
 
+///
+/// \brief Adds the variables a subtree crawl found, within the add limits.
+/// \param rootNodeId Node the crawl started from.
+/// \param variables Variable nodes found, in breadth-first order.
+/// \param error Crawl error, empty on success.
+///
+void DataAccessCoordinator::onFolderSubtreeVariablesReady(const QString &rootNodeId,
+                                                          const QVector<OpcUaNodeInfo> &variables,
+                                                          const QString &error)
+{
+    if (!_pendingFolderDropNodeIds.remove(rootNodeId))
+        return;
+    endFolderDropWait();
+    offerFolderVariables(variables, error);
+}
+
+///
+/// \brief Confirms and adds the variables a dropped folder contributed.
+/// \param nodes Nodes the browse or the crawl reported.
+/// \param error Browse or crawl error, empty on success.
+///
+void DataAccessCoordinator::offerFolderVariables(const QVector<OpcUaNodeInfo> &nodes,
+                                                 const QString &error)
+{
     if (!error.isEmpty()) {
         MessageBoxDialog::warning(_dialogParent, tr("Add Folder"), error, DialogButtonBox::Ok);
         return;
@@ -791,7 +851,7 @@ void DataAccessCoordinator::onFolderChildrenReady(const QString &parentNodeId,
 
     QVector<OpcUaNodeInfo> variables;
     QSet<QString> seenNodeIds;
-    for (const OpcUaNodeInfo &child : children) {
+    for (const OpcUaNodeInfo &child : nodes) {
         if (!OpcUa::isVariable(child.nodeClass) || child.nodeId.isEmpty())
             continue;
         if (seenNodeIds.contains(child.nodeId))
@@ -806,16 +866,17 @@ void DataAccessCoordinator::onFolderChildrenReady(const QString &parentNodeId,
         return;
     }
 
-    if (variables.size() > kFolderDropMaxNodes) {
+    const int maxNodes = AppSettings().folderDropMaxNodes();
+    if (variables.size() > maxNodes) {
         const DialogButtonBox::StandardButton answer = MessageBoxDialog::warning(
             _dialogParent, tr("Add Folder"),
             tr("This folder contains %1 variables, more than the limit of %2. "
                "Only the first %2 will be added.")
-                .arg(variables.size()).arg(kFolderDropMaxNodes),
+                .arg(variables.size()).arg(maxNodes),
             DialogButtonBox::Ok | DialogButtonBox::Cancel, DialogButtonBox::Ok);
         if (answer != DialogButtonBox::Ok)
             return;
-        variables.resize(kFolderDropMaxNodes);
+        variables.resize(maxNodes);
     } else if (variables.size() > kFolderDropSilentLimit) {
         const DialogButtonBox::StandardButton answer = MessageBoxDialog::question(
             _dialogParent, tr("Add Folder"),
@@ -873,12 +934,15 @@ void DataAccessCoordinator::finishFolderNode(const QString &nodeId, bool success
 /// \param valueType OPC UA value type.
 /// \param dataTypeId DataType NodeId.
 /// \param writable Whether the user may write.
+/// \param enumEntries Named values of the DataType; empty unless it is an enumeration.
 ///
 void DataAccessCoordinator::showWriteDialog(const QString &nodeId, const QVariant &value,
                                             int valueType, const QString &dataTypeId,
-                                            bool writable)
+                                            bool writable,
+                                            const OpcUaEnumEntries &enumEntries)
 {
     WriteValueDialog dialog(_dialogParent);
+    dialog.setEnumEntries(enumEntries);
     dialog.setValue(value, valueType, dataTypeId, writable);
     if (dialog.exec() == QDialog::Accepted)
         _attributes->write(nodeId, dialog.value(), dialog.valueType());
@@ -963,6 +1027,8 @@ void DataAccessCoordinator::wireDataView()
             this, &DataAccessCoordinator::onNodeCountChanged);
     connect(_dataView->dataAccess(), &DataAccessWidget::selectionChanged,
             this, &DataAccessCoordinator::updateSelectionActions);
+    connect(_dataView->dataAccess(), &DataAccessWidget::showInAddressSpaceRequested,
+            _selection, &SelectionContext::requestShowInAddressSpace);
     connect(_dataView->events(), &EventsWidget::eventSubscribeRequested,
             _events, &EventsModule::subscribeEvents);
     connect(_dataView->events(), &EventsWidget::eventUnsubscribeRequested,
@@ -995,6 +1061,8 @@ void DataAccessCoordinator::wireDataView()
             _trendPanel, &TrendPanelWidget::setTimestampMode);
     connect(theApp(), &Application::highlightValueChangesChanged,
             _dataView, &DataView::setHighlightValueChanges);
+    connect(theApp(), &Application::inlineArrayElementsChanged,
+            _dataView, &DataView::setInlineArrayElements);
 }
 
 ///
@@ -1044,6 +1112,8 @@ void DataAccessCoordinator::wireModules()
     if (_addressSpace) {
         connect(_addressSpace, &AddressSpaceModule::childrenReady,
                 this, &DataAccessCoordinator::onFolderChildrenReady);
+        connect(_addressSpace, &AddressSpaceModule::subtreeVariablesReady,
+                this, &DataAccessCoordinator::onFolderSubtreeVariablesReady);
     }
     if (OpcUa::isHistoryReadSupported()) {
         connect(_dataAccess, &DataAccessModule::historyReady,

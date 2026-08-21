@@ -169,12 +169,16 @@ void TrendGraphToolbar::setRefreshEnabled(bool enabled)
 }
 
 ///
-/// \brief Enables the fit-to-data command.
-/// \param enabled Whether fit can be clicked.
+/// \brief Shows or hides the fit-to-data command.
 ///
-void TrendGraphToolbar::setFitEnabled(bool enabled)
+/// Live mode has nothing to fit to, so the button is taken out of the toolbar
+/// rather than left greyed out.
+///
+/// \param visible Whether fit is offered at all.
+///
+void TrendGraphToolbar::setFitVisible(bool visible)
 {
-    ui->fitButton->setEnabled(enabled);
+    ui->fitButton->setVisible(visible);
 }
 
 ///

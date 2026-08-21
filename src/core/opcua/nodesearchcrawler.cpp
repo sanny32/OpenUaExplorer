@@ -14,15 +14,18 @@
 /// \brief Constructs a crawler bound to a connected client.
 /// \param client Client whose address space is crawled.
 /// \param startNodeId Node whose subtree is searched; it is never matched itself.
-/// \param pattern Case-insensitive substring matched against display names.
+/// \param pattern Text matched against the selected field.
 /// \param timeoutMs Per-browse timeout in milliseconds.
 /// \param parent Owning QObject.
+/// \param matchField Field used to identify matches.
 ///
 NodeSearchCrawler::NodeSearchCrawler(QOpcUaClient *client, const QString &startNodeId,
-                                     const QString &pattern, int timeoutMs, QObject *parent)
+                                     const QString &pattern, int timeoutMs, QObject *parent,
+                                     MatchField matchField)
     : AddressSpaceCrawler(client, timeoutMs, parent)
     , _startNodeId(startNodeId)
     , _pattern(pattern)
+    , _matchField(matchField)
 {
 }
 
@@ -55,7 +58,10 @@ void NodeSearchCrawler::visitChild(const QString &childId,
                                    const QString &parentNodeId)
 {
     _parentOf.insert(childId, parentNodeId);
-    if (child.displayName().text().contains(_pattern, Qt::CaseInsensitive))
+    const bool matches = _matchField == MatchField::NodeId
+        ? childId == _pattern
+        : child.displayName().text().contains(_pattern, Qt::CaseInsensitive);
+    if (matches)
         _pendingMatches.enqueue(childId);
 }
 
@@ -138,7 +144,8 @@ bool NodeSearchCrawler::isPaused() const
 ///
 bool NodeSearchCrawler::matches(const QString &startNodeId, const QString &pattern) const
 {
-    return !isFinished() && _startNodeId == startNodeId && _pattern == pattern;
+    return !isFinished() && _matchField == MatchField::DisplayName
+        && _startNodeId == startNodeId && _pattern == pattern;
 }
 
 ///

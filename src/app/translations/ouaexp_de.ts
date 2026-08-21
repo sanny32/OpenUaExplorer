@@ -49,6 +49,18 @@
         <source>Browse on node &apos;%1&apos; failed: %2</source>
         <translation>Durchsuchen von Knoten „%1“ fehlgeschlagen: %2</translation>
     </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos;.</source>
+        <translation>Variablen unterhalb von Knoten „%1“ werden gesammelt.</translation>
+    </message>
+    <message>
+        <source>Found %1 variable(s) below node &apos;%2&apos;.</source>
+        <translation>%1 Variable(n) unterhalb von Knoten „%2“ gefunden.</translation>
+    </message>
+    <message>
+        <source>Collecting the variables below node &apos;%1&apos; failed: %2</source>
+        <translation>Sammeln der Variablen unterhalb von Knoten „%1“ fehlgeschlagen: %2</translation>
+    </message>
 </context>
 <context>
     <name>AddressSpaceWidget</name>
@@ -1353,6 +1365,10 @@ Wählen Sie ihn erneut aus.</translation>
     <message>
         <source>Add Node</source>
         <translation>Knoten hinzufügen</translation>
+    </message>
+    <message>
+        <source>Show in Address Space</source>
+        <translation>Im Adressraum anzeigen</translation>
     </message>
     <message>
         <source>Remove</source>
@@ -2986,6 +3002,14 @@ Download-Seite öffnen?</translation>
         <source>Searching the address space is not supported.</source>
         <translation>Das Durchsuchen des Adressraums wird nicht unterstützt.</translation>
     </message>
+    <message>
+        <source>Locating a node in the address space is not supported.</source>
+        <translation>Das Auffinden eines Knotens im Adressraum wird nicht unterstützt.</translation>
+    </message>
+    <message>
+        <source>Crawling the address space is not supported.</source>
+        <translation>Das Durchlaufen des Adressraums wird nicht unterstützt.</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
@@ -3684,6 +3708,10 @@ Möchten Sie sie speichern?</translation>
         <translation>Allgemein</translation>
     </message>
     <message>
+        <source>Data</source>
+        <translation>Daten</translation>
+    </message>
+    <message>
         <source>Connection</source>
         <translation>Verbindung</translation>
     </message>
@@ -3694,6 +3722,30 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>Interval (s):</source>
         <translation>Intervall (s):</translation>
+    </message>
+    <message>
+        <source>Add at most</source>
+        <translation>Höchstens</translation>
+    </message>
+    <message>
+        <source>A dropped node that holds more variables than this adds only the first of them.</source>
+        <translation>Enthält ein abgelegter Knoten mehr Variablen, werden nur die ersten davon hinzugefügt.</translation>
+    </message>
+    <message>
+        <source>variables per dropped node</source>
+        <translation>Variablen je abgelegtem Knoten hinzufügen</translation>
+    </message>
+    <message>
+        <source>Spell out arrays of up to</source>
+        <translation>Arrays mit bis zu</translation>
+    </message>
+    <message>
+        <source>A longer array is named by its type and length instead; its elements stay readable by expanding the row.</source>
+        <translation>Ein längeres Array wird stattdessen mit Typ und Länge benannt; seine Elemente bleiben durch Aufklappen der Zeile lesbar.</translation>
+    </message>
+    <message>
+        <source>elements in the value column</source>
+        <translation>Elementen in der Wertespalte ausschreiben</translation>
     </message>
     <message>
         <source>Debug messages are verbose and are meant for diagnosing a problem.</source>
@@ -3714,6 +3766,14 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>log entries</source>
         <translation>Protokolleinträge behalten</translation>
+    </message>
+    <message>
+        <source>A node dropped on Data Access contributes every variable below it, however deep. When off, only the variables directly under the dropped node are added.</source>
+        <translation>Ein auf Datenzugriff gezogener Knoten steuert jede Variable unterhalb bei, unabhängig von der Tiefe. Ist die Option aus, werden nur die Variablen direkt unter dem gezogenen Knoten hinzugefügt.</translation>
+    </message>
+    <message>
+        <source>Add variables of the whole subtree on drop</source>
+        <translation>Beim Ziehen Variablen des gesamten Unterbaums hinzufügen</translation>
     </message>
 </context>
 <context>
@@ -3781,6 +3841,13 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>Restore Defaults</source>
         <translation>Standardwerte wiederherstellen</translation>
+    </message>
+</context>
+<context>
+    <name>SubtreeVariableCrawler</name>
+    <message>
+        <source>The OPC UA client is not connected.</source>
+        <translation>Der OPC-UA-Client ist nicht verbunden.</translation>
     </message>
 </context>
 <context>
@@ -4068,6 +4135,10 @@ Möchten Sie sie speichern?</translation>
     <message>
         <source>Array:</source>
         <translation>Array:</translation>
+    </message>
+    <message>
+        <source>Value:</source>
+        <translation>Wert:</translation>
     </message>
     <message>
         <source>JSON array</source>

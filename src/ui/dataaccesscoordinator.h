@@ -89,6 +89,11 @@ public:
                           QWidget *dialogParent);
 
     ///
+    /// \brief Removes any application cursor override owned by the coordinator.
+    ///
+    ~DataAccessCoordinator() override;
+
+    ///
     /// \brief Reads the currently selected node.
     ///
     void readSelected();
@@ -280,13 +285,19 @@ private:
     void onUnsubscribeRequested(const OpcUaNodeInfo &node);
     void addNodeById(const QString &nodeId);
     void addFolderById(const QString &nodeId);
+    void endFolderDropWait();
     void onFolderChildrenReady(const QString &parentNodeId,
                                const QVector<OpcUaNodeInfo> &children,
                                const QString &error);
+    void onFolderSubtreeVariablesReady(const QString &rootNodeId,
+                                       const QVector<OpcUaNodeInfo> &variables,
+                                       const QString &error);
+    void offerFolderVariables(const QVector<OpcUaNodeInfo> &nodes, const QString &error);
     void addFolderVariables(const QVector<OpcUaNodeInfo> &variables);
     void finishFolderNode(const QString &nodeId, bool success);
     void showWriteDialog(const QString &nodeId, const QVariant &value, int valueType,
-                         const QString &dataTypeId, bool writable);
+                         const QString &dataTypeId, bool writable,
+                         const OpcUaEnumEntries &enumEntries);
     void updateMonitoringActions();
     void updateSelectionActions();
     SubscriptionItem builtinSubscription(bool fast) const;
@@ -311,4 +322,5 @@ private:
     QSet<QString> _pendingFolderDropNodeIds;
     QSet<QString> _folderAddNodeIds;
     int _folderAddFailureCount = 0;
+    bool _folderDropCursorActive = false;
 };

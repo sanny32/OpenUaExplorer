@@ -28,6 +28,11 @@ class NodeSearchCrawler : public AddressSpaceCrawler
     Q_OBJECT
 
 public:
+    enum class MatchField {
+        DisplayName,
+        NodeId
+    };
+
     /// \brief Largest number of nodes visited before the crawl gives up.
     static constexpr int MaxVisitedNodes = 5000;
 
@@ -35,12 +40,14 @@ public:
     /// \brief Constructs a crawler bound to a connected client.
     /// \param client Client whose address space is crawled.
     /// \param startNodeId Node whose subtree is searched; it is never matched itself.
-    /// \param pattern Case-insensitive substring matched against display names.
+    /// \param pattern Text matched against the selected field.
     /// \param timeoutMs Per-browse timeout in milliseconds.
     /// \param parent Owning QObject.
+    /// \param matchField Field used to identify matches.
     ///
     NodeSearchCrawler(QOpcUaClient *client, const QString &startNodeId, const QString &pattern,
-                      int timeoutMs, QObject *parent = nullptr);
+                      int timeoutMs, QObject *parent = nullptr,
+                      MatchField matchField = MatchField::DisplayName);
 
     ///
     /// \brief Starts the crawl from the start node.
@@ -91,6 +98,7 @@ private:
 
     QString _startNodeId;
     QString _pattern;
+    MatchField _matchField;
     QQueue<QString> _pendingMatches;
     QHash<QString, QString> _parentOf;
     bool _paused = false;

@@ -63,10 +63,10 @@ public:
     void setRefreshEnabled(bool enabled);
 
     ///
-    /// \brief Enables the fit-to-data command.
-    /// \param enabled Whether fit can be clicked.
+    /// \brief Shows or hides the fit-to-data command.
+    /// \param visible Whether fit is offered at all.
     ///
-    void setFitEnabled(bool enabled);
+    void setFitVisible(bool visible);
 
     ///
     /// \brief Syncs the live play/pause control without emitting a request.

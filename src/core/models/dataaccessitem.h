@@ -12,6 +12,8 @@
 #include <QString>
 #include <QVariant>
 
+#include "opcua/opcuatypes.h"
+
 ///
 /// \brief Per-row override of the change-highlight preference.
 ///
@@ -51,6 +53,8 @@ struct DataAccessItem
     int valueType = 0;
     /// \brief DataType NodeId string.
     QString dataTypeId;
+    /// \brief Named values of the DataType; empty unless it is an enumeration.
+    OpcUaEnumEntries enumEntries;
     /// \brief Server timestamp.
     QDateTime serverTimestamp;
     /// \brief UserAccessLevel bit mask.

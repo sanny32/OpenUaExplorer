@@ -312,6 +312,36 @@ public:
     ///
     virtual void cancelNodeSearch() {}
 
+    ///
+    /// \brief Locates a NodeId in a subtree, emitting nodeLocationFinished() with its path.
+    /// \param startNodeId Node whose subtree is searched.
+    /// \param targetNodeId Exact NodeId to locate.
+    ///
+    virtual void locateNode(const QString &startNodeId, const QString &targetNodeId)
+    {
+        Q_UNUSED(startNodeId)
+        Q_UNUSED(targetNodeId)
+        emit nodeLocationFinished({}, {}, tr("Locating a node in the address space is not supported."));
+    }
+
+    ///
+    /// \brief Collects a subtree's Variable nodes, emitting subtreeVariablesReady() with them.
+    ///
+    /// Backends that cannot crawl the address space may leave this default,
+    /// which reports that the operation is unsupported.
+    /// \param rootNodeId Node whose subtree is collected.
+    ///
+    virtual void collectSubtreeVariables(const QString &rootNodeId)
+    {
+        emit subtreeVariablesReady(rootNodeId, {},
+                                   tr("Crawling the address space is not supported."));
+    }
+
+    ///
+    /// \brief Cancels an in-progress subtree variable crawl, if any.
+    ///
+    virtual void cancelSubtreeVariables() {}
+
 signals:
     ///
     /// \brief Emitted when the connection state changes.
@@ -493,6 +523,22 @@ signals:
     /// \param error Error description, empty on success.
     ///
     void nodeSearchFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
+
+    ///
+    /// \brief Emitted when an exact NodeId lookup finishes.
+    /// \param ancestorNodeIds Node ids from the start node down to the match's parent.
+    /// \param nodeId Matched NodeId, empty when not found.
+    /// \param error Error description, empty on success.
+    ///
+    void nodeLocationFinished(QStringList ancestorNodeIds, QString nodeId, QString error);
+
+    ///
+    /// \brief Emitted when a subtree variable crawl finishes or fails.
+    /// \param rootNodeId Node the crawl started from.
+    /// \param variables Variable nodes found, in breadth-first order.
+    /// \param error Error description, empty on success.
+    ///
+    void subtreeVariablesReady(QString rootNodeId, QVector<OpcUaNodeInfo> variables, QString error);
 
 private:
     int _requestTimeoutMs = 15000;

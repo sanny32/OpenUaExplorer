@@ -76,6 +76,11 @@
        </item>
        <item>
         <property name="text">
+         <string>Data</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
          <string>Appearance</string>
         </property>
        </item>
@@ -257,6 +262,213 @@
          </item>
         </layout>
        </widget>
+       <widget class="QWidget" name="dataPage">
+        <layout class="QVBoxLayout" name="dataPageLayout">
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QGroupBox" name="timestampGroup">
+           <property name="title">
+            <string>Timestamps</string>
+           </property>
+           <layout class="QHBoxLayout" name="timestampGroupLayout">
+            <property name="bottomMargin">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="timestampModeLabel">
+              <property name="text">
+               <string>Display OPC UA timestamps in:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="timestampModeCombo">
+              <item>
+               <property name="text">
+                <string>Local time</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>UTC</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item>
+             <spacer name="timestampSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="dataViewGroup">
+           <property name="title">
+            <string>Data View</string>
+           </property>
+           <layout class="QVBoxLayout" name="dataViewGroupLayout">
+            <property name="bottomMargin">
+             <number>8</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="highlightChangesCheck">
+              <property name="toolTip">
+               <string>Briefly tints a value cell when its value changes. Individual rows can be excluded from the table's context menu.</string>
+              </property>
+              <property name="text">
+               <string>Highlight value changes</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="recursiveFolderDropCheck">
+              <property name="toolTip">
+               <string>A node dropped on Data Access contributes every variable below it, however deep. When off, only the variables directly under the dropped node are added.</string>
+              </property>
+              <property name="text">
+               <string>Add variables of the whole subtree on drop</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="folderDropLimitLayout">
+              <item>
+               <widget class="QLabel" name="folderDropMaxNodesLabel">
+                <property name="text">
+                 <string>Add at most</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSpinBox" name="folderDropMaxNodesSpin">
+                <property name="toolTip">
+                 <string>A dropped node that holds more variables than this adds only the first of them.</string>
+                </property>
+                <property name="minimum">
+                 <number>1</number>
+                </property>
+                <property name="maximum">
+                 <number>1000</number>
+                </property>
+                <property name="singleStep">
+                 <number>10</number>
+                </property>
+                <property name="value">
+                 <number>100</number>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="folderDropMaxNodesSuffixLabel">
+                <property name="text">
+                 <string>variables per dropped node</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="folderDropLimitSpacer">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="inlineArrayLayout">
+              <item>
+               <widget class="QLabel" name="inlineArrayElementsLabel">
+                <property name="text">
+                 <string>Spell out arrays of up to</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSpinBox" name="inlineArrayElementsSpin">
+                <property name="toolTip">
+                 <string>A longer array is named by its type and length instead; its elements stay readable by expanding the row.</string>
+                </property>
+                <property name="minimum">
+                 <number>0</number>
+                </property>
+                <property name="maximum">
+                 <number>50</number>
+                </property>
+                <property name="value">
+                 <number>10</number>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="inlineArrayElementsSuffixLabel">
+                <property name="text">
+                 <string>elements in the value column</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="inlineArraySpacer">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="dataPageSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>16</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </widget>
        <widget class="QWidget" name="appearancePage">
         <layout class="QVBoxLayout" name="appearancePageLayout">
          <property name="spacing">
@@ -360,87 +572,6 @@
             </item>
             <item>
              <spacer name="languageSpacer">
-              <property name="orientation">
-               <enum>Qt::Orientation::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="timestampGroup">
-           <property name="title">
-            <string>Timestamps</string>
-           </property>
-           <layout class="QHBoxLayout" name="timestampGroupLayout">
-            <property name="bottomMargin">
-             <number>8</number>
-            </property>
-            <item>
-             <widget class="QLabel" name="timestampModeLabel">
-              <property name="text">
-               <string>Display OPC UA timestamps in:</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QComboBox" name="timestampModeCombo">
-              <item>
-               <property name="text">
-                <string>Local time</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>UTC</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-            <item>
-             <spacer name="timestampSpacer">
-              <property name="orientation">
-               <enum>Qt::Orientation::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="dataViewGroup">
-           <property name="title">
-            <string>Data View</string>
-           </property>
-           <layout class="QHBoxLayout" name="dataViewGroupLayout">
-            <property name="bottomMargin">
-             <number>8</number>
-            </property>
-            <item>
-             <widget class="QCheckBox" name="highlightChangesCheck">
-              <property name="toolTip">
-               <string>Briefly tints a value cell when its value changes. Individual rows can be excluded from the table's context menu.</string>
-              </property>
-              <property name="text">
-               <string>Highlight value changes</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="dataViewSpacer">
               <property name="orientation">
                <enum>Qt::Orientation::Horizontal</enum>
               </property>

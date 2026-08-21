@@ -106,6 +106,12 @@ public slots:
     ///
     void requestCallMethod(const OpcUaNodeInfo &object, const OpcUaNodeInfo &method);
 
+    ///
+    /// \brief Requests revealing a node in the address space.
+    /// \param nodeId Node to reveal.
+    ///
+    void requestShowInAddressSpace(const QString &nodeId);
+
 signals:
     ///
     /// \brief Emitted when a node becomes the current selection.
@@ -173,6 +179,12 @@ signals:
     /// \param method Method node to call.
     ///
     void callMethodRequested(OpcUaNodeInfo object, OpcUaNodeInfo method);
+
+    ///
+    /// \brief Emitted when a feature requests revealing a node in the address space.
+    /// \param nodeId Node to reveal.
+    ///
+    void showInAddressSpaceRequested(QString nodeId);
 
 private:
     OpcUaNodeInfo _currentNode;

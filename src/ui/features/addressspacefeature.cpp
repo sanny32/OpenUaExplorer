@@ -70,30 +70,37 @@ void AddressSpaceFeature::createDocks(FeatureHost &host)
 ///
 void AddressSpaceFeature::wireModules(FeatureHost &host)
 {
-    auto *addressSpaceModule = host.dataModules()->module<AddressSpaceModule>();
+    _addressSpaceModule = host.dataModules()->module<AddressSpaceModule>();
     auto *referenceModule = host.dataModules()->module<ReferenceModule>();
     auto *dataAccessModule = host.dataModules()->module<DataAccessModule>();
 
     QObject::connect(_widget, &AddressSpaceWidget::browseRequested,
-                     addressSpaceModule, &AddressSpaceModule::browse);
+                     _addressSpaceModule, &AddressSpaceModule::browse);
     QObject::connect(_widget, &AddressSpaceWidget::refreshRequested,
-                     addressSpaceModule, &AddressSpaceModule::refresh);
-    QObject::connect(addressSpaceModule, &AddressSpaceModule::childrenReady,
+                     _addressSpaceModule, &AddressSpaceModule::refresh);
+    QObject::connect(_addressSpaceModule, &AddressSpaceModule::childrenReady,
                      _widget, &AddressSpaceWidget::setBrowseChildren);
     QObject::connect(_widget, &AddressSpaceWidget::searchRequested,
-                     addressSpaceModule, &AddressSpaceModule::search);
+                     _addressSpaceModule, &AddressSpaceModule::search);
     QObject::connect(_widget, &AddressSpaceWidget::searchCancelRequested,
-                     addressSpaceModule, &AddressSpaceModule::cancelSearch);
-    QObject::connect(addressSpaceModule, &AddressSpaceModule::searchProgress,
+                     _addressSpaceModule, &AddressSpaceModule::cancelSearch);
+    QObject::connect(_addressSpaceModule, &AddressSpaceModule::searchProgress,
                      _widget, &AddressSpaceWidget::setSearchProgress);
-    QObject::connect(addressSpaceModule, &AddressSpaceModule::searchFinished,
+    QObject::connect(_addressSpaceModule, &AddressSpaceModule::searchFinished,
                      _widget, &AddressSpaceWidget::setSearchResult);
+    QObject::connect(_addressSpaceModule, &AddressSpaceModule::locationFinished, _widget,
+                     [this](const QStringList &ancestorNodeIds, const QString &nodeId,
+                            const QString &error) {
+        revealLocatedNode(ancestorNodeIds, nodeId, error);
+    });
     QObject::connect(_widget, &AddressSpaceWidget::referencesRequested,
                      referenceModule, &ReferenceModule::browseReferences);
     QObject::connect(referenceModule, &ReferenceModule::referencesReady,
                      _widget, &AddressSpaceWidget::setBrowseReferences);
     QObject::connect(_widget, &AddressSpaceWidget::nodeSelected,
                      host.selection(), &SelectionContext::selectNode);
+    QObject::connect(host.selection(), &SelectionContext::showInAddressSpaceRequested, _widget,
+                     [this](const QString &nodeId) { showInAddressSpace(nodeId); });
     QObject::connect(_widget, &AddressSpaceWidget::readHistoryRequested,
                      host.selection(), &SelectionContext::requestHistory);
     QObject::connect(_widget, &AddressSpaceWidget::monitorEventsRequested,
@@ -230,4 +237,36 @@ void AddressSpaceFeature::browseAddressSpace()
     root.nodeClass = OpcUa::Object;
     root.hasChildren = true;
     _widget->setRootNode(root);
+}
+
+///
+/// \brief Shows the address-space dock and reveals a node, locating its path when necessary.
+/// \param nodeId Node to reveal.
+///
+void AddressSpaceFeature::showInAddressSpace(const QString &nodeId)
+{
+    if (!_widget || !_addressDock || !_addressSpaceModule || nodeId.isEmpty())
+        return;
+    _addressDock->show();
+    _addressDock->raise();
+    if (_widget->revealNode(nodeId))
+        return;
+    if (_widget->selectedNode().nodeId.isEmpty())
+        browseAddressSpace();
+    _addressSpaceModule->locate(nodeId);
+}
+
+///
+/// \brief Applies the server-located path to the address-space tree.
+/// \param ancestorNodeIds Node ids from the root down to the target's parent.
+/// \param nodeId Located NodeId, empty when not found.
+/// \param error Lookup error, empty on success.
+///
+void AddressSpaceFeature::revealLocatedNode(const QStringList &ancestorNodeIds,
+                                            const QString &nodeId,
+                                            const QString &error)
+{
+    if (!_widget || !error.isEmpty() || nodeId.isEmpty())
+        return;
+    _widget->revealNode(ancestorNodeIds, nodeId);
 }

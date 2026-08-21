@@ -22,6 +22,10 @@
 
 class QMimeData;
 
+namespace OpcUaFormat {
+struct ValueElement;
+}
+
 ///
 /// \brief Tree model for OPC UA data access monitored items.
 ///
@@ -51,6 +55,13 @@ public:
     /// \param details Node details to add or update.
     ///
     void addOrUpdate(const OpcUaNodeDetails &details);
+
+    ///
+    /// \brief Applies a fresh attribute read to a listed row, leaving unlisted nodes out.
+    /// \param details Node details to apply.
+    /// \return True when a row for the node was found and updated.
+    ///
+    bool refreshItem(const OpcUaNodeDetails &details);
 
     ///
     /// \brief Appends a placeholder row for a node whose attributes are still being read.
@@ -309,6 +320,12 @@ public slots:
     ///
     void setDefaultHighlightChanges(bool enabled);
 
+    ///
+    /// \brief Sets how many array elements a value cell spells out and repaints the column.
+    /// \param elements Longest array still spelled out element by element.
+    ///
+    void setInlineArrayElements(int elements);
+
 public:
 
     ///
@@ -347,7 +364,12 @@ public:
         /// \brief Publishing interval in milliseconds, or 0 when the row is not monitored.
         ExpectedIntervalRole,
         /// \brief Resolved change-highlight preference of the row, as a bool.
-        HighlightChangesRole
+        HighlightChangesRole,
+        /// \brief Named values a writable enumeration cell offers, as OpcUaEnumEntries.
+        ///
+        /// Empty for every cell whose value is not one the user may pick a name for, which
+        /// is what tells the delegate to leave the cell to the write dialog.
+        EnumEntriesRole
     };
 
 private:
@@ -393,6 +415,8 @@ private:
     ValueNode *rootNode(int topRow) const;
     static int topRowOf(const ValueNode *node);
     DataAccessItem itemForNode(const ValueNode *node) const;
+    static QString elementText(const OpcUaFormat::ValueElement &element,
+                               const ValueNode *parent, const DataAccessItem &item);
     void buildChildren(ValueNode *node, const DataAccessItem &item) const;
     void refreshChildren(int topRow, qint64 changedAt);
     void updateNode(ValueNode *node, const QModelIndex &nodeIndex, const QVariant &value,
@@ -404,6 +428,7 @@ private:
     mutable std::vector<std::unique_ptr<ValueNode>> _roots;
     ColumnAlignmentStore _columnAlignments;
     AppSettings::TimestampMode _timestampMode;
+    int _inlineArrayElements;
     bool _offline = false;
     bool _defaultHighlightChanges = false;
 };

@@ -14,12 +14,14 @@
 #include <QDropEvent>
 #include <QHeaderView>
 #include <QItemSelectionModel>
+#include <QKeySequence>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMimeData>
 #include <QPushButton>
 #include <QSet>
 #include <QSortFilterProxyModel>
+#include <QStyle>
 
 #include "appicons.h"
 #include "appsettings.h"
@@ -29,6 +31,7 @@
 #include "dialogs/newsubscriptiondialog.h"
 #include "dialogs/textviewdialog.h"
 #include "fileexport.h"
+#include "formatters/attributeformatter.h"
 #include "headerview.h"
 #include "models/addressspacemimedata.h"
 #include "models/dataaccessmodel.h"
@@ -36,6 +39,7 @@
 #include "subscriptiondelegate.h"
 #include "subscriptionswidget.h"
 #include "tableviewconfig.h"
+#include "themedaction.h"
 #include "treetableview.h"
 #include "valuecelldelegate.h"
 #include "ui_dataaccesswidget.h"
@@ -166,6 +170,10 @@ void DataAccessWidget::changeEvent(QEvent *event)
     if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
         _dataModel->retranslate();
+        // The Remove action outlives the context menu it is shown in, so the generated
+        // retranslation does not reach it.
+        if (_removeAction)
+            _removeAction->setText(tr("Remove"));
     }
 }
 
@@ -176,6 +184,15 @@ void DataAccessWidget::changeEvent(QEvent *event)
 void DataAccessWidget::addNode(const OpcUaNodeDetails &details)
 {
     _dataModel->addOrUpdate(details);
+}
+
+///
+/// \brief Applies a fresh attribute read to a listed row, adding no row of its own.
+/// \param details Variable node details.
+///
+void DataAccessWidget::refreshNode(const OpcUaNodeDetails &details)
+{
+    _dataModel->refreshItem(details);
 }
 
 ///
@@ -375,6 +392,7 @@ void DataAccessWidget::saveViewState(AppSettings &settings) const
 void DataAccessWidget::restoreViewState(AppSettings &settings)
 {
     ui->dataView->headerView()->restoreLayout(settings.viewState(ui->dataView->objectName()));
+    updateNumberColumnWidth();
 }
 
 ///
@@ -393,6 +411,15 @@ void DataAccessWidget::setTimestampMode(AppSettings::TimestampMode mode)
 void DataAccessWidget::setHighlightValueChanges(bool enabled)
 {
     _dataModel->setDefaultHighlightChanges(enabled);
+}
+
+///
+/// \brief Sets how many array elements a value cell spells out before naming the array.
+/// \param elements Longest array still spelled out element by element.
+///
+void DataAccessWidget::setInlineArrayElements(int elements)
+{
+    _dataModel->setInlineArrayElements(elements);
 }
 
 ///
@@ -537,6 +564,8 @@ void DataAccessWidget::setupDataView()
     ui->dataView->setItemDelegateForColumn(DataAccessModel::ColStatus, _valueDelegate);
     connect(_valueDelegate, &ElidedTextDelegate::viewRequested,
             this, &DataAccessWidget::showValueCell);
+    connect(_valueDelegate, &ValueCellDelegate::enumValuePicked,
+            this, &DataAccessWidget::writeEnumValue);
     connect(_subscriptionDelegate, &SubscriptionDelegate::subscriptionChanged, this,
             [this](const QModelIndex &index, const QString &subscriptionName) {
                 const QString nodeId = _dataModel->itemAt(_filterProxy->mapToSource(index).row()).nodeId;
@@ -563,9 +592,22 @@ void DataAccessWidget::setupDataView()
     ui->dataView->installEventFilter(this);
     ui->dataView->viewport()->installEventFilter(this);
     ui->dataView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    // Removing, reading and subscribing all act on whole rows, so several may be picked at once.
+    ui->dataView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     ui->dataView->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
     connect(ui->dataView, &QAbstractItemView::doubleClicked,
             this, &DataAccessWidget::handleValueDoubleClick);
+
+    // The same action serves the Del key and the context menu, so both stay in step with
+    // the selection. The shortcut is the view's own: an open cell editor holds the focus
+    // and swallows Del as text editing, which is what the user means while typing.
+    _removeAction = new ThemedAction(QStringLiteral("remove"), tr("Remove"), this);
+    _removeAction->setObjectName(QStringLiteral("actionRemoveSelectedNodes"));
+    _removeAction->setShortcut(QKeySequence::Delete);
+    _removeAction->setShortcutContext(Qt::WidgetShortcut);
+    _removeAction->setEnabled(false);
+    connect(_removeAction, &QAction::triggered, this, &DataAccessWidget::removeSelectedNodes);
+    ui->dataView->addAction(_removeAction);
 
     // Composite values expand under their node: the expander sits in the NodeId column so the
     // row numbers stay flush, and a double click keeps writing instead of toggling the row.
@@ -593,11 +635,35 @@ void DataAccessWidget::setupDataView()
             _dataModel->setColumnAlignment(logicalIndex, alignment);
         });
 
+    connect(_filterProxy, &QAbstractItemModel::rowsInserted,
+            this, &DataAccessWidget::updateNumberColumnWidth);
+    connect(_filterProxy, &QAbstractItemModel::modelReset,
+            this, &DataAccessWidget::updateNumberColumnWidth);
+
     connect(ui->dataView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, [this] {
         updateSelectionActions();
         emit selectionChanged();
     });
+}
+
+///
+/// \brief Widens the row-number column enough for the largest visible number.
+///
+void DataAccessWidget::updateNumberColumnWidth()
+{
+    const int rowCount = _filterProxy->rowCount();
+    if (rowCount == 0)
+        return;
+
+    const QString number = QString::number(rowCount);
+    const int textMargin = ui->dataView->style()->pixelMetric(
+        QStyle::PM_FocusFrameHMargin, nullptr, ui->dataView) + 1;
+    const int requiredWidth = ui->dataView->fontMetrics().horizontalAdvance(number)
+        + textMargin * 2 + 16;
+    QHeaderView *header = ui->dataView->header();
+    if (header->sectionSize(DataAccessModel::ColNumber) < requiredWidth)
+        header->resizeSection(DataAccessModel::ColNumber, requiredWidth);
 }
 
 ///
@@ -609,6 +675,8 @@ void DataAccessWidget::updateSelectionActions()
     const bool hasSelection = selectedCount > 0 && !_offline;
     ui->addNodeButton->setEnabled(!_offline);
     ui->removeButton->setEnabled(hasSelection);
+    if (_removeAction)
+        _removeAction->setEnabled(hasSelection);
     ui->readButton->setEnabled(hasSelection);
     ui->writeButton->setEnabled(canWriteSelection() && !_offline);
     ui->subscribeButton->setEnabled(hasSelection);
@@ -655,7 +723,7 @@ void DataAccessWidget::configureToolbar()
 }
 
 ///
-/// \brief Shows the data-access context menu mirroring the toolbar actions.
+/// \brief Shows actions applicable to rows already listed in Data Access.
 /// \param pos Cursor position in the data view's viewport coordinates.
 ///
 void DataAccessWidget::showDataContextMenu(const QPoint &pos)
@@ -667,12 +735,21 @@ void DataAccessWidget::showDataContextMenu(const QPoint &pos)
     const bool hasSelection = selectedCount > 0;
 
     QMenu menu(this);
-    menu.addAction(AppIcons::themed(QStringLiteral("add")), tr("Add Node"),
-                   this, &DataAccessWidget::addSelectedNodeRequested);
+    if (!hasSelection) {
+        QAction *addAction = menu.addAction(AppIcons::themed(QStringLiteral("add")), tr("Add Node"),
+                                            this, &DataAccessWidget::addSelectedNodeRequested);
+        addAction->setObjectName(QStringLiteral("actionAddSelectedNode"));
+    } else {
+        // Only one node can be revealed at a time, so a multi-row selection leaves the
+        // entry visible but inactive rather than silently picking one of the rows.
+        QAction *showInAddressSpaceAction = menu.addAction(
+            tr("Show in Address Space"), this, &DataAccessWidget::showSelectedNodeInAddressSpace);
+        showInAddressSpaceAction->setObjectName(QStringLiteral("actionShowInAddressSpace"));
+        showInAddressSpaceAction->setEnabled(selectedDataRows().size() == 1);
+        menu.addSeparator();
+    }
 
-    QAction *removeAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Remove"),
-                                           this, &DataAccessWidget::removeSelectedNodes);
-    removeAction->setEnabled(hasSelection);
+    menu.addAction(_removeAction);
 
     QAction *removeAllAction = menu.addAction(AppIcons::themed(QStringLiteral("remove")), tr("Clear"),
                                               this, &DataAccessWidget::removeAllNodes);
@@ -707,7 +784,20 @@ void DataAccessWidget::showDataContextMenu(const QPoint &pos)
 }
 
 ///
-/// \brief Removes the selected data-access nodes, cancelling monitoring for subscribed ones.
+/// \brief Requests revealing the single selected node in the address space.
+///
+void DataAccessWidget::showSelectedNodeInAddressSpace()
+{
+    const QModelIndexList rows = selectedDataRows();
+    if (rows.size() == 1)
+        emit showInAddressSpaceRequested(_dataModel->itemAt(rows.first().row()).nodeId);
+}
+
+///
+/// \brief Removes every selected data-access node, cancelling monitoring for subscribed ones.
+///
+/// Several rows may be picked at once; each row selected through one of its array elements
+/// counts as the node it belongs to, so removing one twice is not possible.
 ///
 void DataAccessWidget::removeSelectedNodes()
 {
@@ -748,7 +838,8 @@ void DataAccessWidget::writeSelectedNode()
 void DataAccessWidget::requestWrite(const DataAccessItem &item)
 {
     emit writeRequested(item.nodeId, item.typedValue, item.valueType,
-                        item.dataTypeId, OpcUa::isWritable(item.userAccessLevel));
+                        item.dataTypeId, OpcUa::isWritable(item.userAccessLevel),
+                        item.enumEntries);
 }
 
 ///
@@ -786,6 +877,11 @@ void DataAccessWidget::handleValueDoubleClick(const QModelIndex &index)
     if (_offline || !index.isValid() || index.column() != DataAccessModel::ColValue)
         return;
 
+    // An enumeration cell opens its list of names on the same double click; the dialog
+    // would only cover the editor the view has just opened.
+    if (index.flags().testFlag(Qt::ItemIsEditable))
+        return;
+
     // Writing a single array element needs an IndexRange the write path does not carry.
     const QModelIndex source = _filterProxy->mapToSource(index);
     if (source.parent().isValid())
@@ -804,6 +900,53 @@ void DataAccessWidget::handleValueDoubleClick(const QModelIndex &index)
     }
 
     requestWrite(item);
+}
+
+///
+/// \brief Confirms and writes the enumeration value picked in a Value cell.
+/// \param index Edited cell, in the filter proxy.
+/// \param value Picked enumeration value.
+///
+/// The prompt waits for the editor to close: the delegate is still committing while this
+/// runs, and a notification arriving during a modal loop may take the editor with it.
+///
+void DataAccessWidget::writeEnumValue(const QModelIndex &index, int value)
+{
+    if (_offline || !index.isValid())
+        return;
+    const DataAccessItem item =
+        _dataModel->itemAt(_filterProxy->mapToSource(index).row());
+    if (item.nodeId.isEmpty() || item.typedValue.toInt() == value)
+        return;
+
+    QMetaObject::invokeMethod(this, [this, item, value] {
+        confirmEnumWrite(item, value);
+    }, Qt::QueuedConnection);
+}
+
+///
+/// \brief Confirms, then writes a picked enumeration value.
+/// \param item Row holding the enumeration.
+/// \param value Picked enumeration value.
+///
+/// Picking an entry writes as directly as a double click toggles a Boolean, so it is
+/// confirmed the same way; the prompt names the value the way the cell shows it.
+///
+void DataAccessWidget::confirmEnumWrite(const DataAccessItem &item, int value)
+{
+    if (_offline)
+        return;
+
+    const DialogButtonBox::StandardButton answer = MessageBoxDialog::question(
+        this, tr("Write Value"),
+        tr("Write %1 to %2?")
+            .arg(OpcUaFormat::enumDisplayValue(value, item.enumEntries),
+                 item.displayName.isEmpty() ? item.nodeId : item.displayName),
+        DialogButtonBox::Yes | DialogButtonBox::No, DialogButtonBox::Yes);
+    if (answer != DialogButtonBox::Yes)
+        return;
+
+    emit valueWriteRequested(item.nodeId, value, item.valueType);
 }
 
 ///

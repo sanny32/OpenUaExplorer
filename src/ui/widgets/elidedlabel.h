@@ -27,8 +27,24 @@ public:
     ///
     explicit ElidedLabel(QWidget *parent = nullptr);
 
+    ///
+    /// \brief Tells whether the text last painted did not fit the width the layout granted.
+    /// \return True when the painted text was cut short.
+    ///
+    bool isElided() const;
+
     QSize minimumSizeHint() const override;
+
+signals:
+    ///
+    /// \brief Emitted when the text starts or stops being cut short.
+    /// \param elided True when the text no longer fits.
+    ///
+    void elisionChanged(bool elided);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
+
+private:
+    bool _elided = false;
 };

@@ -218,7 +218,8 @@ void TestAddressSpaceModel::dragMimeIncludesNodesWithNodeId()
 }
 
 ///
-/// \brief FolderType objects use folder icons while other objects use node icons.
+/// \brief FolderType objects use folder icons, other objects use node icons and
+///        PropertyType variables use property icons.
 ///
 void TestAddressSpaceModel::iconTypesDistinguishFoldersAndObjects()
 {
@@ -253,13 +254,19 @@ void TestAddressSpaceModel::iconTypesDistinguishFoldersAndObjects()
     variable.displayName = QStringLiteral("Temperature");
     variable.nodeClass = OpcUa::Variable;
 
+    OpcUaNodeInfo property;
+    property.nodeId = QStringLiteral("ns=2;s=EngineeringUnits");
+    property.displayName = QStringLiteral("EngineeringUnits");
+    property.typeDefinitionId = QString::fromLatin1(StandardNodeId::PropertyType);
+    property.nodeClass = OpcUa::Variable;
+
     OpcUaNodeInfo method;
     method.nodeId = QStringLiteral("ns=2;s=Start");
     method.displayName = QStringLiteral("Start");
     method.nodeClass = OpcUa::Method;
 
     model.setChildren(makeRoot().nodeId,
-                      {folder, server, baseObject, unknownObject, variable, method});
+                      {folder, server, baseObject, unknownObject, variable, property, method});
 
     QVector<AddressSpaceItem::NodeType> iconTypes;
     model.setIconProvider([&iconTypes](AddressSpaceItem::NodeType type) {
@@ -279,6 +286,7 @@ void TestAddressSpaceModel::iconTypesDistinguishFoldersAndObjects()
         AddressSpaceItem::NodeType::Node,
         AddressSpaceItem::NodeType::Node,
         AddressSpaceItem::NodeType::Variable,
+        AddressSpaceItem::NodeType::Property,
         AddressSpaceItem::NodeType::Method,
     };
     QCOMPARE(iconTypes, expected);

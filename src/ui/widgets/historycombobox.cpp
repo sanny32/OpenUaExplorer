@@ -346,25 +346,27 @@ bool HistoryComboBox::eventFilter(QObject *watched, QEvent *event)
 ///
 /// \brief Binds the delegate and event filters to the current popup view.
 ///
-/// The view is recreated whenever the style changes it, so this is repeated on every
+/// The view is recreated whenever the style changes it, and a style may install its own
+/// popup delegate while polishing the combo box, so both bindings are checked on every
 /// popup rather than done once in the constructor.
 ///
 void HistoryComboBox::attachToView()
 {
     QAbstractItemView *itemView = view();
-    if (_view == itemView)
-        return;
+    if (_view != itemView) {
+        if (_view) {
+            _view->removeEventFilter(this);
+            _view->viewport()->removeEventFilter(this);
+        }
 
-    if (_view) {
-        _view->removeEventFilter(this);
-        _view->viewport()->removeEventFilter(this);
+        _view = itemView;
+        _view->setMouseTracking(true);
+        _view->installEventFilter(this);
+        _view->viewport()->installEventFilter(this);
     }
 
-    _view = itemView;
-    _view->setItemDelegate(_delegate);
-    _view->setMouseTracking(true);
-    _view->installEventFilter(this);
-    _view->viewport()->installEventFilter(this);
+    if (_view->itemDelegate() != _delegate)
+        _view->setItemDelegate(_delegate);
 }
 
 ///

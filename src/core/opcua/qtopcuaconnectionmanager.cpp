@@ -408,6 +408,7 @@ void QtOpcUaConnectionManager::handleStructHandlerInitialized(bool initialized)
         return;
     }
     QtOpcUaTypeMapper::allowAbstractEnumerationFields(_structHandler);
+    QtOpcUaTypeMapper::allowStandardDiagnosticScalarAliases(_structHandler);
     qCInfo(lcClient) << "The server's type definitions are ready; custom structures decode now.";
     emit structuresDecodable();
 }

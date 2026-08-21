@@ -22,6 +22,8 @@ private slots:
     void draggedRowsFollowTheFilteredRowsTheyLandOn();
     void rowDroppedOnTheDataViewLandsWhereTheIndicatorPointed();
     void pendingRowsAreExcludedFromSelectionActions();
+    void deleteKeyRemovesEverySelectedRow();
+    void removeButtonDropsEverySelectedRow();
     void confirmedClearRemovesEveryNode();
     void declinedClearKeepsEveryNode();
     void clearOfEmptyTableAsksNothing();
@@ -187,6 +189,85 @@ void TestDataAccessWidgetRows::pendingRowsAreExcludedFromSelectionActions()
     widget.clearNodePending(makeDroppedNode(OpcUa::Variable).nodeId);
     widget.applySubscriptionToSelection(QStringLiteral("Default"));
     QCOMPARE(monitoringSpy.size(), 1);
+}
+
+///
+/// \brief Builds three restorable rows, the first two of them subscribed.
+/// \return Saved-node records for the multi-selection tests.
+///
+QVector<SessionNode> makeThreeSavedNodes()
+{
+    return {
+        {QStringLiteral("ns=2;s=First"), QStringLiteral("Default"), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=Second"), QStringLiteral("Default"), HighlightMode::FollowDefault},
+        {QStringLiteral("ns=2;s=Third"), QString(), HighlightMode::FollowDefault}
+    };
+}
+
+///
+/// \brief Selects the leading rows of the data view.
+/// \param view Data view to select in.
+/// \param count Number of rows to select from the top.
+///
+void selectLeadingRows(QTreeView *view, int count)
+{
+    QAbstractItemModel *model = view->model();
+    const QItemSelection selection(model->index(0, 0),
+                                   model->index(count - 1, model->columnCount() - 1));
+    view->selectionModel()->select(selection,
+                                   QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+}
+
+///
+/// \brief Del on the data view drops every selected row and stops their monitoring.
+///
+void TestDataAccessWidgetRows::deleteKeyRemovesEverySelectedRow()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    QCOMPARE(view->selectionMode(), QAbstractItemView::ExtendedSelection);
+
+    widget.restoreMonitoredNodes(makeThreeSavedNodes());
+    widget.resize(900, 200);
+    widget.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&widget));
+    view->setFocus();
+
+    selectLeadingRows(view, 2);
+
+    QSignalSpy cancelSpy(&widget, &DataAccessWidget::monitoringCancelled);
+    QTest::keyClick(view, Qt::Key_Delete);
+
+    const QVector<SessionNode> remaining = widget.monitoredNodes();
+    QCOMPARE(remaining.size(), 1);
+    QCOMPARE(remaining.first().nodeId, QStringLiteral("ns=2;s=Third"));
+    // Only the two subscribed rows had monitoring to cancel.
+    QCOMPARE(cancelSpy.size(), 2);
+}
+
+///
+/// \brief The toolbar Remove button drops every selected row and follows the selection.
+///
+void TestDataAccessWidgetRows::removeButtonDropsEverySelectedRow()
+{
+    DataAccessWidget widget;
+    auto *view = widget.findChild<QTreeView *>(QStringLiteral("dataView"));
+    QVERIFY(view);
+    auto *removeButton = widget.findChild<QAbstractButton *>(QStringLiteral("removeButton"));
+    QVERIFY(removeButton);
+
+    widget.restoreMonitoredNodes(makeThreeSavedNodes());
+    QVERIFY(!removeButton->isEnabled());
+
+    selectLeadingRows(view, 2);
+    QVERIFY(removeButton->isEnabled());
+    removeButton->click();
+
+    const QVector<SessionNode> remaining = widget.monitoredNodes();
+    QCOMPARE(remaining.size(), 1);
+    QCOMPARE(remaining.first().nodeId, QStringLiteral("ns=2;s=Third"));
+    QVERIFY(!removeButton->isEnabled());
 }
 
 ///

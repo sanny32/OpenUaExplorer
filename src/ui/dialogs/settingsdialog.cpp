@@ -83,6 +83,12 @@ SettingsDialog::SettingsDialog(QWidget *parent)
             this, &SettingsDialog::markDirty);
     connect(ui->highlightChangesCheck, &QAbstractButton::toggled,
             this, &SettingsDialog::markDirty);
+    connect(ui->recursiveFolderDropCheck, &QAbstractButton::toggled,
+            this, &SettingsDialog::markDirty);
+    connect(ui->folderDropMaxNodesSpin, &QSpinBox::valueChanged,
+            this, &SettingsDialog::markDirty);
+    connect(ui->inlineArrayElementsSpin, &QSpinBox::valueChanged,
+            this, &SettingsDialog::markDirty);
     connect(ui->debugLoggingCheck, &QAbstractButton::toggled,
             this, &SettingsDialog::markDirty);
     connect(ui->maxLogRowsSpin, &QSpinBox::valueChanged,
@@ -165,7 +171,7 @@ void SettingsDialog::populateLogCategoryLayout(
 ///
 void SettingsDialog::applyCategoryIcons()
 {
-    static const char *const categoryIcons[] = {"settings", "palette", "logs"};
+    static const char *const categoryIcons[] = {"settings", "table", "palette", "logs"};
     const int count = qMin(ui->categoryList->count(), int(std::size(categoryIcons)));
     for (int row = 0; row < count; ++row)
         ui->categoryList->item(row)->setIcon(AppIcons::selectableThemed(QLatin1String(categoryIcons[row])));
@@ -186,6 +192,13 @@ void SettingsDialog::loadSettings()
     ui->reconnectIntervalLabel->setEnabled(ui->reconnectCheck->isChecked());
     ui->reconnectIntervalSpin->setEnabled(ui->reconnectCheck->isChecked());
     ui->highlightChangesCheck->setChecked(settings.highlightValueChanges());
+    ui->recursiveFolderDropCheck->setChecked(settings.recursiveFolderDrop());
+    ui->folderDropMaxNodesSpin->setRange(AppSettings::minFolderDropMaxNodes,
+                                         AppSettings::maxFolderDropMaxNodes);
+    ui->folderDropMaxNodesSpin->setValue(settings.folderDropMaxNodes());
+    ui->inlineArrayElementsSpin->setRange(AppSettings::minInlineArrayElements,
+                                          AppSettings::maxInlineArrayElements);
+    ui->inlineArrayElementsSpin->setValue(settings.inlineArrayElements());
 
     ui->debugLoggingCheck->setChecked(settings.debugLoggingEnabled());
     ui->maxLogRowsSpin->setRange(AppSettings::minMaxLogRows, AppSettings::maxMaxLogRows);
@@ -213,6 +226,8 @@ void SettingsDialog::applyChanges()
     settings.setRestoreLastSessionOnStartup(ui->restoreLastSessionCheck->isChecked());
     settings.setReconnectEnabled(ui->reconnectCheck->isChecked());
     settings.setReconnectIntervalSeconds(ui->reconnectIntervalSpin->value());
+    settings.setRecursiveFolderDrop(ui->recursiveFolderDropCheck->isChecked());
+    settings.setFolderDropMaxNodes(ui->folderDropMaxNodesSpin->value());
 
     if (_layoutResetRequested)
         settings.clearLayout();
@@ -222,6 +237,7 @@ void SettingsDialog::applyChanges()
 
     theApp()->setTimestampMode(selectedTimestampMode());
     theApp()->setHighlightValueChanges(ui->highlightChangesCheck->isChecked());
+    theApp()->setInlineArrayElements(ui->inlineArrayElementsSpin->value());
     theApp()->setMaxLogRows(ui->maxLogRowsSpin->value());
     theApp()->setLanguage(selectedLanguage());
 
