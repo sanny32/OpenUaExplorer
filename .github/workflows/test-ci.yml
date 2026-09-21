@@ -110,6 +110,30 @@ jobs:
         if: runner.os != 'Linux'
         run: cmake --build build --config Release --parallel --target ouaexp ouaexp_check
 
+      # Reproduces issue #12: a host Qt that ships its own Qt OpcUa must not shadow the patched
+      # bundled headers. The Qt installed here has no Qt OpcUa, so the collision is staged with a
+      # decoy header; reconfiguring is enough, because the check in qtopcua.cmake compiles and
+      # links the patched API through the real Qt6::OpcUa interface.
+      - name: Check patched Qt OpcUa headers win over a host Qt OpcUa
+        if: runner.os == 'Linux'
+        run: |
+          set -eo pipefail
+          qt_dir=$(sed -n 's/^Qt6_DIR:PATH=//p' build/CMakeCache.txt)
+          qt_include=$(dirname "$(dirname "$(dirname "$qt_dir")")")/include
+          test -d "$qt_include/QtCore"
+          decoy="$qt_include/QtOpcUa"
+          trap 'rm -rf "$decoy"' EXIT
+          mkdir -p "$decoy"
+          cat > "$decoy/qopcuaconnectionsettings.h" <<'EOF'
+          #ifndef QOPCUACONNECTIONSETTINGS_H
+          #define QOPCUACONNECTIONSETTINGS_H
+          class QOpcUaConnectionSettings {};
+          #endif
+          EOF
+          cmake -S src -B build -G Ninja 2>&1 | tee configure.log
+          grep -q "Host Qt ships Qt OpcUa headers in $qt_include" configure.log
+          rm -f configure.log
+
   coverage:
     name: Coverage (${{ matrix.os }}, Qt ${{ matrix.qt }})
     runs-on: ${{ matrix.os }}

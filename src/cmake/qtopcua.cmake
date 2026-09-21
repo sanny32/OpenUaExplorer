@@ -139,6 +139,63 @@ function(ouaexp_patch_qtopcua source_dir)
     endforeach()
 endfunction()
 
+# Host Qt installations that ship their own Qt OpcUa (MSYS2, distribution packages) put its
+# headers next to QtCore, so <QtOpcUa/...> resolves to the unpatched tree unless the bundled one
+# is searched first -- issue #12.
+function(ouaexp_find_conflicting_qtopcua_headers out_var)
+    set(${out_var} "" PARENT_SCOPE)
+    get_target_property(core_dirs Qt${QT_VERSION_MAJOR}::Core INTERFACE_INCLUDE_DIRECTORIES)
+    foreach(dir IN LISTS core_dirs)
+        if(EXISTS "${dir}/QtOpcUa/qopcuaconnectionsettings.h")
+            set(${out_var} "${dir}" PARENT_SCOPE)
+            return()
+        endif()
+    endforeach()
+endfunction()
+
+# Gives the bundled patched headers precedence, then makes the compiler prove it picked them:
+# a wrong pick surfaces much later as a missing QOpcUaConnectionSettings member.
+function(ouaexp_use_bundled_qtopcua_headers)
+    get_target_property(opcua_dirs Qt${QT_VERSION_MAJOR}::OpcUa INTERFACE_INCLUDE_DIRECTORIES)
+    if(NOT opcua_dirs)
+        return()
+    endif()
+    include_directories(BEFORE SYSTEM ${opcua_dirs})
+
+    ouaexp_find_conflicting_qtopcua_headers(conflicting_root)
+    if(NOT conflicting_root)
+        return()
+    endif()
+    message(STATUS
+        "Host Qt ships Qt OpcUa headers in ${conflicting_root}; "
+        "preferring the patched bundled headers")
+
+    include(CheckCXXSourceCompiles)
+    # The result must not be cached: a stale failure would keep failing after the environment is
+    # repaired, and the check only runs when a competing header tree exists.
+    unset(OUAEXP_QTOPCUA_HEADERS_PATCHED CACHE)
+    set(CMAKE_REQUIRED_INCLUDES ${opcua_dirs})
+    # Qt6::Core first, as ouaexp_configure_qt_target links it: that is the order which puts the
+    # host Qt include root ahead of the bundled one.
+    set(CMAKE_REQUIRED_LIBRARIES
+        Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::OpcUa)
+    set(CMAKE_REQUIRED_QUIET TRUE)
+    check_cxx_source_compiles("
+        #include <QtCore/qstring.h>
+        #include <QtOpcUa/qopcuaconnectionsettings.h>
+        int main() {
+            QOpcUaConnectionSettings settings;
+            settings.setSessionName(QStringLiteral(\"ouaexp\"));
+            return 0;
+        }" OUAEXP_QTOPCUA_HEADERS_PATCHED)
+    if(NOT OUAEXP_QTOPCUA_HEADERS_PATCHED)
+        message(FATAL_ERROR
+            "The build resolves QtOpcUa headers to ${conflicting_root} instead of the patched "
+            "bundled ones in ${QTOPCUA_INSTALL_DIR}. Remove the Qt OpcUa package from the host "
+            "Qt installation, or build against a Qt that does not ship it.")
+    endif()
+endfunction()
+
 ouaexp_patch_qtopcua("${QTOPCUA_SOURCE_DIR}")
 if(OUAEXP_QTOPCUA_PATCHED AND EXISTS "${QTOPCUA_INSTALL_DIR}")
     message(STATUS "Qt OpcUa sources were patched; rebuilding the bundled backend")
@@ -146,10 +203,18 @@ if(OUAEXP_QTOPCUA_PATCHED AND EXISTS "${QTOPCUA_INSTALL_DIR}")
     unset(Qt6OpcUa_DIR CACHE)
 endif()
 
-find_package(Qt6OpcUa CONFIG QUIET)
+ouaexp_find_qtopcua_config(QTOPCUA_CONFIG_FILE)
+if(QTOPCUA_CONFIG_FILE)
+    get_filename_component(QTOPCUA_CONFIG_DIR "${QTOPCUA_CONFIG_FILE}" DIRECTORY)
+    find_package(Qt6OpcUa CONFIG QUIET
+        PATHS "${QTOPCUA_CONFIG_DIR}" NO_DEFAULT_PATH)
+endif()
 
 if(TARGET Qt6::OpcUa)
+    set(Qt6OpcUa_DIR "${QTOPCUA_CONFIG_DIR}"
+        CACHE PATH "Directory containing Qt6OpcUaConfig.cmake" FORCE)
     ouaexp_detect_open62541_version("${QTOPCUA_SOURCE_DIR}")
+    ouaexp_use_bundled_qtopcua_headers()
     return()
 endif()
 
@@ -259,7 +324,14 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
 endif()
 
 ouaexp_find_qtopcua_config(QTOPCUA_CONFIG_FILE)
+if(NOT QTOPCUA_CONFIG_FILE)
+    message(FATAL_ERROR
+        "The bundled Qt OpcUa was built but no Qt6OpcUaConfig.cmake was installed under "
+        "${QTOPCUA_INSTALL_DIR}.")
+endif()
 get_filename_component(QTOPCUA_CONFIG_DIR "${QTOPCUA_CONFIG_FILE}" DIRECTORY)
 set(Qt6OpcUa_DIR "${QTOPCUA_CONFIG_DIR}"
     CACHE PATH "Directory containing Qt6OpcUaConfig.cmake" FORCE)
-find_package(Qt6OpcUa CONFIG REQUIRED)
+find_package(Qt6OpcUa CONFIG REQUIRED
+    PATHS "${QTOPCUA_CONFIG_DIR}" NO_DEFAULT_PATH)
+ouaexp_use_bundled_qtopcua_headers()
