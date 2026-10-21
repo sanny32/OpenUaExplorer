@@ -241,6 +241,9 @@ void Application::loadTranslatorsFor(AppSettings::Language language)
         break;
     }
 
+    // Locale-formatted text such as image byte counts must follow the UI language, not the OS.
+    QLocale::setDefault(locale);
+
     if (locale.language() == QLocale::English)
         return;
 

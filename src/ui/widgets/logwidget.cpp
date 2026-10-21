@@ -120,13 +120,13 @@ LogWidget::LogWidget(QWidget *parent)
     _searchIconAction = new ThemedAction(QStringLiteral("search"), QString(), this);
     ui->searchEdit->addAction(_searchIconAction, QLineEdit::LeadingPosition);
 
-    _copyAction = new ThemedAction(QStringLiteral("copy"), tr("Copy"), this);
+    _copyAction = new ThemedAction(QStringLiteral("copy"), QString(), this);
     _copyAction->setShortcut(QKeySequence::Copy);
     _copyAction->setShortcutContext(Qt::WidgetShortcut);
     connect(_copyAction, &QAction::triggered, this, &LogWidget::copySelection);
     ui->logTable->addAction(_copyAction);
 
-    _copyAllAction = new ThemedAction(QStringLiteral("copy"), tr("Copy All"), this);
+    _copyAllAction = new ThemedAction(QStringLiteral("copy"), QString(), this);
     connect(_copyAllAction, &QAction::triggered, this, &LogWidget::copyAll);
     ui->logTable->addAction(_copyAllAction);
 
@@ -135,6 +135,7 @@ LogWidget::LogWidget(QWidget *parent)
             this, &LogWidget::showContextMenu);
 
     refreshIcons();
+    retranslateCodeTexts();
 
     s_instance = this;
     s_prevHandler = qInstallMessageHandler(appMessageHandler);
@@ -153,11 +154,7 @@ LogWidget::LogWidget(QWidget *parent)
         exportLog();
     });
 
-    connect(ui->pauseButton, &QPushButton::toggled, this, [this](bool checked) {
-        _paused = checked;
-        ui->pauseButton->setIcon(checked ? QStringLiteral("resume") : QStringLiteral("pause"));
-        ui->pauseButton->setText(checked ? tr("Resume") : tr("Pause"));
-    });
+    connect(ui->pauseButton, &QPushButton::toggled, this, &LogWidget::setPaused);
 
     connect(ui->levelCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this](int index) {
@@ -261,7 +258,38 @@ void LogWidget::changeEvent(QEvent *event)
     } else if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
         _model->retranslate();
+        retranslateCodeTexts();
     }
+}
+
+///
+/// \brief Re-applies the texts set from code, which the generated retranslation resets.
+///
+void LogWidget::retranslateCodeTexts()
+{
+    _copyAction->setText(tr("Copy"));
+    _copyAllAction->setText(tr("Copy All"));
+    updatePauseButton();
+}
+
+///
+/// \brief Stops or resumes appending new log entries.
+/// \param paused True to hold new entries back.
+///
+void LogWidget::setPaused(bool paused)
+{
+    _paused = paused;
+    updatePauseButton();
+}
+
+///
+/// \brief Labels the pause button with the action it would take next.
+///
+void LogWidget::updatePauseButton()
+{
+    const bool paused = ui->pauseButton->isChecked();
+    ui->pauseButton->setIcon(paused ? QStringLiteral("resume") : QStringLiteral("pause"));
+    ui->pauseButton->setText(paused ? tr("Resume") : tr("Pause"));
 }
 
 ///
@@ -297,8 +325,7 @@ void LogWidget::setupLogView()
 ///
 void LogWidget::refreshIcons()
 {
-    const bool paused = ui->pauseButton->isChecked();
-    ui->pauseButton->setIcon(paused ? QStringLiteral("resume") : QStringLiteral("pause"));
+    updatePauseButton();
     ui->clearButton->setIcon(QStringLiteral("trash"));
     ui->exportButton->setIcon(QStringLiteral("export"));
 }

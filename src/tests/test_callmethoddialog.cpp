@@ -8,12 +8,18 @@
 
 #include <QAbstractItemModel>
 #include <QLabel>
+#include <QPushButton>
 #include <QTableView>
 #include <QTest>
 
 #include "dialogs/callmethoddialog.h"
 #include "opcua/opcuabackend.h"
 #include "opcua/qtopcuabackend.h"
+#include "suffixtranslator.h"
+#include "widgets/dialogbuttonbox.h"
+
+using TestTranslation::SuffixTranslator;
+using TestTranslation::switchLanguage;
 
 ///
 /// \brief Tests CallMethodDialog table layout and targeting.
@@ -26,6 +32,7 @@ private slots:
     void tablesHaveArgumentColumns();
     void windowTitleShowsMethodAndObject();
     void missingConnectionEnablesCall();
+    void languageChangeKeepsTitleAndCallButton();
 };
 
 void TestCallMethodDialog::tablesHaveArgumentColumns()
@@ -78,6 +85,41 @@ void TestCallMethodDialog::missingConnectionEnablesCall()
     auto *resultLabel = dialog.findChild<QLabel *>(QStringLiteral("resultLabel"));
     QVERIFY(resultLabel);
     QVERIFY(!resultLabel->text().isEmpty());
+}
+
+///
+/// \brief The generated retranslation must not reset the method title or the Call button.
+///
+void TestCallMethodDialog::languageChangeKeepsTitleAndCallButton()
+{
+    QtOpcUaBackend service;
+    CallMethodDialog dialog(&service);
+
+    OpcUaNodeInfo object;
+    object.displayName = QStringLiteral("MyDevice");
+    OpcUaNodeInfo method;
+    method.displayName = QStringLiteral("MyMethod");
+    method.nodeId = QStringLiteral("ns=2;s=MyMethod");
+    method.nodeClass = OpcUa::Method;
+    dialog.setTarget(object, method);
+
+    auto *buttonBox = dialog.findChild<DialogButtonBox *>(QStringLiteral("buttonBox"));
+    QVERIFY(buttonBox);
+    QPushButton *callButton = buttonBox->button(QDialogButtonBox::Apply);
+    QVERIFY(callButton);
+    auto *inputTable = dialog.findChild<QTableView *>(QStringLiteral("inputTable"));
+    QVERIFY(inputTable);
+
+    SuffixTranslator translator;
+    switchLanguage(&translator, true);
+    QCOMPARE(dialog.windowTitle(), QStringLiteral("Call MyMethod on MyDevice-xx"));
+    QCOMPARE(callButton->text(), QStringLiteral("Call-xx"));
+    QCOMPARE(inputTable->model()->headerData(0, Qt::Horizontal).toString(),
+             QStringLiteral("Name-xx"));
+
+    switchLanguage(&translator, false);
+    QCOMPARE(dialog.windowTitle(), QStringLiteral("Call MyMethod on MyDevice"));
+    QCOMPARE(callButton->text(), QStringLiteral("Call"));
 }
 
 QTEST_MAIN(TestCallMethodDialog)

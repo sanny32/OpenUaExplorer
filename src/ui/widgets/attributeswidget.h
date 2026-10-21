@@ -93,6 +93,7 @@ protected:
 
 private:
     void setupAttributesView();
+    void retranslateCodeTexts();
     void copySelectedAttributeCell();
     void copyAttributeTree();
     void showAttributesContextMenu(const QPoint &pos);

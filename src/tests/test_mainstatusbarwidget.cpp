@@ -12,6 +12,7 @@
 #include <QTest>
 
 #include "mainstatusbarwidget.h"
+#include "suffixtranslator.h"
 #include "widgets/elidedlabel.h"
 #include "opcua/connectioncontroller.h"
 #include "opcua/connectionprofilestore.h"
@@ -68,6 +69,7 @@ private slots:
     void clockWidthsFollowFontChanges();
     void lostConnectionKeepsTheSessionParameters();
     void fieldsElideOnlyWhenTheBarRunsOut();
+    void fieldTooltipsFollowTheLanguage();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -236,6 +238,29 @@ void TestMainStatusBarWidget::fieldsElideOnlyWhenTheBarRunsOut()
     QVERIFY(connectionLabel->isElided());
     QCOMPARE(connectionLabel->text(), profile.endpointUrl);
     QVERIFY(connectionLabel->toolTip().contains(profile.endpointUrl));
+}
+
+///
+/// \brief The category tooltips of the fields are rewritten in the new language.
+///
+void TestMainStatusBarWidget::fieldTooltipsFollowTheLanguage()
+{
+    MainStatusBarWidget widget;
+    auto *connectionIcon = widget.findChild<QWidget *>(QStringLiteral("statusIconLabel"));
+    auto *connectionLabel = widget.findChild<ElidedLabel *>(QStringLiteral("connectionLabel"));
+    auto *localLabel = widget.findChild<QLabel *>(QStringLiteral("localTimeLabel"));
+    QVERIFY(connectionIcon);
+    QVERIFY(connectionLabel);
+    QVERIFY(localLabel);
+
+    TestTranslation::SuffixTranslator translator({"MainStatusBarWidget"});
+    TestTranslation::switchLanguage(&translator, true);
+    QCOMPARE(connectionIcon->toolTip(), QStringLiteral("Connection-xx"));
+    QCOMPARE(connectionLabel->toolTip(), QStringLiteral("Connection-xx"));
+    QCOMPARE(localLabel->toolTip(), QStringLiteral("Local time-xx"));
+
+    TestTranslation::switchLanguage(&translator, false);
+    QCOMPARE(connectionIcon->toolTip(), QStringLiteral("Connection"));
 }
 
 QTEST_MAIN(TestMainStatusBarWidget)

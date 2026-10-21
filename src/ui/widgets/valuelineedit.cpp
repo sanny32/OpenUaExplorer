@@ -6,6 +6,8 @@
 /// \brief Implements a line edit with a reset-to-default action.
 ///
 
+#include <QEvent>
+
 #include "valuelineedit.h"
 #include "themedaction.h"
 
@@ -17,7 +19,7 @@ ValueLineEdit::ValueLineEdit(QWidget *parent)
     : QLineEdit(parent)
     , _resetAction(new ThemedAction(QStringLiteral("clear"), QString(), this))
 {
-    _resetAction->setToolTip(tr("Reset to default value"));
+    applyResetToolTip();
     addAction(_resetAction, QLineEdit::TrailingPosition);
 
     connect(_resetAction, &QAction::triggered, this, [this] {
@@ -49,12 +51,30 @@ void ValueLineEdit::setDefaultValue(const QString &value)
 }
 
 ///
-/// \brief Sets the tooltip shown for the reset action.
-/// \param toolTip Tooltip text.
+/// \brief Re-applies the reset action's tooltip after a language change.
+/// \param event Change event being handled.
 ///
-void ValueLineEdit::setResetToolTip(const QString &toolTip)
+void ValueLineEdit::changeEvent(QEvent *event)
 {
-    _resetAction->setToolTip(toolTip);
+    QLineEdit::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange)
+        applyResetToolTip();
+}
+
+///
+/// \brief Returns the tooltip of the reset action in the current language.
+///
+QString ValueLineEdit::resetToolTip() const
+{
+    return tr("Reset to default value");
+}
+
+///
+/// \brief Puts the subclass's reset tooltip on the reset action.
+///
+void ValueLineEdit::applyResetToolTip()
+{
+    _resetAction->setToolTip(resetToolTip());
 }
 
 ///

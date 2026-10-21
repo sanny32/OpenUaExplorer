@@ -64,8 +64,7 @@ TrendPanelWidget::TrendPanelWidget(QWidget *parent)
     _collapseButton->setObjectName(QStringLiteral("collapseButton"));
     _collapseButton->setSquareIconOnly(true);
     _collapseButton->setAutoRaise(true);
-    _collapseButton->setIcon(QStringLiteral("chevron-down"));
-    _collapseButton->setToolTip(tr("Collapse trend panel"));
+    updateCollapseButton();
     ui->trendTabs->installEventFilter(this);
     connect(_collapseButton, &QAbstractButton::clicked, this,
             [this]() { setCollapsed(!_collapsed); });
@@ -101,8 +100,10 @@ TrendPanelWidget::~TrendPanelWidget()
 void TrendPanelWidget::changeEvent(QEvent *event)
 {
     QWidget::changeEvent(event);
-    if (event->type() == QEvent::LanguageChange)
+    if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
+        updateCollapseButton();
+    }
 }
 
 ///
@@ -483,6 +484,14 @@ void TrendPanelWidget::setCollapsed(bool collapsed)
         setMaximumHeight(QWIDGETSIZE_MAX);
     }
 
+    updateCollapseButton();
+}
+
+///
+/// \brief Shows the collapse button's icon and tooltip for the action it would take next.
+///
+void TrendPanelWidget::updateCollapseButton()
+{
     _collapseButton->setIcon(_collapsed ? QStringLiteral("chevron-up")
                                         : QStringLiteral("chevron-down"));
     _collapseButton->setToolTip(_collapsed ? tr("Expand trend panel")

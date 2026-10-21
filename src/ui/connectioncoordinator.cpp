@@ -409,6 +409,14 @@ void ConnectionCoordinator::connectRecentProfile()
 }
 
 ///
+/// \brief Rebuilds the Recent Connections menu in the new UI language.
+///
+void ConnectionCoordinator::retranslate()
+{
+    rebuildRecentMenu();
+}
+
+///
 /// \brief Rebuilds the Recent Connections menu from the recent-connection history.
 ///
 void ConnectionCoordinator::rebuildRecentMenu()

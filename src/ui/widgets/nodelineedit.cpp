@@ -25,7 +25,7 @@ NodeLineEdit::NodeLineEdit(QWidget *parent)
     : ValueLineEdit(parent)
 {
     setAcceptDrops(true);
-    setResetToolTip(tr("Clear node"));
+    applyResetToolTip();
     connect(this, &QLineEdit::textChanged, this, [this](const QString &text) {
         if (text.isEmpty() && hasNode()) {
             emit nodeCleared();
@@ -121,6 +121,14 @@ void NodeLineEdit::clearNode()
 void NodeLineEdit::setNodeAcceptor(NodeAcceptor acceptor)
 {
     _acceptNode = std::move(acceptor);
+}
+
+///
+/// \brief Returns the tooltip of the clear action in the current language.
+///
+QString NodeLineEdit::resetToolTip() const
+{
+    return tr("Clear node");
 }
 
 ///

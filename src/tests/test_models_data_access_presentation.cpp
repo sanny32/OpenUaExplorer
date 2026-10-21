@@ -12,8 +12,10 @@
 #include <QColor>
 #include <QDateTime>
 #include <QFont>
+#include <QLocale>
 #include <QMimeData>
 #include <QPalette>
+#include <QScopeGuard>
 #include <QScopedPointer>
 #include <QSignalSpy>
 #include <QStandardItemModel>
@@ -56,6 +58,7 @@ private slots:
     void dataAccessValueCellFollowsTheInlineArrayPreference();
     void dataAccessTimestampModeReformats();
     void dataAccessSummarisesImagesAndOffersTheirBytes();
+    void dataAccessImageSummaryFollowsTheLanguage();
     void dataAccessOfflineGreysRowsAndLocksEditing();
 };
 
@@ -437,6 +440,42 @@ void TestModelsDataAccessPresentation::dataAccessSummarisesImagesAndOffersTheirB
     const QModelIndex bytes = model.index(1, DataAccessModel::ColValue);
     QCOMPARE(model.data(bytes).toString(), QString::fromLatin1(png.toHex(' ')));
     QVERIFY(model.data(bytes, ValueRoles::ImageDataRole).isNull());
+}
+
+///
+/// \brief A language switch repaints the image summary with the byte count of the new locale.
+///
+void TestModelsDataAccessPresentation::dataAccessImageSummaryFollowsTheLanguage()
+{
+    const QLocale previous;
+    const auto restore = qScopeGuard([&previous] { QLocale::setDefault(previous); });
+
+    const QByteArray png = encodedPng(QSize(6, 4));
+    QVERIFY(!png.isEmpty());
+
+    DataAccessModel model;
+    OpcUaNodeDetails details;
+    details.nodeId = QStringLiteral("ns=5;s=ImagePNG");
+    details.dataTypeId = QStringLiteral("ns=0;i=2003");
+    details.value = png;
+    model.addOrUpdate(details);
+
+    const QModelIndex value = model.index(0, DataAccessModel::ColValue);
+    const QLocale russian(QLocale::Russian);
+    const QLocale english(QLocale::English);
+    QVERIFY(russian.formattedDataSize(png.size()) != english.formattedDataSize(png.size()));
+
+    QLocale::setDefault(russian);
+    QVERIFY2(model.data(value).toString().contains(russian.formattedDataSize(png.size())),
+             qPrintable(model.data(value).toString()));
+
+    QLocale::setDefault(english);
+    QSignalSpy changeSpy(&model, &QAbstractItemModel::dataChanged);
+    model.retranslate();
+    QCOMPARE(changeSpy.size(), 1);
+    QCOMPARE(changeSpy.at(0).at(0).toModelIndex(), value);
+    QVERIFY2(model.data(value).toString().contains(english.formattedDataSize(png.size())),
+             qPrintable(model.data(value).toString()));
 }
 
 ///

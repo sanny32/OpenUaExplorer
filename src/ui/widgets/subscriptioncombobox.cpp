@@ -6,6 +6,7 @@
 /// \brief Implements the subscription selection combo box.
 ///
 
+#include <QEvent>
 #include <QSignalBlocker>
 
 #include "dialogs/newsubscriptiondialog.h"
@@ -125,6 +126,17 @@ void SubscriptionComboBox::showPopup()
 {
     SeparatorItemDelegate::attachTo(this);
     QComboBox::showPopup();
+}
+
+///
+/// \brief Relabels the create entry after a language change.
+/// \param event Change event being handled.
+///
+void SubscriptionComboBox::changeEvent(QEvent *event)
+{
+    QComboBox::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange)
+        rebuild();
 }
 
 ///

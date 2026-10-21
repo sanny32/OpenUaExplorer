@@ -195,6 +195,7 @@ private:
     QList<TrendGraphWidget *> charts() const;
     void handleTabChanged(int index);
     void handleTabCloseRequested(int index);
+    void updateCollapseButton();
     void onChartSubscribe(const QString &nodeId, double publishingInterval);
     void onChartUnsubscribe(const QString &nodeId);
     int collapsedHeight() const;
