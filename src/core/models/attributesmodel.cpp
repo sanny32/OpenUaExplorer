@@ -34,8 +34,8 @@ struct AttributesModel::Item
     QString value;
     QDateTime sourceTimestamp;
     QDateTime serverTimestamp;
-    /// \brief Encoded picture of the row, empty unless the value is an image ByteString.
-    QByteArray imageData;
+    /// \brief Picture of the row, unset unless the value is an image ByteString.
+    std::optional<OpcUaFormat::ImageValueInfo> image;
     Item *parent = nullptr;
     std::vector<std::unique_ptr<Item>> children;
 };
@@ -159,10 +159,8 @@ QVariant AttributesModel::data(const QModelIndex &index, int role) const
     if (role == Qt::DisplayRole)
         return index.column() == ColAttribute ? item->attribute : item->value;
 
-    if (role == ValueRoles::ImageDataRole && index.column() == ColValue
-        && !item->imageData.isEmpty()) {
-        return item->imageData;
-    }
+    if (role == ValueRoles::ImageDataRole && index.column() == ColValue && item->image)
+        return item->image->data;
 
     if (role == Qt::TextAlignmentRole)
         return QVariant(_columnAlignments.alignment(index.column()));
@@ -250,7 +248,7 @@ void AttributesModel::appendAttribute(Item *parent, const OpcUaNodeAttribute &at
     } else {
         item->value = attribute.displayValue;
         if (attribute.isImage)
-            item->imageData = attribute.value.toByteArray();
+            item->image = OpcUaFormat::imageValue(attribute.value, attribute.dataTypeId);
     }
     item->parent = parent;
     Item *itemPointer = item.get();
@@ -342,9 +340,30 @@ AttributesModel::Item *AttributesModel::itemForIndex(const QModelIndex &index) c
 }
 
 ///
-/// \brief Re-emits the header titles after a UI language change.
+/// \brief Recursively rewrites picture summaries under a parent index in the current locale.
+/// \param parentIndex Parent model index.
+///
+void AttributesModel::refreshImageSummaries(const QModelIndex &parentIndex)
+{
+    Item *parentItem = itemForIndex(parentIndex);
+    if (!parentItem)
+        return;
+    for (int row = 0; row < static_cast<int>(parentItem->children.size()); ++row) {
+        Item *child = parentItem->children.at(row).get();
+        if (child->image) {
+            child->value = OpcUaFormat::imageSummary(*child->image);
+            const QModelIndex valueIndex = index(row, ColValue, parentIndex);
+            emit dataChanged(valueIndex, valueIndex, {Qt::DisplayRole});
+        }
+        refreshImageSummaries(index(row, 0, parentIndex));
+    }
+}
+
+///
+/// \brief Re-emits the header titles and picture summaries after a UI language change.
 ///
 void AttributesModel::retranslate()
 {
     emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
+    refreshImageSummaries(QModelIndex());
 }

@@ -122,12 +122,23 @@ void MainStatusBarWidget::setupFieldDecorations()
     ui->authenticationIconLabel->setIcon(QStringLiteral("user"), QSize(12, 12));
     ui->sessionIconLabel->setIcon(QStringLiteral("keyhole"), QSize(12, 12));
 
+    for (ElidedLabel *value : { ui->connectionLabel, ui->securityLabel,
+                                ui->authenticationLabel, ui->sessionLabel }) {
+        connect(value, &ElidedLabel::elisionChanged, value,
+                [value] { updateFieldTooltip(value); });
+    }
+    retranslateFieldTooltips();
+}
+
+///
+/// \brief Writes the category tooltips of the fields in the current language.
+///
+void MainStatusBarWidget::retranslateFieldTooltips()
+{
     const auto setFieldTooltip = [](QWidget *icon, ElidedLabel *value, const QString &tip) {
         icon->setToolTip(tip);
         value->setProperty(fieldTooltipProperty, tip);
         updateFieldTooltip(value);
-        QObject::connect(value, &ElidedLabel::elisionChanged, value,
-                         [value] { updateFieldTooltip(value); });
     };
     setFieldTooltip(ui->statusIconLabel, ui->connectionLabel, tr("Connection"));
     setFieldTooltip(ui->securityIconLabel, ui->securityLabel, tr("Security policy / mode"));
@@ -310,6 +321,7 @@ void MainStatusBarWidget::changeEvent(QEvent *event)
 
     switch (event->type()) {
     case QEvent::LanguageChange:
+        retranslateFieldTooltips();
         if (_controller)
             updateConnectionState(_controller->backend()->state());
         else

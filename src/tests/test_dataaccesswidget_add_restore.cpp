@@ -8,6 +8,7 @@
 
 #include <QTest>
 
+#include "suffixtranslator.h"
 #include "test_dataaccesswidget_support.h"
 
 ///
@@ -200,23 +201,7 @@ void TestDataAccessWidgetAddRestore::restoredNodesKeepSavedOrderAndSubscriptions
 ///
 void TestDataAccessWidgetAddRestore::restoredNodesFollowTheSubscriptionNamesOfTheCurrentLanguage()
 {
-    class SuffixTranslator : public QTranslator
-    {
-    public:
-        QString translate(const char *context, const char *sourceText,
-                          const char *disambiguation = nullptr, int n = -1) const override
-        {
-            Q_UNUSED(disambiguation)
-            Q_UNUSED(n)
-            if (qstrcmp(context, "SubscriptionsWidget") != 0)
-                return QString();
-            return QString::fromUtf8(sourceText) + QStringLiteral("-xx");
-        }
-
-        bool isEmpty() const override { return false; }
-    };
-
-    SuffixTranslator translator;
+    TestTranslation::SuffixTranslator translator({"SubscriptionsWidget"});
     QCoreApplication::installTranslator(&translator);
 
     SubscriptionItem builtin;

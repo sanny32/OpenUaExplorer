@@ -81,7 +81,6 @@ NodeMonitorDialog::NodeMonitorDialog(OpcUaBackend *service, QWidget *parent)
 
     _settingsButton = new ThemedPushButton(ui->chartContainer);
     _settingsButton->setIconName(QStringLiteral("settings"));
-    _settingsButton->setToolTip(tr("Chart settings"));
     _settingsButton->setCursor(Qt::PointingHandCursor);
     _settingsButton->setFixedSize(28, 28);
     _settingsButton->raise();
@@ -124,6 +123,7 @@ NodeMonitorDialog::NodeMonitorDialog(OpcUaBackend *service, QWidget *parent)
     applyChartOptions();
     setAcceptDrops(true);
     showPlaceholder();
+    retranslateCodeTexts();
     applyWindow();
 }
 
@@ -162,9 +162,7 @@ void NodeMonitorDialog::setTarget(const OpcUaNodeInfo &node)
 
     _chart->addSeries(_nodeId, _displayName, kSeriesColor);
 
-    setWindowTitle(tr("Node Monitor — %1").arg(_displayName));
-    ui->nameLabel->setText(_displayName);
-    ui->nodeIdLabel->setText(tr("NodeId: %1").arg(_nodeId));
+    updateNodeTexts();
     ui->valueLabel->setText(QStringLiteral("—"));
     ui->typeLabel->clear();
     clearQualityBadge();
@@ -582,8 +580,7 @@ void NodeMonitorDialog::applyWindow()
 void NodeMonitorDialog::setLivePaused(bool paused)
 {
     _livePaused = paused;
-    ui->pauseButton->setText(paused ? tr("Resume") : tr("Pause"));
-    ui->pauseButton->setIconName(paused ? QStringLiteral("resume") : QStringLiteral("pause"));
+    updatePauseButton();
     if (!paused) {
         applyWindow();
         if (_autoScaleY)
@@ -608,8 +605,7 @@ void NodeMonitorDialog::setAlwaysOnTop(bool onTop)
 ///
 void NodeMonitorDialog::showPlaceholder()
 {
-    ui->nameLabel->setText(tr("No node"));
-    ui->nodeIdLabel->setText(tr("Drag a variable node here to monitor it"));
+    updateNodeTexts();
     ui->valueLabel->setText(QStringLiteral("—"));
     ui->typeLabel->clear();
     clearQualityBadge();
@@ -650,7 +646,43 @@ void NodeMonitorDialog::changeEvent(QEvent *event)
         applyTheme();
     } else if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
+        retranslateCodeTexts();
     }
+}
+
+///
+/// \brief Re-applies the texts set from code, which the generated retranslation resets.
+///
+void NodeMonitorDialog::retranslateCodeTexts()
+{
+    _settingsButton->setToolTip(tr("Chart settings"));
+    updateNodeTexts();
+    updatePauseButton();
+}
+
+///
+/// \brief Writes the window title and the header naming the monitored node or the drop prompt.
+///
+void NodeMonitorDialog::updateNodeTexts()
+{
+    if (_nodeId.isEmpty()) {
+        ui->nameLabel->setText(tr("No node"));
+        ui->nodeIdLabel->setText(tr("Drag a variable node here to monitor it"));
+        return;
+    }
+    setWindowTitle(tr("Node Monitor — %1").arg(_displayName));
+    ui->nameLabel->setText(_displayName);
+    ui->nodeIdLabel->setText(tr("NodeId: %1").arg(_nodeId));
+}
+
+///
+/// \brief Labels the pause button with the action it would take next.
+///
+void NodeMonitorDialog::updatePauseButton()
+{
+    ui->pauseButton->setText(_livePaused ? tr("Resume") : tr("Pause"));
+    ui->pauseButton->setIconName(_livePaused ? QStringLiteral("resume")
+                                             : QStringLiteral("pause"));
 }
 
 ///

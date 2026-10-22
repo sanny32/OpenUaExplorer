@@ -137,6 +137,7 @@ void FavoritesWidget::changeEvent(QEvent *event)
         _refreshingTheme = false;
     } else if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
+        setCanAddFavorite(ui->addButton->isEnabled());
     }
 }
 

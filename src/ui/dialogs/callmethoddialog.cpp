@@ -154,6 +154,14 @@ bool MethodArgumentModel::setData(const QModelIndex &index, const QVariant &valu
 }
 
 ///
+/// \brief Re-emits the column titles after a UI language change.
+///
+void MethodArgumentModel::retranslate()
+{
+    emit headerDataChanged(Qt::Horizontal, 0, columnCount() - 1);
+}
+
+///
 /// \brief Returns the column header labels.
 /// \param section Column index.
 /// \param orientation Header orientation.
@@ -227,8 +235,7 @@ CallMethodDialog::CallMethodDialog(OpcUaBackend *service, QWidget *parent)
     ui->outputTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     _callButton = ui->buttonBox->button(QDialogButtonBox::Apply);
-    if (_callButton)
-        _callButton->setText(tr("Call"));
+    retranslateCodeTexts();
 
     connect(_callButton, &QPushButton::clicked, this, &CallMethodDialog::callMethod);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::close);
@@ -259,9 +266,7 @@ void CallMethodDialog::setTarget(const OpcUaNodeInfo &object, const OpcUaNodeInf
     _object = object;
     _method = method;
 
-    const QString methodName = method.displayName.isEmpty() ? method.browseName : method.displayName;
-    const QString objectName = object.displayName.isEmpty() ? object.browseName : object.displayName;
-    setWindowTitle(tr("Call %1 on %2").arg(methodName, objectName));
+    updateWindowTitle();
 
     populateInputs({});
     populateOutputs({});
@@ -445,5 +450,32 @@ void CallMethodDialog::changeEvent(QEvent *event)
         applyResultColor();
     } else if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
+        retranslateCodeTexts();
     }
+}
+
+///
+/// \brief Re-applies the texts set from code, which the generated retranslation resets.
+///
+void CallMethodDialog::retranslateCodeTexts()
+{
+    if (_callButton)
+        _callButton->setText(tr("Call"));
+    _inputModel->retranslate();
+    _outputModel->retranslate();
+    updateWindowTitle();
+}
+
+///
+/// \brief Names the method and its object in the window title once a target is set.
+///
+void CallMethodDialog::updateWindowTitle()
+{
+    if (_method.nodeId.isEmpty())
+        return;
+    const QString methodName = _method.displayName.isEmpty() ? _method.browseName
+                                                             : _method.displayName;
+    const QString objectName = _object.displayName.isEmpty() ? _object.browseName
+                                                             : _object.displayName;
+    setWindowTitle(tr("Call %1 on %2").arg(methodName, objectName));
 }

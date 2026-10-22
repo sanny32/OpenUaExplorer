@@ -26,6 +26,7 @@
 #include <QtCharts/QValueAxis>
 
 #include "opcua/opcuatypes.h"
+#include "suffixtranslator.h"
 #include "widgets/trendgraphwidget.h"
 #include "widgets/trendpanelwidget.h"
 
@@ -285,6 +286,7 @@ private slots:
     void hoverTracksPositionBetweenSamples();
     void hoverAlongHorizontalLineKeepsPlaque();
     void livePlaqueSurvivesWindowScrolling();
+    void languageChangeKeepsStateDependentTooltips();
 };
 
 ///
@@ -794,6 +796,31 @@ void TestTrendPanelWidget::livePlaqueSurvivesWindowScrolling()
 
     QTest::qWait(1500);
     QVERIFY(plaque->isVisible());
+}
+
+///
+/// \brief Collapse and live-pause tooltips still name the next action after a language change.
+///
+void TestTrendPanelWidget::languageChangeKeepsStateDependentTooltips()
+{
+    TrendPanelWidget panel;
+    panel.setCollapsed(true);
+    auto *collapse = panel.findChild<QAbstractButton *>(QStringLiteral("collapseButton"));
+    auto *livePause = panel.findChild<QAbstractButton *>(QStringLiteral("livePauseButton"));
+    QVERIFY(collapse);
+    QVERIFY(livePause);
+    QVERIFY(livePause->isEnabled());
+    livePause->click();
+    QCOMPARE(livePause->toolTip(), QStringLiteral("Resume"));
+
+    TestTranslation::SuffixTranslator translator;
+    TestTranslation::switchLanguage(&translator, true);
+    QCOMPARE(collapse->toolTip(), QStringLiteral("Expand trend panel-xx"));
+    QCOMPARE(livePause->toolTip(), QStringLiteral("Resume-xx"));
+
+    TestTranslation::switchLanguage(&translator, false);
+    QCOMPARE(collapse->toolTip(), QStringLiteral("Expand trend panel"));
+    QCOMPARE(livePause->toolTip(), QStringLiteral("Resume"));
 }
 
 QTEST_MAIN(TestTrendPanelWidget)

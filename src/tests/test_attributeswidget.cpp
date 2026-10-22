@@ -28,6 +28,7 @@
 
 #include "application.h"
 #include "settingsstore.h"
+#include "suffixtranslator.h"
 #include "widgets/headerview.h"
 #include "widgets/attributeswidget.h"
 
@@ -57,6 +58,7 @@ private slots:
     void nonBooleanNodeKeepsTextField();
     void enumerationNodeWritesAPickedName();
     void valueEditorStretchesWithPanel();
+    void copyActionsFollowTheLanguage();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -527,6 +529,26 @@ void TestAttributesWidget::valueEditorStretchesWithPanel()
 /// \param argv Argument vector.
 /// \return Test exit code.
 ///
+///
+/// \brief The copy actions created in code are relabelled on a language change.
+///
+void TestAttributesWidget::copyActionsFollowTheLanguage()
+{
+    AttributesWidget widget;
+    auto *copyCell = widget.findChild<QAction *>(QStringLiteral("actionCopyAttributeCell"));
+    auto *copyTree = widget.findChild<QAction *>(QStringLiteral("actionCopyAttributeTree"));
+    QVERIFY(copyCell);
+    QVERIFY(copyTree);
+
+    TestTranslation::SuffixTranslator translator({"AttributesWidget"});
+    TestTranslation::switchLanguage(&translator, true);
+    QCOMPARE(copyCell->text(), QStringLiteral("Copy-xx"));
+    QCOMPARE(copyTree->text(), QStringLiteral("Copy All-xx"));
+
+    TestTranslation::switchLanguage(&translator, false);
+    QCOMPARE(copyCell->text(), QStringLiteral("Copy"));
+}
+
 int main(int argc, char *argv[])
 {
     Application app(argc, argv);

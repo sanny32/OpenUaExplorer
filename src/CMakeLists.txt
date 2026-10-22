@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 project(ouaexp
-        VERSION 1.0.0
+        VERSION 1.0.1
         DESCRIPTION "An OPC UA client application for exploring and monitoring OPC UA servers"
         LANGUAGES CXX)
 

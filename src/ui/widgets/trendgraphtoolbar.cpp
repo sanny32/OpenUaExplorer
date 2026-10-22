@@ -156,6 +156,7 @@ void TrendGraphToolbar::changeEvent(QEvent *event)
         applyIntervalStyling();
     } else if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
+        updateLivePauseButton();
     }
 }
 

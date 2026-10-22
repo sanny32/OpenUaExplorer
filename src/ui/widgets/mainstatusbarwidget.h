@@ -60,6 +60,7 @@ private slots:
 
 private:
     void setupFieldDecorations();
+    void retranslateFieldTooltips();
     void updateClockWidths(const QString &localUtcOffset);
     void setConnectionState(OpcUaConnectionState state,
                             const QString &endpoint = QString(),

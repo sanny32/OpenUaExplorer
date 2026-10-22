@@ -12,6 +12,7 @@
 #include <QTest>
 
 #include "application.h"
+#include "suffixtranslator.h"
 #include "widgets/dialogbuttonbox.h"
 
 ///
@@ -25,6 +26,7 @@ private slots:
     void okAndCancelUseTheSameMinimumWidth();
     void applyKeepsItsNaturalWidth();
     void buttonWidthsFollowFontChanges();
+    void languageChangeSparesRenamedButtons();
 };
 
 ///
@@ -81,6 +83,29 @@ void TestDialogButtonBox::buttonWidthsFollowFontChanges()
 
     QVERIFY(ok->minimumWidth() > initialWidth);
     QCOMPARE(ok->minimumWidth(), cancel->minimumWidth());
+}
+
+///
+/// \brief Standard texts follow the language; a button its dialog renamed keeps that name.
+///
+void TestDialogButtonBox::languageChangeSparesRenamedButtons()
+{
+    DialogButtonBox buttons;
+    buttons.setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Apply);
+    QPushButton *ok = buttons.button(QDialogButtonBox::Ok);
+    QPushButton *apply = buttons.button(QDialogButtonBox::Apply);
+    QVERIFY(ok);
+    QVERIFY(apply);
+    apply->setText(QStringLiteral("Run"));
+
+    TestTranslation::SuffixTranslator translator({"QPlatformTheme"});
+    TestTranslation::switchLanguage(&translator, true);
+    QCOMPARE(ok->text(), QStringLiteral("OK-xx"));
+    QCOMPARE(apply->text(), QStringLiteral("Run"));
+
+    TestTranslation::switchLanguage(&translator, false);
+    QCOMPARE(ok->text(), QCoreApplication::translate("QPlatformTheme", "OK"));
+    QCOMPARE(apply->text(), QStringLiteral("Run"));
 }
 
 int main(int argc, char *argv[])

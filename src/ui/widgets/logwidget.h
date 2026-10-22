@@ -69,6 +69,9 @@ protected:
 private:
     void setupLogView();
     void refreshIcons();
+    void retranslateCodeTexts();
+    void setPaused(bool paused);
+    void updatePauseButton();
     void scrollToBottom();
     void registerSource(const QString &source);
     QString rowsAsText(const QList<int> &rows) const;

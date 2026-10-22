@@ -7,6 +7,7 @@
 ///
 
 #include <QAbstractItemModel>
+#include <QAction>
 #include <QComboBox>
 #include <QLoggingCategory>
 #include <QTableView>
@@ -15,6 +16,7 @@
 #include "application.h"
 #include "appsettings.h"
 #include "models/logmodel.h"
+#include "suffixtranslator.h"
 #include "widgets/themedpushbutton.h"
 #include "widgets/logwidget.h"
 
@@ -35,6 +37,7 @@ private slots:
     void clearButtonUsesTrashIcon();
     void logDepthFollowsTheStoredPreference();
     void changingTheDepthTrimsTheOpenLog();
+    void languageChangeKeepsPauseStateAndRelabelsActions();
 };
 
 ///
@@ -118,6 +121,31 @@ void TestLogWidget::changingTheDepthTrimsTheOpenLog()
 
 // The widget follows the log depth preference through Application, whose signal a plain
 // QApplication does not carry.
+///
+/// \brief A paused log still offers Resume after a language change, and its actions follow.
+///
+void TestLogWidget::languageChangeKeepsPauseStateAndRelabelsActions()
+{
+    LogWidget widget;
+    auto *pause = widget.findChild<ThemedPushButton *>(QStringLiteral("pauseButton"));
+    auto *table = widget.findChild<QTableView *>(QStringLiteral("logTable"));
+    QVERIFY(pause);
+    QVERIFY(table);
+    pause->setChecked(true);
+
+    TestTranslation::SuffixTranslator translator;
+    TestTranslation::switchLanguage(&translator, true);
+    QCOMPARE(pause->text(), QStringLiteral("Resume-xx"));
+    QStringList actionTexts;
+    for (const QAction *action : table->actions())
+        actionTexts << action->text();
+    QVERIFY2(actionTexts.contains(QStringLiteral("Copy-xx")), qPrintable(actionTexts.join(u',')));
+    QVERIFY(actionTexts.contains(QStringLiteral("Copy All-xx")));
+
+    TestTranslation::switchLanguage(&translator, false);
+    QCOMPARE(pause->text(), QStringLiteral("Resume"));
+}
+
 int main(int argc, char *argv[])
 {
     Application app(argc, argv);

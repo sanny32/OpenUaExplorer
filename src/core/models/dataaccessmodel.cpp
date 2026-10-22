@@ -1205,9 +1205,12 @@ void DataAccessModel::setInlineArrayElements(int elements)
 }
 
 ///
-/// \brief Re-emits the header titles after a UI language change.
+/// \brief Re-emits the header titles and value summaries after a UI language change.
 ///
 void DataAccessModel::retranslate()
 {
     emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
+    if (rowCount() > 0)
+        emit dataChanged(index(0, ColValue), index(rowCount() - 1, ColValue),
+                         {Qt::DisplayRole});
 }

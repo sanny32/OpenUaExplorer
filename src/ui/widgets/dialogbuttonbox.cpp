@@ -81,15 +81,18 @@ void DialogButtonBox::setStandardButtons(StandardButtons buttons)
 {
     QDialogButtonBox::clear();
     _standardButtons.clear();
+    _standardTexts.clear();
 
     for (const StandardButtonInfo &info : kStandardButtons) {
         if (!(buttons & info.button))
             continue;
 
+        const QString text = QCoreApplication::translate("QPlatformTheme", info.text);
         auto *button = new ColoredPushButton(this);
-        button->setText(QCoreApplication::translate("QPlatformTheme", info.text));
+        button->setText(text);
         QDialogButtonBox::addButton(button, info.role);
         _standardButtons.insert(static_cast<int>(info.button), button);
+        _standardTexts.insert(static_cast<int>(info.button), text);
 
         if (info.button == QDialogButtonBox::Apply)
             button->setColors(
@@ -119,11 +122,18 @@ void DialogButtonBox::changeEvent(QEvent *event)
 ///
 /// \brief Refreshes every present standard button's text for the active language.
 ///
+/// A button the owning dialog has renamed keeps its text: the dialog retranslates it itself.
+///
 void DialogButtonBox::retranslateButtons()
 {
     for (const StandardButtonInfo &info : kStandardButtons) {
-        if (ColoredPushButton *button = _standardButtons.value(static_cast<int>(info.button)))
-            button->setText(QCoreApplication::translate("QPlatformTheme", info.text));
+        const int key = static_cast<int>(info.button);
+        ColoredPushButton *button = _standardButtons.value(key);
+        if (!button || button->text() != _standardTexts.value(key))
+            continue;
+        const QString text = QCoreApplication::translate("QPlatformTheme", info.text);
+        button->setText(text);
+        _standardTexts.insert(key, text);
     }
 }
 

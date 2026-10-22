@@ -28,6 +28,7 @@
 #include "opcua/opcuabackend.h"
 #include "opcua/recentconnectionstore.h"
 #include "settingsstore.h"
+#include "suffixtranslator.h"
 
 ///
 /// \brief Backend double that records connection calls and drives discovery manually.
@@ -172,6 +173,7 @@ private slots:
 
     void actionsFollowClientState();
     void emptyHistoryShowsDisabledPlaceholder();
+    void retranslateRelabelsThePlaceholder();
     void recentMenuListsHistoryByNameOrUrl();
     void recentActionConnectsItsProfile();
     void addFavoriteRequestSavesActiveProfile();
@@ -242,6 +244,26 @@ void TestConnectionCoordinator::emptyHistoryShowsDisabledPlaceholder()
     const QList<QAction *> entries = harness.recentMenu.actions();
     QCOMPARE(entries.size(), 1);
     QVERIFY(!entries.constFirst()->isEnabled());
+}
+
+///
+/// \brief The empty-history placeholder is rebuilt in the new language.
+///
+void TestConnectionCoordinator::retranslateRelabelsThePlaceholder()
+{
+    ConnectionHarness harness;
+
+    TestTranslation::SuffixTranslator translator({"ConnectionCoordinator"});
+    TestTranslation::switchLanguage(&translator, true);
+    harness.coordinator->retranslate();
+    QCOMPARE(harness.recentMenu.actions().size(), 1);
+    QCOMPARE(harness.recentMenu.actions().constFirst()->text(),
+             QStringLiteral("No Recent Connections-xx"));
+
+    TestTranslation::switchLanguage(&translator, false);
+    harness.coordinator->retranslate();
+    QCOMPARE(harness.recentMenu.actions().constFirst()->text(),
+             QStringLiteral("No Recent Connections"));
 }
 
 ///
