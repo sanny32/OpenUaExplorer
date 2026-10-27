@@ -56,6 +56,8 @@ void AddressSpaceModule::initialize(ServiceContext &context)
             this, &AddressSpaceModule::locationFinished);
     connect(_backend, &OpcUaBackend::subtreeVariablesReady,
             this, &AddressSpaceModule::handleSubtreeVariablesReady);
+    connect(_backend, &OpcUaBackend::nodeIconRead,
+            this, &AddressSpaceModule::iconReady);
 }
 
 ///
@@ -65,6 +67,15 @@ void AddressSpaceModule::initialize(ServiceContext &context)
 void AddressSpaceModule::browse(const QString &nodeId)
 {
     _backend->browse(nodeId);
+}
+
+///
+/// \brief Reads the icons the server gives nodes in their standard Icon property.
+/// \param nodeIds Nodes whose icon is wanted.
+///
+void AddressSpaceModule::readIcons(const QStringList &nodeIds)
+{
+    _backend->readNodeIcons(nodeIds);
 }
 
 ///

@@ -6,7 +6,8 @@ need to drive the live client paths, and prints machine-readable lines once it
 is listening:
 
     ENDPOINT opc.tcp://127.0.0.1:<port>/ouaexp/
-    NODE     ns=<idx>;s=the.answer      (writable Double = 42, stable)
+    NODE     ns=<idx>;s=the.answer      (writable Double = 42, stable, with an
+                                         ImagePNG Icon property)
     COUNTER  ns=<idx>;s=counter         (Double, changes over time)
     QUALIFIED ns=<idx>;s=qualified.name (QualifiedName, stable)
     RANGE    ns=<idx>;s=range           (Range structure, stable)
@@ -38,10 +39,23 @@ missing the script prints NO_ASYNCUA and the tests skip themselves.
 
 import argparse
 import asyncio
+import struct
 import sys
 import tempfile
 import time
+import zlib
 from pathlib import Path
+
+
+def single_pixel_png() -> bytes:
+    """Encodes one opaque grey pixel as PNG, without an imaging library."""
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        body = kind + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+    header = struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0)
+    pixels = zlib.compress(b"\x00\x80\x80\x80\xff")
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", pixels) + chunk(b"IEND", b"")
 
 
 def build_user_manager(users, expected_user, expected_password, trusted_certificates):
@@ -206,6 +220,12 @@ def main() -> int:
         ua.VariantType.Double,
     )
     answer.set_writable()
+    answer.add_property(
+        ua.NodeId("the.answer.Icon", idx),
+        ua.QualifiedName("Icon", 0),
+        ua.Variant(single_pixel_png(), ua.VariantType.ByteString),
+        datatype=ua.NodeId(ua.ObjectIds.ImagePNG),
+    )
 
     counter = objects.add_variable(
         ua.NodeId("counter", idx),

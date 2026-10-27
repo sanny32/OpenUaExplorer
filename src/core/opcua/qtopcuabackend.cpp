@@ -33,6 +33,7 @@
 #include <QOpcUaReadItem>
 #include <QOpcUaReadResult>
 #include <QOpcUaReferenceDescription>
+#include <QOpcUaRelativePathElement>
 
 #include "formatters/attributeformatter.h"
 #include "loggingcategories.h"
@@ -949,6 +950,66 @@ void QtOpcUaBackend::readServerSessionName()
         [node]() { return node->readAttributes(QOpcUa::NodeAttribute::Value); },
         [this]() { emit serverSessionNameResolved(QString()); },
         [this]() { emit serverSessionNameResolved(QString()); });
+}
+
+///
+/// \brief Reads the standard Icon property of nodes, emitting nodeIconRead() for each node that has one.
+/// \param nodeIds Nodes whose Icon property is read; a newer read of a node supersedes the pending one.
+///
+void QtOpcUaBackend::readNodeIcons(const QStringList &nodeIds)
+{
+    if (!_d->connection.client() || _d->connection.state() != OpcUaConnectionState::Connected)
+        return;
+    const int timeoutMs = requestTimeout();
+    for (const QString &nodeId : nodeIds)
+        resolveNodeIcon(nodeId, timeoutMs);
+}
+
+///
+/// \brief Looks up the Icon property of a node (OPC UA Part 3) and reads it when the node has one.
+/// \param nodeId Node whose icon is wanted.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::resolveNodeIcon(const QString &nodeId, int timeoutMs)
+{
+    QOpcUaNode *node = _d->connection.client()->node(nodeId);
+    if (!node)
+        return;
+    const QList<QOpcUaRelativePathElement> path{QOpcUaRelativePathElement(
+        QOpcUaQualifiedName(0, QStringLiteral("Icon")), QOpcUa::ReferenceTypeId::HasProperty)};
+    _d->runKeyedNodeRequest(node, QtOpcUaRequestCoordinator::Operation::IconResolve, nodeId,
+        timeoutMs, &QOpcUaNode::resolveBrowsePathFinished,
+        [this, nodeId, timeoutMs](const QList<QOpcUaBrowsePathTarget> &targets,
+                                  const QList<QOpcUaRelativePathElement> &, QOpcUa::UaStatusCode status) {
+            const QString iconNodeId = QtOpcUaTypeMapper::resolvedTarget(
+                targets, status, _d->connection.client());
+            if (!iconNodeId.isEmpty())
+                readNodeIcon(nodeId, iconNodeId, timeoutMs);
+        },
+        [node, path]() { return node->resolveBrowsePath(path); },
+        []() {}, []() {});
+}
+
+///
+/// \brief Reads the image an Icon property holds and emits nodeIconRead().
+/// \param nodeId Node the icon belongs to.
+/// \param iconNodeId Icon property of the node.
+/// \param timeoutMs Request timeout in milliseconds.
+///
+void QtOpcUaBackend::readNodeIcon(const QString &nodeId, const QString &iconNodeId, int timeoutMs)
+{
+    QOpcUaNode *icon = _d->connection.client() ? _d->connection.client()->node(iconNodeId) : nullptr;
+    if (!icon)
+        return;
+    _d->runKeyedNodeRequest(icon, QtOpcUaRequestCoordinator::Operation::IconRead, nodeId, timeoutMs,
+        &QOpcUaNode::attributeRead,
+        [this, icon, nodeId](QOpcUa::NodeAttributes) {
+            const QVariant image = icon->valueAttribute();
+            if (image.metaType().id() == QMetaType::QByteArray && !image.toByteArray().isEmpty())
+                emit nodeIconRead(nodeId, image.toByteArray());
+        },
+        [icon]() { return icon->readAttributes(QOpcUa::NodeAttribute::Value); },
+        []() {}, []() {});
 }
 
 ///

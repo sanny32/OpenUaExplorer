@@ -19,6 +19,7 @@
 #include "opcua/opcuatypes.h"
 
 class QEvent;
+class QImage;
 class QModelIndex;
 
 namespace Ui {
@@ -65,6 +66,14 @@ public:
     void setBrowseChildren(const QString &parentNodeId,
                            const QVector<OpcUaNodeInfo> &children,
                            const QString &error);
+
+    ///
+    /// \brief Shows the icon a server publishes for a node instead of its node class icon.
+    /// \param nodeId Node the icon belongs to.
+    /// \param image Encoded image, such as a PNG; one that does not decode is ignored. A
+    ///        single-colour glyph takes the text colour of the theme.
+    ///
+    void setNodeIcon(const QString &nodeId, const QByteArray &image);
 
     ///
     /// \brief Applies reference browse results to the references view if selected.
@@ -190,6 +199,12 @@ signals:
     void browseRequested(QString nodeId);
 
     ///
+    /// \brief Emitted when browsed objects and variables are shown, whose server icons are wanted.
+    /// \param nodeIds Shown objects and variables, without properties.
+    ///
+    void iconsRequested(QStringList nodeIds);
+
+    ///
     /// \brief Emitted when a node's references must be browsed.
     /// \param nodeId NodeId to browse.
     ///
@@ -260,7 +275,7 @@ protected:
     void changeEvent(QEvent *event) override;
 
 private:
-    QIcon nodeIcon(AddressSpaceItem::NodeType type) const;
+    QIcon nodeIcon(AddressSpaceItem::NodeType type, const QImage &serverImage) const;
     void setupTreeView();
     void setupNodeInfoView();
     void setupReferencesView();

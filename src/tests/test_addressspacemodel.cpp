@@ -9,6 +9,7 @@
 #include <QApplication>
 #include <QBrush>
 #include <QIcon>
+#include <QImage>
 #include <QMimeData>
 #include <QPalette>
 #include <QScopedPointer>
@@ -55,6 +56,7 @@ private slots:
     void iconTypesDistinguishFoldersAndObjects();
     void dataRolesAndTreeOps();
     void offlineKeepsNodesButStopsBrowsing();
+    void nodeImagesReachTheIconProvider();
 };
 
 ///
@@ -269,7 +271,7 @@ void TestAddressSpaceModel::iconTypesDistinguishFoldersAndObjects()
                       {folder, server, baseObject, unknownObject, variable, property, method});
 
     QVector<AddressSpaceItem::NodeType> iconTypes;
-    model.setIconProvider([&iconTypes](AddressSpaceItem::NodeType type) {
+    model.setIconProvider([&iconTypes](AddressSpaceItem::NodeType type, const QImage &) {
         iconTypes.append(type);
         return QIcon();
     });
@@ -324,7 +326,7 @@ void TestAddressSpaceModel::dataRolesAndTreeOps()
     QVERIFY(!model.data(QModelIndex()).isValid());
 
     QVERIFY(!model.data(folder, Qt::DecorationRole).isValid());
-    model.setIconProvider([](AddressSpaceItem::NodeType) { return QIcon(); });
+    model.setIconProvider([](AddressSpaceItem::NodeType, const QImage &) { return QIcon(); });
     model.data(folder, Qt::DecorationRole);
     model.data(temp, Qt::DecorationRole);
     model.data(method, Qt::DecorationRole);
@@ -397,6 +399,59 @@ void TestAddressSpaceModel::offlineKeepsNodesButStopsBrowsing()
     QVERIFY(model.canFetchMore(childIndex));
     model.fetchMore(childIndex);
     QCOMPARE(browseSpy.size(), 1);
+}
+
+///
+/// \brief A node's server image reaches the icon provider, survives a refresh and goes with the tree.
+///
+void TestAddressSpaceModel::nodeImagesReachTheIconProvider()
+{
+    AddressSpaceModel model;
+    model.setRootNode(makeRoot());
+    OpcUaNodeInfo level;
+    level.nodeId = QStringLiteral("ns=2;s=Level");
+    level.displayName = QStringLiteral("Level");
+    level.nodeClass = OpcUa::Variable;
+    model.setChildren(makeRoot().nodeId, {level});
+    QImage seenImage;
+    model.setIconProvider([&seenImage](AddressSpaceItem::NodeType, const QImage &image) {
+        seenImage = image;
+        return QIcon();
+    });
+    QImage gauge(16, 16, QImage::Format_ARGB32);
+    gauge.fill(Qt::red);
+
+    QSignalSpy changedSpy(&model, &AddressSpaceModel::dataChanged);
+    model.setNodeImage(level.nodeId, gauge);
+    model.setNodeImage(QStringLiteral("ns=2;s=NotShown"), gauge);
+
+    QCOMPARE(changedSpy.size(), 1);
+    const QModelIndex levelIndex = model.findByNodeId(level.nodeId);
+    QCOMPARE(changedSpy.first().at(0).toModelIndex(), levelIndex);
+    QCOMPARE(changedSpy.first().at(2).value<QList<int>>(), QList<int>({Qt::DecorationRole}));
+    model.data(levelIndex, Qt::DecorationRole);
+    QCOMPARE(seenImage, gauge);
+
+    model.setChildren(makeRoot().nodeId, {level});
+    model.data(model.findByNodeId(level.nodeId), Qt::DecorationRole);
+    QCOMPARE(seenImage, gauge);
+
+    model.setNodeImage(level.nodeId, QImage());
+    model.data(model.findByNodeId(level.nodeId), Qt::DecorationRole);
+    QVERIFY(seenImage.isNull());
+
+    model.setNodeImage(level.nodeId, gauge);
+    model.setRootNode(makeRoot());
+    model.setChildren(makeRoot().nodeId, {level});
+    model.data(model.findByNodeId(level.nodeId), Qt::DecorationRole);
+    QVERIFY(seenImage.isNull());
+
+    model.setNodeImage(level.nodeId, gauge);
+    model.clear();
+    model.setRootNode(makeRoot());
+    model.setChildren(makeRoot().nodeId, {level});
+    model.data(model.findByNodeId(level.nodeId), Qt::DecorationRole);
+    QVERIFY(seenImage.isNull());
 }
 
 QTEST_MAIN(TestAddressSpaceModel)

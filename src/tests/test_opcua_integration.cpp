@@ -197,6 +197,15 @@ void TestOpcUaIntegration::discoverConnectBrowseReadWrite()
     QCOMPARE(answeredNodeIds,
              QSet<QString>(concurrentNodeIds.cbegin(), concurrentNodeIds.cend()));
 
+    // 3d. Read the Icon property: the answer has a PNG one, the counter none.
+    QSignalSpy iconSpy(&service, &OpcUaBackend::nodeIconRead);
+    service.readNodeIcons({_nodeId, _counterNodeId});
+    QVERIFY(iconSpy.wait(15000));
+    QTest::qWait(500);
+    QCOMPARE(iconSpy.size(), 1);
+    QCOMPARE(iconSpy.first().at(0).toString(), _nodeId);
+    QVERIFY(iconSpy.first().at(1).toByteArray().startsWith("\x89PNG"));
+
     // 4. Read the initial value (42).
     QSignalSpy readSpy(&service, &OpcUaBackend::dataValuesReady);
     service.readValues({_nodeId});
