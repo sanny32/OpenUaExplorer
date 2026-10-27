@@ -8,6 +8,7 @@
 
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaBinaryDataEncoding>
+#include <QOpcUaClient>
 #include <QOpcUaEnumDefinition>
 #include <QOpcUaEnumField>
 #include <QOpcUaExtensionObject>
@@ -483,6 +484,26 @@ QString ownSessionName(const QVariant &value, const QString &applicationUri)
         }
     }
     return matchedName.isEmpty() ? latestName : matchedName;
+}
+
+/// \brief Returns the local NodeId a browse path fully resolved to, or an empty string.
+QString resolvedTarget(const QList<QOpcUaBrowsePathTarget> &targets, QOpcUa::UaStatusCode status,
+                       const QOpcUaClient *client)
+{
+    if (!QOpcUa::isSuccessStatus(status))
+        return {};
+    for (const QOpcUaBrowsePathTarget &target : targets) {
+        const QOpcUaExpandedNodeId id = target.targetId();
+        if (!target.isFullyResolved() || id.serverIndex() != 0)
+            continue;
+        if (id.namespaceUri().isEmpty())
+            return id.nodeId();
+        bool ok = false;
+        const QString local = client ? client->resolveExpandedNodeId(id, &ok) : QString();
+        if (ok)
+            return local;
+    }
+    return {};
 }
 
 } // namespace QtOpcUaTypeMapper

@@ -27,6 +27,8 @@ public:
         MethodInfo,
         Call,
         SessionNameRead,
+        IconResolve,
+        IconRead,
         Count
     };
 

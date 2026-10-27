@@ -7,6 +7,7 @@
 ///
 
 #include <QAbstractItemModel>
+#include <QBuffer>
 #include <QColor>
 #include <QCoreApplication>
 #include <QEvent>
@@ -19,6 +20,7 @@
 #include <QTranslator>
 #include <QTreeView>
 
+#include "opcua/standardnodeid.h"
 #include "widgets/addressspacewidget.h"
 #include "widgets/spinneraction.h"
 
@@ -44,6 +46,7 @@ private slots:
     void restoreBrowsesSiblingBranchesOneAtATime();
     void restoreContinuesPastAFailedBranch();
     void languageChangeRelabelsTheNodeInfoRows();
+    void serverIconsReplaceNodeClassIcons();
 };
 
 namespace {
@@ -67,6 +70,20 @@ OpcUaNodeInfo makeNode(const QString &nodeId, const QString &displayName,
     node.nodeClass = hasChildren ? 1 : 2;
     node.hasChildren = hasChildren;
     return node;
+}
+
+///
+/// \brief Encodes an image as PNG, as a server stores it in an Icon property.
+/// \param image Image to encode.
+/// \return PNG data.
+///
+QByteArray pngData(const QImage &image)
+{
+    QByteArray data;
+    QBuffer buffer(&data);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "PNG");
+    return data;
 }
 
 ///
@@ -643,6 +660,69 @@ void TestAddressSpaceWidget::languageChangeRelabelsTheNodeInfoRows()
 
     QCOMPARE(label, QStringLiteral("Localized Node Id"));
     QCOMPARE(value, details.nodeId);
+}
+
+///
+/// \brief Shown objects and variables ask for their server icons, which replace the node-class
+///        icons: a single-colour glyph in the theme's text colour, a coloured picture as it is.
+///
+void TestAddressSpaceWidget::serverIconsReplaceNodeClassIcons()
+{
+    AddressSpaceWidget widget;
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("addressTree"));
+    QVERIFY(tree);
+    const OpcUaNodeInfo root = makeNode(QStringLiteral("ns=0;i=85"), QStringLiteral("Objects"),
+                                        QString(), true);
+    const OpcUaNodeInfo device = makeNode(QStringLiteral("ns=2;s=Device"), QStringLiteral("Device"),
+                                          QStringLiteral("ns=0;i=35"), true);
+    const OpcUaNodeInfo level = makeNode(QStringLiteral("ns=2;s=Level"), QStringLiteral("Level"));
+    OpcUaNodeInfo units = makeNode(QStringLiteral("ns=2;s=Units"), QStringLiteral("Units"));
+    units.typeDefinitionId = QString::fromLatin1(StandardNodeId::PropertyType);
+    OpcUaNodeInfo start = makeNode(QStringLiteral("ns=2;s=Start"), QStringLiteral("Start"));
+    start.nodeClass = OpcUa::Method;
+    widget.setRootNode(root);
+
+    QSignalSpy iconsSpy(&widget, &AddressSpaceWidget::iconsRequested);
+    widget.setBrowseChildren(root.nodeId, {device, level, units, start}, QString());
+    widget.setBrowseChildren(QStringLiteral("ns=2;s=NotShown"), {level}, QString());
+    widget.setBrowseChildren(device.nodeId, {level}, QStringLiteral("BadNodeIdUnknown"));
+    QCOMPARE(iconsSpy.size(), 1);
+    QCOMPARE(iconsSpy.first().at(0).toStringList(), QStringList({device.nodeId, level.nodeId}));
+
+    QImage glyph(32, 32, QImage::Format_ARGB32);
+    glyph.fill(Qt::transparent);
+    for (int y = 8; y < 24; ++y) {
+        for (int x = 8; x < 24; ++x)
+            glyph.setPixelColor(x, y, QColor(0x80, 0x80, 0x80));
+    }
+    QImage picture(32, 32, QImage::Format_ARGB32);
+    picture.fill(Qt::red);
+    for (int y = 16; y < 32; ++y) {
+        for (int x = 0; x < 32; ++x)
+            picture.setPixelColor(x, y, Qt::blue);
+    }
+    widget.setNodeIcon(level.nodeId, pngData(glyph));
+    widget.setNodeIcon(device.nodeId, pngData(picture.scaled(256, 256)));
+    widget.setNodeIcon(level.nodeId, QByteArrayLiteral("not an image"));
+
+    const QModelIndex rootIndex = tree->model()->index(0, 0);
+    const QModelIndex deviceIndex = tree->model()->index(0, 0, rootIndex);
+    const QModelIndex levelIndex = tree->model()->index(1, 0, rootIndex);
+    const QIcon levelIcon = tree->model()->data(levelIndex, Qt::DecorationRole).value<QIcon>();
+    QCOMPARE(levelIcon.pixmap(32, 32).toImage().pixelColor(16, 16),
+             tree->palette().color(QPalette::Text));
+    QCOMPARE(levelIcon.pixmap(QSize(32, 32), QIcon::Selected).toImage().pixelColor(16, 16),
+             tree->palette().color(QPalette::HighlightedText));
+    QVERIFY(levelIcon.pixmap(32, 32).toImage().pixelColor(2, 2).alpha() == 0);
+
+    const QImage deviceImage =
+        tree->model()->data(deviceIndex, Qt::DecorationRole).value<QIcon>().pixmap(64, 64).toImage();
+    QCOMPARE(deviceImage.size(), QSize(64, 64));
+    QCOMPARE(deviceImage.pixelColor(32, 8), QColor(Qt::red));
+    QCOMPARE(deviceImage.pixelColor(32, 56), QColor(Qt::blue));
+
+    widget.setOffline(true);
+    QVERIFY(isGreyscale(tree->model()->data(deviceIndex, Qt::DecorationRole).value<QIcon>()));
 }
 
 QTEST_MAIN(TestAddressSpaceWidget)

@@ -291,7 +291,7 @@ QVariant AddressSpaceModel::data(const QModelIndex &index, int role) const
     if (role == Qt::UserRole)
         return info.nodeId;
     if (role == Qt::DecorationRole && _iconProvider)
-        return _iconProvider(iconType(info));
+        return _iconProvider(iconType(info), _nodeImages.value(info.nodeId));
     if (role == Qt::ForegroundRole && _offline)
         return QBrush(qApp->palette().color(QPalette::Disabled, QPalette::Text));
     return {};
@@ -393,6 +393,7 @@ Qt::DropActions AddressSpaceModel::supportedDragActions() const
 void AddressSpaceModel::setRootNode(const OpcUaNodeInfo &root)
 {
     beginResetModel();
+    _nodeImages.clear();
     _root = std::make_unique<AddressSpaceNode>(OpcUaNodeInfo{});
     _root->setBrowseComplete(true);
     _root->appendChild(std::make_unique<AddressSpaceNode>(root, _root.get()));
@@ -458,6 +459,7 @@ void AddressSpaceModel::setItems(const QVector<AddressSpaceItem> &items)
 void AddressSpaceModel::clear()
 {
     beginResetModel();
+    _nodeImages.clear();
     _root = std::make_unique<AddressSpaceNode>(OpcUaNodeInfo{});
     _root->setBrowseComplete(true);
     endResetModel();
@@ -517,11 +519,29 @@ QModelIndex AddressSpaceModel::findFirst(const QString &displayName) const
 }
 
 ///
-/// \brief Sets the callback that supplies node-class icons.
-/// \param provider Icon provider callback.
+/// \brief Gives a node the image its server publishes as its icon.
+/// \param nodeId Node the image belongs to; it keeps the image while the tree shows it again
+///        after a refresh, until the root is replaced or the tree is cleared.
+/// \param image Decoded image; a null image drops the node's image.
+///
+void AddressSpaceModel::setNodeImage(const QString &nodeId, const QImage &image)
+{
+    if (image.isNull())
+        _nodeImages.remove(nodeId);
+    else
+        _nodeImages.insert(nodeId, image);
+    const QModelIndex index = findByNodeId(nodeId);
+    if (index.isValid())
+        emit dataChanged(index, index, {Qt::DecorationRole});
+}
+
+///
+/// \brief Sets the callback that supplies node icons.
+/// \param provider Icon provider callback; it receives the node class icon type and the image
+///        the server gives the node, null when it has none.
 ///
 void AddressSpaceModel::setIconProvider(
-    std::function<QIcon(AddressSpaceItem::NodeType)> provider)
+    std::function<QIcon(AddressSpaceItem::NodeType, const QImage &)> provider)
 {
     _iconProvider = std::move(provider);
 }

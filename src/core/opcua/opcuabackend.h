@@ -266,6 +266,15 @@ public:
     virtual void readServerSessionName() {}
 
     ///
+    /// \brief Reads the standard Icon property of nodes, emitting nodeIconRead() for each node that has one.
+    ///
+    /// Icons are optional decoration, so nodes without one, failed reads and backends that leave
+    /// this default no-op report nothing.
+    /// \param nodeIds Nodes whose Icon property is read.
+    ///
+    virtual void readNodeIcons(const QStringList &nodeIds) { Q_UNUSED(nodeIds) }
+
+    ///
     /// \brief Reads the server NamespaceArray, emitting namespacesReady() with the URIs.
     ///
     /// Backends that cannot read the namespace table may leave this default,
@@ -489,6 +498,13 @@ signals:
     /// \param sessionName Resolved session name, empty when unavailable.
     ///
     void serverSessionNameResolved(QString sessionName);
+
+    ///
+    /// \brief Emitted when the Icon property of a node has been read.
+    /// \param nodeId Node the icon belongs to.
+    /// \param image Encoded image, such as a PNG, as the server stores it.
+    ///
+    void nodeIconRead(QString nodeId, QByteArray image);
 
     ///
     /// \brief Emitted when the server NamespaceArray has been read.

@@ -15,6 +15,7 @@
 #include <QItemSelectionModel>
 #include <QLineEdit>
 #include <QMenu>
+#include <QPalette>
 #include <QPixmap>
 #include <QPushButton>
 #include <QStyle>
@@ -27,6 +28,7 @@
 #include "models/nodeinfomodel.h"
 #include "models/referencesmodel.h"
 #include "models/trendseries.h"
+#include "opcua/standardnodeid.h"
 #include "spinneraction.h"
 #include "tableview.h"
 #include "ui_addressspacewidget.h"
@@ -64,6 +66,106 @@ QIcon fadedIcon(const QIcon &icon, const QSize &size, qreal devicePixelRatio)
     return QIcon(faded);
 }
 
+///
+/// \brief Returns the themed icon of a node class.
+/// \param type Icon node type.
+/// \return Icon for the node class.
+///
+QIcon nodeClassIcon(AddressSpaceItem::NodeType type)
+{
+    switch (type) {
+    case AddressSpaceItem::NodeType::Folder:   return AppIcons::themed("folder");
+    case AddressSpaceItem::NodeType::Node:     return AppIcons::themed("node");
+    case AddressSpaceItem::NodeType::Variable: return AppIcons::themed("variable");
+    case AddressSpaceItem::NodeType::Property: return AppIcons::themed("property");
+    case AddressSpaceItem::NodeType::Method:   return AppIcons::themed("method");
+    }
+    return {};
+}
+
+///
+/// \brief Tells whether an image draws in one colour, as glyph icons do.
+/// \param image Image in Format_ARGB32.
+/// \return True when every clearly visible pixel has nearly the same colour; antialiased edges
+///         and a little encoding noise are tolerated.
+///
+bool isMonochrome(const QImage &image)
+{
+    constexpr int visibleAlpha = 64;
+    constexpr int tolerance = 24;
+    bool found = false;
+    QRgb reference = 0;
+    for (int y = 0; y < image.height(); ++y) {
+        const auto *scanLine = reinterpret_cast<const QRgb *>(image.constScanLine(y));
+        for (int x = 0; x < image.width(); ++x) {
+            const QRgb pixel = scanLine[x];
+            if (qAlpha(pixel) < visibleAlpha)
+                continue;
+            if (!found) {
+                reference = pixel;
+                found = true;
+            } else if (qAbs(qRed(pixel) - qRed(reference)) > tolerance
+                       || qAbs(qGreen(pixel) - qGreen(reference)) > tolerance
+                       || qAbs(qBlue(pixel) - qBlue(reference)) > tolerance) {
+                return false;
+            }
+        }
+    }
+    return found;
+}
+
+///
+/// \brief Paints every pixel of an image in one colour, keeping its transparency.
+/// \param image Image in Format_ARGB32.
+/// \param color Colour to paint with.
+/// \return Recoloured image.
+///
+QImage tinted(QImage image, const QColor &color)
+{
+    for (int y = 0; y < image.height(); ++y) {
+        auto *scanLine = reinterpret_cast<QRgb *>(image.scanLine(y));
+        for (int x = 0; x < image.width(); ++x)
+            scanLine[x] = qRgba(color.red(), color.green(), color.blue(), qAlpha(scanLine[x]));
+    }
+    return image;
+}
+
+///
+/// \brief Builds the icon of an image a server publishes for a node.
+/// \param image Server image.
+/// \param palette Palette of the tree.
+/// \return The image as it is, or a single-colour glyph in the text colour, highlighted text
+///         colour when selected, so it reads like the built-in icons in either theme.
+///
+QIcon serverIcon(const QImage &image, const QPalette &palette)
+{
+    const QImage argb = image.convertToFormat(QImage::Format_ARGB32);
+    if (!isMonochrome(argb))
+        return QIcon(QPixmap::fromImage(argb));
+    QIcon icon(QPixmap::fromImage(tinted(argb, palette.color(QPalette::Text))));
+    icon.addPixmap(QPixmap::fromImage(tinted(argb, palette.color(QPalette::HighlightedText))),
+                   QIcon::Selected);
+    return icon;
+}
+
+///
+/// \brief Lists the browsed nodes whose server icon is worth reading.
+/// \param children Browse result.
+/// \return Objects and variables other than properties, which servers give no icons.
+///
+QStringList iconCandidates(const QVector<OpcUaNodeInfo> &children)
+{
+    QStringList nodeIds;
+    for (const OpcUaNodeInfo &child : children) {
+        const bool object = (child.nodeClass & OpcUa::Object) != 0;
+        const bool variable = OpcUa::isVariable(child.nodeClass)
+            && child.typeDefinitionId != StandardNodeId::propertyType();
+        if (object || variable)
+            nodeIds.append(child.nodeId);
+    }
+    return nodeIds;
+}
+
 } // namespace
 
 ///
@@ -94,8 +196,8 @@ AddressSpaceWidget::AddressSpaceWidget(QWidget *parent)
             emit referencesRequested(_selectedNodeId);
     });
 
-    _treeModel->setIconProvider([this](AddressSpaceItem::NodeType type) {
-        return nodeIcon(type);
+    _treeModel->setIconProvider([this](AddressSpaceItem::NodeType type, const QImage &serverImage) {
+        return nodeIcon(type, serverImage);
     });
 
     ui->addressTree->expandAll();
@@ -133,12 +235,33 @@ void AddressSpaceWidget::setBrowseChildren(const QString &parentNodeId,
                                            const QVector<OpcUaNodeInfo> &children,
                                            const QString &error)
 {
-    if (!error.isEmpty())
+    if (!error.isEmpty()) {
         _treeModel->setBrowseFailed(parentNodeId);
-    else
+    } else {
         _treeModel->setChildren(parentNodeId, children);
+        const QStringList iconNodeIds = iconCandidates(children);
+        if (!iconNodeIds.isEmpty() && _treeModel->findByNodeId(parentNodeId).isValid())
+            emit iconsRequested(iconNodeIds);
+    }
     if (!_pendingExpand.isEmpty() || !_pendingSelect.isEmpty())
         applyPendingExpansion();
+}
+
+///
+/// \brief Shows the icon a server publishes for a node instead of its node class icon.
+/// \param nodeId Node the icon belongs to.
+/// \param image Encoded image, such as a PNG; one that does not decode is ignored. A
+///        single-colour glyph takes the text colour of the theme.
+///
+void AddressSpaceWidget::setNodeIcon(const QString &nodeId, const QByteArray &image)
+{
+    constexpr int largestExtent = 64;
+    QImage decoded = QImage::fromData(image);
+    if (decoded.isNull())
+        return;
+    if (decoded.width() > largestExtent || decoded.height() > largestExtent)
+        decoded = decoded.scaled(largestExtent, largestExtent, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    _treeModel->setNodeImage(nodeId, decoded);
 }
 
 ///
@@ -402,20 +525,15 @@ void AddressSpaceWidget::changeEvent(QEvent *event)
 }
 
 ///
-/// \brief Returns the node-class icon, greyed out while the tree is offline.
+/// \brief Returns the server icon of a node, else its node-class icon, greyed out while the tree is offline.
 /// \param type Icon node type.
-/// \return Icon for the node class.
+/// \param serverImage Image the server publishes for the node, null when it has none.
+/// \return Icon for the node.
 ///
-QIcon AddressSpaceWidget::nodeIcon(AddressSpaceItem::NodeType type) const
+QIcon AddressSpaceWidget::nodeIcon(AddressSpaceItem::NodeType type, const QImage &serverImage) const
 {
-    QIcon icon;
-    switch (type) {
-    case AddressSpaceItem::NodeType::Folder:   icon = AppIcons::themed("folder"); break;
-    case AddressSpaceItem::NodeType::Node:     icon = AppIcons::themed("node"); break;
-    case AddressSpaceItem::NodeType::Variable: icon = AppIcons::themed("variable"); break;
-    case AddressSpaceItem::NodeType::Property: icon = AppIcons::themed("property"); break;
-    case AddressSpaceItem::NodeType::Method:   icon = AppIcons::themed("method"); break;
-    }
+    const QIcon icon = serverImage.isNull() ? nodeClassIcon(type)
+                                            : serverIcon(serverImage, ui->addressTree->palette());
     if (!_offline)
         return icon;
 
