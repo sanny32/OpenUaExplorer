@@ -721,6 +721,18 @@ void TestAddressSpaceWidget::serverIconsReplaceNodeClassIcons()
     QCOMPARE(deviceImage.pixelColor(32, 8), QColor(Qt::red));
     QCOMPARE(deviceImage.pixelColor(32, 56), QColor(Qt::blue));
 
+    QImage statusDot(32, 32, QImage::Format_ARGB32);
+    statusDot.fill(Qt::transparent);
+    for (int y = 8; y < 24; ++y) {
+        for (int x = 8; x < 24; ++x)
+            statusDot.setPixelColor(x, y, QColor(0x22, 0xc5, 0x5e));
+    }
+    widget.setNodeIcon(start.nodeId, pngData(statusDot));
+    const QModelIndex startIndex = tree->model()->index(3, 0, rootIndex);
+    QCOMPARE(tree->model()->data(startIndex, Qt::DecorationRole).value<QIcon>().pixmap(32, 32).toImage()
+                 .pixelColor(16, 16),
+             QColor(0x22, 0xc5, 0x5e));
+
     widget.setOffline(true);
     QVERIFY(isGreyscale(tree->model()->data(deviceIndex, Qt::DecorationRole).value<QIcon>()));
 }

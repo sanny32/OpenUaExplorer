@@ -84,12 +84,13 @@ QIcon nodeClassIcon(AddressSpaceItem::NodeType type)
 }
 
 ///
-/// \brief Tells whether an image draws in one colour, as glyph icons do.
+/// \brief Tells whether an image is a colourless glyph, drawn in one shade of grey.
 /// \param image Image in Format_ARGB32.
-/// \return True when every clearly visible pixel has nearly the same colour; antialiased edges
-///         and a little encoding noise are tolerated.
+/// \return True when every clearly visible pixel has nearly the same grey; antialiased edges
+///         and a little encoding noise are tolerated. A single-colour picture such as a green
+///         status dot carries meaning in its colour and is no glyph.
 ///
-bool isMonochrome(const QImage &image)
+bool isGreyGlyph(const QImage &image)
 {
     constexpr int visibleAlpha = 64;
     constexpr int tolerance = 24;
@@ -102,6 +103,10 @@ bool isMonochrome(const QImage &image)
             if (qAlpha(pixel) < visibleAlpha)
                 continue;
             if (!found) {
+                const int chroma = qMax(qRed(pixel), qMax(qGreen(pixel), qBlue(pixel)))
+                    - qMin(qRed(pixel), qMin(qGreen(pixel), qBlue(pixel)));
+                if (chroma > tolerance)
+                    return false;
                 reference = pixel;
                 found = true;
             } else if (qAbs(qRed(pixel) - qRed(reference)) > tolerance
@@ -134,13 +139,13 @@ QImage tinted(QImage image, const QColor &color)
 /// \brief Builds the icon of an image a server publishes for a node.
 /// \param image Server image.
 /// \param palette Palette of the tree.
-/// \return The image as it is, or a single-colour glyph in the text colour, highlighted text
+/// \return The image as it is, or a grey glyph in the text colour, highlighted text
 ///         colour when selected, so it reads like the built-in icons in either theme.
 ///
 QIcon serverIcon(const QImage &image, const QPalette &palette)
 {
     const QImage argb = image.convertToFormat(QImage::Format_ARGB32);
-    if (!isMonochrome(argb))
+    if (!isGreyGlyph(argb))
         return QIcon(QPixmap::fromImage(argb));
     QIcon icon(QPixmap::fromImage(tinted(argb, palette.color(QPalette::Text))));
     icon.addPixmap(QPixmap::fromImage(tinted(argb, palette.color(QPalette::HighlightedText))),
@@ -251,7 +256,7 @@ void AddressSpaceWidget::setBrowseChildren(const QString &parentNodeId,
 /// \brief Shows the icon a server publishes for a node instead of its node class icon.
 /// \param nodeId Node the icon belongs to.
 /// \param image Encoded image, such as a PNG; one that does not decode is ignored. A
-///        single-colour glyph takes the text colour of the theme.
+///        grey glyph takes the text colour of the theme.
 ///
 void AddressSpaceWidget::setNodeIcon(const QString &nodeId, const QByteArray &image)
 {
