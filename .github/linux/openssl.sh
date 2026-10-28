@@ -12,8 +12,7 @@
 # link its open62541 backend against this OpenSSL rather than the system one, and
 # bundle.sh copies libssl.so.3 and libcrypto.so.3 out of the prefix.
 #
-# The build is skipped when the prefix already holds the libraries, so the whole
-# prefix can be restored from a cache.
+# The build is skipped when the prefix already holds the libraries.
 
 set -euo pipefail
 
