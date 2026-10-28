@@ -86,11 +86,12 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -r tools/requirements.txt
 
-      - name: Cache Qt OpcUa build
-        uses: actions/cache@v5
+      - name: Restore Qt OpcUa build
+        id: qtopcua-cache
+        uses: actions/cache/restore@v5
         with:
           path: build/_deps/qtopcua-install
-          key: qtopcua-${{ matrix.os }}-${{ matrix.qt }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
+          key: qtopcua-${{ matrix.os }}-${{ matrix.qt }}-${{ hashFiles('src/cmake/qtopcua.cmake', 'src/cmake/patches/*.patch') }}
 
       - name: Configure
         run: >
@@ -99,6 +100,14 @@ jobs:
           -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF
           -DOUAEXP_BUILD_TESTS=ON
           ${{ matrix.cmake_extra }}
+
+      # A pull request's cache is scoped to its merge ref, which nothing else can restore.
+      - name: Save Qt OpcUa build
+        if: github.event_name == 'push' && steps.qtopcua-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: build/_deps/qtopcua-install
+          key: ${{ steps.qtopcua-cache.outputs.cache-primary-key }}
 
       - name: Build and run tests (Linux)
         if: runner.os == 'Linux'
@@ -175,20 +184,33 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -r tools/requirements.txt
 
-      - name: Cache Qt OpcUa build
-        uses: actions/cache@v5
+      # Shares the tests job's cache entry, which matches on path as well as key.
+      - name: Restore Qt OpcUa build
+        id: qtopcua-cache
+        uses: actions/cache/restore@v5
         with:
-          path: build-coverage/_deps/qtopcua-install
-          key: qtopcua-coverage-${{ matrix.os }}-${{ matrix.qt }}-${{ hashFiles('src/cmake/qtopcua.cmake') }}
+          path: build/_deps/qtopcua-install
+          key: qtopcua-${{ matrix.os }}-${{ matrix.qt }}-${{ hashFiles('src/cmake/qtopcua.cmake', 'src/cmake/patches/*.patch') }}
 
       - name: Run coverage
         run: >
           dbus-run-session -- bash tools/with_session_services.sh
-          python tools/coverage.py --strict -- -G Ninja
+          python tools/coverage.py --strict --build-dir build -- -G Ninja
+
+      # Qt OpcUa is built by the coverage step's configure, so a failed test run still saves it.
+      - name: Save Qt OpcUa build
+        if: >
+          !cancelled() && github.event_name == 'push'
+          && steps.qtopcua-cache.outputs.cache-hit != 'true'
+          && hashFiles('build/_deps/qtopcua-install/**/Qt6OpcUaConfig.cmake') != ''
+        uses: actions/cache/save@v5
+        with:
+          path: build/_deps/qtopcua-install
+          key: ${{ steps.qtopcua-cache.outputs.cache-primary-key }}
 
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: coverage-report
-          path: build-coverage/coverage
+          path: build/coverage
