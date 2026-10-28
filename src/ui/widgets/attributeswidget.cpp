@@ -208,7 +208,7 @@ AttributesWidget::~AttributesWidget()
 }
 
 ///
-/// \brief Retranslates the generated UI on a language change.
+/// \brief Retranslates the generated UI on a language change and asks for the shown node again.
 /// \param event Change event being handled.
 ///
 void AttributesWidget::changeEvent(QEvent *event)
@@ -218,6 +218,8 @@ void AttributesWidget::changeEvent(QEvent *event)
         ui->retranslateUi(this);
         _model->retranslate();
         retranslateCodeTexts();
+        if (!_nodeId.isEmpty() && !_offline)
+            emit rereadRequested(_nodeId);
     }
 }
 
@@ -256,6 +258,8 @@ void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
 void AttributesWidget::clear()
 {
     _model->clear();
+    _nodeId.clear();
+    _nodeName.clear();
     ui->writeValueGroup->setEnabled(false);
     clearWriteEditor();
 }

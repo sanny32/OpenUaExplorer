@@ -132,7 +132,6 @@ public:
         _valueFont.setBold(true);
         _valueFont.setPointSizeF(base.pointSizeF() + 9.0);
         _statusFont = base;
-        _valueLabel = QCoreApplication::translate("QtChartsView", "Value");
 
         hide();
     }
@@ -148,11 +147,13 @@ public:
     void setData(const QColor &swatch, const QString &name, const QString &time,
                  const QString &value, const QString &status)
     {
+        const QString valueLabel = QCoreApplication::translate("QtChartsView", "Value");
         if (_swatch == swatch && _name == name && _time == time && _value == value
-            && _status == status) {
+            && _status == status && _valueLabel == valueLabel) {
             return;
         }
 
+        _valueLabel = valueLabel;
         _swatch = swatch;
         _name = name;
         _time = time;

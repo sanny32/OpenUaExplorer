@@ -3981,6 +3981,10 @@ Do you want to save them?</source>
         <source>Close</source>
         <translation>关闭</translation>
     </message>
+    <message>
+        <source>Trend %1</source>
+        <translation>趋势 %1</translation>
+    </message>
 </context>
 <context>
     <name>TrendSettingsDialog</name>

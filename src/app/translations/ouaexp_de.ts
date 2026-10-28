@@ -3988,6 +3988,10 @@ Möchten Sie sie speichern?</translation>
         <source>Close</source>
         <translation>Schließen</translation>
     </message>
+    <message>
+        <source>Trend %1</source>
+        <translation>Trend %1</translation>
+    </message>
 </context>
 <context>
     <name>TrendSettingsDialog</name>

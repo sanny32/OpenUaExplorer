@@ -199,6 +199,11 @@ private:
     void handleTabCloseRequested(int index);
     void showTabContextMenu(const QPoint &pos);
     void renameTab(int index);
+    QString defaultTabTitle(int number) const;
+    bool hasDefaultTitle(int index) const;
+    bool isDefaultTabTitle(int index, const QString &title) const;
+    void setCustomTabTitle(int index, const QString &title);
+    void retranslateTabTitles();
     void renameCurrentTab();
     void commitTabRename();
     void cancelTabRename();

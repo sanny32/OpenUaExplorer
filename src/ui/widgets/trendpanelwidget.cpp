@@ -124,6 +124,7 @@ void TrendPanelWidget::changeEvent(QEvent *event)
     if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
         updateCollapseButton();
+        retranslateTabTitles();
     }
 }
 
@@ -146,10 +147,70 @@ TrendGraphWidget *TrendPanelWidget::addChartTab()
             &TrendPanelWidget::subscriptionCreationRequested);
 
     const int insertAt = ui->trendTabs->indexOf(_addTab);
-    const QString title = QStringLiteral("Trend %1").arg(++_chartCounter);
-    ui->trendTabs->insertTab(insertAt < 0 ? ui->trendTabs->count() : insertAt, chart, title);
+    const int number = ++_chartCounter;
+    const int index = ui->trendTabs->insertTab(insertAt < 0 ? ui->trendTabs->count() : insertAt,
+                                               chart, defaultTabTitle(number));
+    ui->trendTabs->tabBar()->setTabData(index, number);
     ui->trendTabs->setCurrentWidget(chart);
     return chart;
+}
+
+///
+/// \brief Returns the title a chart tab carries until the user renames it.
+/// \param number Sequence number of the chart.
+/// \return Title in the current language.
+///
+QString TrendPanelWidget::defaultTabTitle(int number) const
+{
+    return tr("Trend %1").arg(number);
+}
+
+///
+/// \brief Reports whether a chart tab still carries the title it was created with.
+/// \param index Tab index.
+/// \return True when the user never renamed the tab.
+///
+bool TrendPanelWidget::hasDefaultTitle(int index) const
+{
+    return ui->trendTabs->tabBar()->tabData(index).isValid();
+}
+
+///
+/// \brief Reports whether a saved title is the tab's default one, in English or the current language.
+/// \param index Tab index.
+/// \param title Saved title.
+/// \return True when the title was not chosen by the user.
+///
+bool TrendPanelWidget::isDefaultTabTitle(int index, const QString &title) const
+{
+    const QVariant number = ui->trendTabs->tabBar()->tabData(index);
+    if (!number.isValid())
+        return false;
+    return title == defaultTabTitle(number.toInt())
+        || title == QStringLiteral("Trend %1").arg(number.toInt());
+}
+
+///
+/// \brief Gives a chart tab a user-chosen title, which no longer follows the language.
+/// \param index Tab index.
+/// \param title New title.
+///
+void TrendPanelWidget::setCustomTabTitle(int index, const QString &title)
+{
+    ui->trendTabs->setTabText(index, title);
+    ui->trendTabs->tabBar()->setTabData(index, QVariant());
+}
+
+///
+/// \brief Re-applies the default titles of the chart tabs the user never renamed.
+///
+void TrendPanelWidget::retranslateTabTitles()
+{
+    for (int index = 0; index < ui->trendTabs->count(); ++index) {
+        const QVariant number = ui->trendTabs->tabBar()->tabData(index);
+        if (number.isValid())
+            ui->trendTabs->setTabText(index, defaultTabTitle(number.toInt()));
+    }
 }
 
 ///
@@ -250,8 +311,8 @@ void TrendPanelWidget::commitTabRename()
     const int index = ui->trendTabs->indexOf(_renamedChart);
     const QString title = _tabNameEditor->text().trimmed();
     cancelTabRename();
-    if (index >= 0 && !title.isEmpty())
-        ui->trendTabs->setTabText(index, title);
+    if (index >= 0 && !title.isEmpty() && title != ui->trendTabs->tabText(index))
+        setCustomTabTitle(index, title);
 }
 
 ///
@@ -347,7 +408,9 @@ QVector<SessionTrendTab> TrendPanelWidget::captureTrendTabs() const
     for (TrendGraphWidget *chart : tabs) {
         const TrendDisplaySettings display = chart->displaySettings();
         SessionTrendTab tab;
-        tab.title = ui->trendTabs->tabText(ui->trendTabs->indexOf(chart));
+        const int index = ui->trendTabs->indexOf(chart);
+        if (!hasDefaultTitle(index))
+            tab.title = ui->trendTabs->tabText(index);
         tab.autoScale = display.autoScale;
         tab.showLegend = display.showLegend;
         tab.showGrid = display.showGrid;
@@ -400,8 +463,9 @@ void TrendPanelWidget::restoreTrendTabs(const QVector<SessionTrendTab> &tabs)
 
     for (const SessionTrendTab &tab : tabs) {
         TrendGraphWidget *chart = addChartTab();
-        if (!tab.title.isEmpty())
-            ui->trendTabs->setTabText(ui->trendTabs->indexOf(chart), tab.title);
+        const int index = ui->trendTabs->indexOf(chart);
+        if (!tab.title.isEmpty() && !isDefaultTabTitle(index, tab.title))
+            setCustomTabTitle(index, tab.title);
         for (const SessionTrendSeries &series : tab.series)
             chart->addNode(series.nodeId, series.displayName, series.displayPath);
 

@@ -332,6 +332,9 @@ private slots:
     void f2RenamesActiveTab();
     void f2RenamesClickedTab();
     void tabTitlesSurviveCaptureAndRestore();
+    void defaultTabTitlesFollowTheLanguage();
+    void defaultTabTitlesAreNotSaved();
+    void savedDefaultTitleFollowsTheLanguage();
 };
 
 ///
@@ -1045,6 +1048,62 @@ void TestTrendPanelWidget::tabTitlesSurviveCaptureAndRestore()
     restored.restoreTrendTabs({captured.first(), untitled});
     QCOMPARE(tabTitle(&restored, 0), QStringLiteral("Pumps"));
     QCOMPARE(tabTitle(&restored, 1), QStringLiteral("Trend 2"));
+}
+
+///
+/// \brief Tabs that keep their default title are retitled on a language change; renamed ones stay.
+///
+void TestTrendPanelWidget::defaultTabTitlesFollowTheLanguage()
+{
+    TrendPanelWidget panel;
+    QLineEdit *editor = startFirstTabRename(&panel);
+    QVERIFY(editor);
+    editor->setText(QStringLiteral("Pumps"));
+    QTest::keyClick(editor, Qt::Key_Return);
+    auto *tabs = panel.findChild<QTabWidget *>(QStringLiteral("trendTabs"));
+    QVERIFY(tabs);
+    tabs->setCurrentIndex(tabs->count() - 1);
+    QCOMPARE(tabTitle(&panel, 1), QStringLiteral("Trend 2"));
+
+    TestTranslation::SuffixTranslator translator({"TrendPanelWidget"});
+    TestTranslation::switchLanguage(&translator, true);
+    const QString renamed = tabTitle(&panel, 0);
+    const QString translated = tabTitle(&panel, 1);
+    TestTranslation::switchLanguage(&translator, false);
+
+    QCOMPARE(renamed, QStringLiteral("Pumps"));
+    QCOMPARE(translated, QStringLiteral("Trend 2-xx"));
+    QCOMPARE(tabTitle(&panel, 1), QStringLiteral("Trend 2"));
+}
+
+///
+/// \brief A default title is left out of the session so it reopens in the current language.
+///
+void TestTrendPanelWidget::defaultTabTitlesAreNotSaved()
+{
+    TrendPanelWidget panel;
+    const QVector<SessionTrendTab> captured = panel.captureTrendTabs();
+    QCOMPARE(captured.size(), 1);
+    QVERIFY(captured.first().title.isEmpty());
+}
+
+///
+/// \brief A default title saved by an older session is not mistaken for a rename.
+///
+void TestTrendPanelWidget::savedDefaultTitleFollowsTheLanguage()
+{
+    SessionTrendTab saved;
+    saved.title = QStringLiteral("Trend 1");
+    TrendPanelWidget panel;
+    panel.restoreTrendTabs({saved});
+    QVERIFY(panel.captureTrendTabs().first().title.isEmpty());
+
+    TestTranslation::SuffixTranslator translator({"TrendPanelWidget"});
+    TestTranslation::switchLanguage(&translator, true);
+    const QString translated = tabTitle(&panel, 0);
+    TestTranslation::switchLanguage(&translator, false);
+
+    QCOMPARE(translated, QStringLiteral("Trend 1-xx"));
 }
 
 QTEST_MAIN(TestTrendPanelWidget)

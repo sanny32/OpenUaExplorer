@@ -47,6 +47,8 @@ void AttributesFeature::initialize(FeatureHost &host)
 
     QObject::connect(_widget, &AttributesWidget::writeRequested,
                      attributeModule, &AttributeModule::write);
+    QObject::connect(_widget, &AttributesWidget::rereadRequested,
+                     attributeModule, &AttributeModule::read);
     QObject::connect(selection, &SelectionContext::detailsReady,
                      _widget, &AttributesWidget::setNodeDetails);
 

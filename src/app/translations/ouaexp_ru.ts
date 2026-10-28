@@ -3995,6 +3995,10 @@ Do you want to save them?</source>
         <source>Close</source>
         <translation>Закрыть</translation>
     </message>
+    <message>
+        <source>Trend %1</source>
+        <translation>Тренд %1</translation>
+    </message>
 </context>
 <context>
     <name>TrendSettingsDialog</name>
