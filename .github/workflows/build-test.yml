@@ -19,6 +19,10 @@ concurrency:
   group: build-test-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   tests:
     name: Build and Test (${{ matrix.os }}, Qt ${{ matrix.qt }})
@@ -121,6 +125,13 @@ jobs:
           path: build/_deps/qtopcua-install
           key: ${{ steps.qtopcua-cache.outputs.cache-primary-key }}
 
+      - name: Drop superseded Qt OpcUa builds
+        if: github.event_name == 'push' && steps.qtopcua-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/drop-stale-caches
+        with:
+          prefix: qtopcua-${{ matrix.os }}-${{ matrix.qt }}-
+          keep: ${{ steps.qtopcua-cache.outputs.cache-primary-key }}
+
       - name: Build and run tests (Linux)
         if: runner.os == 'Linux'
         run: >
@@ -130,6 +141,13 @@ jobs:
       - name: Build and run tests
         if: runner.os != 'Linux'
         run: cmake --build build --config Release --parallel --target ouaexp ouaexp_check
+
+      # The restored entry is already on disk; ccache-action saves its successor after the job.
+      - name: Drop superseded ccache entries
+        if: runner.os != 'Windows' && github.event_name == 'push'
+        uses: ./.github/actions/drop-stale-caches
+        with:
+          prefix: ccache-build-test-${{ matrix.os }}-${{ matrix.qt }}-
 
       # Reproduces issue #12: a host Qt that ships its own Qt OpcUa must not shadow the patched
       # bundled headers. The Qt installed here has no Qt OpcUa, so the collision is staged with a
@@ -217,6 +235,12 @@ jobs:
           dbus-run-session -- bash tools/with_session_services.sh
           python tools/coverage.py --strict --build-dir build --
           -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Drop superseded ccache entries
+        if: github.event_name == 'push'
+        uses: ./.github/actions/drop-stale-caches
+        with:
+          prefix: ccache-coverage-${{ matrix.os }}-${{ matrix.qt }}-
 
       # Qt OpcUa is built by the coverage step's configure, so a failed test run still saves it.
       - name: Save Qt OpcUa build
