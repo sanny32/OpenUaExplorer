@@ -48,7 +48,8 @@ public:
     explicit TrendPanelWidget(QWidget *parent = nullptr);
 
     ///
-    /// \brief Destroys the panel and its generated UI.
+    /// \brief Destroys the panel and its generated UI, dropping an open rename first so the
+    ///        editor's editingFinished on teardown never reaches a deleted ui.
     ///
     ~TrendPanelWidget() override;
 

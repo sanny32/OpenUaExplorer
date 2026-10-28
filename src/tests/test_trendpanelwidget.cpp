@@ -14,6 +14,7 @@
 #include <QGraphicsEllipseItem>
 #include <QLineEdit>
 #include <QMenu>
+#include <QPointer>
 #include <QSignalSpy>
 #include <QTabBar>
 #include <QTabWidget>
@@ -331,6 +332,7 @@ private slots:
     void addTabCannotBeRenamed();
     void f2RenamesActiveTab();
     void f2RenamesClickedTab();
+    void destroyingPanelMidRenameIsSafe();
     void tabTitlesSurviveCaptureAndRestore();
     void defaultTabTitlesFollowTheLanguage();
     void defaultTabTitlesAreNotSaved();
@@ -1026,6 +1028,25 @@ void TestTrendPanelWidget::f2RenamesClickedTab()
     QVERIFY(editor);
     QVERIFY(editor->isVisible());
     QCOMPARE(editor->text(), QStringLiteral("Trend 1"));
+}
+
+///
+/// \brief Deleting the panel while its focused title editor is open does not commit
+///        the edit into the half-destroyed panel.
+///
+void TestTrendPanelWidget::destroyingPanelMidRenameIsSafe()
+{
+    auto *panel = new TrendPanelWidget;
+    panel->activateWindow();
+    QLineEdit *editor = startFirstTabRename(panel);
+    QVERIFY(editor);
+    QVERIFY(QTest::qWaitForWindowActive(panel));
+    QCOMPARE(QApplication::focusWidget(), editor);
+    editor->setText(QStringLiteral("Pumps"));
+
+    QPointer<QLineEdit> guard(editor);
+    delete panel;
+    QVERIFY(guard.isNull());
 }
 
 ///
