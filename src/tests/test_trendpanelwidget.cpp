@@ -12,8 +12,11 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QGraphicsEllipseItem>
+#include <QLineEdit>
 #include <QMenu>
 #include <QSignalSpy>
+#include <QTabBar>
+#include <QTabWidget>
 #include <QTest>
 #include <QMouseEvent>
 #include <QTimer>
@@ -257,6 +260,40 @@ qint64 timeSpanMs(QChartView *view)
     return axis ? axis->min().msecsTo(axis->max()) : -1;
 }
 
+///
+/// \brief Shows a panel and double-clicks its first chart tab to start a rename.
+/// \param panel Panel to set up; shown by this call.
+/// \return The inline title editor, or nullptr when it did not open.
+///
+QLineEdit *startFirstTabRename(TrendPanelWidget *panel)
+{
+    panel->resize(800, 600);
+    panel->show();
+    if (!QTest::qWaitForWindowExposed(panel))
+        return nullptr;
+
+    auto *tabs = panel->findChild<QTabWidget *>(QStringLiteral("trendTabs"));
+    if (!tabs)
+        return nullptr;
+    QTest::mouseDClick(tabs->tabBar(), Qt::LeftButton, Qt::NoModifier,
+                       tabs->tabBar()->tabRect(0).center());
+
+    auto *editor = panel->findChild<QLineEdit *>(QStringLiteral("tabNameEditor"));
+    return editor && editor->isVisible() ? editor : nullptr;
+}
+
+///
+/// \brief Returns the title of a panel's tab.
+/// \param panel Panel holding the tabs.
+/// \param index Tab index.
+/// \return Tab title, or an empty string when the panel has no tab widget.
+///
+QString tabTitle(TrendPanelWidget *panel, int index)
+{
+    auto *tabs = panel->findChild<QTabWidget *>(QStringLiteral("trendTabs"));
+    return tabs ? tabs->tabText(index) : QString();
+}
+
 } // namespace
 
 ///
@@ -287,6 +324,14 @@ private slots:
     void hoverAlongHorizontalLineKeepsPlaque();
     void livePlaqueSurvivesWindowScrolling();
     void languageChangeKeepsStateDependentTooltips();
+    void doubleClickRenamesTab();
+    void escapeCancelsTabRename();
+    void blankTitleKeepsTabName();
+    void contextMenuRenameOpensEditor();
+    void addTabCannotBeRenamed();
+    void f2RenamesActiveTab();
+    void f2RenamesClickedTab();
+    void tabTitlesSurviveCaptureAndRestore();
 };
 
 ///
@@ -821,6 +866,185 @@ void TestTrendPanelWidget::languageChangeKeepsStateDependentTooltips()
     TestTranslation::switchLanguage(&translator, false);
     QCOMPARE(collapse->toolTip(), QStringLiteral("Expand trend panel"));
     QCOMPARE(livePause->toolTip(), QStringLiteral("Resume"));
+}
+
+///
+/// \brief Double-clicking a chart tab edits its title in place; Enter applies it.
+///
+void TestTrendPanelWidget::doubleClickRenamesTab()
+{
+    TrendPanelWidget panel;
+    QLineEdit *editor = startFirstTabRename(&panel);
+    QVERIFY(editor);
+    QCOMPARE(editor->text(), QStringLiteral("Trend 1"));
+
+    editor->setText(QStringLiteral("  Pumps  "));
+    QTest::keyClick(editor, Qt::Key_Return);
+
+    QCOMPARE(tabTitle(&panel, 0), QStringLiteral("Pumps"));
+    QVERIFY(!editor->isVisible());
+}
+
+///
+/// \brief Escape closes the editor and leaves the title untouched.
+///
+void TestTrendPanelWidget::escapeCancelsTabRename()
+{
+    TrendPanelWidget panel;
+    QLineEdit *editor = startFirstTabRename(&panel);
+    QVERIFY(editor);
+
+    editor->setText(QStringLiteral("Pumps"));
+    QTest::keyClick(editor, Qt::Key_Escape);
+
+    QVERIFY(!editor->isVisible());
+    QCOMPARE(tabTitle(&panel, 0), QStringLiteral("Trend 1"));
+}
+
+///
+/// \brief A blank title is rejected so a tab never ends up nameless.
+///
+void TestTrendPanelWidget::blankTitleKeepsTabName()
+{
+    TrendPanelWidget panel;
+    QLineEdit *editor = startFirstTabRename(&panel);
+    QVERIFY(editor);
+
+    editor->setText(QStringLiteral("   "));
+    QTest::keyClick(editor, Qt::Key_Return);
+
+    QVERIFY(!editor->isVisible());
+    QCOMPARE(tabTitle(&panel, 0), QStringLiteral("Trend 1"));
+}
+
+///
+/// \brief The tab context menu offers Rename, which opens the inline editor.
+///
+void TestTrendPanelWidget::contextMenuRenameOpensEditor()
+{
+    TrendPanelWidget panel;
+    panel.resize(800, 600);
+    panel.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&panel));
+
+    auto *tabs = panel.findChild<QTabWidget *>(QStringLiteral("trendTabs"));
+    QVERIFY(tabs);
+    QTabBar *bar = tabs->tabBar();
+
+    QStringList texts;
+    QTimer::singleShot(0, qApp, [&texts]() {
+        auto *menu = qobject_cast<QMenu *>(QApplication::activePopupWidget());
+        if (!menu)
+            return;
+        for (QAction *action : menu->actions()) {
+            texts.append(action->text());
+            if (action->text() == QStringLiteral("Rename"))
+                action->trigger();
+        }
+        menu->close();
+    });
+    const QPoint pos = bar->tabRect(0).center();
+    QContextMenuEvent event(QContextMenuEvent::Mouse, pos, bar->mapToGlobal(pos));
+    QCoreApplication::sendEvent(bar, &event);
+
+    QCOMPARE(texts, QStringList({QStringLiteral("Rename"), QStringLiteral("Close")}));
+    auto *editor = panel.findChild<QLineEdit *>(QStringLiteral("tabNameEditor"));
+    QVERIFY(editor);
+    QVERIFY(editor->isVisible());
+    QCOMPARE(editor->text(), QStringLiteral("Trend 1"));
+}
+
+///
+/// \brief The trailing "+" tab is not a chart and offers no rename.
+///
+void TestTrendPanelWidget::addTabCannotBeRenamed()
+{
+    TrendPanelWidget panel;
+    auto *tabs = panel.findChild<QTabWidget *>(QStringLiteral("trendTabs"));
+    QVERIFY(tabs);
+
+    emit tabs->tabBarDoubleClicked(tabs->count() - 1);
+
+    auto *editor = panel.findChild<QLineEdit *>(QStringLiteral("tabNameEditor"));
+    QVERIFY(editor);
+    QVERIFY(editor->isHidden());
+}
+
+///
+/// \brief F2 inside the panel renames the active tab and leaves an open edit alone.
+///
+void TestTrendPanelWidget::f2RenamesActiveTab()
+{
+    TrendPanelWidget panel;
+    panel.addNode(QString::fromLatin1(kNodeId), QStringLiteral("Demo"));
+    panel.resize(800, 600);
+    panel.show();
+    panel.activateWindow();
+    QVERIFY(QTest::qWaitForWindowActive(&panel));
+
+    auto *graph = panel.findChild<TrendGraphWidget *>();
+    QVERIFY(graph);
+    graph->setFocus();
+    QTest::keyClick(graph, Qt::Key_F2);
+
+    auto *editor = panel.findChild<QLineEdit *>(QStringLiteral("tabNameEditor"));
+    QVERIFY(editor);
+    QVERIFY(editor->isVisible());
+    QCOMPARE(editor->text(), QStringLiteral("Trend 1"));
+
+    editor->setText(QStringLiteral("Pumps"));
+    QTest::keyClick(editor, Qt::Key_F2);
+    QCOMPARE(editor->text(), QStringLiteral("Pumps"));
+
+    QTest::keyClick(editor, Qt::Key_Return);
+    QCOMPARE(tabTitle(&panel, 0), QStringLiteral("Pumps"));
+}
+
+///
+/// \brief Clicking a tab focuses the tab bar, so F2 right after it renames that tab.
+///
+void TestTrendPanelWidget::f2RenamesClickedTab()
+{
+    TrendPanelWidget panel;
+    panel.resize(800, 600);
+    panel.show();
+    panel.activateWindow();
+    QVERIFY(QTest::qWaitForWindowActive(&panel));
+
+    auto *tabs = panel.findChild<QTabWidget *>(QStringLiteral("trendTabs"));
+    QVERIFY(tabs);
+    QTabBar *bar = tabs->tabBar();
+    QTest::mouseClick(bar, Qt::LeftButton, Qt::NoModifier, bar->tabRect(0).center());
+    QCOMPARE(QApplication::focusWidget(), bar);
+
+    QTest::keyClick(bar, Qt::Key_F2);
+
+    auto *editor = panel.findChild<QLineEdit *>(QStringLiteral("tabNameEditor"));
+    QVERIFY(editor);
+    QVERIFY(editor->isVisible());
+    QCOMPARE(editor->text(), QStringLiteral("Trend 1"));
+}
+
+///
+/// \brief Renamed titles are captured for the session and reapplied on restore.
+///
+void TestTrendPanelWidget::tabTitlesSurviveCaptureAndRestore()
+{
+    TrendPanelWidget panel;
+    QLineEdit *editor = startFirstTabRename(&panel);
+    QVERIFY(editor);
+    editor->setText(QStringLiteral("Pumps"));
+    QTest::keyClick(editor, Qt::Key_Return);
+
+    const QVector<SessionTrendTab> captured = panel.captureTrendTabs();
+    QCOMPARE(captured.size(), 1);
+    QCOMPARE(captured.first().title, QStringLiteral("Pumps"));
+
+    SessionTrendTab untitled;
+    TrendPanelWidget restored;
+    restored.restoreTrendTabs({captured.first(), untitled});
+    QCOMPARE(tabTitle(&restored, 0), QStringLiteral("Pumps"));
+    QCOMPARE(tabTitle(&restored, 1), QStringLiteral("Trend 2"));
 }
 
 QTEST_MAIN(TestTrendPanelWidget)

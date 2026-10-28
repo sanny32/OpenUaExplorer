@@ -3973,6 +3973,14 @@ Do you want to save them?</source>
         <source>Expand trend panel</source>
         <translation>展开趋势面板</translation>
     </message>
+    <message>
+        <source>Rename</source>
+        <translation>重命名</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>关闭</translation>
+    </message>
 </context>
 <context>
     <name>TrendSettingsDialog</name>

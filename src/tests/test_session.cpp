@@ -75,6 +75,10 @@ static SessionData sampleSession()
                                  HighlightMode::FollowDefault});
     data.trendNodes = {QStringLiteral("ns=2;s=Temp")};
 
+    SessionTrendTab trendTab;
+    trendTab.title = QStringLiteral("Pumps");
+    data.trendTabs.append(trendTab);
+
     SessionNodeMonitor monitor;
     monitor.nodeId = QStringLiteral("ns=2;s=Temp");
     monitor.displayName = QStringLiteral("Temperature");
@@ -130,6 +134,8 @@ void TestSession::roundTripPreservesWorkspace()
     QCOMPARE(loaded.dataAccessNodes.at(1).highlight, HighlightMode::FollowDefault);
 
     QCOMPARE(loaded.trendNodes, original.trendNodes);
+    QCOMPARE(loaded.trendTabs.size(), 1);
+    QCOMPARE(loaded.trendTabs.first().title, QStringLiteral("Pumps"));
     QCOMPARE(loaded.expandedNodes, original.expandedNodes);
     QCOMPARE(loaded.selectedNode, original.selectedNode);
 

@@ -70,6 +70,9 @@ struct SessionTrendSeries
 ///
 struct SessionTrendTab
 {
+    /// \brief Tab title; empty keeps the generated "Trend N" title.
+    QString title;
+
     /// \brief Rescale the value axis to the data as new points arrive.
     bool autoScale = true;
 

@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QHash>
+#include <QPointer>
 #include <QString>
 #include <QVector>
 #include <QWidget>
@@ -22,6 +23,7 @@ namespace Ui {
 class TrendPanelWidget;
 }
 
+class QLineEdit;
 class TrendGraphWidget;
 class ThemedToolButton;
 
@@ -29,7 +31,7 @@ class ThemedToolButton;
 /// \brief Hosts trend chart tabs and routes their data flow to the session.
 ///
 /// Each tab holds one TrendGraphWidget that owns its own Live / 1m / 10m / 1h / 1d
-/// toolbar and mode. The panel manages the tab strip (add, close, last-tab reset),
+/// toolbar and mode. The panel manages the tab strip (add, rename, close, last-tab reset),
 /// coalesces the charts' subscribe / unsubscribe requests so a node monitored from
 /// several tabs is subscribed once at the fastest interval any chart asked for, and
 /// fans live values and history out to charts.
@@ -125,7 +127,7 @@ public:
 protected:
     ///
     /// \brief Keeps the collapse button pinned to the tab strip on tab-widget
-    ///        resize and show events.
+    ///        resize and show events, and cancels a tab rename on Escape.
     /// \param watched Object delivering the event.
     /// \param event Event being filtered.
     /// \return True when the event is consumed.
@@ -195,6 +197,11 @@ private:
     QList<TrendGraphWidget *> charts() const;
     void handleTabChanged(int index);
     void handleTabCloseRequested(int index);
+    void showTabContextMenu(const QPoint &pos);
+    void renameTab(int index);
+    void renameCurrentTab();
+    void commitTabRename();
+    void cancelTabRename();
     void updateCollapseButton();
     void onChartSubscribe(const QString &nodeId, double publishingInterval);
     void onChartUnsubscribe(const QString &nodeId);
@@ -204,6 +211,8 @@ private:
     Ui::TrendPanelWidget *ui;
     QWidget *_addTab = nullptr;
     ThemedToolButton *_collapseButton = nullptr;
+    QLineEdit *_tabNameEditor = nullptr;
+    QPointer<TrendGraphWidget> _renamedChart;
     int _chartCounter = 0;
     bool _suppressTabChange = false;
     bool _collapsed = false;

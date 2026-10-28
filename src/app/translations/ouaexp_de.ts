@@ -3980,6 +3980,14 @@ Möchten Sie sie speichern?</translation>
         <source>Expand trend panel</source>
         <translation>Trendfenster ausklappen</translation>
     </message>
+    <message>
+        <source>Rename</source>
+        <translation>Umbenennen</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Schließen</translation>
+    </message>
 </context>
 <context>
     <name>TrendSettingsDialog</name>
