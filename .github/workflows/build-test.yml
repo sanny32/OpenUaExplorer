@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   tests:
-    name: Tests (${{ matrix.os }}, Qt ${{ matrix.qt }})
+    name: Build and Test (${{ matrix.os }}, Qt ${{ matrix.qt }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
