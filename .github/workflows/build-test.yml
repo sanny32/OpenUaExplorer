@@ -29,19 +29,30 @@ jobs:
         include:
           - os: ubuntu-latest
             qt: '6.9.3'
+            cmake_extra: '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_LINKER_TYPE=MOLD'
 
           - os: windows-latest
             qt: '6.9.3'
 
           - os: macos-26
             qt: '6.9.3'
-            cmake_extra: '-DCMAKE_OSX_ARCHITECTURES=arm64'
+            cmake_extra: '-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache'
     env:
       QT_QPA_PLATFORM: offscreen
+      CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      # MSVC is left out: ccache does not cache its precompiled-header compiles.
+      - name: Set up ccache
+        if: runner.os != 'Windows'
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: build-test-${{ matrix.os }}-${{ matrix.qt }}
+          max-size: 1G
+          save: ${{ github.event_name == 'push' }}
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
@@ -56,6 +67,7 @@ jobs:
             libssl-dev \
             libgl1-mesa-dev \
             libxkbcommon-x11-0 \
+            mold \
             python3-dbus \
             python3-gi
 
@@ -154,10 +166,18 @@ jobs:
 
     env:
       QT_QPA_PLATFORM: offscreen
+      CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: coverage-${{ matrix.os }}-${{ matrix.qt }}
+          max-size: 1G
+          save: ${{ github.event_name == 'push' }}
 
       - name: Install build dependencies
         run: |
@@ -195,7 +215,8 @@ jobs:
       - name: Run coverage
         run: >
           dbus-run-session -- bash tools/with_session_services.sh
-          python tools/coverage.py --strict --build-dir build -- -G Ninja
+          python tools/coverage.py --strict --build-dir build --
+          -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       # Qt OpcUa is built by the coverage step's configure, so a failed test run still saves it.
       - name: Save Qt OpcUa build
