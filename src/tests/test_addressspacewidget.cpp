@@ -664,7 +664,7 @@ void TestAddressSpaceWidget::languageChangeRelabelsTheNodeInfoRows()
 
 ///
 /// \brief Shown objects and variables ask for their server icons, which replace the node-class
-///        icons: a single-colour glyph in the theme's text colour, a coloured picture as it is.
+///        icons: a neutral grey glyph in the theme's text colour, a coloured or tinted grey picture as it is.
 ///
 void TestAddressSpaceWidget::serverIconsReplaceNodeClassIcons()
 {
@@ -732,6 +732,16 @@ void TestAddressSpaceWidget::serverIconsReplaceNodeClassIcons()
     QCOMPARE(tree->model()->data(startIndex, Qt::DecorationRole).value<QIcon>().pixmap(32, 32).toImage()
                  .pixelColor(16, 16),
              QColor(0x22, 0xc5, 0x5e));
+
+    const QColor inactive(0x9c, 0xa3, 0xaf);
+    for (int y = 8; y < 24; ++y) {
+        for (int x = 8; x < 24; ++x)
+            statusDot.setPixelColor(x, y, inactive);
+    }
+    widget.setNodeIcon(start.nodeId, pngData(statusDot));
+    QCOMPARE(tree->model()->data(startIndex, Qt::DecorationRole).value<QIcon>().pixmap(32, 32).toImage()
+                 .pixelColor(16, 16),
+             inactive);
 
     widget.setOffline(true);
     QVERIFY(isGreyscale(tree->model()->data(deviceIndex, Qt::DecorationRole).value<QIcon>()));

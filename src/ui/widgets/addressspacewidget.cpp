@@ -88,12 +88,14 @@ QIcon nodeClassIcon(AddressSpaceItem::NodeType type)
 /// \param image Image in Format_ARGB32.
 /// \return True when every clearly visible pixel has nearly the same grey; antialiased edges
 ///         and a little encoding noise are tolerated. A single-colour picture such as a green
-///         status dot carries meaning in its colour and is no glyph.
+///         status dot, or a tinted grey one such as #9ca3af for an inactive state, carries
+///         meaning in its colour and is no glyph.
 ///
 bool isGreyGlyph(const QImage &image)
 {
     constexpr int visibleAlpha = 64;
     constexpr int tolerance = 24;
+    constexpr int neutralChroma = 6;
     bool found = false;
     QRgb reference = 0;
     for (int y = 0; y < image.height(); ++y) {
@@ -105,7 +107,7 @@ bool isGreyGlyph(const QImage &image)
             if (!found) {
                 const int chroma = qMax(qRed(pixel), qMax(qGreen(pixel), qBlue(pixel)))
                     - qMin(qRed(pixel), qMin(qGreen(pixel), qBlue(pixel)));
-                if (chroma > tolerance)
+                if (chroma > neutralChroma)
                     return false;
                 reference = pixel;
                 found = true;
