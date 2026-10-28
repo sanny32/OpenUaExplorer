@@ -953,7 +953,7 @@ void TestTrendPanelWidget::contextMenuRenameOpensEditor()
     QCOMPARE(texts, QStringList({QStringLiteral("Rename"), QStringLiteral("Close")}));
     auto *editor = panel.findChild<QLineEdit *>(QStringLiteral("tabNameEditor"));
     QVERIFY(editor);
-    QVERIFY(editor->isVisible());
+    QTRY_VERIFY(editor->isVisible());
     QCOMPARE(editor->text(), QStringLiteral("Trend 1"));
 }
 

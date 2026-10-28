@@ -256,6 +256,10 @@ void TrendPanelWidget::handleTabCloseRequested(int index)
 
 ///
 /// \brief Offers rename and close for the chart tab under the cursor.
+///
+/// Rename is queued until the menu has closed: the menu hands focus back on closing,
+/// which would take it from the title editor and end the rename at once.
+///
 /// \param pos Click position in tab-bar coordinates.
 ///
 void TrendPanelWidget::showTabContextMenu(const QPoint &pos)
@@ -267,7 +271,7 @@ void TrendPanelWidget::showTabContextMenu(const QPoint &pos)
 
     QMenu menu(this);
     connect(menu.addAction(tr("Rename")), &QAction::triggered, this,
-            [this, index]() { renameTab(index); });
+            [this, index]() { renameTab(index); }, Qt::QueuedConnection);
     connect(menu.addAction(tr("Close")), &QAction::triggered, this,
             [this, index]() { handleTabCloseRequested(index); });
     menu.exec(bar->mapToGlobal(pos));
