@@ -58,6 +58,13 @@ jobs:
           max-size: 1G
           save: ${{ github.event_name == 'push' }}
 
+      # Records every hashed input, to find what makes Clang PCH compiles miss between runs.
+      - name: Enable ccache debug output (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          echo "CCACHE_DEBUG=1" >> "$GITHUB_ENV"
+          echo "CCACHE_DEBUGDIR=$RUNNER_TEMP/ccache-debug" >> "$GITHUB_ENV"
+
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
         run: |
@@ -141,6 +148,14 @@ jobs:
       - name: Build and run tests
         if: runner.os != 'Linux'
         run: cmake --build build --config Release --parallel --target ouaexp ouaexp_check
+
+      - name: Upload ccache debug output (macOS)
+        if: always() && runner.os == 'macOS'
+        uses: actions/upload-artifact@v6
+        with:
+          name: ccache-debug-macos-run${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ccache-debug
+          retention-days: 3
 
       # The restored entry is already on disk; ccache-action saves its successor after the job.
       - name: Drop superseded ccache entries
