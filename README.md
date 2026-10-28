@@ -34,7 +34,7 @@ Prebuilt packages are published on the
 - Browse the OPC UA address space, inspect node attributes and references,
   write attribute values, and call methods from the node context menu.
   Objects and variables that publish a standard `Icon` property show that
-  icon in the tree; single-colour glyphs follow the light or dark theme.
+  icon in the tree; grey glyphs follow the light or dark theme.
 - Watch live values in the Data Access panel — just drag nodes onto it; drop an
   object or a folder to add its variables, optionally those of the whole subtree.
 - Create subscriptions with configurable publishing intervals and monitor
