@@ -1,14 +1,17 @@
+set(OUAEXP_TEST_HOME_ROOT "${CMAKE_BINARY_DIR}/.test-home")
+
+# Each test gets a home of its own, so the standard paths below it (the PKI tree in
+# particular) are never shared between concurrently running suites.
 function(ouaexp_configure_test_environment test_name)
+    set(test_home "${OUAEXP_TEST_HOME_ROOT}/${test_name}")
     if(WIN32)
-        set(test_home "${CMAKE_BINARY_DIR}/.test-home")
-        set(test_appdata "${CMAKE_BINARY_DIR}/.test-appdata")
         set(test_environment
             "QT_QPA_PLATFORM=offscreen"
             "QT_FORCE_STDERR_LOGGING=1"
             "USERPROFILE=${test_home}"
             "HOME=${test_home}"
             "APPDATA=${test_home}/AppData/Roaming"
-            "LOCALAPPDATA=${test_appdata}")
+            "LOCALAPPDATA=${test_home}/AppData/Local")
         set(environment_modifications
             "PATH=path_list_prepend:${QT_BINARY_DIR}"
             "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt${QT_VERSION_MAJOR}::OpcUa>"
@@ -40,7 +43,7 @@ function(ouaexp_configure_test_environment test_name)
                 "DYLD_LIBRARY_PATH=path_list_prepend:$<TARGET_FILE_DIR:OpenSSL::Crypto>")
         endif()
         set_tests_properties(${test_name} PROPERTIES
-            ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;HOME=${test_home};OUAEXP_TEST_HOST_HOME=$ENV{HOME}"
             ENVIRONMENT_MODIFICATION "${environment_modifications}")
     else()
         set(environment_modifications
@@ -56,9 +59,10 @@ function(ouaexp_configure_test_environment test_name)
                 "LD_LIBRARY_PATH=path_list_prepend:$<TARGET_FILE_DIR:OpenSSL::Crypto>")
         endif()
         set_tests_properties(${test_name} PROPERTIES
-            ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;HOME=${test_home};OUAEXP_TEST_HOST_HOME=$ENV{HOME}"
             ENVIRONMENT_MODIFICATION "${environment_modifications}")
     endif()
+    set_tests_properties(${test_name} PROPERTIES FIXTURES_REQUIRED ouaexp_test_home)
 endfunction()
 
 # Everything that shapes a test compile line. The shared precompiled header is
@@ -111,6 +115,9 @@ function(ouaexp_register_test test_name source_file)
     if(NOT "NO_PCH" IN_LIST ARGN)
         ouaexp_reuse_test_pch(${test_name} ouaexp_test_pch)
     endif()
+    if(MSVC)
+        target_link_options(${test_name} PRIVATE /OPT:NOREF /OPT:NOICF)
+    endif()
     ouaexp_copy_qtopcua_runtime(${test_name})
     add_test(NAME ${test_name} COMMAND ${test_name})
     set_tests_properties(${test_name} PROPERTIES LABELS "ouaexp")
@@ -144,24 +151,10 @@ if(LINUX)
 endif()
 ouaexp_configure_opcua_integration_tests()
 
-# PkiManager resolves its tree below QStandardPaths::GenericDataLocation, which
-# every test process shares. These suites generate client certificates and move
-# them between the trusted and rejected categories, so they must not overlap.
-# APPEND matters here: ouaexp_tests_auth_integration already holds a lock of its
-# own and a plain set_tests_properties() would drop it.
-set_property(TEST
-    ouaexp_tests
-    ouaexp_tests_application
-    ouaexp_tests_auth_integration
-    ouaexp_tests_certificate_details_widget
-    ouaexp_tests_certificates_dialog
-    ouaexp_tests_connection_dialog_history_auth
-    ouaexp_tests_connection_dialog_discovery
-    ouaexp_tests_connection_dialog_certificates
-    ouaexp_tests_connection_dialog_layout
-    ouaexp_tests_endpoint_settings_dialog
-    ouaexp_tests_pkimanager
-    APPEND PROPERTY RESOURCE_LOCK application_pki)
+# Wipes the per-test homes first, so certificates trusted by an earlier run do not pile up.
+add_test(NAME ouaexp_test_home_reset
+         COMMAND ${CMAKE_COMMAND} -E rm -rf "${OUAEXP_TEST_HOME_ROOT}")
+set_tests_properties(ouaexp_test_home_reset PROPERTIES FIXTURES_SETUP ouaexp_test_home)
 
 include(ProcessorCount)
 ProcessorCount(OUAEXP_TEST_PARALLEL_LEVEL)
@@ -169,10 +162,8 @@ if(OUAEXP_TEST_PARALLEL_LEVEL EQUAL 0)
     set(OUAEXP_TEST_PARALLEL_LEVEL 1)
 endif()
 
-# Every test process isolates its own settings in a temporary directory and runs
-# offscreen, so they are safe to run concurrently. The exceptions are the suites
-# above, which share fixed server ports or the application PKI tree and are held
-# apart by their RESOURCE_LOCKs.
+# Every test process has its own settings, home and server ports and runs offscreen,
+# so they are safe to run concurrently.
 get_property(test_targets GLOBAL PROPERTY OUAEXP_TEST_TARGETS)
 add_custom_target(ouaexp_check
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure

@@ -3,11 +3,12 @@
 
 ///
 /// \file testsettingsisolation.cpp
-/// \brief Redirects settings for every test executable.
+/// \brief Redirects settings and standard paths for every test executable.
 ///
 
 #include <QCoreApplication>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QTemporaryDir>
 
 namespace {
@@ -25,6 +26,8 @@ QTemporaryDir &settingsDirectory()
 ///
 /// \brief Redirects user settings before test application construction completes.
 ///
+/// Test mode roots the standard paths below the per-test home ctest sets; macOS ignores it otherwise.
+///
 void isolateTestSettings()
 {
     QTemporaryDir &directory = settingsDirectory();
@@ -35,6 +38,7 @@ void isolateTestSettings()
     QCoreApplication::setApplicationName(QStringLiteral("OpenUaExplorerTests"));
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, directory.path());
+    QStandardPaths::setTestModeEnabled(true);
 }
 
 Q_COREAPP_STARTUP_FUNCTION(isolateTestSettings)

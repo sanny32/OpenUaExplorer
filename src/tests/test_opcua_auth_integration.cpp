@@ -5,8 +5,8 @@
 /// \file test_opcua_auth_integration.cpp
 /// \brief Drives username and certificate authentication against a real (Python asyncua) server.
 ///
-/// Each test function launches its own server instance (tools/opcua_test_server.py)
-/// configured for exactly one authentication mode, so the accepted and the rejected
+/// Each authentication mode gets its own server instance (tools/opcua_test_server.py),
+/// so the accepted and the rejected
 /// credential paths are exercised end-to-end. When Python or the asyncua package is
 /// unavailable, or no OPC UA backend is installed, the tests skip themselves so they
 /// stay CI-friendly.
@@ -51,8 +51,8 @@ bool waitForState(const OpcUaBackend &service, OpcUaConnectionState target,
 ///
 /// \brief Spins the event loop until a connection attempt settles, then reports success.
 ///
-/// A rejected connection leaves the service in Disconnected, so waiting for Connected
-/// alone would burn the whole timeout on the negative cases.
+/// A rejected connection leaves the service in Disconnected with an error, so waiting for
+/// Connected alone would burn the whole timeout on the negative cases.
 ///
 bool waitForConnectionResult(const OpcUaBackend &service, int timeoutMs)
 {
@@ -61,6 +61,10 @@ bool waitForConnectionResult(const OpcUaBackend &service, int timeoutMs)
     while (timer.elapsed() < timeoutMs) {
         if (service.state() == OpcUaConnectionState::Connected)
             return true;
+        if (service.state() == OpcUaConnectionState::Disconnected
+            && !service.lastError().isEmpty()) {
+            return false;
+        }
         QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
         QTest::qWait(20);
     }
@@ -127,6 +131,9 @@ private:
     bool discoverEndpoint(OpcUaBackend &service, const QString &url,
                           EndpointInfo *endpoint, bool secured);
     bool generateClientCertificate(QString *certificateFile, QString *privateKeyFile);
+    bool startUsernameServer(QString *skipReason);
+
+    OpcUaTestServer _usernameServer;
 };
 
 ///
@@ -181,6 +188,21 @@ bool TestOpcUaAuthIntegration::generateClientCertificate(QString *certificateFil
 }
 
 ///
+/// \brief Starts the username-only server on first use and keeps it for the following tests.
+/// \param skipReason Receives the reason the server could not be started.
+/// \return True when the server is running.
+///
+bool TestOpcUaAuthIntegration::startUsernameServer(QString *skipReason)
+{
+    if (!_usernameServer.endpoint().isEmpty())
+        return true;
+    return _usernameServer.start({QStringLiteral("--port"), QStringLiteral("48402"),
+                                  QStringLiteral("--user"), QLatin1String(userName),
+                                  QStringLiteral("--password"), QLatin1String(userPassword)},
+                                 skipReason);
+}
+
+///
 /// \brief Connects with the credentials the server accepts and reads the test variable.
 ///
 void TestOpcUaAuthIntegration::usernameAuthenticationConnectsAndReads()
@@ -189,17 +211,12 @@ void TestOpcUaAuthIntegration::usernameAuthenticationConnectsAndReads()
     if (!service.isAvailable())
         QSKIP("No OPC UA backend is available.");
 
-    OpcUaTestServer server;
     QString skipReason;
-    if (!server.start({QStringLiteral("--port"), QStringLiteral("48402"),
-                       QStringLiteral("--user"), QLatin1String(userName),
-                       QStringLiteral("--password"), QLatin1String(userPassword)},
-                      &skipReason)) {
+    if (!startUsernameServer(&skipReason))
         QSKIP(qPrintable(skipReason));
-    }
 
     EndpointInfo endpoint;
-    QVERIFY2(discoverEndpoint(service, server.endpoint(), &endpoint, false),
+    QVERIFY2(discoverEndpoint(service, _usernameServer.endpoint(), &endpoint, false),
              "No unsecured endpoint was advertised.");
     QVERIFY2(endpoint.supportsUsername, "The endpoint does not advertise the username token.");
     QVERIFY2(!endpoint.supportsAnonymous, "The endpoint still advertises the anonymous token.");
@@ -215,7 +232,7 @@ void TestOpcUaAuthIntegration::usernameAuthenticationConnectsAndReads()
              qPrintable(service.lastError()));
 
     QSignalSpy readSpy(&service, &OpcUaBackend::dataValuesReady);
-    service.readValues({server.nodeId()});
+    service.readValues({_usernameServer.nodeId()});
     QVERIFY(readSpy.wait(15000));
     const auto values = readSpy.takeFirst().at(0).value<QVector<OpcUaDataValue>>();
     QCOMPARE(values.size(), 1);
@@ -234,17 +251,12 @@ void TestOpcUaAuthIntegration::usernameAuthenticationRejectsWrongPassword()
     if (!service.isAvailable())
         QSKIP("No OPC UA backend is available.");
 
-    OpcUaTestServer server;
     QString skipReason;
-    if (!server.start({QStringLiteral("--port"), QStringLiteral("48403"),
-                       QStringLiteral("--user"), QLatin1String(userName),
-                       QStringLiteral("--password"), QLatin1String(userPassword)},
-                      &skipReason)) {
+    if (!startUsernameServer(&skipReason))
         QSKIP(qPrintable(skipReason));
-    }
 
     EndpointInfo endpoint;
-    QVERIFY2(discoverEndpoint(service, server.endpoint(), &endpoint, false),
+    QVERIFY2(discoverEndpoint(service, _usernameServer.endpoint(), &endpoint, false),
              "No unsecured endpoint was advertised.");
 
     ConnectionProfile profile;

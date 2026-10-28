@@ -68,6 +68,9 @@ public:
         QProcessEnvironment serverEnv = QProcessEnvironment::systemEnvironment();
         serverEnv.remove(QStringLiteral("LD_LIBRARY_PATH"));
         serverEnv.remove(QStringLiteral("DYLD_LIBRARY_PATH"));
+        const QString hostHome = qEnvironmentVariable("OUAEXP_TEST_HOST_HOME");
+        if (!hostHome.isEmpty())
+            serverEnv.insert(QStringLiteral("HOME"), hostHome);
         _process.setProcessEnvironment(serverEnv);
 
         _process.setProcessChannelMode(QProcess::MergedChannels);
