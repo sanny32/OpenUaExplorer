@@ -47,6 +47,7 @@ private slots:
     void restoreContinuesPastAFailedBranch();
     void languageChangeRelabelsTheNodeInfoRows();
     void serverIconsReplaceNodeClassIcons();
+    void selectedServerIconsStayLegible();
 };
 
 namespace {
@@ -84,6 +85,22 @@ QByteArray pngData(const QImage &image)
     buffer.open(QIODevice::WriteOnly);
     image.save(&buffer, "PNG");
     return data;
+}
+
+///
+/// \brief Encodes a 32x32 PNG with a centred square of one colour on a transparent ground.
+/// \param color Colour of the square.
+/// \return PNG data.
+///
+QByteArray squarePng(const QColor &color)
+{
+    QImage image(32, 32, QImage::Format_ARGB32);
+    image.fill(Qt::transparent);
+    for (int y = 8; y < 24; ++y) {
+        for (int x = 8; x < 24; ++x)
+            image.setPixelColor(x, y, color);
+    }
+    return pngData(image);
 }
 
 ///
@@ -664,7 +681,7 @@ void TestAddressSpaceWidget::languageChangeRelabelsTheNodeInfoRows()
 
 ///
 /// \brief Shown objects and variables ask for their server icons, which replace the node-class
-///        icons: a neutral grey glyph in the theme's text colour, a coloured or tinted grey picture as it is.
+///        icons in the colours the server gave them, grey glyphs included.
 ///
 void TestAddressSpaceWidget::serverIconsReplaceNodeClassIcons()
 {
@@ -709,10 +726,7 @@ void TestAddressSpaceWidget::serverIconsReplaceNodeClassIcons()
     const QModelIndex deviceIndex = tree->model()->index(0, 0, rootIndex);
     const QModelIndex levelIndex = tree->model()->index(1, 0, rootIndex);
     const QIcon levelIcon = tree->model()->data(levelIndex, Qt::DecorationRole).value<QIcon>();
-    QCOMPARE(levelIcon.pixmap(32, 32).toImage().pixelColor(16, 16),
-             tree->palette().color(QPalette::Text));
-    QCOMPARE(levelIcon.pixmap(QSize(32, 32), QIcon::Selected).toImage().pixelColor(16, 16),
-             tree->palette().color(QPalette::HighlightedText));
+    QCOMPARE(levelIcon.pixmap(32, 32).toImage().pixelColor(16, 16), QColor(0x80, 0x80, 0x80));
     QVERIFY(levelIcon.pixmap(32, 32).toImage().pixelColor(2, 2).alpha() == 0);
 
     const QImage deviceImage =
@@ -745,6 +759,41 @@ void TestAddressSpaceWidget::serverIconsReplaceNodeClassIcons()
 
     widget.setOffline(true);
     QVERIFY(isGreyscale(tree->model()->data(deviceIndex, Qt::DecorationRole).value<QIcon>()));
+}
+
+///
+/// \brief On a selected row a server icon that barely stands out from the selection takes the
+///        highlighted text colour, while one that stands out keeps its own colours.
+///
+void TestAddressSpaceWidget::selectedServerIconsStayLegible()
+{
+    AddressSpaceWidget widget;
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("addressTree"));
+    QVERIFY(tree);
+    QPalette palette = tree->palette();
+    palette.setColor(QPalette::Highlight, QColor(0x1f, 0x6b, 0x7a));
+    palette.setColor(QPalette::HighlightedText, Qt::white);
+    tree->setPalette(palette);
+
+    const OpcUaNodeInfo root = makeNode(QStringLiteral("ns=0;i=85"), QStringLiteral("Objects"),
+                                        QString(), true);
+    const OpcUaNodeInfo speed = makeNode(QStringLiteral("ns=2;s=Speed"), QStringLiteral("Speed"));
+    const OpcUaNodeInfo running = makeNode(QStringLiteral("ns=2;s=Running"), QStringLiteral("Running"));
+    widget.setRootNode(root);
+    widget.setBrowseChildren(root.nodeId, {speed, running}, QString());
+
+    widget.setNodeIcon(speed.nodeId, squarePng(QColor(0x80, 0x80, 0x80)));
+    widget.setNodeIcon(running.nodeId, squarePng(QColor(0x22, 0xc5, 0x5e)));
+
+    const QModelIndex rootIndex = tree->model()->index(0, 0);
+    const auto selectedCenter = [&](int row) {
+        return tree->model()->data(tree->model()->index(row, 0, rootIndex), Qt::DecorationRole)
+            .value<QIcon>().pixmap(QSize(32, 32), QIcon::Selected).toImage();
+    };
+    const QImage speedImage = selectedCenter(0);
+    QCOMPARE(speedImage.pixelColor(16, 16), QColor(Qt::white));
+    QCOMPARE(speedImage.pixelColor(2, 2).alpha(), 0);
+    QCOMPARE(selectedCenter(1).pixelColor(16, 16), QColor(0x22, 0xc5, 0x5e));
 }
 
 QTEST_MAIN(TestAddressSpaceWidget)

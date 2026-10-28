@@ -70,8 +70,8 @@ public:
     ///
     /// \brief Shows the icon a server publishes for a node instead of its node class icon.
     /// \param nodeId Node the icon belongs to.
-    /// \param image Encoded image, such as a PNG; one that does not decode is ignored. A
-    ///        grey glyph takes the text colour of the theme.
+    /// \param image Encoded image, such as a PNG; one that does not decode is ignored. It keeps
+    ///        the colours the server gave it.
     ///
     void setNodeIcon(const QString &nodeId, const QByteArray &image);
 

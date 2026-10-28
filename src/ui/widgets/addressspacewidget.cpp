@@ -17,6 +17,7 @@
 #include <QMenu>
 #include <QPalette>
 #include <QPixmap>
+#include <QtMath>
 #include <QPushButton>
 #include <QStyle>
 
@@ -84,41 +85,54 @@ QIcon nodeClassIcon(AddressSpaceItem::NodeType type)
 }
 
 ///
-/// \brief Tells whether an image is a colourless glyph, drawn in one shade of grey.
+/// \brief Averages the colour of the visible pixels of an image, weighted by their opacity.
 /// \param image Image in Format_ARGB32.
-/// \return True when every clearly visible pixel has nearly the same grey; antialiased edges
-///         and a little encoding noise are tolerated. A single-colour picture such as a green
-///         status dot, or a tinted grey one such as #9ca3af for an inactive state, carries
-///         meaning in its colour and is no glyph.
+/// \return Average colour; invalid when the image is fully transparent.
 ///
-bool isGreyGlyph(const QImage &image)
+QColor averageColor(const QImage &image)
 {
-    constexpr int visibleAlpha = 64;
-    constexpr int tolerance = 24;
-    constexpr int neutralChroma = 6;
-    bool found = false;
-    QRgb reference = 0;
+    qint64 red = 0;
+    qint64 green = 0;
+    qint64 blue = 0;
+    qint64 weight = 0;
     for (int y = 0; y < image.height(); ++y) {
         const auto *scanLine = reinterpret_cast<const QRgb *>(image.constScanLine(y));
         for (int x = 0; x < image.width(); ++x) {
             const QRgb pixel = scanLine[x];
-            if (qAlpha(pixel) < visibleAlpha)
-                continue;
-            if (!found) {
-                const int chroma = qMax(qRed(pixel), qMax(qGreen(pixel), qBlue(pixel)))
-                    - qMin(qRed(pixel), qMin(qGreen(pixel), qBlue(pixel)));
-                if (chroma > neutralChroma)
-                    return false;
-                reference = pixel;
-                found = true;
-            } else if (qAbs(qRed(pixel) - qRed(reference)) > tolerance
-                       || qAbs(qGreen(pixel) - qGreen(reference)) > tolerance
-                       || qAbs(qBlue(pixel) - qBlue(reference)) > tolerance) {
-                return false;
-            }
+            const int alpha = qAlpha(pixel);
+            red += qRed(pixel) * alpha;
+            green += qGreen(pixel) * alpha;
+            blue += qBlue(pixel) * alpha;
+            weight += alpha;
         }
     }
-    return found;
+    if (weight == 0)
+        return {};
+    return QColor(int(red / weight), int(green / weight), int(blue / weight));
+}
+
+///
+/// \brief Computes the relative luminance of a colour as WCAG 2 defines it.
+/// \param color sRGB colour.
+/// \return Luminance from 0 for black to 1 for white.
+///
+qreal relativeLuminance(const QColor &color)
+{
+    const auto linear = [](qreal channel) {
+        return channel <= 0.04045 ? channel / 12.92 : qPow((channel + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * linear(color.redF()) + 0.7152 * linear(color.greenF()) + 0.0722 * linear(color.blueF());
+}
+
+///
+/// \brief Computes the WCAG 2 contrast ratio of two colours.
+/// \return Ratio from 1 for equal luminance to 21 for black on white.
+///
+qreal contrastRatio(const QColor &first, const QColor &second)
+{
+    const qreal a = relativeLuminance(first);
+    const qreal b = relativeLuminance(second);
+    return (qMax(a, b) + 0.05) / (qMin(a, b) + 0.05);
 }
 
 ///
@@ -141,16 +155,21 @@ QImage tinted(QImage image, const QColor &color)
 /// \brief Builds the icon of an image a server publishes for a node.
 /// \param image Server image.
 /// \param palette Palette of the tree.
-/// \return The image as it is, or a grey glyph in the text colour, highlighted text
-///         colour when selected, so it reads like the built-in icons in either theme.
+/// \return The image in its own colours; on a selected row it takes the highlighted text colour
+///         instead when it would barely stand out from the selection, as a grey glyph does.
 ///
 QIcon serverIcon(const QImage &image, const QPalette &palette)
 {
+    constexpr qreal legibleContrast = 2.0;
     const QImage argb = image.convertToFormat(QImage::Format_ARGB32);
-    if (!isGreyGlyph(argb))
-        return QIcon(QPixmap::fromImage(argb));
-    QIcon icon(QPixmap::fromImage(tinted(argb, palette.color(QPalette::Text))));
-    icon.addPixmap(QPixmap::fromImage(tinted(argb, palette.color(QPalette::HighlightedText))),
+    const QPixmap original = QPixmap::fromImage(argb);
+    const QColor color = averageColor(argb);
+    const bool legible = !color.isValid()
+        || contrastRatio(color, palette.color(QPalette::Highlight)) >= legibleContrast;
+
+    QIcon icon(original);
+    icon.addPixmap(legible ? original
+                           : QPixmap::fromImage(tinted(argb, palette.color(QPalette::HighlightedText))),
                    QIcon::Selected);
     return icon;
 }
@@ -257,8 +276,8 @@ void AddressSpaceWidget::setBrowseChildren(const QString &parentNodeId,
 ///
 /// \brief Shows the icon a server publishes for a node instead of its node class icon.
 /// \param nodeId Node the icon belongs to.
-/// \param image Encoded image, such as a PNG; one that does not decode is ignored. A
-///        grey glyph takes the text colour of the theme.
+/// \param image Encoded image, such as a PNG; one that does not decode is ignored. It keeps
+///        the colours the server gave it.
 ///
 void AddressSpaceWidget::setNodeIcon(const QString &nodeId, const QByteArray &image)
 {
