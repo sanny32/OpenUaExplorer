@@ -433,3 +433,5 @@ void LogWidget::showContextMenu(const QPoint &pos)
     menu.addAction(_copyAllAction);
     menu.exec(ui->logTable->viewport()->mapToGlobal(pos));
 }
+
+#include "moc_logwidget.cpp"

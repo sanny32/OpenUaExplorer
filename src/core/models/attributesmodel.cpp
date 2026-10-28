@@ -367,3 +367,5 @@ void AttributesModel::retranslate()
     emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
     refreshImageSummaries(QModelIndex());
 }
+
+#include "moc_attributesmodel.cpp"

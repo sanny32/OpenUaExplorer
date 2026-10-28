@@ -138,3 +138,5 @@ void CalendarWidget::updateMinimumPopupWidth()
     }
     setMinimumWidth(minimumPopupWidthHint());
 }
+
+#include "moc_calendarwidget.cpp"

@@ -142,3 +142,5 @@ void EventsModule::handleEventMonitoringFinished(const QString &nodeId, bool sub
     }
     emit eventMonitoringFinished(nodeId, subscribed, success, error);
 }
+
+#include "moc_eventsmodule.cpp"

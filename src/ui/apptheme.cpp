@@ -374,3 +374,5 @@ void AppTheme::onPortalSettingChanged(const QString &group, const QString &key,
         applyColorScheme(scheme);
 }
 #endif
+
+#include "moc_apptheme.cpp"

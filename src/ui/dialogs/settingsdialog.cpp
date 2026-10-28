@@ -407,3 +407,5 @@ void SettingsDialog::setDirty(bool dirty)
 {
     ui->buttonBox->button(QDialogButtonBox::Apply)->setEnabled(dirty);
 }
+
+#include "moc_settingsdialog.cpp"

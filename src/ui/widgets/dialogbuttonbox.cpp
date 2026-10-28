@@ -213,3 +213,5 @@ ColoredPushButton *DialogButtonBox::coloredButton(StandardButton which) const
 {
     return _standardButtons.value(static_cast<int>(which));
 }
+
+#include "moc_dialogbuttonbox.cpp"

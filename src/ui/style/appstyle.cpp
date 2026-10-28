@@ -341,3 +341,5 @@ QSize AppStyle::sizeFromContents(ContentsType type, const QStyleOption *option,
 
     return size;
 }
+
+#include "moc_appstyle.cpp"

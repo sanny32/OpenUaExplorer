@@ -392,3 +392,5 @@ void EndpointDiscoveryWidget::setHoveredRow(int row)
     _view->setProperty(kHoveredRowProperty, row);
     _view->viewport()->update();
 }
+
+#include "moc_endpointdiscoverywidget.cpp"

@@ -87,3 +87,5 @@ void CertificateDetailsDialog::exportCertificate()
                                    tr("Could not write the certificate file."));
     }
 }
+
+#include "moc_certificatedetailsdialog.cpp"

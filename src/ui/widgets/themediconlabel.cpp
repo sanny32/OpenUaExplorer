@@ -56,3 +56,5 @@ void ThemedIconLabel::refreshIcon()
     const QSize size = _size.isValid() ? _size : icon.availableSizes().value(0);
     setPixmap(icon.pixmap(size));
 }
+
+#include "moc_themediconlabel.cpp"

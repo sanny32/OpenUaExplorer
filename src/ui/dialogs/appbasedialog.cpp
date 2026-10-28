@@ -66,3 +66,5 @@ void AppBaseDialog::updateWindowIcon()
 {
     setWindowIcon(AppIcons::application());
 }
+
+#include "moc_appbasedialog.cpp"

@@ -76,3 +76,5 @@ void ReferenceModule::handleReferencesFinished(const QString &sourceNodeId,
             << tr("Browse references on node '%1' failed: %2").arg(sourceNodeId, error);
     emit referencesReady(sourceNodeId, references, error);
 }
+
+#include "moc_referencemodule.cpp"

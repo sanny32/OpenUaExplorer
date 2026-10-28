@@ -788,3 +788,5 @@ void NodeMonitorDialog::dropEvent(QDropEvent *event)
         event->ignore();
     }
 }
+
+#include "moc_nodemonitordialog.cpp"

@@ -20,3 +20,5 @@ FixedGap::FixedGap(int width, QWidget *parent)
     setFixedWidth(width);
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
 }
+
+#include "moc_fixedgap.cpp"

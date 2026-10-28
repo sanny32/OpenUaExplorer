@@ -15,6 +15,7 @@
 
 #include <utility>
 
+#include "appinfo.h"
 #include "appstyle.h"
 #include "application.h"
 #include "loggingcategories.h"
@@ -332,3 +333,5 @@ void Application::ensureClientCertificate()
             << tr("Could not generate the client certificate: %1").arg(error);
     }
 }
+
+#include "moc_application.cpp"

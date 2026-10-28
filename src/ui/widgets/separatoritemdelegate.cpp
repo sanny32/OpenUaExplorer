@@ -110,3 +110,5 @@ QSize SeparatorItemDelegate::sizeHint(const QStyleOptionViewItem &option,
         return separatorSizeHint();
     return QStyledItemDelegate::sizeHint(option, index);
 }
+
+#include "moc_separatoritemdelegate.cpp"

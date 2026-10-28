@@ -456,3 +456,5 @@ QPoint ImageViewDialog::cascadeOffset() const
     const int step = (open % CascadeLength) * CascadeStep;
     return { step, step };
 }
+
+#include "moc_imageviewdialog.cpp"

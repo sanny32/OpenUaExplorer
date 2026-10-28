@@ -164,3 +164,5 @@ const QList<EndpointInfo> &EndpointModel::endpoints() const
 {
     return _endpoints;
 }
+
+#include "moc_endpointmodel.cpp"

@@ -91,3 +91,5 @@ void SubtreeVariableCrawler::emitFinished(const QString &error)
 {
     emit finished(_rootNodeId, _variables, error);
 }
+
+#include "moc_subtreevariablecrawler.cpp"

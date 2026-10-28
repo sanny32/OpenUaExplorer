@@ -275,3 +275,5 @@ void EventsWidget::exportEventsToCsv()
     FileExport::exportModelToCsv(this, tr("Export Events"), suggestedEventsCsvFileName(),
                                  *_eventsModel);
 }
+
+#include "moc_eventswidget.cpp"

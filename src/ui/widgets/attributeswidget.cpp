@@ -530,3 +530,5 @@ void AttributesWidget::writeCurrentValue()
     }
     emit writeRequested(_nodeId, value, valueType);
 }
+
+#include "moc_attributeswidget.cpp"

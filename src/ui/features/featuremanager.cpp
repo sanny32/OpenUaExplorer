@@ -206,3 +206,5 @@ bool FeatureManager::triggerCommand(const QString &id) const
     it.value()();
     return true;
 }
+
+#include "moc_featuremanager.cpp"

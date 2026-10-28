@@ -680,3 +680,5 @@ AddressSpaceItem::NodeType AddressSpaceModel::iconType(const OpcUaNodeInfo &node
         return AddressSpaceItem::NodeType::Folder;
     return AddressSpaceItem::NodeType::Node;
 }
+
+#include "moc_addressspacemodel.cpp"

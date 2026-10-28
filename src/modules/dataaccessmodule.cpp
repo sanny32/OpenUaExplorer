@@ -155,3 +155,5 @@ void DataAccessModule::handleMonitoringFinished(const QString &nodeId, bool subs
     }
     emit monitoringFinished(nodeId, subscribed, success, error);
 }
+
+#include "moc_dataaccessmodule.cpp"

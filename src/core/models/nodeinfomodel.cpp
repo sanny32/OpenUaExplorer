@@ -80,3 +80,5 @@ void NodeInfoModel::clear()
     _items.clear();
     endResetModel();
 }
+
+#include "moc_nodeinfomodel.cpp"

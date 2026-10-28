@@ -165,3 +165,5 @@ QStringList NodeSearchCrawler::ancestorsOf(const QString &nodeId) const
     }
     return ancestors;
 }
+
+#include "moc_nodesearchcrawler.cpp"

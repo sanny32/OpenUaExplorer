@@ -16,6 +16,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include "appinfo.h"
 #include "application.h"
 #include "appsettings.h"
 #include "dialogs/dialogopcuainfo.h"

@@ -20,6 +20,7 @@
 
 #include "appcolors.h"
 #include "appicons.h"
+#include "appinfo.h"
 #include "dialogopcuainfo.h"
 #include "ui_dialogopcuainfo.h"
 
@@ -332,3 +333,5 @@ QString DialogOpcUaInfo::displayList(const QStringList &values)
         return tr("Not available");
     return values.join(QStringLiteral(", "));
 }
+
+#include "moc_dialogopcuainfo.cpp"

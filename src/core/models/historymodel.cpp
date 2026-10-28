@@ -183,3 +183,5 @@ void HistoryModel::retranslate()
 {
     emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
 }
+
+#include "moc_historymodel.cpp"

@@ -84,3 +84,5 @@ void ValueLineEdit::updateResetState()
 {
     _resetAction->setVisible(text() != _defaultValue);
 }
+
+#include "moc_valuelineedit.cpp"

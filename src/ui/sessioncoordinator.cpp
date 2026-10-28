@@ -19,6 +19,7 @@
 #include <QStandardPaths>
 #include <QStringList>
 
+#include "appinfo.h"
 #include "appsettings.h"
 #include "dataaccesscoordinator.h"
 #include "dialogs/messageboxdialog.h"
@@ -730,3 +731,5 @@ void SessionCoordinator::openRecentSession()
     if (!path.isEmpty())
         openSessionFromFile(path);
 }
+
+#include "moc_sessioncoordinator.cpp"

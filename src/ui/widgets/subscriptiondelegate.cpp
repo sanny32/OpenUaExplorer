@@ -155,3 +155,5 @@ void SubscriptionDelegate::commitAndCloseEditor()
     emit commitData(combo);
     emit closeEditor(combo);
 }
+
+#include "moc_subscriptiondelegate.cpp"

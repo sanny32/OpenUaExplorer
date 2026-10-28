@@ -251,3 +251,5 @@ void ValueCellDelegate::onFlashTick()
     _flashSeen = false;
     _view->viewport()->update();
 }
+
+#include "moc_valuecelldelegate.cpp"

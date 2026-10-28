@@ -220,3 +220,5 @@ double SubscriptionComboBox::intervalForSubscription(const QString &name) const
     }
     return kDefaultIntervalMs;
 }
+
+#include "moc_subscriptioncombobox.cpp"

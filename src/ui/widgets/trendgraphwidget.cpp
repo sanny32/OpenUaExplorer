@@ -1304,3 +1304,5 @@ void TrendGraphWidget::contextMenuEvent(QContextMenuEvent *event)
     showSeriesContextMenu(event->globalPos());
     event->accept();
 }
+
+#include "moc_trendgraphwidget.cpp"

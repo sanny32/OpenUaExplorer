@@ -479,3 +479,5 @@ void CallMethodDialog::updateWindowTitle()
                                                              : _object.displayName;
     setWindowTitle(tr("Call %1 on %2").arg(methodName, objectName));
 }
+
+#include "moc_callmethoddialog.cpp"

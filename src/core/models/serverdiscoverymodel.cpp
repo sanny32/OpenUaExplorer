@@ -444,3 +444,5 @@ QString ServerDiscoveryModel::placeholderText(const ServerNode &server) const
     }
     return {};
 }
+
+#include "moc_serverdiscoverymodel.cpp"

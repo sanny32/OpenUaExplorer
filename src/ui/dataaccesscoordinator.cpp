@@ -1122,3 +1122,5 @@ void DataAccessCoordinator::wireModules()
                 this, &DataAccessCoordinator::onEventsHistoryReady);
     }
 }
+
+#include "moc_dataaccesscoordinator.cpp"

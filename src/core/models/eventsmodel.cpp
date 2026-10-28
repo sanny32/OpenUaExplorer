@@ -168,3 +168,5 @@ void EventsModel::retranslate()
 {
     emit headerDataChanged(Qt::Horizontal, 0, columnCount(QModelIndex()) - 1);
 }
+
+#include "moc_eventsmodel.cpp"

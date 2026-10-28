@@ -193,3 +193,5 @@ bool NodeLineEdit::acceptsDrag(const QMimeData *mimeData, OpcUaNodeInfo *node) c
         return false;
     return !_acceptNode || _acceptNode(*node);
 }
+
+#include "moc_nodelineedit.cpp"

@@ -89,3 +89,5 @@ void NewSubscriptionDialog::validate()
     if (QPushButton *ok = _buttonBox->button(DialogButtonBox::Ok))
         ok->setEnabled(valid);
 }
+
+#include "moc_newsubscriptiondialog.cpp"

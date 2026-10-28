@@ -148,3 +148,5 @@ QString SecretStore::key(const QString &profileId, Secret secret) const
         : QStringLiteral("private-key-password");
     return QStringLiteral("profile/%1/%2").arg(profileId, suffix);
 }
+
+#include "moc_secretstore.cpp"

@@ -770,3 +770,5 @@ void TrendPanelWidget::restoreViewState(AppSettings &settings)
     if (stream.status() == QDataStream::Ok)
         setCollapsed(collapsed);
 }
+
+#include "moc_trendpanelwidget.cpp"

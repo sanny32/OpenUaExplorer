@@ -1214,3 +1214,5 @@ void DataAccessModel::retranslate()
         emit dataChanged(index(0, ColValue), index(rowCount() - 1, ColValue),
                          {Qt::DisplayRole});
 }
+
+#include "moc_dataaccessmodel.cpp"

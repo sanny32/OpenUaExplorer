@@ -20,3 +20,5 @@ DateTimeEdit::DateTimeEdit(QWidget *parent)
     setCalendarPopup(true);
     setCalendarWidget(new CalendarWidget(this));
 }
+
+#include "moc_datetimeedit.cpp"

@@ -298,3 +298,5 @@ void CertificateDetailsWidget::setSummaryStatus(const QString &text, bool valid)
         QStringLiteral("color: %1; font-weight: 600;")
             .arg(valid ? AppColors::statusSuccess().name() : AppColors::statusError().name()));
 }
+
+#include "moc_certificatedetailswidget.cpp"

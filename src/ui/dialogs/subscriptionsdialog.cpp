@@ -53,3 +53,5 @@ SubscriptionsWidget *SubscriptionsDialog::subscriptions() const
 {
     return ui->subscriptionsWidget;
 }
+
+#include "moc_subscriptionsdialog.cpp"

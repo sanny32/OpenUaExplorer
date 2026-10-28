@@ -117,3 +117,5 @@ void ThemeCoordinator::updateActions()
         break;
     }
 }
+
+#include "moc_themecoordinator.cpp"

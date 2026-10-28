@@ -152,3 +152,5 @@ bool TableView::viewportEvent(QEvent *event)
         return true;
     return QTableView::viewportEvent(event);
 }
+
+#include "moc_tableview.cpp"

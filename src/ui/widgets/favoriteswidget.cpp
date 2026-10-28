@@ -574,3 +574,5 @@ void FavoritesWidget::moveFavorite(const QString &id, int targetIndex)
         orderedIds.append(favorite.id);
     emit reorderRequested(orderedIds);
 }
+
+#include "moc_favoriteswidget.cpp"

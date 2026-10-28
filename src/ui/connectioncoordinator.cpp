@@ -467,3 +467,5 @@ void ConnectionCoordinator::onClientError(const QString &message)
 {
     qCWarning(lcClient) << message;
 }
+
+#include "moc_connectioncoordinator.cpp"

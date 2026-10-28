@@ -270,3 +270,5 @@ QSize ThemedToolButton::squareSize(const QSize &size) const
     const int side = qMax(size.width(), size.height());
     return QSize(side, side);
 }
+
+#include "moc_themedtoolbutton.cpp"

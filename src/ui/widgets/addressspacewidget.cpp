@@ -898,3 +898,5 @@ QString AddressSpaceWidget::referenceTypeDisplayName(const QString &referenceTyp
     };
     return names.value(referenceTypeId, referenceTypeId);
 }
+
+#include "moc_addressspacewidget.cpp"

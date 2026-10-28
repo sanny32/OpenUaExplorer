@@ -1601,3 +1601,5 @@ void QtOpcUaBackend::unsubscribeEvents(const QString &nodeId)
 {
     _d->monitoring.unsubscribeEvents(nodeId);
 }
+
+#include "moc_qtopcuabackend.cpp"

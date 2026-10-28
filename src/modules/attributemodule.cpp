@@ -101,3 +101,5 @@ void AttributeModule::handleWriteFinished(const QString &nodeId, bool success, c
             << tr("Write to node '%1' failed: %2").arg(nodeId, error);
     emit writeFinished(nodeId, success, error);
 }
+
+#include "moc_attributemodule.cpp"

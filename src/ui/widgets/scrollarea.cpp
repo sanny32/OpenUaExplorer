@@ -45,3 +45,5 @@ void ScrollArea::setupViewport(QWidget *viewport)
         viewport->setAutoFillBackground(false);
     }
 }
+
+#include "moc_scrollarea.cpp"

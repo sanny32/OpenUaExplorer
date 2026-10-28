@@ -399,3 +399,5 @@ MainStatusBarWidget::~MainStatusBarWidget()
 {
     delete ui;
 }
+
+#include "moc_mainstatusbarwidget.cpp"

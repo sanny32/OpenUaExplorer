@@ -270,3 +270,5 @@ bool CertificateSummaryWidget::eventFilter(QObject *watched, QEvent *event)
         elideSerialNumber();
     return QWidget::eventFilter(watched, event);
 }
+
+#include "moc_certificatesummarywidget.cpp"

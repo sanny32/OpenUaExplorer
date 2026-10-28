@@ -22,6 +22,7 @@
 #include <QWidget>
 #include <QtGlobal>
 
+#include "appinfo.h"
 #include "dialogs/dialogabout.h"
 
 ///

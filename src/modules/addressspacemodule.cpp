@@ -184,3 +184,5 @@ void AddressSpaceModule::handleBrowseFinished(const QString &parentNodeId,
             << tr("Browse on node '%1' failed: %2").arg(parentNodeId, error);
     emit childrenReady(parentNodeId, children, error);
 }
+
+#include "moc_addressspacemodule.cpp"

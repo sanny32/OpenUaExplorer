@@ -236,3 +236,5 @@ void ConnectionCredentialsDialog::browsePrivateKey()
     ui->privateKeyEdit->setText(key);
     ui->privateKeyEdit->setCursorPosition(0);
 }
+
+#include "moc_connectioncredentialsdialog.cpp"

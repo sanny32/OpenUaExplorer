@@ -488,3 +488,5 @@ void HistoryComboBox::setHoveredRemoveRow(int row)
     if (_view)
         _view->viewport()->update();
 }
+
+#include "moc_historycombobox.cpp"

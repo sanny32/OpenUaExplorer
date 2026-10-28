@@ -282,3 +282,5 @@ void HeaderView::paintSection(QPainter *painter, const QRect &rect, int logicalI
     painter->drawText(textRect, sectionAlignment(logicalIndex) | Qt::TextWordWrap, text);
     painter->restore();
 }
+
+#include "moc_headerview.cpp"

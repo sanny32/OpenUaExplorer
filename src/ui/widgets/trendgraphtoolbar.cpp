@@ -225,3 +225,5 @@ void TrendGraphToolbar::updateLivePauseButton()
                                              : QStringLiteral("pause"));
     ui->livePauseButton->setToolTip(_livePaused ? tr("Resume") : tr("Pause"));
 }
+
+#include "moc_trendgraphtoolbar.cpp"

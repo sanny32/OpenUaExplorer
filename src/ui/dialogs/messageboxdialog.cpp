@@ -272,3 +272,5 @@ DialogButtonBox::StandardButton MessageBoxDialog::critical(
     dialog.exec();
     return dialog.clickedButton();
 }
+
+#include "moc_messageboxdialog.cpp"

@@ -512,3 +512,5 @@ void DataView::setInlineArrayElements(int elements)
 {
     ui->dataAccessWidget->setInlineArrayElements(elements);
 }
+
+#include "moc_dataview.cpp"

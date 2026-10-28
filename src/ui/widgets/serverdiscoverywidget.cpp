@@ -473,3 +473,5 @@ void ServerDiscoveryWidget::updateEmptyState()
 {
     _pages->setCurrentIndex(_model->serverCount() > 0 ? 0 : 1);
 }
+
+#include "moc_serverdiscoverywidget.cpp"

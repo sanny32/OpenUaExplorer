@@ -20,6 +20,7 @@
 #include <QSslCertificate>
 #include <QSslCertificateExtension>
 
+#include "appinfo.h"
 #include "opcua/certificateinfo.h"
 #include "opcua/connectionprofilestore.h"
 #include "opcua/opcuabackend.h"

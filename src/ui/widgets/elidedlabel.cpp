@@ -65,3 +65,5 @@ void ElidedLabel::paintEvent(QPaintEvent *event)
         emit elisionChanged(_elided);
     }
 }
+
+#include "moc_elidedlabel.cpp"

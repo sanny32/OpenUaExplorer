@@ -330,3 +330,5 @@ void TrendSettingsDialog::resetToDefaults()
     for (int row = 0; row < _seriesModel->rowCount(); ++row)
         _seriesModel->item(row)->setCheckState(Qt::Checked);
 }
+
+#include "moc_trendsettingsdialog.cpp"

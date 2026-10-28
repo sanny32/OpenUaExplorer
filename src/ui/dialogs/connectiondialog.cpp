@@ -1048,3 +1048,5 @@ void ConnectionDialog::showCertificateDetails(const QByteArray &certificate,
     dialog.setCertificate(certificate, certificatePath);
     dialog.exec();
 }
+
+#include "moc_connectiondialog.cpp"

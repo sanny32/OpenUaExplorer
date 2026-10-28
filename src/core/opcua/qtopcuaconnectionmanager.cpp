@@ -610,3 +610,5 @@ void QtOpcUaConnectionManager::clearConnectionData()
     _activeClientCertificateFile.clear();
     _connectErrorReported = false;
 }
+
+#include "moc_qtopcuaconnectionmanager.cpp"
