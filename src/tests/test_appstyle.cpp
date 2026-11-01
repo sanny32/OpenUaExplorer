@@ -26,6 +26,7 @@
 #include "application.h"
 #include "style/appstyle.h"
 #include "style/macappstyle.h"
+#include "style/macthemefactory.h"
 #include "style/qlementineappstyle.h"
 #include "widgets/themedtoolbutton.h"
 #include "widgets/treeview.h"
@@ -40,6 +41,7 @@ class TestAppStyle : public QObject
 private slots:
     void centeredCellsKeepTheModelForeground();
     void autoRaiseToolButtonsHaveNoMacBezel();
+    void macWindowBackgroundMatchesOpenUaSim();
     void stripedViewsKeepTheSystemSelectionColor();
     void unstripedViewsUseTheSystemSelectionColor();
     void nativeUnstripedViewsIgnoreTheSystemSelectionColor();
@@ -431,6 +433,28 @@ void TestAppStyle::autoRaiseToolButtonsHaveNoMacBezel()
 }
 
 #endif // HAVE_QLEMENTINE_APP_STYLE
+
+///
+/// \brief Keeps the macOS light window background consistent with OpenUaSim.
+///
+void TestAppStyle::macWindowBackgroundMatchesOpenUaSim()
+{
+#if defined(HAVE_QLEMENTINE_APP_STYLE)
+    const auto light = MacThemeFactory::makeLightTheme();
+    const auto dark = MacThemeFactory::makeDarkTheme();
+    const QColor background(0xf1f3f6);
+    QCOMPARE(light.backgroundColorMain2, background);
+    QCOMPARE(light.backgroundColorTabBar, background);
+    for (const auto group : {QPalette::Active, QPalette::Inactive, QPalette::Disabled}) {
+        QCOMPARE(light.palette.color(group, QPalette::Window), background);
+        QCOMPARE(light.palette.color(group, QPalette::Base), QColor(Qt::white));
+        QCOMPARE(dark.palette.color(group, QPalette::Window), QColor(0x2c2c2e));
+        QCOMPARE(dark.palette.color(group, QPalette::Base), QColor(0x1c1c1e));
+    }
+#else
+    QSKIP("Built without the Qlementine application style.");
+#endif
+}
 
 ///
 /// \brief Striped item views preserve the selection colour supplied by the system palette.
