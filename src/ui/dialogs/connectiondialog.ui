@@ -102,7 +102,7 @@
          <property name="title">
           <string>Authentication</string>
          </property>
-         <layout class="QGridLayout" name="authenticationLayout" columnstretch="0,0,1">
+         <layout class="QGridLayout" name="authenticationLayout" columnstretch="0,1">
           <item row="0" column="0">
            <widget class="QLabel" name="authenticationLabel">
             <property name="minimumSize">
@@ -141,10 +141,10 @@
             </item>
            </widget>
           </item>
-          <item row="1" column="0" colspan="3">
+          <item row="1" column="0" colspan="2">
            <widget class="QStackedWidget" name="authStack">
             <widget class="QWidget" name="anonymousPanel">
-             <layout class="QGridLayout" name="anonymousLayout" columnstretch="0,1">
+             <layout class="QGridLayout" name="anonymousLayout" columnstretch="1">
               <property name="leftMargin">
                <number>0</number>
               </property>
@@ -237,7 +237,7 @@
              </layout>
             </widget>
             <widget class="QWidget" name="usernamePanel">
-             <layout class="QGridLayout" name="usernameLayout" columnstretch="0,0,1">
+             <layout class="QGridLayout" name="usernameLayout" columnstretch="0,1">
               <property name="leftMargin">
                <number>0</number>
               </property>
@@ -312,7 +312,7 @@
              </layout>
             </widget>
             <widget class="QWidget" name="certificatePanel">
-             <layout class="QGridLayout" name="certificateLayout" columnstretch="0,0,1">
+             <layout class="QGridLayout" name="certificateLayout" columnstretch="0,1,0">
               <property name="leftMargin">
                <number>0</number>
               </property>
@@ -416,7 +416,7 @@
                 </property>
                </widget>
               </item>
-              <item row="2" column="1">
+              <item row="2" column="1" colspan="2">
                <widget class="QLineEdit" name="privateKeyPasswordEdit">
                 <property name="minimumSize">
                  <size>

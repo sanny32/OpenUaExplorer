@@ -30,6 +30,16 @@ bool ElidedLabel::isElided() const
 }
 
 ///
+/// \brief Shows the full text in a tooltip only when it exceeds the available width.
+///
+void ElidedLabel::updateFullTextToolTip()
+{
+    const bool elided = fontMetrics().elidedText(
+        text(), Qt::ElideRight, contentsRect().width()) != text();
+    setToolTip(elided ? text() : QString());
+}
+
+///
 /// \brief Reports room for the elide mark alone, so the text never widens the window.
 /// \return Minimum size with the label's natural height.
 ///

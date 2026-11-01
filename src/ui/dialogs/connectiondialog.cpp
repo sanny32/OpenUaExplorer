@@ -686,17 +686,6 @@ void ConnectionDialog::updateAuthenticationFields()
     ui->authenticationLayout->setColumnMinimumWidth(0, labelColumn);
     ui->usernameLayout->setColumnMinimumWidth(0, labelColumn);
     ui->certificateLayout->setColumnMinimumWidth(0, labelColumn);
-    // The notice starts at the left edge of the form and ends where the combo box above it
-    // ends: it covers the label column, the gap between the columns, and the field column.
-    const int labelColumnWidth = qMax(labelColumn, ui->authenticationLabel->minimumWidth());
-    const int fieldColumn = qMax(ui->authenticationComboBox->minimumWidth(),
-                                 ui->authenticationComboBox->sizeHint().width());
-    int columnGap = ui->authenticationLayout->horizontalSpacing();
-    if (columnGap < 0)
-        columnGap = style()->pixelMetric(QStyle::PM_LayoutHorizontalSpacing, nullptr, this);
-    // Fixed, not maximum: the trailing stretch column would otherwise pull the notice down to
-    // the width its wrapped text can survive at.
-    ui->anonymousNotice->setFixedWidth(labelColumnWidth + columnGap + fieldColumn);
 
     // Both certificate cards stay available regardless of the security mode: the client one can
     // still be imported, generated or inspected, and an endpoint without security still advertises

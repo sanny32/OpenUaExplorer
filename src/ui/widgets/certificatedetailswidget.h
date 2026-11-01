@@ -68,6 +68,7 @@ public:
     int contentHeightForWidth(int width) const;
 
 private:
+    void updateValueTooltips();
     void setSummaryStatus(const QString &text, bool valid);
 
     Ui::CertificateDetailsWidget *ui;

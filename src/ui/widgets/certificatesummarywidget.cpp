@@ -17,6 +17,7 @@
 #include "formatters/datetimeformatter.h"
 #include "opcua/certificateinfo.h"
 #include "ui_certificatesummarywidget.h"
+#include "widgets/elidedlabel.h"
 
 ///
 /// \brief Builds the panel, applies the theme, and shows the empty state.
@@ -34,6 +35,10 @@ CertificateSummaryWidget::CertificateSummaryWidget(QWidget *parent)
         QStringLiteral("QLabel[certCaption=\"true\"] { color: %1; }")
             .arg(AppColors::caption().name()));
     ui->serialNumberEdit->installEventFilter(this);
+    for (ElidedLabel *value : findChildren<ElidedLabel *>()) {
+        connect(value, &ElidedLabel::elisionChanged, value,
+                &ElidedLabel::updateFullTextToolTip);
+    }
 
     connect(ui->viewDetailsButton, &QToolButton::clicked,
             this, &CertificateSummaryWidget::viewDetailsRequested);
@@ -149,22 +154,32 @@ void CertificateSummaryWidget::updateContents()
 
     if (!available) {
         _serialNumber.clear();
+        ui->serialNumberEdit->setToolTip({});
         ui->hintLabel->setVisible(hintMode);
         ui->detailsWidget->setVisible(!hintMode);
-        if (!hintMode) {
-            ui->subjectEdit->setText(_emptyText);
-            ui->issuerEdit->clear();
-            ui->validEdit->clear();
-            ui->serialNumberEdit->clear();
-            ui->validIcon->setVisible(false);
-            ui->validBadge->clear();
-        }
+        ui->subjectEdit->setText(hintMode ? QString() : _emptyText);
+        ui->issuerEdit->clear();
+        ui->validEdit->clear();
+        ui->serialNumberEdit->clear();
+        ui->validIcon->setVisible(false);
+        ui->validBadge->clear();
+        updateValueTooltips();
         return;
     }
 
     ui->hintLabel->setVisible(false);
     ui->detailsWidget->setVisible(true);
     fillCertificateFields();
+    updateValueTooltips();
+}
+
+///
+/// \brief Synchronizes full-value tooltips after the summary fields change.
+///
+void CertificateSummaryWidget::updateValueTooltips()
+{
+    for (ElidedLabel *value : findChildren<ElidedLabel *>())
+        value->updateFullTextToolTip();
 }
 
 ///

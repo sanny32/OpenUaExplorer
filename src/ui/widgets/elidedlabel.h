@@ -33,6 +33,11 @@ public:
     ///
     bool isElided() const;
 
+    ///
+    /// \brief Shows the full text in a tooltip only when it exceeds the available width.
+    ///
+    void updateFullTextToolTip();
+
     QSize minimumSizeHint() const override;
 
 signals:

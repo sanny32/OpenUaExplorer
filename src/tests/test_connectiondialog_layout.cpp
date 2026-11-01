@@ -7,6 +7,9 @@
 ///
 
 #include <QTest>
+#include <QGridLayout>
+#include <QGroupBox>
+#include <QScopeGuard>
 
 #include "test_connectiondialog_support.h"
 
@@ -23,6 +26,8 @@ private slots:
     void advancedSettingsControlsAlignToGrid();
     void advancedSettingsSeedFromStoredDefaults();
     void endpointHoverDoesNotUseSelectionBackgroundInFusion();
+    void authenticationControlsFillAvailableWidth_data();
+    void authenticationControlsFillAvailableWidth();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -129,6 +134,79 @@ void TestConnectionDialogLayout::endpointHoverDoesNotUseSelectionBackgroundInFus
 
     QVERIFY(cellBackgroundColor(endpointView, 1, EndpointModel::PolicyColumn)
             != cellBackgroundColor(endpointView, 0, EndpointModel::PolicyColumn));
+}
+
+///
+/// \brief Exercises every authentication page with the same form width constraints.
+///
+void TestConnectionDialogLayout::authenticationControlsFillAvailableWidth_data()
+{
+    QTest::addColumn<int>("mode");
+    QTest::newRow("anonymous") << static_cast<int>(ConnectionProfile::Authentication::Anonymous);
+    QTest::newRow("username") << static_cast<int>(ConnectionProfile::Authentication::Username);
+    QTest::newRow("certificate") << static_cast<int>(ConnectionProfile::Authentication::Certificate);
+}
+
+///
+/// \brief Verifies authentication fields fill the form and grow with the dialog.
+///
+void TestConnectionDialogLayout::authenticationControlsFillAvailableWidth()
+{
+    QFETCH(int, mode);
+    ConnectionDialog dialog;
+    const auto hideDialog = qScopeGuard([&dialog] { dialog.hide(); });
+    auto *authentication = dialog.findChild<QComboBox *>(QStringLiteral("authenticationComboBox"));
+    auto *group = dialog.findChild<QGroupBox *>(QStringLiteral("authenticationGroupBox"));
+    auto *grid = dialog.findChild<QGridLayout *>(QStringLiteral("authenticationLayout"));
+    QVERIFY(authentication);
+    QVERIFY(group);
+    QVERIFY(grid);
+    authentication->setCurrentIndex(mode);
+
+    QStringList fieldNames;
+    QStringList rightAlignedNames = {QStringLiteral("authenticationComboBox")};
+    if (mode == static_cast<int>(ConnectionProfile::Authentication::Anonymous)) {
+        fieldNames = {QStringLiteral("anonymousNotice")};
+        rightAlignedNames.append(fieldNames);
+    } else if (mode == static_cast<int>(ConnectionProfile::Authentication::Username)) {
+        fieldNames = {QStringLiteral("usernameEdit"), QStringLiteral("passwordEdit")};
+        rightAlignedNames.append(fieldNames);
+    } else {
+        fieldNames = {QStringLiteral("certificateEdit"), QStringLiteral("privateKeyEdit"),
+                      QStringLiteral("privateKeyPasswordEdit")};
+        rightAlignedNames.append({QStringLiteral("certificateBrowseButton"),
+                                  QStringLiteral("privateKeyBrowseButton"),
+                                  QStringLiteral("privateKeyPasswordEdit")});
+    }
+    fieldNames.append(QStringLiteral("authenticationComboBox"));
+    dialog.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+
+    QList<int> initialWidths;
+    for (const QString &name : fieldNames) {
+        auto *field = dialog.findChild<QWidget *>(name);
+        QVERIFY(field);
+        initialWidths.append(field->width());
+    }
+    for (const QString &name : rightAlignedNames) {
+        auto *field = dialog.findChild<QWidget *>(name);
+        QVERIFY(field);
+        QCOMPARE(field->mapTo(group, QPoint(field->width() - 1, 0)).x(),
+                 group->contentsRect().right() - grid->contentsMargins().right());
+    }
+
+    dialog.resize(dialog.width() + 400, dialog.height());
+    QCoreApplication::processEvents();
+    for (int i = 0; i < fieldNames.size(); ++i) {
+        auto *field = dialog.findChild<QWidget *>(fieldNames.at(i));
+        QVERIFY2(field->width() > initialWidths.at(i), qPrintable(fieldNames.at(i)));
+    }
+    for (const QString &name : rightAlignedNames) {
+        auto *field = dialog.findChild<QWidget *>(name);
+        QCOMPARE(field->mapTo(group, QPoint(field->width() - 1, 0)).x(),
+                 group->contentsRect().right() - grid->contentsMargins().right());
+    }
+    dialog.hide();
 }
 
 QTEST_MAIN(TestConnectionDialogLayout)

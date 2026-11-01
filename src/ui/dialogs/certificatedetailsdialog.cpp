@@ -70,7 +70,7 @@ void CertificateDetailsDialog::showEvent(QShowEvent *event)
 }
 
 ///
-/// \brief Grows the dialog to fit wrapped fields within the available screen height.
+/// \brief Grows the dialog to fit certificate fields within the available screen height.
 ///
 void CertificateDetailsDialog::adjustHeightToContents()
 {

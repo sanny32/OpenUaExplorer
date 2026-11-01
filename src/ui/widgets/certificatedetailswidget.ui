@@ -110,9 +110,9 @@
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QLabel" name="nameValue">
+           <widget class="ElidedLabel" name="nameValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -133,9 +133,9 @@
            </widget>
           </item>
           <item row="2" column="1">
-           <widget class="QLabel" name="signedByValue">
+           <widget class="ElidedLabel" name="signedByValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -156,9 +156,9 @@
            </widget>
           </item>
           <item row="3" column="1">
-           <widget class="QLabel" name="validFromValue">
+           <widget class="ElidedLabel" name="validFromValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -179,9 +179,9 @@
            </widget>
           </item>
           <item row="4" column="1">
-           <widget class="QLabel" name="validToValue">
+           <widget class="ElidedLabel" name="validToValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -202,9 +202,9 @@
            </widget>
           </item>
           <item row="5" column="1">
-           <widget class="QLabel" name="applicationUriValue">
+           <widget class="ElidedLabel" name="applicationUriValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -225,9 +225,9 @@
            </widget>
           </item>
           <item row="6" column="1">
-           <widget class="QLabel" name="keySizeValue">
+           <widget class="ElidedLabel" name="keySizeValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -263,9 +263,9 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLabel" name="certificatePathValue">
+           <widget class="ElidedLabel" name="certificatePathValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -286,9 +286,9 @@
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QLabel" name="serialNumberValue">
+           <widget class="ElidedLabel" name="serialNumberValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -309,9 +309,9 @@
            </widget>
           </item>
           <item row="2" column="1">
-           <widget class="QLabel" name="signatureAlgorithmValue">
+           <widget class="ElidedLabel" name="signatureAlgorithmValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -332,9 +332,9 @@
            </widget>
           </item>
           <item row="3" column="1">
-           <widget class="QLabel" name="issuerValue">
+           <widget class="ElidedLabel" name="issuerValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -355,9 +355,9 @@
            </widget>
           </item>
           <item row="4" column="1">
-           <widget class="QLabel" name="subjectValue">
+           <widget class="ElidedLabel" name="subjectValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -378,9 +378,9 @@
            </widget>
           </item>
           <item row="5" column="1">
-           <widget class="QLabel" name="subjectAlternativeNameValue">
+           <widget class="ElidedLabel" name="subjectAlternativeNameValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -401,9 +401,9 @@
            </widget>
           </item>
           <item row="6" column="1">
-           <widget class="QLabel" name="thumbprintValue">
+           <widget class="ElidedLabel" name="thumbprintValue">
             <property name="wordWrap">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="textFormat">
              <enum>Qt::PlainText</enum>
@@ -426,6 +426,11 @@
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>widgets/elidedlabel.h</header>
+  </customwidget>
   <customwidget>
    <class>ScrollArea</class>
    <extends>QScrollArea</extends>

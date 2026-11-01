@@ -140,7 +140,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLabel" name="subjectEdit">
+       <widget class="ElidedLabel" name="subjectEdit">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
           <horstretch>1</horstretch>
@@ -176,7 +176,7 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QLabel" name="issuerEdit">
+       <widget class="ElidedLabel" name="issuerEdit">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
           <horstretch>1</horstretch>
@@ -217,7 +217,7 @@
          <number>6</number>
         </property>
         <item>
-         <widget class="QLabel" name="validEdit">
+         <widget class="ElidedLabel" name="validEdit">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
             <horstretch>0</horstretch>
@@ -318,6 +318,11 @@
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>ElidedLabel</class>
+   <extends>QLabel</extends>
+   <header>widgets/elidedlabel.h</header>
+  </customwidget>
   <customwidget>
    <class>ThemedIconLabel</class>
    <extends>QLabel</extends>

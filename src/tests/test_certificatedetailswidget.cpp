@@ -17,6 +17,7 @@
 
 #include "opcua/pkimanager.h"
 #include "widgets/certificatedetailswidget.h"
+#include "widgets/elidedlabel.h"
 
 ///
 /// \brief Tests certificate detail parsing and copyable text.
@@ -29,6 +30,7 @@ private slots:
     void initTestCase();
     void invalidCertificateShowsInvalidStatus();
     void generatedCertificateFillsDetailsAndDetailsText();
+    void tooltipTracksPathAndAvailableWidth();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -144,6 +146,41 @@ void TestCertificateDetailsWidget::generatedCertificateFillsDetailsAndDetailsTex
 
     QVERIFY(QFile::remove(certificateFile));
     QVERIFY(QFile::remove(privateKeyFile));
+}
+
+///
+/// \brief Verifies elided values reveal current full text and stop showing stale tooltips.
+///
+void TestCertificateDetailsWidget::tooltipTracksPathAndAvailableWidth()
+{
+    CertificateDetailsWidget widget;
+    const QString path = QStringLiteral("/pki/%1/client.der").arg(QString(150, QLatin1Char('a')));
+    widget.setCertificate(QByteArrayLiteral("invalid"), path);
+    widget.resize(680, 560);
+    widget.show();
+    auto *value = widget.findChild<ElidedLabel *>(QStringLiteral("certificatePathValue"));
+    QVERIFY(value);
+    QTRY_VERIFY(value->isElided());
+    QCOMPARE(value->toolTip(), QDir::toNativeSeparators(path));
+    QVERIFY(widget.detailsText().contains(QDir::toNativeSeparators(path)));
+
+    widget.resize(widget.width() + value->fontMetrics().horizontalAdvance(path), widget.height());
+    QTRY_VERIFY(!value->isElided());
+    QVERIFY(value->toolTip().isEmpty());
+    widget.resize(680, 560);
+    QTRY_VERIFY(value->isElided());
+    QCOMPARE(value->toolTip(), QDir::toNativeSeparators(path));
+
+    const QString replacement = path + QStringLiteral(".replacement");
+    widget.setCertificate(QByteArrayLiteral("invalid"), replacement);
+    QCOMPARE(value->toolTip(), QDir::toNativeSeparators(replacement));
+    widget.setCertificate(QByteArrayLiteral("invalid"), QStringLiteral("/pki/client.der"));
+    QTRY_VERIFY(!value->isElided());
+    QVERIFY(value->toolTip().isEmpty());
+    widget.clear();
+    QVERIFY(value->isHidden());
+    QVERIFY(value->toolTip().isEmpty());
+    QVERIFY(widget.detailsText().isEmpty());
 }
 
 QTEST_MAIN(TestCertificateDetailsWidget)

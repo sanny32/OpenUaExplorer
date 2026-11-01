@@ -12,6 +12,7 @@
 #include <QWidget>
 
 #include "widgets/certificatesummarywidget.h"
+#include "widgets/elidedlabel.h"
 #include "widgets/themedtoolbutton.h"
 
 ///
@@ -26,6 +27,9 @@ private slots:
     void inlineModeShowsPlaceholderWhenEmpty();
     void unreadableCertificateFillsDetails();
     void viewDetailsButtonEmitsRequest();
+    void longFieldsElideAndShowTooltips_data();
+    void longFieldsElideAndShowTooltips();
+    void placeholderTooltipTracksChanges();
 };
 
 void TestCertificateSummaryWidget::hintModeHidesDetailsWhenEmpty()
@@ -115,6 +119,79 @@ void TestCertificateSummaryWidget::viewDetailsButtonEmitsRequest()
     QSignalSpy spy(&widget, &CertificateSummaryWidget::viewDetailsRequested);
     viewDetailsButton->click();
     QCOMPARE(spy.count(), 1);
+}
+
+///
+/// \brief Covers summary values that previously clipped without an ellipsis.
+///
+void TestCertificateSummaryWidget::longFieldsElideAndShowTooltips_data()
+{
+    QTest::addColumn<QString>("fieldName");
+    QTest::newRow("subject") << QStringLiteral("subjectEdit");
+    QTest::newRow("issuer") << QStringLiteral("issuerEdit");
+    QTest::newRow("valid-until") << QStringLiteral("validEdit");
+}
+
+///
+/// \brief Verifies elision follows panel width and cleared fields lose their tooltips.
+///
+void TestCertificateSummaryWidget::longFieldsElideAndShowTooltips()
+{
+    QFETCH(QString, fieldName);
+    CertificateSummaryWidget widget;
+    widget.setCertificate(QByteArrayLiteral("invalid"));
+    auto *value = widget.findChild<ElidedLabel *>(fieldName);
+    QVERIFY(value);
+    const QString text = QStringLiteral("OpenUaExplorer@long-host-name.local (self-signed)").repeated(5);
+    value->setText(text);
+    widget.resize(520, 260);
+    widget.show();
+
+    QTRY_VERIFY(value->isElided());
+    QCOMPARE(value->text(), text);
+    QCOMPARE(value->toolTip(), text);
+    QVERIFY(!value->wordWrap());
+    QCOMPARE(widget.width(), 520);
+
+    widget.resize(520 + value->fontMetrics().horizontalAdvance(text), widget.height());
+    QTRY_VERIFY(!value->isElided());
+    QVERIFY(value->toolTip().isEmpty());
+    widget.resize(520, 260);
+    QTRY_VERIFY(value->isElided());
+    QCOMPARE(value->toolTip(), text);
+
+    widget.clear();
+    QTRY_VERIFY(!value->isElided());
+    QVERIFY(value->text().isEmpty());
+    QVERIFY(value->toolTip().isEmpty());
+}
+
+///
+/// \brief Verifies replacement and hint states cannot retain a previous hover value.
+///
+void TestCertificateSummaryWidget::placeholderTooltipTracksChanges()
+{
+    CertificateSummaryWidget widget;
+    const QString text = QStringLiteral("No client certificate is configured. ").repeated(10);
+    widget.setEmptyText(text);
+    widget.resize(520, 260);
+    widget.show();
+    auto *value = widget.findChild<ElidedLabel *>(QStringLiteral("subjectEdit"));
+    QVERIFY(value);
+    QTRY_VERIFY(value->isElided());
+    QCOMPARE(value->toolTip(), text);
+
+    const QString replacement = text + QStringLiteral("Select a certificate.");
+    widget.setEmptyText(replacement);
+    QCOMPARE(value->toolTip(), replacement);
+    widget.setHint(QStringLiteral("Select an endpoint."));
+    QVERIFY(value->toolTip().isEmpty());
+    QVERIFY(value->text().isEmpty());
+    widget.setHint({});
+    QCOMPARE(value->text(), replacement);
+    widget.setEmptyText(QStringLiteral("None"));
+    QTRY_VERIFY(!value->isElided());
+    QVERIFY(value->toolTip().isEmpty());
 }
 
 QTEST_MAIN(TestCertificateSummaryWidget)

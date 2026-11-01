@@ -17,6 +17,7 @@
 #include "formatters/datetimeformatter.h"
 #include "opcua/certificateinfo.h"
 #include "ui_certificatedetailswidget.h"
+#include "widgets/elidedlabel.h"
 
 namespace {
 
@@ -140,6 +141,11 @@ CertificateDetailsWidget::CertificateDetailsWidget(QWidget *parent)
     ui->summaryLayout->setColumnMinimumWidth(0, labelColumnWidth);
     ui->technicalLayout->setColumnMinimumWidth(0, labelColumnWidth);
 
+    for (ElidedLabel *value : findChildren<ElidedLabel *>()) {
+        connect(value, &ElidedLabel::elisionChanged, value,
+                &ElidedLabel::updateFullTextToolTip);
+    }
+
     clear();
 }
 
@@ -181,6 +187,7 @@ void CertificateDetailsWidget::setCertificate(const QByteArray &certificate,
         if (!displayedCertificatePath.isEmpty())
             rows.insert(2, {tr("Certificate Path:"), ui->certificatePathValue->text()});
         _detailsText = buildDetailsText(rows);
+        updateValueTooltips();
         return;
     }
 
@@ -240,6 +247,7 @@ void CertificateDetailsWidget::setCertificate(const QByteArray &certificate,
     if (!displayedCertificatePath.isEmpty())
         rows.insert(7, {tr("Certificate Path:"), ui->certificatePathValue->text()});
     _detailsText = buildDetailsText(rows);
+    updateValueTooltips();
 }
 
 ///
@@ -265,6 +273,16 @@ void CertificateDetailsWidget::clear()
     ui->subjectAlternativeNameValue->setText(unavailable());
     ui->thumbprintValue->setText(unavailable());
     _detailsText.clear();
+    updateValueTooltips();
+}
+
+///
+/// \brief Synchronizes hover text after certificate fields are replaced or cleared.
+///
+void CertificateDetailsWidget::updateValueTooltips()
+{
+    for (ElidedLabel *value : findChildren<ElidedLabel *>())
+        value->updateFullTextToolTip();
 }
 
 ///
@@ -292,8 +310,12 @@ QString CertificateDetailsWidget::detailsText() const
 ///
 int CertificateDetailsWidget::contentHeightForWidth(int width) const
 {
-    return qMax(ui->contentsLayout->minimumSize().height(),
-                ui->contentsLayout->totalHeightForWidth(width));
+    const QWidget *viewport = ui->detailsScrollArea->viewport();
+    const int viewportWidth = qMax(width - (this->width() - viewport->width()),
+                                  ui->scrollContents->minimumSizeHint().width());
+    const int contentHeight = qMax(ui->contentsLayout->minimumSize().height(),
+                                  ui->contentsLayout->totalHeightForWidth(viewportWidth));
+    return contentHeight + height() - viewport->height();
 }
 
 ///
