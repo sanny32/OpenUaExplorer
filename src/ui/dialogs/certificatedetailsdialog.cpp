@@ -10,6 +10,7 @@
 #include <QClipboard>
 #include <QFileDialog>
 #include <QSaveFile>
+#include <QScreen>
 
 #include "appcolors.h"
 #include "certificatedetailsdialog.h"
@@ -54,6 +55,31 @@ void CertificateDetailsDialog::setCertificate(const QByteArray &certificate,
                                               const QString &certificatePath)
 {
     ui->detailsWidget->setCertificate(certificate, certificatePath);
+    if (isVisible())
+        adjustHeightToContents();
+}
+
+///
+/// \brief Fits the certificate fields when the dialog opens on its target screen.
+/// \param event Show event being handled.
+///
+void CertificateDetailsDialog::showEvent(QShowEvent *event)
+{
+    AppBaseDialog::showEvent(event);
+    adjustHeightToContents();
+}
+
+///
+/// \brief Grows the dialog to fit wrapped fields within the available screen height.
+///
+void CertificateDetailsDialog::adjustHeightToContents()
+{
+    layout()->activate();
+    const int contentHeight = ui->detailsWidget->contentHeightForWidth(ui->detailsWidget->width());
+    const int desiredHeight = height() - ui->detailsWidget->height() + contentHeight;
+    const int frameHeight = frameGeometry().height() - height();
+    const int availableHeight = screen()->availableGeometry().height() - frameHeight;
+    resize(width(), qMin(qMax(height(), desiredHeight), availableHeight));
 }
 
 ///

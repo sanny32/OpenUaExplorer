@@ -60,6 +60,13 @@ public:
     ///
     QString detailsText() const;
 
+    ///
+    /// \brief Returns the height needed to display all fields at the given width.
+    /// \param width Available width of the details widget.
+    /// \return Content height without vertical scrolling.
+    ///
+    int contentHeightForWidth(int width) const;
+
 private:
     void setSummaryStatus(const QString &text, bool valid);
 

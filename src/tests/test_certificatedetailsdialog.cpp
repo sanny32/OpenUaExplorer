@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QScreen>
 #include <QTest>
 
 #include "dialogs/certificatedetailsdialog.h"
@@ -29,6 +30,8 @@ private slots:
     void forwardsCertificateAndCopiesWidgetText();
     void longValuesRemainReadable_data();
     void longValuesRemainReadable();
+    void openingFitsContentToScreen_data();
+    void openingFitsContentToScreen();
 };
 
 ///
@@ -124,6 +127,47 @@ void TestCertificateDetailsDialog::longValuesRemainReadable()
     QCoreApplication::processEvents();
     if (!unbroken)
         QVERIFY(scroll->verticalScrollBar()->value() > 0);
+}
+
+///
+/// \brief Covers certificates that fit the screen and those that exceed it.
+///
+void TestCertificateDetailsDialog::openingFitsContentToScreen_data()
+{
+    QTest::addColumn<int>("pathRepetitions");
+    QTest::addColumn<bool>("needsScrolling");
+    QTest::newRow("ordinary") << 2 << false;
+    QTest::newRow("oversized") << 200 << true;
+}
+
+///
+/// \brief Verifies opening grows the dialog and retains scrolling only beyond screen limits.
+///
+void TestCertificateDetailsDialog::openingFitsContentToScreen()
+{
+    QFETCH(int, pathRepetitions);
+    QFETCH(bool, needsScrolling);
+    CertificateDetailsDialog dialog;
+    dialog.setCertificate(QByteArrayLiteral("invalid"),
+                          QStringLiteral("/Application Support/certificates").repeated(pathRepetitions));
+    dialog.resize(680, 250);
+    dialog.show();
+    auto *details = dialog.findChild<CertificateDetailsWidget *>();
+    QVERIFY(details);
+    auto *scroll = details->findChild<QScrollArea *>();
+    QVERIFY(scroll);
+    QCoreApplication::processEvents();
+
+    QCOMPARE(dialog.width(), 680);
+    QVERIFY(dialog.height() > 250);
+    QVERIFY(dialog.frameGeometry().height() <= dialog.screen()->availableGeometry().height());
+    if (needsScrolling) {
+        QTRY_VERIFY(scroll->verticalScrollBar()->maximum() > 0);
+    } else {
+        QTRY_COMPARE(scroll->verticalScrollBar()->maximum(), 0);
+        QCOMPARE(scroll->horizontalScrollBar()->maximum(), 0);
+        QVERIFY(details->height() >= details->contentHeightForWidth(details->width()));
+    }
 }
 
 QTEST_MAIN(TestCertificateDetailsDialog)

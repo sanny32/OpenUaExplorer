@@ -44,10 +44,15 @@ public:
     void setCertificate(const QByteArray &certificate,
                         const QString &certificatePath = QString());
 
+protected:
+    void showEvent(QShowEvent *event) override;
+
 private slots:
     void copyDetails();
     void exportCertificate();
 
 private:
+    void adjustHeightToContents();
+
     Ui::CertificateDetailsDialog *ui;
 };

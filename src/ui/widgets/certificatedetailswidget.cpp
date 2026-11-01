@@ -286,6 +286,17 @@ QString CertificateDetailsWidget::detailsText() const
 }
 
 ///
+/// \brief Returns the height needed to display all fields at the given width.
+/// \param width Available width of the details widget.
+/// \return Content height without vertical scrolling.
+///
+int CertificateDetailsWidget::contentHeightForWidth(int width) const
+{
+    return qMax(ui->contentsLayout->minimumSize().height(),
+                ui->contentsLayout->totalHeightForWidth(width));
+}
+
+///
 /// \brief Updates the summary status text and colour.
 /// \param text Status text.
 /// \param valid Whether the status should use the valid colour.
