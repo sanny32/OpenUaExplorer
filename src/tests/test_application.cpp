@@ -11,11 +11,14 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QIcon>
+#include <QLocale>
+#include <QScopeGuard>
 #include <QStandardPaths>
 #include <QStyle>
 #include <QTest>
 
 #include "application.h"
+#include "appsettings.h"
 #include "appicons.h"
 #include "opcua/pkimanager.h"
 #include "startuparguments.h"
@@ -31,6 +34,7 @@ private slots:
     void startupGeneratesClientCertificate();
     void applicationIconMatchesPlatform();
     void applicationOwnsInstalledStyle();
+    void languageSelectsDefaultLocale();
     void sessionOptionSelectsFile_data();
     void sessionOptionSelectsFile();
     void sessionArgumentsRejectAmbiguity_data();
@@ -74,6 +78,23 @@ void TestApplication::applicationIconMatchesPlatform()
 void TestApplication::applicationOwnsInstalledStyle()
 {
     QCOMPARE(QApplication::style()->parent(), qApp);
+}
+
+///
+/// \brief Verifies switching the interface language moves the default locale along with it.
+///
+void TestApplication::languageSelectsDefaultLocale()
+{
+    auto *app = qobject_cast<Application *>(qApp);
+    QVERIFY(app);
+    const AppSettings::Language previous = AppSettings().language();
+    const auto restore = qScopeGuard([app, previous] { app->setLanguage(previous); });
+
+    app->setLanguage(AppSettings::Language::Russian);
+    QCOMPARE(QLocale().language(), QLocale::Russian);
+
+    app->setLanguage(AppSettings::Language::English);
+    QCOMPARE(QLocale().language(), QLocale::English);
 }
 
 ///

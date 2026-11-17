@@ -68,6 +68,12 @@ public slots:
     ///
     void collectSubtreeVariables(const QString &rootNodeId);
 
+    ///
+    /// \brief Reads the icons the server gives nodes in their standard Icon property.
+    /// \param nodeIds Nodes whose icon is wanted.
+    ///
+    void readIcons(const QStringList &nodeIds);
+
 signals:
     ///
     /// \brief Emitted when a node's children have been browsed.
@@ -76,6 +82,13 @@ signals:
     /// \param error Browse error, empty on success.
     ///
     void childrenReady(QString parentNodeId, QVector<OpcUaNodeInfo> children, QString error);
+
+    ///
+    /// \brief Emitted when the server icon of a node has been read.
+    /// \param nodeId Node the icon belongs to.
+    /// \param image Encoded image, such as a PNG.
+    ///
+    void iconReady(QString nodeId, QByteArray image);
 
     ///
     /// \brief Emitted periodically while a node search runs.

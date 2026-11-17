@@ -6,8 +6,12 @@
 /// \brief Tests the encoded-picture viewer dialog.
 ///
 
+#include <QCoreApplication>
+#include <QEvent>
 #include <QLabel>
+#include <QLocale>
 #include <QPushButton>
+#include <QScopeGuard>
 #include <QScrollArea>
 #include <QSlider>
 #include <QTest>
@@ -15,6 +19,7 @@
 
 #include "application.h"
 #include "dialogs/imageviewdialog.h"
+#include "suffixtranslator.h"
 #include "testimages.h"
 #include "widgets/formatbadge.h"
 #include "widgets/imagecanvas.h"
@@ -28,6 +33,8 @@ class TestImageViewDialog : public QObject
 private slots:
     void encodedPictureIsDecodedAndDescribed();
     void undecodablePictureExplainsItselfAndStaysSaveable();
+    void languageChangeRewritesTheByteCount();
+    void languageChangeRelabelsControlsAndKeepsTheTitle();
     void fittingMeasuresTheViewportItEndsUpWith();
     void fittingScalesToTheViewportInBothDirections();
     void switchingFittingOffReturnsToNaturalSize();
@@ -67,6 +74,55 @@ void TestImageViewDialog::encodedPictureIsDecodedAndDescribed()
 
     QVERIFY(dialog.findChild<QPushButton *>(QStringLiteral("copyButton"))->isEnabled());
     QVERIFY(dialog.findChild<QPushButton *>(QStringLiteral("saveButton"))->isEnabled());
+}
+
+///
+/// \brief The header line restates the byte count in the locale of the new language.
+///
+void TestImageViewDialog::languageChangeRewritesTheByteCount()
+{
+    const QLocale previous;
+    const auto restore = qScopeGuard([&previous] { QLocale::setDefault(previous); });
+
+    const QByteArray png = encodedPng(QSize(20, 10));
+    QVERIFY(!png.isEmpty());
+
+    const QLocale russian(QLocale::Russian);
+    const QLocale english(QLocale::English);
+    QLocale::setDefault(russian);
+
+    ImageViewDialog dialog;
+    dialog.setImageData(png);
+    auto *info = dialog.findChild<QLabel *>(QStringLiteral("infoLabel"));
+    QVERIFY(info);
+    QVERIFY2(info->text().endsWith(russian.formattedDataSize(png.size())),
+             qPrintable(info->text()));
+
+    QLocale::setDefault(english);
+    QEvent languageChange(QEvent::LanguageChange);
+    QCoreApplication::sendEvent(&dialog, &languageChange);
+    QVERIFY2(info->text().endsWith(english.formattedDataSize(png.size())),
+             qPrintable(info->text()));
+}
+
+///
+/// \brief The controls follow the language while the title naming the node stays as given.
+///
+void TestImageViewDialog::languageChangeRelabelsControlsAndKeepsTheTitle()
+{
+    ImageViewDialog dialog;
+    dialog.setWindowTitle(QStringLiteral("ns=5;s=ImagePNG"));
+    dialog.setImageData(encodedPng(QSize(20, 10)));
+    auto *fit = dialog.findChild<QAbstractButton *>(QStringLiteral("fitButton"));
+    QVERIFY(fit);
+
+    TestTranslation::SuffixTranslator translator({"ImageViewDialog"});
+    TestTranslation::switchLanguage(&translator, true);
+    QCOMPARE(fit->text(), QStringLiteral("Fit-xx"));
+    QCOMPARE(dialog.windowTitle(), QStringLiteral("ns=5;s=ImagePNG"));
+
+    TestTranslation::switchLanguage(&translator, false);
+    QCOMPARE(fit->text(), QStringLiteral("Fit"));
 }
 
 ///

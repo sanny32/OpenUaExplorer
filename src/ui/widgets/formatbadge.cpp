@@ -106,3 +106,5 @@ void FormatBadge::paintEvent(QPaintEvent *event)
     painter.setPen(AppColors::formatBadgeText());
     painter.drawText(rect(), Qt::AlignCenter, _text);
 }
+
+#include "moc_formatbadge.cpp"

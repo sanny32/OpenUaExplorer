@@ -602,3 +602,5 @@ void ConnectionController::discoverPendingProfile()
     _backend->discoverEndpoints(_pendingProfile.endpointUrl, _pendingProfile.backend,
                                 _pendingProfile.endpointTimeoutMs);
 }
+
+#include "moc_connectioncontroller.cpp"

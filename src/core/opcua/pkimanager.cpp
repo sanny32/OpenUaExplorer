@@ -26,6 +26,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#include "appinfo.h"
 #include "certificateinfo.h"
 #include "pkimanager.h"
 #include "utils.h"

@@ -218,7 +218,7 @@ public:
                         int role = Qt::DisplayRole) const override;
 
     ///
-    /// \brief Re-emits the header titles after a UI language change.
+    /// \brief Re-emits the header titles and value summaries after a UI language change.
     ///
     void retranslate();
 

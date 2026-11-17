@@ -255,7 +255,7 @@ jobs:
     name: Verify .rpm
     runs-on: ubuntu-latest
     needs: rpm
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -267,6 +267,9 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ouaexp-rpm-${{ needs.rpm.outputs.arch }}
+
+      - name: Trust RED SOFT registry
+        uses: ./.github/actions/trust-redsoft-registry
 
       - name: Verify the package installs
         uses: ./.github/actions/verify-linux-package
@@ -289,5 +292,4 @@ jobs:
           prerelease: ${{ needs.rpm.outputs.prerelease != '' }}
           files: |
             ${{ needs.rpm.outputs.name }}
-          generate_release_notes: true
           fail_on_unmatched_files: true

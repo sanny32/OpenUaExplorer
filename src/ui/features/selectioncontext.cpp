@@ -197,3 +197,5 @@ void SelectionContext::requestCallMethod(const OpcUaNodeInfo &object, const OpcU
 {
     emit callMethodRequested(object, method);
 }
+
+#include "moc_selectioncontext.cpp"

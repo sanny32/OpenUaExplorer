@@ -109,6 +109,7 @@ private:
                               const QString &profileId);
 
     QTemporaryDir _settingsDirectory;
+    OpcUaTestServer _server;
 };
 
 void TestMainWindowSessionIntegration::initTestCase()
@@ -120,6 +121,18 @@ void TestMainWindowSessionIntegration::initTestCase()
         QStringLiteral("OpenUaExplorerSessionIntegrationTests"));
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, _settingsDirectory.path());
+
+    QtOpcUaBackend probe;
+    if (!probe.isAvailable())
+        QSKIP("No OPC UA backend is available.");
+
+    QString skipReason;
+    if (!_server.start({QStringLiteral("--port"), QStringLiteral("48407"),
+                        QStringLiteral("--user"), QLatin1String(userName),
+                        QStringLiteral("--password"), QLatin1String(userPassword)},
+                       &skipReason)) {
+        QSKIP(qPrintable(skipReason));
+    }
 }
 
 void TestMainWindowSessionIntegration::cleanup()
@@ -179,23 +192,10 @@ bool TestMainWindowSessionIntegration::writeUsernameSession(const QString &path,
 ///
 void TestMainWindowSessionIntegration::openedSessionAsksForThePasswordAndConnects()
 {
-    QtOpcUaBackend probe;
-    if (!probe.isAvailable())
-        QSKIP("No OPC UA backend is available.");
-
-    OpcUaTestServer server;
-    QString skipReason;
-    if (!server.start({QStringLiteral("--port"), QStringLiteral("48404"),
-                       QStringLiteral("--user"), QLatin1String(userName),
-                       QStringLiteral("--password"), QLatin1String(userPassword)},
-                      &skipReason)) {
-        QSKIP(qPrintable(skipReason));
-    }
-
     QTemporaryDir sessionsDirectory;
     QVERIFY(sessionsDirectory.isValid());
     const QString path = sessionsDirectory.filePath(QStringLiteral("username.ouas"));
-    QVERIFY2(writeUsernameSession(path, server.endpoint(), QStringLiteral("integration-open")),
+    QVERIFY2(writeUsernameSession(path, _server.endpoint(), QStringLiteral("integration-open")),
              "No unsecured username endpoint was advertised.");
 
     MainWindow window;
@@ -218,23 +218,10 @@ void TestMainWindowSessionIntegration::openedSessionAsksForThePasswordAndConnect
 ///
 void TestMainWindowSessionIntegration::typedCredentialsLeaveTheSessionModified()
 {
-    QtOpcUaBackend probe;
-    if (!probe.isAvailable())
-        QSKIP("No OPC UA backend is available.");
-
-    OpcUaTestServer server;
-    QString skipReason;
-    if (!server.start({QStringLiteral("--port"), QStringLiteral("48405"),
-                       QStringLiteral("--user"), QLatin1String(userName),
-                       QStringLiteral("--password"), QLatin1String(userPassword)},
-                      &skipReason)) {
-        QSKIP(qPrintable(skipReason));
-    }
-
     QTemporaryDir sessionsDirectory;
     QVERIFY(sessionsDirectory.isValid());
     const QString path = sessionsDirectory.filePath(QStringLiteral("modified.ouas"));
-    QVERIFY2(writeUsernameSession(path, server.endpoint(),
+    QVERIFY2(writeUsernameSession(path, _server.endpoint(),
                                   QStringLiteral("integration-modified")),
              "No unsecured username endpoint was advertised.");
 
@@ -264,26 +251,13 @@ void TestMainWindowSessionIntegration::typedCredentialsLeaveTheSessionModified()
 ///
 void TestMainWindowSessionIntegration::refusedPasswordIsRetypedAndMarksTheSessionModified()
 {
-    QtOpcUaBackend probe;
-    if (!probe.isAvailable())
-        QSKIP("No OPC UA backend is available.");
-
-    OpcUaTestServer server;
-    QString skipReason;
-    if (!server.start({QStringLiteral("--port"), QStringLiteral("48406"),
-                       QStringLiteral("--user"), QLatin1String(userName),
-                       QStringLiteral("--password"), QLatin1String(userPassword)},
-                      &skipReason)) {
-        QSKIP(qPrintable(skipReason));
-    }
-
     QTemporaryDir sessionsDirectory;
     QVERIFY(sessionsDirectory.isValid());
     const QString path = sessionsDirectory.filePath(QStringLiteral("refused.ouas"));
     // Unique per run so the credential store of the machine keeps no test leftovers around.
     const QString profileId = QStringLiteral("ouaexp-integration-")
         + QUuid::createUuid().toString(QUuid::WithoutBraces);
-    QVERIFY2(writeUsernameSession(path, server.endpoint(), profileId),
+    QVERIFY2(writeUsernameSession(path, _server.endpoint(), profileId),
              "No unsecured username endpoint was advertised.");
 
     // Longer than the store waits for the machine keychain, so an unresponsive one is reported
@@ -326,23 +300,10 @@ void TestMainWindowSessionIntegration::refusedPasswordIsRetypedAndMarksTheSessio
 ///
 void TestMainWindowSessionIntegration::sessionRestoredAtStartupIsMarkedModifiedAfterTyping()
 {
-    QtOpcUaBackend probe;
-    if (!probe.isAvailable())
-        QSKIP("No OPC UA backend is available.");
-
-    OpcUaTestServer server;
-    QString skipReason;
-    if (!server.start({QStringLiteral("--port"), QStringLiteral("48407"),
-                       QStringLiteral("--user"), QLatin1String(userName),
-                       QStringLiteral("--password"), QLatin1String(userPassword)},
-                      &skipReason)) {
-        QSKIP(qPrintable(skipReason));
-    }
-
     QTemporaryDir sessionsDirectory;
     QVERIFY(sessionsDirectory.isValid());
     const QString path = sessionsDirectory.filePath(QStringLiteral("startup.ouas"));
-    QVERIFY2(writeUsernameSession(path, server.endpoint(), QStringLiteral("integration-startup")),
+    QVERIFY2(writeUsernameSession(path, _server.endpoint(), QStringLiteral("integration-startup")),
              "No unsecured username endpoint was advertised.");
 
     AppSettings settings;

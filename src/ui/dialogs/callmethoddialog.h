@@ -76,6 +76,11 @@ public:
     ///
     void clearValues();
 
+    ///
+    /// \brief Re-emits the column titles after a UI language change.
+    ///
+    void retranslate();
+
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -151,6 +156,8 @@ private:
     void setResultText(const QString &text, bool success);
     void applyResultColor();
     void setCallEnabled(bool enabled);
+    void retranslateCodeTexts();
+    void updateWindowTitle();
 
     Ui::CallMethodDialog *ui;
     OpcUaBackend *_service;

@@ -138,3 +138,5 @@ void ThemePreviewButton::paintEvent(QPaintEvent *event)
         style()->drawPrimitive(QStyle::PE_FrameFocusRect, &focus, &painter, this);
     }
 }
+
+#include "moc_themepreviewbutton.cpp"

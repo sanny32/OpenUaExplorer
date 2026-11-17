@@ -289,3 +289,5 @@ void WriteValueDialog::populateTypes()
     for (const auto &type : types)
         ui->typeComboBox->addItem(type.first, type.second);
 }
+
+#include "moc_writevaluedialog.cpp"

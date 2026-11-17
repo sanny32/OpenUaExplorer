@@ -269,3 +269,5 @@ void QtOpcUaMonitoringManager::unsubscribeEvents(const QString &nodeId)
                                      tr("The backend rejected the unmonitoring request."));
     }
 }
+
+#include "moc_qtopcuamonitoringmanager.cpp"

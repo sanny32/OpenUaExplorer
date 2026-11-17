@@ -539,3 +539,5 @@ void SubscriptionsWidget::emitSubscriptionsChanged()
 {
     emit subscriptionsChanged(subscriptions());
 }
+
+#include "moc_subscriptionswidget.cpp"

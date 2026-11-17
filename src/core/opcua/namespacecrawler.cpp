@@ -77,3 +77,5 @@ int NamespaceCrawler::namespaceIndexOf(const QString &nodeId)
     }
     return 0;
 }
+
+#include "moc_namespacecrawler.cpp"

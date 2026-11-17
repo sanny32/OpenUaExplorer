@@ -85,3 +85,5 @@ void ThemedAction::refreshIcon()
 {
     setIcon(AppIcons::themed(_iconName));
 }
+
+#include "moc_themedaction.cpp"

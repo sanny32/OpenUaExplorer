@@ -8,8 +8,9 @@
 
 #include <QDateTime>
 #include <QEvent>
-#include <QFontMetrics>
+#include <QFontMetricsF>
 #include <QLabel>
+#include <QtMath>
 #include <QTimer>
 #include <QWidget>
 
@@ -71,16 +72,17 @@ QString utcOffsetLabel(const QDateTime &dateTime)
 
 ///
 /// \brief Builds a clock value from the widest digit in the current font.
-/// \param metrics Font metrics used by the clock label.
+/// \param metrics Fractional metrics, since rounded per-digit advances can tie and pick
+///        a narrower digit in proportional-digit fonts.
 /// \return A value shaped as HH:mm:ss that reserves the maximum digit width.
 ///
-QString widestClockValue(const QFontMetrics &metrics)
+QString widestClockValue(const QFontMetricsF &metrics)
 {
     QChar widestDigit = QLatin1Char('0');
-    int widestAdvance = metrics.horizontalAdvance(widestDigit);
+    qreal widestAdvance = metrics.horizontalAdvance(widestDigit);
     for (char digitValue = '1'; digitValue <= '9'; ++digitValue) {
         const QChar digit = QLatin1Char(digitValue);
-        const int advance = metrics.horizontalAdvance(digit);
+        const qreal advance = metrics.horizontalAdvance(digit);
         if (advance > widestAdvance) {
             widestDigit = digit;
             widestAdvance = advance;
@@ -122,12 +124,23 @@ void MainStatusBarWidget::setupFieldDecorations()
     ui->authenticationIconLabel->setIcon(QStringLiteral("user"), QSize(12, 12));
     ui->sessionIconLabel->setIcon(QStringLiteral("keyhole"), QSize(12, 12));
 
+    for (ElidedLabel *value : { ui->connectionLabel, ui->securityLabel,
+                                ui->authenticationLabel, ui->sessionLabel }) {
+        connect(value, &ElidedLabel::elisionChanged, value,
+                [value] { updateFieldTooltip(value); });
+    }
+    retranslateFieldTooltips();
+}
+
+///
+/// \brief Writes the category tooltips of the fields in the current language.
+///
+void MainStatusBarWidget::retranslateFieldTooltips()
+{
     const auto setFieldTooltip = [](QWidget *icon, ElidedLabel *value, const QString &tip) {
         icon->setToolTip(tip);
         value->setProperty(fieldTooltipProperty, tip);
         updateFieldTooltip(value);
-        QObject::connect(value, &ElidedLabel::elisionChanged, value,
-                         [value] { updateFieldTooltip(value); });
     };
     setFieldTooltip(ui->statusIconLabel, ui->connectionLabel, tr("Connection"));
     setFieldTooltip(ui->securityIconLabel, ui->securityLabel, tr("Security policy / mode"));
@@ -144,15 +157,13 @@ void MainStatusBarWidget::setupFieldDecorations()
 ///
 void MainStatusBarWidget::updateClockWidths(const QString &localUtcOffset)
 {
-    const QString serverValue = widestClockValue(ui->serverTimeLabel->fontMetrics());
-    ui->serverTimeLabel->setMinimumWidth(
-        ui->serverTimeLabel->fontMetrics().horizontalAdvance(
-            tr("Server Time: %1 UTC").arg(serverValue)));
+    const QFontMetricsF serverMetrics(ui->serverTimeLabel->font(), ui->serverTimeLabel);
+    ui->serverTimeLabel->setMinimumWidth(qCeil(serverMetrics.horizontalAdvance(
+        tr("Server Time: %1 UTC").arg(widestClockValue(serverMetrics)))));
 
-    const QString localValue = widestClockValue(ui->localTimeLabel->fontMetrics());
-    ui->localTimeLabel->setMinimumWidth(
-        ui->localTimeLabel->fontMetrics().horizontalAdvance(
-            tr("Local Time: %1 %2").arg(localValue, localUtcOffset)));
+    const QFontMetricsF localMetrics(ui->localTimeLabel->font(), ui->localTimeLabel);
+    ui->localTimeLabel->setMinimumWidth(qCeil(localMetrics.horizontalAdvance(
+        tr("Local Time: %1 %2").arg(widestClockValue(localMetrics), localUtcOffset))));
 }
 
 ///
@@ -310,6 +321,7 @@ void MainStatusBarWidget::changeEvent(QEvent *event)
 
     switch (event->type()) {
     case QEvent::LanguageChange:
+        retranslateFieldTooltips();
         if (_controller)
             updateConnectionState(_controller->backend()->state());
         else
@@ -387,3 +399,5 @@ MainStatusBarWidget::~MainStatusBarWidget()
 {
     delete ui;
 }
+
+#include "moc_mainstatusbarwidget.cpp"

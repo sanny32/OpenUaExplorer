@@ -42,6 +42,11 @@ public:
     ///
     void cycle();
 
+    ///
+    /// \brief Re-applies the theme tooltip after a UI language change.
+    ///
+    void retranslate();
+
 private:
     void apply(AppSettings::ThemeMode mode);
     void updateActions();

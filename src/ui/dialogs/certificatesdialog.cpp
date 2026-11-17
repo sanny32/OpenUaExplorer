@@ -718,3 +718,5 @@ void CertificatesDialog::reject()
     }
     AppBaseDialog::reject();
 }
+
+#include "moc_certificatesdialog.cpp"

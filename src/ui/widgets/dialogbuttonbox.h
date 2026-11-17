@@ -92,4 +92,5 @@ private:
     void updateButtonWidths();
 
     QHash<int, ColoredPushButton *> _standardButtons;
+    QHash<int, QString> _standardTexts;
 };

@@ -343,3 +343,5 @@ void EventsHistoryWidget::updateEventsHistoryZoneSuffix(QDateTimeEdit *edit)
         : utcOffsetSuffix(edit->dateTime());
     edit->setDisplayFormat(QStringLiteral("yyyy-MM-dd HH:mm:ss '%1'").arg(zone));
 }
+
+#include "moc_eventshistorywidget.cpp"

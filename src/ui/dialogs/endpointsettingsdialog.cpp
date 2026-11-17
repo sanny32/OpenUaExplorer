@@ -232,3 +232,5 @@ void EndpointSettingsDialog::viewServerCertificateDetails()
     dialog.setCertificate(_serverCertificate);
     dialog.exec();
 }
+
+#include "moc_endpointsettingsdialog.cpp"

@@ -396,3 +396,5 @@ bool NamespaceInspectorDialog::isSystemNamespace(int index, const QString &uri)
 {
     return index == 0 || uri.contains(QLatin1String("opcfoundation.org"), Qt::CaseInsensitive);
 }
+
+#include "moc_namespaceinspectordialog.cpp"

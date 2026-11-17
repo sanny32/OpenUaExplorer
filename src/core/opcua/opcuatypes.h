@@ -239,6 +239,8 @@ struct OpcUaNodeAttribute
     bool isTimestamp = false;
     /// \brief True when value carries an encoded picture the row can offer to a viewer.
     bool isImage = false;
+    /// \brief DataType NodeId of the picture, only set on image rows.
+    QString dataTypeId;
     /// \brief Nested attribute details.
     QVector<OpcUaNodeAttribute> children;
 };

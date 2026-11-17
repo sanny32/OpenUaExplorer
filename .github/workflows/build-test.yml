@@ -1,0 +1,261 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'src/**'
+      - 'tools/**'
+      - '.github/workflows/build-test.yml'
+      - '!src/**/*.ts'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tools/**'
+      - '.github/workflows/build-test.yml'
+      - '!src/**/*.ts'
+
+concurrency:
+  group: build-test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  tests:
+    name: Build and Test (${{ matrix.os }}, Qt ${{ matrix.qt }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            qt: '6.9.3'
+            cmake_extra: '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_LINKER_TYPE=MOLD'
+
+          - os: windows-latest
+            qt: '6.9.3'
+
+          - os: macos-26
+            qt: '6.9.3'
+            cmake_extra: '-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache'
+    env:
+      QT_QPA_PLATFORM: offscreen
+      CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # MSVC is left out: ccache does not cache its precompiled-header compiles.
+      - name: Set up ccache
+        if: runner.os != 'Windows'
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: build-test-${{ matrix.os }}-${{ matrix.qt }}
+          max-size: 1G
+          save: ${{ github.event_name == 'push' }}
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            dbus \
+            gnome-keyring \
+            ninja-build \
+            libsecret-1-dev \
+            libsecret-tools \
+            libssl-dev \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0 \
+            mold \
+            python3-dbus \
+            python3-gi
+
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Install macOS build dependencies
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      - name: Set up MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt }}
+          modules: qtcharts
+          cache: true
+
+      # On Linux CMake finds the distribution's libssl-dev installed above.
+      - name: Set up OpenSSL
+        if: runner.os != 'Linux'
+        uses: ./.github/actions/setup-openssl
+
+      - name: Install test dependencies
+        run: python -m pip install -r tools/requirements.txt
+
+      - name: Restore Qt OpcUa build
+        id: qtopcua-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: build/_deps/qtopcua-install
+          key: qtopcua-${{ matrix.os }}-${{ matrix.qt }}-${{ hashFiles('src/cmake/qtopcua.cmake', 'src/cmake/patches/*.patch') }}
+
+      - name: Configure
+        run: >
+          cmake -S src -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF
+          -DOUAEXP_BUILD_TESTS=ON
+          ${{ matrix.cmake_extra }}
+
+      # A pull request's cache is scoped to its merge ref, which nothing else can restore.
+      - name: Save Qt OpcUa build
+        if: github.event_name == 'push' && steps.qtopcua-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: build/_deps/qtopcua-install
+          key: ${{ steps.qtopcua-cache.outputs.cache-primary-key }}
+
+      - name: Drop superseded Qt OpcUa builds
+        if: github.event_name == 'push' && steps.qtopcua-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/drop-stale-caches
+        with:
+          prefix: qtopcua-${{ matrix.os }}-${{ matrix.qt }}-
+          keep: ${{ steps.qtopcua-cache.outputs.cache-primary-key }}
+
+      - name: Build and run tests (Linux)
+        if: runner.os == 'Linux'
+        run: >
+          dbus-run-session -- bash tools/with_session_services.sh
+          cmake --build build --config Release --parallel --target ouaexp ouaexp_check
+
+      - name: Build and run tests
+        if: runner.os != 'Linux'
+        run: cmake --build build --config Release --parallel --target ouaexp ouaexp_check
+
+      # The restored entry is already on disk; ccache-action saves its successor after the job.
+      - name: Drop superseded ccache entries
+        if: runner.os != 'Windows' && github.event_name == 'push'
+        uses: ./.github/actions/drop-stale-caches
+        with:
+          prefix: ccache-build-test-${{ matrix.os }}-${{ matrix.qt }}-
+
+      # Reproduces issue #12: a host Qt that ships its own Qt OpcUa must not shadow the patched
+      # bundled headers. The Qt installed here has no Qt OpcUa, so the collision is staged with a
+      # decoy header; reconfiguring is enough, because the check in qtopcua.cmake compiles and
+      # links the patched API through the real Qt6::OpcUa interface.
+      - name: Check patched Qt OpcUa headers win over a host Qt OpcUa
+        if: runner.os == 'Linux'
+        run: |
+          set -eo pipefail
+          qt_dir=$(sed -n 's/^Qt6_DIR:PATH=//p' build/CMakeCache.txt)
+          qt_include=$(dirname "$(dirname "$(dirname "$qt_dir")")")/include
+          test -d "$qt_include/QtCore"
+          decoy="$qt_include/QtOpcUa"
+          trap 'rm -rf "$decoy"' EXIT
+          mkdir -p "$decoy"
+          cat > "$decoy/qopcuaconnectionsettings.h" <<'EOF'
+          #ifndef QOPCUACONNECTIONSETTINGS_H
+          #define QOPCUACONNECTIONSETTINGS_H
+          class QOpcUaConnectionSettings {};
+          #endif
+          EOF
+          cmake -S src -B build -G Ninja 2>&1 | tee configure.log
+          grep -q "Host Qt ships Qt OpcUa headers in $qt_include" configure.log
+          rm -f configure.log
+
+  coverage:
+    name: Coverage (${{ matrix.os }}, Qt ${{ matrix.qt }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            qt: '6.9.3'
+
+    env:
+      QT_QPA_PLATFORM: offscreen
+      CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: coverage-${{ matrix.os }}-${{ matrix.qt }}
+          max-size: 1G
+          save: ${{ github.event_name == 'push' }}
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            dbus \
+            gnome-keyring \
+            ninja-build \
+            libsecret-1-dev \
+            libsecret-tools \
+            libssl-dev \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-0 \
+            python3-dbus \
+            python3-gi
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt }}
+          modules: qtcharts
+          cache: true
+
+      - name: Install test dependencies
+        run: python -m pip install -r tools/requirements.txt
+
+      # Shares the tests job's cache entry, which matches on path as well as key.
+      - name: Restore Qt OpcUa build
+        id: qtopcua-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: build/_deps/qtopcua-install
+          key: qtopcua-${{ matrix.os }}-${{ matrix.qt }}-${{ hashFiles('src/cmake/qtopcua.cmake', 'src/cmake/patches/*.patch') }}
+
+      - name: Run coverage
+        run: >
+          dbus-run-session -- bash tools/with_session_services.sh
+          python tools/coverage.py --strict --build-dir build --
+          -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Drop superseded ccache entries
+        if: github.event_name == 'push'
+        uses: ./.github/actions/drop-stale-caches
+        with:
+          prefix: ccache-coverage-${{ matrix.os }}-${{ matrix.qt }}-
+
+      # Qt OpcUa is built by the coverage step's configure, so a failed test run still saves it.
+      - name: Save Qt OpcUa build
+        if: >
+          !cancelled() && github.event_name == 'push'
+          && steps.qtopcua-cache.outputs.cache-hit != 'true'
+          && hashFiles('build/_deps/qtopcua-install/**/Qt6OpcUaConfig.cmake') != ''
+        uses: actions/cache/save@v5
+        with:
+          path: build/_deps/qtopcua-install
+          key: ${{ steps.qtopcua-cache.outputs.cache-primary-key }}
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-report
+          path: build/coverage

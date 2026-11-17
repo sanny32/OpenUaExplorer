@@ -253,7 +253,7 @@ jobs:
     name: Verify .deb
     runs-on: ubuntu-latest
     needs: deb
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -288,5 +288,4 @@ jobs:
           prerelease: ${{ needs.deb.outputs.prerelease != '' }}
           files: |
             ${{ needs.deb.outputs.name }}
-          generate_release_notes: true
           fail_on_unmatched_files: true

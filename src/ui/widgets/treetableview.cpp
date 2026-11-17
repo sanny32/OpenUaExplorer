@@ -42,3 +42,5 @@ bool TreeTableView::viewportEvent(QEvent *event)
         return true;
     return TreeView::viewportEvent(event);
 }
+
+#include "moc_treetableview.cpp"

@@ -8,6 +8,8 @@
 
 #include "settingsstore.h"
 
+#include "appinfo.h"
+
 #ifdef Q_OS_WIN
 
 namespace {

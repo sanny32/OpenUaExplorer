@@ -131,3 +131,5 @@ MainToolButton *MainToolBar::addMainButton(QAction *action)
     addWidget(button);
     return button;
 }
+
+#include "moc_maintoolbar.cpp"

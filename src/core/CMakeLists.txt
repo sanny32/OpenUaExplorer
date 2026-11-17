@@ -113,6 +113,7 @@ add_library(ouaexp_core STATIC
 
 target_include_directories(ouaexp_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${OUAEXP_GENERATED_DIR}
 )
 
 target_link_libraries(ouaexp_core PUBLIC

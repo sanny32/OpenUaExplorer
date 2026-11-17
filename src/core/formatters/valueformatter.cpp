@@ -435,6 +435,7 @@ OpcUaNodeAttribute valueAttribute(const QVariant &value, QOpcUa::Types type,
         result.displayValue = imageSummary(*image);
         result.value = value;
         result.isImage = true;
+        result.dataTypeId = dataTypeId;
         return result;
     }
     if (isValueArray(value)) {

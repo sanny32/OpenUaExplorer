@@ -129,5 +129,4 @@ jobs:
           prerelease: ${{ steps.version.outputs.prerelease != '' }}
           files: |
             ${{ steps.package.outputs.dmg }}
-          generate_release_notes: true
           fail_on_unmatched_files: true

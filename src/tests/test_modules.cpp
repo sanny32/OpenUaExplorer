@@ -39,11 +39,23 @@ private slots:
     void subscribeApiReachesBackend();
     void eventSubscribeApiReachesBackend();
     void eventHistoryApiReachesBackend();
+    void iconApiReachesBackend();
 };
 
 namespace {
 
 QStringList serverLogMessages;
+
+///
+/// \brief Backend that records which nodes it is asked to read icons for.
+///
+class IconRecordingBackend : public QtOpcUaBackend
+{
+public:
+    void readNodeIcons(const QStringList &nodeIds) override { iconNodeIds = nodeIds; }
+
+    QStringList iconNodeIds;
+};
 
 ///
 /// \brief Captures messages emitted through the Server logging category.
@@ -176,6 +188,26 @@ void TestModules::eventHistoryApiReachesBackend()
                        1000);
     QTRY_COMPARE(spy.count(), 1);
     QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=0;i=2253"));
+}
+
+///
+/// \brief The AddressSpaceModule icon API forwards to the backend and relays the icons it reads.
+///
+void TestModules::iconApiReachesBackend()
+{
+    IconRecordingBackend service;
+    AddressSpaceModule module;
+    ServiceContext context(&service, nullptr);
+    module.initialize(context);
+    QSignalSpy spy(&module, &AddressSpaceModule::iconReady);
+
+    module.readIcons({QStringLiteral("ns=2;s=Level"), QStringLiteral("ns=2;s=Pump")});
+    emit service.nodeIconRead(QStringLiteral("ns=2;s=Level"), QByteArrayLiteral("png"));
+
+    QCOMPARE(service.iconNodeIds, QStringList({QStringLiteral("ns=2;s=Level"), QStringLiteral("ns=2;s=Pump")}));
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.first().at(0).toString(), QStringLiteral("ns=2;s=Level"));
+    QCOMPARE(spy.first().at(1).toByteArray(), QByteArrayLiteral("png"));
 }
 
 QTEST_MAIN(TestModules)

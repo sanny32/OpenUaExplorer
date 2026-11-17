@@ -192,6 +192,12 @@ public:
     void readServerSessionName() override;
 
     ///
+    /// \brief Reads the standard Icon property of nodes, emitting nodeIconRead() for each node that has one.
+    /// \param nodeIds Nodes whose Icon property is read; a newer read of a node supersedes the pending one.
+    ///
+    void readNodeIcons(const QStringList &nodeIds) override;
+
+    ///
     /// \brief Reads the server NamespaceArray, emitting namespacesReady() with the URIs.
     ///
     void requestNamespaces() override;
@@ -251,6 +257,8 @@ private:
     ///
     void enrichAndFinishBrowse(const QString &parentNodeId,
                                QVector<OpcUaNodeInfo> nodes, int timeoutMs);
+    void resolveNodeIcon(const QString &nodeId, int timeoutMs);
+    void readNodeIcon(const QString &nodeId, const QString &iconNodeId, int timeoutMs);
 
     ///
     /// \brief Reads the Value of the located argument-property nodes and emits methodInfoReady().

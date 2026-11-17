@@ -156,6 +156,7 @@ void TrendGraphToolbar::changeEvent(QEvent *event)
         applyIntervalStyling();
     } else if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
+        updateLivePauseButton();
     }
 }
 
@@ -224,3 +225,5 @@ void TrendGraphToolbar::updateLivePauseButton()
                                              : QStringLiteral("pause"));
     ui->livePauseButton->setToolTip(_livePaused ? tr("Resume") : tr("Pause"));
 }
+
+#include "moc_trendgraphtoolbar.cpp"

@@ -41,11 +41,10 @@ public:
     ///
     void setDefaultValue(const QString &value);
 
-    ///
-    /// \brief Sets the tooltip shown for the reset action.
-    /// \param toolTip Tooltip text.
-    ///
-    void setResetToolTip(const QString &toolTip);
+protected:
+    void changeEvent(QEvent *event) override;
+    virtual QString resetToolTip() const;
+    void applyResetToolTip();
 
 private:
     void updateResetState();

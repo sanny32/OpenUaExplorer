@@ -118,3 +118,5 @@ void ImageCanvas::paintEvent(QPaintEvent *event)
     const QPoint origin((width() - _pixmap.width()) / 2, (height() - _pixmap.height()) / 2);
     painter.drawPixmap(origin, _pixmap);
 }
+
+#include "moc_imagecanvas.cpp"

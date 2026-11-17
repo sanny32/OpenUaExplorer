@@ -7,6 +7,7 @@
 ///
 
 #include <QAbstractItemModel>
+#include <QBuffer>
 #include <QColor>
 #include <QCoreApplication>
 #include <QEvent>
@@ -19,6 +20,7 @@
 #include <QTranslator>
 #include <QTreeView>
 
+#include "opcua/standardnodeid.h"
 #include "widgets/addressspacewidget.h"
 #include "widgets/spinneraction.h"
 
@@ -44,6 +46,8 @@ private slots:
     void restoreBrowsesSiblingBranchesOneAtATime();
     void restoreContinuesPastAFailedBranch();
     void languageChangeRelabelsTheNodeInfoRows();
+    void serverIconsReplaceNodeClassIcons();
+    void selectedServerIconsStayLegible();
 };
 
 namespace {
@@ -67,6 +71,36 @@ OpcUaNodeInfo makeNode(const QString &nodeId, const QString &displayName,
     node.nodeClass = hasChildren ? 1 : 2;
     node.hasChildren = hasChildren;
     return node;
+}
+
+///
+/// \brief Encodes an image as PNG, as a server stores it in an Icon property.
+/// \param image Image to encode.
+/// \return PNG data.
+///
+QByteArray pngData(const QImage &image)
+{
+    QByteArray data;
+    QBuffer buffer(&data);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "PNG");
+    return data;
+}
+
+///
+/// \brief Encodes a 32x32 PNG with a centred square of one colour on a transparent ground.
+/// \param color Colour of the square.
+/// \return PNG data.
+///
+QByteArray squarePng(const QColor &color)
+{
+    QImage image(32, 32, QImage::Format_ARGB32);
+    image.fill(Qt::transparent);
+    for (int y = 8; y < 24; ++y) {
+        for (int x = 8; x < 24; ++x)
+            image.setPixelColor(x, y, color);
+    }
+    return pngData(image);
 }
 
 ///
@@ -643,6 +677,123 @@ void TestAddressSpaceWidget::languageChangeRelabelsTheNodeInfoRows()
 
     QCOMPARE(label, QStringLiteral("Localized Node Id"));
     QCOMPARE(value, details.nodeId);
+}
+
+///
+/// \brief Shown objects and variables ask for their server icons, which replace the node-class
+///        icons in the colours the server gave them, grey glyphs included.
+///
+void TestAddressSpaceWidget::serverIconsReplaceNodeClassIcons()
+{
+    AddressSpaceWidget widget;
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("addressTree"));
+    QVERIFY(tree);
+    const OpcUaNodeInfo root = makeNode(QStringLiteral("ns=0;i=85"), QStringLiteral("Objects"),
+                                        QString(), true);
+    const OpcUaNodeInfo device = makeNode(QStringLiteral("ns=2;s=Device"), QStringLiteral("Device"),
+                                          QStringLiteral("ns=0;i=35"), true);
+    const OpcUaNodeInfo level = makeNode(QStringLiteral("ns=2;s=Level"), QStringLiteral("Level"));
+    OpcUaNodeInfo units = makeNode(QStringLiteral("ns=2;s=Units"), QStringLiteral("Units"));
+    units.typeDefinitionId = QString::fromLatin1(StandardNodeId::PropertyType);
+    OpcUaNodeInfo start = makeNode(QStringLiteral("ns=2;s=Start"), QStringLiteral("Start"));
+    start.nodeClass = OpcUa::Method;
+    widget.setRootNode(root);
+
+    QSignalSpy iconsSpy(&widget, &AddressSpaceWidget::iconsRequested);
+    widget.setBrowseChildren(root.nodeId, {device, level, units, start}, QString());
+    widget.setBrowseChildren(QStringLiteral("ns=2;s=NotShown"), {level}, QString());
+    widget.setBrowseChildren(device.nodeId, {level}, QStringLiteral("BadNodeIdUnknown"));
+    QCOMPARE(iconsSpy.size(), 1);
+    QCOMPARE(iconsSpy.first().at(0).toStringList(), QStringList({device.nodeId, level.nodeId}));
+
+    QImage glyph(32, 32, QImage::Format_ARGB32);
+    glyph.fill(Qt::transparent);
+    for (int y = 8; y < 24; ++y) {
+        for (int x = 8; x < 24; ++x)
+            glyph.setPixelColor(x, y, QColor(0x80, 0x80, 0x80));
+    }
+    QImage picture(32, 32, QImage::Format_ARGB32);
+    picture.fill(Qt::red);
+    for (int y = 16; y < 32; ++y) {
+        for (int x = 0; x < 32; ++x)
+            picture.setPixelColor(x, y, Qt::blue);
+    }
+    widget.setNodeIcon(level.nodeId, pngData(glyph));
+    widget.setNodeIcon(device.nodeId, pngData(picture.scaled(256, 256)));
+    widget.setNodeIcon(level.nodeId, QByteArrayLiteral("not an image"));
+
+    const QModelIndex rootIndex = tree->model()->index(0, 0);
+    const QModelIndex deviceIndex = tree->model()->index(0, 0, rootIndex);
+    const QModelIndex levelIndex = tree->model()->index(1, 0, rootIndex);
+    const QIcon levelIcon = tree->model()->data(levelIndex, Qt::DecorationRole).value<QIcon>();
+    QCOMPARE(levelIcon.pixmap(32, 32).toImage().pixelColor(16, 16), QColor(0x80, 0x80, 0x80));
+    QVERIFY(levelIcon.pixmap(32, 32).toImage().pixelColor(2, 2).alpha() == 0);
+
+    const QImage deviceImage =
+        tree->model()->data(deviceIndex, Qt::DecorationRole).value<QIcon>().pixmap(64, 64).toImage();
+    QCOMPARE(deviceImage.size(), QSize(64, 64));
+    QCOMPARE(deviceImage.pixelColor(32, 8), QColor(Qt::red));
+    QCOMPARE(deviceImage.pixelColor(32, 56), QColor(Qt::blue));
+
+    QImage statusDot(32, 32, QImage::Format_ARGB32);
+    statusDot.fill(Qt::transparent);
+    for (int y = 8; y < 24; ++y) {
+        for (int x = 8; x < 24; ++x)
+            statusDot.setPixelColor(x, y, QColor(0x22, 0xc5, 0x5e));
+    }
+    widget.setNodeIcon(start.nodeId, pngData(statusDot));
+    const QModelIndex startIndex = tree->model()->index(3, 0, rootIndex);
+    QCOMPARE(tree->model()->data(startIndex, Qt::DecorationRole).value<QIcon>().pixmap(32, 32).toImage()
+                 .pixelColor(16, 16),
+             QColor(0x22, 0xc5, 0x5e));
+
+    const QColor inactive(0x9c, 0xa3, 0xaf);
+    for (int y = 8; y < 24; ++y) {
+        for (int x = 8; x < 24; ++x)
+            statusDot.setPixelColor(x, y, inactive);
+    }
+    widget.setNodeIcon(start.nodeId, pngData(statusDot));
+    QCOMPARE(tree->model()->data(startIndex, Qt::DecorationRole).value<QIcon>().pixmap(32, 32).toImage()
+                 .pixelColor(16, 16),
+             inactive);
+
+    widget.setOffline(true);
+    QVERIFY(isGreyscale(tree->model()->data(deviceIndex, Qt::DecorationRole).value<QIcon>()));
+}
+
+///
+/// \brief On a selected row a server icon that barely stands out from the selection takes the
+///        highlighted text colour, while one that stands out keeps its own colours.
+///
+void TestAddressSpaceWidget::selectedServerIconsStayLegible()
+{
+    AddressSpaceWidget widget;
+    auto *tree = widget.findChild<QTreeView *>(QStringLiteral("addressTree"));
+    QVERIFY(tree);
+    QPalette palette = tree->palette();
+    palette.setColor(QPalette::Highlight, QColor(0x1f, 0x6b, 0x7a));
+    palette.setColor(QPalette::HighlightedText, Qt::white);
+    tree->setPalette(palette);
+
+    const OpcUaNodeInfo root = makeNode(QStringLiteral("ns=0;i=85"), QStringLiteral("Objects"),
+                                        QString(), true);
+    const OpcUaNodeInfo speed = makeNode(QStringLiteral("ns=2;s=Speed"), QStringLiteral("Speed"));
+    const OpcUaNodeInfo running = makeNode(QStringLiteral("ns=2;s=Running"), QStringLiteral("Running"));
+    widget.setRootNode(root);
+    widget.setBrowseChildren(root.nodeId, {speed, running}, QString());
+
+    widget.setNodeIcon(speed.nodeId, squarePng(QColor(0x80, 0x80, 0x80)));
+    widget.setNodeIcon(running.nodeId, squarePng(QColor(0x22, 0xc5, 0x5e)));
+
+    const QModelIndex rootIndex = tree->model()->index(0, 0);
+    const auto selectedCenter = [&](int row) {
+        return tree->model()->data(tree->model()->index(row, 0, rootIndex), Qt::DecorationRole)
+            .value<QIcon>().pixmap(QSize(32, 32), QIcon::Selected).toImage();
+    };
+    const QImage speedImage = selectedCenter(0);
+    QCOMPARE(speedImage.pixelColor(16, 16), QColor(Qt::white));
+    QCOMPARE(speedImage.pixelColor(2, 2).alpha(), 0);
+    QCOMPARE(selectedCenter(1).pixelColor(16, 16), QColor(0x22, 0xc5, 0x5e));
 }
 
 QTEST_MAIN(TestAddressSpaceWidget)

@@ -12,7 +12,9 @@
 #include <memory>
 
 #include <QAbstractItemModel>
+#include <QHash>
 #include <QIcon>
+#include <QImage>
 #include <QVector>
 
 #include "addressspaceitem.h"
@@ -189,10 +191,19 @@ public:
     QModelIndex findFirst(const QString &displayName) const;
 
     ///
-    /// \brief Sets the callback that supplies node-class icons.
-    /// \param provider Icon provider callback.
+    /// \brief Gives a node the image its server publishes as its icon.
+    /// \param nodeId Node the image belongs to; it keeps the image while the tree shows it again
+    ///        after a refresh, until the root is replaced or the tree is cleared.
+    /// \param image Decoded image; a null image drops the node's image.
     ///
-    void setIconProvider(std::function<QIcon(AddressSpaceItem::NodeType)> provider);
+    void setNodeImage(const QString &nodeId, const QImage &image);
+
+    ///
+    /// \brief Sets the callback that supplies node icons.
+    /// \param provider Icon provider callback; it receives the node class icon type and the image
+    ///        the server gives the node, null when it has none.
+    ///
+    void setIconProvider(std::function<QIcon(AddressSpaceItem::NodeType, const QImage &)> provider);
 
 signals:
     ///
@@ -212,6 +223,7 @@ private:
     AddressSpaceItem::NodeType iconType(const OpcUaNodeInfo &node) const;
 
     std::unique_ptr<AddressSpaceNode> _root;
-    std::function<QIcon(AddressSpaceItem::NodeType)> _iconProvider;
+    std::function<QIcon(AddressSpaceItem::NodeType, const QImage &)> _iconProvider;
+    QHash<QString, QImage> _nodeImages;
     bool _offline = false;
 };

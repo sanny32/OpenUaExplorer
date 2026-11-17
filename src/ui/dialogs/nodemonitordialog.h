@@ -125,6 +125,9 @@ private:
     void subscribeCurrent();
     void unsubscribeCurrent();
     void showPlaceholder();
+    void retranslateCodeTexts();
+    void updateNodeTexts();
+    void updatePauseButton();
     bool acceptsNodeDrag(const QMimeData *mimeData) const;
     bool dropNode(const QMimeData *mimeData);
 

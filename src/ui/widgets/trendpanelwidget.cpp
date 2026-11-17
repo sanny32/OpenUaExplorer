@@ -17,7 +17,11 @@
 #include <QDataStream>
 #include <QEvent>
 #include <QIODevice>
+#include <QKeyEvent>
+#include <QLineEdit>
+#include <QMenu>
 #include <QResizeEvent>
+#include <QShortcut>
 #include <QTabBar>
 
 #include "models/trendseries.h"
@@ -64,8 +68,7 @@ TrendPanelWidget::TrendPanelWidget(QWidget *parent)
     _collapseButton->setObjectName(QStringLiteral("collapseButton"));
     _collapseButton->setSquareIconOnly(true);
     _collapseButton->setAutoRaise(true);
-    _collapseButton->setIcon(QStringLiteral("chevron-down"));
-    _collapseButton->setToolTip(tr("Collapse trend panel"));
+    updateCollapseButton();
     ui->trendTabs->installEventFilter(this);
     connect(_collapseButton, &QAbstractButton::clicked, this,
             [this]() { setCollapsed(!_collapsed); });
@@ -80,17 +83,36 @@ TrendPanelWidget::TrendPanelWidget(QWidget *parent)
 
     addChartTab();
 
+    _tabNameEditor = new QLineEdit(ui->trendTabs->tabBar());
+    _tabNameEditor->setObjectName(QStringLiteral("tabNameEditor"));
+    _tabNameEditor->hide();
+    _tabNameEditor->installEventFilter(this);
+    ui->trendTabs->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->trendTabs->tabBar()->setFocusPolicy(Qt::StrongFocus);
+    auto *renameShortcut = new QShortcut(QKeySequence(Qt::Key_F2), ui->trendTabs);
+    renameShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+
     connect(ui->trendTabs, &QTabWidget::currentChanged, this,
             &TrendPanelWidget::handleTabChanged);
     connect(ui->trendTabs, &QTabWidget::tabCloseRequested, this,
             &TrendPanelWidget::handleTabCloseRequested);
+    connect(ui->trendTabs, &QTabWidget::tabBarDoubleClicked, this,
+            &TrendPanelWidget::renameTab);
+    connect(ui->trendTabs->tabBar(), &QWidget::customContextMenuRequested, this,
+            &TrendPanelWidget::showTabContextMenu);
+    connect(_tabNameEditor, &QLineEdit::editingFinished, this,
+            &TrendPanelWidget::commitTabRename);
+    connect(renameShortcut, &QShortcut::activated, this,
+            &TrendPanelWidget::renameCurrentTab);
 }
 
 ///
-/// \brief Destroys the panel and its generated UI.
+/// \brief Destroys the panel and its generated UI, dropping an open rename first so the
+///        editor's editingFinished on teardown never reaches a deleted ui.
 ///
 TrendPanelWidget::~TrendPanelWidget()
 {
+    cancelTabRename();
     delete ui;
 }
 
@@ -101,8 +123,11 @@ TrendPanelWidget::~TrendPanelWidget()
 void TrendPanelWidget::changeEvent(QEvent *event)
 {
     QWidget::changeEvent(event);
-    if (event->type() == QEvent::LanguageChange)
+    if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
+        updateCollapseButton();
+        retranslateTabTitles();
+    }
 }
 
 ///
@@ -124,10 +149,70 @@ TrendGraphWidget *TrendPanelWidget::addChartTab()
             &TrendPanelWidget::subscriptionCreationRequested);
 
     const int insertAt = ui->trendTabs->indexOf(_addTab);
-    const QString title = QStringLiteral("Trend %1").arg(++_chartCounter);
-    ui->trendTabs->insertTab(insertAt < 0 ? ui->trendTabs->count() : insertAt, chart, title);
+    const int number = ++_chartCounter;
+    const int index = ui->trendTabs->insertTab(insertAt < 0 ? ui->trendTabs->count() : insertAt,
+                                               chart, defaultTabTitle(number));
+    ui->trendTabs->tabBar()->setTabData(index, number);
     ui->trendTabs->setCurrentWidget(chart);
     return chart;
+}
+
+///
+/// \brief Returns the title a chart tab carries until the user renames it.
+/// \param number Sequence number of the chart.
+/// \return Title in the current language.
+///
+QString TrendPanelWidget::defaultTabTitle(int number) const
+{
+    return tr("Trend %1").arg(number);
+}
+
+///
+/// \brief Reports whether a chart tab still carries the title it was created with.
+/// \param index Tab index.
+/// \return True when the user never renamed the tab.
+///
+bool TrendPanelWidget::hasDefaultTitle(int index) const
+{
+    return ui->trendTabs->tabBar()->tabData(index).isValid();
+}
+
+///
+/// \brief Reports whether a saved title is the tab's default one, in English or the current language.
+/// \param index Tab index.
+/// \param title Saved title.
+/// \return True when the title was not chosen by the user.
+///
+bool TrendPanelWidget::isDefaultTabTitle(int index, const QString &title) const
+{
+    const QVariant number = ui->trendTabs->tabBar()->tabData(index);
+    if (!number.isValid())
+        return false;
+    return title == defaultTabTitle(number.toInt())
+        || title == QStringLiteral("Trend %1").arg(number.toInt());
+}
+
+///
+/// \brief Gives a chart tab a user-chosen title, which no longer follows the language.
+/// \param index Tab index.
+/// \param title New title.
+///
+void TrendPanelWidget::setCustomTabTitle(int index, const QString &title)
+{
+    ui->trendTabs->setTabText(index, title);
+    ui->trendTabs->tabBar()->setTabData(index, QVariant());
+}
+
+///
+/// \brief Re-applies the default titles of the chart tabs the user never renamed.
+///
+void TrendPanelWidget::retranslateTabTitles()
+{
+    for (int index = 0; index < ui->trendTabs->count(); ++index) {
+        const QVariant number = ui->trendTabs->tabBar()->tabData(index);
+        if (number.isValid())
+            ui->trendTabs->setTabText(index, defaultTabTitle(number.toInt()));
+    }
 }
 
 ///
@@ -154,6 +239,7 @@ void TrendPanelWidget::handleTabCloseRequested(int index)
 
     const int chartCount = charts().size();
 
+    cancelTabRename();
     _suppressTabChange = true;
     chart->clear();
     ui->trendTabs->removeTab(index);
@@ -168,6 +254,81 @@ void TrendPanelWidget::handleTabCloseRequested(int index)
         if (addIndex > 0)
             ui->trendTabs->setCurrentIndex(addIndex - 1);
     }
+}
+
+///
+/// \brief Offers rename and close for the chart tab under the cursor.
+///
+/// Rename is queued until the menu has closed: the menu hands focus back on closing,
+/// which would take it from the title editor and end the rename at once.
+///
+/// \param pos Click position in tab-bar coordinates.
+///
+void TrendPanelWidget::showTabContextMenu(const QPoint &pos)
+{
+    QTabBar *bar = ui->trendTabs->tabBar();
+    const int index = bar->tabAt(pos);
+    if (!qobject_cast<TrendGraphWidget *>(ui->trendTabs->widget(index)))
+        return;
+
+    QMenu menu(this);
+    connect(menu.addAction(tr("Rename")), &QAction::triggered, this,
+            [this, index]() { renameTab(index); }, Qt::QueuedConnection);
+    connect(menu.addAction(tr("Close")), &QAction::triggered, this,
+            [this, index]() { handleTabCloseRequested(index); });
+    menu.exec(bar->mapToGlobal(pos));
+}
+
+///
+/// \brief Opens an inline editor over a chart tab's title.
+/// \param index Tab to rename; the add-tab and invalid indexes are ignored.
+///
+void TrendPanelWidget::renameTab(int index)
+{
+    auto *chart = qobject_cast<TrendGraphWidget *>(ui->trendTabs->widget(index));
+    if (!chart)
+        return;
+
+    _renamedChart = chart;
+    _tabNameEditor->setGeometry(ui->trendTabs->tabBar()->tabRect(index));
+    _tabNameEditor->setText(ui->trendTabs->tabText(index));
+    _tabNameEditor->selectAll();
+    _tabNameEditor->show();
+    _tabNameEditor->setFocus();
+}
+
+///
+/// \brief Starts renaming the active chart tab unless a rename is already in progress.
+///
+void TrendPanelWidget::renameCurrentTab()
+{
+    if (!_renamedChart)
+        renameTab(ui->trendTabs->currentIndex());
+}
+
+///
+/// \brief Applies the edited title, keeping the old one when the edit is blank.
+///
+void TrendPanelWidget::commitTabRename()
+{
+    if (!_renamedChart)
+        return;
+
+    const int index = ui->trendTabs->indexOf(_renamedChart);
+    const QString title = _tabNameEditor->text().trimmed();
+    cancelTabRename();
+    if (index >= 0 && !title.isEmpty() && title != ui->trendTabs->tabText(index))
+        setCustomTabTitle(index, title);
+}
+
+///
+/// \brief Closes the inline title editor without applying it; the target is cleared
+///        first because hiding the focused editor emits editingFinished.
+///
+void TrendPanelWidget::cancelTabRename()
+{
+    _renamedChart = nullptr;
+    _tabNameEditor->hide();
 }
 
 ///
@@ -253,6 +414,9 @@ QVector<SessionTrendTab> TrendPanelWidget::captureTrendTabs() const
     for (TrendGraphWidget *chart : tabs) {
         const TrendDisplaySettings display = chart->displaySettings();
         SessionTrendTab tab;
+        const int index = ui->trendTabs->indexOf(chart);
+        if (!hasDefaultTitle(index))
+            tab.title = ui->trendTabs->tabText(index);
         tab.autoScale = display.autoScale;
         tab.showLegend = display.showLegend;
         tab.showGrid = display.showGrid;
@@ -290,6 +454,7 @@ void TrendPanelWidget::restoreTrendTabs(const QVector<SessionTrendTab> &tabs)
     if (tabs.isEmpty())
         return;
 
+    cancelTabRename();
     _suppressTabChange = true;
     const QList<TrendGraphWidget *> existing = charts();
     for (TrendGraphWidget *chart : existing) {
@@ -304,6 +469,9 @@ void TrendPanelWidget::restoreTrendTabs(const QVector<SessionTrendTab> &tabs)
 
     for (const SessionTrendTab &tab : tabs) {
         TrendGraphWidget *chart = addChartTab();
+        const int index = ui->trendTabs->indexOf(chart);
+        if (!tab.title.isEmpty() && !isDefaultTabTitle(index, tab.title))
+            setCustomTabTitle(index, tab.title);
         for (const SessionTrendSeries &series : tab.series)
             chart->addNode(series.nodeId, series.displayName, series.displayPath);
 
@@ -483,6 +651,14 @@ void TrendPanelWidget::setCollapsed(bool collapsed)
         setMaximumHeight(QWIDGETSIZE_MAX);
     }
 
+    updateCollapseButton();
+}
+
+///
+/// \brief Shows the collapse button's icon and tooltip for the action it would take next.
+///
+void TrendPanelWidget::updateCollapseButton()
+{
     _collapseButton->setIcon(_collapsed ? QStringLiteral("chevron-up")
                                         : QStringLiteral("chevron-down"));
     _collapseButton->setToolTip(_collapsed ? tr("Expand trend panel")
@@ -524,7 +700,7 @@ void TrendPanelWidget::positionCollapseButton()
 
 ///
 /// \brief Keeps the collapse button pinned to the tab strip on tab-widget resize
-///        and show events.
+///        and show events, and cancels a tab rename on Escape.
 /// \param watched Object delivering the event.
 /// \param event Event being filtered.
 /// \return True when the event is consumed.
@@ -535,6 +711,11 @@ bool TrendPanelWidget::eventFilter(QObject *watched, QEvent *event)
         && (event->type() == QEvent::Resize || event->type() == QEvent::Show
             || event->type() == QEvent::LayoutRequest)) {
         positionCollapseButton();
+    }
+    if (watched == _tabNameEditor && event->type() == QEvent::KeyPress
+        && static_cast<QKeyEvent *>(event)->key() == Qt::Key_Escape) {
+        cancelTabRename();
+        return true;
     }
     return QWidget::eventFilter(watched, event);
 }
@@ -589,3 +770,5 @@ void TrendPanelWidget::restoreViewState(AppSettings &settings)
     if (stream.status() == QDataStream::Ok)
         setCollapsed(collapsed);
 }
+
+#include "moc_trendpanelwidget.cpp"

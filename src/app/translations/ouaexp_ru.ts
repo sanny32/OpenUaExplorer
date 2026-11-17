@@ -3987,6 +3987,18 @@ Do you want to save them?</source>
         <source>Expand trend panel</source>
         <translation>Развернуть панель трендов</translation>
     </message>
+    <message>
+        <source>Rename</source>
+        <translation>Переименовать</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
+        <source>Trend %1</source>
+        <translation>Тренд %1</translation>
+    </message>
 </context>
 <context>
     <name>TrendSettingsDialog</name>

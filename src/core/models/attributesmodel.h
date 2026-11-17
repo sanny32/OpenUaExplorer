@@ -89,7 +89,7 @@ public:
                         int role = Qt::DisplayRole) const override;
 
     ///
-    /// \brief Re-emits the header titles after a UI language change.
+    /// \brief Re-emits the header titles and picture summaries after a UI language change.
     ///
     void retranslate();
 
@@ -148,6 +148,7 @@ private:
     Item *itemForIndex(const QModelIndex &index) const;
     QString timestampValue(const Item &item) const;
     void refreshTimestamps(const QModelIndex &parentIndex);
+    void refreshImageSummaries(const QModelIndex &parentIndex);
     void emitForegroundChanged(const QModelIndex &parentIndex);
 
     std::unique_ptr<Item> _root;

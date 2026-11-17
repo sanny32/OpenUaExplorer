@@ -297,3 +297,5 @@ void ElidedTextDelegate::setHoveredIndex(const QModelIndex &index)
     _hovered = index;
     _view->viewport()->update();
 }
+
+#include "moc_elidedtextdelegate.cpp"

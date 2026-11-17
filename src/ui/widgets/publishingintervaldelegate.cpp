@@ -66,3 +66,5 @@ void PublishingIntervalDelegate::setModelData(QWidget *editor, QAbstractItemMode
     spin->interpretText();
     model->setData(index, static_cast<double>(spin->value()), Qt::EditRole);
 }
+
+#include "moc_publishingintervaldelegate.cpp"

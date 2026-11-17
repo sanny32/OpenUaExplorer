@@ -80,6 +80,10 @@ void AddressSpaceFeature::wireModules(FeatureHost &host)
                      _addressSpaceModule, &AddressSpaceModule::refresh);
     QObject::connect(_addressSpaceModule, &AddressSpaceModule::childrenReady,
                      _widget, &AddressSpaceWidget::setBrowseChildren);
+    QObject::connect(_widget, &AddressSpaceWidget::iconsRequested,
+                     _addressSpaceModule, &AddressSpaceModule::readIcons);
+    QObject::connect(_addressSpaceModule, &AddressSpaceModule::iconReady,
+                     _widget, &AddressSpaceWidget::setNodeIcon);
     QObject::connect(_widget, &AddressSpaceWidget::searchRequested,
                      _addressSpaceModule, &AddressSpaceModule::search);
     QObject::connect(_widget, &AddressSpaceWidget::searchCancelRequested,

@@ -4,6 +4,11 @@ set(OUAEXP_PCH_HEADER "${CMAKE_CURRENT_LIST_DIR}/ouaexp_pch.h")
 set(OUAEXP_WIDGETS_PCH_HEADER "${CMAKE_CURRENT_LIST_DIR}/ouaexp_widgets_pch.h")
 set(OUAEXP_TEST_PCH_HEADER "${CMAKE_CURRENT_LIST_DIR}/ouaexp_test_pch.h")
 
+# Clang stamps header mtimes into the PCH, so a fresh checkout makes every PCH user a ccache miss.
+if(OUAEXP_ENABLE_PCH AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options("SHELL:-Xclang -fno-pch-timestamp")
+endif()
+
 function(ouaexp_apply_pch target)
     if(OUAEXP_ENABLE_PCH)
         target_precompile_headers(${target} PRIVATE "${OUAEXP_PCH_HEADER}")

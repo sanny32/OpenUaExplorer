@@ -26,3 +26,5 @@ MainToolButton::MainToolButton(QAction *action, QWidget *parent)
     // Floor only; MainToolBar equalises the final width across all buttons.
     setMinimumWidth(minWidth);
 }
+
+#include "moc_maintoolbutton.cpp"

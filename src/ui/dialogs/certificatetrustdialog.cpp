@@ -137,3 +137,5 @@ CertificateTrustDialog::Decision CertificateTrustDialog::decision() const
 {
     return _decision;
 }
+
+#include "moc_certificatetrustdialog.cpp"

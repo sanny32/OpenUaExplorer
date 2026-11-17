@@ -11,12 +11,14 @@
 #include <QVector>
 
 #include <QOpcUaApplicationDescription>
+#include <QOpcUaBrowsePathTarget>
 #include <QOpcUaEndpointDescription>
 #include <QOpcUaNode>
 #include <QOpcUaReferenceDescription>
 
 #include "opcuatypes.h"
 
+class QOpcUaClient;
 class QOpcUaGenericStructHandler;
 
 namespace QtOpcUaTypeMapper {
@@ -78,5 +80,12 @@ OpcUaNodeDetails nodeDetails(QOpcUaNode *node, const QString &nodeId,
                              
 /// \brief Resolves this client's session name from SessionDiagnosticsArray.
 QString ownSessionName(const QVariant &value, const QString &applicationUri);
+
+/// \brief Returns the local NodeId a browse path fully resolved to, or an empty string.
+///
+/// A target named by namespace URI is resolved with the client's namespace table; without
+/// a client, and for targets on other servers, nothing is returned.
+QString resolvedTarget(const QList<QOpcUaBrowsePathTarget> &targets, QOpcUa::UaStatusCode status,
+                       const QOpcUaClient *client);
 
 } // namespace QtOpcUaTypeMapper

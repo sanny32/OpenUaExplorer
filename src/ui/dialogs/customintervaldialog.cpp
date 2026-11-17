@@ -149,3 +149,5 @@ void CustomIntervalDialog::validateAndAccept()
     }
     accept();
 }
+
+#include "moc_customintervaldialog.cpp"

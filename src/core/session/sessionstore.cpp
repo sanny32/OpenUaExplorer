@@ -107,6 +107,7 @@ ConnectionProfile profileFromJson(const QJsonObject &json)
 QJsonObject trendTabToJson(const SessionTrendTab &tab)
 {
     QJsonObject json;
+    json[QStringLiteral("title")] = tab.title;
     json[QStringLiteral("autoScale")] = tab.autoScale;
     json[QStringLiteral("showLegend")] = tab.showLegend;
     json[QStringLiteral("showGrid")] = tab.showGrid;
@@ -142,6 +143,7 @@ QJsonObject trendTabToJson(const SessionTrendTab &tab)
 SessionTrendTab trendTabFromJson(const QJsonObject &json)
 {
     SessionTrendTab tab;
+    tab.title = json[QStringLiteral("title")].toString();
     tab.autoScale = json[QStringLiteral("autoScale")].toBool(true);
     tab.showLegend = json[QStringLiteral("showLegend")].toBool(true);
     tab.showGrid = json[QStringLiteral("showGrid")].toBool(true);

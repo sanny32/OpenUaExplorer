@@ -7,11 +7,13 @@
 ///
 
 #include <QLabel>
+#include <QRegularExpression>
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTest>
 
 #include "mainstatusbarwidget.h"
+#include "suffixtranslator.h"
 #include "widgets/elidedlabel.h"
 #include "opcua/connectioncontroller.h"
 #include "opcua/connectionprofilestore.h"
@@ -66,8 +68,10 @@ private slots:
     void initTestCase();
     void clockLabelsReserveStableWidths();
     void clockWidthsFollowFontChanges();
+    void clockWidthsCoverEveryDigit();
     void lostConnectionKeepsTheSessionParameters();
     void fieldsElideOnlyWhenTheBarRunsOut();
+    void fieldTooltipsFollowTheLanguage();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -105,6 +109,36 @@ void TestMainStatusBarWidget::clockLabelsReserveStableWidths()
     localLabel->setText(QStringLiteral("Local Time: 11:11:11 UTC+3"));
     QCOMPARE(serverLabel->minimumWidth(), serverMinimumWidth);
     QCOMPARE(localLabel->minimumWidth(), localMinimumWidth);
+}
+
+///
+/// \brief Each clock fits its reserved width whichever digit fills every position.
+///
+void TestMainStatusBarWidget::clockWidthsCoverEveryDigit()
+{
+    MainStatusBarWidget widget;
+    auto *serverLabel = widget.findChild<QLabel *>(QStringLiteral("serverTimeLabel"));
+    auto *localLabel = widget.findChild<QLabel *>(QStringLiteral("localTimeLabel"));
+    QVERIFY(serverLabel);
+    QVERIFY(localLabel);
+
+    const QRegularExpression time(QStringLiteral("\\d\\d:\\d\\d:\\d\\d"));
+    const QString localText = localLabel->text();
+    QVERIFY2(localText.contains(time), qPrintable(localText));
+
+    for (char digitValue = '0'; digitValue <= '9'; ++digitValue) {
+        const QString value = QStringLiteral("%1%1:%1%1:%1%1").arg(QLatin1Char(digitValue));
+        const QString serverSample = QStringLiteral("Server Time: %1 UTC").arg(value);
+        QString localSample = localText;
+        localSample.replace(time, value);
+
+        QVERIFY2(serverLabel->minimumWidth()
+                     >= serverLabel->fontMetrics().horizontalAdvance(serverSample),
+                 qPrintable(serverSample));
+        QVERIFY2(localLabel->minimumWidth()
+                     >= localLabel->fontMetrics().horizontalAdvance(localSample),
+                 qPrintable(localSample));
+    }
 }
 
 ///
@@ -236,6 +270,29 @@ void TestMainStatusBarWidget::fieldsElideOnlyWhenTheBarRunsOut()
     QVERIFY(connectionLabel->isElided());
     QCOMPARE(connectionLabel->text(), profile.endpointUrl);
     QVERIFY(connectionLabel->toolTip().contains(profile.endpointUrl));
+}
+
+///
+/// \brief The category tooltips of the fields are rewritten in the new language.
+///
+void TestMainStatusBarWidget::fieldTooltipsFollowTheLanguage()
+{
+    MainStatusBarWidget widget;
+    auto *connectionIcon = widget.findChild<QWidget *>(QStringLiteral("statusIconLabel"));
+    auto *connectionLabel = widget.findChild<ElidedLabel *>(QStringLiteral("connectionLabel"));
+    auto *localLabel = widget.findChild<QLabel *>(QStringLiteral("localTimeLabel"));
+    QVERIFY(connectionIcon);
+    QVERIFY(connectionLabel);
+    QVERIFY(localLabel);
+
+    TestTranslation::SuffixTranslator translator({"MainStatusBarWidget"});
+    TestTranslation::switchLanguage(&translator, true);
+    QCOMPARE(connectionIcon->toolTip(), QStringLiteral("Connection-xx"));
+    QCOMPARE(connectionLabel->toolTip(), QStringLiteral("Connection-xx"));
+    QCOMPARE(localLabel->toolTip(), QStringLiteral("Local time-xx"));
+
+    TestTranslation::switchLanguage(&translator, false);
+    QCOMPARE(connectionIcon->toolTip(), QStringLiteral("Connection"));
 }
 
 QTEST_MAIN(TestMainStatusBarWidget)

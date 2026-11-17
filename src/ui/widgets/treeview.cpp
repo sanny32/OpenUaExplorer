@@ -62,3 +62,5 @@ void TreeView::drawBranches(QPainter *painter, const QRect &rect,
     painter->drawPolyline(chevron);
     painter->restore();
 }
+
+#include "moc_treeview.cpp"

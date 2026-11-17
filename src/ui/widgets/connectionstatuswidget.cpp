@@ -48,3 +48,5 @@ void ConnectionStatusWidget::setStatusText(const QString &text)
 {
     ui->statusTextLabel->setText(text);
 }
+
+#include "moc_connectionstatuswidget.cpp"

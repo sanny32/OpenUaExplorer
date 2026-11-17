@@ -93,3 +93,5 @@ void TextViewDialog::copyText()
 {
     QApplication::clipboard()->setText(ui->textEdit->toPlainText());
 }
+
+#include "moc_textviewdialog.cpp"

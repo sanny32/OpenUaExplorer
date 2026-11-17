@@ -172,3 +172,5 @@ ConnectionProfile EditFavoriteDialog::profile() const
     result.securityMode = ui->securityComboBox->currentData(modeRole).toInt();
     return result;
 }
+
+#include "moc_editfavoritedialog.cpp"

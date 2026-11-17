@@ -415,3 +415,5 @@ void ColoredPushButton::refreshColors()
 {
     applyColors(AppIcons::isDarkTheme() ? _darkColors : _lightColors);
 }
+
+#include "moc_coloredpushbutton.cpp"

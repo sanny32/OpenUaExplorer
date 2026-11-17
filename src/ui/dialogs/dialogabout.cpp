@@ -30,6 +30,7 @@
 #include <QtGlobal>
 
 #include "appicons.h"
+#include "appinfo.h"
 #include "dialogabout.h"
 #include "ui_dialogabout.h"
 
@@ -586,3 +587,5 @@ QString DialogAbout::licenseStyleSheet() const
              QString::number(basePointSize + 5),
              QString::number(basePointSize + 1));
 }
+
+#include "moc_dialogabout.cpp"

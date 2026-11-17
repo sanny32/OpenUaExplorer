@@ -96,6 +96,9 @@ signals:
     ///
     void subscriptionCreationRequested(const QString &name, double publishingInterval);
 
+protected:
+    void changeEvent(QEvent *event) override;
+
 private slots:
     void handleActivated(int index);
 

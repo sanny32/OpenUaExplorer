@@ -78,3 +78,5 @@ void ThemedPushButton::refreshIcon()
 {
     QPushButton::setIcon(AppIcons::themed(_iconName));
 }
+
+#include "moc_themedpushbutton.cpp"

@@ -121,3 +121,5 @@ int SpinnerAction::spinnerSize() const
         return FallbackSpinnerSize;
     return _owner->style()->pixelMetric(QStyle::PM_SmallIconSize, nullptr, _owner);
 }
+
+#include "moc_spinneraction.cpp"

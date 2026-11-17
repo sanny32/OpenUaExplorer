@@ -36,3 +36,5 @@ QList<ServiceModule *> ServiceModuleManager::modules() const
 {
     return _modules;
 }
+
+#include "moc_servicemodulemanager.cpp"

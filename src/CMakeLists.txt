@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 project(ouaexp
-        VERSION 1.0.0
+        VERSION 1.0.1
         DESCRIPTION "An OPC UA client application for exploring and monitoring OPC UA servers"
         LANGUAGES CXX)
 
@@ -37,20 +37,8 @@ endif()
 
 ouaexp_apply_project_version_suffix()
 
-add_compile_definitions(
-    APP_NAME="${PRODUCT_NAME}"
-    APP_ORGANIZATION_NAME="${ORGANIZATION_NAME}"
-    APP_PRODUCT_NAME="${PRODUCT_NAME}"
-    APP_DESCRIPTION="${PROJECT_DESCRIPTION}"
-    APP_VERSION_MAJOR="${VERSION_MAJOR}"
-    APP_VERSION_MINOR="${VERSION_MINOR}"
-    APP_VERSION_PATCH="${VERSION_PATCH}"
-    APP_VERSION="${PROJECT_VERSION}"
-    BUILD_YEAR="${CURRENT_YEAR}"
-    APP_OPENSSL_VERSION="${OPENSSL_VERSION}"
-    APP_QTKEYCHAIN_VERSION="${QTKEYCHAIN_VERSION}"
-    OPCUA_OPEN62541_VERSION="${OPCUA_OPEN62541_VERSION}"
-)
+set(OUAEXP_GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
+configure_file("${PROJECT_SOURCE_DIR}/cmake/appinfo.h.in" "${OUAEXP_GENERATED_DIR}/appinfo.h" @ONLY)
 
 add_subdirectory(core)
 add_subdirectory(charting)

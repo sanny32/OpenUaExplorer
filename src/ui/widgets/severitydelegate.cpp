@@ -96,3 +96,5 @@ void SeverityDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opti
     painter->drawText(bar, Qt::AlignCenter, text);
     painter->restore();
 }
+
+#include "moc_severitydelegate.cpp"

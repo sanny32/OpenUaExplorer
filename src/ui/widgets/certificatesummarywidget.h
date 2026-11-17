@@ -86,6 +86,7 @@ private:
     void applyTheme();
     void updateContents();
     void fillCertificateFields();
+    void updateValueTooltips();
     void elideSerialNumber();
 
     Ui::CertificateSummaryWidget *ui;

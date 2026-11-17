@@ -173,8 +173,10 @@ bool ImageViewDialog::eventFilter(QObject *watched, QEvent *event)
 }
 
 ///
-/// \brief Repaints the header in the colours of the new theme.
+/// \brief Repaints the header in the colours of the new theme, or its texts in the new language.
 /// \param event Change event.
+///
+/// The title names the source node, so it is kept across the generated retranslation.
 ///
 void ImageViewDialog::changeEvent(QEvent *event)
 {
@@ -182,6 +184,12 @@ void ImageViewDialog::changeEvent(QEvent *event)
     if (event->type() == QEvent::PaletteChange
         || event->type() == QEvent::ApplicationPaletteChange) {
         applyHeaderColors();
+    } else if (event->type() == QEvent::LanguageChange) {
+        const QString title = windowTitle();
+        ui->retranslateUi(this);
+        setWindowTitle(title);
+        updateHeader();
+        updateScaling();
     }
 }
 
@@ -448,3 +456,5 @@ QPoint ImageViewDialog::cascadeOffset() const
     const int step = (open % CascadeLength) * CascadeStep;
     return { step, step };
 }
+
+#include "moc_imageviewdialog.cpp"

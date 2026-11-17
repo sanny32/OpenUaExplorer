@@ -850,3 +850,5 @@ QColor const& MacAppStyle::toolButtonForegroundColor(MouseState mouse, ColorRole
 }
 
 #endif // HAVE_QLEMENTINE_APP_STYLE
+
+#include "moc_macappstyle.cpp"

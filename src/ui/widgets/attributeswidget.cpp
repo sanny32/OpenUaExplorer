@@ -208,7 +208,7 @@ AttributesWidget::~AttributesWidget()
 }
 
 ///
-/// \brief Retranslates the generated UI on a language change.
+/// \brief Retranslates the generated UI on a language change and asks for the shown node again.
 /// \param event Change event being handled.
 ///
 void AttributesWidget::changeEvent(QEvent *event)
@@ -217,7 +217,19 @@ void AttributesWidget::changeEvent(QEvent *event)
     if (event->type() == QEvent::LanguageChange) {
         ui->retranslateUi(this);
         _model->retranslate();
+        retranslateCodeTexts();
+        if (!_nodeId.isEmpty() && !_offline)
+            emit rereadRequested(_nodeId);
     }
+}
+
+///
+/// \brief Re-applies the texts of the actions created in code.
+///
+void AttributesWidget::retranslateCodeTexts()
+{
+    _copyCellAction->setText(tr("Copy"));
+    _copyTreeAction->setText(tr("Copy All"));
 }
 
 ///
@@ -246,6 +258,8 @@ void AttributesWidget::setNodeDetails(const OpcUaNodeDetails &details)
 void AttributesWidget::clear()
 {
     _model->clear();
+    _nodeId.clear();
+    _nodeName.clear();
     ui->writeValueGroup->setEnabled(false);
     clearWriteEditor();
 }
@@ -314,7 +328,7 @@ void AttributesWidget::setupAttributesView()
     connect(_valueDelegate, &ElidedTextDelegate::viewRequested,
             this, &AttributesWidget::showAttributeValue);
 
-    _copyCellAction = new ThemedAction(QStringLiteral("copy"), tr("Copy"), this);
+    _copyCellAction = new ThemedAction(QStringLiteral("copy"), QString(), this);
     _copyCellAction->setObjectName(QStringLiteral("actionCopyAttributeCell"));
     _copyCellAction->setShortcut(QKeySequence::Copy);
     _copyCellAction->setShortcutContext(Qt::WidgetShortcut);
@@ -322,11 +336,12 @@ void AttributesWidget::setupAttributesView()
             this, &AttributesWidget::copySelectedAttributeCell);
     ui->attributesTree->addAction(_copyCellAction);
 
-    _copyTreeAction = new ThemedAction(QStringLiteral("copy"), tr("Copy All"), this);
+    _copyTreeAction = new ThemedAction(QStringLiteral("copy"), QString(), this);
     _copyTreeAction->setObjectName(QStringLiteral("actionCopyAttributeTree"));
     connect(_copyTreeAction, &QAction::triggered,
             this, &AttributesWidget::copyAttributeTree);
     ui->attributesTree->addAction(_copyTreeAction);
+    retranslateCodeTexts();
 
     ui->attributesTree->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->attributesTree, &QWidget::customContextMenuRequested,
@@ -515,3 +530,5 @@ void AttributesWidget::writeCurrentValue()
     }
     emit writeRequested(_nodeId, value, valueType);
 }
+
+#include "moc_attributeswidget.cpp"

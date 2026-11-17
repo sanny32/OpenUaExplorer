@@ -77,6 +77,14 @@ void ThemeCoordinator::cycle()
 }
 
 ///
+/// \brief Re-applies the theme tooltip after a UI language change.
+///
+void ThemeCoordinator::retranslate()
+{
+    updateActions();
+}
+
+///
 /// \brief Applies and persists a colour-scheme mode, then refreshes the actions.
 /// \param mode Light, Dark or System mode to activate.
 ///
@@ -109,3 +117,5 @@ void ThemeCoordinator::updateActions()
         break;
     }
 }
+
+#include "moc_themecoordinator.cpp"

@@ -19,6 +19,7 @@
 #include <QStandardPaths>
 #include <QStringList>
 
+#include "appinfo.h"
 #include "appsettings.h"
 #include "dataaccesscoordinator.h"
 #include "dialogs/messageboxdialog.h"
@@ -61,7 +62,7 @@ QByteArray sessionFingerprint(const SessionData &data)
     QStringList trends;
     trends.reserve(data.trendTabs.size());
     for (const SessionTrendTab &tab : data.trendTabs) {
-        QString entry;
+        QString entry = tab.title + QLatin1Char('\x1f');
         entry += QString::number(tab.autoScale) + QString::number(tab.showLegend)
             + QString::number(tab.showGrid) + QString::number(tab.smoothLines)
             + QString::number(tab.lineType) + QString::number(tab.showPoints)
@@ -730,3 +731,5 @@ void SessionCoordinator::openRecentSession()
     if (!path.isEmpty())
         openSessionFromFile(path);
 }
+
+#include "moc_sessioncoordinator.cpp"

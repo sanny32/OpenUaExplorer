@@ -15,6 +15,7 @@
 
 #include <utility>
 
+#include "appinfo.h"
 #include "appstyle.h"
 #include "application.h"
 #include "loggingcategories.h"
@@ -241,6 +242,9 @@ void Application::loadTranslatorsFor(AppSettings::Language language)
         break;
     }
 
+    // Locale-formatted text such as image byte counts must follow the UI language, not the OS.
+    QLocale::setDefault(locale);
+
     if (locale.language() == QLocale::English)
         return;
 
@@ -329,3 +333,5 @@ void Application::ensureClientCertificate()
             << tr("Could not generate the client certificate: %1").arg(error);
     }
 }
+
+#include "moc_application.cpp"

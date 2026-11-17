@@ -16,6 +16,7 @@
 #include <QUrl>
 #include <QVersionNumber>
 
+#include "appinfo.h"
 #include "loggingcategories.h"
 #include "updatechecker.h"
 
@@ -255,3 +256,5 @@ void UpdateChecker::onReplyFinished(QNetworkReply *reply)
         emit noUpdatesAvailable();
     }
 }
+
+#include "moc_updatechecker.cpp"

@@ -109,6 +109,7 @@ signals:
     void nodeDropped(const OpcUaNodeInfo &node);
 
 protected:
+    QString resetToolTip() const override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
     void dropEvent(QDropEvent *event) override;

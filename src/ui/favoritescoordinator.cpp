@@ -70,3 +70,5 @@ void FavoritesCoordinator::refreshVisible()
     if (_widget->isVisible())
         _widget->setFavorites(_controller->profiles());
 }
+
+#include "moc_favoritescoordinator.cpp"

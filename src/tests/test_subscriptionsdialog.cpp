@@ -14,12 +14,12 @@
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTest>
-#include <QTranslator>
 
 #include "application.h"
 #include "appsettings.h"
 #include "dialogs/subscriptionsdialog.h"
 #include "settingsstore.h"
+#include "suffixtranslator.h"
 #include "widgets/dialogbuttonbox.h"
 #include "widgets/subscriptionswidget.h"
 
@@ -155,43 +155,7 @@ void TestSubscriptionsDialog::builtinEditsSurviveSaveAndLoad()
     QCOMPARE(items.at(2).publishingInterval, 9000.0);
 }
 
-namespace {
-
-///
-/// \brief Translator that suffixes every SubscriptionsWidget string, standing in for a language.
-///
-class SuffixTranslator : public QTranslator
-{
-public:
-    QString translate(const char *context, const char *sourceText,
-                      const char *disambiguation = nullptr, int n = -1) const override
-    {
-        Q_UNUSED(disambiguation)
-        Q_UNUSED(n)
-        if (qstrcmp(context, "SubscriptionsWidget") != 0)
-            return QString();
-        return QString::fromUtf8(sourceText) + QStringLiteral("-xx");
-    }
-
-    bool isEmpty() const override { return false; }
-};
-
-///
-/// \brief Installs or removes a translator and delivers the language change.
-/// \param translator Translator to switch on or off.
-/// \param install True to install, false to remove.
-///
-void switchLanguage(QTranslator *translator, bool install)
-{
-    if (install)
-        QCoreApplication::installTranslator(translator);
-    else
-        QCoreApplication::removeTranslator(translator);
-    QCoreApplication::sendPostedEvents();
-    QCoreApplication::processEvents();
-}
-
-} // namespace
+using TestTranslation::switchLanguage;
 
 ///
 /// \brief A language change renames the untouched built-ins and spares the ones the user named.
@@ -208,7 +172,7 @@ void TestSubscriptionsDialog::builtinNamesFollowTheInterfaceLanguage()
                                     QStringLiteral("Telemetry"), Qt::EditRole));
 
     QSignalSpy renameSpy(widget, &SubscriptionsWidget::subscriptionRenamed);
-    SuffixTranslator translator;
+    TestTranslation::SuffixTranslator translator({"SubscriptionsWidget"});
     switchLanguage(&translator, true);
 
     QVector<SubscriptionItem> items = widget->subscriptions();
@@ -232,7 +196,7 @@ void TestSubscriptionsDialog::builtinNamesFollowTheInterfaceLanguage()
 ///
 void TestSubscriptionsDialog::factoryNamesAreNeverStoredAsRenames()
 {
-    SuffixTranslator translator;
+    TestTranslation::SuffixTranslator translator({"SubscriptionsWidget"});
     {
         SubscriptionsDialog dialog;
         switchLanguage(&translator, true);

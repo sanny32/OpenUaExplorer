@@ -105,3 +105,5 @@ void ServerModule::handleStateChanged(OpcUaConnectionState state)
     qCInfo(lcServer).noquote()
         << tr("Connection state changed to '%1'.").arg(connectionStateName(state));
 }
+
+#include "moc_servermodule.cpp"

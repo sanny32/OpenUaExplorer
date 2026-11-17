@@ -1187,3 +1187,5 @@ QModelIndexList DataAccessWidget::selectedSettledRows() const
     }
     return rows;
 }
+
+#include "moc_dataaccesswidget.cpp"

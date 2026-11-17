@@ -307,3 +307,5 @@ void FindServersDialog::setStatus(const QString &text, const QString &iconName)
     ui->statusIconLabel->setIcon(iconName, QSize(16, 16));
     ui->statusLabel->setText(text);
 }
+
+#include "moc_findserversdialog.cpp"

@@ -12,8 +12,10 @@
 #include <QColor>
 #include <QDateTime>
 #include <QFont>
+#include <QLocale>
 #include <QMimeData>
 #include <QPalette>
+#include <QScopeGuard>
 #include <QScopedPointer>
 #include <QSignalSpy>
 #include <QStandardItemModel>
@@ -47,6 +49,7 @@ class TestModelsAttributes : public QObject
 
 private slots:
     void attributesModelOffersImageBytes();
+    void attributesModelImageSummaryFollowsTheLanguage();
     void attributesModelTimestampModeReformats();
     void attributesModelKeepsEmptyValueEmpty();
     void attributesModelOfflineGreysValues();
@@ -79,6 +82,41 @@ void TestModelsAttributes::attributesModelOffersImageBytes()
     // The attribute-name column is not where the picture lives.
     QVERIFY(model.data(model.index(0, AttributesModel::ColAttribute, row),
                        ValueRoles::ImageDataRole).isNull());
+}
+
+///
+/// \brief A language switch rewrites a nested picture summary with the new locale's byte count.
+///
+void TestModelsAttributes::attributesModelImageSummaryFollowsTheLanguage()
+{
+    const QLocale previous;
+    const auto restore = qScopeGuard([&previous] { QLocale::setDefault(previous); });
+
+    const QByteArray png = encodedPng(QSize(3, 2));
+    QVERIFY(!png.isEmpty());
+    const QLocale russian(QLocale::Russian);
+    const QLocale english(QLocale::English);
+    QLocale::setDefault(russian);
+
+    AttributesModel model;
+    OpcUaNodeAttribute parent;
+    parent.name = QStringLiteral("Value");
+    parent.children.append(OpcUaFormat::valueAttribute(QVariant(png), QOpcUa::Types::ByteString,
+                                                       QStringLiteral("ns=0;i=2003")));
+    model.setAttributes({parent});
+
+    const QModelIndex value = model.index(0, AttributesModel::ColValue, model.index(0, 0));
+    QVERIFY2(model.data(value).toString().contains(russian.formattedDataSize(png.size())),
+             qPrintable(model.data(value).toString()));
+
+    QLocale::setDefault(english);
+    QSignalSpy changeSpy(&model, &QAbstractItemModel::dataChanged);
+    model.retranslate();
+    QCOMPARE(changeSpy.size(), 1);
+    QCOMPARE(changeSpy.at(0).at(0).toModelIndex(), value);
+    QVERIFY2(model.data(value).toString().startsWith(QStringLiteral("PNG 3×2, ")
+                                                     + english.formattedDataSize(png.size())),
+             qPrintable(model.data(value).toString()));
 }
 
 ///

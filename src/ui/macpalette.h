@@ -22,7 +22,7 @@ namespace MacPalette {
 /// Light mode colors: neutral Qt Creator-like grays on a white canvas
 namespace Light {
     constexpr QRgb kCanvas         = 0xffffff;
-    constexpr QRgb kChrome         = 0xececec;
+    constexpr QRgb kChrome         = 0xf1f3f6;
     constexpr QRgb kChromeStrong   = 0xe4e4e4;
     constexpr QRgb kChromePressed  = 0xd0d0d0;
     constexpr QRgb kAlternateRow   = 0xf7f7f7;

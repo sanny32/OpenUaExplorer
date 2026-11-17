@@ -1,12 +1,15 @@
 // SPDX-FileCopyrightText: 2026 OpenUaExplorer contributors
 // SPDX-License-Identifier: MIT
 
+#include <limits>
+
 #include <QTest>
 #include <QSignalSpy>
 #include <QTimeZone>
 
 #include <QOpcUaApplicationDescription>
 #include <QOpcUaBinaryDataEncoding>
+#include <QOpcUaBrowsePathTarget>
 #include <QOpcUaDataValue>
 #include <QOpcUaEndpointDescription>
 #include <QOpcUaEnumDefinition>
@@ -75,6 +78,7 @@ private slots:
     void mapsEventFields();
     void resolvesSessionByApplicationAndRecency();
     void ignoresInvalidSessionDiagnostics();
+    void resolvesBrowsePathTargets();
     void detectsValuesWaitingForTypeDefinitions();
     void decodesStructuresWithAbstractEnumerationFields();
     void decodesStandardDiagnosticStructuresWithScalarAliases();
@@ -310,6 +314,29 @@ void TestQtOpcUaInternals::ignoresInvalidSessionDiagnostics()
     QCOMPARE(QtOpcUaTypeMapper::ownSessionName(QVariant::fromValue(QList<QOpcUaExtensionObject>{invalid}),
                                                QStringLiteral("urn:ours")),
              QString());
+}
+
+/// \brief Takes the first fully resolved local target of a browse path.
+void TestQtOpcUaInternals::resolvesBrowsePathTargets()
+{
+    const auto target = [](const QOpcUaExpandedNodeId &id, bool resolved) {
+        QOpcUaBrowsePathTarget result;
+        result.setTargetId(id);
+        result.setRemainingPathIndex(resolved ? (std::numeric_limits<quint32>::max)() : 0);
+        return result;
+    };
+    const QOpcUaBrowsePathTarget partial = target(QOpcUaExpandedNodeId(QStringLiteral("ns=2;s=Half")), false);
+    const QOpcUaBrowsePathTarget remote =
+        target(QOpcUaExpandedNodeId(QString(), QStringLiteral("ns=2;s=Far"), 1), true);
+    const QOpcUaBrowsePathTarget byUri =
+        target(QOpcUaExpandedNodeId(QStringLiteral("urn:models"), QStringLiteral("i=7")), true);
+    const QOpcUaBrowsePathTarget icon = target(QOpcUaExpandedNodeId(QStringLiteral("ns=2;s=Level.Icon")), true);
+
+    QCOMPARE(QtOpcUaTypeMapper::resolvedTarget({partial, remote, byUri, icon}, QOpcUa::Good, nullptr),
+             QStringLiteral("ns=2;s=Level.Icon"));
+    QCOMPARE(QtOpcUaTypeMapper::resolvedTarget({partial, remote, byUri}, QOpcUa::Good, nullptr), QString());
+    QCOMPARE(QtOpcUaTypeMapper::resolvedTarget({icon}, QOpcUa::BadNoMatch, nullptr), QString());
+    QCOMPARE(QtOpcUaTypeMapper::resolvedTarget({}, QOpcUa::Good, nullptr), QString());
 }
 
 /// \brief Recognises the values that are worth reading again once structures decode.

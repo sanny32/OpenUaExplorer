@@ -88,11 +88,19 @@ signals:
     ///
     void writeRequested(const QString &nodeId, const QVariant &value, int valueType);
 
+    ///
+    /// \brief Emitted on a language change to read the shown node again: its attribute names and
+    ///        texts arrive already translated, so they cannot be retranslated in place.
+    /// \param nodeId Node whose attributes are shown.
+    ///
+    void rereadRequested(const QString &nodeId);
+
 protected:
     void changeEvent(QEvent *event) override;
 
 private:
     void setupAttributesView();
+    void retranslateCodeTexts();
     void copySelectedAttributeCell();
     void copyAttributeTree();
     void showAttributesContextMenu(const QPoint &pos);

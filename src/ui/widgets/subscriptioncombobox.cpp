@@ -6,6 +6,7 @@
 /// \brief Implements the subscription selection combo box.
 ///
 
+#include <QEvent>
 #include <QSignalBlocker>
 
 #include "dialogs/newsubscriptiondialog.h"
@@ -128,6 +129,17 @@ void SubscriptionComboBox::showPopup()
 }
 
 ///
+/// \brief Relabels the create entry after a language change.
+/// \param event Change event being handled.
+///
+void SubscriptionComboBox::changeEvent(QEvent *event)
+{
+    QComboBox::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange)
+        rebuild();
+}
+
+///
 /// \brief Rebuilds the entries and restores the selection by name.
 ///
 void SubscriptionComboBox::rebuild()
@@ -208,3 +220,5 @@ double SubscriptionComboBox::intervalForSubscription(const QString &name) const
     }
     return kDefaultIntervalMs;
 }
+
+#include "moc_subscriptioncombobox.cpp"

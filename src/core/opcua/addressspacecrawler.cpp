@@ -264,3 +264,5 @@ bool AddressSpaceCrawler::isRunning() const
 {
     return _running;
 }
+
+#include "moc_addressspacecrawler.cpp"

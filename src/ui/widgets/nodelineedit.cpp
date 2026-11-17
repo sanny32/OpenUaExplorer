@@ -25,7 +25,7 @@ NodeLineEdit::NodeLineEdit(QWidget *parent)
     : ValueLineEdit(parent)
 {
     setAcceptDrops(true);
-    setResetToolTip(tr("Clear node"));
+    applyResetToolTip();
     connect(this, &QLineEdit::textChanged, this, [this](const QString &text) {
         if (text.isEmpty() && hasNode()) {
             emit nodeCleared();
@@ -124,6 +124,14 @@ void NodeLineEdit::setNodeAcceptor(NodeAcceptor acceptor)
 }
 
 ///
+/// \brief Returns the tooltip of the clear action in the current language.
+///
+QString NodeLineEdit::resetToolTip() const
+{
+    return tr("Clear node");
+}
+
+///
 /// \brief Mirrors the drag-move policy so entering the field shows the verdict.
 ///
 void NodeLineEdit::dragEnterEvent(QDragEnterEvent *event)
@@ -185,3 +193,5 @@ bool NodeLineEdit::acceptsDrag(const QMimeData *mimeData, OpcUaNodeInfo *node) c
         return false;
     return !_acceptNode || _acceptNode(*node);
 }
+
+#include "moc_nodelineedit.cpp"

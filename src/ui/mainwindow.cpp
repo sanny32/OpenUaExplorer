@@ -168,6 +168,10 @@ void MainWindow::changeEvent(QEvent *event)
             _featureManager->retranslate();
         if (_sessionCoordinator)
             _sessionCoordinator->retranslate();
+        if (_themeCoordinator)
+            _themeCoordinator->retranslate();
+        if (_connectionCoordinator)
+            _connectionCoordinator->retranslate();
     }
 }
 
@@ -1081,3 +1085,5 @@ void MainWindow::bindIcons()
     AppIcons::bindIcon(ui->actionFavorites,   "star");
     AppIcons::bindIcon(ui->actionNodeMonitor, "trend");
 }
+
+#include "moc_mainwindow.cpp"

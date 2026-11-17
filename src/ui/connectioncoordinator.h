@@ -118,6 +118,11 @@ public:
     ConnectionCredentials requestCredentials(const ConnectionProfile &profile,
                                              const QString &reason) override;
 
+    ///
+    /// \brief Rebuilds the Recent Connections menu in the new UI language.
+    ///
+    void retranslate();
+
 signals:
     ///
     /// \brief Emitted when the user gives up on a lost connection instead of retrying it.

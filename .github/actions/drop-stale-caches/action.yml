@@ -1,0 +1,35 @@
+name: Drop stale caches
+description: >-
+  Deletes the current ref's cache entries whose key starts with a prefix, except
+  the one to keep. Cache entries are immutable, so every update saves a new key and
+  the superseded ones only take up the repository quota until they expire.
+  Needs the actions: write permission.
+
+inputs:
+  prefix:
+    description: 'Key prefix of the entries to delete'
+    required: true
+  keep:
+    description: 'Exact key to leave in place'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Delete superseded entries
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        PREFIX: ${{ inputs.prefix }}
+        KEEP: ${{ inputs.keep }}
+      run: |
+        gh cache list --ref "$GITHUB_REF" --key "$PREFIX" --limit 100 \
+            --json id,key --jq '.[] | "\(.id) \(.key)"' |
+          while read -r id key; do
+            if [ "$key" != "$KEEP" ]; then
+              echo "Deleting $key"
+              gh cache delete "$id"
+            fi
+          done

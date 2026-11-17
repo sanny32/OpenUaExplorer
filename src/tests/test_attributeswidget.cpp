@@ -28,6 +28,7 @@
 
 #include "application.h"
 #include "settingsstore.h"
+#include "suffixtranslator.h"
 #include "widgets/headerview.h"
 #include "widgets/attributeswidget.h"
 
@@ -57,6 +58,10 @@ private slots:
     void nonBooleanNodeKeepsTextField();
     void enumerationNodeWritesAPickedName();
     void valueEditorStretchesWithPanel();
+    void copyActionsFollowTheLanguage();
+    void languageChangeRereadsShownNode();
+    void languageChangeSkipsRereadWhileOffline();
+    void languageChangeSkipsRereadAfterClear();
 
 private:
     QTemporaryDir _settingsDirectory;
@@ -527,6 +532,81 @@ void TestAttributesWidget::valueEditorStretchesWithPanel()
 /// \param argv Argument vector.
 /// \return Test exit code.
 ///
+///
+/// \brief The copy actions created in code are relabelled on a language change.
+///
+void TestAttributesWidget::copyActionsFollowTheLanguage()
+{
+    AttributesWidget widget;
+    auto *copyCell = widget.findChild<QAction *>(QStringLiteral("actionCopyAttributeCell"));
+    auto *copyTree = widget.findChild<QAction *>(QStringLiteral("actionCopyAttributeTree"));
+    QVERIFY(copyCell);
+    QVERIFY(copyTree);
+
+    TestTranslation::SuffixTranslator translator({"AttributesWidget"});
+    TestTranslation::switchLanguage(&translator, true);
+    QCOMPARE(copyCell->text(), QStringLiteral("Copy-xx"));
+    QCOMPARE(copyTree->text(), QStringLiteral("Copy All-xx"));
+
+    TestTranslation::switchLanguage(&translator, false);
+    QCOMPARE(copyCell->text(), QStringLiteral("Copy"));
+}
+
+///
+/// \brief A language change asks for the shown node again, its attribute names being pre-translated.
+///
+void TestAttributesWidget::languageChangeRereadsShownNode()
+{
+    AttributesWidget widget;
+    const OpcUaNodeDetails details = makeDetails();
+    widget.setNodeDetails(details);
+    QSignalSpy rereadSpy(&widget, &AttributesWidget::rereadRequested);
+    QVERIFY(rereadSpy.isValid());
+
+    TestTranslation::SuffixTranslator translator({"AttributesWidget"});
+    TestTranslation::switchLanguage(&translator, true);
+    TestTranslation::switchLanguage(&translator, false);
+
+    QCOMPARE(rereadSpy.count(), 2);
+    QCOMPARE(rereadSpy.first().first().toString(), details.nodeId);
+}
+
+///
+/// \brief Without a connection the greyed-out attributes stay as they are on a language change.
+///
+void TestAttributesWidget::languageChangeSkipsRereadWhileOffline()
+{
+    AttributesWidget widget;
+    widget.setNodeDetails(makeDetails());
+    widget.setOffline(true);
+    QSignalSpy rereadSpy(&widget, &AttributesWidget::rereadRequested);
+    QVERIFY(rereadSpy.isValid());
+
+    TestTranslation::SuffixTranslator translator({"AttributesWidget"});
+    TestTranslation::switchLanguage(&translator, true);
+    TestTranslation::switchLanguage(&translator, false);
+
+    QCOMPARE(rereadSpy.count(), 0);
+}
+
+///
+/// \brief A cleared panel has no node to ask for on a language change.
+///
+void TestAttributesWidget::languageChangeSkipsRereadAfterClear()
+{
+    AttributesWidget widget;
+    widget.setNodeDetails(makeDetails());
+    widget.clear();
+    QSignalSpy rereadSpy(&widget, &AttributesWidget::rereadRequested);
+    QVERIFY(rereadSpy.isValid());
+
+    TestTranslation::SuffixTranslator translator({"AttributesWidget"});
+    TestTranslation::switchLanguage(&translator, true);
+    TestTranslation::switchLanguage(&translator, false);
+
+    QCOMPARE(rereadSpy.count(), 0);
+}
+
 int main(int argc, char *argv[])
 {
     Application app(argc, argv);
