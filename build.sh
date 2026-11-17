@@ -1051,8 +1051,10 @@ configure_linux_compiler() {
 
 system_openssl3_available() {
     if command -v pkg-config >/dev/null 2>&1 \
-        && pkg-config --atleast-version=3 openssl 2>/dev/null; then
-        return 0
+        && pkg-config --exists openssl 2>/dev/null; then
+        pkg-config --atleast-version=3 openssl 2>/dev/null \
+            && ! pkg-config --atleast-version=4 openssl 2>/dev/null
+        return $?
     fi
 
     # Not every distribution ships the pkg-config file with the headers, so the
@@ -1062,7 +1064,7 @@ system_openssl3_available() {
     for header in /usr/include/openssl/opensslv.h \
                   /usr/include/*/openssl/opensslv.h; do
         if [ -f "$header" ] \
-            && grep -qE '^#[[:space:]]*define[[:space:]]+OPENSSL_VERSION_MAJOR[[:space:]]+3' "$header"; then
+            && grep -qE '^#[[:space:]]*define[[:space:]]+OPENSSL_VERSION_MAJOR[[:space:]]+3([[:space:]]|$)' "$header"; then
             return 0
         fi
     done
@@ -1102,11 +1104,7 @@ install_openssl_source() {
     fi
 }
 
-# Qt 6 opens libssl.so.3 with dlopen and Qt OpcUa links its open62541 backend against
-# OpenSSL, so an OpenSSL 3 is required no matter what the distribution ships. Older
-# distributions - Astra Linux 1.7 and Debian 10 among them - carry only OpenSSL 1.1,
-# and building against it would produce a program that links and then fails to do any
-# TLS at run time. The source carried by the Qt installer is built for those systems.
+# Qt 6 loads libssl.so.3 and Qt OpcUa requires the OpenSSL 3 API.
 configure_linux_openssl() {
     local root="$TOOLS_DIR/openssl-src"
     local prefix="$TOOLS_DIR/openssl"

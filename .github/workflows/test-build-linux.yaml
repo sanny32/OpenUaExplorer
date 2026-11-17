@@ -43,6 +43,9 @@ jobs:
       - name: Check help output
         run: bash build.sh --help
 
+      - name: Test OpenSSL version selection
+        run: bash src/tests/test_build_openssl.sh
+
   build:
     name: Run build.sh on ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
