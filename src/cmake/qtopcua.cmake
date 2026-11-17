@@ -197,8 +197,15 @@ function(ouaexp_use_bundled_qtopcua_headers)
 endfunction()
 
 ouaexp_patch_qtopcua("${QTOPCUA_SOURCE_DIR}")
-if(OUAEXP_QTOPCUA_PATCHED AND EXISTS "${QTOPCUA_INSTALL_DIR}")
-    message(STATUS "Qt OpcUa sources were patched; rebuilding the bundled backend")
+set(QTOPCUA_OPENSSL_FILE "${CMAKE_BINARY_DIR}/qtopcua-openssl.txt")
+set(QTOPCUA_OPENSSL_SELECTION
+    "${OPENSSL_ROOT_DIR}|${OPENSSL_INCLUDE_DIR}|${OPENSSL_SSL_LIBRARY}|${OPENSSL_CRYPTO_LIBRARY}")
+if(EXISTS "${QTOPCUA_OPENSSL_FILE}")
+    file(READ "${QTOPCUA_OPENSSL_FILE}" QTOPCUA_PREVIOUS_OPENSSL_SELECTION)
+endif()
+if(EXISTS "${QTOPCUA_INSTALL_DIR}" AND
+   (OUAEXP_QTOPCUA_PATCHED OR NOT QTOPCUA_OPENSSL_SELECTION STREQUAL QTOPCUA_PREVIOUS_OPENSSL_SELECTION))
+    message(STATUS "Qt OpcUa sources or OpenSSL selection changed; rebuilding the bundled backend")
     file(REMOVE_RECURSE "${QTOPCUA_BUILD_DIR}" "${QTOPCUA_INSTALL_DIR}")
     unset(Qt6OpcUa_DIR CACHE)
 endif()
@@ -262,13 +269,18 @@ if(NOT EXISTS "${QTOPCUA_CONFIG_FILE}")
     if(OPENSSL_ROOT_DIR)
         list(APPEND QTOPCUA_CONFIGURE_OPTIONS
             "-DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}")
-        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT OPENSSL_INCLUDE_DIR)
             list(APPEND QTOPCUA_CONFIGURE_OPTIONS
                 "-DOPENSSL_INCLUDE_DIR=${OPENSSL_ROOT_DIR}/include"
                 "-DOPENSSL_SSL_LIBRARY=${OPENSSL_ROOT_DIR}/lib/libssl.so"
                 "-DOPENSSL_CRYPTO_LIBRARY=${OPENSSL_ROOT_DIR}/lib/libcrypto.so")
         endif()
     endif()
+    foreach(openssl_var OPENSSL_INCLUDE_DIR OPENSSL_SSL_LIBRARY OPENSSL_CRYPTO_LIBRARY)
+        if(${openssl_var})
+            list(APPEND QTOPCUA_CONFIGURE_OPTIONS "-D${openssl_var}=${${openssl_var}}")
+        endif()
+    endforeach()
     if(APPLE)
         # Qt's toolchain file defaults to a universal build, but Homebrew
         # OpenSSL is single-arch; build the backend for the same architectures
@@ -329,6 +341,7 @@ if(NOT QTOPCUA_CONFIG_FILE)
         "The bundled Qt OpcUa was built but no Qt6OpcUaConfig.cmake was installed under "
         "${QTOPCUA_INSTALL_DIR}.")
 endif()
+file(WRITE "${QTOPCUA_OPENSSL_FILE}" "${QTOPCUA_OPENSSL_SELECTION}")
 get_filename_component(QTOPCUA_CONFIG_DIR "${QTOPCUA_CONFIG_FILE}" DIRECTORY)
 set(Qt6OpcUa_DIR "${QTOPCUA_CONFIG_DIR}"
     CACHE PATH "Directory containing Qt6OpcUaConfig.cmake" FORCE)

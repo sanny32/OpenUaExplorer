@@ -1119,6 +1119,15 @@ configure_linux_openssl() {
         return
     fi
 
+    if [ "$DISTRO" = arch ] && { package_installed openssl-3 || package_available openssl-3; }; then
+        install_packages openssl-3
+        export OPENSSL_INCLUDE_DIR=/usr/include/openssl-3
+        export OPENSSL_SSL_LIBRARY=/usr/lib/libssl.so.3
+        export OPENSSL_CRYPTO_LIBRARY=/usr/lib/libcrypto.so.3
+        log_info "Using the openssl-3 package."
+        return
+    fi
+
     log_warn "The distribution has no OpenSSL 3; building OpenSSL 3 from source."
 
     if ! command -v perl >/dev/null 2>&1; then
@@ -1270,6 +1279,7 @@ build_project() {
     local build_dir
     local cmake_args
     local build_tests
+    local openssl_var
 
     qt_version_safe="$(printf '%s' "$QT_VERSION" | tr '. ' '__')"
     arch="$(uname -m)"
@@ -1289,7 +1299,14 @@ build_project() {
     )
     if [ -n "${OPENSSL_ROOT_DIR:-}" ]; then
         cmake_args+=("-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR")
+    elif [ -n "${OPENSSL_INCLUDE_DIR:-}" ]; then
+        cmake_args+=(-UOPENSSL_ROOT_DIR)
     fi
+    for openssl_var in OPENSSL_INCLUDE_DIR OPENSSL_SSL_LIBRARY OPENSSL_CRYPTO_LIBRARY; do
+        if [ -n "${!openssl_var:-}" ]; then
+            cmake_args+=("-D$openssl_var=${!openssl_var}")
+        fi
+    done
     if [ -n "${CXX:-}" ]; then
         cmake_args+=("-DCMAKE_CXX_COMPILER=$CXX")
     fi
