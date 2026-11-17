@@ -212,7 +212,7 @@ jobs:
     name: Verify AppImage
     runs-on: ubuntu-latest
     needs: appimage
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - name: Download AppImage artifact
@@ -288,5 +288,4 @@ jobs:
           prerelease: ${{ needs.appimage.outputs.prerelease != '' }}
           files: |
             ${{ needs.appimage.outputs.name }}
-          generate_release_notes: true
           fail_on_unmatched_files: true
