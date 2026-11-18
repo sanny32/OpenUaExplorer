@@ -779,11 +779,13 @@ void TestAddressSpaceWidget::selectedServerIconsStayLegible()
                                         QString(), true);
     const OpcUaNodeInfo speed = makeNode(QStringLiteral("ns=2;s=Speed"), QStringLiteral("Speed"));
     const OpcUaNodeInfo running = makeNode(QStringLiteral("ns=2;s=Running"), QStringLiteral("Running"));
+    const OpcUaNodeInfo dark = makeNode(QStringLiteral("ns=2;s=Dark"), QStringLiteral("Dark"));
     widget.setRootNode(root);
-    widget.setBrowseChildren(root.nodeId, {speed, running}, QString());
+    widget.setBrowseChildren(root.nodeId, {speed, running, dark}, QString());
 
     widget.setNodeIcon(speed.nodeId, squarePng(QColor(0x80, 0x80, 0x80)));
     widget.setNodeIcon(running.nodeId, squarePng(QColor(0x22, 0xc5, 0x5e)));
+    widget.setNodeIcon(dark.nodeId, squarePng(QColor(0x01, 0x01, 0x01)));
 
     const QModelIndex rootIndex = tree->model()->index(0, 0);
     const auto selectedCenter = [&](int row) {
@@ -794,6 +796,7 @@ void TestAddressSpaceWidget::selectedServerIconsStayLegible()
     QCOMPARE(speedImage.pixelColor(16, 16), QColor(Qt::white));
     QCOMPARE(speedImage.pixelColor(2, 2).alpha(), 0);
     QCOMPARE(selectedCenter(1).pixelColor(16, 16), QColor(0x22, 0xc5, 0x5e));
+    QCOMPARE(selectedCenter(2).pixelColor(16, 16), QColor(0x01, 0x01, 0x01));
 }
 
 QTEST_MAIN(TestAddressSpaceWidget)
