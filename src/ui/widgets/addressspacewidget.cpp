@@ -6,6 +6,7 @@
 /// \brief Implements the OPC UA address space browser widget.
 ///
 
+#include <cmath>
 #include <functional>
 
 #include <QAbstractItemView>
@@ -17,7 +18,6 @@
 #include <QMenu>
 #include <QPalette>
 #include <QPixmap>
-#include <QtMath>
 #include <QPushButton>
 #include <QStyle>
 
@@ -119,7 +119,9 @@ QColor averageColor(const QImage &image)
 qreal relativeLuminance(const QColor &color)
 {
     const auto linear = [](qreal channel) {
-        return channel <= 0.04045 ? channel / 12.92 : qPow((channel + 0.055) / 1.055, 2.4);
+        // The double-precision pow symbol requires glibc 2.29.
+        return channel <= 0.04045 ? channel / 12.92
+            : static_cast<qreal>(std::pow((static_cast<long double>(channel) + 0.055L) / 1.055L, 2.4L));
     };
     return 0.2126 * linear(color.redF()) + 0.7152 * linear(color.greenF()) + 0.0722 * linear(color.blueF());
 }
