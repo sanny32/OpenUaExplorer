@@ -1,6 +1,6 @@
 # OpenUaExplorer
 
-[![Test CI](https://github.com/sanny32/OpenUaExplorer/actions/workflows/test-ci.yml/badge.svg)](https://github.com/sanny32/OpenUaExplorer/actions/workflows/test-ci.yml)
+[![Build and Test](https://github.com/sanny32/OpenUaExplorer/actions/workflows/test-ci.yml/badge.svg)](https://github.com/sanny32/OpenUaExplorer/actions/workflows/build-test.yml)
 [![Latest release](https://img.shields.io/github/v/release/sanny32/OpenUaExplorer)](https://github.com/sanny32/OpenUaExplorer/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
